@@ -92,6 +92,8 @@ export interface MemberSearchResult {
     memberUid: string
     displayName: string
     userType: string | null
+    /** The colour their name is painted in, from their highest-priority coloured group. */
+    nameColor: string | null
     displayTag: string | null
     displayTagColor: string | null
     avatarUrl: string | null

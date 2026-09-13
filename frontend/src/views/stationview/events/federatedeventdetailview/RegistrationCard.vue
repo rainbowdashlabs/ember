@@ -13,7 +13,8 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import type {MemberOption} from '@/components/input/select/memberOption'
 import type {FederatedRegistration} from '@/api/events'
 
 interface EligibleMember {
@@ -45,6 +46,9 @@ const membersWithoutReg = computed(() =>
     props.eligibleMembers.filter(m => !getRegistration(m.uid)),
 )
 
+const pickable = computed<MemberOption[]>(() =>
+    membersWithoutReg.value.map(m => ({value: m.uid, name: m.name})))
+
 const canSubmit = computed(() => {
   if (membersWithoutReg.value.length === 1) return true
   return !!selectedMemberUid.value
@@ -68,14 +72,13 @@ const canSubmit = computed(() => {
       </template>
 
       <template v-if="membersWithoutReg.length > 0">
-        <SelectInput
+        <MemberSelectInput
             v-if="membersWithoutReg.length > 1"
             v-model="selectedMemberUid"
-            class="text-sm w-40"
-        >
-          <option disabled value="">{{ t('eventsUpcoming.selectMember') }}</option>
-          <option v-for="m in membersWithoutReg" :key="m.uid" :value="m.uid">{{ m.name }}</option>
-        </SelectInput>
+            class="w-56"
+            :members="pickable"
+            :placeholder="t('eventsUpcoming.selectMember')"
+        />
         <PrimaryButton :disabled="props.registering || !canSubmit" @click="emit('register')">
           <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
           {{ t('eventsUpcoming.register') }}

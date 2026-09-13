@@ -78,8 +78,7 @@ const ITEMS: EditableItem[] = [
         <BasicInfoSection name="Aufnahme Lena Hoffmann"
                           description="Alle Schritte bis zum ersten Übungsabend."
                           due-at="2026-06-12" :is-public="true"/>
-        <AssigneesSection assignee-picker-value="" :members="MEMBERS"
-                          :selected-assignees="[MEMBERS[0]!]" :selected-assignee-ids="[1]"/>
+        <AssigneesSection :assignee-ids="[1]" :members="MEMBERS"/>
         <ItemsSection :items="ITEMS"/>
         <div class="flex justify-end gap-2">
           <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>

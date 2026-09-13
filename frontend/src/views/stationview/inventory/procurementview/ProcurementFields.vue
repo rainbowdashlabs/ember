@@ -4,9 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import type { Inventory, InventorySize } from '@/api/inventory'
 import type { StationMember } from '@/api/types'
@@ -22,7 +25,7 @@ const inventoryId = defineModel<string>('inventoryId', {required: true})
 const sizeId = defineModel<string>('sizeId', {required: true})
 const notes = defineModel<string>('notes', {required: true})
 
-defineProps<{
+const props = defineProps<{
   inventories: Inventory[]
   members: StationMember[]
   availableSizes: InventorySize[]
@@ -36,19 +39,19 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-function memberDisplayName(member: StationMember): string {
-  if (member.name && member.name.trim()) return member.name
-  return member.email ?? `#${member.id}`
-}
+const options = computed(() => props.members.map(fromMember))
+const userTypes = computed(() => userTypesOf(options.value))
 </script>
 
 <template>
   <div v-if="forSomebody" class="space-y-1">
     <FieldLabel>{{ t('procurement.member') }}</FieldLabel>
-    <SelectInput v-model="memberId">
-      <option value="" disabled>{{ t('procurement.selectMember') }}</option>
-      <option v-for="m in members" :key="m.id" :value="String(m.id)">{{ memberDisplayName(m) }}</option>
-    </SelectInput>
+    <MemberSelectInput
+        v-model="memberId"
+        :members="options"
+        :user-types="userTypes"
+        :placeholder="t('procurement.selectMember')"
+    />
   </div>
 
   <div class="space-y-1">

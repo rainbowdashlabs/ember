@@ -2877,6 +2877,17 @@ export default {
         fieldPosition: 'Position',
         deleteConfirm: 'Feld "{name}" wirklich löschen? Alle gespeicherten Werte gehen verloren.',
     },
+    memberSelect: {
+        choose: 'Mitglied wählen',
+        search: 'Nach Name oder E-Mail suchen',
+        anyUserType: 'Alle Arten',
+        nobody: 'Nicht zugewiesen',
+        nobodyMatches: 'Niemand passt dazu',
+        chosenCount: '{count} gewählt',
+        remove: '{name} entfernen',
+        showMore: '+{count} weitere',
+        showFewer: 'Weniger zeigen',
+    },
     memberGroups: {
         title: 'Gruppen',
         create: 'Neue Gruppe',
@@ -2916,6 +2927,8 @@ export default {
         addStations: 'Wache hinzufügen',
         removeStation: 'Wache entfernen',
         allAdded: 'Alle Wachen sind bereits in dieser Gruppe.',
+        searchStations: 'Nach Wachnamen suchen',
+        nothingMatches: 'Keine Wache passt dazu',
     },
     permissions: {
         partial: 'teilweise',

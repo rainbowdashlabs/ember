@@ -20,7 +20,9 @@ import MutedText from '@/components/typography/MutedText.vue'
 import RegistrationsPanelHeader from './RegistrationsPanelHeader.vue'
 import RegistrationStatsTable from './RegistrationStatsTable.vue'
 import RegistrationFieldAnswers from './RegistrationFieldAnswers.vue'
-import MemberPicker, {type PickableMember} from '@/views/stationview/members/MemberPicker.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {userTypesOf, type MemberOption} from '@/components/input/select/memberOption'
+import {useMemberPick} from '@/composables/useMemberPick'
 import {RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField, type MemberRegistrationStats, type StationEvent} from '@/api/events'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
@@ -35,7 +37,7 @@ const props = defineProps<{
   pendingRegistrations: EventRegistrationEntry[]
   nonPendingRegistrations: StatusGroup[]
   registrationStats: MemberRegistrationStats[]
-  unregisteredMembers: PickableMember[]
+  unregisteredMembers: MemberOption[]
   registrationFields?: EventRegistrationField[]
 }>()
 
@@ -77,19 +79,7 @@ function decidable(registration: EventRegistrationEntry): boolean {
 }
 
 /** The kinds present among those not on the list yet, so choosing one never empties it by itself. */
-const offeredUserTypes = computed(() => {
-  const kinds = new Set<string>()
-  for (const member of props.unregisteredMembers) {
-    if (member.userType) kinds.add(member.userType)
-  }
-  return [...kinds].sort()
-})
-
-/** Picking somebody out of the list puts them on it, which is the only thing this picker is for. */
-function registerByHand(memberId: number) {
-  manualRegisterMemberId.value = String(memberId)
-  emit('manualRegister')
-}
+const offeredUserTypes = computed(() => userTypesOf(props.unregisteredMembers).toSorted())
 
 const summaries = computed(() => (runsEvent.value ? answerTotals(fields.value, props.registrations) : []))
 
@@ -101,6 +91,12 @@ const emit = defineEmits<{
   editAnswers: [registrationId: number]
   manualRegister: []
 }>()
+
+/** Picking somebody out of the list puts them on it, which is the only thing this menu is for. */
+const {picked, take} = useMemberPick(memberId => {
+  manualRegisterMemberId.value = String(memberId)
+  emit('manualRegister')
+})
 
 /**
  * Whether an answer on this list can be put right here.
@@ -229,11 +225,12 @@ function statusLabel(status: string): string {
 
     <div v-if="canRegisterOthers" data-testid="manual-register" class="space-y-2 pt-2">
       <SubHeader>{{ t('eventDetail.manualRegister') }}</SubHeader>
-      <MemberPicker
+      <MemberSelectInput
+          v-model="picked"
           :members="unregisteredMembers"
           :user-types="offeredUserTypes"
           :placeholder="t('eventDetail.selectMember')"
-          @select="registerByHand"
+          @change="take"
       />
     </div>
   </NeutralContainer>

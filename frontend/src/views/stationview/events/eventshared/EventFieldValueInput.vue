@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
+import {fromMember} from '@/components/input/select/memberOption'
 import type {StationMember} from '@/api/types'
 import {EventFieldTypes} from '@/api/events'
 import {QuestionKinds, questionKindOf, type QuestionKindName} from '@/util/questions'
@@ -41,13 +42,7 @@ const config = computed<FieldConfig>(() => (props.config ?? {}) as FieldConfig)
 const kind = computed<QuestionKindName>(() => questionKindOf(props.fieldType, true) ?? QuestionKinds.TEXT)
 
 /** Who the question may name, narrowed the way the appointment narrowed it. */
-const memberOptions = computed(() => {
-  const narrowed = narrowedMembers()
-  return narrowed.map(member => ({
-    value: String(member.id),
-    label: member.name ?? member.email ?? `#${member.id}`,
-  }))
-})
+const memberOptions = computed(() => narrowedMembers().map(fromMember))
 
 function narrowedMembers(): StationMember[] {
   const all = props.allMembers ?? []

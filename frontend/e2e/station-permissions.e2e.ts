@@ -5,6 +5,7 @@
  */
 import {test, expect} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {pickFirstMember} from './fixtures/memberMenu'
 
 /**
  * Granting a right and watching the page appear for the member holding it needs both
@@ -23,10 +24,7 @@ test.describe('Permissions', () => {
         await page.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
         await page.getByText(group).first().click()
 
-        const candidate = page.getByTestId('group-candidate').first()
-        await expect(candidate).toBeVisible()
-        const name = (await candidate.innerText()).split('\n')[0]
-        await candidate.click()
+        const name = await pickFirstMember(page)
 
         await page.reload()
         await page.getByText(group).first().click()

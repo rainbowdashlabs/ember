@@ -9,7 +9,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import type {MemberOption} from '@/components/input/select/memberOption'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
@@ -27,7 +28,7 @@ const members = defineModel<string[]>('members', {required: true})
 const unbound = defineModel<boolean>('unbound', {required: true})
 
 defineProps<{
-  memberOptions: { value: string; label: string }[]
+  memberOptions: MemberOption[]
   canUpload?: boolean
 }>()
 
@@ -54,11 +55,11 @@ const {t} = useI18n()
         </div>
         <div class="space-y-1 min-w-56">
           <FieldLabel>{{ t('documents.filterMember') }}</FieldLabel>
-          <MultiSelectDropdown
-              v-model="members"
-              :options="memberOptions"
+          <MemberSelectInput
+              v-model:selected="members"
+              multiple
+              :members="memberOptions"
               :placeholder="t('documents.allMembers')"
-              searchable
           />
         </div>
       </div>

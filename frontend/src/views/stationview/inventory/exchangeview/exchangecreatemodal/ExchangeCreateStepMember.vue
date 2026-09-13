@@ -4,11 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import { fromMember, userTypesOf, type MemberOption } from '@/components/input/select/memberOption'
 import type { StationMember } from '@/api/types'
 import type { ManagedMember } from '@/api/managedMembers'
 import { useSession } from '@/composables/useSession'
@@ -18,7 +20,7 @@ const { canManageInventory, isGuardian, sessionInfo } = useSession()
 
 const memberId = defineModel<string>({ required: true })
 
-defineProps<{
+const props = defineProps<{
   membersWithItems: Set<number>
   membersWithItemsList: StationMember[]
   managedWithItemsList: ManagedMember[]
@@ -29,23 +31,38 @@ const emit = defineEmits<{
   next: []
   cancel: []
 }>()
+
+const showsWholeStation = computed(() => canManageInventory())
+const showsHousehold = computed(() => !showsWholeStation.value && isGuardian() && props.managed.length > 0)
+
+/**
+ * Whose gear can be exchanged.
+ *
+ * <p>Whoever looks after the inventory picks out of the station. A guardian picks out of their own
+ * household, which includes themselves when they are holding something.
+ */
+const options = computed<MemberOption[]>(() => {
+  if (showsWholeStation.value) return props.membersWithItemsList.map(fromMember)
+  const ownId = sessionInfo.value?.member?.id
+  const self: MemberOption[] = ownId && props.membersWithItems.has(ownId)
+      ? [{value: String(ownId), name: t('profile.myInventorySelf')}]
+      : []
+  return [...self, ...props.managedWithItemsList.map(fromMember)]
+})
+
+const userTypes = computed(() => (showsWholeStation.value ? userTypesOf(options.value) : []))
 </script>
 
 <template>
   <div class="space-y-1">
     <FieldLabel>{{ t('exchanges.member') }}</FieldLabel>
-    <SelectInput v-if="canManageInventory()" v-model="memberId">
-      <option value="" disabled>{{ t('exchanges.selectMember') }}</option>
-      <option v-for="m in membersWithItemsList" :key="m.id" :value="String(m.id)">
-        {{ m.name || m.email || `#${m.id}` }}
-      </option>
-    </SelectInput>
-    <SelectInput v-else-if="isGuardian() && managed.length > 0" v-model="memberId">
-      <option v-if="membersWithItems.has(sessionInfo?.member?.id ?? 0)" :value="String(sessionInfo?.member?.id ?? '')">{{ t('profile.myInventorySelf') }}</option>
-      <option v-for="m in managedWithItemsList" :key="m.id" :value="String(m.id)">
-        {{ m.name || m.email }}
-      </option>
-    </SelectInput>
+    <MemberSelectInput
+        v-if="showsWholeStation || showsHousehold"
+        v-model="memberId"
+        :members="options"
+        :user-types="userTypes"
+        :placeholder="t('exchanges.selectMember')"
+    />
   </div>
   <div class="flex justify-end gap-3">
     <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>

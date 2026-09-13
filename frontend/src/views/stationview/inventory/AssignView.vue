@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -22,12 +22,12 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import MemberSearchPicker from '@/components/input/search/MemberSearchPicker.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {resolveMemberOption, searchMemberOptions} from '@/components/input/select/memberSearchSource'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import {inventory, stationMembers} from '@/api'
 import type {InventoryItem} from '@/api/inventory'
 import type {StationMember} from '@/api/types'
-import type {MemberSearchResult} from '@/api/members'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import {formatTime} from '@/util/format'
 import {apiErrorMessage} from '@/util/apiError'
@@ -51,8 +51,7 @@ const {config: members, loading, error} = useConfigPanel<StationMember[]>({
   formatError: (e) => apiErrorMessage(e) ?? t('inventory.assign.loadError'),
 })
 const memberId = ref<number | null>(null)
-const memberUid = ref<string | null>(null)
-const selectedDisplayName = ref<string | null>(null)
+const memberUid = ref('')
 const pickedItemId = ref<number | null>(null)
 const bulkMode = ref(false)
 const {message: flashMessage, kind: flashKind, flash} = useFlashMessage()
@@ -68,14 +67,20 @@ function memberDisplay(m: StationMember): string {
   return (m.name ?? '').trim() || `#${m.id}`
 }
 
-async function onMemberPicked(picked: MemberSearchResult) {
-  memberUid.value = picked.memberUid
-  selectedDisplayName.value = picked.displayName
-  let match = members.value.find(m => m.identity?.memberUid === picked.memberUid)
+/**
+ * The menu names somebody by their UUID and everything below works from the row id, which is the one
+ * translation between them. A member the loaded list does not hold yet is reason to load it again.
+ */
+async function onMemberPicked(uid: string | null) {
+  if (!uid) {
+    memberId.value = null
+    return
+  }
+  let match = members.value.find(m => m.identity?.memberUid === uid)
   if (!match) {
     try {
       members.value = await stationMembers.listMembers()
-      match = members.value.find(m => m.identity?.memberUid === picked.memberUid)
+      match = members.value.find(m => m.identity?.memberUid === uid)
     } catch {
       match = undefined
     }
@@ -87,6 +92,8 @@ async function onMemberPicked(picked: MemberSearchResult) {
   }
   memberId.value = match.id
 }
+
+watch(memberUid, onMemberPicked)
 
 function flashError(msg: string) {
   flash(msg, 'error', 3500)
@@ -227,11 +234,11 @@ async function onUnknownScanCreated(item: InventoryItem) {
     <template v-else>
       <NeutralContainer class="mb-4">
         <SubHeader class="mb-2">{{ t('inventory.assign.selectMember') }}</SubHeader>
-        <MemberSearchPicker
+        <MemberSelectInput
             v-model="memberUid"
-            :selected-display="selectedDisplayName"
+            :search-fn="searchMemberOptions"
+            :resolve-fn="resolveMemberOption"
             :placeholder="t('inventory.assign.pickMember')"
-            @pick="onMemberPicked"
         />
       </NeutralContainer>
 

@@ -6,20 +6,26 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import InfoContainer from '@/components/container/InfoContainer.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import type {MemberOption} from '@/components/input/select/memberOption'
 import FieldHint from '@/components/typography/FieldHint.vue'
 
 const {t} = useI18n()
+
+const dummyMembers: MemberOption[] = [{value: '1', name: 'Max Mustermann'}]
 </script>
 
 <template>
   <InfoContainer class="mb-4">
     <div class="space-y-2">
       <FieldHint>{{ t('forms.fillForWhom') }}</FieldHint>
-      <SelectInput model-value="self" disabled>
-        <option value="self">{{ t('forms.fillForSelfDefault') }}</option>
-        <option value="max">Max Mustermann</option>
-      </SelectInput>
+      <MemberSelectInput
+          model-value=""
+          disabled
+          clearable
+          :members="dummyMembers"
+          :empty-label="t('forms.fillForSelfDefault')"
+      />
     </div>
   </InfoContainer>
 </template>

@@ -4,11 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -20,7 +23,7 @@ const memberId = defineModel<string>('memberId', {required: true})
 const sizeId = defineModel<string>('sizeId', {required: true})
 const notes = defineModel<string>('notes', {required: true})
 
-defineProps<{
+const props = defineProps<{
   created: boolean
   hasSizes: boolean
   sizes: InventorySize[] | undefined
@@ -32,6 +35,9 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+const options = computed(() => props.members.map(fromMember))
+const userTypes = computed(() => userTypesOf(options.value))
 </script>
 
 <template>
@@ -40,12 +46,12 @@ const { t } = useI18n()
       <SubHeader>{{ t('inventory.detail.createProcurement') }}</SubHeader>
       <Alert v-if="created" variant="success">{{ t('inventory.check.procurementCreated') }}</Alert>
       <template v-if="!created">
-        <SelectInput v-model="memberId">
-          <option value="" disabled>{{ t('inventory.detail.selectMember') }}</option>
-          <option v-for="m in members" :key="m.id" :value="String(m.id)">
-            {{ m.name || m.email || `#${m.id}` }}
-          </option>
-        </SelectInput>
+        <MemberSelectInput
+            v-model="memberId"
+            :members="options"
+            :user-types="userTypes"
+            :placeholder="t('inventory.detail.selectMember')"
+        />
         <SelectInput v-if="hasSizes" v-model="sizeId">
           <option value="">{{ t('inventory.detail.anySize') }}</option>
           <option v-for="s in sizes" :key="s.id" :value="String(s.id)">{{ s.label }}</option>

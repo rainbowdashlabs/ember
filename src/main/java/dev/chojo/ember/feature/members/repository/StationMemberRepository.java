@@ -46,15 +46,22 @@ public class StationMemberRepository {
             (SELECT ut.color FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id
              WHERE ute.member_id = sm.id AND ut.visible = TRUE
              ORDER BY ut.position DESC LIMIT 1)""";
+    private static final String PRIMARY_GROUP_COLOR_SUBQUERY =
+            """
+            (SELECT mg.color FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id
+             WHERE mge.member_id = sm.id AND mg.color IS NOT NULL AND mg.color <> ''
+             ORDER BY mg.position DESC LIMIT 1)""";
     private static final String PICKER_MEMBER_COLUMNS =
             """
             sm.uid AS member_uid,
             a.uid AS account_uid,
             coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
             sm.user_type,
+            %s AS name_color,
             %s AS display_tag,
             %s AS display_tag_color,
-            sm.join_date AS join_date""".formatted(PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
+            sm.join_date AS join_date"""
+                    .formatted(PRIMARY_GROUP_COLOR_SUBQUERY, PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
 
     /**
      * Reads the UUID of an internal member ID.
@@ -785,13 +792,16 @@ public class StationMemberRepository {
      * Lightweight result row for the editor's member-search picker. Exposes the member UUID -
      * never the internal id - so cell configs survive station transfer. {@code displayTag}
      * carries the member's highest-priority visible tag name (and color), or {@code null} when
-     * the member has no visible tag.
+     * the member has no visible tag. {@code nameColor} carries the colour of their highest-priority
+     * coloured group, which is what paints a name in a picker, or {@code null} where no group of
+     * theirs sets one.
      */
     public record PickerMember(
             UUID memberUid,
             UUID accountUid,
             String displayName,
             StationUserType userType,
+            String nameColor,
             String displayTag,
             String displayTagColor,
             LocalDate joinDate) {
@@ -801,6 +811,7 @@ public class StationMemberRepository {
                     row.get("account_uid", StandardValueConverter.UUID_STRING),
                     row.getString("display_name"),
                     row.getEnum("user_type", StationUserType.class),
+                    row.getString("name_color"),
                     row.getString("display_tag"),
                     row.getString("display_tag_color"),
                     row.getObject("join_date", LocalDate.class));

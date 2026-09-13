@@ -11,7 +11,9 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import MemberPicker, {type PickableMember} from '@/views/stationview/members/MemberPicker.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {useMemberPick} from '@/composables/useMemberPick'
+import type {MemberOption} from '@/components/input/select/memberOption'
 import IntakeTable from './IntakeTable.vue'
 import type {IntakeLine} from './intakeLines'
 import {ItemOwner, type InventorySize, type ItemOwnerName} from '@/api/inventory'
@@ -33,7 +35,7 @@ defineProps<{
   hasSizes: boolean
   /** Whether this inventory holds the station's gear as well as the association's, so it is asked. */
   holdsBoth: boolean
-  pickable: PickableMember[]
+  pickable: MemberOption[]
   userTypes: string[]
   filled: number
   saving: boolean
@@ -47,6 +49,8 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+const {picked, take} = useMemberPick(memberId => emit('add', memberId))
 </script>
 
 <template>
@@ -70,11 +74,12 @@ const {t} = useI18n()
 
     <div class="space-y-2">
       <MutedText size="sm" tag="p">{{ t('inventory.intake.addByHand') }}</MutedText>
-      <MemberPicker
+      <MemberSelectInput
+          v-model="picked"
           :members="pickable"
           :user-types="userTypes"
           :placeholder="t('inventory.intake.addByHandPlaceholder')"
-          @select="memberId => emit('add', memberId)"
+          @change="take"
       />
     </div>
 

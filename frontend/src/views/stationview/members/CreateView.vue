@@ -93,14 +93,8 @@ function toggleGroup(id: number) {
   selectedGroupIds.value = newSet
 }
 
-function toggleManager(id: number) {
-  const newSet = new Set(selectedManagerIds.value)
-  if (newSet.has(id)) {
-    newSet.delete(id)
-  } else {
-    newSet.add(id)
-  }
-  selectedManagerIds.value = newSet
+function setManagers(ids: number[]) {
+  selectedManagerIds.value = new Set(ids)
 }
 
 /**
@@ -222,7 +216,7 @@ function startOver() {
           @next-from-groups="nextFromGroups"
           @set-field-value="setFieldValue"
           @toggle-group="toggleGroup"
-          @toggle-manager="toggleManager"
+          @set-managers="setManagers"
           @create-manager="createNewManager"
           @create-account="createAccount"
           @start-over="startOver"

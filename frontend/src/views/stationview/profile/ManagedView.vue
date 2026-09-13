@@ -9,7 +9,8 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember} from '@/components/input/select/memberOption'
 import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import {questionKindOf} from '@/util/questions'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -33,10 +34,7 @@ const selectedMemberId = ref<string>('')
 const values = ref<Map<number, string>>(new Map())
 const loadingProfile = ref(false)
 
-function memberDisplayName(member: ManagedMember): string {
-  if (member.name && member.name.trim()) return member.name
-  return member.email ?? `#${member.id}`
-}
+const memberOptions = computed(() => members.value.map(fromMember))
 
 const editableFields = computed(() => {
   return fields.value.filter(f => {
@@ -110,13 +108,10 @@ async function saveProfile() {
 
           <div v-else class="space-y-1">
             <FieldLabel>{{ t('profileManaged.selectMember') }}</FieldLabel>
-            <SelectInput v-model="selectedMemberId" data-onboarding="managed.member-select" class="w-full"
-                         @update:model-value="loadMemberProfile">
-              <option value="" disabled>{{ t('profileManaged.selectMemberPlaceholder') }}</option>
-              <option v-for="member in members" :key="member.id" :value="String(member.id)">
-                {{ memberDisplayName(member) }}
-              </option>
-            </SelectInput>
+            <MemberSelectInput v-model="selectedMemberId" data-onboarding="managed.member-select"
+                               :members="memberOptions"
+                               :placeholder="t('profileManaged.selectMemberPlaceholder')"
+                               @change="loadMemberProfile"/>
           </div>
         </NeutralContainer>
 

@@ -5,6 +5,7 @@
  */
 import {test, expect, apiHeaders, stationPeers} from './fixtures/auth'
 import {setExchangeFilter} from './fixtures/exchangeFilter'
+import {pickMemberByName} from './fixtures/memberMenu'
 import type {Locator, Page} from '@playwright/test'
 
 /** Which of the two modes the page is painted in right now. */
@@ -114,8 +115,7 @@ test.describe('Inventory', () => {
 
         await page.goto('/station/inventory/assign')
 
-        await page.getByPlaceholder('- Bitte wählen -').fill(member.lastName)
-        await page.getByText(`${member.firstName} ${member.lastName}`).first().click()
+        await pickMemberByName(page, `${member.firstName} ${member.lastName}`)
 
         const picker = page.getByPlaceholder('Item suchen oder Code scannen…')
         await picker.fill('H-0')
@@ -132,8 +132,7 @@ test.describe('Inventory', () => {
         // The counter is reopened before handing back, which is also what the picker needs: it
         // still believes the item is free until the page asks again.
         await page.reload()
-        await page.getByPlaceholder('- Bitte wählen -').fill(member.lastName)
-        await page.getByText(`${member.firstName} ${member.lastName}`).first().click()
+        await pickMemberByName(page, `${member.firstName} ${member.lastName}`)
 
         await page.getByPlaceholder('Item suchen oder Code scannen…').fill(code)
         const handBack = page.getByRole('button').filter({hasText: code}).first()

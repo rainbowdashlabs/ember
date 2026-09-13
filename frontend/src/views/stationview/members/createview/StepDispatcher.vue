@@ -46,7 +46,7 @@ const emit = defineEmits<{
   (e: 'next-from-groups'): void
   (e: 'set-field-value', fieldId: number, val: string): void
   (e: 'toggle-group', id: number): void
-  (e: 'toggle-manager', id: number): void
+  (e: 'set-managers', ids: number[]): void
   (e: 'create-manager', data: { firstName: string; lastName: string; email: string }): void
   (e: 'create-account'): void
   (e: 'start-over'): void
@@ -110,7 +110,7 @@ const submitLabel = () =>
     :selected-ids="selectedManagerIds"
     @back="emit('update:step', 'groups')"
     @next="emit('create-account')"
-    @toggle-manager="(id) => emit('toggle-manager', id)"
+    @set-managers="(ids) => emit('set-managers', ids)"
     @create-manager="(data) => emit('create-manager', data)"
   />
 

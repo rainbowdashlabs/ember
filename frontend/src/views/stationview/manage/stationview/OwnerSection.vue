@@ -11,7 +11,8 @@ import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import {stationManage, stationMembers} from '@/api'
 import {StationPermission} from '@/api/types'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -29,12 +30,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-interface ManagerOption {
-  id: number
-  name: string
-}
-
-const managerMembers = ref<ManagerOption[]>([])
+const managerMembers = ref<MemberOption[]>([])
 const newOwnerId = ref('')
 const loadFailed = ref(false)
 
@@ -61,7 +57,7 @@ async function loadManagers() {
     managerMembers.value = members
         .filter(m => m.id !== props.ownerMemberId)
         .filter(m => (rolesByMember[m.id] ?? []).some(r => r.id === managerRoleId))
-        .map(m => ({id: m.id, name: m.name || m.email || `#${m.id}`}))
+        .map(fromMember)
   } catch {
     loadFailed.value = true
   }
@@ -100,10 +96,11 @@ onMounted(loadManagers)
     <SectionHeader>{{ t('stationManage.ownerHandoverTitle') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('stationManage.ownerHandoverHint') }}</p>
     <div v-if="managerMembers.length > 0" class="space-y-3">
-      <SelectInput v-model="newOwnerId" class="w-full">
-        <option value="">{{ t('stationManage.ownerHandoverSelect') }}</option>
-        <option v-for="m in managerMembers" :key="m.id" :value="m.id">{{ m.name }}</option>
-      </SelectInput>
+      <MemberSelectInput
+          v-model="newOwnerId"
+          :members="managerMembers"
+          :placeholder="t('stationManage.ownerHandoverSelect')"
+      />
       <PrimaryButton :disabled="transferringOwnership || !newOwnerId" @click="transferOwnershipAction">
         {{ transferringOwnership ? t('common.loading') : t('stationManage.ownerHandoverSubmit') }}
       </PrimaryButton>

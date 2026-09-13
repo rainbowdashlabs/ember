@@ -8,6 +8,7 @@ import type {DemoAccount} from './fixtures/auth'
 import {test, expect, apiHeaders, demoAccounts, otherStationManager, pageAsThrowaway, stationPeers} from './fixtures/auth'
 import {sidebarEntry} from './fixtures/sidebar'
 import {unique} from './fixtures/unique'
+import {pickMemberByName} from './fixtures/memberMenu'
 
 /**
  * The lost and found, end to end: reporting a find, giving it a picture, claiming it, taking that
@@ -410,7 +411,7 @@ test.describe('Lost and found', () => {
             await card(guardianPage, item)
                 .getByRole('button', {name: 'Gehört mir'}).click()
             const dialog = guardianPage.getByRole('dialog')
-            await dialog.getByTestId('claim-for').selectOption({label: child.name})
+            await pickMemberByName(dialog, child.name)
             await dialog.getByRole('button', {name: 'Gehört mir'}).click()
 
             await expect(guardianPage.getByText(`Beansprucht von ${child.name}`).first()).toBeVisible()

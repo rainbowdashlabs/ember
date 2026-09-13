@@ -14,7 +14,8 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import MemberPicker, {type PickableMember} from '@/views/stationview/members/MemberPicker.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -46,16 +47,10 @@ const emit = defineEmits<{
   error: [message: string]
 }>()
 
-/** The list the picker offers, and the kinds it can be narrowed by. */
-const pickable = computed<PickableMember[]>(() => props.members.map(member => ({
-  id: member.id,
-  name: member.name || member.email || `#${member.id}`,
-  email: member.email,
-  identity: member.identity,
-  userType: member.userType,
-})))
+/** The list the menu offers, and the kinds it can be narrowed by. */
+const pickable = computed(() => props.members.map(fromMember))
 
-const userTypes = computed(() => [...new Set(props.members.map(member => member.userType).filter(Boolean))] as string[])
+const userTypes = computed(() => userTypesOf(pickable.value))
 
 function getMemberName(memberId: number | null | undefined): string {
   if (!memberId) return ''
@@ -262,15 +257,12 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
     <div class="space-y-4">
       <SectionHeader>{{ t('inventory.edit.assignTitle') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ t('inventory.edit.assignHint', {name: assignTarget?.name}) }}</p>
-      <MemberPicker
+      <MemberSelectInput
+          v-model="assignMemberId"
           :members="pickable"
           :user-types="userTypes"
           :placeholder="t('inventory.edit.selectMember')"
-          @select="assignMemberId = String($event)"
       />
-      <MutedText v-if="assignMemberId" size="sm">
-        {{ t('inventory.detail.assignTo') }} {{ getMemberName(Number(assignMemberId)) }}
-      </MutedText>
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="showAssignModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!assignMemberId" @click="submitAssign">{{ t('inventory.edit.assignSubmit') }}</PrimaryButton>
@@ -305,15 +297,12 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
     <div class="space-y-4">
       <SectionHeader>{{ t('inventory.edit.quickAssign') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ t('inventory.edit.quickAssignHint') }}</p>
-      <MemberPicker
+      <MemberSelectInput
+          v-model="quickAssignMemberId"
           :members="pickable"
           :user-types="userTypes"
           :placeholder="t('inventory.edit.selectMember')"
-          @select="quickAssignMemberId = String($event)"
       />
-      <MutedText v-if="quickAssignMemberId" size="sm">
-        {{ t('inventory.detail.assignTo') }} {{ getMemberName(Number(quickAssignMemberId)) }}
-      </MutedText>
       <div v-if="detail.hasSizes" class="space-y-1">
         <FieldLabel>{{ t('inventory.edit.itemSize') }}</FieldLabel>
         <SelectInput v-model="quickAssignSizeId">

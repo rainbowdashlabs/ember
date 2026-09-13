@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -11,6 +12,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
+import { fromCompletion } from '@/components/input/select/memberOption'
 import {TicketPriority, type BoardLane, type TicketPriorityName} from '@/api/boards'
 import type { MemberCompletion } from '@/api/stationMembers'
 
@@ -21,13 +23,15 @@ const priority = defineModel<TicketPriorityName>('priority', { required: true })
 const assignee = defineModel<string>('assignee', { required: true })
 const dueDate = defineModel<string>('dueDate', { required: true })
 
-defineProps<{
+const props = defineProps<{
     laneOptions: BoardLane[]
     /** Whom the new ticket may be handed to, which is who the picker offers. */
     assignableMembers: MemberCompletion[]
 }>()
 
 const { t } = useI18n()
+
+const assignable = computed(() => props.assignableMembers.map(fromCompletion))
 </script>
 
 <template>
@@ -60,7 +64,7 @@ const { t } = useI18n()
     <div class="grid grid-cols-2 gap-4">
         <div>
             <FieldLabel class="mb-1">{{ t('boards.assignee') }}</FieldLabel>
-            <MemberSelectInput v-model="assignee" :members="assignableMembers" :placeholder="t('boards.unassigned')" />
+            <MemberSelectInput v-model="assignee" :members="assignable" :placeholder="t('boards.unassigned')" clearable />
         </div>
         <div>
             <FieldLabel class="mb-1">{{ t('boards.dueDate') }}</FieldLabel>

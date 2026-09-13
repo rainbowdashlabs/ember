@@ -20,7 +20,8 @@ import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
-import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember} from '@/components/input/select/memberOption'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
@@ -47,9 +48,7 @@ const newName = ref('')
 const newDate = ref(todayIsoDate())
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 
-const memberOptions = computed(() =>
-  members.value.map(m => ({ value: String(m.id), label: m.name || m.email || `#${m.id}` }))
-)
+const memberOptions = computed(() => members.value.map(fromMember))
 const selectedMemberValues = computed(() => restriction.value.memberIds.map(String))
 
 function onMembersChange(values: string[]) {
@@ -159,11 +158,12 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 
         <div>
           <FieldLabel class="mb-1">{{ t('protocol.selectMembers') }}</FieldLabel>
-          <MultiSelectDropdown
-            :options="memberOptions"
-            :model-value="selectedMemberValues"
+          <MemberSelectInput
+            multiple
+            :members="memberOptions"
+            :selected="selectedMemberValues"
             :placeholder="t('protocol.selectMembers')"
-            @update:model-value="onMembersChange"
+            @update:selected="onMembersChange"
           />
         </div>
 

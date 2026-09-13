@@ -10,13 +10,15 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import MemberSearchPicker from '@/components/input/search/MemberSearchPicker.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {resolveMemberOption, searchMemberOptions} from '@/components/input/select/memberSearchSource'
+import {useMemberUidPick} from '@/composables/useMemberPick'
 import MemberListDynamicList from './MemberListDynamicList.vue'
 import MemberListManualList from './MemberListManualList.vue'
 import MemberListStaticList from './MemberListStaticList.vue'
 import {listGroups} from '@/api/memberGroups'
 import {listTags} from '@/api/userTags'
-import {getMemberPickerByUid, type MemberSearchResult} from '@/api/members'
+import {getMemberPickerByUid} from '@/api/members'
 import {MemberListSortBy, resolveMemberListSource, type MemberListSortByName, type MemberListSource, type ResolvedMember} from '@/api/pageManage'
 import type {MemberGroup, UserTag} from '@/api/types'
 import {useConfigPatch} from '@/composables/useConfigPatch'
@@ -139,6 +141,9 @@ function moveDynamicMember(from: number, to: number) {
     patch({memberOrder: next.map(m => m.memberUid)})
 }
 
+/** Picking somebody adds them to the list below, which keeps its own order and its own descriptions. */
+const {picked, take} = useMemberUidPick(addManualMember)
+
 function removeManualMember(uid: string) {
     const map = {...((cfg.value.memberDescriptions as Record<string, string> | undefined) ?? {})}
     delete map[uid]
@@ -208,9 +213,12 @@ function removeManualMember(uid: string) {
             @remove="removeManualMember"
             @set-description="setDescription"
         />
-        <MemberSearchPicker
-            :model-value="null"
-            @pick="(item: MemberSearchResult) => addManualMember(item.memberUid)"
+        <MemberSelectInput
+            v-model="picked"
+            :search-fn="searchMemberOptions"
+            :resolve-fn="resolveMemberOption"
+            :placeholder="TS('memberSearchPlaceholder')"
+            @change="take"
         />
     </template>
 

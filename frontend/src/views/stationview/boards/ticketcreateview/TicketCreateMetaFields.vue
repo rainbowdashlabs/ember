@@ -4,16 +4,18 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import LabelSelectInput from '@/components/input/select/LabelSelectInput.vue'
+import { fromCompletion } from '@/components/input/select/memberOption'
 import {TicketPriority, type BoardLabel, type BoardLane, type TicketPriorityName} from '@/api/boards'
 import type { MemberCompletion } from '@/api/stationMembers'
 
-defineProps<{
+const props = defineProps<{
     laneId: string
     priority: TicketPriorityName
     assignee: string
@@ -35,6 +37,8 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+const assignable = computed(() => props.assignableMembers.map(fromCompletion))
 </script>
 
 <template>
@@ -57,7 +61,7 @@ const { t } = useI18n()
         </div>
         <div>
             <FieldLabel class="mb-1">{{ t('boards.assignee') }}</FieldLabel>
-            <MemberSelectInput :model-value="assignee" :members="assignableMembers" :placeholder="t('boards.unassigned')" @update:model-value="v => emit('update:assignee', String(v))" />
+            <MemberSelectInput :model-value="assignee" :members="assignable" :placeholder="t('boards.unassigned')" clearable @update:model-value="v => emit('update:assignee', String(v))" />
         </div>
         <div>
             <FieldLabel class="mb-1">{{ t('boards.dueDate') }}</FieldLabel>

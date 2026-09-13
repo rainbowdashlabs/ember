@@ -7,6 +7,7 @@ import {statSync} from 'node:fs'
 import type {Page} from '@playwright/test'
 import {test, expect, accountWithout, pageAsThrowaway} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {pickFirstMember} from './fixtures/memberMenu'
 
 /**
  * Somebody new, through the wizard a manager uses. It walks several steps before it writes
@@ -204,10 +205,7 @@ test.describe('Members', () => {
         await expect(page.getByText(tag).first()).toBeVisible()
         await page.getByText(tag).first().click()
 
-        const candidate = page.getByTestId('tag-candidate').first()
-        await expect(candidate).toBeVisible()
-        const name = (await candidate.innerText()).split('\n')[0]
-        await candidate.click()
+        const name = await pickFirstMember(page)
 
         await page.reload()
         await page.getByText(tag).first().click()

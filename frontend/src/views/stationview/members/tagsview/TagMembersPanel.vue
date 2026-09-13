@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -11,28 +12,32 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import MemberPickerFilter from '../MemberPickerFilter.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {useMemberPick} from '@/composables/useMemberPick'
+import {fromMember, identityOf, type MemberOption} from '@/components/input/select/memberOption'
 import type {UserTag} from '@/api/types'
 import type {AssignableMember} from '@/composables/useGroupsConfig'
 
 const {t} = useI18n()
 
-defineProps<{
+const props = defineProps<{
   selectedTag: UserTag
   tagLoading: boolean
   tagMembers: AssignableMember[]
-  availableMembers: AssignableMember[]
-  /** The kinds of member still on offer, for the filter above the picker. */
+  availableMembers: MemberOption[]
+  /** The kinds of member still on offer, for the filter beside the search. */
   offeredUserTypes: string[]
 }>()
 
-const search = defineModel<string>('search', {required: true})
-const userType = defineModel<string>('userType', {required: true})
-
 const emit = defineEmits<{
-  (e: 'add-member', member: AssignableMember): void
-  (e: 'remove-member', member: AssignableMember): void
+  (e: 'add-member', memberId: number): void
+  (e: 'remove-member', memberId: number): void
 }>()
+
+/** Named the same way the menu names them, so somebody without a name is still somebody on the list. */
+const current = computed(() => props.tagMembers.map(fromMember))
+
+const {picked, take} = useMemberPick(memberId => emit('add-member', memberId))
 </script>
 
 <template>
@@ -44,42 +49,34 @@ const emit = defineEmits<{
     <template v-if="!tagLoading">
       <div class="space-y-1">
         <FieldLabel class="text-(--text-muted)">{{ t('userTags.currentMembers') }}</FieldLabel>
-        <MutedText tag="div" size="sm" class="py-2" v-if="tagMembers.length === 0">
+        <MutedText tag="div" size="sm" class="py-2" v-if="current.length === 0">
           {{ t('userTags.noMembers') }}
         </MutedText>
         <div class="space-y-1">
-          <div v-for="member in tagMembers" :key="member.id"
+          <div v-for="member in current" :key="member.value"
                class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
             <div>
-              <MemberName :identity="member.identity" class="text-sm font-medium"/>
-              <div v-if="member.name && member.email" class="text-xs text-(--text-muted) ml-7">{{ member.email }}</div>
+              <MemberName :identity="identityOf(member)" class="text-sm font-medium"/>
+              <MutedText v-if="member.email" tag="div" class="ml-7">{{ member.email }}</MutedText>
             </div>
-            <IconButton :icon="['fas', 'xmark']" :label="t('userTags.removeMember')" class="text-error hover:text-error/80 text-sm" @click="emit('remove-member', member)"/>
+            <IconButton :icon="['fas', 'xmark']" :label="t('userTags.removeMember')" class="text-error hover:text-error/80 text-sm" @click="emit('remove-member', Number(member.value))"/>
           </div>
         </div>
       </div>
 
       <div class="space-y-1">
         <FieldLabel class="text-(--text-muted)">{{ t('userTags.addMembers') }}</FieldLabel>
-        <MemberPickerFilter v-model:search="search" v-model:user-type="userType" :user-types="offeredUserTypes"/>
         <MutedText tag="div" size="sm" class="py-2" v-if="availableMembers.length === 0">
           {{ t('userTags.allAdded') }}
         </MutedText>
-        <div class="space-y-1">
-          <div
-              v-for="member in availableMembers"
-              :key="member.id"
-              data-testid="tag-candidate"
-              class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent cursor-pointer transition-colors"
-              @click="emit('add-member', member)"
-          >
-            <div>
-              <MemberName :identity="member.identity" class="text-sm font-medium"/>
-              <div v-if="member.name && member.email" class="text-xs text-(--text-muted) ml-7">{{ member.email }}</div>
-            </div>
-            <font-awesome-icon :icon="['fas', 'plus']" class="text-primary text-sm"/>
-          </div>
-        </div>
+        <MemberSelectInput
+            v-else
+            v-model="picked"
+            :members="availableMembers"
+            :user-types="offeredUserTypes"
+            :placeholder="t('userTags.addMembers')"
+            @change="take"
+        />
       </div>
     </template>
   </div>

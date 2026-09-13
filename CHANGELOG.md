@@ -2,8 +2,14 @@
 
 ## v26.15.2
 
+### Improvements
+
+- **Every place that asks which member now asks the same way.** A member is chosen from one menu throughout the product: a face, the name in the colour their group gives it, and a search that is always there, in place of the dropdowns of several hundred lines that some screens still offered. Arrow keys walk the list, Enter takes the highlighted person and Escape closes, so the usual case is three letters and Enter.
+- **Choosing several members shows who is chosen.** Where a screen takes more than one person, each one appears as a removable chip above the search, folded away past five so a group of fifty stays a field rather than a wall.
+
 ### Fixes
 
+- **The manager step of member creation offered the whole station.** It promised existing managers and listed every member instead, as cards with no way to search them, which on a station of any size was unusable. It now opens on the guardians, with every other kind one filter away.
 - **A switched inventory could refuse its own exchanges.** In an inventory switched between the station's own gear and the gear of the body above it after items were created, an exchange could be refused when the arriving piece was recorded, and a piece that had gone back to a body outside Ember could stay on the shelf as stock. Switching an inventory now rewrites the owner on the items it holds, borrowed gear excepted, a replacement is owned by whoever the inventory says it holds gear of, and the upgrade brings existing records into line and clears the dead stock those finished exchanges piled up.
 
 ## v26.15.1

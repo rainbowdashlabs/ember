@@ -3,17 +3,16 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { computed, ref, type Ref } from 'vue'
+import { computed, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { fromMember, userTypesOf } from '@/components/input/select/memberOption'
 import type { AssignableMember } from '@/composables/useGroupsConfig'
-import { memberDisplayName } from './listview/useMemberData'
 
 /**
  * Assigning members to a group or a tag.
  *
  * Both endpoints take the complete membership rather than a delta, so adding one member means
- * sending the existing ones with it. The picker offers everyone not already assigned, ordered by
- * display name so a station with hundreds of members stays navigable.
+ * sending the existing ones with it. The menu offers everyone not already assigned.
  *
  * @param allMembers the station's members
  * @param members    the members currently assigned, replaced by every change
@@ -28,44 +27,20 @@ export function useMemberAssignment(
 ) {
   const { t } = useI18n()
 
-  /** What the reader typed to narrow the list of people they can still add. */
-  const search = ref('')
-
-  /** The kind of member they are looking for, or the empty string for every kind. */
-  const userType = ref('')
-
-  function matchesSearch(member: AssignableMember): boolean {
-    const needle = search.value.trim().toLowerCase()
-    if (!needle) return true
-    return memberDisplayName(member).toLowerCase().includes(needle)
-      || (member.email ?? '').toLowerCase().includes(needle)
-  }
-
   /**
-   * Everyone not assigned yet, narrowed to what the reader is looking for.
+   * Everyone not assigned yet, as the menu offers them.
    *
-   * <p>A station with hundreds of members offers hundreds of rows to scroll, and the one being looked
-   * for is usually known by name or by what kind of member they are. Both narrow the same list, and
-   * neither touches who is already assigned: that list is short by nature.
+   * <p>Narrowing them is the menu's own business: it searches, it filters by kind and it orders, the
+   * same way in every place the product asks which member. Who is already assigned is not narrowed at
+   * all, because that list is short by nature.
    */
   const availableMembers = computed(() => {
     const assigned = new Set(members.value.map(m => m.id))
-    return allMembers.value
-      .filter(m => !assigned.has(m.id))
-      .filter(m => !userType.value || m.userType === userType.value)
-      .filter(matchesSearch)
-      .sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
+    return allMembers.value.filter(m => !assigned.has(m.id)).map(fromMember)
   })
 
   /** The kinds actually present among the people who can still be added, so the filter offers no dead ends. */
-  const offeredUserTypes = computed(() => {
-    const assigned = new Set(members.value.map(m => m.id))
-    const kinds = new Set<string>()
-    for (const member of allMembers.value) {
-      if (!assigned.has(member.id) && member.userType) kinds.add(member.userType)
-    }
-    return [...kinds].sort()
-  })
+  const offeredUserTypes = computed(() => userTypesOf(availableMembers.value).toSorted())
 
   async function apply(memberIds: number[]) {
     try {
@@ -75,13 +50,13 @@ export function useMemberAssignment(
     }
   }
 
-  async function addMember(member: AssignableMember) {
-    await apply([...members.value.map(m => m.id), member.id])
+  async function addMember(memberId: number) {
+    await apply([...members.value.map(m => m.id), memberId])
   }
 
-  async function removeMember(member: AssignableMember) {
-    await apply(members.value.filter(m => m.id !== member.id).map(m => m.id))
+  async function removeMember(memberId: number) {
+    await apply(members.value.filter(m => m.id !== memberId).map(m => m.id))
   }
 
-  return {availableMembers, offeredUserTypes, search, userType, addMember, removeMember}
+  return {availableMembers, offeredUserTypes, addMember, removeMember}
 }

@@ -6,6 +6,7 @@
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
 import {unique, uniqueKey} from './fixtures/unique'
+import {offeredMembers, openMemberMenu, pickFirstMember} from './fixtures/memberMenu'
 
 /**
  * Every story creates its own board rather than reaching for a seeded one: a ticket is addressed
@@ -103,15 +104,7 @@ test.describe('Boards', () => {
 
         await page.getByText('Nicht zugewiesen').first().click()
 
-        // Whoever the picker offers first, read off the picker itself: who is in the station changes
-        // as the other stories create people, and the story only needs somebody to hand the ticket
-        // to. The first entry is "nobody", which is what the ticket already says.
-        const candidates = page.getByTestId('ticket-assignee').locator('button').filter({hasNotText: 'Nicht zugewiesen'})
-        const candidate = candidates.first()
-        await expect(candidate).toBeVisible()
-        // The last line of the entry: somebody without a picture is drawn with their initials above
-        // their name, and the initials are not what the card carries afterwards.
-        const name = (await candidate.innerText()).trim().split('\n').pop()!.trim()
+        const assignee = page.getByTestId('ticket-assignee')
 
         // Picking a name saves the ticket, and clicking only dispatches the click: it says nothing
         // about the save having gone out. Reloading straight afterwards tears the page down and
@@ -121,7 +114,9 @@ test.describe('Boards', () => {
             response => response.request().method() === 'PUT'
                 && /\/tickets\/\d+$/.test(new URL(response.url()).pathname),
         )
-        await candidate.click()
+        // Whoever the menu offers first: who is in the station changes as the other stories create
+        // people, and the story only needs somebody to hand the ticket to.
+        const name = await pickFirstMember(assignee)
         expect((await saved).status()).toBe(200)
 
         await page.reload()
@@ -129,6 +124,64 @@ test.describe('Boards', () => {
         // the last of them landed, which read as an assignment that had not been kept.
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByText(name).first()).toBeVisible({timeout: 30000})
+        await expect(page.getByText('Nicht zugewiesen')).toHaveCount(0)
+    })
+
+    /**
+     * The one member menu, driven the way somebody in a hurry drives it.
+     *
+     * <p>Every place the product asks which member is this menu, and the ticket's assignee is where
+     * it does the most: it opens by itself, it may be emptied, and picking somebody saves at once. The
+     * rules it has to keep are that there is always a search, that the rows come in first-name order,
+     * that the keyboard reaches them, and that Escape leaves without choosing anybody.
+     *
+     * <p>Nobody in particular is picked. Who belongs to the seeded station changes as the other
+     * stories create people, so the story reads a name off the menu and then types part of it back.
+     */
+    test('a member is found by typing and taken with the keyboard', async ({managerPage: page}) => {
+        const key = await createBoard(page)
+        await createTicket(page, key)
+
+        await page.getByText('Nicht zugewiesen').first().click()
+        const assignee = page.getByTestId('ticket-assignee')
+        await openMemberMenu(assignee)
+
+        const search = assignee.getByTestId('member-select-search').getByRole('searchbox')
+        await expect(search, 'a member menu always offers a search').toBeVisible()
+
+        await expect(assignee.getByTestId('member-select-empty'),
+            'a ticket may be left unassigned, so this menu offers the empty answer').toBeVisible()
+
+        const people = await offeredMembers(assignee)
+        expect(people.length, 'the station has somebody to hand the ticket to').toBeGreaterThan(0)
+        expect(people, 'the menu lists people by their first name')
+            .toEqual([...people].sort((one, other) => one.localeCompare(other, 'de', {sensitivity: 'base'})))
+
+        // Escape leaves the ticket as it was, which is the half of the keyboard that must not save.
+        await search.press('Escape')
+        await expect(assignee.getByTestId('member-select-panel')).toBeHidden()
+        await expect(page.getByText('Nicht zugewiesen').first()).toBeVisible()
+
+        const wanted = people[0]!
+        await page.getByText('Nicht zugewiesen').first().click()
+        await openMemberMenu(assignee)
+        await search.fill(wanted.split(' ')[0]!)
+        await expect(assignee.getByTestId('member-select-option').first()).toContainText(wanted)
+
+        // The menu opens with the empty answer highlighted, so one press down walks onto the person
+        // the search left standing and Enter takes them. Waiting for the save is what makes the
+        // reload below mean anything: a reload without it tears the request down before it leaves.
+        const saved = page.waitForResponse(
+            response => response.request().method() === 'PUT'
+                && /\/tickets\/\d+$/.test(new URL(response.url()).pathname),
+        )
+        await search.press('ArrowDown')
+        await search.press('Enter')
+        expect((await saved).status()).toBe(200)
+
+        await page.reload()
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        await expect(page.getByText(wanted).first()).toBeVisible({timeout: 30000})
         await expect(page.getByText('Nicht zugewiesen')).toHaveCount(0)
     })
 

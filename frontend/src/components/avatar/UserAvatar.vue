@@ -35,7 +35,11 @@ const initials = computed(() => {
   return (first + last).toUpperCase() || '?'
 })
 
+/** A picture the server already sent stands as it is; fetching it again would be a round trip for nothing. */
+const inlineSrc = computed(() => props.identity?.avatarUrl ?? null)
+
 function resolveUrl(): string | null {
+  if (inlineSrc.value) return null
   if (props.identity?.accountUid) {
     return `/accounts/${props.identity.accountUid}/avatar?size=64`
   }
@@ -45,7 +49,8 @@ function resolveUrl(): string | null {
   return null
 }
 
-const {src: imgSrc} = useAuthImage(() => resolveUrl())
+const {src: fetchedSrc} = useAuthImage(() => resolveUrl())
+const imgSrc = computed(() => inlineSrc.value ?? fetchedSrc.value)
 </script>
 
 <template>

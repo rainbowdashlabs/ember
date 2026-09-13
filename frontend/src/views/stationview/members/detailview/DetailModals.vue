@@ -14,6 +14,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
@@ -67,11 +69,10 @@ const exchangeNewSizeId = ref<string>('')
 const exchangeReason = ref('')
 const exchangeSuccess = ref(false)
 
-const reassignTargets = computed(() => {
-  return props.allMembers
-    .filter(m => m.id !== props.memberId)
-    .sort((a, b) => props.memberDisplayNameFn(a).localeCompare(props.memberDisplayNameFn(b)))
-})
+const reassignTargets = computed(() =>
+  props.allMembers.filter(m => m.id !== props.memberId).map(fromMember))
+
+const reassignUserTypes = computed(() => userTypesOf(reassignTargets.value))
 
 function openFormerModal() { showFormerModal.value = true }
 
@@ -221,10 +222,12 @@ defineExpose({
       </p>
       <div class="space-y-1">
         <FieldLabel>{{ t('memberDetail.selectTargetMember') }}</FieldLabel>
-        <SelectInput v-model="reassignTargetId">
-          <option value="" disabled>{{ t('memberDetail.selectTargetPlaceholder') }}</option>
-          <option v-for="m in reassignTargets" :key="m.id" :value="String(m.id)">{{ memberDisplayNameFn(m) }}</option>
-        </SelectInput>
+        <MemberSelectInput
+            v-model="reassignTargetId"
+            :members="reassignTargets"
+            :user-types="reassignUserTypes"
+            :placeholder="t('memberDetail.selectTargetPlaceholder')"
+        />
       </div>
       <div class="flex justify-end gap-2">
         <SecondaryButton @click="showReassignModal = false">{{ t('common.cancel') }}</SecondaryButton>
