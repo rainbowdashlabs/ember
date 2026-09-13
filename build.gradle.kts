@@ -103,6 +103,14 @@ tasks {
         environment("TESTCONTAINERS_RYUK_DISABLED", "true")
     }
 
+    withType<JavaCompile>().configureEach {
+        options.encoding = "UTF-8"
+    }
+
+    withType<Javadoc>().configureEach {
+        options.encoding = "UTF-8"
+    }
+
     compileJava {
         options.isIncremental = true
         options.compilerArgs.addAll(listOf("-parameters"))

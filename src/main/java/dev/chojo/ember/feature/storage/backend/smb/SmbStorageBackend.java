@@ -35,6 +35,7 @@ import tools.jackson.core.JacksonException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -190,11 +191,11 @@ public class SmbStorageBackend implements StorageBackend, AutoCloseable {
             ensureParent(share, target);
             try (File file = openForWrite(share, target);
                     OutputStream out = file.getOutputStream()) {
-                out.write("probe".getBytes());
+                out.write("probe".getBytes(StandardCharsets.UTF_8));
             }
             try (File file = openForRead(share, target);
                     InputStream in = file.getInputStream()) {
-                String readBack = new String(in.readAllBytes());
+                String readBack = new String(in.readAllBytes(), StandardCharsets.UTF_8);
                 if (!"probe".equals(readBack)) {
                     return HealthStatus.unhealthy("SMB backend read returned unexpected payload");
                 }

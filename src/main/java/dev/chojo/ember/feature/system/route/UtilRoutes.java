@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Singleton
@@ -52,7 +53,7 @@ public class UtilRoutes implements Routes {
         String separator = ctx.formParam("separator");
         char sep = separator != null && !separator.isEmpty() ? separator.charAt(0) : ';';
         try (var content = file.content()) {
-            String text = new String(content.readAllBytes());
+            String text = new String(content.readAllBytes(), StandardCharsets.UTF_8);
             var parsed = CsvParser.parse(text, sep);
             ctx.json(new CsvResponse(parsed.headers(), parsed.rows()));
         } catch (IOException e) {

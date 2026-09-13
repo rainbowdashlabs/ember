@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -124,7 +125,7 @@ public class PdfCompressor {
                             output.toString())
                     .redirectErrorStream(true)
                     .start();
-            String tail = new String(process.getInputStream().readAllBytes());
+            String tail = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             int exit = process.waitFor();
             if (exit != 0 && exit != 3) {
                 log.warn("qpdf exited {} (output: {}); using original", exit, tail);

@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -51,7 +52,7 @@ public final class PandocConverter {
             command.addAll(List.of(inputFile.toString(), "-o", outputFile.toString()));
 
             var process = new ProcessBuilder(command).redirectErrorStream(true).start();
-            String processOutput = new String(process.getInputStream().readAllBytes());
+            String processOutput = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             int exitCode = process.waitFor();
 
             if (exitCode != 0) {
@@ -108,7 +109,7 @@ public final class PandocConverter {
                     .redirectErrorStream(true)
                     .start();
 
-            String processOutput = new String(process.getInputStream().readAllBytes());
+            String processOutput = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             int exitCode = process.waitFor();
 
             if (exitCode != 0) {
