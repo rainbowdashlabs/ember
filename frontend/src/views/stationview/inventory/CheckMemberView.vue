@@ -16,8 +16,8 @@ import { useConfirmAction } from '@/composables/useConfirmAction'
 import type { CheckItemResult, CheckResult, CorrectItemRequest, MemberCheckState } from '@/api/inventoryCheck'
 import type { RequiredInventoryItem } from '@/api/inventory'
 import type { InventoryItem } from '@/api/inventory'
-import { exchanges, inventoryCheck } from '@/api'
-import { ExchangeStatus } from '@/api/exchanges'
+import { inventoryCheck, movements } from '@/api'
+import { MovementPurpose } from '@/api/movements'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useMemberCheck, type CheckEntry } from '@/composables/useMemberCheck'
@@ -114,16 +114,20 @@ async function createRapidExchange(payload: {newSizeId: number | null; reason: s
   exchangeBusy.value = true
   exchangeError.value = ''
   try {
-    const created = await exchanges.createExchange({
+    const created = await movements.createMovement({
+      purpose: MovementPurpose.EXCHANGE,
       memberId: memberId.value,
-      itemId: entry.item.id,
+      outgoingItemId: entry.item.id,
       inventoryId: entry.req.inventoryId,
       oldSizeId: entry.item.sizeId ?? undefined,
       newSizeId: payload.newSizeId ?? undefined,
       reason: payload.reason,
     })
-    if (payload.handedIn) {
-      await exchanges.updateStatus(created.id, {status: ExchangeStatus.RECEIVED, note: payload.reason})
+    // A piece handed over there and then is a step further along, and the step is acknowledged as such
+    // rather than a status being jumped to: the member is standing here, so the station really has it.
+    const standing = created.steps.find(step => step.current)
+    if (payload.handedIn && standing?.actionable) {
+      await movements.acknowledgeStep(created.movement.id, {stepId: standing.id, note: payload.reason})
     }
     check.setResult(entry.item.id, payload.handedIn ? 'NOT_IN_POSSESSION' : 'CONFIRMED')
     showExchange.value = false
@@ -277,6 +281,7 @@ async function cancel() {
       <CheckMemberBody
         v-if="!loading && state"
         ref="bodyRef"
+        v-model:hand-out-mode="check.handOutMode.value"
         :state="state"
         :check-mode="checkMode"
         :unchecked-entries="check.uncheckedEntries.value"

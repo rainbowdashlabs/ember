@@ -140,7 +140,6 @@ import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.form.route.FormRoutes;
 import dev.chojo.ember.feature.form.route.PublicFormRoutes;
 import dev.chojo.ember.feature.insights.route.StationInsightsRoutes;
-import dev.chojo.ember.feature.inventory.route.ExchangeRoutes;
 import dev.chojo.ember.feature.inventory.route.FederatedInventoryTagRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryArtRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
@@ -357,7 +356,6 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(PublicPageRoutes.class);
         routesBinder.addBinding().to(MailWebhookRoutes.class);
         routesBinder.addBinding().to(UserSettingsRoutes.class);
-        routesBinder.addBinding().to(ExchangeRoutes.class);
         routesBinder.addBinding().to(MovementRoutes.class);
         routesBinder.addBinding().to(MovementFlowRoutes.class);
         install(new ClusterModule());

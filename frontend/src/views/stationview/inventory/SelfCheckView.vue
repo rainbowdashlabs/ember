@@ -14,8 +14,9 @@ import SelfCheckHeader from './selfcheckview/SelfCheckHeader.vue'
 import SelfCheckSubmitBar from './selfcheckview/SelfCheckSubmitBar.vue'
 import SelfCheckSection from './selfcheckview/SelfCheckSection.vue'
 import ReportLostModal from '../profile/inventoryview/ReportLostModal.vue'
-import ExchangeModal from '../profile/inventoryview/ExchangeModal.vue'
-import {exchanges, inventory, selfChecks} from '@/api'
+import SwapRequestModal from './selfcheckview/SwapRequestModal.vue'
+import {inventory, movements, selfChecks} from '@/api'
+import {MovementPurpose} from '@/api/movements'
 import type {InventorySize, RequiredInventoryItem} from '@/api/inventory'
 import {SelfCheckState, type SelfCheckAnswerName, type SelfCheckResponse} from '@/api/selfChecks'
 import {useConfigPanel} from '@/composables/useConfigPanel'
@@ -216,9 +217,12 @@ const {
       words: reason,
     })
   } else {
-    await exchanges.createExchange({
+    // Raised as the Vorgang it is, carrying the task it was raised in so whoever reads the submission
+    // can see that it happened while the member was answering.
+    await movements.createMovement({
+      purpose: MovementPurpose.EXCHANGE,
       memberId: task.value?.task.memberId,
-      itemId: entry.item.id,
+      outgoingItemId: entry.item.id,
       inventoryId: entry.req.inventoryId,
       oldSizeId: entry.item.sizeId ?? undefined,
       newSizeId: wanted,
@@ -311,7 +315,7 @@ const exchangePiece = computed(() =>
         @submit="submitLost"
     />
 
-    <ExchangeModal
+    <SwapRequestModal
         v-model="showExchange"
         v-model:reason="exchangeReason"
         v-model:new-size-id="exchangeNewSizeId"

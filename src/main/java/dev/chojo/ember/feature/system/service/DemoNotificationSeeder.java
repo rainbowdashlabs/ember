@@ -35,7 +35,7 @@ import java.util.Map;
  * Seeds one notification of every {@link NotificationType} for the demo admin so all 29
  * categories can be reviewed in the dashboard and atom feed at a glance. The rest of the
  * demo's notifications are produced organically by the other seeders' service calls
- * (newsService, eventService, exchangeService, …) - this seeder doesn't compete with them
+ * (newsService, eventService, itemMovementService, …) - this seeder doesn't compete with them
  * because admin already gets the organic notifications too.
  *
  * <p>Each entry uses representative link metadata so the renderer's per-type enrichment
@@ -263,25 +263,24 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
 
     private void seedInventoryCategory(int memberId, ShowcaseContext ctx) {
         var exchangeLink = ctx.inventoryId() != null
-                ? new NotificationData.NotificationLink("inventory-exchanges", Map.of("id", ctx.inventoryId()))
-                : new NotificationData.NotificationLink("inventory-exchanges");
+                ? new NotificationData.NotificationLink("inventory-movements", Map.of("id", ctx.inventoryId()))
+                : new NotificationData.NotificationLink("inventory-movements");
         var procurementLink = ctx.inventoryId() != null
                 ? new NotificationData.NotificationLink("inventory-procurement", Map.of("id", ctx.inventoryId()))
                 : new NotificationData.NotificationLink("inventory-procurement");
 
         notificationRepository.create(
                 memberId,
-                NotificationType.EXCHANGE_NEW_REQUEST,
+                NotificationType.MOVEMENT_RAISED,
                 NotificationData.of(
-                        new NotificationParams.ExchangeNewRequest(
-                                "Tim Berger", "Blouson Größe 152", "Zu klein geworden"),
+                        new NotificationParams.MovementRaised("Tim Berger", "Blouson Größe 152", "Zu klein geworden"),
                         exchangeLink));
 
         notificationRepository.create(
                 memberId,
-                NotificationType.EXCHANGE_STATUS_CHANGE,
+                NotificationType.MOVEMENT_ADVANCED,
                 NotificationData.of(
-                        new NotificationParams.ExchangeStatusChange("Ersatz ausgegeben", "Blouson Größe 152", null),
+                        new NotificationParams.MovementMoved("Ersatz ausgegeben", "Blouson Größe 152", null),
                         exchangeLink));
 
         notificationRepository.create(

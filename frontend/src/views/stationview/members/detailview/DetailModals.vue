@@ -17,9 +17,13 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SizeBadge from '@/components/badge/SizeBadge.vue'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
-import type {InventoryItem, InventorySize, MyInventoryItem} from '@/api/inventory'
+import HandOutChoice from '@/components/inventory/HandOutChoice.vue'
+import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
+import MovementWizard from '@/views/stationview/inventory/movementwizard/MovementWizard.vue'
+import type {WizardPrefill} from '@/views/stationview/inventory/movementwizard/useMovementWizard'
+import {MovementPurpose} from '@/api/movements'
+import type {InventoryItem, MyInventoryItem} from '@/api/inventory'
 import type { StationMember } from '@/api/types'
 
 const { t } = useI18n()
@@ -33,16 +37,17 @@ const props = defineProps<{
   allMembers: StationMember[]
   memberId: number
   memberDisplayNameFn: (m: StationMember) => string
-  exchangeSizes: InventorySize[]
 }>()
 
 const emit = defineEmits<{
   markFormer: []
   deleteMember: []
   assignItem: [itemId: number]
+  /** The piece is promised to the member rather than handed over now. */
+  planHandOut: [itemId: number, inventoryId: number]
   reassignItem: [itemId: number, targetMemberId: number]
-  submitExchange: [data: { item: MyInventoryItem; newSizeId?: number; reason: string }]
-  loadExchangeSizes: [inventoryId: number]
+  /** A Vorgang was started for this member, so whatever is listed about them is out of date. */
+  exchangeStarted: []
 }>()
 
 // Former modal
@@ -56,18 +61,15 @@ const showDeleteConfirm = ref(false)
 const showAssignModal = ref(false)
 const pickedItemId = ref<number | null>(null)
 const assignScanError = ref('')
+const handOutMode = ref<HandOutMode>('NOW')
 
 // Reassign modal
 const showReassignModal = ref(false)
 const reassignItemRef = ref<MyInventoryItem | null>(null)
 const reassignTargetId = ref('')
 
-// Exchange modal
-const showExchangeModal = ref(false)
-const exchangeItem = ref<MyInventoryItem | null>(null)
-const exchangeNewSizeId = ref<string>('')
-const exchangeReason = ref('')
-const exchangeSuccess = ref(false)
+const showWizard = ref(false)
+const wizardPrefill = ref<WizardPrefill>({})
 
 const reassignTargets = computed(() =>
   props.allMembers.filter(m => m.id !== props.memberId).map(fromMember))
@@ -95,7 +97,8 @@ function onItemPicked(item: InventoryItem) {
     pickedItemId.value = null
     return
   }
-  emit('assignItem', item.id)
+  if (handOutMode.value === 'PLANNED') emit('planHandOut', item.id, item.inventoryId)
+  else emit('assignItem', item.id)
   showAssignModal.value = false
 }
 
@@ -111,23 +114,22 @@ function confirmReassign() {
   showReassignModal.value = false
 }
 
+/**
+ * A swap of this member's piece, raised the one way every swap is raised.
+ *
+ * <p>The piece answers the purpose, the member and the subject, so the wizard asks the reason and shows
+ * the chain it would walk.
+ */
 function openExchangeModal(item: MyInventoryItem) {
-  exchangeItem.value = item
-  exchangeReason.value = ''
-  exchangeNewSizeId.value = ''
-  exchangeSuccess.value = false
-  showExchangeModal.value = true
-  emit('loadExchangeSizes', item.inventoryId)
-}
-
-function submitExchange() {
-  if (!exchangeItem.value || !exchangeReason.value.trim()) return
-  emit('submitExchange', {
-    item: exchangeItem.value,
-    newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
-    reason: exchangeReason.value.trim(),
-  })
-  exchangeSuccess.value = true
+  wizardPrefill.value = {
+    purpose: MovementPurpose.EXCHANGE,
+    memberId: props.memberId,
+    itemId: item.id,
+    inventoryId: item.inventoryId,
+    oldSizeId: item.sizeId ?? null,
+    skip: ['purpose', 'party', 'subject'],
+  }
+  showWizard.value = true
 }
 
 defineExpose({
@@ -200,6 +202,7 @@ defineExpose({
     <div class="space-y-4">
       <SubHeader>{{ t('memberDetail.assignItem') }}</SubHeader>
       <Alert v-if="assignScanError" variant="error">{{ assignScanError }}</Alert>
+      <HandOutChoice v-model="handOutMode"/>
       <ItemSearchPicker
           v-model="pickedItemId"
           :exclude-assigned="true"
@@ -238,39 +241,5 @@ defineExpose({
     </div>
   </Modal>
 
-  <!-- Exchange modal -->
-  <Modal v-model="showExchangeModal">
-    <div class="space-y-4">
-      <SubHeader>{{ t('memberDetail.requestExchange') }}</SubHeader>
-      <template v-if="exchangeSuccess">
-        <Alert variant="success">{{ t('profile.exchangeCreated') }}</Alert>
-        <div class="flex justify-end">
-          <SecondaryButton @click="showExchangeModal = false">{{ t('common.close') }}</SecondaryButton>
-        </div>
-      </template>
-      <template v-else>
-        <p v-if="exchangeItem" class="text-sm">
-          {{ exchangeItem.inventoryName }}, {{ exchangeItem.name }}
-          <SizeBadge>{{ exchangeItem.sizeName ?? t('common.unisize') }}</SizeBadge>
-        </p>
-        <div v-if="exchangeSizes.length > 0" class="space-y-1">
-          <FieldLabel>{{ t('exchanges.newSize') }}</FieldLabel>
-          <SelectInput v-model="exchangeNewSizeId">
-            <option value="" disabled>{{ t('exchanges.selectNewSize') }}</option>
-            <option v-for="size in exchangeSizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
-          </SelectInput>
-        </div>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('exchanges.reason') }}</FieldLabel>
-          <TextAreaInput v-model="exchangeReason" :placeholder="t('exchanges.reasonPlaceholder')" :rows="3" />
-        </div>
-        <div class="flex justify-end gap-2">
-          <SecondaryButton @click="showExchangeModal = false">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="!exchangeReason.trim() || (exchangeSizes.length > 0 && !exchangeNewSizeId)" @click="submitExchange">
-            {{ t('exchanges.submit') }}
-          </PrimaryButton>
-        </div>
-      </template>
-    </div>
-  </Modal>
+  <MovementWizard v-model="showWizard" :prefill="wizardPrefill" @started="emit('exchangeStarted')"/>
 </template>

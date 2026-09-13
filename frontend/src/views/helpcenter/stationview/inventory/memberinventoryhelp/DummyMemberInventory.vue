@@ -33,7 +33,7 @@ const {t} = useI18n()
 
     <DummyInventoryGroup title="Jacken" :count="1">
       <DummyItemCard name="Jacke" size="L" inventory-id="INV-0015">
-        <InfoBadge class="mt-1">{{ t('exchanges.status.ANNOUNCED') }}</InfoBadge>
+        <InfoBadge class="mt-1">Tausch angefordert</InfoBadge>
       </DummyItemCard>
     </DummyInventoryGroup>
   </div>

@@ -37,14 +37,14 @@ class NotificationDataTest {
 
     @Test
     void serializeAndDeserializeWithNullFields() {
-        var params = new NotificationParams.ExchangeNewRequest("Member", "Inventory", null);
+        var params = new NotificationParams.MovementRaised("Member", "Inventory", null);
         var data = NotificationData.of(params);
 
         String json = data.toJson();
-        var restored = NotificationData.fromJson(json, NotificationType.EXCHANGE_NEW_REQUEST);
+        var restored = NotificationData.fromJson(json, NotificationType.MOVEMENT_RAISED);
 
-        assertInstanceOf(NotificationParams.ExchangeNewRequest.class, restored.params());
-        var p = (NotificationParams.ExchangeNewRequest) restored.params();
+        assertInstanceOf(NotificationParams.MovementRaised.class, restored.params());
+        var p = (NotificationParams.MovementRaised) restored.params();
         assertEquals("Member", p.memberName());
         assertEquals("Inventory", p.inventoryName());
         assertNull(p.reason());
@@ -106,7 +106,7 @@ class NotificationDataTest {
 
     @Test
     void paramsAsMapOmitsNullValues() {
-        var params = new NotificationParams.ExchangeStatusChange("An den Träger geschickt", "Helm", null);
+        var params = new NotificationParams.MovementMoved("An den Träger geschickt", "Helm", null);
         var data = NotificationData.of(params);
 
         Map<String, String> map = data.paramsAsMap();
@@ -155,9 +155,9 @@ class NotificationDataTest {
                 NotificationType.NEW_EVENT, new NotificationParams.NewEvent("t", "d"),
                 NotificationType.EVENT_REGISTRATION_STATUS,
                         new NotificationParams.EventRegistrationStatus("m", "e", RegistrationStatus.ACCEPTED, "d"),
-                NotificationType.EXCHANGE_NEW_REQUEST, new NotificationParams.ExchangeNewRequest("m", "i", "r"),
-                NotificationType.EXCHANGE_STATUS_CHANGE,
-                        new NotificationParams.ExchangeStatusChange("An den Träger geschickt", "i", StepActor.STATION),
+                NotificationType.MOVEMENT_RAISED, new NotificationParams.MovementRaised("m", "i", "r"),
+                NotificationType.MOVEMENT_ADVANCED,
+                        new NotificationParams.MovementMoved("An den Träger geschickt", "i", StepActor.STATION),
                 NotificationType.MEMBER_ADDED_TO_GROUP, new NotificationParams.MemberAddedToGroup("g", null),
                 NotificationType.PROFILE_FIELD_CHANGED, new NotificationParams.ProfileFieldChanged("m", "f"),
                 NotificationType.PROCUREMENT_REQUESTED, new NotificationParams.ProcurementRequested("i"),

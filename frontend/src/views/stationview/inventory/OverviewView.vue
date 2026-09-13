@@ -9,15 +9,15 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
+import {MovementState, type Movement} from '@/api/movements'
 import type { Inventory, InventorySize } from '@/api/inventory'
 import type { ProcurementEntry } from '@/api/procurement'
 import type { StationMember } from '@/api/types'
-import { inventory, stationMembers, exchanges, procurement } from '@/api'
+import { inventory, stationMembers, movements, procurement } from '@/api'
 import { useStations } from '@/composables/useStations'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import OverviewExchangesSection from './overviewview/OverviewExchangesSection.vue'
+import OverviewMovementsSection from './overviewview/OverviewMovementsSection.vue'
 import OverviewProcurementSection from './overviewview/OverviewProcurementSection.vue'
 import OverviewLostSection from './overviewview/OverviewLostSection.vue'
 import RequestFromOwnerPanel from './overviewview/RequestFromOwnerPanel.vue'
@@ -27,7 +27,7 @@ const { t } = useI18n()
 const { activeStation } = useStations()
 
 const lostItems = ref<LostItem[]>([])
-const exchangeList = ref<ExchangeRequestEntry[]>([])
+const exchangeList = ref<Movement[]>([])
 const openProcurement = ref<ProcurementEntry[]>([])
 const inventoryTypeMap = ref<Map<number, string>>(new Map())
 const inventoryList = ref<Inventory[]>([])
@@ -35,7 +35,7 @@ const inventoryList = ref<Inventory[]>([])
 const ownerAbove = ref<string | null>(null)
 
 const openExchanges = computed(() => exchangeList.value
-    .filter(e => stillMoving(e.status))
+    .filter(movement => movement.state === MovementState.OPEN)
     .slice()
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt)))
 
@@ -54,7 +54,7 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   const [inventories, members, exch, proc, owner] = await Promise.all([
     inventory.listInventories(),
     stationMembers.listMembers(),
-    exchanges.listExchanges(),
+    movements.listMovements(),
     procurement.listOpen(),
     inventory.ownerAbove(),
   ])
@@ -113,8 +113,8 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
       <FailureAlert :message="error"/>
 
       <template v-if="!loading">
-        <RequestFromOwnerPanel :owner-name="ownerAbove" :inventories="inventoryList" @requested="reload" />
-        <OverviewExchangesSection v-if="openExchanges.length > 0" :exchanges="openExchanges" />
+        <RequestFromOwnerPanel :owner-name="ownerAbove" @requested="reload" />
+        <OverviewMovementsSection v-if="openExchanges.length > 0" :movements="openExchanges" />
         <OverviewProcurementSection v-if="openProcurement.length > 0" :entries="openProcurementSorted" :inventory-type-map="inventoryTypeMap" />
         <OverviewLostSection v-if="lostItems.length > 0" :items="lostItemsSorted" />
         <EmptyState v-if="lostItems.length === 0 && openExchanges.length === 0 && openProcurement.length === 0">{{ t('inventory.overview.noLost') }}</EmptyState>

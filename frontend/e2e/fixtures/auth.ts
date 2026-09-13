@@ -639,7 +639,7 @@ export async function standaloneStationManager(request: APIRequestContext): Prom
  * works a station queue and the cluster's, and which one they mean is the header's job to say.
  */
 export async function clusterGearManagerPage(browser: Browser, request: APIRequestContext): Promise<Page> {
-    const account = await clusterAccountOnlyWith(request, 'CLUSTER_INVENTORY_EXCHANGE')
+    const account = await clusterAccountOnlyWith(request, 'CLUSTER_INVENTORY_MOVEMENTS')
     return clusterPage(browser, request, account)
 }
 

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.inventory.entity.ArtStock;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.ItemNameCount;
 import dev.chojo.ember.util.sql.SqlSupport;
@@ -28,7 +29,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class InventoryArtRepository {
 
-    private static final String ART_COLUMNS = "id, inventory_id, name, note, position, merge_key";
+    private static final String ART_COLUMNS = "id, inventory_id, name, note, position, merge_key, icon, color";
 
     /**
      * Finds a kind by its identifier.
@@ -103,15 +104,31 @@ public class InventoryArtRepository {
      * @return the kind that was written
      */
     public InventoryArt create(int inventoryId, String name, String note, int position) {
+        return create(inventoryId, name, note, position, Glyph.NONE);
+    }
+
+    /**
+     * Writes down a new kind with the picture its pieces are drawn with.
+     *
+     * @param inventoryId the inventory it belongs to
+     * @param name        what the station calls it
+     * @param note        a free note, may be empty
+     * @param position    the sort position
+     * @param glyph       the picture the pieces of this kind are drawn with
+     * @return the kind that was written
+     */
+    public InventoryArt create(int inventoryId, String name, String note, int position, Glyph glyph) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO inventory_art(inventory_id, name, note, position)
-                VALUES(:inventory_id, :name, :note, :position)
+                INSERT INTO inventory_art(inventory_id, name, note, position, icon, color)
+                VALUES(:inventory_id, :name, :note, :position, :icon, :color)
                 RETURNING %s;""",
                 call().bind("inventory_id", inventoryId)
                         .bind("name", name)
                         .bind("note", note == null ? "" : note)
-                        .bind("position", position),
+                        .bind("position", position)
+                        .bind("icon", glyph.icon())
+                        .bind("color", glyph.color()),
                 InventoryArt.map(),
                 ART_COLUMNS);
     }
@@ -123,16 +140,19 @@ public class InventoryArtRepository {
      * @param name     its new name
      * @param note     its new note
      * @param position its new sort position
+     * @param glyph    the picture the pieces of this kind are drawn with
      * @return {@code true} when a row changed
      */
-    public boolean update(int id, String name, String note, int position) {
+    public boolean update(int id, String name, String note, int position, Glyph glyph) {
         return query("""
                 UPDATE inventory_art
-                SET name = :name, note = :note, position = :position
+                SET name = :name, note = :note, position = :position, icon = :icon, color = :color
                 WHERE id = :id;""")
                 .single(call().bind("name", name)
                         .bind("note", note == null ? "" : note)
                         .bind("position", position)
+                        .bind("icon", glyph.icon())
+                        .bind("color", glyph.color())
                         .bind("id", id))
                 .update()
                 .changed();

@@ -11,8 +11,8 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
-import {inventory, exchanges, stationMembers} from '@/api'
-import {stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
+import {inventory, movements, stationMembers} from '@/api'
+import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
 import type {InventoryItem, InventorySize, MyInventoryItem} from '@/api/inventory'
 import {StationPermission, type StationMember} from '@/api/types'
 import {useSession} from '@/composables/useSession'
@@ -26,7 +26,9 @@ import ReturnEverythingBar from './memberinventoryview/ReturnEverythingBar.vue'
 import MemberInventoryScanPanel from './memberinventoryview/MemberInventoryScanPanel.vue'
 import MemberInventoryGroups from './memberinventoryview/MemberInventoryGroups.vue'
 import MovementsPanel from '@/components/inventory/MovementsPanel.vue'
-import RequestExchangeModal from './memberinventoryview/RequestExchangeModal.vue'
+import MovementWizard from './movementwizard/MovementWizard.vue'
+import type {WizardPrefill} from './movementwizard/useMovementWizard'
+import {MovementPurpose} from '@/api/movements'
 import {apiErrorMessage} from '@/util/apiError'
 
 const routes = useInventoryRoutes()
@@ -40,17 +42,24 @@ const canAssign = computed(() =>
     hasPermission(StationPermission.INVENTORY_ASSIGN) || hasPermission(StationPermission.INVENTORY_EDIT))
 
 const scanValue = ref('')
+const handOutMode = ref<HandOutMode>('NOW')
 const unknownScanCode = ref<string | null>(null)
 
 const {message: scanError, flash: flashScanError} = useFlashMessage(3500)
 const {message: scanSuccess, flash: flashScanSuccess} = useFlashMessage(2500)
 
-async function assignToCurrentMember(item: InventoryItem | {id: number; name?: string}) {
-  await inventory.assignItem(item.id, {
-    memberId: memberId.value,
-    memberName: member.value?.name ?? '',
-  })
-  flashScanSuccess(t('inventory.assign.assigned', {name: item.name ?? ''}))
+/** Hands the scanned piece over, or writes down that it is to be handed over. */
+async function assignToCurrentMember(item: InventoryItem | {id: number; name?: string; inventoryId?: number}) {
+  if (handOutMode.value === 'PLANNED') {
+    await movements.planHandOut(memberId.value, item.id, item.inventoryId)
+    flashScanSuccess(t('inventory.handOut.plannedFlash', {name: item.name ?? ''}))
+  } else {
+    await inventory.assignItem(item.id, {
+      memberId: memberId.value,
+      memberName: member.value?.name ?? '',
+    })
+    flashScanSuccess(t('inventory.assign.assigned', {name: item.name ?? ''}))
+  }
   items.value = await inventory.memberItems(memberId.value)
 }
 
@@ -97,7 +106,6 @@ const canManage = computed(() => hasPermission(StationPermission.INVENTORY_MANAG
 
 const member = ref<StationMember | null>(null)
 const items = ref<MyInventoryItem[]>([])
-const activeExchanges = ref<ExchangeRequestEntry[]>([])
 
 interface InventoryGroup {
   inventoryId: number
@@ -131,55 +139,32 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
   ])
   items.value = memberItems
   member.value = allMembers.find(m => m.id === mid) ?? null
-  try {
-    const allExch = await exchanges.listExchanges()
-    activeExchanges.value = allExch.filter(e => e.memberId === mid && stillMoving(e.status))
-  } catch { activeExchanges.value = [] }
 })
 
-function itemExchange(itemId: number): ExchangeRequestEntry | undefined {
-  return activeExchanges.value.find(e => e.itemId === itemId)
-}
-
 function goBack() {
-  router.push({name: routes.exchanges})
+  router.push({name: routes.movements})
 }
 
-const showExchangeModal = ref(false)
-const exchangeItem = ref<MyInventoryItem | null>(null)
-const exchangeNewSizeId = ref<string>('')
-const exchangeReason = ref('')
-const exchangeSizes = ref<InventorySize[]>([])
-const exchangeSuccess = ref(false)
+const showWizard = ref(false)
+const wizardPrefill = ref<WizardPrefill>({})
 
-async function openExchangeModal(item: MyInventoryItem) {
-  exchangeItem.value = item
-  exchangeReason.value = ''
-  exchangeNewSizeId.value = ''
-  exchangeSizes.value = []
-  exchangeSuccess.value = false
-  showExchangeModal.value = true
-  try {
-    exchangeSizes.value = await inventory.listSizes(item.inventoryId)
-  } catch {
-    exchangeSizes.value = []
-  }
-}
-
-const {running: exchangeSaving, error: exchangeError, run: submitExchange} = useAsyncAction(async () => {
-  if (!exchangeItem.value || !exchangeReason.value.trim()) return
-  await exchanges.createExchange({
+/**
+ * A swap of this member's piece, started the one way every swap is started.
+ *
+ * <p>The piece answers three of the wizard's questions, so it asks the fourth and shows the chain it
+ * would walk before anything is written.
+ */
+function openExchangeModal(item: MyInventoryItem) {
+  wizardPrefill.value = {
+    purpose: MovementPurpose.EXCHANGE,
     memberId: memberId.value,
-    itemId: exchangeItem.value.id,
-    inventoryId: exchangeItem.value.inventoryId,
-    oldSizeId: exchangeItem.value.sizeId ?? undefined,
-    newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
-    reason: exchangeReason.value.trim(),
-  })
-  exchangeSuccess.value = true
-  showExchangeModal.value = false
-  await loadData()
-}, {formatError: () => t('common.error')})
+    itemId: item.id,
+    inventoryId: item.inventoryId,
+    oldSizeId: item.sizeId ?? null,
+    skip: ['purpose', 'party', 'subject'],
+  }
+  showWizard.value = true
+}
 
 watch(memberId, loadData)
 </script>
@@ -192,12 +177,13 @@ watch(memberId, loadData)
     <div class="space-y-6">
       <MemberInventoryHeader :member="member" @back="goBack" />
 
-      <Alert v-if="error || exchangeError" variant="error">{{ error || exchangeError }}</Alert>
+      <Alert v-if="error" variant="error">{{ error }}</Alert>
       <ReturnEverythingBar v-if="canManage && items.length > 0" :member-id="memberId" @done="loadData"/>
 
       <AsyncSection :loading="loading">
         <MemberInventoryScanPanel
             v-if="canAssign"
+            v-model:hand-out-mode="handOutMode"
             v-model:scan-value="scanValue"
             :scan-busy="scanBusy"
             :scan-error="scanError"
@@ -209,7 +195,6 @@ watch(memberId, loadData)
         <MemberInventoryGroups
             :groups="grouped"
             :items="items"
-            :item-exchange="itemExchange"
             :show-exchange-button="canManageInventory()"
             @request-exchange="openExchangeModal"
         />
@@ -225,18 +210,7 @@ watch(memberId, loadData)
           @close="unknownScanCode = null"
       />
 
-      <RequestExchangeModal
-          v-model="showExchangeModal"
-          :item="exchangeItem"
-          :sizes="exchangeSizes"
-          :reason="exchangeReason"
-          :new-size-id="exchangeNewSizeId"
-          :saving="exchangeSaving"
-          :success="exchangeSuccess"
-          @update:reason="exchangeReason = $event"
-          @update:new-size-id="exchangeNewSizeId = $event"
-          @submit="submitExchange"
-      />
+      <MovementWizard v-model="showWizard" :prefill="wizardPrefill" @started="loadData"/>
     </div>
   </ViewContent>
 </template>

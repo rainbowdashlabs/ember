@@ -98,7 +98,6 @@ import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
 import dev.chojo.ember.feature.inventory.repository.SelfCheckRepository;
 import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
 import dev.chojo.ember.feature.inventory.service.ClusterItemHandoverService;
-import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryArtService;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
@@ -110,6 +109,7 @@ import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.LineTargetService;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
+import dev.chojo.ember.feature.inventory.service.MovementTargeting;
 import dev.chojo.ember.feature.inventory.service.SelfCheckReviewService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
@@ -247,6 +247,7 @@ public abstract class RepositoryTestBase {
     protected static MovementFlowRepository movementFlowRepo;
     protected static ItemMovementRepository itemMovementRepo;
     protected static MovementFlowService movementFlowService;
+    protected static MovementTargeting movementTargeting;
     protected static ItemMovementService itemMovementService;
 
     protected static ItemMovementDocumentRepository itemMovementDocumentRepo;
@@ -254,7 +255,6 @@ public abstract class RepositoryTestBase {
     protected static LossReportService lossReportService;
 
     protected static ClusterItemHandoverService clusterItemHandoverService;
-    protected static ExchangeService exchangeService;
     protected static MemberGroupRepository memberGroupRepo;
     protected static ProfileFieldRepository profileFieldRepo;
     protected static DocumentRepository memberDocumentRepo;
@@ -405,13 +405,14 @@ public abstract class RepositoryTestBase {
         clusterRepo = new ClusterRepository();
         clusterApplicationRepo = new ClusterApplicationRepository();
         clusterProfileFieldRepo = new ClusterProfileFieldRepository();
-        itemCustodyService = new ItemCustodyService(inventoryRepo);
-        borrowedGearService = new BorrowedGearService(inventoryRepo);
         movementFlowRepo = new MovementFlowRepository();
         itemMovementRepo = new ItemMovementRepository();
+        itemCustodyService = new ItemCustodyService(inventoryRepo, itemMovementRepo);
+        borrowedGearService = new BorrowedGearService(inventoryRepo);
         movementFlowService = new MovementFlowService(movementFlowRepo, itemMovementRepo, clusterRepo);
         itemMovementDocumentRepo = new ItemMovementDocumentRepository();
         itemMovementItemRepo = new ItemMovementItemRepository();
+        movementTargeting = new MovementTargeting(inventoryRepo, clusterRepo, movementFlowService);
         itemMovementService = new ItemMovementService(
                 itemMovementRepo,
                 movementFlowService,
@@ -419,6 +420,7 @@ public abstract class RepositoryTestBase {
                 itemCustodyService,
                 clusterRepo,
                 itemMovementItemRepo,
+                movementTargeting,
                 new DomainEventBus(Set.of()));
         clusterItemHandoverService =
                 new ClusterItemHandoverService(inventoryRepo, itemCustodyService, itemMovementService);
@@ -431,7 +433,6 @@ public abstract class RepositoryTestBase {
                 stationRepo,
                 new StorageService(new StorageBackendResolver(movementBackend), movementBackend),
                 new DomainEventBus(Set.of()));
-        exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();
         memberDocumentRepo = new DocumentRepository();
@@ -631,7 +632,7 @@ public abstract class RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 itemCustodyService,
-                exchangeService,
+                itemMovementService,
                 selfCheckNotifications);
     }
 

@@ -14,8 +14,8 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
-import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
@@ -46,7 +46,7 @@ class SidebarCountServiceTest {
     private WaitingListRepository waitingListRepository;
     private LostAndFoundRepository lostAndFoundRepository;
     private InventoryService inventoryService;
-    private ExchangeService exchangeService;
+    private ItemMovementService movementService;
 
     private SidebarCountService service;
 
@@ -66,7 +66,7 @@ class SidebarCountServiceTest {
         lostAndFoundRepository = mock(LostAndFoundRepository.class);
         StationRepository stationRepository = mock(StationRepository.class);
         inventoryService = mock(InventoryService.class);
-        exchangeService = mock(ExchangeService.class);
+        movementService = mock(ItemMovementService.class);
         ProcedureService procedureService = mock(ProcedureService.class);
         StationMemberService stationMemberService = mock(StationMemberService.class);
         when(stationRepository.resolveUid(STATION_ID)).thenReturn(STATION_UID);
@@ -82,7 +82,7 @@ class SidebarCountServiceTest {
                 lostAndFoundRepository,
                 stationRepository,
                 inventoryService,
-                exchangeService,
+                movementService,
                 procedureService,
                 stationMemberService);
     }
@@ -131,7 +131,7 @@ class SidebarCountServiceTest {
 
         when(federationRepository.countPendingRequests(STATION_UID)).thenReturn(8);
         when(inventoryService.countItemsByMember(MEMBER_ID)).thenReturn(9);
-        when(exchangeService.countPendingByStation(STATION_ID)).thenReturn(3);
+        when(movementService.countOpenByStation(STATION_ID)).thenReturn(3);
 
         var counts = service.getCounts(session);
 
@@ -145,7 +145,7 @@ class SidebarCountServiceTest {
         assertEquals(6, counts.waitingListEntries());
         assertEquals(1, counts.lostAndFoundPending());
         assertEquals(9, counts.myInventoryCount());
-        assertEquals(3, counts.pendingExchanges());
+        assertEquals(3, counts.openMovements());
     }
 
     @Test
@@ -169,7 +169,7 @@ class SidebarCountServiceTest {
         assertEquals(0, counts.waitingListEntries());
         assertEquals(0, counts.lostAndFoundPending());
         assertEquals(0, counts.myInventoryCount());
-        assertEquals(0, counts.pendingExchanges());
+        assertEquals(0, counts.openMovements());
 
         verifyNoInteractions(profileFieldChangeRepository);
         verifyNoInteractions(eventRegistrationRepository);
@@ -177,7 +177,7 @@ class SidebarCountServiceTest {
         verifyNoInteractions(federationRepository);
         verifyNoInteractions(waitingListRepository);
         verifyNoInteractions(lostAndFoundRepository);
-        verifyNoInteractions(exchangeService);
+        verifyNoInteractions(movementService);
     }
 
     @Test
@@ -246,7 +246,7 @@ class SidebarCountServiceTest {
         assertEquals(8, counts.waitingListEntries());
         assertEquals(9, counts.lostAndFoundPending());
         assertEquals(10, counts.myInventoryCount());
-        assertEquals(11, counts.pendingExchanges());
+        assertEquals(11, counts.openMovements());
         assertEquals(12, counts.procedureCount());
     }
 
@@ -264,7 +264,7 @@ class SidebarCountServiceTest {
         assertEquals(0, counts.waitingListEntries());
         assertEquals(0, counts.lostAndFoundPending());
         assertEquals(0, counts.myInventoryCount());
-        assertEquals(0, counts.pendingExchanges());
+        assertEquals(0, counts.openMovements());
         assertEquals(0, counts.procedureCount());
     }
 

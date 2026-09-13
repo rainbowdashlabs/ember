@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.inventory.entity.ArtStock;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -124,7 +125,7 @@ public class InventoryArtService {
     }
 
     /**
-     * Writes down a new kind.
+     * Writes down a new kind with no picture of its own, so its pieces follow the inventory.
      *
      * @param inventoryId the inventory it belongs to
      * @param name        what the station calls it
@@ -135,12 +136,27 @@ public class InventoryArtService {
      *                            is blank or already taken there
      */
     public InventoryArt create(int inventoryId, String name, String note, int position) {
+        return create(inventoryId, name, note, position, Glyph.NONE);
+    }
+
+    /**
+     * Writes down a new kind with the picture its pieces are drawn with.
+     *
+     * @param inventoryId the inventory it belongs to
+     * @param name        what the station calls it
+     * @param note        a free note, may be empty or {@code null}
+     * @param position    the sort position
+     * @param glyph       the picture the pieces of this kind are drawn with
+     * @return the kind that was written
+     */
+    public InventoryArt create(int inventoryId, String name, String note, int position, Glyph glyph) {
+        Glyph painted = glyph.paintable();
         Inventory inventory = requireHeterogeneous(inventoryId);
         String trimmed = requireName(name);
         artRepository.findByName(inventoryId, trimmed).ifPresent(existing -> {
             throw new BadRequestResponse("This inventory already has a kind called %s".formatted(existing.name()));
         });
-        InventoryArt art = artRepository.create(inventoryId, trimmed, note, position);
+        InventoryArt art = artRepository.create(inventoryId, trimmed, note, position, painted);
         log.info("Created kind {} (name='{}') in inventory {}", art.id(), trimmed, inventory.id());
         return art;
     }
@@ -151,6 +167,9 @@ public class InventoryArtService {
      * <p>Nothing cascades. The pieces keep pointing at the same row and the key two stations compare
      * on is maintained by the database, so a corrected spelling is corrected everywhere at once.
      *
+     * <p>The picture is left as it stands, because a caller that says nothing about it is not saying
+     * there should be none.
+     *
      * @param id       the kind
      * @param name     its new name
      * @param note     its new note
@@ -158,6 +177,25 @@ public class InventoryArtService {
      * @return the kind as it now stands, or empty when nothing changed
      */
     public Optional<InventoryArt> update(int id, String name, String note, int position) {
+        Glyph current = artRepository
+                .findById(id)
+                .map(art -> new Glyph(art.icon(), art.color()))
+                .orElse(Glyph.NONE);
+        return update(id, name, note, position, current);
+    }
+
+    /**
+     * Renames a kind or moves it in the list, and says what its pieces are drawn with.
+     *
+     * @param id       the kind
+     * @param name     its new name
+     * @param note     its new note
+     * @param position its new sort position
+     * @param glyph    the picture the pieces of this kind are drawn with
+     * @return the kind as it now stands, or empty when nothing changed
+     */
+    public Optional<InventoryArt> update(int id, String name, String note, int position, Glyph glyph) {
+        Glyph painted = glyph.paintable();
         InventoryArt before = artRepository.findById(id).orElseThrow(NotFoundResponse::new);
         String trimmed = requireName(name);
         artRepository.findByName(before.inventoryId(), trimmed).ifPresent(existing -> {
@@ -165,7 +203,7 @@ public class InventoryArtService {
                 throw new BadRequestResponse("This inventory already has a kind called %s".formatted(existing.name()));
             }
         });
-        if (!artRepository.update(id, trimmed, note, position)) {
+        if (!artRepository.update(id, trimmed, note, position, painted)) {
             log.warn("Update of kind {} did not change any row", id);
             return Optional.empty();
         }

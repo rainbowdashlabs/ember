@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {readonly, ref} from 'vue'
+import {forgetGlyphSurfaces} from '@/util/glyphOutline'
 
 function darkClassPresent(): boolean {
     return !import.meta.server && document.documentElement.classList.contains('dark')
@@ -32,5 +33,6 @@ export const darkThemeActive = readonly(dark)
 /** Announces that the theme's colours have just been rewritten. */
 export function themeRepainted(): void {
     dark.value = darkClassPresent()
+    forgetGlyphSurfaces()
     repaints.value += 1
 }

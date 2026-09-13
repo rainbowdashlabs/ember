@@ -9,9 +9,12 @@ import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import ItemChip, {type ItemChipSource} from '@/components/inventory/ItemChip.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {containerPathFor} from '@/util/containerPath'
-import {inventory, inventoryContainers, stationMembers} from '@/api'
+import {glyphFor} from '@/util/glyph'
+import {inventory, inventoryArts, inventoryContainers, stationMembers} from '@/api'
+import type {InventoryArt} from '@/api/inventoryArts'
 import type {InventoryItem, InventorySize, Inventory} from '@/api/inventory'
 import type {StationMember} from '@/api/types'
 import type {InventoryContainer} from '@/api/inventoryContainers'
@@ -35,6 +38,7 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const items = ref<InventoryItem[]>([])
+const arts = ref<InventoryArt[]>([])
 const containers = ref<InventoryContainer[]>([])
 const members = ref<StationMember[]>([])
 const inventories = ref<Inventory[]>([])
@@ -42,6 +46,7 @@ const sizes = ref<InventorySize[]>([])
 const ready = ref(false)
 const scanError = ref('')
 
+const artById = computed(() => new Map(arts.value.map(a => [a.id, a])))
 const containerById = computed(() => new Map(containers.value.map(c => [c.id, c])))
 const memberById = computed(() => new Map(members.value.map(m => [m.id, m])))
 const inventoryById = computed(() => new Map(inventories.value.map(i => [i.id, i])))
@@ -94,21 +99,32 @@ function locationLabel(item: InventoryItem): string {
   }
 }
 
-function stateIcon(item: InventoryItem): string[] {
-  switch (itemState(item)) {
-    case 'member': return ['fas', 'user']
-    case 'storage': return ['fas', 'warehouse']
-    case 'lost': return ['fas', 'triangle-exclamation']
-    default: return ['fas', 'cube']
-  }
+/**
+ * What the piece is, rather than where it is.
+ *
+ * <p>Where it is was what the icon used to say, which made a helmet and a jacket with the same member
+ * look alike. That answer is the badge's now, and the picture says what the thing is.
+ */
+function glyphOf(item: InventoryItem) {
+  const art = item.artId != null ? artById.value.get(item.artId) : undefined
+  const inv = inventoryById.value.get(item.inventoryId)
+  return glyphFor({
+    artIcon: art?.icon,
+    artColor: art?.color,
+    inventoryIcon: inv?.icon,
+    inventoryColor: inv?.color,
+    homogeneous: inv?.homogeneous,
+  })
 }
 
-function stateIconClass(item: InventoryItem): string {
-  switch (itemState(item)) {
-    case 'member': return 'text-secondary-accent dark:text-secondary'
-    case 'storage': return 'text-primary'
-    case 'lost': return 'text-error'
-    default: return 'text-(--text-muted)'
+function chipOf(item: InventoryItem): ItemChipSource {
+  return {
+    glyph: glyphOf(item),
+    name: (item.name ?? '').trim() || item.internalId || `#${item.id}`,
+    internalId: item.internalId,
+    sizeName: sizeLabel(item),
+    inventoryName: inventoryName(item.inventoryId),
+    location: locationLabel(item),
   }
 }
 
@@ -218,10 +234,11 @@ const innerModel = computed<string | null>({
   set: v => { model.value = v != null && v !== '' ? Number(v) : null },
 })
 
+const selectedItem = computed(() => (model.value != null ? itemById.value.get(model.value) ?? null : null))
+
 const selectedDisplay = computed(() => {
   if (model.value == null) return null
-  const item = itemById.value.get(model.value)
-  return item ? displayName(item) : `#${model.value}`
+  return selectedItem.value ? displayName(selectedItem.value) : `#${model.value}`
 })
 
 async function load() {
@@ -239,6 +256,10 @@ async function load() {
     members.value = ms
     inventories.value = invs
     sizes.value = szs
+    // Only a drawer of different things has kinds, and only a kind can overrule its inventory's picture.
+    const collections = invs.filter(inv => !inv.homogeneous)
+    const kinds = await Promise.all(collections.map(inv => inventoryArts.listArts(inv.id)))
+    arts.value = kinds.flat()
   } catch {
     items.value = []
   } finally {
@@ -278,15 +299,21 @@ watch(() => model.value, val => { if (val == null) scanError.value = '' })
             :display-fn="displayName"
             :subtitle-fn="subtitle"
             :key-fn="(item: InventoryItem) => item.id"
-            :icon-fn="stateIcon"
-            :icon-class-fn="stateIconClass"
             :badge-fn="stateBadge"
             :selected-display="selectedDisplay"
             :placeholder="placeholder ?? t('inventory.itemPicker.placeholder')"
             :disabled="disabled"
             :empty-label="t('inventory.itemPicker.emptyNoMatch')"
             @pick="pickItem"
-        />
+        >
+          <template #row="{item, highlighted}">
+            <ItemChip :source="chipOf(item)" :surface="highlighted ? 'highlight' : 'page'"/>
+          </template>
+          <template #picked>
+            <ItemChip v-if="selectedItem" :source="chipOf(selectedItem)"/>
+            <span v-else class="flex-1 truncate text-sm">{{ selectedDisplay }}</span>
+          </template>
+        </EntitySearchPicker>
       </div>
       <ScanButton :disabled="disabled" @decoded="onScan" />
     </div>

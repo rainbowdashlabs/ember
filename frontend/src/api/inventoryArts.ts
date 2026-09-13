@@ -21,12 +21,18 @@ export interface InventoryArt {
     position: number
     /** The name trimmed and lowered, maintained by the backend. Two stations that write the same word mean the same kind. */
     mergeKey: string
+    /** The FontAwesome name its pieces are drawn with, absent when they follow the inventory. */
+    icon?: string | null
+    /** The colour that picture is drawn in, absent when it follows the inventory. */
+    color?: string | null
 }
 
 export interface ArtRequest {
     name: string
     note: string
     position: number
+    icon?: string | null
+    color?: string | null
 }
 
 /** How many pieces of one kind an inventory holds, and how many of those are free. */

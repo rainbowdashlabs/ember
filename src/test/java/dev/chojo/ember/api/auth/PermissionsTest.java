@@ -199,7 +199,7 @@ class PermissionsTest {
         assertTrue(granted.contains(StationPermission.INVENTORY_EDIT));
         assertTrue(granted.contains(StationPermission.INVENTORY_ASSIGN));
         assertTrue(granted.contains(StationPermission.INVENTORY_CHECK));
-        assertTrue(granted.contains(StationPermission.INVENTORY_EXCHANGE));
+        assertTrue(granted.contains(StationPermission.INVENTORY_MOVEMENTS));
         assertTrue(granted.contains(StationPermission.INVENTORY_PROCUREMENT));
         assertTrue(granted.contains(StationPermission.INVENTORY_STORAGE));
 

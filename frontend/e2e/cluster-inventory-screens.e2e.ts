@@ -306,11 +306,12 @@ test.describe('Cluster inventory screens', () => {
         await page.getByTestId('procurement-create').click({timeout: 15000})
 
         // No member is asked for, because there is nobody at an association's own station to order for
-        await expect(page.getByTestId('procurement-inventory')).toBeVisible()
-        const inventoryId = await page.getByTestId('procurement-inventory').locator('option').nth(1)
-            .getAttribute('value')
-        expect(inventoryId, 'the association keeps a kind of gear').toBeTruthy()
-        await page.getByTestId('procurement-inventory').selectOption(inventoryId!)
+        const picker = page.getByTestId('procurement-inventory')
+        await expect(picker).toBeVisible()
+        await picker.getByRole('searchbox').click()
+        const offered = picker.getByRole('option')
+        await expect(offered.first(), 'the association keeps a kind of gear').toBeVisible({timeout: 15000})
+        await offered.first().click()
 
         const note = `Nachbestellung ${Date.now()}`
         await page.getByTestId('procurement-notes').fill(note)

@@ -69,7 +69,7 @@ public class NotificationService {
             // Date-aware variant for recurring events so the user lands on the right
             // occurrence (e.g. weekly events on 2026-06-12 vs 2026-06-19).
             Map.entry("event-detail-date", "/station/events/{id}/{date}"),
-            Map.entry("inventory-exchanges", "/station/inventory/exchanges"),
+            Map.entry("inventory-movements", "/station/inventory/movements"),
             Map.entry("inventory-procurement", "/station/inventory/procurement"),
             Map.entry("members-detail", "/station/members/detail/{id}"),
             Map.entry("dashboard-overview", "/station/dashboard/overview"),
@@ -665,9 +665,8 @@ public class NotificationService {
         return switch (n.type()) {
             case NEW_NEWS -> params instanceof NotificationParams.NewNews p ? p.preview() : null;
             case NEWS_COMMENT -> params instanceof NotificationParams.NewsComment p ? p.preview() : null;
-            case EXCHANGE_STATUS_CHANGE ->
-                params instanceof NotificationParams.ExchangeStatusChange p ? p.stepLabel() : null;
-            case EXCHANGE_NEW_REQUEST -> params instanceof NotificationParams.ExchangeNewRequest p ? p.reason() : null;
+            case MOVEMENT_ADVANCED -> params instanceof NotificationParams.MovementMoved p ? p.stepLabel() : null;
+            case MOVEMENT_RAISED -> params instanceof NotificationParams.MovementRaised p ? p.reason() : null;
             case EVENT_REGISTRATION_STATUS ->
                 params instanceof NotificationParams.EventRegistrationStatus p ? p.eventDescription() : null;
             case NEW_EVENT -> params instanceof NotificationParams.NewEvent p ? p.eventDescription() : null;
@@ -720,8 +719,8 @@ public class NotificationService {
                     lines.add(feedKv(locale, "daysBefore", String.valueOf(p.daysBefore())));
                 }
             }
-            case EXCHANGE_NEW_REQUEST -> {
-                if (params instanceof NotificationParams.ExchangeNewRequest p && notBlank(p.reason())) {
+            case MOVEMENT_RAISED -> {
+                if (params instanceof NotificationParams.MovementRaised p && notBlank(p.reason())) {
                     lines.add(feedKv(locale, "reason", p.reason()));
                 }
             }

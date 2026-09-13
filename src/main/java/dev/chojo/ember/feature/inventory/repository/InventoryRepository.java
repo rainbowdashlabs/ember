@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.repository;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
@@ -42,7 +43,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class InventoryRepository {
     private static final String INVENTORY_COLUMNS =
-            "id, station_id, name, inventory_type, has_sizes, homogeneous, borrowed";
+            "id, station_id, name, inventory_type, has_sizes, homogeneous, borrowed, icon, color";
     private static final String INVENTORY_SIZE_COLUMNS = "id, inventory_id, label, position, note";
     private static final String INVENTORY_ITEM_COLUMNS =
             "id, inventory_id, internal_id, name, size_id, art_id, metadata, assigned_to, lost_at, lost_note, lost_note_by, owner_kind, owner_cluster_id, owner_station_id, loan_request_item_id, custody, custody_station_id, custody_partner_station_id, custody_movement_id, container_id";
@@ -160,7 +161,28 @@ public class InventoryRepository {
      */
     public Inventory create(
             int stationId, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous) {
-        return create(stationId, name, inventoryType, hasSizes, homogeneous, false);
+        return create(stationId, name, inventoryType, hasSizes, homogeneous, false, Glyph.NONE);
+    }
+
+    /**
+     * Creates a new inventory for a station, with the picture it is drawn with.
+     *
+     * @param stationId     the station ID
+     * @param name          the inventory name
+     * @param inventoryType the inventory type
+     * @param hasSizes      whether the inventory supports sizes
+     * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
+     * @param glyph         the picture every piece of it is drawn with
+     * @return the created inventory
+     */
+    public Inventory create(
+            int stationId,
+            String name,
+            InventoryType inventoryType,
+            boolean hasSizes,
+            boolean homogeneous,
+            Glyph glyph) {
+        return create(stationId, name, inventoryType, hasSizes, homogeneous, false, glyph);
     }
 
     /**
@@ -173,6 +195,7 @@ public class InventoryRepository {
      * @param hasSizes      whether the inventory supports sizes
      * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
      * @param borrowed      whether this is the station's one shelf for borrowed gear
+     * @param glyph         the picture every piece of it is drawn with
      * @return the created inventory
      */
     public Inventory create(
@@ -181,18 +204,21 @@ public class InventoryRepository {
             InventoryType inventoryType,
             boolean hasSizes,
             boolean homogeneous,
-            boolean borrowed) {
+            boolean borrowed,
+            Glyph glyph) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO inventory(station_id, name, inventory_type, has_sizes, homogeneous, borrowed)
-                VALUES(:station_id, :name, :inventory_type, :has_sizes, :homogeneous, :borrowed)
+                INSERT INTO inventory(station_id, name, inventory_type, has_sizes, homogeneous, borrowed, icon, color)
+                VALUES(:station_id, :name, :inventory_type, :has_sizes, :homogeneous, :borrowed, :icon, :color)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("inventory_type", inventoryType)
                         .bind("has_sizes", hasSizes)
                         .bind("homogeneous", homogeneous)
-                        .bind("borrowed", borrowed),
+                        .bind("borrowed", borrowed)
+                        .bind("icon", glyph.icon())
+                        .bind("color", glyph.color()),
                 Inventory.map(),
                 INVENTORY_COLUMNS);
     }
@@ -219,20 +245,26 @@ public class InventoryRepository {
      * @param inventoryType the new inventory type
      * @param hasSizes      whether the inventory supports sizes
      * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
+     * @param glyph         the picture every piece of it is drawn with
      * @return {@code true} if the inventory was updated
      */
-    public boolean update(int id, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous) {
+    public boolean update(
+            int id, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous, Glyph glyph) {
         return query("""
                 UPDATE inventory
                 SET name           = :name,
                     inventory_type = :inventory_type,
                     has_sizes      = :has_sizes,
-                    homogeneous    = :homogeneous
+                    homogeneous    = :homogeneous,
+                    icon           = :icon,
+                    color          = :color
                 WHERE id = :id;""")
                 .single(call().bind("name", name)
                         .bind("inventory_type", inventoryType)
                         .bind("has_sizes", hasSizes)
                         .bind("homogeneous", homogeneous)
+                        .bind("icon", glyph.icon())
+                        .bind("color", glyph.color())
                         .bind("id", id))
                 .update()
                 .changed();

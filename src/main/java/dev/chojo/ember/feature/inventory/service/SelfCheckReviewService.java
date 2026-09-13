@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.entity.SelfCheck;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswer;
@@ -76,7 +77,7 @@ public class SelfCheckReviewService {
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final ItemCustodyService custodyService;
-    private final ExchangeService exchangeService;
+    private final ItemMovementService movementService;
     private final NotificationService notificationService;
 
     @Inject
@@ -89,7 +90,7 @@ public class SelfCheckReviewService {
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             ItemCustodyService custodyService,
-            ExchangeService exchangeService,
+            ItemMovementService movementService,
             NotificationService notificationService) {
         this.repository = repository;
         this.checkService = checkService;
@@ -99,7 +100,7 @@ public class SelfCheckReviewService {
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.custodyService = custodyService;
-        this.exchangeService = exchangeService;
+        this.movementService = movementService;
         this.notificationService = notificationService;
     }
 
@@ -229,9 +230,11 @@ public class SelfCheckReviewService {
     private int swapFor(SelfCheck task, InventoryItem replacement, SelfCheckRaised waiting) {
         Integer onBehalfOf =
                 waiting.raisedBy() == null || waiting.raisedBy() == task.memberId() ? null : waiting.raisedBy();
-        return exchangeService
+        var actor = new ItemMovementService.Actor(onBehalfOf != null ? onBehalfOf : task.memberId(), true);
+        return movementService
                 .create(
                         task.stationId(),
+                        MovementPurpose.EXCHANGE,
                         task.memberId(),
                         nameOf(task.memberId()),
                         replacement.id(),
@@ -239,7 +242,8 @@ public class SelfCheckReviewService {
                         replacement.sizeId(),
                         waiting.newSizeId(),
                         waiting.words(),
-                        onBehalfOf)
+                        actor,
+                        null)
                 .id();
     }
 

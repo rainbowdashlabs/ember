@@ -37,7 +37,7 @@ class SelfCheckBoundaryTest {
      * right or close a check. None of them belongs on an endpoint a member reaches.
      */
     private static final List<String> SETTLING_SERVICES =
-            List.of("InventoryService", "ItemCustodyService", "ProcurementService", "ExchangeService");
+            List.of("InventoryService", "ItemCustodyService", "ProcurementService", "ItemMovementService");
 
     /**
      * The methods that settle something, named as the walk's own routes call them.

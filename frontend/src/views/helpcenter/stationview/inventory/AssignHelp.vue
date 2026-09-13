@@ -31,6 +31,15 @@ const { t } = useI18n()
       </p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryAssignHelp.plannedTitle')">
+      <p>
+        {{ t('helpCenter.inventoryAssignHelp.plannedPart1') }}
+      </p>
+      <p>
+        {{ t('helpCenter.inventoryAssignHelp.plannedPart2') }}
+      </p>
+    </HelpSection>
+
     <HelpTip>
       {{ t('helpCenter.inventoryAssignHelp.tip') }}
     </HelpTip>

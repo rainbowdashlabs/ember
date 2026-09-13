@@ -7,17 +7,12 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
+import MovementWizard from '../movementwizard/MovementWizard.vue'
+import type {WizardPrefill} from '../movementwizard/useMovementWizard'
 import type {InventoryItem} from '@/api/inventory'
-import {MovementPurpose} from '@/api/movements'
-import {movements} from '@/api'
-import {useAsyncAction} from '@/composables/useAsyncAction'
+import {MovementPurpose, type MovementPurposeName} from '@/api/movements'
 
 /**
  * What a station may do with a piece of gear that belongs to the association above it.
@@ -36,20 +31,20 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const asking = ref<'RETURN' | 'EXCHANGE' | null>(null)
-const reason = ref('')
+const asking = ref(false)
+const prefill = ref<WizardPrefill>({})
 
-const {running, error, failure, run: start} = useAsyncAction(async () => {
-  if (!asking.value) return
-  await movements.createMovement({
-    purpose: asking.value === 'RETURN' ? MovementPurpose.RETURN : MovementPurpose.EXCHANGE,
-    outgoingItemId: props.item.id,
-    reason: reason.value.trim() || undefined,
-  })
-  asking.value = null
-  reason.value = ''
-  emit('started')
-})
+function ask(purpose: MovementPurposeName) {
+  prefill.value = {
+    purpose,
+    memberId: null,
+    itemId: props.item.id,
+    inventoryId: props.item.inventoryId,
+    oldSizeId: props.item.sizeId ?? null,
+    skip: ['purpose', 'party', 'subject'],
+  }
+  asking.value = true
+}
 </script>
 
 <template>
@@ -58,33 +53,14 @@ const {running, error, failure, run: start} = useAsyncAction(async () => {
     <p class="text-sm text-(--text-muted)">{{ t('itemDetail.ownedElsewhereHint') }}</p>
 
     <div class="flex flex-wrap gap-2">
-      <SecondaryButton :icon="['fas', 'rotate-left']" @click="asking = 'RETURN'">
+      <SecondaryButton :icon="['fas', 'rotate-left']" @click="ask(MovementPurpose.RETURN)">
         {{ t('itemDetail.handBack') }}
       </SecondaryButton>
-      <SecondaryButton :icon="['fas', 'right-left']" @click="asking = 'EXCHANGE'">
+      <SecondaryButton :icon="['fas', 'right-left']" @click="ask(MovementPurpose.EXCHANGE)">
         {{ t('itemDetail.askExchange') }}
       </SecondaryButton>
     </div>
 
-    <Modal v-if="asking" model-value @update:model-value="(v) => { if (!v) asking = null }">
-      <div class="space-y-4">
-        <SectionHeader>
-          {{ asking === 'RETURN' ? t('itemDetail.handBack') : t('itemDetail.askExchange') }}
-        </SectionHeader>
-        <FailureAlert :failure="failure"/>
-
-        <div class="space-y-1">
-          <FieldLabel>{{ t('itemDetail.movementReason') }}</FieldLabel>
-          <TextAreaInput v-model="reason" :placeholder="t('itemDetail.movementReasonPlaceholder')"/>
-        </div>
-
-        <div class="flex justify-end gap-3">
-          <SecondaryButton :disabled="running" @click="asking = null">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="running" @click="start">
-            {{ running ? t('common.loading') : t('common.send') }}
-          </PrimaryButton>
-        </div>
-      </div>
-    </Modal>
+    <MovementWizard v-model="asking" :prefill="prefill" @started="emit('started')"/>
   </NeutralContainer>
 </template>

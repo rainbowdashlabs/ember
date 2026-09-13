@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -216,6 +217,46 @@ class InventoryServiceTest extends RepositoryTestBase {
         assertTrue(updated.isPresent());
         assertEquals("Updated Inv", updated.get().name());
         assertEquals(InventoryType.EXTERNAL, updated.get().inventoryType());
+        service.delete(inv.id());
+    }
+
+    /**
+     * The picture an inventory is drawn with: written on creation, kept by a caller that says nothing
+     * about it, and cleared only by one that says so.
+     */
+    @Test
+    @Order(58)
+    void anInventoryCarriesItsPicture() {
+        var inv = service.create(
+                station.id(), "Helme", InventoryType.INTERNAL, true, true, new Glyph("helmet-safety", "#DC2626"));
+        assertEquals("helmet-safety", inv.icon());
+        assertEquals("#dc2626", inv.color());
+
+        var renamed = service.update(inv.id(), "Helme alt", InventoryType.INTERNAL, true, true)
+                .orElseThrow();
+        assertEquals("helmet-safety", renamed.icon());
+        assertEquals("#dc2626", renamed.color());
+
+        var cleared = service.update(inv.id(), "Helme alt", InventoryType.INTERNAL, true, true, Glyph.NONE)
+                .orElseThrow();
+        assertNull(cleared.icon());
+        assertNull(cleared.color());
+
+        service.delete(inv.id());
+    }
+
+    @Test
+    @Order(58)
+    void aColourNothingCouldPaintIsRefused() {
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.create(
+                        station.id(), "Bunt", InventoryType.INTERNAL, false, true, Glyph.of("shirt", "blau")));
+        var inv = service.create(station.id(), "Bunt", InventoryType.INTERNAL, false, true);
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.update(
+                        inv.id(), "Bunt", InventoryType.INTERNAL, false, true, Glyph.of("shirt", "#12345")));
         service.delete(inv.id());
     }
 

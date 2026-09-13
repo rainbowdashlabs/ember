@@ -46,8 +46,7 @@ public class StationMemberRepository {
             (SELECT ut.color FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id
              WHERE ute.member_id = sm.id AND ut.visible = TRUE
              ORDER BY ut.position DESC LIMIT 1)""";
-    private static final String PRIMARY_GROUP_COLOR_SUBQUERY =
-            """
+    private static final String PRIMARY_GROUP_COLOR_SUBQUERY = """
             (SELECT mg.color FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id
              WHERE mge.member_id = sm.id AND mg.color IS NOT NULL AND mg.color <> ''
              ORDER BY mg.position DESC LIMIT 1)""";
@@ -60,8 +59,7 @@ public class StationMemberRepository {
             %s AS name_color,
             %s AS display_tag,
             %s AS display_tag_color,
-            sm.join_date AS join_date"""
-                    .formatted(PRIMARY_GROUP_COLOR_SUBQUERY, PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
+            sm.join_date AS join_date""".formatted(PRIMARY_GROUP_COLOR_SUBQUERY, PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
 
     /**
      * Reads the UUID of an internal member ID.

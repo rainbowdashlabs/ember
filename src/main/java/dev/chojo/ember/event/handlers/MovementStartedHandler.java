@@ -46,8 +46,7 @@ public class MovementStartedHandler implements DomainEventHandler<MovementStarte
 
     @Override
     public void handle(MovementStarted event) {
-        var params =
-                new NotificationParams.ExchangeNewRequest(event.memberName(), event.inventoryName(), event.reason());
+        var params = new NotificationParams.MovementRaised(event.memberName(), event.inventoryName(), event.reason());
         var recipients = MovementNotificationRouting.recipients(
                 stationMemberRepository,
                 clusterService.get(),
@@ -57,7 +56,7 @@ public class MovementStartedHandler implements DomainEventHandler<MovementStarte
                 event.ownerClusterId());
         notificationService.notifyMembersIfAbsent(
                 recipients.stationMembers(),
-                NotificationType.EXCHANGE_NEW_REQUEST,
+                NotificationType.MOVEMENT_RAISED,
                 NotificationData.of(
                         params,
                         new NotificationData.NotificationLink(
@@ -65,7 +64,7 @@ public class MovementStartedHandler implements DomainEventHandler<MovementStarte
                 event.actorMemberId());
         notificationService.notifyClusterMembersIfAbsent(
                 recipients.clusterMembers(),
-                NotificationType.EXCHANGE_NEW_REQUEST,
+                NotificationType.MOVEMENT_RAISED,
                 NotificationData.of(params, new NotificationData.NotificationLink("cluster-movements")),
                 null);
     }

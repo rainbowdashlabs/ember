@@ -7,11 +7,9 @@
 import InventorySection from './InventorySection.vue'
 import MissingRequirements from './inventorytab/MissingRequirements.vue'
 import type { MemberRequirements, MyInventoryItem } from '@/api/inventory'
-import type { ExchangeRequestEntry } from '@/api/exchanges'
 
 defineProps<{
   memberInventory: MyInventoryItem[]
-  memberExchanges: ExchangeRequestEntry[]
   memberRequirements: MemberRequirements
   showInventoryManagement: boolean
   canManageInventory: boolean
@@ -40,7 +38,6 @@ defineEmits<{
     <InventorySection
         v-if="memberInventory.length > 0 || showInventoryManagement"
         :member-inventory="memberInventory"
-        :member-exchanges="memberExchanges"
         :show-inventory-management="showInventoryManagement && canEdit"
         :can-manage-inventory="canManageInventory && canEdit"
         @assign-item="$emit('assign-item')"

@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
-import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
 import dev.chojo.ember.feature.inventory.entity.FieldType;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainer;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainerKind;
@@ -19,14 +19,15 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryTagRepository;
-import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
+import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Inject;
@@ -40,6 +41,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
@@ -61,12 +63,6 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             "Verloren und brauche Ersatz",
             "Riss im Material",
             "Reißverschluss defekt");
-    private static final List<ExchangeStatus> EXCHANGE_STATUSES = List.of(
-            ExchangeStatus.ANNOUNCED,
-            ExchangeStatus.ANNOUNCED,
-            ExchangeStatus.RECEIVED,
-            ExchangeStatus.ANNOUNCED,
-            ExchangeStatus.RECEIVED);
 
     private final InventoryRepository inventoryRepository;
     private final InventoryArtRepository artRepository;
@@ -75,7 +71,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
     private final AccountRepository accountRepository;
     private final InventoryContainerService containerService;
     private final InventoryFieldDefinitionService fieldDefinitionService;
-    private final ExchangeService exchangeService;
+    private final ItemMovementService movementService;
     private final ProcurementService procurementService;
     private final ItemCustodyService custodyService;
 
@@ -88,7 +84,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             AccountRepository accountRepository,
             InventoryContainerService containerService,
             InventoryFieldDefinitionService fieldDefinitionService,
-            ExchangeService exchangeService,
+            ItemMovementService movementService,
             ProcurementService procurementService,
             ItemCustodyService custodyService) {
         this.inventoryRepository = inventoryRepository;
@@ -98,7 +94,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         this.accountRepository = accountRepository;
         this.containerService = containerService;
         this.fieldDefinitionService = fieldDefinitionService;
-        this.exchangeService = exchangeService;
+        this.movementService = movementService;
         this.procurementService = procurementService;
         this.custodyService = custodyService;
     }
@@ -122,12 +118,13 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         seedInventoryChecks(
                 station.stationId(), rng, members.betreuer(), members.anfaenger(), members.fortgeschritten());
         seedExchanges(station.stationId(), rng, members.anfaenger(), members.fortgeschritten(), members.betreuer());
+        seedPlannedHandOuts(station.stationId(), rng, members.anfaenger());
         seedProcurements(station.stationId(), members.anfaenger(), members.fortgeschritten());
     }
 
     /**
-     * Creates exchange requests for randomly picked assigned items, moving a portion of them to
-     * the received state so the exchange list shows both stages.
+     * Creates exchange requests for randomly picked assigned items, walking a portion of them one step
+     * on so the queue shows chains at more than one stage.
      */
     private void seedExchanges(
             int stationId,
@@ -180,8 +177,9 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                 }
                 default -> {}
             }
-            var exchange = exchangeService.create(
+            var exchange = movementService.create(
                     stationId,
+                    MovementPurpose.EXCHANGE,
                     kid.id(),
                     "Demo User",
                     item.id(),
@@ -189,18 +187,63 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                     item.sizeId(),
                     newSizeId,
                     reason,
+                    new ItemMovementService.Actor(kid.id(), true),
                     null);
-            var targetStatus = EXCHANGE_STATUSES.get(rng.nextInt(EXCHANGE_STATUSES.size()));
-            if (targetStatus != ExchangeStatus.ANNOUNCED) {
-                exchangeService.updateStatus(
+            if (rng.nextInt(5) > 1) {
+                var team = betreuerMembers.get(rng.nextInt(betreuerMembers.size()));
+                movementService.acknowledge(
                         exchange.id(),
-                        ExchangeStatus.RECEIVED,
-                        betreuerMembers.get(rng.nextInt(betreuerMembers.size())).id(),
-                        "In Bearbeitung");
+                        exchange.currentStepId(),
+                        new ItemMovementService.Actor(team.id(), true),
+                        "In Bearbeitung",
+                        null);
             }
             exchangeCount++;
         }
         log.info("Demo: Created {} exchange requests", exchangeCount);
+    }
+
+    /**
+     * Promises a few pieces to members without handing them over, so the queue holds hand-outs beside
+     * the swaps and the shelf shows what is already spoken for.
+     */
+    private void seedPlannedHandOuts(int stationId, Random rng, List<StationMember> anfaengerMembers) {
+        var spokenFor = new HashSet<Integer>();
+        for (var movement : movementService.findByStation(stationId)) {
+            if (movement.state().closed()) continue;
+            if (movement.outgoingItemId() != null) spokenFor.add(movement.outgoingItemId());
+            if (movement.incomingItemId() != null) spokenFor.add(movement.incomingItemId());
+        }
+
+        var shelf = inventoryRepository.findByStation(stationId).stream()
+                .filter(inv -> inv.inventoryType() == InventoryType.INTERNAL)
+                .flatMap(inv -> inventoryRepository.findItems(inv.id()).stream())
+                .filter(item -> item.assignedTo() == null && item.lostAt() == null)
+                .filter(item -> !spokenFor.contains(item.id()))
+                .toList();
+        if (shelf.isEmpty()) return;
+
+        int planned = 0;
+        for (var kid : anfaengerMembers) {
+            if (planned >= 3) break;
+            if (rng.nextInt(3) != 0) continue;
+            var piece = shelf.get(rng.nextInt(shelf.size()));
+            if (!spokenFor.add(piece.id())) continue;
+            movementService.create(
+                    stationId,
+                    MovementPurpose.ISSUE,
+                    kid.id(),
+                    "Demo User",
+                    null,
+                    piece.inventoryId(),
+                    null,
+                    piece.sizeId(),
+                    "Ausgabe beim nächsten Dienst",
+                    new ItemMovementService.Actor(kid.id(), true),
+                    piece.id());
+            planned++;
+        }
+        log.info("Demo: Planned {} hand-out(s)", planned);
     }
 
     /**
@@ -257,31 +300,39 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         var tshirtSizes = List.of("128", "140", "152", "164", "176");
 
         // Create inventories
-        var helm = inventoryRepository.create(stationId, "Helm", InventoryType.MIXED, false);
+        var helm = inventoryRepository.create(
+                stationId, "Helm", InventoryType.MIXED, false, true, Glyph.of("helmet-safety", "#2563eb"));
 
-        var blouson = inventoryRepository.create(stationId, "Blouson", InventoryType.EXTERNAL, true);
+        var blouson = inventoryRepository.create(
+                stationId, "Blouson", InventoryType.EXTERNAL, true, true, Glyph.of("shirt", "#1d4ed8"));
         for (int i = 0; i < kleidungSizes.size(); i++)
             inventoryRepository.createSize(blouson.id(), kleidungSizes.get(i), i, "");
 
-        var parka = inventoryRepository.create(stationId, "Parka", InventoryType.EXTERNAL, true);
+        var parka = inventoryRepository.create(
+                stationId, "Parka", InventoryType.EXTERNAL, true, true, Glyph.of("vest", "#0f766e"));
         for (int i = 0; i < parkaSizes.size(); i++)
             inventoryRepository.createSize(parka.id(), parkaSizes.get(i), i, "");
 
-        var latzhose = inventoryRepository.create(stationId, "Latzhose", InventoryType.EXTERNAL, true);
+        var latzhose = inventoryRepository.create(
+                stationId, "Latzhose", InventoryType.EXTERNAL, true, true, Glyph.of("vest-patches", "#7c3aed"));
         for (int i = 0; i < kleidungSizes.size(); i++)
             inventoryRepository.createSize(latzhose.id(), kleidungSizes.get(i), i, "");
 
-        var handschuhe = inventoryRepository.create(stationId, "Handschuhe", InventoryType.MIXED, true);
+        var handschuhe = inventoryRepository.create(
+                stationId, "Handschuhe", InventoryType.MIXED, true, true, Glyph.of("mitten", "#b45309"));
         for (int i = 0; i < handschuhSizes.size(); i++)
             inventoryRepository.createSize(handschuhe.id(), handschuhSizes.get(i), i, "");
 
-        var stiefel = inventoryRepository.create(stationId, "Stiefel", InventoryType.INTERNAL, true);
+        var stiefel = inventoryRepository.create(
+                stationId, "Stiefel", InventoryType.INTERNAL, true, true, Glyph.of("shoe-prints", "#78350f"));
         for (int i = 0; i < stiefelSizes.size(); i++)
             inventoryRepository.createSize(stiefel.id(), stiefelSizes.get(i), i, "");
 
-        var sporttasche = inventoryRepository.create(stationId, "Sporttasche", InventoryType.INTERNAL, false);
+        var sporttasche = inventoryRepository.create(
+                stationId, "Sporttasche", InventoryType.INTERNAL, false, true, Glyph.of("bag-shopping", "#be123c"));
 
-        var tshirt = inventoryRepository.create(stationId, "T-Shirt", InventoryType.INTERNAL, true);
+        var tshirt = inventoryRepository.create(
+                stationId, "T-Shirt", InventoryType.INTERNAL, true, true, Glyph.of("shirt", "#16a34a"));
         for (int i = 0; i < tshirtSizes.size(); i++)
             inventoryRepository.createSize(tshirt.id(), tshirtSizes.get(i), i, "");
 
@@ -528,8 +579,9 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         inventoryRepository.createItem(sonstiges.id(), null, "Ladestation", null, null);
         inventoryRepository.createItem(sonstiges.id(), null, "Antenne", null, null);
 
-        var funk = inventoryRepository.create(stationId, "Handfunkgeräte", InventoryType.INTERNAL, false, false);
-        var blau = artRepository.create(funk.id(), "Funkgerät blau", "Kanal 1 bis 4", 10);
+        var funk = inventoryRepository.create(
+                stationId, "Handfunkgeräte", InventoryType.INTERNAL, false, false, new Glyph("radio", "#0f766e"));
+        var blau = artRepository.create(funk.id(), "Funkgerät blau", "Kanal 1 bis 4", 10, new Glyph(null, "#2563eb"));
         for (int i = 1; i <= 6; i++) {
             inventoryRepository.createItem(
                     funk.id(), "FUNK-B%02d".formatted(i), "Funkgerät blau", null, blau.id(), null, null, null);
@@ -656,8 +708,10 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
      * standing in the same cupboard.
      */
     private void seedGemeindematerial(int stationId, int inventoryId) {
-        var blau = artRepository.create(inventoryId, "Funkgerät blau", "Kanal 1 bis 4", 10);
-        var gruen = artRepository.create(inventoryId, "Funkgerät grün", "Kanal 5 bis 8", 20);
+        var blau = artRepository.create(
+                inventoryId, "Funkgerät blau", "Kanal 1 bis 4", 10, new Glyph("walkie-talkie", "#2563eb"));
+        var gruen = artRepository.create(
+                inventoryId, "Funkgerät grün", "Kanal 5 bis 8", 20, new Glyph("walkie-talkie", "#15803d"));
         var funk = tagRepository.create(stationId, "Funk", "#3694FF");
         var gemeinde = tagRepository.create(stationId, "Gemeinde", null);
         var radios = new ArrayList<InventoryItem>();

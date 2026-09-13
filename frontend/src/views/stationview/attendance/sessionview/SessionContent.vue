@@ -82,7 +82,7 @@ const emit = defineEmits<{
   enter: [memberId: number, status: AttendanceStatus]
   unlock: []
   lock: []
-  moveSwap: [exchangeId: number, nextStatus: string, replacementItemId: number | null]
+  moveSwap: [movementId: number, stepId: number, replacementItemId: number | null]
   signOffFound: [itemId: number]
   checkIn: [entryId: number, time: string]
   checkOut: [entryId: number, time: string]
@@ -140,7 +140,7 @@ const emit = defineEmits<{
           @set-status="emit('checkSetStatus', $event)"
           @skip="emit('skipCheck')"
           @end="emit('endCheckMode')"
-          @move-swap="(exchangeId, nextStatus, replacementItemId) => emit('moveSwap', exchangeId, nextStatus, replacementItemId)"
+          @move-swap="(movementId, stepId, replacementItemId) => emit('moveSwap', movementId, stepId, replacementItemId)"
           @sign-off-found="(itemId) => emit('signOffFound', itemId)"
       />
 
@@ -171,7 +171,7 @@ const emit = defineEmits<{
             :can-sign-off-found="canSignOffFound"
             @set-status="(entryId, status) => emit('setStatus', entryId, status)"
             @enter="(memberId, status) => emit('enter', memberId, status)"
-            @move-swap="(exchangeId, nextStatus, replacementItemId) => emit('moveSwap', exchangeId, nextStatus, replacementItemId)"
+            @move-swap="(movementId, stepId, replacementItemId) => emit('moveSwap', movementId, stepId, replacementItemId)"
             @sign-off-found="(itemId) => emit('signOffFound', itemId)"
             @check-in="(entryId, time) => emit('checkIn', entryId, time)"
             @check-out="(entryId, time) => emit('checkOut', entryId, time)"

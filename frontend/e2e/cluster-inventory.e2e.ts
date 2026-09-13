@@ -89,7 +89,7 @@ test.describe('Cluster inventory', () => {
             expect(current.actor, 'the step is the owner\'s').toBe('OWNER')
             expect(current.actionable, 'and the station has no button for it').toBeFalsy()
 
-            await station.goto('/station/inventory/exchanges')
+            await station.goto('/station/inventory/movements')
             await expect(station.getByTestId('app-shell')).toBeVisible()
             await station.context().close()
             await cluster.context().close()
@@ -399,8 +399,10 @@ test.describe('Cluster inventory', () => {
 
             const reason = `Passt nicht mehr ${Date.now()}`
             await station.getByRole('button', {name: 'Zurückgeben'}).click()
+            await expect(station.getByTestId('movement-wizard')).toBeVisible()
             await station.getByRole('textbox').last().fill(reason)
-            await station.getByRole('button', {name: 'Abschicken'}).click()
+            await station.getByTestId('wizard-next').click()
+            await station.getByTestId('wizard-start').click()
 
             await expect(async () => {
                 const queue = await page.request

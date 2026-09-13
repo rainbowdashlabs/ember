@@ -11,6 +11,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import InventoryKindField from '@/components/inventory/InventoryKindField.vue'
+import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {InventoryTypes, type InventoryTypeName} from '@/api/inventory'
@@ -19,6 +20,8 @@ const name = defineModel<string>('name', {required: true})
 const type = defineModel<InventoryTypeName>('type', {required: true})
 const hasSizes = defineModel<boolean>('hasSizes', {required: true})
 const homogeneous = defineModel<boolean>('homogeneous', {required: true})
+const icon = defineModel<string | null>('icon')
+const color = defineModel<string | null>('color')
 
 const emit = defineEmits<{
   cancel: []
@@ -48,6 +51,8 @@ watch(homogeneous, value => {
     </SelectInput>
     <p class="text-xs text-(--text-muted)">{{ t('inventory.manage.typeHint') }}</p>
   </div>
+
+  <GearIconPicker v-model:icon="icon" v-model:color="color" allow-no-icon />
 
   <InventoryKindField v-model="homogeneous" />
 

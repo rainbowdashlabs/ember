@@ -15,6 +15,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.inventory.entity.ContainerPath;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryIntakeRow;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -27,6 +28,7 @@ import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
 import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
+import dev.chojo.ember.feature.inventory.service.GlyphResolver;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
@@ -79,6 +81,7 @@ public class InventoryRoutes implements Routes {
     private final InventoryIntakeService intakeService;
     private final BorrowedGearService borrowedGearService;
     private final SelfCheckService selfCheckService;
+    private final GlyphResolver glyphResolver;
 
     @Inject
     public InventoryRoutes(
@@ -92,7 +95,9 @@ public class InventoryRoutes implements Routes {
             LossReportService lossReportService,
             InventoryIntakeService intakeService,
             BorrowedGearService borrowedGearService,
-            SelfCheckService selfCheckService) {
+            SelfCheckService selfCheckService,
+            GlyphResolver glyphResolver) {
+        this.glyphResolver = glyphResolver;
         this.intakeService = intakeService;
         this.borrowedGearService = borrowedGearService;
         this.inventoryService = inventoryService;
@@ -407,6 +412,7 @@ public class InventoryRoutes implements Routes {
                     .findFirst()
                     .orElse(null);
         }
+        Glyph glyph = glyphResolver.forItem(item);
         return new MyInventoryItem(
                 item.id(),
                 item.inventoryId(),
@@ -423,7 +429,9 @@ public class InventoryRoutes implements Routes {
                 item.ownerKind(),
                 item.ownerClusterId(),
                 item.lostNote(),
-                noteAuthor(item.lostNoteBy()));
+                noteAuthor(item.lostNoteBy()),
+                glyph.icon(),
+                glyph.color());
     }
 
     /**
@@ -487,7 +495,8 @@ public class InventoryRoutes implements Routes {
                         request.name(),
                         request.inventoryType(),
                         request.hasSizes(),
-                        request.homogeneous() == null || request.homogeneous()));
+                        request.homogeneous() == null || request.homogeneous(),
+                        Glyph.of(request.icon(), request.color())));
     }
 
     @OpenApi(
@@ -516,7 +525,9 @@ public class InventoryRoutes implements Routes {
                                     inventory.inventoryType(),
                                     inventory.hasSizes(),
                                     inventory.homogeneous(),
-                                    sizes));
+                                    sizes,
+                                    inventory.icon(),
+                                    inventory.color()));
                         },
                         () -> {
                             throw new NotFoundResponse();
@@ -552,7 +563,13 @@ public class InventoryRoutes implements Routes {
         boolean homogeneous = request.homogeneous() == null ? current.homogeneous() : request.homogeneous();
         try {
             inventoryService
-                    .update(id, request.name(), request.inventoryType(), request.hasSizes(), homogeneous)
+                    .update(
+                            id,
+                            request.name(),
+                            request.inventoryType(),
+                            request.hasSizes(),
+                            homogeneous,
+                            Glyph.of(request.icon(), request.color()))
                     .ifPresentOrElse(ctx::json, () -> {
                         throw new NotFoundResponse();
                     });
@@ -1352,7 +1369,13 @@ public class InventoryRoutes implements Routes {
             Integer ownerClusterId,
             /** What was written when it was reported missing, which the member wrote or had written for them. */
             String lostNote,
-            MemberIdentity lostNoteBy) {}
+            MemberIdentity lostNoteBy,
+            /**
+             * The picture the piece is drawn with, resolved from its kind and its inventory. A member's
+             * own page loads neither of those, so the answer travels with the row.
+             */
+            String icon,
+            String color) {}
 
     public record MyRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
 
@@ -1360,8 +1383,16 @@ public class InventoryRoutes implements Routes {
      * @param homogeneous whether the inventory holds one thing in many copies rather than a drawer of
      *                    different things. Left out it means "as it was", which on creation is one thing
      *                    in many copies: that is the permissive kind and the one nothing has to opt out of
+     * @param icon        the FontAwesome name every piece of it is drawn with, or {@code null} for none
+     * @param color       the colour that picture is drawn in as {@code #rrggbb}, or {@code null} for none
      */
-    public record InventoryRequest(String name, InventoryType inventoryType, boolean hasSizes, Boolean homogeneous) {}
+    public record InventoryRequest(
+            String name,
+            InventoryType inventoryType,
+            boolean hasSizes,
+            Boolean homogeneous,
+            String icon,
+            String color) {}
 
     public record InventoryDetail(
             int id,
@@ -1370,7 +1401,9 @@ public class InventoryRoutes implements Routes {
             InventoryType inventoryType,
             boolean hasSizes,
             boolean homogeneous,
-            List<InventorySize> sizes) {}
+            List<InventorySize> sizes,
+            String icon,
+            String color) {}
 
     /**
      * A refused change of kind, carrying everything that stands in its way.

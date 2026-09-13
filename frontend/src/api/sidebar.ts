@@ -16,7 +16,8 @@ export interface SidebarCounts {
     waitingListEntries: number
     lostAndFoundPending: number
     myInventoryCount: number
-    pendingExchanges: number
+    /** The station's movements that are still walking a chain, whatever they are for. */
+    openMovements: number
     procedureCount: number
 }
 

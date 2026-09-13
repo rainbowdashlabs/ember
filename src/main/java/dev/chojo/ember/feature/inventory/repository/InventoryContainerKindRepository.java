@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainerKind;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -21,7 +22,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class InventoryContainerKindRepository {
     private static final String INVENTORY_CONTAINER_KIND_COLUMNS =
-            "id, station_id, key, label, icon, sort_order, enabled";
+            "id, station_id, key, label, icon, color, sort_order, enabled";
 
     /**
      * Finds a kind by its ID.
@@ -74,22 +75,23 @@ public class InventoryContainerKindRepository {
      * @param stationId the station ID
      * @param key       stable machine key
      * @param label     display label
-     * @param icon      FontAwesome icon name
+     * @param glyph     the icon it is drawn with and the colour that icon is drawn in
      * @param sortOrder ordering hint
      * @param enabled   whether the kind is selectable for new containers
      * @return the created kind
      */
     public InventoryContainerKind create(
-            int stationId, String key, String label, String icon, int sortOrder, boolean enabled) {
+            int stationId, String key, String label, Glyph glyph, int sortOrder, boolean enabled) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO inventory_container_kind(station_id, key, label, icon, sort_order, enabled)
-                VALUES(:station_id, :key, :label, :icon, :sort_order, :enabled)
+                INSERT INTO inventory_container_kind(station_id, key, label, icon, color, sort_order, enabled)
+                VALUES(:station_id, :key, :label, :icon, :color, :sort_order, :enabled)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("key", key)
                         .bind("label", label)
-                        .bind("icon", icon)
+                        .bind("icon", glyph.icon())
+                        .bind("color", glyph.color())
                         .bind("sort_order", sortOrder)
                         .bind("enabled", enabled),
                 InventoryContainerKind.map(),
@@ -101,18 +103,19 @@ public class InventoryContainerKindRepository {
      *
      * @param id        the kind ID
      * @param label     new display label
-     * @param icon      new icon name
+     * @param glyph     the icon it is drawn with and the colour that icon is drawn in
      * @param sortOrder new ordering hint
      * @param enabled   new enabled flag
      * @return {@code true} if the kind was updated
      */
-    public boolean update(int id, String label, String icon, int sortOrder, boolean enabled) {
+    public boolean update(int id, String label, Glyph glyph, int sortOrder, boolean enabled) {
         return query("""
                 UPDATE inventory_container_kind
-                SET label = :label, icon = :icon, sort_order = :sort_order, enabled = :enabled
+                SET label = :label, icon = :icon, color = :color, sort_order = :sort_order, enabled = :enabled
                 WHERE id = :id;""")
                 .single(call().bind("label", label)
-                        .bind("icon", icon)
+                        .bind("icon", glyph.icon())
+                        .bind("color", glyph.color())
                         .bind("sort_order", sortOrder)
                         .bind("enabled", enabled)
                         .bind("id", id))

@@ -57,6 +57,13 @@ export interface InventoryRoutes {
      */
     memberGroups?: string
     exchanges?: string
+    /** The queue of Vorgänge, which replaces the exchange list at a station. */
+    movements?: string
+    /**
+     * Where the chains a station's movements walk are written. Absent at an association, which reaches
+     * its own through its settings tab.
+     */
+    flows?: string
     /**
      * Where pieces are moved from one inventory to another, which is how an inventory is split in
      * two without the pieces losing their identity. Absent at an association, whose store is not
@@ -102,7 +109,8 @@ export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
     selfCheckReview: 'inventory-self-check-review',
     member: 'inventory-member',
     memberGroups: 'members-groups',
-    exchanges: 'inventory-exchanges',
+    movements: 'inventory-movements',
+    flows: 'inventory-flows',
     move: 'inventory-move',
     tidy: 'inventory-tidy',
     intake: 'inventory-intake',

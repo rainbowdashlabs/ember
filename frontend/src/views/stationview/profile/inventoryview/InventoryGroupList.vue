@@ -9,7 +9,6 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
-import type {ExchangeRequestEntry} from '@/api/exchanges'
 import type {MyInventoryItem} from '@/api/inventory'
 
 interface InventoryGroup {
@@ -19,10 +18,9 @@ interface InventoryGroup {
   items: MyInventoryItem[]
 }
 
-const props = defineProps<{
+defineProps<{
   grouped: InventoryGroup[]
   items: MyInventoryItem[]
-  activeExchanges: ExchangeRequestEntry[]
 }>()
 
 const emit = defineEmits<{
@@ -31,10 +29,6 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-
-function itemExchange(itemId: number): ExchangeRequestEntry | undefined {
-  return props.activeExchanges.find(e => e.itemId === itemId)
-}
 </script>
 
 <template>
@@ -61,7 +55,6 @@ function itemExchange(itemId: number): ExchangeRequestEntry | undefined {
             v-for="item in group.items"
             :key="item.id"
             :item="item"
-            :exchange="itemExchange(item.id) ?? null"
             :show-exchange-button="true"
             :show-lost-button="true"
             @request-exchange="(i: MyInventoryItem) => emit('requestExchange', i)"

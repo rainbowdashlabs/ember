@@ -37,15 +37,15 @@ public sealed interface NotificationParams {
             String memberName, String eventName, RegistrationStatus status, String eventDescription)
             implements NotificationParams {}
 
-    record ExchangeNewRequest(String memberName, String inventoryName, String reason) implements NotificationParams {}
+    /** A movement has been raised. Every purpose, not only a swap: the words come from the chain. */
+    record MovementRaised(String memberName, String inventoryName, String reason) implements NotificationParams {}
 
     /**
      * A movement has moved on. The step label is the flow's own words rather than a fixed status,
      * because the chain a station walks is its own to name, and the next actor says whose turn it
      * is now: this notification is only ever sent to that party, so its presence is the signal.
      */
-    record ExchangeStatusChange(String stepLabel, String inventoryName, StepActor nextActor)
-            implements NotificationParams {}
+    record MovementMoved(String stepLabel, String inventoryName, StepActor nextActor) implements NotificationParams {}
 
     record MovementDeclined(String inventoryName, String reason) implements NotificationParams {}
 

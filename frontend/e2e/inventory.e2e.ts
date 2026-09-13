@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders, stationPeers} from './fixtures/auth'
-import {setExchangeFilter} from './fixtures/exchangeFilter'
+import {setMovementFilter} from './fixtures/movementFilter'
 import {pickMemberByName} from './fixtures/memberMenu'
 import type {Locator, Page} from '@playwright/test'
 
@@ -52,15 +52,12 @@ function namesAgainstThePage(page: Page): Promise<string[]> {
     })
 }
 
-/** What each status of an exchange is called on screen, which is what a tick is pressed by. */
-const EXCHANGE_STATUS_LABELS: Record<string, string> = {
-    ANNOUNCED: 'Angekündigt',
-    RECEIVED: 'Empfangen',
-    SHIPPED: 'Versendet',
-    ARRIVED: 'Angekommen',
-    DONE: 'Erledigt',
-    CANCELLED: 'Abgebrochen',
-    DECLINED: 'Abgelehnt',
+/** What each kind of movement is called on screen, which is what a tick is pressed by. */
+const MOVEMENT_PURPOSE_LABELS: Record<string, string> = {
+    ISSUE: 'Ausgabe',
+    RETURN: 'Rückgabe',
+    EXCHANGE: 'Tausch',
+    REQUEST: 'Anfrage',
 }
 
 test.describe('Inventory', () => {
@@ -207,7 +204,12 @@ test.describe('Inventory', () => {
         await page.getByRole('button', {name: 'Anforderung hinzufügen'}).click()
 
         await page.locator('select:has(option:text-is("Benutzertyp auswählen"))').selectOption({index: 1})
-        await page.locator('select:has(option:text-is("Inventar auswählen"))').selectOption({index: 1})
+
+        // The inventory is picked from a searchable menu now, the same one every other screen asks with.
+        const inventory = page.getByTestId('requirement-inventory')
+        await inventory.getByRole('searchbox').click()
+        await inventory.getByRole('option').first().click()
+
         await page.getByRole('button', {name: 'Speichern'}).click()
 
         const cards = page.locator('main').getByRole('button', {name: 'Hinzufügen'})
@@ -454,9 +456,10 @@ test.describe('Inventory', () => {
 
         await expect(confirm).toBeHidden({timeout: 15000})
 
-        const raised = await page.request.get('/api/v1/exchanges', {headers: await apiHeaders(page)})
+        const raised = await page.request.get('/api/v1/movements', {headers: await apiHeaders(page)})
             .then(r => r.json())
-        expect(raised.length, 'the exchange is on the station\'s list').toBeGreaterThan(0)
+        expect(raised.some((row: {purpose: string}) => row.purpose === 'EXCHANGE'),
+            'the swap is in the station\'s queue').toBeTruthy()
     })
 
     /**
@@ -713,145 +716,131 @@ test.describe('Inventory', () => {
     })
 
     /**
-     * Narrowing the exchange list is what makes exporting part of it possible.
+     * Narrowing the queue is what makes exporting part of it possible.
      *
-     * <p>The export sends the numbers of the rows that are ticked, so whoever wants the requests of
-     * one inventory used to pick them out of every request the station has. The story filters the
-     * list, ticks everything left standing, and reads the numbers that actually leave the browser:
-     * the ones the filter hid must not be among them, or the button would quietly export the whole
-     * station.
+     * <p>The export sends the numbers of the rows the filters leave standing, so whoever wants the
+     * movements of one inventory no longer picks them out of everything the station has. The story
+     * filters the queue and reads the numbers that actually leave the browser: the ones the filter
+     * hid must not be among them, or the button would quietly export the whole station.
      */
-    test('the exchange list narrows down and the export carries only what is left',
+    test('the movement queue narrows down and the export carries only what is left',
         async ({managerPage: page}) => {
             const headers = await apiHeaders(page)
-            const raised: {id: number; inventoryId: number; inventoryName: string; status: string}[] =
-                await page.request.get('/api/v1/exchanges', {headers}).then(r => r.json())
-            const ended = ['DONE', 'CANCELLED', 'DECLINED']
-            const open = raised.filter(exchange => !ended.includes(exchange.status))
-            expect(open.length, 'the seeded station has exchanges to narrow down').toBeGreaterThan(1)
+            const raised: {id: number; inventoryId: number; inventoryName: string; state: string}[] =
+                await page.request.get('/api/v1/movements', {headers}).then(r => r.json())
+            const open = raised.filter(movement => movement.state === 'OPEN')
+            expect(open.length, 'the seeded station has movements to narrow down').toBeGreaterThan(1)
 
-            const inventories = [...new Set(open.map(exchange => exchange.inventoryId))]
+            const inventories = [...new Set(open.map(movement => movement.inventoryId))]
             expect(inventories.length, 'spread over more than one inventory').toBeGreaterThan(1)
 
-            const inInventory = (id: number) => open.filter(exchange => exchange.inventoryId === id)
+            const inInventory = (id: number) => open.filter(movement => movement.inventoryId === id)
             const chosen = inventories.reduce((best, id) =>
                 inInventory(id).length > inInventory(best).length ? id : best)
-            const expected = inInventory(chosen).map(exchange => exchange.id)
+            const expected = inInventory(chosen).map(movement => movement.id)
             const chosenName = inInventory(chosen)[0].inventoryName
 
-            await page.goto('/station/inventory/exchanges')
-            const rows = page.getByTestId('exchange-row')
-            const rowOf = (id: number) => page.locator(`[data-exchange-id="${id}"]`)
+            await page.goto('/station/inventory/movements')
+            const rows = page.getByTestId('movement-row')
+            const rowOf = (id: number) => page.locator(`[data-movement="${id}"]`)
             await expect(rows.first()).toBeVisible()
-            await expect(rowOf(open[0].id), 'the list opens on the requests still running').toHaveCount(1)
-            for (const gone of raised.filter(exchange => ended.includes(exchange.status)).slice(0, 3)) {
+            await expect(rowOf(open[0].id), 'the queue opens on what is still running').toHaveCount(1)
+            for (const gone of raised.filter(movement => movement.state !== 'OPEN').slice(0, 3)) {
                 await expect(rowOf(gone.id), 'and leaves out the ones that have ended').toHaveCount(0)
             }
 
-            await setExchangeFilter(page, 'exchange-filter-inventory', [chosenName])
+            await setMovementFilter(page, 'movement-filter-inventory', [chosenName])
             for (const kept of expected) {
-                await expect(rowOf(kept), 'ticking one inventory keeps its requests').toHaveCount(1)
+                await expect(rowOf(kept), 'ticking one inventory keeps its movements').toHaveCount(1)
             }
-            for (const hidden of open.filter(exchange => exchange.inventoryId !== chosen).slice(0, 3)) {
+            for (const hidden of open.filter(movement => movement.inventoryId !== chosen).slice(0, 3)) {
                 await expect(rowOf(hidden.id), 'and hides the ones filed elsewhere').toHaveCount(0)
             }
 
-            await page.getByRole('button', {name: 'Exportieren'}).click()
-            const selectAll = page.getByTestId('exchange-select-all')
-            await selectAll.click()
-            await expect(selectAll, 'nothing is ticked after clearing the selection').not.toBeChecked()
-            await selectAll.click()
-
             const [sent] = await Promise.all([
-                page.waitForRequest(req => req.url().includes('/exchanges/export') && req.method() === 'POST'),
-                page.getByRole('button', {name: /Herunterladen/}).click(),
+                page.waitForRequest(req => req.url().includes('/movements/export') && req.method() === 'POST'),
+                page.getByTestId('movement-export').click(),
             ])
-            const carried: number[] = sent.postDataJSON().exchangeIds
+            const carried: number[] = sent.postDataJSON().movementIds
             expect(carried, 'every row the filter left standing is exported')
                 .toEqual(expect.arrayContaining(expected))
-            const elsewhere = open.filter(exchange => exchange.inventoryId !== chosen).map(exchange => exchange.id)
+            const elsewhere = open.filter(movement => movement.inventoryId !== chosen).map(movement => movement.id)
             expect(carried.filter(id => elsewhere.includes(id)),
                 'and nothing the filter hid travels with it').toEqual([])
         })
 
     /**
-     * A status filter that takes several ticks is what lets two sorts of request be looked at as
-     * one job.
+     * A filter that takes several ticks is what lets two sorts of movement be looked at as one job.
      *
-     * <p>Ticking two statuses and quietly keeping only the last one would look exactly the same on
+     * <p>Ticking two kinds and quietly keeping only the last one would look exactly the same on
      * screen as keeping both, so the story counts the rows and then reads the numbers that leave
      * the browser: both sorts have to travel. Taking every tick off is the other half of it, since
-     * a filter that emptied the list when its last tick went would read as a fault rather than as
+     * a filter that emptied the queue when its last tick went would read as a fault rather than as
      * a filter asking for nothing.
      */
-    test('two ticked statuses stand in the list together and both reach the export',
+    test('two ticked kinds stand in the queue together and both reach the export',
         async ({managerPage: page}) => {
             const headers = await apiHeaders(page)
-            const raised: {id: number; status: string}[] =
-                await page.request.get('/api/v1/exchanges', {headers}).then(r => r.json())
+            const raised: {id: number; purpose: string; state: string}[] =
+                await page.request.get('/api/v1/movements', {headers}).then(r => r.json())
+            const open = raised.filter(movement => movement.state === 'OPEN')
 
-            const byStatus = new Map<string, number[]>()
-            for (const exchange of raised) {
-                byStatus.set(exchange.status, [...byStatus.get(exchange.status) ?? [], exchange.id])
+            const byPurpose = new Map<string, number[]>()
+            for (const movement of open) {
+                byPurpose.set(movement.purpose, [...byPurpose.get(movement.purpose) ?? [], movement.id])
             }
-            const sorts = [...byStatus.keys()].slice(0, 2)
-            expect(sorts.length, 'the seeded station has exchanges in more than one status').toBe(2)
-            const expected = sorts.flatMap(status => byStatus.get(status) ?? [])
+            const sorts = [...byPurpose.keys()].slice(0, 2)
+            expect(sorts.length, 'the seeded station has movements of more than one kind').toBe(2)
+            const expected = sorts.flatMap(purpose => byPurpose.get(purpose) ?? [])
 
-            await page.goto('/station/inventory/exchanges')
-            const rows = page.getByTestId('exchange-row')
+            await page.goto('/station/inventory/movements')
+            const rows = page.getByTestId('movement-row')
             await expect(rows.first()).toBeVisible()
 
-            const rowOf = (id: number) => page.locator(`[data-exchange-id="${id}"]`)
+            const rowOf = (id: number) => page.locator(`[data-movement="${id}"]`)
 
-            await setExchangeFilter(page, 'exchange-filter-status', [])
+            await setMovementFilter(page, 'movement-filter-state', [])
             for (const any of raised.slice(0, 3)) {
                 await expect(rowOf(any.id),
                     'taking every tick off asks for nothing rather than for no rows').toHaveCount(1)
             }
 
-            await setExchangeFilter(page, 'exchange-filter-status',
-                sorts.map(status => EXCHANGE_STATUS_LABELS[status]))
+            await setMovementFilter(page, 'movement-filter-purpose',
+                sorts.map(purpose => MOVEMENT_PURPOSE_LABELS[purpose]))
             for (const kept of expected) {
-                await expect(rowOf(kept), 'and two ticks show the rows of both statuses at once')
+                await expect(rowOf(kept), 'and two ticks show the rows of both kinds at once')
                     .toHaveCount(1)
             }
-            for (const hidden of raised.filter(exchange => !sorts.includes(exchange.status)).slice(0, 3)) {
-                await expect(rowOf(hidden.id), 'while a third status stays out of the way').toHaveCount(0)
+            for (const hidden of open.filter(movement => !sorts.includes(movement.purpose)).slice(0, 3)) {
+                await expect(rowOf(hidden.id), 'while a third kind stays out of the way').toHaveCount(0)
             }
 
-            await page.getByRole('button', {name: 'Exportieren'}).click()
-            const selectAll = page.getByTestId('exchange-select-all')
-            await selectAll.click()
-            await selectAll.click()
-            await expect(selectAll, 'everything the filter shows is ticked again').toBeChecked()
-
             const [sent] = await Promise.all([
-                page.waitForRequest(req => req.url().includes('/exchanges/export') && req.method() === 'POST'),
-                page.getByRole('button', {name: /Herunterladen/}).click(),
+                page.waitForRequest(req => req.url().includes('/movements/export') && req.method() === 'POST'),
+                page.getByTestId('movement-export').click(),
             ])
-            const carried: number[] = sent.postDataJSON().exchangeIds
+            const carried: number[] = sent.postDataJSON().movementIds
             expect(carried, 'both sorts of row travel into the export')
                 .toEqual(expect.arrayContaining(expected))
-            const otherStatuses = raised
-                .filter(exchange => !sorts.includes(exchange.status))
-                .map(exchange => exchange.id)
-            expect(carried.filter(id => otherStatuses.includes(id)),
-                'and a third status travels with neither').toEqual([])
+            const otherKinds = open
+                .filter(movement => !sorts.includes(movement.purpose))
+                .map(movement => movement.id)
+            expect(carried.filter(id => otherKinds.includes(id)),
+                'and a third kind travels with neither').toEqual([])
         })
 
     /**
-     * Every row of the exchange list wears a status badge, and a badge picks light or dark letters
-     * from the colours behind it. Switching the theme repaints those colours, so the badge has to
-     * answer again: the pale status is the one that turns, and white letters on it are the thing
-     * this story stands guard over.
+     * Every open row of the queue wears a badge saying which step it stands on, and a badge picks
+     * light or dark letters from the colours behind it. Switching the theme repaints those colours,
+     * so the badge has to answer again: the pale one is what turns, and white letters on it are the
+     * thing this story stands guard over.
      */
     test('the badges take readable letters after the theme is switched',
         async ({managerPage: page}) => {
-            await page.goto('/station/inventory/exchanges')
-            const row = page.getByTestId('exchange-row').filter({hasText: 'Angekündigt'}).first()
+            await page.goto('/station/inventory/movements')
+            const row = page.getByTestId('movement-row').first()
             await expect(row).toBeVisible()
-            const badge = row.getByText('Angekündigt')
+            const badge = row.getByTestId('movement-step')
 
             const started = await darkModeClass(page)
 
@@ -874,8 +863,8 @@ test.describe('Inventory', () => {
      */
     test('a member name without a colour of its own reads in the page colour',
         async ({managerPage: page}) => {
-            await page.goto('/station/inventory/exchanges')
-            await expect(page.getByTestId('exchange-row').first()).toBeVisible()
+            await page.goto('/station/inventory/movements')
+            await expect(page.getByTestId('movement-row').first()).toBeVisible()
 
             const started = await darkModeClass(page)
             await switchThemeTo(page, 'light')

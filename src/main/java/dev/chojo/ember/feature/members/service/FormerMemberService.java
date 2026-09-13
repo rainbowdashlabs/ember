@@ -11,7 +11,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
-import dev.chojo.ember.feature.inventory.service.ExchangeService;
+import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
@@ -35,7 +35,7 @@ public class FormerMemberService {
     private final StationMemberRepository memberRepository;
     private final AccountRepository accountRepository;
     private final InventoryRepository inventoryRepository;
-    private final ExchangeService exchangeService;
+    private final ItemMovementService movementService;
     private final MemberGroupRepository groupRepository;
     private final UserTagRepository tagRepository;
     private final AttendanceRepository attendanceRepository;
@@ -48,7 +48,7 @@ public class FormerMemberService {
             StationMemberRepository memberRepository,
             AccountRepository accountRepository,
             InventoryRepository inventoryRepository,
-            ExchangeService exchangeService,
+            ItemMovementService movementService,
             MemberGroupRepository groupRepository,
             UserTagRepository tagRepository,
             AttendanceRepository attendanceRepository,
@@ -59,7 +59,7 @@ public class FormerMemberService {
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.inventoryRepository = inventoryRepository;
-        this.exchangeService = exchangeService;
+        this.movementService = movementService;
         this.groupRepository = groupRepository;
         this.tagRepository = tagRepository;
         this.attendanceRepository = attendanceRepository;
@@ -99,7 +99,7 @@ public class FormerMemberService {
      * Mark a member as former. Performs all cleanup:
      * - Remove all roles (especially LOGIN)
      * - Remove manager relations (both directions)
-     * - Delete exchange requests
+     * - Delete the movements they were part of
      * - Close any self-check they were still holding
      * - Remove from all groups
      * - Remove from all tags
@@ -121,10 +121,8 @@ public class FormerMemberService {
         memberRepository.removeAllManagers(memberId);
         memberRepository.removeAllManaged(memberId);
 
-        // Delete exchange requests
-        var exchanges = exchangeService.findByMember(memberId);
-        for (var ex : exchanges) {
-            exchangeService.delete(ex.id());
+        for (var movement : movementService.findByMember(memberId)) {
+            movementService.delete(movement.id());
         }
 
         selfCheckService.closeAllFor(memberId);

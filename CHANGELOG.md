@@ -1,15 +1,34 @@
 # Changelog
 
-## v26.15.2
+## v26.16.0
+
+### New Features
+
+- **Every kind of movement can be started, not only swaps.** A wizard asks what should happen, with whom, about which piece and why, and then draws the chain those answers lead to before anything is written. Handing gear out, taking it back, swapping it and asking the association above for a piece all start the same way, and a combination the station has no chain for says so instead of failing.
+- **One queue for everything under way.** Inventory → Movements lists every movement with the step it stands on and the party whose turn it is, the rows somebody here can act on first. The step is confirmed on the row, and a manager can put a movement right when the gear is in reality somewhere else than the record says.
+- **Gear can be given a picture.** An inventory, and each kind inside a collection, can be given an icon and a colour. Wherever a piece is named after that, in a picker, a list or the queue, it carries that picture along with its size and the identifier written on it.
+- **A hand-out can be planned rather than done.** Every screen that assigns gear to a member now offers the same choice: hand the piece over now, or promise it. A promised piece stays on the shelf, is marked as spoken for so nobody else is given it, and the handing over is confirmed later.
 
 ### Improvements
 
+- **The inventory and item pickers are searched and walked with the keyboard.** Arrow keys walk the list, Enter takes the highlighted entry and Escape closes, so the usual case is a few letters and Enter. The picked entry is shown the same way as the list: picture, name, size and identifier.
 - **Every place that asks which member now asks the same way.** A member is chosen from one menu throughout the product: a face, the name in the colour their group gives it, and a search that is always there, in place of the dropdowns of several hundred lines that some screens still offered. Arrow keys walk the list, Enter takes the highlighted person and Escape closes, so the usual case is three letters and Enter.
 - **Choosing several members shows who is chosen.** Where a screen takes more than one person, each one appears as a removable chip above the search, folded away past five so a group of fifty stays a field rather than a wall.
+
+### Changes
+
+- **The exchange page is gone and movements stand in its place.** Everything the exchange list did is on Inventory → Movements, for every kind of movement rather than swaps alone. The five statuses a swap used to carry are gone with it: where a movement stands is the step it is on, which is read off where the pieces actually are.
+- **The right to work on exchanges is now the right to work on movements.** Anyone who held the old right keeps the new one, and station and association rights are renamed in the same way, so nothing has to be granted again.
+- **The inventory menu is regrouped.** The daily work stands at the top, the checks sit together, the settings pages (inventories, flows, requirements) sit under one heading, and lending has its own. The pages themselves are unchanged.
 
 ### Fixes
 
 - **The manager step of member creation offered the whole station.** It promised existing managers and listed every member instead, as cards with no way to search them, which on a station of any size was unusable. It now opens on the guardians, with every other kind one filter away.
+
+## v26.15.2
+
+### Fixes
+
 - **A switched inventory could refuse its own exchanges.** In an inventory switched between the station's own gear and the gear of the body above it after items were created, an exchange could be refused when the arriving piece was recorded, and a piece that had gone back to a body outside Ember could stay on the shelf as stock. Switching an inventory now rewrites the owner on the items it holds, borrowed gear excepted, a replacement is owned by whoever the inventory says it holds gear of, and the upgrade brings existing records into line and clears the dead stock those finished exchanges piled up.
 
 ## v26.15.1

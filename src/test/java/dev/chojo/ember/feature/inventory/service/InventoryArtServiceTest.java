@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.inventory.entity.FieldType;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -279,6 +280,38 @@ class InventoryArtServiceTest extends RepositoryTestBase {
         // Keeping its own name is not taking another one.
         assertTrue(artService.update(blau.id(), "blau", "eine Notiz", 5).isPresent());
         assertEquals("eine Notiz", artService.findById(blau.id()).orElseThrow().note());
+    }
+
+    @Test
+    void aKindCarriesItsPictureAndKeepsItThroughARename() {
+        Inventory drawer = drawer();
+        InventoryArt blau =
+                artService.create(drawer.id(), "Funkgerät blau", "", 0, new Glyph("walkie-talkie", "#2563EB"));
+        assertEquals("walkie-talkie", blau.icon());
+        assertEquals("#2563eb", blau.color());
+
+        InventoryArt renamed =
+                artService.update(blau.id(), "Funkgerät dunkelblau", "", 0).orElseThrow();
+        assertEquals("walkie-talkie", renamed.icon());
+        assertEquals("#2563eb", renamed.color());
+
+        InventoryArt repainted = artService
+                .update(blau.id(), "Funkgerät dunkelblau", "", 0, Glyph.NONE)
+                .orElseThrow();
+        assertNull(repainted.icon());
+        assertNull(repainted.color());
+    }
+
+    @Test
+    void aColourNothingCouldPaintIsRefused() {
+        Inventory drawer = drawer();
+        assertThrows(
+                BadRequestResponse.class,
+                () -> artService.create(drawer.id(), "Funkgerät rot", "", 0, Glyph.of(null, "rot")));
+        InventoryArt blau = artService.create(drawer.id(), "Funkgerät blau", "", 0);
+        assertThrows(
+                BadRequestResponse.class,
+                () -> artService.update(blau.id(), "Funkgerät blau", "", 0, Glyph.of(null, "#12")));
     }
 
     @Test

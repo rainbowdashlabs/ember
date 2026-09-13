@@ -25,7 +25,9 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {resolveMemberOption, searchMemberOptions} from '@/components/input/select/memberSearchSource'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
-import {inventory, stationMembers} from '@/api'
+import HandOutChoice from '@/components/inventory/HandOutChoice.vue'
+import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
+import {inventory, movements, stationMembers} from '@/api'
 import type {InventoryItem} from '@/api/inventory'
 import type {StationMember} from '@/api/types'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
@@ -53,6 +55,7 @@ const {config: members, loading, error} = useConfigPanel<StationMember[]>({
 const memberId = ref<number | null>(null)
 const memberUid = ref('')
 const pickedItemId = ref<number | null>(null)
+const handOutMode = ref<HandOutMode>('NOW')
 const bulkMode = ref(false)
 const {message: flashMessage, kind: flashKind, flash} = useFlashMessage()
 const {running: submitting, run: runMutation} = useAsyncAction((fn: () => Promise<void>) => fn())
@@ -132,7 +135,19 @@ async function onItemPicked(item: InventoryItem) {
   pickedItemId.value = null
 }
 
+/**
+ * Hands the piece over, or writes down that it is to be handed over.
+ *
+ * <p>A planned hand-out leaves the session's list alone: there is nothing to undo locally once a
+ * Vorgang carries it, and the queue is where it is followed from there.
+ */
 async function assignToSelectedMember(item: InventoryItem) {
+  if (memberId.value == null) return
+  if (handOutMode.value === 'PLANNED') {
+    await movements.planHandOut(memberId.value, item.id, item.inventoryId)
+    flashSuccess(t('inventory.handOut.plannedFlash', {name: item.name ?? ''}))
+    return
+  }
   const assigned = await inventory.assignItem(item.id, {
     memberId: memberId.value,
     memberName: selectedMember.value ? memberDisplay(selectedMember.value) : '',
@@ -208,12 +223,7 @@ async function onUnknownScanCreated(item: InventoryItem) {
     return
   }
   try {
-    const assigned = await inventory.assignItem(item.id, {
-      memberId: memberId.value,
-      memberName: selectedMember.value ? memberDisplay(selectedMember.value) : '',
-    })
-    pushRecent('ASSIGN', assigned, selectedMember.value)
-    flashSuccess(t('inventory.assign.assigned', {name: item.name ?? ''}))
+    await assignToSelectedMember(item)
   } catch (e) {
     flashError(apiErrorMessage(e) ?? t('inventory.assign.errors.failed'))
   }
@@ -240,6 +250,7 @@ async function onUnknownScanCreated(item: InventoryItem) {
             :resolve-fn="resolveMemberOption"
             :placeholder="t('inventory.assign.pickMember')"
         />
+        <HandOutChoice v-model="handOutMode" class="mt-3"/>
       </NeutralContainer>
 
       <NeutralContainer class="mb-4">

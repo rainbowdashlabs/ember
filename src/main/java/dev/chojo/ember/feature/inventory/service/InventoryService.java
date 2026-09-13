@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterStationGroup;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -117,7 +118,7 @@ public class InventoryService {
     }
 
     /**
-     * Creates a new inventory.
+     * Creates a new inventory with no picture chosen for it.
      *
      * @param stationId     the station ID
      * @param name          the inventory name
@@ -128,8 +129,30 @@ public class InventoryService {
      */
     public Inventory create(
             int stationId, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous) {
+        return create(stationId, name, inventoryType, hasSizes, homogeneous, Glyph.NONE);
+    }
+
+    /**
+     * Creates a new inventory.
+     *
+     * @param stationId     the station ID
+     * @param name          the inventory name
+     * @param inventoryType the inventory type
+     * @param hasSizes      whether the inventory supports sizes
+     * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
+     * @param glyph         the picture every piece of it is drawn with
+     * @return the created inventory
+     */
+    public Inventory create(
+            int stationId,
+            String name,
+            InventoryType inventoryType,
+            boolean hasSizes,
+            boolean homogeneous,
+            Glyph glyph) {
         boolean sizes = hasSizes && homogeneous;
-        Inventory inventory = inventoryRepository.create(stationId, name, inventoryType, sizes, homogeneous);
+        Inventory inventory =
+                inventoryRepository.create(stationId, name, inventoryType, sizes, homogeneous, glyph.paintable());
         log.info(
                 "Created inventory {} (name='{}', type={}, hasSizes={}, homogeneous={}) in station {}",
                 inventory.id(),
@@ -139,6 +162,29 @@ public class InventoryService {
                 homogeneous,
                 stationId);
         return inventory;
+    }
+
+    /**
+     * Updates everything about an inventory except the picture it is drawn with, which is left as it
+     * stands.
+     *
+     * <p>A caller that knows nothing about pictures is not saying there should be none. Renaming an
+     * inventory or changing what it holds leaves the shape and the colour alone.
+     *
+     * @param id            the inventory ID
+     * @param name          the new name
+     * @param inventoryType the new type
+     * @param hasSizes      whether sizes are supported
+     * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
+     * @return the updated inventory, or empty if not found
+     */
+    public Optional<Inventory> update(
+            int id, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous) {
+        Glyph current = inventoryRepository
+                .findById(id)
+                .map(inventory -> new Glyph(inventory.icon(), inventory.color()))
+                .orElse(Glyph.NONE);
+        return update(id, name, inventoryType, hasSizes, homogeneous, current);
     }
 
     /**
@@ -154,11 +200,13 @@ public class InventoryService {
      * @param inventoryType the new type
      * @param hasSizes      whether sizes are supported
      * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
+     * @param glyph         the picture every piece of it is drawn with
      * @return the updated inventory, or empty if not found
      * @throws InventorySwitchRefusedException when something live depends on the state being left
      */
     public Optional<Inventory> update(
-            int id, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous) {
+            int id, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous, Glyph glyph) {
+        Glyph painted = glyph.paintable();
         Inventory before = inventoryRepository.findById(id).orElse(null);
         if (before != null && before.homogeneous() != homogeneous) {
             requireNothingDependsOnIt(before, homogeneous);
@@ -167,7 +215,7 @@ public class InventoryService {
             requireNoSizesLeft(before);
         }
         boolean sizes = hasSizes && homogeneous;
-        if (inventoryRepository.update(id, name, inventoryType, sizes, homogeneous)) {
+        if (inventoryRepository.update(id, name, inventoryType, sizes, homogeneous, painted)) {
             if (before != null && before.inventoryType() != inventoryType) {
                 restampOwners(id, inventoryType);
             }

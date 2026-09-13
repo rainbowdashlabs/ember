@@ -21,6 +21,9 @@ import Modal from '@/components/feedback/Modal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import LendingShareButton from '@/components/lending/LendingShareButton.vue'
 import InventoryFieldsPanel from '@/components/inventory/InventoryFieldsPanel.vue'
+import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
+import GearGlyph from '@/components/inventory/GearGlyph.vue'
+import {glyphFor} from '@/util/glyph'
 import {inventoryArts} from '@/api'
 import type {ArtStock, InventoryArt} from '@/api/inventoryArts'
 import {isLendableInventory, type InventoryTypeName} from '@/api/inventory'
@@ -52,6 +55,8 @@ const showModal = ref(false)
 const editingArt = ref<InventoryArt | null>(null)
 const artName = ref('')
 const artNote = ref('')
+const artIcon = ref<string | null>(null)
+const artColor = ref<string | null>(null)
 
 const stockByArt = computed(() => new Map(stock.value.map(row => [row.artId, row])))
 
@@ -73,6 +78,8 @@ function openAdd() {
   editingArt.value = null
   artName.value = ''
   artNote.value = ''
+  artIcon.value = null
+  artColor.value = null
   showModal.value = true
 }
 
@@ -80,6 +87,8 @@ function openEdit(art: InventoryArt) {
   editingArt.value = art
   artName.value = art.name
   artNote.value = art.note
+  artIcon.value = art.icon ?? null
+  artColor.value = art.color ?? null
   showModal.value = true
 }
 
@@ -91,12 +100,16 @@ async function saveArt() {
         name: artName.value,
         note: artNote.value,
         position: editingArt.value.position,
+        icon: artIcon.value,
+        color: artColor.value,
       })
     } else {
       await inventoryArts.createArt(props.inventoryId, {
         name: artName.value,
         note: artNote.value,
         position: arts.value.length * 10,
+        icon: artIcon.value,
+        color: artColor.value,
       })
     }
     showModal.value = false
@@ -141,9 +154,10 @@ watch(() => props.inventoryId, load, {immediate: true})
 
     <div v-for="art in arts" :key="art.id" :data-testid="`art-row-${art.name}`"
          class="flex items-center justify-between px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-      <div>
+      <div class="flex items-center gap-2">
+        <GearGlyph :glyph="glyphFor({icon: art.icon, color: art.color, homogeneous: false})"/>
         <span class="text-sm font-medium">{{ art.name }}</span>
-        <MutedText v-if="art.note" class="ml-2">{{ art.note }}</MutedText>
+        <MutedText v-if="art.note">{{ art.note }}</MutedText>
       </div>
       <div class="flex items-center gap-3">
         <MutedText size="sm">
@@ -176,6 +190,7 @@ watch(() => props.inventoryId, load, {immediate: true})
         <FieldLabel>{{ t('inventory.art.note') }}</FieldLabel>
         <TextInput v-model="artNote" :placeholder="t('inventory.art.notePlaceholder')"/>
       </div>
+      <GearIconPicker v-model:icon="artIcon" v-model:color="artColor" allow-no-icon/>
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="showModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <SaveButton :disabled="!artName.trim()" :action="saveArt"/>

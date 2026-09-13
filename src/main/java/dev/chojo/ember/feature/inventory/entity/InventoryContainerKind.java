@@ -16,11 +16,13 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param key       stable machine identifier used in API responses and CSV exports
  * @param label     display name for pickers and badges
  * @param icon      FontAwesome icon name rendered next to the kind chip
+ * @param color     the colour that icon is drawn in as {@code #rrggbb}, or {@code null} for the muted
+ *                  neutral
  * @param sortOrder ordering hint for the kind picker
  * @param enabled   whether new containers can pick this kind
  */
 public record InventoryContainerKind(
-        int id, int stationId, String key, String label, String icon, int sortOrder, boolean enabled) {
+        int id, int stationId, String key, String label, String icon, String color, int sortOrder, boolean enabled) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -32,6 +34,7 @@ public record InventoryContainerKind(
                 row.getString("key"),
                 row.getString("label"),
                 row.getString("icon"),
+                row.getString("color"),
                 row.getInt("sort_order"),
                 row.getBoolean("enabled"));
     }

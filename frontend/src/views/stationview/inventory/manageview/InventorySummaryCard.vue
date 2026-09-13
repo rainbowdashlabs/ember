@@ -10,6 +10,8 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import InventoryBadges from '@/components/inventory/InventoryBadges.vue'
+import GearGlyph from '@/components/inventory/GearGlyph.vue'
+import {glyphFor} from '@/util/glyph'
 import LendingShareButton from '@/components/lending/LendingShareButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import {isLendableInventory, type InventorySummary} from '@/api/inventory'
@@ -37,7 +39,10 @@ const {visible: sharing, stateLabel} = useLendingShare(() => isLendableInventory
   <NeutralContainer data-testid="inventory-card" clickable @click="emit('open', props.inv)">
     <div class="flex items-center justify-between">
       <div class="min-w-0 space-y-1">
-        <span class="font-medium">{{ props.inv.name }}</span>
+        <span class="flex items-center gap-2 font-medium">
+          <GearGlyph :glyph="glyphFor({icon: props.inv.icon, color: props.inv.color, homogeneous: props.inv.homogeneous})"/>
+          {{ props.inv.name }}
+        </span>
         <InventoryBadges
             :inventory-type="props.inv.inventoryType"
             :has-sizes="props.inv.hasSizes"

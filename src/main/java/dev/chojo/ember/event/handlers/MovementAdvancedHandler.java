@@ -49,8 +49,7 @@ public class MovementAdvancedHandler implements DomainEventHandler<MovementAdvan
 
     @Override
     public void handle(MovementAdvanced event) {
-        var params = new NotificationParams.ExchangeStatusChange(
-                event.stepLabel(), event.inventoryName(), event.nextActor());
+        var params = new NotificationParams.MovementMoved(event.stepLabel(), event.inventoryName(), event.nextActor());
         var recipients = MovementNotificationRouting.recipients(
                 stationMemberRepository,
                 clusterService.get(),
@@ -60,7 +59,7 @@ public class MovementAdvancedHandler implements DomainEventHandler<MovementAdvan
                 event.ownerClusterId());
         notificationService.notifyMembersIfAbsent(
                 recipients.stationMembers(),
-                NotificationType.EXCHANGE_STATUS_CHANGE,
+                NotificationType.MOVEMENT_ADVANCED,
                 NotificationData.of(
                         params,
                         new NotificationData.NotificationLink(
@@ -68,7 +67,7 @@ public class MovementAdvancedHandler implements DomainEventHandler<MovementAdvan
                 event.actorMemberId());
         notificationService.notifyClusterMembersIfAbsent(
                 recipients.clusterMembers(),
-                NotificationType.EXCHANGE_STATUS_CHANGE,
+                NotificationType.MOVEMENT_ADVANCED,
                 NotificationData.of(params, new NotificationData.NotificationLink("cluster-movements")),
                 null);
     }

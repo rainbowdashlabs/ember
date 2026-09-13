@@ -14,7 +14,12 @@ import CheckMemberSubmitBar from './CheckMemberSubmitBar.vue'
 import RapidCheckMode from './RapidCheckMode.vue'
 import type { CheckEntry } from '@/composables/useMemberCheck'
 import InventorySection from './InventorySection.vue'
+import HandOutChoice from '@/components/inventory/HandOutChoice.vue'
+import type { HandOutMode } from '@/components/inventory/HandOutChoice.vue'
 import { formatDateTime } from '@/util/format'
+
+/** Whether what the check hands out goes over the counter now or is written down as promised. */
+const handOutMode = defineModel<HandOutMode>('handOutMode', {required: true})
 
 defineProps<{
   state: MemberCheckState
@@ -76,6 +81,9 @@ defineExpose({ getCurrentRapidEntry })
 </script>
 
 <template>
+  <NeutralContainer>
+    <HandOutChoice v-model="handOutMode"/>
+  </NeutralContainer>
   <CheckMemberHeader
     :state="state"
     :unchecked-count="uncheckedEntries.length"

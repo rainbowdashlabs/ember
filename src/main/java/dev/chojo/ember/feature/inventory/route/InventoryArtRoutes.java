@@ -11,6 +11,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.ArtStock;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -114,7 +115,9 @@ public class InventoryArtRoutes implements Routes {
         int inventoryId = pathInt(ctx, "inventoryId");
         ownedInventory(inventoryId, UserSession.from(ctx));
         var body = ctx.bodyAsClass(ArtRequest.class);
-        ctx.status(HttpStatus.CREATED).json(artService.create(inventoryId, body.name(), body.note(), body.position()));
+        ctx.status(HttpStatus.CREATED)
+                .json(artService.create(
+                        inventoryId, body.name(), body.note(), body.position(), Glyph.of(body.icon(), body.color())));
     }
 
     @OpenApi(
@@ -138,9 +141,11 @@ public class InventoryArtRoutes implements Routes {
         ownedInventory(inventoryId, UserSession.from(ctx));
         verifyArtInInventory(inventoryId, artId);
         var body = ctx.bodyAsClass(ArtRequest.class);
-        artService.update(artId, body.name(), body.note(), body.position()).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
-        });
+        artService
+                .update(artId, body.name(), body.note(), body.position(), Glyph.of(body.icon(), body.color()))
+                .ifPresentOrElse(ctx::json, () -> {
+                    throw new NotFoundResponse();
+                });
     }
 
     @OpenApi(
@@ -258,8 +263,10 @@ public class InventoryArtRoutes implements Routes {
      * @param name     what the station calls it
      * @param note     a free note, may be empty
      * @param position the sort position among the kinds of the same inventory
+     * @param icon     the FontAwesome name its pieces are drawn with, or {@code null} to follow the inventory
+     * @param color    the colour that picture is drawn in as {@code #rrggbb}, or {@code null} to follow it too
      */
-    public record ArtRequest(String name, String note, int position) {}
+    public record ArtRequest(String name, String note, int position, String icon, String color) {}
 
     /**
      * Request body for putting pieces under a kind without touching their names.

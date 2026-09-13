@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import InventorySearchPicker from '@/components/input/search/InventorySearchPicker.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import type { Inventory, InventorySize } from '@/api/inventory'
@@ -39,6 +40,15 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
+/** The picker speaks in identifiers and the form it sits in speaks in strings, which is the one bridge. */
+const pickedInventory = computed<number | null>({
+  get: () => (inventoryId.value ? Number(inventoryId.value) : null),
+  set: value => {
+    inventoryId.value = value != null ? String(value) : ''
+    emit('inventorySelected')
+  },
+})
+
 const options = computed(() => props.members.map(fromMember))
 const userTypes = computed(() => userTypesOf(options.value))
 </script>
@@ -56,10 +66,13 @@ const userTypes = computed(() => userTypesOf(options.value))
 
   <div class="space-y-1">
     <FieldLabel>{{ t('procurement.inventory') }}</FieldLabel>
-    <SelectInput v-model="inventoryId" data-testid="procurement-inventory" @change="emit('inventorySelected')">
-      <option value="" disabled>{{ t('procurement.selectInventory') }}</option>
-      <option v-for="inv in inventories" :key="inv.id" :value="String(inv.id)">{{ inv.name }}</option>
-    </SelectInput>
+    <div data-testid="procurement-inventory">
+      <InventorySearchPicker
+          v-model="pickedInventory"
+          :inventories="inventories"
+          :placeholder="t('procurement.selectInventory')"
+      />
+    </div>
   </div>
 
   <div v-if="availableSizes.length > 0" class="space-y-1">

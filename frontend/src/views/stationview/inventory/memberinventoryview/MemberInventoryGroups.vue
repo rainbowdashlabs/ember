@@ -9,7 +9,6 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import InventoryItemCard from '../InventoryItemCard.vue'
-import type {ExchangeRequestEntry} from '@/api/exchanges'
 import type {MyInventoryItem} from '@/api/inventory'
 
 export interface InventoryGroup {
@@ -21,7 +20,6 @@ export interface InventoryGroup {
 defineProps<{
   groups: InventoryGroup[]
   items: MyInventoryItem[]
-  itemExchange: (itemId: number) => ExchangeRequestEntry | undefined
   showExchangeButton: boolean
 }>()
 
@@ -51,7 +49,6 @@ const {t} = useI18n()
             v-for="item in group.items"
             :key="item.id"
             :item="item"
-            :exchange="itemExchange(item.id) ?? null"
             :show-exchange-button="showExchangeButton"
             @request-exchange="$emit('request-exchange', $event)"
         />

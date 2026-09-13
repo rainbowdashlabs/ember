@@ -14,8 +14,6 @@ import SizeBadge from '@/components/badge/SizeBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import UserTagBadge from '@/components/badge/UserTagBadge.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
-import ExchangeStatusBadge from '@/views/stationview/inventory/exchangeview/ExchangeStatusBadge.vue'
-import {ExchangeStatus} from '@/api/exchanges'
 import {WaitingListEntryStatus} from '@/api/waitingList'
 </script>
 
@@ -33,14 +31,6 @@ import {WaitingListEntryStatus} from '@/api/waitingList'
       <StationBadge station-name="DLRG Musterstadt"/>
       <UserTagBadge>Tag</UserTagBadge>
       <UserTagBadge color="#3694FF">Tag (colored)</UserTagBadge>
-    </div>
-    <SubHeader>Exchange Status</SubHeader>
-    <div class="flex flex-wrap gap-2 items-center">
-      <ExchangeStatusBadge :status="ExchangeStatus.ANNOUNCED"/>
-      <ExchangeStatusBadge :status="ExchangeStatus.RECEIVED"/>
-      <ExchangeStatusBadge :status="ExchangeStatus.SHIPPED"/>
-      <ExchangeStatusBadge :status="ExchangeStatus.ARRIVED"/>
-      <ExchangeStatusBadge :status="ExchangeStatus.DONE"/>
     </div>
     <SubHeader>Waiting List Status</SubHeader>
     <div class="flex flex-wrap gap-2 items-center">

@@ -10,8 +10,8 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
-import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -36,7 +36,7 @@ public class SidebarCountService {
     private final LostAndFoundRepository lostAndFoundRepository;
     private final StationRepository stationRepository;
     private final InventoryService inventoryService;
-    private final ExchangeService exchangeService;
+    private final ItemMovementService movementService;
     private final ProcedureService procedureService;
     private final StationMemberService stationMemberService;
 
@@ -52,7 +52,7 @@ public class SidebarCountService {
             LostAndFoundRepository lostAndFoundRepository,
             StationRepository stationRepository,
             InventoryService inventoryService,
-            ExchangeService exchangeService,
+            ItemMovementService movementService,
             ProcedureService procedureService,
             StationMemberService stationMemberService) {
         this.notificationService = notificationService;
@@ -65,7 +65,7 @@ public class SidebarCountService {
         this.lostAndFoundRepository = lostAndFoundRepository;
         this.stationRepository = stationRepository;
         this.inventoryService = inventoryService;
-        this.exchangeService = exchangeService;
+        this.movementService = movementService;
         this.procedureService = procedureService;
         this.stationMemberService = stationMemberService;
     }
@@ -127,9 +127,9 @@ public class SidebarCountService {
             }
         }
 
-        int pendingExchanges = 0;
+        int openMovements = 0;
         if (roles.contains(StationPermission.INVENTORY_EDIT)) {
-            pendingExchanges = exchangeService.countPendingByStation(stationId);
+            openMovements = movementService.countOpenByStation(stationId);
         }
 
         int procedureCount;
@@ -151,7 +151,7 @@ public class SidebarCountService {
                 waitingListEntries,
                 lostAndFoundPending,
                 myInventoryCount,
-                pendingExchanges,
+                openMovements,
                 procedureCount);
     }
 
@@ -166,6 +166,7 @@ public class SidebarCountService {
             int waitingListEntries,
             int lostAndFoundPending,
             int myInventoryCount,
-            int pendingExchanges,
+            /** The station's movements that are still walking a chain, whatever they are for. */
+            int openMovements,
             int procedureCount) {}
 }

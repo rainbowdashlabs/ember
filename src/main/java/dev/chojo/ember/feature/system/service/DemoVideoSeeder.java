@@ -14,10 +14,13 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.repository.FormRepository;
-import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
+import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
-import dev.chojo.ember.feature.inventory.service.ExchangeService;
+import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
@@ -70,7 +73,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
 
     private final AttendanceRepository attendanceRepository;
     private final InventoryRepository inventoryRepository;
-    private final ExchangeService exchangeService;
+    private final ItemMovementService movementService;
     private final EventCrudService crudService;
     private final StationMailProviderRepository mailProviderRepository;
     private final LostAndFoundService lostAndFoundService;
@@ -85,7 +88,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
     public DemoVideoSeeder(
             AttendanceRepository attendanceRepository,
             InventoryRepository inventoryRepository,
-            ExchangeService exchangeService,
+            ItemMovementService movementService,
             EventCrudService crudService,
             StationMailProviderRepository mailProviderRepository,
             LostAndFoundService lostAndFoundService,
@@ -97,7 +100,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
             StationMemberRepository stationMemberRepository) {
         this.attendanceRepository = attendanceRepository;
         this.inventoryRepository = inventoryRepository;
-        this.exchangeService = exchangeService;
+        this.movementService = movementService;
         this.crudService = crudService;
         this.mailProviderRepository = mailProviderRepository;
         this.lostAndFoundService = lostAndFoundService;
@@ -173,17 +176,10 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
             return;
         }
 
-        var exchange = exchangeService.create(
-                station.stationId(),
-                kid.id(),
-                "Demo User",
-                item.id(),
-                item.inventoryId(),
-                item.sizeId(),
-                item.sizeId(),
-                "Zu klein geworden",
-                null);
-        exchangeService.updateStatus(exchange.id(), ExchangeStatus.ARRIVED, actor, "Ersatz liegt bereit", spare.id());
+        var exchange = swapFor(station.stationId(), kid, item, "Zu klein geworden");
+        // Two steps on: the old piece is in and the replacement has been taken off the shelf, which is the
+        // state where a handover is the next thing anybody does.
+        walkStages(exchange, 2, actor, "Ersatz liegt bereit", spare.id());
         log.info(
                 "Demo: swap {} for member {} waits to be handed over, station {}",
                 exchange.id(),
@@ -233,10 +229,9 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
         if (kids.isEmpty() || members.betreuer().isEmpty()) return;
         int actor = members.betreuer().getFirst().id();
 
-        var wanted = List.of(ExchangeStatus.RECEIVED, ExchangeStatus.SHIPPED, ExchangeStatus.ARRIVED);
         int made = 0;
         for (var kid : kids) {
-            if (made >= wanted.size()) break;
+            if (made >= 3) break;
             // A piece the association owns is moved by the association: one of the steps belongs to
             // the OWNER, and a Betreuer acknowledging it is refused. Only the station's own gear can
             // be walked through the stages from here.
@@ -247,17 +242,10 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
                     .findFirst()
                     .orElse(null);
             if (item == null) continue;
-            var exchange = exchangeService.create(
-                    station.stationId(),
-                    kid.id(),
-                    "Demo User",
-                    item.id(),
-                    item.inventoryId(),
-                    item.sizeId(),
-                    item.sizeId(),
-                    "Passt nicht mehr",
-                    null);
-            exchangeService.updateStatus(exchange.id(), wanted.get(made), actor, "Für die Aufnahme gestellt");
+            var exchange = swapFor(station.stationId(), kid, item, "Passt nicht mehr");
+            var spare = spareBesides(item);
+            // One, two and three steps along the same chain, so the three rows sit at three stages.
+            walkStages(exchange, made + 1, actor, "Für die Aufnahme gestellt", spare);
             made++;
         }
         log.info("Demo: {} exchange(s) on different stages, station {}", made, station.stationId());
@@ -400,17 +388,54 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
             log.warn("Demo: No free item assigned to member {}, no exchange for the videos", kid.id());
             return;
         }
-        exchangeService.create(
+        swapFor(stationId, kid, item, "Die Jacke ist zu eng geworden");
+        log.info("Demo: Running exchange for the videos on member {}", kid.id());
+    }
+
+    /** A swap raised on a member's piece, the way every screen raises one. */
+    private ItemMovement swapFor(int stationId, StationMember kid, InventoryItem item, String reason) {
+        return movementService.create(
                 stationId,
+                MovementPurpose.EXCHANGE,
                 kid.id(),
                 "Demo User",
                 item.id(),
                 item.inventoryId(),
                 item.sizeId(),
                 item.sizeId(),
-                "Die Jacke ist zu eng geworden",
+                reason,
+                new ItemMovementService.Actor(kid.id(), true),
                 null);
-        log.info("Demo: Running exchange for the videos on member {}", kid.id());
+    }
+
+    /**
+     * Walks a swap along its chain, which is what putting a demo row at a particular stage comes to.
+     *
+     * @param movement the swap
+     * @param stages   how many steps to acknowledge
+     * @param actorId  who acknowledges them
+     * @param note     the words the log keeps
+     * @param spare    the replacement to name where a step asks for one, or {@code null}
+     */
+    private ItemMovement walkStages(ItemMovement movement, int stages, int actorId, String note, Integer spare) {
+        var walking = movement;
+        var actor = new ItemMovementService.Actor(actorId, true);
+        for (int step = 0; step < stages; step++) {
+            if (walking.state() != MovementState.OPEN || walking.currentStepId() == null) break;
+            walking = movementService.acknowledge(walking.id(), walking.currentStepId(), actor, note, spare);
+        }
+        return walking;
+    }
+
+    /** Another free piece of the same inventory, which is what a replacement has to be. */
+    private Integer spareBesides(InventoryItem item) {
+        return inventoryRepository.findItems(item.inventoryId()).stream()
+                .filter(candidate -> candidate.id() != item.id())
+                .filter(candidate -> candidate.assignedTo() == null)
+                .filter(candidate -> candidate.ownerKind() != ItemOwner.CLUSTER)
+                .findFirst()
+                .map(InventoryItem::id)
+                .orElse(null);
     }
 
     /**

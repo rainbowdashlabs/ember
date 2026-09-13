@@ -36,7 +36,7 @@ class FormerMemberServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 inventoryRepo,
-                exchangeService,
+                itemMovementService,
                 memberGroupRepo,
                 userTagRepo,
                 attendanceRepo,

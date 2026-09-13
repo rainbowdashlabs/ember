@@ -6,11 +6,12 @@
 package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
-import dev.chojo.ember.feature.inventory.entity.InventoryType;
-import dev.chojo.ember.feature.inventory.service.ExchangeService;
+import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
+import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -32,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -59,7 +61,7 @@ public class MemberCheckNotesService {
      */
     private static final int BIRTHDAY_WINDOW_DAYS = 6;
 
-    private final ExchangeService exchangeService;
+    private final ItemMovementService movementService;
     private final InventoryService inventoryService;
     private final LostAndFoundRepository lostAndFoundRepository;
     private final ProfileFieldRepository profileFieldRepository;
@@ -67,12 +69,12 @@ public class MemberCheckNotesService {
 
     @Inject
     public MemberCheckNotesService(
-            ExchangeService exchangeService,
+            ItemMovementService movementService,
             InventoryService inventoryService,
             LostAndFoundRepository lostAndFoundRepository,
             ProfileFieldRepository profileFieldRepository,
             StationRepository stationRepository) {
-        this.exchangeService = exchangeService;
+        this.movementService = movementService;
         this.inventoryService = inventoryService;
         this.lostAndFoundRepository = lostAndFoundRepository;
         this.profileFieldRepository = profileFieldRepository;
@@ -126,40 +128,25 @@ public class MemberCheckNotesService {
      */
     private Map<Integer, List<SwapNote>> openSwaps(int stationId) {
         var byMember = new HashMap<Integer, List<SwapNote>>();
-        for (var request : exchangeService.findAtMemberByStation(stationId)) {
-            var inventory = inventoryService.findById(request.inventoryId());
-            var next = nextStatus(
-                    request.status(), inventory.map(Inventory::inventoryType).orElse(InventoryType.EXTERNAL));
-            byMember.computeIfAbsent(request.memberId(), key -> new ArrayList<>())
+        for (var movement : movementService.findAtMemberByStation(stationId)) {
+            var inventory = movement.inventoryId() == null
+                    ? Optional.<Inventory>empty()
+                    : inventoryService.findById(movement.inventoryId());
+            var standing = movementService.stepsOf(movement).stream()
+                    .filter(step -> movement.currentStepId() != null && step.id() == movement.currentStepId())
+                    .findFirst();
+            byMember.computeIfAbsent(movement.memberId(), key -> new ArrayList<>())
                     .add(new SwapNote(
-                            request.id(),
-                            request.status(),
-                            next,
-                            next == ExchangeStatus.DONE,
-                            request.exchangedItemId(),
+                            movement.id(),
+                            movement.purpose(),
+                            movement.currentStepId(),
+                            standing.map(MovementFlowStep::label).orElse(""),
+                            standing.map(MovementFlowStep::actor).orElse(null),
+                            movementService.handsOverNext(movement),
+                            movement.incomingItemId(),
                             inventory.map(Inventory::name).orElse("")));
         }
         return byMember;
-    }
-
-    /**
-     * The one step a swap takes next, or null where it is at its end.
-     *
-     * <p>Worked out here rather than in the browser so the order of the steps is written down once.
-     * An inventory of the station's own skips the two postal steps, because nothing is posted to
-     * fetch a piece that is already in the building.
-     */
-    static ExchangeStatus nextStatus(ExchangeStatus current, InventoryType inventoryType) {
-        List<ExchangeStatus> flow = inventoryType == InventoryType.INTERNAL
-                ? List.of(ExchangeStatus.ANNOUNCED, ExchangeStatus.RECEIVED, ExchangeStatus.DONE)
-                : List.of(
-                        ExchangeStatus.ANNOUNCED,
-                        ExchangeStatus.RECEIVED,
-                        ExchangeStatus.SHIPPED,
-                        ExchangeStatus.ARRIVED,
-                        ExchangeStatus.DONE);
-        int index = flow.indexOf(current);
-        return index < 0 || index >= flow.size() - 1 ? null : flow.get(index + 1);
     }
 
     /**
@@ -247,20 +234,29 @@ public class MemberCheckNotesService {
             int memberId, List<SwapNote> swaps, List<FoundNote> foundItems, Integer birthdayDaysAgo) {}
 
     /**
-     * @param exchangeId    the swap
-     * @param status        where it stands, which is what says who is being waited on
-     * @param nextStatus    the one step it takes next, null where it is at its end
-     * @param handOverNext  whether that step is putting the piece into the member's hands
-     * @param replacementItemId the piece set aside for the member, which the step that hands it over
-     *     has to be told about. Carried here because the swap already knows it: asking whoever runs
-     *     the check to pick it out again, from a sheet of names, would be asking them to answer a
-     *     question the swap has already answered
-     * @param inventoryName what the swap is out of, for saying which swap this is
+     * One movement of this member's, as somebody standing in front of them needs it.
+     *
+     * <p>It carries the step rather than a status, because a step is what there is: the words the chain
+     * gives it, whose turn it is, and the id to acknowledge. There is no next step to name in advance
+     * either, since the chain decides that when this one is acknowledged.
+     *
+     * @param movementId    the movement
+     * @param purpose       what it is for, which is what says whether a piece is coming or going
+     * @param stepId        the step it stands on, which is what an acknowledgement names
+     * @param stepLabel     the words that step carries
+     * @param stepActor     whose turn it is
+     * @param handOverNext  whether acknowledging it puts a piece into the member's hands
+     * @param replacementItemId the piece set aside for the member, where one is already named. Carried
+     *     because the movement knows it: asking whoever runs the check to pick it out again, from a
+     *     sheet of names, would be asking them a question the movement has already answered
+     * @param inventoryName what it is out of, for saying which movement this is
      */
     public record SwapNote(
-            int exchangeId,
-            ExchangeStatus status,
-            ExchangeStatus nextStatus,
+            int movementId,
+            MovementPurpose purpose,
+            Integer stepId,
+            String stepLabel,
+            StepActor stepActor,
             boolean handOverNext,
             Integer replacementItemId,
             String inventoryName) {}

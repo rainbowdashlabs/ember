@@ -1694,32 +1694,59 @@ volumes:
             problemsText: 'Was einer Kette fehlt, steht an der Kette selbst, und eine abgelehnte Änderung wird an derselben Stelle erklärt. Gespeichert wird immer nur die eine Kette, an der du gerade arbeitest; die übrigen bleiben so, wie du sie aufgeklappt hast.',
             tip: 'Beim ersten Öffnen liegen fertige Ketten bereit, eine je Kombination. Wer eine davon ersetzt, behält sie: ergänzt wird nur, wofür noch keine steht.',
         },
-        inventoryExchanges: {
-            title: 'Tausch-Anfragen',
-            subtitle: 'Ausrüstung tauschen und Anfragen verwalten.',
-            whatIs: 'Was ist ein Tausch?',
-            whatIsText: 'Wenn Ausrüstung nicht mehr passt oder ersetzt werden muss, kann eine Tausch-Anfrage gestellt werden. Die Anfrage durchläuft verschiedene Status-Stufen.',
-            statusAnnounced: 'Angekündigt - Der Tausch wurde angefragt.',
-            statusReceived: 'Empfangen - Der alte Gegenstand wurde zurückgegeben.',
-            statusShipped: 'Versendet - Der neue Gegenstand ist unterwegs.',
-            statusArrived: 'Angekommen - Der neue Gegenstand ist da.',
-            statusExchanged: 'Erledigt - Der Tausch ist abgeschlossen.',
+        inventoryMovements: {
+            title: 'Vorgänge',
+            subtitle: 'Was gerade unterwegs ist, und wer als Nächstes dran ist.',
+            whatIs: 'Was ist ein Vorgang?',
+            whatIsText: 'Ein Vorgang hält fest, dass ein Teil den Besitzer oder den Ort wechselt: eine Ausgabe, '
+                + 'eine Rückgabe, ein Tausch oder eine Anfrage beim Verband. Alles, was Ausrüstung bewegt, läuft '
+                + 'darüber, damit niemand im Nachhinein raten muss, wo ein Teil geblieben ist.',
+            purposeTitle: 'Die vier Arten',
+            purposeIssue: 'Ausgabe - ein Teil geht an ein Mitglied oder ins Lager.',
+            purposeReturn: 'Rückgabe - ein Teil kommt zurück an die Wache oder an den Verband.',
+            purposeExchange: 'Tausch - ein Teil geht zurück und ein Ersatz kommt dafür.',
+            purposeRequest: 'Anfrage - die Wache bittet den Verband um ein Teil, das sie nicht hat.',
+            noStatusTitle: 'Kein Status, sondern Schritte',
+            noStatusText: 'Ein Vorgang hat keinen Status, den jemand setzt. Er hat einen Ablauf aus Schritten, und '
+                + 'auf einem davon steht er gerade. Jeder Schritt gehört einer Partei: der Wache, dem Mitglied oder '
+                + 'dem Verband. Wer dran ist, bestätigt seinen Schritt, und damit rückt der Vorgang genau eine '
+                + 'Stelle weiter.',
+            noStatusWhere: 'Wo ein Vorgang steht, wird an den Teilen abgelesen. Deshalb gibt es kein Feld, das dem '
+                + 'Lager widerspricht, und deshalb legt „Richtigstellen" die Teile um, statt eine Stufe zu setzen.',
+            createTitle: 'Einen Vorgang starten',
+            createText: 'Der Knopf „Vorgang starten" führt durch fünf Fragen: was passieren soll, mit wem, um '
+                + 'welches Teil es geht, warum, und zuletzt der Ablauf, den diese Antworten ergeben. Der Ablauf '
+                + 'steht auf dem Bild, bevor irgendetwas gespeichert wird.',
+            createPrefilled: 'Wird der Vorgang von einer Seite aus gestartet, die die Antworten schon kennt, etwa '
+                + 'vom Inventar eines Mitglieds, fragt der Assistent nur noch das Fehlende.',
+            createNoFlow: 'Gibt es für die Kombination keinen hinterlegten Ablauf, sagt der letzte Schritt das und '
+                + 'verlinkt die Abläufe in den Einstellungen. Ohne Ablauf lässt sich nichts starten.',
             filterTitle: 'Liste eingrenzen und sortieren',
-            filterText: 'Über der Liste stehen drei Filter: ein Suchfeld für den Namen des Mitglieds, eine Auswahl der Ausstattung und eine Auswahl des Status. Bei Ausstattung und Status kannst du mehrere Einträge ankreuzen, dann siehst du die Zeilen aller angekreuzten zusammen. Die drei Filter wirken untereinander weiterhin zusammen, du kannst also die versendeten und angekommenen Helm-Anfragen einer einzelnen Person zeigen lassen.',
-            filterDefaultText: 'Voreingestellt sind die offenen Status angekreuzt. Nimm einzelne Haken weg, um die Liste weiter einzugrenzen, oder kreuze „Erledigt" dazu. Kreuzt du gar nichts an, schränkt der Filter nichts ein und du siehst alle Anfragen.',
-            filterSortText: 'Ein Klick auf die Spaltenüberschrift Mitglied, Ausstattung, Status oder Datum sortiert die Liste danach, ein zweiter Klick dreht die Richtung um. Der Status wird dabei entlang der Stufen sortiert und nicht nach dem Anfangsbuchstaben. Auf dem Handy wählst du die Sortierung stattdessen in der Liste über den Anfragen aus.',
-            filterExportText: 'Der Export nimmt genau die Zeilen mit, die die Filter übrig lassen: „Alle auswählen" wählt nichts aus, was gerade ausgeblendet ist.',
+            filterText: 'Über der Liste stehen ein Suchfeld für Name, Teil und Kennzeichnung sowie Filter für Art, '
+                + 'Status, Inventar und „wer ist dran". Die Filter wirken zusammen, du kannst also alle offenen '
+                + 'Helm-Tausche zeigen lassen, bei denen der Verband dran ist.',
+            filterOrderText: 'Voreingestellt stehen die Zeilen oben, bei denen jemand hier etwas tun kann. Eine '
+                + 'andere Sortierung wählst du über die Liste neben den Filtern.',
+            filterExportText: 'Der Export als PDF nimmt genau die Zeilen mit, die die Filter übrig lassen.',
             asMember: 'Als Mitglied',
-            asMemberText: 'Du siehst hier deine eigenen Tausch-Anfragen und ihren aktuellen Status. Du kannst neue Tausch-Anfragen über „Mein Inventar" oder über den Button hier erstellen.',
+            asMemberText: 'Du siehst deine eigenen Vorgänge. Liegt der Schritt bei dir, etwa weil ein Teil bei dir '
+                + 'angekommen ist, bestätigst du ihn hier, und erst damit ist der Ablauf weiter.',
             asMemberManager: 'Als Erziehungsberechtigter',
-            asMemberManagerText: 'Du siehst die Tausch-Anfragen deiner verwalteten Mitglieder und kannst für diese Anfragen erstellen.',
+            asMemberManagerText: 'Du siehst die Vorgänge deiner verwalteten Mitglieder, startest welche für sie '
+                + 'und bestätigst die Schritte, die bei ihnen liegen.',
             asManager: 'Als Verwalter',
-            asManagerText: 'Du siehst alle Tausch-Anfragen der Wache. Du kannst:',
-            managerStatusChange: 'Den Status ändern (z.B. von „Angekündigt" auf „Empfangen").',
-            managerAssignItem: 'Das neue Stück benennen, sobald der Tausch an dem Schritt steht, der danach fragt. Wo dieser Schritt liegt, hängt vom Weg ab: bei eigener Ausrüstung ist es die Übergabe, bei Ausrüstung des Verbands der Versand. Ohne benanntes Stück geht der Tausch dort nicht weiter.',
-            managerCreateProcurement: 'Eine Beschaffung erstellen, wenn ein neuer Gegenstand bestellt werden muss.',
-            managerExport: 'Anfragen als PDF exportieren.',
-            tip: 'Tausch-Anfragen halten den Überblick darüber, wer welche Ausrüstung wann bekommt hat.',
+            asManagerText: 'Du siehst alle Vorgänge der Wache. Du kannst:',
+            managerAcknowledge: 'Den Schritt bestätigen, der bei der Wache liegt.',
+            managerName: 'Das neue Teil benennen, sobald der Vorgang an dem Schritt steht, der danach fragt. Wo '
+                + 'dieser Schritt liegt, hängt vom Ablauf ab: bei eigener Ausrüstung ist es die Übergabe, bei '
+                + 'Ausrüstung des Verbands der Versand. Ohne benanntes Teil geht es dort nicht weiter.',
+            managerForce: 'Einen Schritt erzwingen, der einer anderen Partei gehört. Das steht mit Namen und Notiz '
+                + 'im Verlauf.',
+            managerCorrect: 'Einen Vorgang richtigstellen, wenn die Teile in Wirklichkeit anders liegen als '
+                + 'eingetragen.',
+            managerExport: 'Die Liste als PDF exportieren.',
+            tip: 'Jeder Vorgang hat einen Verlauf. „Ablauf ansehen" zeigt jeden Schritt mit Datum, Partei und der '
+                + 'Notiz, die dabei geschrieben wurde.',
         },
         inventoryMembers: {
             title: 'Mitglieder & Inventar',
@@ -5490,6 +5517,12 @@ volumes:
                 + 'ist, wird es zurückgenommen. Gehört das Item bereits jemand anderem, wird nicht '
                 + 'stillschweigend umgewiesen: Ember fragt nach und nennt den bisherigen Träger.',
             flowPart2: 'Ein Item kann gleichzeitig nur an einem Ort sein: Sobald du es einem Mitglied gibst, verliert es seine Lagerplatz-Zuordnung. Stellst du es zurück ins Lager, wird die Zuweisung beim Mitglied beendet.',
+            plannedTitle: 'Jetzt aushändigen oder Ausgabe planen',
+            plannedPart1: 'Über dem Scanfeld steht, was ein Scan bewirken soll. „Jetzt aushändigen" ist der '
+                + 'Normalfall am Tresen: das Teil wechselt sofort den Besitzer.',
+            plannedPart2: '„Ausgabe planen" legt stattdessen einen Vorgang an. Das Teil bleibt im Lager, ist für '
+                + 'das Mitglied vorgemerkt und wird niemandem sonst gegeben; die Übergabe wird später in den '
+                + 'Vorgängen bestätigt. Die Auswahl gilt für jeden folgenden Scan, bis du sie änderst.',
             tip: 'Der Schnellmodus ist für Schichten mit vielen Items in Folge gedacht - du gibst immer nur ein Mitglied an, scannst danach mehrere Items hintereinander.',
         },
         inventoryCheckContainerHelp: {

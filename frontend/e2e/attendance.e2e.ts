@@ -8,6 +8,36 @@ import {test, expect, apiHeaders, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
 /**
+ * Acknowledges step after step until the swap stands on the one that puts the piece into the
+ * member's hands, naming the replacement at the step that asks for it.
+ *
+ * <p>How many steps that takes depends on the chain, and whose gear it is decides the chain, so the
+ * story walks until it is there rather than counting.
+ */
+async function walkUntilTheHandOver(
+    page: Page,
+    headers: Record<string, string>,
+    movementId: number,
+    replacementId: number,
+): Promise<boolean> {
+    for (let walked = 0; walked < 6; walked++) {
+        const detail = await page.request
+            .get(`/api/v1/movements/${movementId}`, {headers})
+            .then(r => r.json())
+        const standing = detail.steps.find((step: {current: boolean}) => step.current)
+        if (!standing) return false
+        if (standing.subject === 'INCOMING' && standing.custodyAfter === 'WITH_MEMBER') return true
+
+        const answered = await page.request.post(`/api/v1/movements/${movementId}/acknowledge`, {
+            headers,
+            data: {stepId: standing.id, note: '', pickedItemId: standing.picksItem ? replacementId : null},
+        })
+        if (!answered.ok()) return false
+    }
+    return false
+}
+
+/**
  * Raises a swap on a piece somebody holds and walks it to the point where the replacement is at the
  * station, which is the one state that means "hand this over now".
  *
@@ -24,11 +54,12 @@ async function raiseSwapAwaitingHandover(page: Page, headers: Record<string, str
             // point of being called arrived while nothing was ever set aside, and handing over then
             // fails because there is no piece to hand.
             if (!item.inventoryHomogeneous || item.sizeId == null) continue
-            const created = await page.request.post('/api/v1/exchanges', {
+            const created = await page.request.post('/api/v1/movements', {
                 headers,
                 data: {
+                    purpose: 'EXCHANGE',
                     memberId: member.id,
-                    itemId: item.id,
+                    outgoingItemId: item.id,
                     inventoryId: item.inventoryId,
                     oldSizeId: item.sizeId,
                     newSizeId: item.sizeId,
@@ -37,7 +68,7 @@ async function raiseSwapAwaitingHandover(page: Page, headers: Record<string, str
             })
             if (!created.ok()) continue
 
-            const swap = await created.json()
+            const swap = (await created.json()).movement
 
             // Which piece the member gets has to be named, and naming it is what makes the swap one
             // that can be handed over at all. A free piece of the same inventory is the replacement.
@@ -49,11 +80,9 @@ async function raiseSwapAwaitingHandover(page: Page, headers: Record<string, str
                         candidate.id !== item.id && !candidate.memberId))
             if (!spare) continue
 
-            const walked = await page.request.put(`/api/v1/exchanges/${swap.id}/status`, {
-                headers,
-                data: {status: 'ARRIVED', exchangedItemId: spare.id},
-            })
-            if (walked.ok()) return {...swap, memberId, replacementItemId: spare.id}
+            if (await walkUntilTheHandOver(page, headers, swap.id, spare.id)) {
+                return {...swap, memberId, replacementItemId: spare.id}
+            }
         }
     }
     throw new Error('no piece was free to raise a swap on')
@@ -269,17 +298,18 @@ test.describe('Attendance', () => {
         await expect(handOver, 'our swap is waiting to be handed over').toBeVisible()
 
         const handed = page.waitForResponse(
-            response => response.request().method() === 'PUT' && response.url().includes('/exchanges/'),
+            response => response.request().method() === 'POST' && response.url().includes('/acknowledge'),
         )
         await handOver.click()
         expect((await handed).status()).toBe(200)
 
         await expect(handOver).toHaveCount(0)
 
-        const after = await page.request
-            .get(`/api/v1/exchanges/${waiting.id}`, {headers})
+        const replacement = await page.request
+            .get(`/api/v1/inventory-items/${waiting.replacementItemId}`, {headers})
             .then(response => response.json())
-        expect(after.status, 'the swap is finished, not merely hidden').toBe('DONE')
+        expect(replacement.custody, 'the piece is in the member\'s hands, not merely hidden')
+            .toBe('WITH_MEMBER')
     })
 
     /**

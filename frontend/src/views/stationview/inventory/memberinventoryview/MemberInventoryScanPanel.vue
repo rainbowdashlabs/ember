@@ -10,8 +10,11 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import HandOutChoice from '@/components/inventory/HandOutChoice.vue'
+import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
 
 const scanValue = defineModel<string>('scanValue', {required: true})
+const handOutMode = defineModel<HandOutMode>('handOutMode', {required: true})
 
 defineProps<{
   scanBusy: boolean
@@ -41,6 +44,7 @@ const {t} = useI18n()
       />
       <ScanButton mode="continuous" :disabled="scanBusy" @decoded="emit('decoded', $event)" />
     </div>
+    <HandOutChoice v-model="handOutMode" class="mt-3"/>
     <Alert v-if="scanError" variant="error" class="mt-2">{{ scanError }}</Alert>
     <Alert v-if="scanSuccess" variant="success" class="mt-2">{{ scanSuccess }}</Alert>
   </NeutralContainer>
