@@ -13,9 +13,18 @@ import ItemChip, {type ItemChipSource} from '@/components/inventory/ItemChip.vue
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {containerPathFor} from '@/util/containerPath'
 import {glyphFor} from '@/util/glyph'
-import {inventory, inventoryArts, inventoryContainers, stationMembers} from '@/api'
+import {inventory, inventoryArts, inventoryContainers, movements, stationMembers} from '@/api'
+import {MovementState} from '@/api/movements'
 import type {InventoryArt} from '@/api/inventoryArts'
-import type {InventoryItem, InventorySize, Inventory} from '@/api/inventory'
+import {
+  InventoryTypes,
+  ItemOwner,
+  type Inventory,
+  type InventoryItem,
+  type InventorySize,
+  type InventoryTypeName,
+  type ItemOwnerName,
+} from '@/api/inventory'
 import type {StationMember} from '@/api/types'
 import type {InventoryContainer} from '@/api/inventoryContainers'
 
@@ -26,6 +35,22 @@ const props = defineProps<{
   excludeAssigned?: boolean
   excludeLost?: boolean
   excludeContainerless?: boolean
+  /**
+   * Whose gear may be offered. A replacement for the station's gear comes off the station's shelf and
+   * one for the association's comes out of theirs: offering both invites handing the wrong body's
+   * property over, and the movement would be refused for it afterwards anyway.
+   */
+  ownerKind?: ItemOwnerName | null
+  /** Which association that is, so one association's gear is not offered for another's movement. */
+  ownerClusterId?: string | null
+  /**
+   * Which kind of inventory the pieces have to sit in: the station's own gear, the association's, or
+   * a shelf that holds both. A mixed shelf answers for either side, because it is what its pieces say
+   * it is.
+   */
+  inventoryType?: InventoryTypeName | null
+  /** Whether pieces another open movement has already promised somebody are left out. */
+  excludeSpokenFor?: boolean
   placeholder?: string
   disabled?: boolean
 }>()
@@ -45,6 +70,9 @@ const inventories = ref<Inventory[]>([])
 const sizes = ref<InventorySize[]>([])
 const ready = ref(false)
 const scanError = ref('')
+
+/** The pieces an open movement has already promised somebody, which nobody else may be given. */
+const spokenFor = ref<Set<number>>(new Set())
 
 const artById = computed(() => new Map(arts.value.map(a => [a.id, a])))
 const containerById = computed(() => new Map(containers.value.map(c => [c.id, c])))
@@ -145,12 +173,42 @@ function subtitle(item: InventoryItem): string {
   return parts.join(' · ')
 }
 
+/**
+ * Whose gear a piece is, read off the piece rather than off its inventory.
+ *
+ * <p>A mixed inventory holds both, so the inventory cannot answer for its pieces; each piece says for
+ * itself. A piece that says nothing is the station's, which is what an inventory of the station's own
+ * gear writes.
+ */
+function ownedByTheSameParty(item: InventoryItem): boolean {
+  if (props.ownerKind == null) return true
+  const kind = item.ownerKind ?? ItemOwner.STATION
+  if (kind !== props.ownerKind) return false
+  if (props.ownerKind !== ItemOwner.CLUSTER) return true
+  return props.ownerClusterId == null || item.ownerClusterId === props.ownerClusterId
+}
+
+/**
+ * Whether the piece sits on the same sort of shelf as the movement is about.
+ *
+ * <p>A shelf that holds both sorts fits either way round, and where the wanted sort is not said the
+ * shelf is nobody's business.
+ */
+function onTheSameKindOfShelf(item: InventoryItem): boolean {
+  if (props.inventoryType == null) return true
+  const type = inventoryById.value.get(item.inventoryId)?.inventoryType
+  if (type == null) return false
+  return type === props.inventoryType || type === InventoryTypes.MIXED || props.inventoryType === InventoryTypes.MIXED
+}
+
 function passesFilters(item: InventoryItem): boolean {
   if (props.inventoryId != null && item.inventoryId !== props.inventoryId) return false
+  if (!onTheSameKindOfShelf(item)) return false
   if (props.excludeAssigned && item.assignedTo != null) return false
   if (props.excludeLost && item.lostAt) return false
   if (props.excludeContainerless && item.containerId == null && item.assignedTo == null) return false
-  return true
+  if (props.excludeSpokenFor && spokenFor.value.has(item.id)) return false
+  return ownedByTheSameParty(item)
 }
 
 const filtered = computed(() => items.value.filter(passesFilters))
@@ -241,6 +299,24 @@ const selectedDisplay = computed(() => {
   return selectedItem.value ? displayName(selectedItem.value) : `#${model.value}`
 })
 
+/**
+ * The pieces open movements have already named, which are free on the shelf and promised all the same.
+ *
+ * <p>Asked for only where the caller wants them left out: every other picker would be paying for a
+ * list it does not read. A failure here leaves the set empty rather than the picker: the engine
+ * refuses a promised piece anyway, so the worst of it is a refusal after the press instead of before.
+ */
+async function promisedPieces(): Promise<Set<number>> {
+  try {
+    const open = await movements.listMovements()
+    return new Set(open
+        .filter(movement => movement.state === MovementState.OPEN && movement.incomingItemId != null)
+        .map(movement => movement.incomingItemId as number))
+  } catch {
+    return new Set()
+  }
+}
+
 async function load() {
   ready.value = false
   try {
@@ -260,6 +336,7 @@ async function load() {
     const collections = invs.filter(inv => !inv.homogeneous)
     const kinds = await Promise.all(collections.map(inv => inventoryArts.listArts(inv.id)))
     arts.value = kinds.flat()
+    if (props.excludeSpokenFor) spokenFor.value = await promisedPieces()
   } catch {
     items.value = []
   } finally {

@@ -12,7 +12,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
 import ItemModals from './ItemModals.vue'
-import MemberName from '@/components/avatar/MemberName.vue'
+import MemberInventoryLink from '@/components/inventory/MemberInventoryLink.vue'
 import ItemActions from '../itemstable/ItemActions.vue'
 import ItemTableHeadRow from '../itemtable/ItemTableHeadRow.vue'
 import ItemTableFilterModal from '../itemtable/ItemTableFilterModal.vue'
@@ -141,7 +141,9 @@ async function doMarkFound(item: InventoryItem) {
           </div>
           <div>
             <div class="text-(--text-muted)">{{ t('inventory.edit.colAssigned') }}</div>
-            <div v-if="item.assignedTo" class="font-medium"><MemberName :identity="getMemberIdentity(item.assignedTo)"/></div>
+            <div v-if="item.assignedTo" class="font-medium">
+              <MemberInventoryLink :identity="getMemberIdentity(item.assignedTo)" :member-id="item.assignedTo"/>
+            </div>
             <div v-else class="text-(--text-muted)">&#x2013;</div>
           </div>
         </div>
@@ -171,13 +173,23 @@ async function doMarkFound(item: InventoryItem) {
             </Td>
             <Td muted>{{ item.internalId || '–' }}</Td>
             <Td v-if="table.isColumnVisible('size')" muted>{{ getSizeLabel(item.sizeId) || '–' }}</Td>
-            <Td v-if="table.isColumnVisible('source')">
+            <Td v-if="table.isColumnVisible('owner')">
               <PrimaryBadge v-if="item.ownerKind === ItemOwner.STATION">{{ t('inventory.edit.ownerStation') }}</PrimaryBadge>
               <SecondaryBadge v-else-if="item.ownerKind === ItemOwner.CLUSTER">{{ t('inventory.edit.ownerCluster') }}</SecondaryBadge>
               <span v-else class="text-(--text-muted)">&#x2013;</span>
             </Td>
+            <Td v-if="table.isColumnVisible('tags')">
+              <span v-if="table.itemTagNames(item).length > 0" class="flex flex-wrap gap-1">
+                <SecondaryBadge v-for="name in table.itemTagNames(item)" :key="name">{{ name }}</SecondaryBadge>
+              </span>
+              <span v-else class="text-(--text-muted)">&#x2013;</span>
+            </Td>
             <Td v-if="table.isColumnVisible('assigned')">
-              <MemberName v-if="item.assignedTo" :identity="getMemberIdentity(item.assignedTo)"/>
+              <MemberInventoryLink
+                  v-if="item.assignedTo"
+                  :identity="getMemberIdentity(item.assignedTo)"
+                  :member-id="item.assignedTo"
+              />
               <span v-else class="text-(--text-muted)">&#x2013;</span>
             </Td>
             <Td v-for="col in table.visibleFieldColumns" :key="col.key" muted>{{ table.columnValue(item, col.key) || '–' }}</Td>

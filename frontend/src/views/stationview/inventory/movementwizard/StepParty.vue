@@ -13,7 +13,7 @@ import {fromMember, type MemberOption} from '@/components/input/select/memberOpt
 import {stationMembers} from '@/api'
 
 /**
- * Who the Vorgang is with: a member, or the station's own store.
+ * Who the movement is with: a member, or the station's own store.
  *
  * <p>Two recipients rather than two intentions, which is why this is its own question and not four more
  * purposes. The member menu here is the one every other screen asks with.

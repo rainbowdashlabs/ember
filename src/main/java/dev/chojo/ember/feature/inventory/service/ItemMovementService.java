@@ -297,6 +297,7 @@ public class ItemMovementService {
             Integer pickedItemId,
             boolean lostReport,
             List<Integer> carriedIncoming) {
+        requireThePiecesExist(outgoingItemId, pickedItemId);
         requireItIsNotAlreadyOnItsWay(outgoingItemId, pickedItemId);
         requireSomethingToSwapFor(purpose, inventoryId);
         var target = targeting.resolve(stationId, purpose, memberId, outgoingItemId, pickedItemId, inventoryId);
@@ -480,6 +481,29 @@ public class ItemMovementService {
      * @param outgoingItemId the piece leaving, or {@code null}
      * @param incomingItemId the piece arriving, or {@code null}
      */
+    /**
+     * Refuses a movement about a piece that is not there any more.
+     *
+     * <p>A screen holds a list of pieces from the moment it was opened, and one of them can be written
+     * off or replaced while it is open. Naming it then reached the database and came back as a broken
+     * key, which is a fault report for something that is nobody's mistake: the piece is simply gone,
+     * and saying so is the answer.
+     *
+     * @param outgoingItemId the piece leaving, or {@code null}
+     * @param incomingItemId the piece arriving, or {@code null}
+     */
+    private void requireThePiecesExist(Integer outgoingItemId, Integer incomingItemId) {
+        requireItIsStillThere(outgoingItemId);
+        requireItIsStillThere(incomingItemId);
+    }
+
+    private void requireItIsStillThere(Integer itemId) {
+        if (itemId == null) return;
+        if (inventoryRepository.findItemById(itemId).isEmpty()) {
+            throw new BadRequestResponse("That piece is no longer recorded, so nothing can be started on it");
+        }
+    }
+
     private void requireItIsNotAlreadyOnItsWay(Integer outgoingItemId, Integer incomingItemId) {
         requireFree(outgoingItemId);
         requireFree(incomingItemId);

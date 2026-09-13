@@ -56,7 +56,15 @@ class InventoryKindTest extends RepositoryTestBase {
                 clusterRepo,
                 clusterStationGroupRepo);
         procurementService = new ProcurementService(
-                procurementRepo, service, inventoryRepo, clusterRepo, itemCustodyService, new DomainEventBus(Set.of()));
+                procurementRepo,
+                service,
+                inventoryRepo,
+                clusterRepo,
+                itemCustodyService,
+                itemMovementService,
+                stationMemberRepo,
+                accountRepo,
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("KindStation");
         account = accountRepo.create("kind-svc@test.com", "Kind", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());

@@ -10,7 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
-import MemberName from '@/components/avatar/MemberName.vue'
+import MemberInventoryLink from '@/components/inventory/MemberInventoryLink.vue'
 import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
@@ -46,7 +46,7 @@ function inventoryTypeLabel(type?: string | null): string {
           <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
           <MutedText v-if="a.item.internalId">{{ a.item.internalId }}</MutedText>
         </div>
-        <MutedText tag="div"><MemberName :identity="a.ownerIdentity"/></MutedText>
+        <MutedText tag="div"><MemberInventoryLink :identity="a.ownerIdentity" :member-id="a.item.assignedTo"/></MutedText>
       </NeutralContainer>
     </div>
     <DataTable v-else>
@@ -67,7 +67,7 @@ function inventoryTypeLabel(type?: string | null): string {
         <Td>
           <component :is="inventoryTypeBadge(a.inventoryType)">{{ inventoryTypeLabel(a.inventoryType) }}</component>
         </Td>
-        <Td><MemberName :identity="a.ownerIdentity"/></Td>
+        <Td><MemberInventoryLink :identity="a.ownerIdentity" :member-id="a.item.assignedTo"/></Td>
         <Td>
           <ErrorBadge>{{ formatDate(a.item.lostAt) }}</ErrorBadge>
         </Td>

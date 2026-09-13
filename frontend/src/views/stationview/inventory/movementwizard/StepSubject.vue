@@ -14,7 +14,7 @@ import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import type {Inventory, InventoryItem, InventorySize} from '@/api/inventory'
 
 /**
- * What the Vorgang is about.
+ * What the movement is about.
  *
  * <p>A return or a swap starts from a piece somebody holds, so it asks which piece and reads the
  * inventory off it. An issue or a request is about a thing the station does not hold yet, so it asks for

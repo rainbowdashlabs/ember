@@ -13,12 +13,15 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -56,6 +59,7 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -81,6 +85,7 @@ public class MovementRoutes implements Routes {
     private final GlyphResolver glyphResolver;
     private final MovementExportService exportService;
     private final SelfCheckService selfCheckService;
+    private final ClusterRepository clusterRepository;
 
     @Inject
     public MovementRoutes(
@@ -94,7 +99,9 @@ public class MovementRoutes implements Routes {
             MovementTargeting targeting,
             GlyphResolver glyphResolver,
             MovementExportService exportService,
-            SelfCheckService selfCheckService) {
+            SelfCheckService selfCheckService,
+            ClusterRepository clusterRepository) {
+        this.clusterRepository = clusterRepository;
         this.selfCheckService = selfCheckService;
         this.targeting = targeting;
         this.glyphResolver = glyphResolver;
@@ -397,7 +404,7 @@ public class MovementRoutes implements Routes {
             throw new NotFoundResponse("No data to export");
         }
         ctx.contentType("application/pdf");
-        ctx.header("Content-Disposition", "attachment; filename=\"vorgaenge.pdf\"");
+        ctx.header("Content-Disposition", "attachment; filename=\"movements.pdf\"");
         ctx.result(pdf.get());
     }
 
@@ -615,13 +622,14 @@ public class MovementRoutes implements Routes {
     }
 
     private MovementResponse toResponse(ItemMovement movement, UserSession session) {
-        var current = movementService.stepsOf(movement).stream()
+        var steps = movementService.stepsOf(movement);
+        var current = steps.stream()
                 .filter(s -> movement.currentStepId() != null && s.id() == movement.currentStepId())
                 .findFirst();
         // The piece a row is about: what left, or what was promised where nothing left. An issue and a
         // request have no outgoing side at all, and a row naming nothing says nothing.
         Integer subject = movement.outgoingItemId() != null ? movement.outgoingItemId() : movement.incomingItemId();
-        var target = targeting.of(movement);
+        var target = belongsOn(movement);
         Glyph glyph = subject != null
                 ? glyphResolver.forItemId(subject)
                 : glyphResolver.forInventoryId(movement.inventoryId());
@@ -636,15 +644,22 @@ public class MovementRoutes implements Routes {
                         : null,
                 movement.inventoryId(),
                 inventoryName(movement.inventoryId()),
+                inventoryType(movement.inventoryId()),
                 current.map(s -> s.label()).orElse(null),
+                reachedLabel(steps, current.orElse(null)),
                 current.map(s -> s.actor()).orElse(null),
                 movement.reason(),
                 movement.oldSizeId(),
                 movement.newSizeId(),
+                firstWritten(sizeName(movement.oldSizeId()), itemSize(movement.outgoingItemId())),
+                firstWritten(sizeName(movement.newSizeId()), itemSize(movement.incomingItemId())),
                 movement.createdAt(),
+                movement.updatedAt(),
                 movement.closedAt(),
                 movement.closeReason(),
                 movementService.ownerAnswersHere(movement),
+                owningCluster(target).map(Cluster::name).orElse(null),
+                owningCluster(target).map(cluster -> cluster.uid().toString()).orElse(null),
                 itemName(movement.outgoingItemId()),
                 movement.outgoingItemId(),
                 movementService.stillHeldBy(movement),
@@ -657,9 +672,71 @@ public class MovementRoutes implements Routes {
                 movement.incomingItemId(),
                 itemName(movement.incomingItemId()),
                 itemInternalId(subject),
-                sizeName(movement.newSizeId() != null ? movement.newSizeId() : movement.oldSizeId()),
+                firstWritten(
+                        sizeName(movement.newSizeId() != null ? movement.newSizeId() : movement.oldSizeId()),
+                        itemSize(subject)),
                 glyph.icon(),
-                glyph.color());
+                glyph.color(),
+                movement.flowId() != null && movement.flowId() != target.flowId());
+    }
+
+    /**
+     * The step whose words are true of the world right now, which is the one before the step being
+     * waited on.
+     *
+     * <p>A step is named after the state it brings about, so the one a movement stands on has not
+     * happened yet: a row wearing that label says a piece has been taken in while it is still on the
+     * member. What has happened is everything before it, and the last of those is where it stands.
+     *
+     * @param steps   the chain, in order
+     * @param current the step being waited on, or {@code null} once the chain is over
+     * @return the words for where it stands, or {@code null} at a chain's very beginning
+     */
+    private String reachedLabel(List<MovementFlowStep> steps, MovementFlowStep current) {
+        if (steps.isEmpty()) return null;
+        if (current == null) return steps.getLast().label();
+        int standing = steps.indexOf(current);
+        return standing > 0 ? steps.get(standing - 1).label() : null;
+    }
+
+    /**
+     * Where this movement belongs: whose gear it is, who it is with, and the chain that combination is
+     * bound to today.
+     *
+     * <p>A station is free to unbind a combination while a movement of that kind is still walking, and
+     * a row that cannot be read is worse than one that cannot say where it ought to be. The chain it is
+     * actually on stands in for the answer then.
+     *
+     * @param movement the movement
+     * @return where it belongs, falling back to the chain it walks
+     */
+    private MovementTargeting.Target belongsOn(ItemMovement movement) {
+        try {
+            return targeting.of(movement);
+        } catch (BadRequestResponse unbound) {
+            return new MovementTargeting.Target(
+                    targeting.ownerOf(movement.outgoingItemId(), movement.incomingItemId(), movement.inventoryId()),
+                    targeting.owningClusterOf(
+                            movement.outgoingItemId() != null ? movement.outgoingItemId() : movement.incomingItemId(),
+                            movement.stationId()),
+                    movement.memberId() != null ? MovementParty.MEMBER : MovementParty.STORE,
+                    movement.flowId() != null ? movement.flowId() : 0);
+        }
+    }
+
+    /**
+     * The association that owns this movement's gear, where one on this instance does.
+     *
+     * <p>"The owner" is an abstraction on screen, and somebody holding a pair of gloves cannot tell
+     * from it whose gloves they are. A name can, and the identity tells one body's gear from another's
+     * where a replacement is being picked.
+     *
+     * @param target whose gear it is and which body that is
+     * @return the association, or empty where the station owns it or the body is not here
+     */
+    private Optional<Cluster> owningCluster(MovementTargeting.Target target) {
+        if (target.ownerKind() != ItemOwner.CLUSTER || target.ownerClusterId() == null) return Optional.empty();
+        return clusterRepository.findById(target.ownerClusterId());
     }
 
     /** What the piece that set out is called, which is how a list of movements says which jacket this is. */
@@ -674,6 +751,28 @@ public class MovementRoutes implements Routes {
         return inventoryService
                 .findItemById(itemId)
                 .map(InventoryItem::internalId)
+                .orElse(null);
+    }
+
+    /** The first of the two that says anything, which is how a chosen answer beats a fallback. */
+    private String firstWritten(String chosen, String fallback) {
+        return chosen != null ? chosen : fallback;
+    }
+
+    /**
+     * The size a piece is written down as, which is what it is regardless of what its movement asked
+     * for.
+     *
+     * <p>A movement names a size only where somebody chose one: a swap for a bigger jacket does, a
+     * return does not. The piece has one either way, and a chip that leaves it out makes two pairs of
+     * gloves on the same shelf look like the same pair.
+     */
+    private String itemSize(Integer itemId) {
+        if (itemId == null) return null;
+        return inventoryService
+                .findItemById(itemId)
+                .map(InventoryItem::sizeId)
+                .map(this::sizeName)
                 .orElse(null);
     }
 
@@ -763,6 +862,15 @@ public class MovementRoutes implements Routes {
         return inventoryRepository.findById(inventoryId).map(Inventory::name).orElse(null);
     }
 
+    /** Whose gear the inventory holds, which is the shelf a replacement is allowed to come off. */
+    private InventoryType inventoryType(Integer inventoryId) {
+        if (inventoryId == null) return null;
+        return inventoryRepository
+                .findById(inventoryId)
+                .map(Inventory::inventoryType)
+                .orElse(null);
+    }
+
     /**
      * @param selfCheckId the self-check this was raised during, where it was raised during one. It waits
      *                    for nothing either way: naming the task only records that it happened while the
@@ -833,13 +941,26 @@ public class MovementRoutes implements Routes {
             MemberIdentity memberIdentity,
             Integer inventoryId,
             String inventoryName,
+            /** Whose gear that inventory holds, which is the shelf a replacement may be taken off. */
+            InventoryType inventoryType,
+            /** The step being waited on, which is what pressing the row's button says has happened. */
             String currentStepLabel,
+            /** Where it stands: the last step whose words are already true, or null at the beginning. */
+            String reachedStepLabel,
             StepActor currentStepActor,
             String reason,
             /** The size being replaced, and the size asked for, which a piece written down starts as. */
             Integer oldSizeId,
             Integer newSizeId,
+            /**
+             * Those two in words, falling back to the size the piece itself is written down as. A
+             * movement names a size only where somebody chose one, and both ends have one either way.
+             */
+            String oldSizeName,
+            String newSizeName,
             Instant createdAt,
+            /** When it last moved, which is what says whether a row has gone quiet. */
+            Instant updatedAt,
             Instant closedAt,
             /** Why it was refused or taken back, which the reason it was started does not say. */
             String closeReason,
@@ -848,6 +969,10 @@ public class MovementRoutes implements Routes {
              * station both walks its steps and writes down what arrived, because nobody else will.
              */
             boolean ownerAnswersHere,
+            /** The association that owns the gear, by name, or null where the station owns it. */
+            String ownerName,
+            /** That association's stable identity, which is how a screen tells one body's gear from another's. */
+            String ownerClusterId,
             /**
              * What the piece that set out is called. A member reading their movements has one question
              * first, which is which of their things this is about, and their inventory no longer answers
@@ -885,7 +1010,12 @@ public class MovementRoutes implements Routes {
             String itemSizeName,
             /** The picture the row is drawn with, resolved from the piece's kind and its inventory. */
             String icon,
-            String color) {}
+            String color,
+            /**
+             * Whether the chain it walks is no longer the one its combination is bound to, which is the
+             * only case where moving it across to another one is worth offering.
+             */
+            boolean belongsOnAnotherFlow) {}
 
     public record MovementStepResponse(
             int id,

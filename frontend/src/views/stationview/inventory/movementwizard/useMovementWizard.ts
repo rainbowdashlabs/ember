@@ -28,7 +28,7 @@ export interface WizardPrefill {
     selfCheckId?: number | null
     skip?: WizardStep[]
     /**
-     * Acknowledge the step the new Vorgang lands on straight away. What the rapid check does: the
+     * Acknowledge the step the new movement lands on straight away. What the rapid check does: the
      * member is standing there with the piece, so taking it in is the same action as raising the swap.
      */
     advanceOnce?: boolean
@@ -169,7 +169,7 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
         if (previous) step.value = previous
     }
 
-    /** Starts the Vorgang, and walks it one step where the caller asked for that. */
+    /** Starts the movement, and walks it one step where the caller asked for that. */
     async function submit(): Promise<number | null> {
         if (!purpose.value) return null
         busy.value = true

@@ -51,11 +51,16 @@ async function swapOnItsWay(page: Page, headers: Record<string, string>, label: 
     return {id: (await raised.json()).movement.id, inventoryName, itemId: item.id, memberId: member.id}
 }
 
-/** What the station's queue says about one movement, asked of the API rather than the screen. */
+/**
+ * What the station's queue says about one movement, asked of the API rather than the screen.
+ *
+ * <p>Two labels, because a step is named after the state it brings about: `reached` is what is true
+ * of the world now and `pending` is what pressing the row's button would make true.
+ */
 async function standingOf(page: Page, headers: Record<string, string>, id: number) {
     const rows = await page.request.get('/api/v1/movements', {headers}).then(r => r.json())
     const row = rows.find((entry: {id: number}) => entry.id === id)
-    return {state: row?.state, step: row?.currentStepLabel}
+    return {state: row?.state, reached: row?.reachedStepLabel, pending: row?.currentStepLabel}
 }
 
 /** Every step somebody has answered so far, which is what an idle panel must not add to. */
@@ -89,7 +94,10 @@ test.describe('Movement queue', () => {
         await page.goto('/station/inventory/movements')
         const row = page.locator(`[data-movement="${id}"]`)
         await expect(row).toBeVisible({timeout: 15000})
-        await expect(row.getByTestId('movement-step')).toHaveText(before.step)
+        await expect(row.getByTestId('movement-step'),
+            'the row says what is true of the world, not what is being waited on').toHaveText(before.reached)
+        await expect(row.getByTestId('movement-acknowledge'),
+            'and the button says what pressing it would make true').toHaveText(before.pending)
 
         const changing: string[] = []
         page.on('request', request => {
@@ -103,7 +111,7 @@ test.describe('Movement queue', () => {
         await expect(page.getByTestId('movement-ack-modal')).toBeHidden()
 
         expect(changing, 'closing the panel asks the server for nothing').toEqual([])
-        await expect(row.getByTestId('movement-step')).toHaveText(before.step)
+        await expect(row.getByTestId('movement-step')).toHaveText(before.reached)
 
         const after = await standingOf(page, headers, id)
         expect(after, 'and the movement stands where it stood').toEqual(before)
@@ -158,7 +166,7 @@ test.describe('Movement queue', () => {
             expect(stepped.ok(), await stepped.text()).toBeTruthy()
 
             const tooFar = await standingOf(page, headers, id)
-            expect(tooFar.step, 'the movement has moved on a step').not.toBe(first.label)
+            expect(tooFar.reached, 'the movement has moved on a step').toBe(first.label)
             expect(await custodyOf(page, headers, itemId), 'and the piece went with it')
                 .not.toBe('WITH_MEMBER')
 
@@ -172,8 +180,10 @@ test.describe('Movement queue', () => {
             await page.getByTestId('correct-reason').fill('Wurde nie abgegeben')
             await page.getByTestId('correct-confirm').click()
 
-            await expect(row.getByTestId('movement-step')).toHaveText(first.label)
-            expect((await standingOf(page, headers, id)).step, 'and it stands there when asked again')
+            const opened = opening.steps[opening.steps.indexOf(first) - 1]
+            await expect(row.getByTestId('movement-step'),
+                'the row is back to the state the pieces are actually in').toHaveText(opened.label)
+            expect((await standingOf(page, headers, id)).pending, 'and the step it waits on is the one it lost')
                 .toBe(first.label)
             expect(await custodyOf(page, headers, itemId),
                 'because saying where the piece is is what put it back').toBe('WITH_MEMBER')

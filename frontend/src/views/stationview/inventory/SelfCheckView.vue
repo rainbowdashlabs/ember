@@ -197,6 +197,13 @@ async function openExchange(entry: SelfCheckEntry, cause: ExchangeCauseName) {
   showExchange.value = true
 }
 
+/**
+ * What the member asked for about one piece: a swap, raised as the movement it is.
+ *
+ * <p>It carries the task it was raised in, so whoever reads the submission can see that it happened
+ * while the member was answering. Where the same answer also says the record has the wrong size on it,
+ * nothing goes out yet: the swap waits for the checker to take that correction first.
+ */
 const {
   running: submittingExchange,
   error: exchangeError,
@@ -217,8 +224,6 @@ const {
       words: reason,
     })
   } else {
-    // Raised as the Vorgang it is, carrying the task it was raised in so whoever reads the submission
-    // can see that it happened while the member was answering.
     await movements.createMovement({
       purpose: MovementPurpose.EXCHANGE,
       memberId: task.value?.task.memberId,

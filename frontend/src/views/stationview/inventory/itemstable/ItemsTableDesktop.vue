@@ -33,6 +33,18 @@ const showSize = computed(() => props.tableApi ? props.tableApi.isColumnVisible(
 const showOwner = computed(() => props.tableApi ? props.tableApi.isColumnVisible('owner') : props.isMixed)
 const showAssigned = computed(() => props.tableApi ? props.tableApi.isColumnVisible('assigned') : true)
 
+/**
+ * The tag column, which exists only where the head declares it.
+ *
+ * <p>Read off the same list the head is drawn from rather than from a rule of its own: a header and a
+ * row that decide separately are a header and a row that drift apart, and this one did.
+ */
+const showTags = computed(() => props.tableApi?.visibleColumns.some(col => col.key === 'tags') ?? false)
+
+function tagNames(item: InventoryItem): string[] {
+  return props.tableApi?.itemTagNames(item) ?? []
+}
+
 function fieldValues(item: InventoryItem): string[] {
   const api = props.tableApi
   if (!api) return []
@@ -67,6 +79,7 @@ const { t } = useI18n()
         <ItemsTableRow v-for="item in items" :key="item.id"
                        :item="item" :has-sizes="showSize" :is-mixed="showOwner"
                        :show-assigned="showAssigned" :field-values="fieldValues(item)"
+                       :show-tags="showTags" :tag-names="tagNames(item)"
                        :show-actions="showActions" :show-history="showHistory"
                        :lent-out="lentItemMap?.has(item.id) ?? false"
                        :lent-to-station-name="lentItemMap?.get(item.id) ?? null"

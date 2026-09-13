@@ -23,9 +23,9 @@ import {MovementState, type MovementStateName} from '@/api/movements'
 import {apiErrorMessage} from '@/util/apiError'
 
 /**
- * Putting a Vorgang where somebody says it should have been.
+ * Putting a movement where somebody says it should have been.
  *
- * <p>There is no status to set: where a Vorgang stands is read off its two pieces. So the form asks
+ * <p>There is no status to set: where a movement stands is read off its two pieces. So the form asks
  * where the pieces are, and the chain follows to whichever step that world has not reached. The log
  * keeps the reason and says the movement was corrected rather than walked.
  */

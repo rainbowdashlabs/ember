@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:ac0de438e29aa92bb53f92d4e6611d949abbe27a17124db03e4ff01ce8459309",
-  "generatedAt": "2026-09-13T11:18:21Z",
+  "schemaHash": "sha256:eac334b385be274833feed647038bb91440d04ecbb342a1bc64c87344b6247c5",
+  "generatedAt": "2026-09-13T20:35:25Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -12470,7 +12470,7 @@
     "item_movement": {
       "feature": "inventory",
       "scope": "STATION",
-      "tableHash": "sha256:ad60cfe5b34115b9353367f9193614b93f62dae002eff474c8608bc1777e9761",
+      "tableHash": "sha256:6faf2b68d990fab2e08c644662a4cf0dd95bbaf97357ae23573b492a26493a70",
       "columns": [
         {
           "name": "id",
@@ -12597,6 +12597,13 @@
           "nullable": false,
           "verified": true,
           "description": "TRUE when the movement was raised to report gear missing, which is what makes it skip the return leg."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When this movement last moved: a step acknowledged, forced or corrected, a refusal, a call-off or a move onto another chain. Set to the starting time for one nothing has happened to yet."
         }
       ],
       "foreignKeys": [

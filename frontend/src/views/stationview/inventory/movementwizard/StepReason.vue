@@ -15,7 +15,7 @@ import type {InventorySize} from '@/api/inventory'
 /**
  * Why, in the words of whoever is starting it, and the size where a swap asks for a different one.
  *
- * <p>Every chain carries the reason, and it is the only part of a Vorgang nobody else can write later.
+ * <p>Every chain carries the reason, and it is the only part of a movement nobody else can write later.
  */
 const props = defineProps<{
   /** Whether a different size can be asked for, which only a swap does. */

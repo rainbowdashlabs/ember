@@ -1,4 +1,4 @@
--- A movement of gear is called a Vorgang now, and only an exchange was ever called a Tausch.
+-- Every movement of gear is a movement now, and only one of the four kinds was ever an exchange.
 --
 -- The queue holds issues, returns, swaps and requests, and it always did: the exchange list showed every
 -- one of them and called them all exchanges. The permission that opens it, and the two notification types

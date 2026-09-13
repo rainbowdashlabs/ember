@@ -40,7 +40,12 @@ const managerView = computed(() => activeView.value === 'manager')
 
     <HelpSection :title="t('helpCenter.inventoryMovements.noStatusTitle')">
       <p>{{ t('helpCenter.inventoryMovements.noStatusText') }}</p>
+      <p>{{ t('helpCenter.inventoryMovements.noStatusRead') }}</p>
       <p>{{ t('helpCenter.inventoryMovements.noStatusWhere') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryMovements.ownerTitle')">
+      <p>{{ t('helpCenter.inventoryMovements.ownerText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryMovements.createTitle')">
@@ -52,6 +57,7 @@ const managerView = computed(() => activeView.value === 'manager')
     <HelpSection :title="t('helpCenter.inventoryMovements.filterTitle')">
       <p>{{ t('helpCenter.inventoryMovements.filterText') }}</p>
       <p>{{ t('helpCenter.inventoryMovements.filterOrderText') }}</p>
+      <p>{{ t('helpCenter.inventoryMovements.datesText') }}</p>
       <p>{{ t('helpCenter.inventoryMovements.filterExportText') }}</p>
     </HelpSection>
 

@@ -37,18 +37,31 @@ function lettersOf(element: Locator): Promise<string> {
 
 /**
  * Every distinct colour the member names carrying no colour of their own are painted in, with the
- * page's own colour named rather than spelled out, so a failure reads as the colour that is wrong.
+ * two colours a page has for them named rather than spelled out, so a failure reads as the colour
+ * that is wrong.
  *
- * <p>Both readings are taken in one go: the theme can be repainted between two separate ones, and
- * a name compared against the colour of the theme before says nothing.
+ * <p>A name leads to what that person is holding, so an unpainted one is painted the way this theme
+ * paints anything that leads somewhere. Names that are only text read in the page's own colour.
+ *
+ * <p>All of it is read in one go: the theme can be repainted between two separate readings, and a
+ * name compared against the colour of the theme before says nothing.
  */
 function namesAgainstThePage(page: Page): Promise<string[]> {
     return page.evaluate(() => {
         const pageColour = getComputedStyle(document.body).color
+        const probe = document.createElement('a')
+        probe.href = '#'
+        document.body.append(probe)
+        const linkColour = getComputedStyle(probe).color
+        probe.remove()
+
         const names = [...document.querySelectorAll<HTMLElement>('[data-testid="member-name"]')]
         const painted = names.filter(name => !name.style.color)
             .map(name => getComputedStyle(name).color)
-        return [...new Set(painted)].map(colour => colour === pageColour ? 'the page colour' : colour)
+        return [...new Set(painted)].map(colour => {
+            if (colour === pageColour) return 'the page colour'
+            return colour === linkColour ? 'the link colour' : colour
+        })
     })
 }
 
@@ -757,9 +770,13 @@ test.describe('Inventory', () => {
                 await expect(rowOf(hidden.id), 'and hides the ones filed elsewhere').toHaveCount(0)
             }
 
+            await page.getByTestId('movement-export').click()
+            await expect(page.getByTestId('movement-pick').first(),
+                'the rows are ticked before the sheet is made, all of them to begin with').toBeVisible()
+
             const [sent] = await Promise.all([
                 page.waitForRequest(req => req.url().includes('/movements/export') && req.method() === 'POST'),
-                page.getByTestId('movement-export').click(),
+                page.getByTestId('movement-export-download').click(),
             ])
             const carried: number[] = sent.postDataJSON().movementIds
             expect(carried, 'every row the filter left standing is exported')
@@ -815,9 +832,12 @@ test.describe('Inventory', () => {
                 await expect(rowOf(hidden.id), 'while a third kind stays out of the way').toHaveCount(0)
             }
 
+            await page.getByTestId('movement-export').click()
+            await expect(page.getByTestId('movement-pick').first()).toBeVisible()
+
             const [sent] = await Promise.all([
                 page.waitForRequest(req => req.url().includes('/movements/export') && req.method() === 'POST'),
-                page.getByTestId('movement-export').click(),
+                page.getByTestId('movement-export-download').click(),
             ])
             const carried: number[] = sent.postDataJSON().movementIds
             expect(carried, 'both sorts of row travel into the export')
@@ -856,12 +876,13 @@ test.describe('Inventory', () => {
         })
 
     /**
-     * A member's name in the list leads to their page, and a name nobody gave a colour has no
-     * colour of its own to defend: it belongs in whatever the page writes its text in. The story
-     * is here because the colour comes out of the stylesheet, which is the one thing a mounted
-     * component in a unit test does not have.
+     * A member's name in the queue leads to what they are holding, and a name nobody gave a colour
+     * has no colour of its own to defend: it belongs in whatever this theme paints a link. What it
+     * must never be is a third colour nobody chose, which is what a stylesheet reaching past the
+     * component does. The story is here because that stylesheet is the one thing a mounted component
+     * in a unit test does not have.
      */
-    test('a member name without a colour of its own reads in the page colour',
+    test('a member name without a colour of its own reads as a link',
         async ({managerPage: page}) => {
             await page.goto('/station/inventory/movements')
             await expect(page.getByTestId('movement-row').first()).toBeVisible()
@@ -870,8 +891,8 @@ test.describe('Inventory', () => {
             await switchThemeTo(page, 'light')
 
             await expect.poll(() => namesAgainstThePage(page),
-                {message: 'every name carrying no colour of its own reads in the page colour'})
-                .toEqual(['the page colour'])
+                {message: 'every name carrying no colour of its own reads as this theme paints a link'})
+                .toEqual(['the link colour'])
 
             await switchThemeTo(page, started)
         })

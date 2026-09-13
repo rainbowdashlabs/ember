@@ -8,12 +8,17 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ProcurementCreated;
 import dev.chojo.ember.event.events.ProcurementFulfilled;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -30,6 +35,9 @@ public class ProcurementService {
     private final InventoryRepository inventoryRepository;
     private final ClusterRepository clusterRepository;
     private final ItemCustodyService custodyService;
+    private final ItemMovementService movementService;
+    private final StationMemberRepository stationMemberRepository;
+    private final AccountRepository accountRepository;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -39,7 +47,13 @@ public class ProcurementService {
             InventoryRepository inventoryRepository,
             ClusterRepository clusterRepository,
             ItemCustodyService custodyService,
+            ItemMovementService movementService,
+            StationMemberRepository stationMemberRepository,
+            AccountRepository accountRepository,
             DomainEventBus eventBus) {
+        this.movementService = movementService;
+        this.stationMemberRepository = stationMemberRepository;
+        this.accountRepository = accountRepository;
         this.procurementRepository = procurementRepository;
         this.inventoryService = inventoryService;
         this.inventoryRepository = inventoryRepository;
@@ -109,7 +123,7 @@ public class ProcurementService {
                     : inventoryService.createItem(
                             proc.inventoryId(), "", inv.get().name(), proc.sizeId(), null);
             if (proc.memberId() != null) {
-                inventoryService.assignItem(item.id(), proc.memberId(), "");
+                handOver(proc, item);
             } else {
                 custodyService.returnToOwner(item.id());
             }
@@ -135,6 +149,60 @@ public class ProcurementService {
         }
         log.warn("Fulfill of procurement {} did not change any row", id);
         return false;
+    }
+
+    /**
+     * Puts the piece that arrived on its way to whoever it was ordered for.
+     *
+     * <p>An order is a promise to a member, and what arrives against it is not in their hands yet: it
+     * is on the shelf, spoken for, waiting for somebody to give it to them at the next duty. That is a
+     * movement, and writing the piece straight onto the member instead recorded a hand-over that had
+     * not happened.
+     *
+     * <p>A station that has no chain for handing its own gear out keeps the old behaviour rather than
+     * losing the piece to a refusal: the record then says what it always said.
+     */
+    private void handOver(Procurement proc, InventoryItem item) {
+        Integer memberId = proc.memberId();
+        if (memberId == null) return;
+        try {
+            movementService.create(
+                    proc.stationId(),
+                    MovementPurpose.ISSUE,
+                    memberId,
+                    memberName(memberId),
+                    null,
+                    proc.inventoryId(),
+                    null,
+                    proc.sizeId(),
+                    reasonFor(proc),
+                    new ItemMovementService.Actor(memberId, true),
+                    item.id());
+        } catch (BadRequestResponse noChain) {
+            log.info(
+                    "Procurement {} handed over directly: no chain serves an issue here ({})",
+                    proc.id(),
+                    noChain.getMessage());
+            inventoryService.assignItem(item.id(), memberId, "");
+        }
+    }
+
+    /** What the movement says it is for, which is the order it came out of. */
+    private String reasonFor(Procurement proc) {
+        String notes = proc.notes();
+        return notes == null || notes.isBlank()
+                ? "Aus einer Beschaffung"
+                : "Aus einer Beschaffung: %s".formatted(notes);
+    }
+
+    private String memberName(int memberId) {
+        return stationMemberRepository
+                .findById(memberId)
+                .flatMap(member -> accountRepository.findById(member.accountId()))
+                .map(account -> "%s %s"
+                        .formatted(account.firstName(), account.lastName())
+                        .trim())
+                .orElse("");
     }
 
     public boolean delete(int id) {

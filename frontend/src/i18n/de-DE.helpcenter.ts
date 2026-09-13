@@ -1515,7 +1515,7 @@ volumes:
             rightsTitle: 'Wer was darf',
             rightsRead: 'Die eigenen Dokumente darf jeder lesen, dafür braucht es kein Recht.',
             rightsSelf: 'Zum Hochladen im eigenen Profil braucht es das Recht „Eigene Dokumente hochladen".',
-            rightsOthers: 'Für andere hochladen, Dokumente Mitgliedern zuordnen, verschlagworten '
+            rightsOthers: 'Für andere hochladen, Dokumente Mitgliedern zuordnen, taggen '
                 + 'und löschen darf, wer „Mitgliederdokumente verwalten" hat. Wer Mitglieder '
                 + 'bearbeiten darf, hat dieses Recht ohnehin.',
             rightsOwn: 'Die Ablage hat eigene Rechte, und sie trennen die Papiere der Wache von '
@@ -1709,10 +1709,17 @@ volumes:
             noStatusTitle: 'Kein Status, sondern Schritte',
             noStatusText: 'Ein Vorgang hat keinen Status, den jemand setzt. Er hat einen Ablauf aus Schritten, und '
                 + 'auf einem davon steht er gerade. Jeder Schritt gehört einer Partei: der Wache, dem Mitglied oder '
-                + 'dem Verband. Wer dran ist, bestätigt seinen Schritt, und damit rückt der Vorgang genau eine '
+                + 'dem Träger. Wer dran ist, bestätigt seinen Schritt, und damit rückt der Vorgang genau eine '
                 + 'Stelle weiter.',
+            noStatusRead: 'Ein Schritt ist nach dem Zustand benannt, den er herstellt. In der Zeile steht deshalb der '
+                + 'Schritt, der schon wahr ist, und auf dem Knopf daneben steht der nächste: ihn zu drücken heißt zu '
+                + 'sagen, dass jetzt auch das stimmt.',
             noStatusWhere: 'Wo ein Vorgang steht, wird an den Teilen abgelesen. Deshalb gibt es kein Feld, das dem '
                 + 'Lager widerspricht, und deshalb legt „Richtigstellen" die Teile um, statt eine Stufe zu setzen.',
+            ownerTitle: 'Wem das Teil gehört',
+            ownerText: 'Jede Zeile und jede Vorgangsseite nennt den Eigentümer beim Namen: die Wache oder den '
+                + 'Verband, wenn er in Ember geführt wird. Davon hängt ab, welchen Ablauf ein Vorgang nimmt und wohin '
+                + 'ein Teil am Ende zurückgeht.',
             createTitle: 'Einen Vorgang starten',
             createText: 'Der Knopf „Vorgang starten" führt durch fünf Fragen: was passieren soll, mit wem, um '
                 + 'welches Teil es geht, warum, und zuletzt der Ablauf, den diese Antworten ergeben. Der Ablauf '
@@ -1727,7 +1734,11 @@ volumes:
                 + 'Helm-Tausche zeigen lassen, bei denen der Verband dran ist.',
             filterOrderText: 'Voreingestellt stehen die Zeilen oben, bei denen jemand hier etwas tun kann. Eine '
                 + 'andere Sortierung wählst du über die Liste neben den Filtern.',
-            filterExportText: 'Der Export als PDF nimmt genau die Zeilen mit, die die Filter übrig lassen.',
+            filterExportText: 'Der Export als PDF beginnt mit den Zeilen, die die Filter übrig lassen: alle sind '
+                + 'angehakt, und du nimmst die Haken weg, die nicht mit sollen. Zusätzliche Profilfelder lassen sich '
+                + 'dazunehmen, bevor du herunterlädst.',
+            datesText: 'Rechts steht, wann ein Vorgang gestartet wurde und wann er zuletzt bewegt wurde. Das zweite '
+                + 'Datum ist das, an dem man liegen gebliebene Vorgänge erkennt.',
             asMember: 'Als Mitglied',
             asMemberText: 'Du siehst deine eigenen Vorgänge. Liegt der Schritt bei dir, etwa weil ein Teil bei dir '
                 + 'angekommen ist, bestätigst du ihn hier, und erst damit ist der Ablauf weiter.',
@@ -1737,9 +1748,10 @@ volumes:
             asManager: 'Als Verwalter',
             asManagerText: 'Du siehst alle Vorgänge der Wache. Du kannst:',
             managerAcknowledge: 'Den Schritt bestätigen, der bei der Wache liegt.',
-            managerName: 'Das neue Teil benennen, sobald der Vorgang an dem Schritt steht, der danach fragt. Wo '
-                + 'dieser Schritt liegt, hängt vom Ablauf ab: bei eigener Ausrüstung ist es die Übergabe, bei '
-                + 'Ausrüstung des Verbands der Versand. Ohne benanntes Teil geht es dort nicht weiter.',
+            managerName: 'Das neue Teil benennen, sobald der Vorgang an dem Schritt steht, der danach fragt. Zur '
+                + 'Auswahl stehen dort nur freie Teile aus demselben Inventar und desselben Eigentümers: nichts, was '
+                + 'jemand trägt, was vermisst wird oder was ein anderer Vorgang schon zugesagt hat. Ist das Teil neu '
+                + 'und noch nicht erfasst, legst du es an derselben Stelle an.',
             managerForce: 'Einen Schritt erzwingen, der einer anderen Partei gehört. Das steht mit Namen und Notiz '
                 + 'im Verlauf.',
             managerCorrect: 'Einen Vorgang richtigstellen, wenn die Teile in Wirklichkeit anders liegen als '
@@ -1871,7 +1883,9 @@ volumes:
             createSize: 'Wähle optional eine Größe.',
             createNotes: 'Füge Notizen hinzu (z.B. „Eilig, alter Helm gerissen").',
             fulfilledTitle: 'Erledigt',
-            fulfilledText: 'Wenn die Ausrüstung angekommen und zugewiesen ist, markiere die Beschaffung als erledigt.',
+            fulfilledText: 'Ist die Ausrüstung angekommen, markiere die Beschaffung als erledigt. Ember erfasst das '
+                + 'Teil und startet die Ausgabe an das Mitglied: es liegt im Lager und ist vorgemerkt, bis jemand es '
+                + 'übergibt und den Schritt bestätigt. War die Bestellung für das Lager, bleibt das Teil dort.',
             tip: 'Beschaffungen können auch direkt aus Tausch-Anfragen oder der Inventarprüfung erstellt werden.',
         },
         inventoryLending: {
@@ -3222,7 +3236,7 @@ volumes:
             howToStep2: 'Lies den Inhalt und schreib unten einen Kommentar oder antworte jemandem.',
             howToStep3: 'Mit "In meine Wache kopieren" legst du eine eigene Kopie an, die du frei bearbeiten kannst.',
             editTitle: 'Bearbeiten geht nicht',
-            editText: 'Die Datei gehört der Partnerwache. Deshalb gibt es hier keine Schaltflächen zum Bearbeiten, für Schlagwörter oder für den Versionsverlauf.',
+            editText: 'Die Datei gehört der Partnerwache. Deshalb gibt es hier keine Schaltflächen zum Bearbeiten, für Tags oder für den Versionsverlauf.',
             limitTitle: 'Nicht jede Datei lässt sich anzeigen',
             limitText: 'Partnerwachen geben nur Text- und Markdown-Inhalte heraus. Bei PDFs, Bildern und Präsentationen siehst du stattdessen einen Hinweis; kopiere die Datei in deine Wache, um sie zu öffnen.',
             tip: 'Kommentare unter geteilten Dateien sehen auch die Mitglieder der anderen Wache.',
@@ -3280,7 +3294,7 @@ volumes:
             actionsMenuTitle: 'Aktionen an einem Eintrag',
             actionsMenuText: 'Fährst du mit der Maus über einen Eintrag, erscheint ein Menü mit den Aktionen, die du dort ausführen darfst - Bearbeiten, Sichtbarkeit, Als PDF herunterladen und Löschen. Steht dir nur eine Aktion zu, siehst du statt des Menüs direkt den passenden Button.',
             visibilityTitle: 'Wer einen Eintrag sehen darf',
-            visibilityText: 'Wer etwas sehen darf, steht nicht im Bearbeiten-Dialog, sondern hat mit "Sichtbarkeit" einen eigenen Punkt im Menü eines Eintrags. Dort legst du fest, für welche Rollen, Gruppen und Schlagwörter er gedacht ist und ob er im öffentlichen Wiki steht. Ist das öffentliche Wiki eurer Wache aus, siehst du das an dieser Stelle und wo es eingeschaltet wird.',
+            visibilityText: 'Wer etwas sehen darf, steht nicht im Bearbeiten-Dialog, sondern hat mit "Sichtbarkeit" einen eigenen Punkt im Menü eines Eintrags. Dort legst du fest, für welche Rollen, Gruppen und Tags er gedacht ist und ob er im öffentlichen Wiki steht. Ist das öffentliche Wiki eurer Wache aus, siehst du das an dieser Stelle und wo es eingeschaltet wird.',
             eyesTitle: 'Die Augen auf den Kacheln',
             eyesText: 'Ein grünes Auge heißt: dieser Eintrag steht im öffentlichen Wiki. Ein gelbes heißt: er ist geteilt, aber nicht mit allen, also mit bestimmten Partnerwachen oder nur für bestimmte Rollen. Kein Auge heißt, dass ihn alle in eurer Wache sehen und sonst niemand. Ein Schloss sagt weiterhin, dass ihn nicht jede Rolle bei euch öffnen darf.',
             favouritesTitle: 'Favoriten',
@@ -3300,7 +3314,7 @@ volumes:
             selectionTitle: 'Mehrere Einträge auf einmal',
             selectionText: 'Mit „Mehrere auswählen" bekommt jeder Eintrag im geöffneten Ordner ein Kästchen. Mit gedrückter Umschalttaste markierst du eine ganze Strecke auf einmal. Ordner und Dateien lassen sich gemischt markieren. In den Suchergebnissen gibt es das nicht, dort fehlt der Ordnerweg, der über die Rechte entscheidet.',
             selectionMove: 'Verschieben: bringt die ganze Auswahl in einen Ordner.',
-            selectionTags: 'Verschlagworten: fügt Schlagwörter hinzu oder entfernt sie. Vorhandene Schlagwörter bleiben erhalten.',
+            selectionTags: 'Taggen: fügt Tags hinzu oder entfernt sie. Vorhandene Tags bleiben erhalten.',
             selectionDelete: 'Löschen: legt die ganze Auswahl in den Papierkorb. Vorher sagt der Dialog, wie viele Einträge das wirklich sind, den Inhalt der markierten Ordner eingerechnet.',
             selectionPartialText: 'Was geht, wird getan. Einträge, bei denen es nicht geht, werden danach beim Namen genannt, mit dem Grund dafür. Bei sehr vielen wird die Meldung gekürzt und sagt, wie viele weitere es waren.',
             trashTitle: 'Papierkorb',
@@ -3937,7 +3951,7 @@ volumes:
             documentsTitle: 'Dokumente',
             documentsText: 'Unter den Angaben steht, was zu der Person abgelegt ist. Der Verband liest'
                 + ' diese Dokumente und legt neue dazu; ein abgelegtes Dokument gehört der Wache, an der'
-                + ' die Person ist, und bleibt dort, wenn die Wache den Verband verlässt. Verschlagworten,'
+                + ' die Person ist, und bleibt dort, wenn die Wache den Verband verlässt. Taggen,'
                 + ' auf weitere Personen legen und entfernen bleibt deshalb Sache der Wache.',
             limitsTitle: 'Was nicht geht',
             limitsText: 'Die eigene Mitgliedschaft und die Wachleitung lassen sich vom Verband aus nicht'
@@ -4426,7 +4440,7 @@ volumes:
                 + 'Größe mitkommt.',
         },
         inventoryTags: {
-            title: 'Schlagwörter',
+            title: 'Tags',
             subtitle: 'Dinge zusammenfassen, die zusammengehören, ohne gleich zu sein.',
             whatIsTitle: 'Was ein Tag ist',
             whatIsText: 'Ein Tag ist eine Eigenschaft eines Gegenstands, die immer gilt und keine '
@@ -4444,8 +4458,8 @@ volumes:
                 + 'Gegenstände, die sie tragen. Dort lassen sie sich umbenennen, einfärben und löschen; '
                 + 'gelöscht wird nur das Wort, die Gegenstände bleiben.',
             filterTitle: 'Nach einem Wort filtern',
-            filterText: 'In der Gegenstandsliste eines Inventars gibt es eine Spalte „Schlagwörter“. Über '
-                + 'ihren Filter lässt sich die Liste auf ein Wort einschränken.',
+            filterText: 'Trägt dort etwas ein Tag, hat die Gegenstandsliste des Inventars eine Spalte '
+                + '„Tags“. Über ihren Filter lässt sich die Liste auf ein Wort einschränken.',
             sameWordTitle: 'Dasselbe Wort bei mehreren Abteilungen',
             sameWordText: 'Groß- und Kleinschreibung und Leerzeichen am Rand spielen keine Rolle: „Funk“, '
                 + '„funk“ und „ Funk “ sind ein Wort. Jede Abteilung behält ihre eigene Schreibweise in der '
@@ -4756,7 +4770,7 @@ volumes:
             moveTitle: 'Datei verschieben',
             moveText: 'Über „Verschieben" im Menü mit den drei Punkten legst du die Datei in einen anderen Ordner. Dafür brauchst du Vollzugriff auf die Datei, denn der Zielordner entscheidet darüber, wer sie künftig sieht. Vor dem Verschieben sagt dir der Dialog, wie weit die Datei danach sichtbar ist. Der Link zur Datei bleibt derselbe.',
             deleteTitle: 'Datei löschen',
-            deleteText: 'Gelöschte Dateien wandern in den Papierkorb des Wikis und lassen sich von dort zurückholen, samt Verweisen, Schlagwörtern und Versionsverlauf.',
+            deleteText: 'Gelöschte Dateien wandern in den Papierkorb des Wikis und lassen sich von dort zurückholen, samt Verweisen, Tags und Versionsverlauf.',
             deleteEmbeddedText: 'Ist die Datei auf einer Seite eingebunden, sagt der Löschdialog vorher, auf welcher. Dort stünde danach nur noch ein Ersatztitel, und bei einer veröffentlichten Seite merkt das von außen niemand.',
             commentsTitle: 'Kommentare',
             commentsText: 'Ganz unten gibt es einen Kommentar-Bereich. Hier können Mitglieder Fragen stellen oder Feedback geben.',

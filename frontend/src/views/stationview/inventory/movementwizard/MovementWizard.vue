@@ -16,11 +16,15 @@ import {useMovementWizard, type WizardPrefill} from './useMovementWizard'
 import {apiErrorMessage} from '@/util/apiError'
 
 /**
- * The one way to start a Vorgang.
+ * The one way to start a movement.
  *
  * <p>Purpose, party, subject, reason, and then the chain those four resolve to, drawn before anything is
  * written. Opened from a screen that already knows some of the answers, it fills those in and asks only
  * what is left.
+ *
+ * <p>It keeps a height of its own rather than shrinking to the question on screen: the menus a step
+ * opens hang below their field inside a dialogue that scrolls, and a dialogue as short as the question
+ * cut the list of members off at the second name.
  */
 const props = defineProps<{
   /** What the opening screen already knows, and which questions it has therefore answered. */
@@ -87,8 +91,8 @@ async function start() {
 </script>
 
 <template>
-  <Modal v-model="model">
-    <div class="space-y-4" data-testid="movement-wizard">
+  <Modal v-model="model" size="lg">
+    <div class="flex min-h-[26rem] flex-col gap-4" data-testid="movement-wizard">
       <SubHeader>{{ t('movements.wizard.title') }}</SubHeader>
       <MutedText size="sm">
         {{ t('movements.wizard.step', {current: wizard.position.value, total: wizard.total.value}) }}
@@ -99,6 +103,7 @@ async function start() {
       <WizardStep :wizard="wizard"/>
 
       <WizardFooter
+          class="mt-auto"
           :busy="wizard.busy.value"
           :can-go-on="canGoOn"
           :has-preview="wizard.preview.value !== null"

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {listFields, type InventoryFieldDefinition} from '@/api/inventoryFields'
 import {inventoryItemTags} from '@/api/inventoryTags'
@@ -49,26 +49,42 @@ export function useItemTable(options: ItemTableOptions) {
   const filterModalIncludeEmpty = ref(false)
   const filterModalKind = ref<'text' | 'date'>('text')
 
-  onMounted(async () => {
-    try {
-      fieldDefs.value = await listFields(options.inventoryId())
-    } catch {
-      fieldDefs.value = []
-    }
+  /**
+   * The words the things here wear, read again whenever the list of things is.
+   *
+   * <p>Read once at mount it went stale the moment somebody tagged something: the tag was in the
+   * dialogue that wrote it and nowhere on the page behind it, and the column stayed away until the
+   * screen was left and come back to.
+   */
+  async function loadTags() {
     try {
       const worn = await inventoryItemTags(options.inventoryId())
       tagNamesByItem.value = new Map(worn.map(entry => [entry.itemId, entry.tags.map(tag => tag.name)]))
     } catch {
       tagNamesByItem.value = new Map()
     }
+  }
+
+  onMounted(async () => {
+    try {
+      fieldDefs.value = await listFields(options.inventoryId())
+    } catch {
+      fieldDefs.value = []
+    }
+    await loadTags()
   })
+
+  watch(() => options.items(), loadTags)
+
+  /** Whether anything here wears a tag at all, which is what makes the column worth a column. */
+  const anyTags = computed(() => [...tagNamesByItem.value.values()].some(names => names.length > 0))
 
   const defaultColumns = computed<ItemTableColumn[]>(() => [
     { key: 'name', label: t('inventory.edit.colName') },
     { key: 'internalId', label: t('inventory.edit.colId') },
     ...(options.hasSizes() ? [{ key: 'size', label: t('inventory.edit.colSize') }] : []),
     ...(options.isMixed() ? [{ key: 'owner', label: t('inventory.edit.colOwner') }] : []),
-    { key: 'tags', label: t('inventory.tag.column') },
+    ...(anyTags.value ? [{ key: 'tags', label: t('inventory.tag.column') }] : []),
     { key: 'assigned', label: t('inventory.edit.colAssigned') },
   ])
 
@@ -261,6 +277,8 @@ export function useItemTable(options: ItemTableOptions) {
     searchText,
     filteredItems,
     visibleColumns,
+    itemTagNames,
+    anyTags,
     visibleFieldColumns,
     pickerOptions,
     isColumnVisible,

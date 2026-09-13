@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {ItemCustodyName, ItemOwnerName} from './inventory'
+import type {InventoryTypeName, ItemCustodyName, ItemOwnerName} from './inventory'
 import type {MemberIdentity} from './types'
 
 /** What a movement of gear between two parties is for. */
@@ -64,10 +64,26 @@ export interface Movement {
     memberIdentity?: MemberIdentity | null
     inventoryId?: number | null
     inventoryName?: string | null
+    /** Whose gear that inventory holds, which is the shelf a replacement may be taken off. */
+    inventoryType?: InventoryTypeName | null
+    /** The step being waited on, which is what pressing the row's button says has happened. */
     currentStepLabel?: string | null
+    /** Where it stands: the last step whose words are already true, absent at the very beginning. */
+    reachedStepLabel?: string | null
     currentStepActor?: StepActorName | null
     /** Whether the owner of the gear can answer for itself here, which decides who names arrivals. */
     ownerAnswersHere?: boolean
+    /** The association that owns the gear, by name, absent where the station owns it. */
+    ownerName?: string | null
+    /** That association's stable identity, which tells one body's gear from another's. */
+    ownerClusterId?: string | null
+    /** When it last moved, which is what says whether a row has gone quiet. */
+    updatedAt?: string | null
+    /** The size handed in and the size asked for, in words. */
+    oldSizeName?: string | null
+    newSizeName?: string | null
+    /** Whether the chain it walks is no longer the one its combination is bound to. */
+    belongsOnAnotherFlow?: boolean
     /** What the piece that set out is called, so a list of movements says which of my things this is. */
     itemName?: string | null
     /** The piece that set out, so a row can be followed to the piece it is about. */

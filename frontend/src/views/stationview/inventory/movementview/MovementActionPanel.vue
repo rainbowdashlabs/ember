@@ -12,7 +12,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {InventorySize} from '@/api/inventory'
+import {ItemOwner, type InventorySize, type InventoryTypeName, type ItemOwnerName} from '@/api/inventory'
 import type {MovementStep, NewItemRequest} from '@/api/movements'
 
 const {t} = useI18n()
@@ -30,6 +30,23 @@ const props = defineProps<{
   sizes: InventorySize[]
   /** The size the exchange asked for, which the piece written down starts out as. */
   wantedSizeId?: number | null
+  /** Whose gear the movement is about, which is the only gear a replacement may come from. */
+  ownerKind?: ItemOwnerName | null
+  /** Which association that is, so a station in one association cannot pick another's piece. */
+  ownerClusterId?: string | null
+  /**
+   * The inventory the movement is about, which is the shelf a replacement comes off.
+   *
+   * <p>A shirt is replaced by a shirt. The engine would take a piece out of another inventory, and a
+   * station keeping its spare shirts in a second store is the reason it may, but that is a rarity to
+   * arrange deliberately rather than a reason to offer somebody the board games while they stand at
+   * the counter with a shirt.
+   */
+  inventoryId?: number | null
+  /** Which sort of shelf that is, which guards the mixed one where both owners' gear sits together. */
+  inventoryType?: InventoryTypeName | null
+  /** What the inventory is called, which is what a piece written down here is called by default. */
+  inventoryName?: string | null
   busy: boolean
 }>()
 
@@ -67,7 +84,18 @@ function toggleRecording() {
   if (!recording.value) return
   searched.value = null
   newSizeId.value = String(props.wantedSizeId ?? '')
+  if (!newName.value.trim()) newName.value = props.inventoryName ?? ''
 }
+
+/**
+ * Why writing a piece down is offered here, which is not the same reason twice.
+ *
+ * <p>Gear of a body that is not on Ember has nobody to name what it sent, so the station writes down
+ * what turned up. The station's own gear has no such gap: a piece is written down because it is new,
+ * bought for this very hand-over and not on the shelf yet.
+ */
+const recordHint = computed(() =>
+    props.ownerKind === ItemOwner.CLUSTER ? t('movements.recordArrivalHint') : t('movements.recordOwnHint'))
 
 /** The step that names the arriving piece cannot be walked past without one. */
 const missingItem = computed(() => {
@@ -100,8 +128,14 @@ function payload(): AcknowledgePayload {
           v-if="!recording"
           v-model="searched"
           :disabled="props.busy"
-          exclude-lost
+          :inventory-id="props.inventoryId"
+          :inventory-type="props.inventoryType"
+          :owner-cluster-id="props.ownerClusterId"
+          :owner-kind="props.ownerKind"
           :placeholder="t('movements.pickItemPlaceholder')"
+          exclude-assigned
+          exclude-lost
+          exclude-spoken-for
       />
 
       <div v-if="props.mayRecord" class="flex items-center gap-2">
@@ -112,7 +146,7 @@ function payload(): AcknowledgePayload {
     </div>
 
     <div v-if="recording" class="space-y-2 rounded-md border border-(--border) p-2">
-      <p class="text-xs text-(--text-muted)">{{ t('movements.recordArrivalHint') }}</p>
+      <p class="text-xs text-(--text-muted)">{{ recordHint }}</p>
       <div class="space-y-1">
         <FieldLabel>{{ t('movements.arrivalName') }}</FieldLabel>
         <TextInput v-model="newName" data-testid="movement-new-name"/>
@@ -142,7 +176,7 @@ function payload(): AcknowledgePayload {
           data-testid="movement-acknowledge"
           @click="emit('acknowledge', payload())"
       >
-        {{ t('movements.acknowledge') }}
+        {{ props.step.label }}
       </PrimaryButton>
       <SecondaryButton
           v-if="props.canForce && !props.step.actionable"

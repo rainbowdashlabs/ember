@@ -33,9 +33,18 @@ withDefaults(defineProps<{
   formattedLostAt: string
   locationLabel?: string
   showAssigned?: boolean
+  /**
+   * The words this piece wears, where the table is showing that column. The row draws exactly the
+   * columns the head declares: a cell missing here shifted every value after it one column left, and
+   * the member holding a piece was read as one of its tags.
+   */
+  showTags?: boolean
+  tagNames?: string[]
   fieldValues?: string[]
 }>(), {
   showAssigned: true,
+  showTags: false,
+  tagNames: () => [],
   fieldValues: () => [],
 })
 
@@ -66,6 +75,12 @@ const { t } = useI18n()
       <PrimaryBadge v-if="item.ownerKind === ItemOwner.STATION">{{ t('inventory.edit.ownerStation') }}</PrimaryBadge>
       <SecondaryBadge v-else-if="item.ownerKind === ItemOwner.CLUSTER">{{ t('inventory.edit.ownerCluster') }}</SecondaryBadge>
       <InfoBadge v-else-if="item.ownerKind === ItemOwner.PARTNER_STATION">{{ t('inventory.edit.ownerPartner') }}</InfoBadge>
+      <span v-else class="text-(--text-muted)">–</span>
+    </Td>
+    <Td v-if="showTags">
+      <span v-if="tagNames.length > 0" class="flex flex-wrap gap-1">
+        <SecondaryBadge v-for="name in tagNames" :key="name">{{ name }}</SecondaryBadge>
+      </span>
       <span v-else class="text-(--text-muted)">–</span>
     </Td>
     <Td v-if="showAssigned">

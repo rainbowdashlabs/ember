@@ -19,7 +19,7 @@ import type {MovementDetail} from '@/api/movements'
 import {apiErrorMessage} from '@/util/apiError'
 
 /**
- * Acknowledging the step a Vorgang stands on, from the queue rather than from the page about one.
+ * Acknowledging the step a movement stands on, from the queue rather than from the page about one.
  *
  * <p>The chain is loaded when the modal opens, because the step is what is acknowledged and a row
  * carries only its words. It is also drawn, so whoever presses the button sees where the piece is
@@ -104,11 +104,20 @@ function force(payload: AcknowledgePayload) {
 
       <template v-if="detail && currentStep">
         <MutedText tag="p" size="sm">{{ currentStep.label }}</MutedText>
-        <FlowDiagram :steps="drawnSteps"/>
+        <FlowDiagram
+            :owner-kind="detail.movement.ownerKind"
+            :owner-name="detail.movement.ownerName"
+            :steps="drawnSteps"
+        />
         <MovementActionPanel
             :busy="busy"
             :can-force="props.canForce"
+            :inventory-id="detail.movement.inventoryId"
+            :inventory-name="detail.movement.inventoryName"
+            :inventory-type="detail.movement.inventoryType"
             :may-record="mayRecord"
+            :owner-cluster-id="detail.movement.ownerClusterId"
+            :owner-kind="detail.movement.ownerKind"
             :sizes="sizes"
             :step="currentStep"
             :wanted-size-id="detail.movement.newSizeId ?? detail.movement.oldSizeId"

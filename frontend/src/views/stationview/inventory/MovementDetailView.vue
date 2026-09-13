@@ -8,7 +8,6 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {inventory, movements} from '@/api'
@@ -18,10 +17,8 @@ import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {apiErrorMessage} from '@/util/apiError'
-import FlowDiagram from '@/components/movement/FlowDiagram.vue'
-import MovementStep from './movementview/MovementStep.vue'
-import MovementActionPanel, {type AcknowledgePayload} from './movementview/MovementActionPanel.vue'
-import MovementRechainButton from './movementview/MovementRechainButton.vue'
+import MovementChain from './movementview/MovementChain.vue'
+import type {AcknowledgePayload} from './movementview/MovementActionPanel.vue'
 import MovementSummary from './movementview/MovementSummary.vue'
 import LossReportPanel from './movementview/LossReportPanel.vue'
 
@@ -38,19 +35,6 @@ const actionError = ref('')
 const isManager = computed(() => hasPermission(StationPermission.INVENTORY_MANAGER))
 const open = computed(() => detail.value?.movement.state === MovementState.OPEN)
 const currentStep = computed(() => detail.value?.steps.find(s => s.current) ?? null)
-
-/** Retired steps only belong on the chain when this movement actually walked through one. */
-const visibleSteps = computed(() =>
-    (detail.value?.steps ?? []).filter(step => !step.archived || step.ackKind || step.current))
-
-/**
- * The same steps as the drawing needs them, with the ones already acknowledged marked as walked.
- *
- * <p>The chain draws what this movement is doing rather than what the station configured, so a step
- * retired after this movement passed through it still belongs on the picture.
- */
-const drawnSteps = computed(() =>
-    visibleSteps.value.map(step => ({...step, archived: false, walked: !!step.ackKind})))
 
 /**
  * Whether the piece that arrives may be written down here rather than picked.
@@ -127,37 +111,21 @@ function force(payload: AcknowledgePayload) {
 
       <LossReportPanel v-if="detail.lossReport" :movement-id="movementId" :report="detail.lossReport"/>
 
-      <div>
-        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <SubHeader>{{ t('movements.chain') }}</SubHeader>
-          <MovementRechainButton
-              v-if="open && isManager"
-              :disabled="busy"
-              :movement-id="movementId"
-              @confirm="stepIndex => run(() => movements.rechain(movementId, stepIndex))"
-              @refused="refuse"
-          />
-        </div>
-        <Alert v-if="actionError" variant="error" class="mb-2">{{ actionError }}</Alert>
-        <FlowDiagram :steps="drawnSteps" class="mb-2"/>
-        <MovementStep v-for="step in visibleSteps" :key="step.id" :step="step" :open="open">
-          <template #action>
-            <MovementActionPanel
-                v-if="step.current && open"
-                :busy="busy"
-                :can-force="isManager"
-                :may-record="mayRecord"
-                :sizes="sizes"
-                :wanted-size-id="detail.movement.newSizeId ?? detail.movement.oldSizeId"
-                :step="step"
-                @acknowledge="acknowledge"
-                @force="force"
-                @decline="reason => run(() => movements.declineMovement(movementId, reason))"
-                @cancel="reason => run(() => movements.cancelMovement(movementId, reason))"
-            />
-          </template>
-        </MovementStep>
-      </div>
+      <MovementChain
+          :busy="busy"
+          :detail="detail"
+          :error="actionError"
+          :is-manager="isManager"
+          :may-record="mayRecord"
+          :open="open"
+          :sizes="sizes"
+          @acknowledge="acknowledge"
+          @force="force"
+          @decline="reason => run(() => movements.declineMovement(movementId, reason))"
+          @cancel="reason => run(() => movements.cancelMovement(movementId, reason))"
+          @rechain="stepIndex => run(() => movements.rechain(movementId, stepIndex))"
+          @refused="refuse"
+      />
     </div>
   </ViewContent>
 </template>

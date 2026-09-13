@@ -10,11 +10,9 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import MovementQueueToolbar from './movementqueueview/MovementQueueToolbar.vue'
 import MovementFilterBar from './movementqueueview/MovementFilterBar.vue'
-import MovementQueueRow from './movementqueueview/MovementQueueRow.vue'
+import MovementQueueList from './movementqueueview/MovementQueueList.vue'
 import MovementAckModal from './movementqueueview/MovementAckModal.vue'
 import MovementCorrectModal from './movementqueueview/MovementCorrectModal.vue'
 import MovementWizard from './movementwizard/MovementWizard.vue'
@@ -27,9 +25,10 @@ import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {saveBlob} from '@/util/downloadAuthed'
+import {useExport} from '@/composables/useExport'
 
 /**
- * Every Vorgang the station has, in the order of whose turn it is.
+ * Every movement the station has, in the order of whose turn it is.
  *
  * <p>The rows somebody here can act on stand at the top, because that is what a queue is read for. A
  * row says what it is about, who it is with and the step it stands on, and where the step is ours it
@@ -63,13 +62,31 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   fields.value = fieldRows
 })
 
-/** The sheet for the shelf, over the rows the filters leave standing. */
-async function exportPdf() {
+/**
+ * The sheet for the shelf: the rows that are ticked, with whichever profile fields are wanted beside
+ * the names.
+ *
+ * <p>Pressing export opens the ticks rather than downloading at once. What the filters leave standing
+ * is a starting point and not the answer: a sheet to walk a shelf with is usually a handful of rows
+ * out of the list, and everything ticked to begin with makes that a matter of unticking.
+ */
+const exportFlow = useExport<Movement>({
+  rows: () => queue.visible.value,
+  rowId: row => row.id,
+  columns: () => fields.value.map(field => ({key: String(field.id), label: field.name ?? String(field.id)})),
+  selectAllRows: true,
+})
+
+async function downloadPdf() {
   exporting.value = true
   exportError.value = ''
   try {
-    const blob = await movements.exportPdf(queue.visible.value.map(row => row.id), [])
-    saveBlob(blob, 'vorgaenge.pdf')
+    const blob = await movements.exportPdf(
+        exportFlow.selectedRows.value.map(row => row.id),
+        [...exportFlow.selectedColumns.value].map(Number),
+    )
+    saveBlob(blob, 'movements.pdf')
+    exportFlow.cancelExport()
   } catch {
     exportError.value = t('common.error')
   } finally {
@@ -94,15 +111,21 @@ function afterChange() {
   <ViewContent :subtitle="t('movements.queue.subtitle')" :title="t('movements.queue.title')">
     <AsyncSection :error="error" :loading="loading">
       <div class="space-y-4">
-        <div class="flex flex-wrap items-center justify-end gap-2">
-          <SecondaryButton v-if="canManage" :disabled="exporting" :icon="['fas', 'file-export']"
-                           data-testid="movement-export" @click="exportPdf">
-            {{ exporting ? t('common.loading') : t('movements.queue.export') }}
-          </SecondaryButton>
-          <PrimaryButton :icon="['fas', 'plus']" data-testid="movement-create" @click="showWizard = true">
-            {{ t('movements.queue.create') }}
-          </PrimaryButton>
-        </div>
+        <MovementQueueToolbar
+            :all-picked="exportFlow.allRowsSelected.value"
+            :busy="exporting"
+            :can-export="canManage"
+            :field-options="exportFlow.columnOptions.value"
+            :picked-count="exportFlow.selectedRows.value.length"
+            :picked-fields="exportFlow.selectedColumns.value"
+            :picking="exportFlow.exportMode.value"
+            @cancel="exportFlow.cancelExport"
+            @create="showWizard = true"
+            @download="downloadPdf"
+            @start="exportFlow.startExport"
+            @toggle-all="exportFlow.toggleAllRows"
+            @toggle-field="exportFlow.toggleColumn"
+        />
 
         <Alert v-if="exportError" variant="error">{{ exportError }}</Alert>
 
@@ -118,18 +141,17 @@ function afterChange() {
             @sort="queue.selectSort"
         />
 
-        <EmptyState v-if="rows.length === 0">{{ t('movements.queue.empty') }}</EmptyState>
-        <EmptyState v-else-if="queue.visible.value.length === 0">{{ t('movements.queue.noMatch') }}</EmptyState>
-
-        <MovementQueueRow
-            v-for="movement in queue.visible.value"
-            :key="movement.id"
+        <MovementQueueList
+            :all="rows"
             :can-correct="isManager"
-            :movement="movement"
+            :picked-ids="exportFlow.selectedIds.value"
+            :picking="exportFlow.exportMode.value"
             :show-member="canManage"
-            @acknowledge="acknowledging = movement.id"
-            @correct="correcting = movement.id"
-            @open="openDetail(movement)"
+            :visible="queue.visible.value"
+            @acknowledge="movement => acknowledging = movement.id"
+            @correct="movement => correcting = movement.id"
+            @open="openDetail"
+            @pick="movement => exportFlow.toggleRow(movement.id)"
         />
       </div>
     </AsyncSection>

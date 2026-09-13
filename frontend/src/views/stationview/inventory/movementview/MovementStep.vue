@@ -10,7 +10,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import {AckKind, type MovementStep} from '@/api/movements'
+import {AckKind, StepActor, type MovementStep} from '@/api/movements'
 import {formatDate} from '@/util/format'
 
 const {t} = useI18n()
@@ -19,7 +19,15 @@ const props = defineProps<{
   step: MovementStep
   /** Whether the movement is still walking, which decides if anything ahead is still to come. */
   open: boolean
+  /** The owning party by name, so a step of theirs says who rather than what role. */
+  ownerLabel?: string
 }>()
+
+/** Whose step it is, with the owner named where the caller knows the name. */
+const actorLabel = computed(() =>
+    (props.step.actor === StepActor.OWNER && props.ownerLabel)
+        ? props.ownerLabel
+        : t(`movements.actor.${props.step.actor}`))
 
 /** A step is behind the movement once somebody has acknowledged it. */
 const walked = computed(() => !!props.step.ackKind)
@@ -46,7 +54,7 @@ const ackLabel = computed(() => (props.step.ackKind ? t(`movements.ack.${props.s
     <div class="pb-4 flex-1" :class="!walked && !props.step.current ? 'opacity-60' : ''">
       <div class="flex items-center gap-2 flex-wrap">
         <span class="font-medium text-sm">{{ props.step.label }}</span>
-        <SecondaryBadge>{{ t(`movements.actor.${props.step.actor}`) }}</SecondaryBadge>
+        <SecondaryBadge>{{ actorLabel }}</SecondaryBadge>
         <SuccessBadge v-if="props.step.ackKind === AckKind.CONFIRMED">{{ ackLabel }}</SuccessBadge>
         <ErrorBadge v-else-if="props.step.ackKind === AckKind.FORCED">{{ ackLabel }}</ErrorBadge>
         <InfoBadge v-else-if="props.step.ackKind">{{ ackLabel }}</InfoBadge>
@@ -57,7 +65,7 @@ const ackLabel = computed(() => (props.step.ackKind ? t(`movements.ack.${props.s
         <template v-if="props.step.acknowledgedAt"> · {{ formatDate(props.step.acknowledgedAt) }}</template>
       </div>
       <div v-else-if="props.step.current && props.open" class="text-xs text-(--text-muted)">
-        {{ t('movements.waitingFor', {party: t(`movements.actor.${props.step.actor}`)}) }}
+        {{ t('movements.waitingFor', {party: actorLabel}) }}
       </div>
 
       <div v-if="props.step.note" class="text-sm mt-1">{{ props.step.note }}</div>

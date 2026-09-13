@@ -12,7 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import MemberName from '@/components/avatar/MemberName.vue'
+import MemberInventoryLink from '@/components/inventory/MemberInventoryLink.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
@@ -26,7 +26,7 @@ import type {Movement} from '@/api/movements'
 
 /**
  * What is on the move, as the inventory overview shows it: the piece, whose it is, and the step it
- * stands on. No status, because a Vorgang has none.
+ * stands on. No status, because a movement has none.
  */
 const routes = useInventoryRoutes()
 
@@ -71,7 +71,7 @@ function toQueue() {
             {{ t(`movements.actor.${movement.currentStepActor}`) }}
           </SecondaryBadge>
         </div>
-        <div class="text-xs text-(--text-muted)"><MemberName :identity="movement.memberIdentity ?? null"/></div>
+        <div class="text-xs text-(--text-muted)"><MemberInventoryLink :identity="movement.memberIdentity ?? null" :member-id="movement.memberId"/></div>
         <div class="text-xs text-(--text-muted)">
           {{ t('inventory.overview.createdAt') }}: {{ formatDate(movement.createdAt) }}
         </div>
@@ -90,7 +90,7 @@ function toQueue() {
             @click="toQueue">
         <Td><ItemChip :source="chipOf(movement)"/></Td>
         <Td><PrimaryBadge>{{ t(`movements.purpose.${movement.purpose}`) }}</PrimaryBadge></Td>
-        <Td><MemberName :identity="movement.memberIdentity ?? null"/></Td>
+        <Td><MemberInventoryLink :identity="movement.memberIdentity ?? null" :member-id="movement.memberId"/></Td>
         <Td>
           <InfoBadge v-if="movement.currentStepLabel">{{ movement.currentStepLabel }}</InfoBadge>
           <MutedText v-if="movement.currentStepActor" size="sm" class="ml-1">

@@ -35,7 +35,8 @@ export interface ItemChipSource {
  *
  * <p>The first line is what the piece is: its picture, its name, its size and the identifier written
  * on it. The size is a chip of its own rather than a word glued to the name with a separator, because
- * a size is a fact about the piece and not part of what it is called.
+ * a size is a fact about the piece and not part of what it is called. Where the line runs out, the
+ * size and the identifier wrap under the name rather than being squeezed off the end of it.
  *
  * <p>The second line is where it is, which a reader only needs where a list spans more than one
  * inventory or more than one holder.
@@ -53,7 +54,7 @@ const hasLocation = () => Boolean(props.source.inventoryName || props.source.loc
   <span class="flex min-w-0 flex-1 items-center gap-2" data-testid="item-chip">
     <GearGlyph :glyph="props.source.glyph" :surface="props.surface"/>
     <span class="flex min-w-0 flex-col items-start text-left">
-      <span class="flex min-w-0 items-center gap-1.5">
+      <span class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
         <span class="truncate font-medium">{{ props.source.name }}</span>
         <span
             v-if="props.source.sizeName"

@@ -57,7 +57,7 @@ export interface InventoryRoutes {
      */
     memberGroups?: string
     exchanges?: string
-    /** The queue of Vorgänge, which replaces the exchange list at a station. */
+    /** The queue of movements, which replaces the exchange list at a station. */
     movements?: string
     /**
      * Where the chains a station's movements walk are written. Absent at an association, which reaches

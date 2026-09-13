@@ -1138,6 +1138,18 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 "the piece it wrongly named is free for another swap");
     }
 
+    /**
+     * A screen holds its list of pieces from the moment it was opened, and one of them can be written
+     * off while it is open. Naming it then is a refusal, not a fault report.
+     */
+    @Test
+    void aPieceThatIsNoLongerRecordedIsRefused() {
+        int gone = itemWithMember(ItemOwner.STATION);
+        inventoryRepo.deleteItem(gone);
+
+        assertThrows(BadRequestResponse.class, () -> announceExchange(gone), "there is nothing to swap");
+    }
+
     /** A piece promised to one movement cannot be promised to a second one. */
     @Test
     void aPieceAlreadyPromisedCannotBePromisedAgain() {

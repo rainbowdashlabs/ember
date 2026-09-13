@@ -180,7 +180,15 @@ class DemoServiceTest extends RepositoryTestBase {
                 clusterRepo,
                 clusterStationGroupRepo);
         var procurementService = new ProcurementService(
-                procurementRepo, inventoryService, inventoryRepo, clusterRepo, itemCustodyService, noOpBus);
+                procurementRepo,
+                inventoryService,
+                inventoryRepo,
+                clusterRepo,
+                itemCustodyService,
+                itemMovementService,
+                stationMemberRepo,
+                accountRepo,
+                noOpBus);
         var eventTemplateService = new EventTemplateService(eventTemplateRepo, attendanceRepo);
         var feedTokenService = new FeedTokenService(feedTokenRepo);
 

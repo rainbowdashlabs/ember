@@ -5,15 +5,21 @@
 ### New Features
 
 - **Every kind of movement can be started, not only swaps.** A wizard asks what should happen, with whom, about which piece and why, and then draws the chain those answers lead to before anything is written. Handing gear out, taking it back, swapping it and asking the association above for a piece all start the same way, and a combination the station has no chain for says so instead of failing.
-- **One queue for everything under way.** Inventory → Movements lists every movement with the step it stands on and the party whose turn it is, the rows somebody here can act on first. The step is confirmed on the row, and a manager can put a movement right when the gear is in reality somewhere else than the record says.
+- **One queue for everything under way.** Inventory → Movements lists every movement with the state it has reached, whose turn it is now, and since when. The button on the row carries the name of the next step, so pressing it says what has happened, and a manager can put a movement right when the gear is in reality somewhere else than the record says.
 - **Gear can be given a picture.** An inventory, and each kind inside a collection, can be given an icon and a colour. Wherever a piece is named after that, in a picker, a list or the queue, it carries that picture along with its size and the identifier written on it.
 - **A hand-out can be planned rather than done.** Every screen that assigns gear to a member now offers the same choice: hand the piece over now, or promise it. A promised piece stays on the shelf, is marked as spoken for so nobody else is given it, and the handing over is confirmed later.
+- **An order that arrives sets the hand-out going.** Marking a procurement as arrived no longer writes the piece straight onto the member. It records what turned up and starts the hand-out, so the piece stays on the shelf, spoken for, until somebody gives it to them and says so.
 
 ### Improvements
 
 - **The inventory and item pickers are searched and walked with the keyboard.** Arrow keys walk the list, Enter takes the highlighted entry and Escape closes, so the usual case is a few letters and Enter. The picked entry is shown the same way as the list: picture, name, size and identifier.
 - **Every place that asks which member now asks the same way.** A member is chosen from one menu throughout the product: a face, the name in the colour their group gives it, and a search that is always there, in place of the dropdowns of several hundred lines that some screens still offered. Arrow keys walk the list, Enter takes the highlighted person and Escape closes, so the usual case is three letters and Enter.
 - **Choosing several members shows who is chosen.** Where a screen takes more than one person, each one appears as a removable chip above the search, folded away past five so a group of fifty stays a field rather than a wall.
+- **A movement says whose gear it is about, by name.** The queue, the movement page and the drawing of its chain name the station or the association that owns the piece, in place of the word "owner". The page also names both ends of a swap: the piece going back, and the piece asked for with its size, even before one has been picked.
+- **A movement records when it last moved.** Beside the day it started, a row says when somebody last took it a step further, which is what tells a movement that is waiting from one that has been forgotten.
+- **Picking a replacement only offers pieces that can be given.** The search on the step that asks which piece arrived is now limited to free pieces of the same inventory and the same owner: nothing on a member, nothing reported missing, nothing another movement has already promised, and nothing out of a different kind of gear.
+- **A name in the inventory leads to what that person is holding.** The lists of gear, the queue and the overview all link the member's name to their inventory, which several of them did not.
+- **Tags are called tags.** The word "Schlagwörter" is gone from the German interface, and the column of them appears on an inventory only where something in it wears one.
 
 ### Changes
 
@@ -24,6 +30,7 @@
 ### Fixes
 
 - **The manager step of member creation offered the whole station.** It promised existing managers and listed every member instead, as cards with no way to search them, which on a station of any size was unusable. It now opens on the guardians, with every other kind one filter away.
+- **A column of an inventory list showed the wrong thing under its heading.** The list of gear in an inventory had a heading for tags but no cell for them, so every value after it slid one column to the left and the person holding a piece appeared as its tag. The columns and the values line up again, and a tag added to a piece now shows without leaving the page.
 
 ## v26.15.2
 

@@ -46,7 +46,7 @@ const emit = defineEmits<{
   /** The piece is promised to the member rather than handed over now. */
   planHandOut: [itemId: number, inventoryId: number]
   reassignItem: [itemId: number, targetMemberId: number]
-  /** A Vorgang was started for this member, so whatever is listed about them is out of date. */
+  /** A movement was started for this member, so whatever is listed about them is out of date. */
   exchangeStarted: []
 }>()
 

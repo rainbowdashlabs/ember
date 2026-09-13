@@ -139,7 +139,7 @@ async function onItemPicked(item: InventoryItem) {
  * Hands the piece over, or writes down that it is to be handed over.
  *
  * <p>A planned hand-out leaves the session's list alone: there is nothing to undo locally once a
- * Vorgang carries it, and the queue is where it is followed from there.
+ * movement carries it, and the queue is where it is followed from there.
  */
 async function assignToSelectedMember(item: InventoryItem) {
   if (memberId.value == null) return
