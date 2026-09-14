@@ -6,6 +6,7 @@
 <script setup lang="ts" generic="K extends string | number, U">
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import RegistrationStatusBadge from '../RegistrationStatusBadge.vue'
@@ -52,7 +53,7 @@ function undoLabel(status: RegistrationStatusName): string {
 </script>
 
 <template>
-  <div v-for="row in rows" :key="`reg-${row.key}`" class="flex flex-wrap items-center gap-2">
+  <ButtonRow v-for="row in rows" :key="`reg-${row.key}`">
     <span v-if="showNames" class="min-w-28 truncate text-xs text-(--text-muted)">{{ row.name }}</span>
     <RegistrationStatusBadge :status="row.status"/>
 
@@ -86,5 +87,5 @@ function undoLabel(status: RegistrationStatusName): string {
     <span v-if="row.createdByName" class="text-xs text-(--text-muted) italic">
       {{ t('common.createdBy', {name: row.createdByName}) }}
     </span>
-  </div>
+  </ButtonRow>
 </template>

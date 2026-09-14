@@ -10,6 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -61,12 +62,12 @@ async function submit() {
         <MutedText class="block text-xs">{{ t('quiz.report.hint') }}</MutedText>
         <TextAreaInput v-model="note" :placeholder="t('quiz.report.placeholder')" :rows="5" />
         <FailureAlert :message="error"/>
-        <div class="flex justify-end gap-3">
+        <ButtonRow pair align="end">
           <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton :disabled="!note.trim() || saving" :icon="['fas', 'flag']" @click="submit">
             {{ saving ? t('common.loading') : t('quiz.report.submit') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </template>
 
       <template v-else>

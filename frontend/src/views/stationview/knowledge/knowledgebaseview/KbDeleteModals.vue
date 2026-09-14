@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -84,12 +85,12 @@ watch(showFile, open => {
             {{ embeddedMessage }}
         </Alert>
         <MutedText tag="p" size="sm" class="mb-4">{{ t('kb.deleteRecoverable') }}</MutedText>
-        <div class="flex gap-2 justify-end">
+        <ButtonRow pair align="end">
             <SecondaryButton @click="showFolder = false">{{ t('common.cancel') }}</SecondaryButton>
             <DeleteButton :label="t('common.delete')" @click="emit('confirmFolder')">
                 {{ t('common.delete') }}
             </DeleteButton>
-        </div>
+        </ButtonRow>
     </Modal>
 
     <Modal v-model="showFile">
@@ -104,11 +105,11 @@ watch(showFile, open => {
             {{ embeddedMessage }}
         </Alert>
         <MutedText tag="p" size="sm" class="mb-4">{{ t('kb.deleteRecoverable') }}</MutedText>
-        <div class="flex gap-2 justify-end">
+        <ButtonRow pair align="end">
             <SecondaryButton @click="showFile = false">{{ t('common.cancel') }}</SecondaryButton>
             <DeleteButton :label="t('common.delete')" @click="emit('confirmFile')">
                 {{ t('common.delete') }}
             </DeleteButton>
-        </div>
+        </ButtonRow>
     </Modal>
 </template>

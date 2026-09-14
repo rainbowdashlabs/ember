@@ -11,6 +11,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -212,10 +213,10 @@ async function handleRegenerate() {
       <div class="space-y-4 p-4">
         <SubHeader>{{ t('twoFactor.remove.title') }}</SubHeader>
         <Alert variant="error">{{ t('twoFactor.remove.warning') }}</Alert>
-        <div class="flex justify-end gap-2">
+        <ButtonRow pair align="end">
           <SecondaryButton @click="showRemoveModal = false">{{ t('common.cancel') }}</SecondaryButton>
           <ErrorButton :disabled="removeLoading" @click="handleRemove">{{ t('twoFactor.remove.confirm') }}</ErrorButton>
-        </div>
+        </ButtonRow>
       </div>
     </Modal>
 

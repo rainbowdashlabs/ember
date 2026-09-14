@@ -12,6 +12,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {checklists} from '@/api'
 import type {ChecklistCellDto, ChecklistNoteHistoryEntry} from '@/api/checklists'
@@ -113,10 +114,10 @@ function describeHistory(entry: ChecklistNoteHistoryEntry): string {
       <div class="space-y-3">
         <div class="font-semibold">{{ t('checklist.noteSave') }}</div>
         <TextAreaInput v-model="noteDraft" :placeholder="t('checklist.notePlaceholder')" :rows="3"/>
-        <div class="flex justify-end gap-2">
+        <ButtonRow pair align="end">
           <SecondaryButton @click="showNote = false">{{ t('checklist.cancel') }}</SecondaryButton>
           <PrimaryButton :disabled="saving" @click="saveNote">{{ t('checklist.noteSave') }}</PrimaryButton>
-        </div>
+        </ButtonRow>
         <div class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
           <div class="font-semibold text-sm mb-1">{{ t('checklist.noteHistory') }}</div>
           <div v-if="loadingHistory" class="text-sm text-(--text-muted)">…</div>

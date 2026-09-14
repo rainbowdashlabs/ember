@@ -10,6 +10,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -235,12 +236,12 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
           :heterogeneous="heterogeneous"
       />
       <EditItemCustomFields :defs="fieldDefs" v-model="fieldValues"/>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton type="button" @click="showItemModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="itemSaving || !itemName.trim() || fieldsInvalid" type="submit">
           {{ itemSaving ? t('common.loading') : t('common.save') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </form>
   </Modal>
 
@@ -263,10 +264,10 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
           :user-types="userTypes"
           :placeholder="t('inventory.edit.selectMember')"
       />
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="showAssignModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!assignMemberId" @click="submitAssign">{{ t('inventory.edit.assignSubmit') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 
@@ -310,10 +311,10 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
           <option v-for="size in detail.sizes ?? []" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
         </SelectInput>
       </div>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="showQuickAssignModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!quickAssignMemberId" @click="submitQuickAssign">{{ t('inventory.edit.assignSubmit') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 

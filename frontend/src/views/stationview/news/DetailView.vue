@@ -14,6 +14,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -122,10 +123,10 @@ watch(() => route.params.id, reload)
       <Modal v-model="showDeleteModal">
         <template #title>{{ t('news.deleteConfirmTitle') }}</template>
         <p class="mb-4">{{ t('news.deleteConfirmMessage') }}</p>
-        <div class="flex gap-2 justify-end">
+        <ButtonRow pair align="end">
           <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>
           <ErrorButton @click="confirmDelete">{{ t('common.delete') }}</ErrorButton>
-        </div>
+        </ButtonRow>
       </Modal>
     </div>
   </ViewContent>

@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -27,7 +28,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="flex items-center gap-2 flex-wrap">
+  <ButtonRow>
     <PrimaryButton :icon="['fas', 'eye']" :disabled="!canPreview || previewing" @click="emit('preview')">
       {{ previewing ? t('common.loading') : t('attendanceReport.preview') }}
     </PrimaryButton>
@@ -39,5 +40,5 @@ const emit = defineEmits<{
       <SaveButton :disabled="!presetName" :action="savePreset"/>
       <SecondaryButton @click="showSavePreset = false">{{ t('common.cancel') }}</SecondaryButton>
     </template>
-  </div>
+  </ButtonRow>
 </template>

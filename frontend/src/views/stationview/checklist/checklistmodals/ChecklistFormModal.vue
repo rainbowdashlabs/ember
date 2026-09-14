@@ -12,6 +12,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 const visible = defineModel<boolean>({required: true})
 const name = defineModel<string>('name', {required: true})
@@ -56,12 +57,12 @@ const {t} = useI18n()
 
       <slot/>
 
-      <div class="flex justify-end gap-2 pt-2">
+      <ButtonRow pair align="end" class="pt-2">
         <SecondaryButton @click="visible = false">{{ t('checklist.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="submitDisabled" @click="emit('submit')">
           {{ t('checklist.save') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

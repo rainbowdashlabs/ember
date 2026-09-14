@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 
@@ -27,7 +28,7 @@ const routes = useInventoryRoutes()
 </script>
 
 <template>
-  <div class="flex items-center justify-end gap-2">
+  <ButtonRow align="end">
     <SecondaryButton
         v-if="routes.dispatch"
         :icon="['fas', 'paper-plane']"
@@ -39,5 +40,5 @@ const routes = useInventoryRoutes()
     <PrimaryButton :icon="['fas', 'plus']" data-testid="create-inventory" @click="emit('create')">
       {{ t('inventory.manage.create') }}
     </PrimaryButton>
-  </div>
+  </ButtonRow>
 </template>

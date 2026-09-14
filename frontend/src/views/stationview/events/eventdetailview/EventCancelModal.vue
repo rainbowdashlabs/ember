@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {events} from '@/api'
@@ -45,13 +46,13 @@ const {running: cancelling, error: cancelError, run: cancelEvent} = useAsyncActi
       <p>{{ t('events.cancelConfirm') }}</p>
       <TextAreaInput v-model="cancelReason" :placeholder="t('events.cancelReason')" :rows="3"/>
       <Alert v-if="cancelError" variant="error">{{ cancelError }}</Alert>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="emit('close')">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton :disabled="cancelling" @click="cancelEvent">
           <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>
           {{ cancelling ? t('common.loading') : t('events.cancelEvent') }}
         </ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

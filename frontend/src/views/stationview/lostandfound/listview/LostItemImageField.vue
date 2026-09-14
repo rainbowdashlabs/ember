@@ -8,6 +8,7 @@ import {onBeforeUnmount, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import IconButton from '@/components/button/IconButton.vue'
 
 /**
@@ -65,14 +66,14 @@ onBeforeUnmount(revoke)
           @click="clear"
       />
     </div>
-    <div v-else class="flex gap-2">
-      <SecondaryButton :icon="['fas', 'upload']" class="flex-1" @click="fileInputRef?.click()">
+    <ButtonRow v-else pair>
+      <SecondaryButton :icon="['fas', 'upload']" class="sm:flex-1" @click="fileInputRef?.click()">
         {{ t('lostAndFound.uploadImage') }}
       </SecondaryButton>
-      <SecondaryButton :icon="['fas', 'camera']" class="flex-1" @click="cameraInputRef?.click()">
+      <SecondaryButton :icon="['fas', 'camera']" class="sm:flex-1" @click="cameraInputRef?.click()">
         {{ t('lostAndFound.takePhoto') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
     <input ref="fileInputRef" type="file" accept="image/*" class="hidden" @change="pick"/>
     <input ref="cameraInputRef" type="file" accept="image/*" capture="environment" class="hidden" @change="pick"/>
   </div>

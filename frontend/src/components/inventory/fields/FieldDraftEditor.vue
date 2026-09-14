@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import {defaultFieldConfig, FieldType, type BooleanFieldConfig, type EnumFieldConfig, type FieldTypeName, type NumberFieldConfig, type TextFieldConfig} from '@/api/inventoryFields'
 import type {DraftField} from './types'
 import FieldDraftMetaForm from './FieldDraftMetaForm.vue'
@@ -57,11 +58,11 @@ function onTypeChanged(value: FieldTypeName) {
             v-else-if="props.draft.fieldType === FieldType.ENUM"
             :config="props.draft.config as EnumFieldConfig"
         />
-        <div class="flex justify-end gap-2 mt-3">
+        <ButtonRow pair align="end" class="mt-3">
             <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton :disabled="props.submitting" data-testid="field-save" @click="emit('save')">
                 {{ props.submitting ? t('common.saving') : t('common.save') }}
             </PrimaryButton>
-        </div>
+        </ButtonRow>
     </div>
 </template>

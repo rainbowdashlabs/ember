@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -26,7 +27,7 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-2 mb-4">
+  <ButtonRow class="mb-4">
     <template v-if="detail.request.isOwner">
       <SuccessButton :icon="['fas', 'check']" v-if="detail.request.request.status === LendingStatus.REQUESTED" @click="emit('approve')">
         {{ t('lending.approve') }}
@@ -41,5 +42,5 @@ const {t} = useI18n()
     <SecondaryButton v-if="detail.request.request.status === LendingStatus.RETURNED" @click="emit('close')">
       {{ t('lending.close') }}
     </SecondaryButton>
-  </div>
+  </ButtonRow>
 </template>

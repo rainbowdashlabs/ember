@@ -15,6 +15,7 @@ import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import {StationUserType, StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
 import {ContentMode, type ContentModeName} from '@/api/news'
 import {INSTANCE_MEDIA_SCOPE} from '@/api/media'
@@ -171,11 +172,11 @@ function label(userType: string): string {
       </div>
     </div>
 
-    <div class="flex justify-end gap-3">
+    <ButtonRow pair align="end">
       <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton :disabled="!canSave || saving" @click="submit">
         {{ isEdit ? t('common.save') : t('adminNews.publish') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>

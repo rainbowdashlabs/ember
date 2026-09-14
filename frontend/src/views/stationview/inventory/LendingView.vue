@@ -17,6 +17,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import LendingRequestList from '@/views/stationview/inventory/lendingview/LendingRequestList.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
@@ -146,7 +147,7 @@ watch(loaded, (v) => {
       :subtitle="t('pages.inventory-lending.subtitle')"
   >
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
-      <div class="flex flex-wrap gap-2">
+      <ButtonRow>
         <PrimaryButton v-if="isLendingManager" :icon="['fas', 'calendar-xmark']" @click="router.push({name: routes.lendingBlocks})">
           {{ t('lending.blocks') }}
         </PrimaryButton>
@@ -158,7 +159,7 @@ watch(loaded, (v) => {
         >
           {{ t('lendingShare.overview') }}
         </SecondaryButton>
-      </div>
+      </ButtonRow>
     </div>
 
     <!-- Tab toggle -->

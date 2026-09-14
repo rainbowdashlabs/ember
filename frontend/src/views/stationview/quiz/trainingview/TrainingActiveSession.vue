@@ -8,6 +8,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TrainingQuestionCard from './TrainingQuestionCard.vue'
 import ReportQuestionModal from './ReportQuestionModal.vue'
 import type { QuizQuestion } from '@/api/quiz'
@@ -71,7 +72,7 @@ const showReport = ref(false)
     @set-fill-gap="(gap: number, value: string) => $emit('setFillGap', gap, value)"
   />
 
-  <div class="flex justify-between gap-3">
+  <ButtonRow align="between">
     <SecondaryButton :icon="['fas', 'flag']" @click="showReport = true">
       {{ t('quiz.report.action') }}
     </SecondaryButton>
@@ -89,7 +90,7 @@ const showReport = ref(false)
         <font-awesome-icon :icon="['fas', 'check']" class="ml-1" />
       </template>
     </PrimaryButton>
-  </div>
+  </ButtonRow>
 
   <ReportQuestionModal
       v-model="showReport"

@@ -14,6 +14,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SignupSetNotes from './SignupSetNotes.vue'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
 
@@ -69,12 +70,12 @@ function submit() {
       <Alert variant="info">{{ t('signupLists.surveyDraft') }}</Alert>
       <FailureAlert :message="error"/>
 
-      <div class="flex justify-end gap-2 pt-2">
+      <ButtonRow pair align="end" class="pt-2">
         <SecondaryButton @click="visible = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="creating || !name.trim()" @click="submit">
           {{ t('common.create') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

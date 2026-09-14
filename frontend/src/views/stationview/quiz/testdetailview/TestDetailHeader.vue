@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
@@ -59,7 +60,7 @@ function edit() {
       their names can be read, and closing the test comes last and coloured: it is behind a
       confirmation either way.
     -->
-    <div class="flex items-center gap-2 flex-wrap">
+    <ButtonRow align="end">
       <PrimaryButton :icon="['fas', 'play']" v-if="test.status === QuizTestStatus.ACTIVE" @click="take">
         {{ t('quiz.tests.takeTest') }}
       </PrimaryButton>
@@ -83,6 +84,6 @@ function edit() {
           </DropdownMenuItem>
         </ActionsMenu>
       </template>
-    </div>
+    </ButtonRow>
   </div>
 </template>

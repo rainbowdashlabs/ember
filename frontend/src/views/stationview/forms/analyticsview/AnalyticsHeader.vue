@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 
 defineProps<{
@@ -29,11 +30,11 @@ const { t } = useI18n()
         {{ t('forms.analytics.totalResponses') }}: {{ totalResponses }}
       </p>
     </div>
-    <div class="flex gap-2">
+    <ButtonRow pair align="end">
       <SecondaryButton :icon="['fas', 'file-export']" @click="emit('export')">
         {{ t('forms.analytics.export') }}
       </SecondaryButton>
       <SecondaryButton @click="emit('back')">{{ t('common.back') }}</SecondaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>

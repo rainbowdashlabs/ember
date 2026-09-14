@@ -8,6 +8,7 @@ import { ref } from 'vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 
 defineProps<{
@@ -47,7 +48,7 @@ const imageAlt = ref('')
       <TextInput v-model="imageUrl" placeholder="https://..." class="!text-sm" />
     </div>
 
-    <div class="flex items-center gap-2">
+    <ButtonRow>
       <PrimaryButton compact v-if="imageUrl" @click="$emit('insertUrl', imageUrl, imageAlt)">
         <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> Einfügen
       </PrimaryButton>
@@ -55,6 +56,6 @@ const imageAlt = ref('')
         <font-awesome-icon :icon="['fas', 'folder-open']" class="mr-1" /> Medien
       </SecondaryButton>
       <SecondaryButton compact @click="$emit('cancel')">Abbrechen</SecondaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>

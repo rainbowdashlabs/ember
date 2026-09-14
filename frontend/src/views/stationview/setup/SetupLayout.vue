@@ -10,6 +10,7 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
@@ -96,14 +97,14 @@ function goSkip() {
           {{ t('setup.actions.back') }}
         </SecondaryButton>
         <span v-else/>
-        <div class="flex items-center gap-3">
+        <ButtonRow pair align="end">
           <SecondaryButton v-if="skippable && next" :disabled="saving" @click="goSkip">
             {{ t('setup.actions.skip') }}
           </SecondaryButton>
           <PrimaryButton :disabled="saveDisabled || saving" @click="emit('save')">
             {{ saveLabel ?? t('setup.actions.saveAndContinue') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </footer>
     </div>
   </ViewContent>

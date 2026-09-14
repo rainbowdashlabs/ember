@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
@@ -72,7 +73,7 @@ function scoreClass(): string {
     </template>
     <td class="p-2 text-center text-xs text-(--text-muted)">{{ formatDate(registration.eventDate) }}</td>
     <td v-if="showActions" class="p-2">
-      <div class="flex items-center gap-1 justify-end">
+      <ButtonRow pair align="end">
         <PrimaryButton @click="emit('accept', registration.id)">
           <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
           {{ t('eventsRegistrations.accept') }}
@@ -81,7 +82,7 @@ function scoreClass(): string {
           <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
           {{ t('eventsRegistrations.deny') }}
         </ErrorButton>
-      </div>
+      </ButtonRow>
     </td>
   </tr>
 </template>

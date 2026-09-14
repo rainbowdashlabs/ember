@@ -12,6 +12,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
 import type {FrozenQuestionDetail, QuizCatalog, QuizQuestion, QuizTestAttempt, QuizTestDetail} from '@/api/quiz'
@@ -258,10 +259,10 @@ watch(loaded, (isLoaded) => { if (isLoaded) reload() })
       <Modal v-model="confirmAction.show.value">
         <div class="space-y-4">
           <p class="text-sm">{{ confirmAction.target.value?.message ?? '' }}</p>
-          <div class="flex justify-end gap-3">
+          <ButtonRow pair align="end">
             <SecondaryButton @click="confirmAction.show.value = false">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton @click="confirmAction.confirm">{{ t('common.confirm') }}</PrimaryButton>
-          </div>
+          </ButtonRow>
         </div>
       </Modal>
     </div>

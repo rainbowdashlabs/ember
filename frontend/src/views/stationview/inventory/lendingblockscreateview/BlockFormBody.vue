@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import BlockDateRangeSection from './BlockDateRangeSection.vue'
 import BlockScopeSection from './BlockScopeSection.vue'
@@ -53,11 +54,11 @@ const {t} = useI18n()
         @toggle-item="(entry, itemId) => emit('toggleItem', entry, itemId)"
     />
 
-    <div class="flex justify-end gap-2">
+    <ButtonRow pair align="end">
       <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton :disabled="saving || !blockFrom || !blockTo" @click="emit('create')">
         {{ t('common.save') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>

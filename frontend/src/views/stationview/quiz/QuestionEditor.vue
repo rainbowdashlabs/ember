@@ -7,6 +7,7 @@
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -160,9 +161,9 @@ function onTypeChange(val: string | number | null | undefined) {
     <OrderingConfigEditor v-if="questionType === QuizQuestionTypes.ORDERING" v-model:config="config" />
 
     <!-- Save / Cancel -->
-    <div class="flex justify-end gap-3 pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
+    <ButtonRow pair align="end" class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
       <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton :disabled="!title.trim()" @click="emit('save')">{{ t('common.save') }}</PrimaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>

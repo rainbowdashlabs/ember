@@ -10,6 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
@@ -83,12 +84,12 @@ watch(visible, (value, previous) => {
           :user-types="userTypes"
           :placeholder="t('checklist.searchPlaceholder')"
       />
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="cancel">{{ t('checklist.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="adding || selected.length === 0" @click="submit">
           {{ t('checklist.save') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

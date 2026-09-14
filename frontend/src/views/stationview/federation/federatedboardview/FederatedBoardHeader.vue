@@ -9,6 +9,7 @@ import {useRouter} from 'vue-router'
 import IconButton from '@/components/button/IconButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import FederatedBoardSearchResults from '@/views/stationview/federation/federatedboardview/FederatedBoardSearchResults.vue'
@@ -69,14 +70,16 @@ const router = useRouter()
             @pick="emit('pick-result', $event)"
         />
       </div>
-      <SecondaryButton v-if="canManageBoards" @click="emit('open-override')">
-        <font-awesome-icon :icon="['fas', 'shield']" class="mr-1"/>
-        {{ t('boards.accessOverride') }}
-      </SecondaryButton>
-      <PrimaryButton v-if="isFull" @click="emit('open-create')">
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
-        {{ t('boards.createTicket') }}
-      </PrimaryButton>
+      <ButtonRow pair align="end">
+        <SecondaryButton v-if="canManageBoards" @click="emit('open-override')">
+          <font-awesome-icon :icon="['fas', 'shield']" class="mr-1"/>
+          {{ t('boards.accessOverride') }}
+        </SecondaryButton>
+        <PrimaryButton v-if="isFull" @click="emit('open-create')">
+          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
+          {{ t('boards.createTicket') }}
+        </PrimaryButton>
+      </ButtonRow>
     </div>
   </div>
 </template>
