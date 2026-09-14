@@ -1,5 +1,19 @@
 # Changelog
 
+## v26.17.0
+
+### New Features
+
+- **An event can hand over files.** The route sheet, the form to bring or the plan for the evening is picked or uploaded through the media library and appears on the event page, ready to download. Each file is either for everybody who may see the event, partner stations included, or kept back for the people who run it.
+
+### Changes
+
+- **A new right for what an event keeps internal.** It opens the material an event needs and the files kept back from the room, without allowing anything to be changed. Whoever may edit events holds it already, so nothing has to be granted again; grant it to the people who help run evenings but keep no inventory.
+
+### Fixes
+
+- **What an appointment is missing offered a button that refused the person pressing it.** Asking the association for the gear an evening lacks is now offered only to the people who may ask for gear at all; everybody else still sees what is missing.
+
 ## v26.16.0
 
 ### New Features
@@ -14,7 +28,6 @@
 - **A hand-out can be planned rather than done.** Every screen that assigns gear to a member now offers the same choice: hand the piece over now, or promise it. A promised piece stays on the shelf, is marked as spoken for so nobody else is given it, and the handing over is confirmed later.
 - **An order that arrives sets the hand-out going.** Marking a procurement as arrived no longer writes the piece straight onto the member. It records what turned up and starts the hand-out, so the piece stays on the shelf, spoken for, until somebody gives it to them and says so.
 - **A waiting list can be kept without any mail.** A switch in the list's settings stops everything it would send, so a public registration lands without a confirmation link and an invitation is passed on by hand. The reminders that ask whether somebody is still interested stop with it, and nobody is removed for leaving one unanswered.
-- **An event can hand over files.** The route sheet, the form to bring or the plan for the evening is picked or uploaded through the media library and appears on the event page, ready to download. Each file is either for everybody who may see the event, partner stations included, or kept back for the people who run it.
 
 ### Improvements
 
@@ -35,13 +48,11 @@
 - **The exchange page is gone and movements stand in its place.** Everything the exchange list did is on Inventory → Movements, for every kind of movement rather than swaps alone. The five statuses a swap used to carry are gone with it: where a movement stands is the step it is on, which is read off where the pieces actually are.
 - **The right to work on exchanges is now the right to work on movements.** Anyone who held the old right keeps the new one, and station and association rights are renamed in the same way, so nothing has to be granted again.
 - **The inventory menu is regrouped.** The daily work stands at the top, the checks sit together, the settings pages (inventories, flows, requirements) sit under one heading, and lending has its own. The pages themselves are unchanged.
-- **A new right for what an event keeps internal.** It opens the material an event needs and the files kept back from the room, without allowing anything to be changed. Whoever may edit events holds it already, so nothing has to be granted again; grant it to the people who help run evenings but keep no inventory.
 
 ### Fixes
 
 - **The manager step of member creation offered the whole station.** It promised existing managers and listed every member instead, as cards with no way to search them, which on a station of any size was unusable. It now opens on the guardians, with every other kind one filter away.
 - **A column of an inventory list showed the wrong thing under its heading.** The list of gear in an inventory had a heading for tags but no cell for them, so every value after it slid one column to the left and the person holding a piece appeared as its tag. The columns and the values line up again, and a tag added to a piece now shows without leaving the page.
-- **What an appointment is missing offered a button that refused the person pressing it.** Asking the association for the gear an evening lacks is now offered only to the people who may ask for gear at all; everybody else still sees what is missing.
 
 ## v26.15.2
 
