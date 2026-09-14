@@ -12,6 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {beacon} from '@/api'
 import type {ProblemPayload} from '@/api/beacon'
@@ -75,12 +76,12 @@ async function send() {
 
       <pre v-if="payload" class="max-h-96 overflow-auto rounded-lg bg-bg-light-accent/40 dark:bg-bg-dark-accent/40 p-4 text-xs whitespace-pre-wrap break-words">{{ JSON.stringify(payload, null, 2) }}</pre>
 
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!payload || sending" :icon="['fas', 'tower-broadcast']" @click="send">
           {{ sending ? t('common.loading') : t('beacon.send') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

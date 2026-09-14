@@ -13,6 +13,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {DiscoverySettings} from '@/api/discovery'
 
 defineProps<{
@@ -53,11 +54,11 @@ const {t} = useI18n()
         <p class="text-xs text-(--text-muted)">{{ t('adminDiscovery.pingIntervalHelp') }}</p>
         <NumberInput v-model="modelInterval" :min="60"/>
       </div>
-      <div class="flex flex-wrap gap-2 pt-2">
+      <ButtonRow class="pt-2">
         <SaveButton :action="save"/>
         <InfoButton @click="emit('discoverNow')">{{ t('adminDiscovery.discoverNow') }}</InfoButton>
         <SecondaryButton @click="emit('seedFederation')">{{ t('adminDiscovery.seedFederation') }}</SecondaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </NeutralContainer>
 </template>
