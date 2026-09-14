@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {KbFile} from '@/api/knowledgeBase'
@@ -29,19 +30,19 @@ const pdfUrl = computed(() => publicKb.pdfExportUrl(props.stationUid, props.file
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-2 mb-4">
+  <ButtonRow class="mb-4">
     <SecondaryButton @click="emit('back')">
       <font-awesome-icon :icon="['fas', 'chevron-left']"/>
       {{ t('publicKb.backToBrowse') }}
     </SecondaryButton>
-    <SectionHeader class="text-xl font-bold flex-1">{{ props.file.name }}</SectionHeader>
+    <SectionHeader class="text-xl font-bold sm:flex-1">{{ props.file.name }}</SectionHeader>
     <a v-if="isPdfExportable(props.file.fileType)" :href="pdfUrl" download>
       <SecondaryButton>
         <font-awesome-icon :icon="['fas', 'file-pdf']"/>
         {{ t('kb.downloadPdf') }}
       </SecondaryButton>
     </a>
-  </div>
+  </ButtonRow>
 
   <MutedText tag="p" size="sm" v-if="props.file.description">
     {{ props.file.description }}

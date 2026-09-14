@@ -12,6 +12,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -124,14 +125,14 @@ async function replace() {
       {{ current || t('mailWebhook.unavailable') }}
     </code>
 
-    <div class="flex flex-wrap gap-2">
+    <ButtonRow pair>
       <SecondaryButton :icon="['fas', 'copy']" :disabled="!current" @click="copy">
         {{ t('mailWebhook.copy') }}
       </SecondaryButton>
       <SecondaryButton v-if="props.regenerate" :icon="['fas', 'rotate']" :disabled="replacing" @click="replace">
         {{ t('mailWebhook.replace') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
 
     <div v-if="!providerName" class="text-sm text-(--text-muted)">{{ t('mailWebhook.noProvider') }}</div>
     <template v-else>

@@ -11,6 +11,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -73,7 +74,7 @@ function advanceFromMapping() {
 
     <template v-else-if="step === CsvImportSteps.MAPPING">
       <slot name="mapping"/>
-      <div class="flex justify-between gap-3">
+      <ButtonRow pair align="between">
         <SecondaryButton @click="importer.goBack()">{{ t('common.back') }}</SecondaryButton>
         <PrimaryButton
             :disabled="loading"
@@ -82,17 +83,17 @@ function advanceFromMapping() {
         >
           {{ loading ? t('common.loading') : hasPreviewStep ? t('csvImport.preview') : t('csvImport.import') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </template>
 
     <template v-else-if="step === CsvImportSteps.PREVIEW">
       <slot name="preview"/>
-      <div class="flex justify-between gap-3">
+      <ButtonRow pair align="between">
         <SecondaryButton @click="importer.goBack()">{{ t('common.back') }}</SecondaryButton>
         <PrimaryButton :disabled="loading" :icon="['fas', 'file-import']" @click="importer.commit()">
           {{ loading ? t('common.loading') : t('csvImport.import') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </template>
 
     <slot v-else name="done"/>

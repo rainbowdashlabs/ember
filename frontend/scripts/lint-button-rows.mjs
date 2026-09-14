@@ -21,32 +21,77 @@ const CATEGORY = 'Hand written button row'
 
 const asError = process.argv.includes('--error')
 
-const BUTTON = /<((?:Primary|Secondary|Error|Success|Info|Save|Delete|Edit|Confirm|Download|Upload|Link)Button)\b[^>]*?(?:\/>|>([\s\S]*?)<\/\1>)/g
+const BUTTON = /<((?:Primary|Secondary|Error|Success|Info|Save|Delete|Edit|Confirm|Download|Upload|Link)Button)\b([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g
+const REPEATED = /\sv-for\b/
+const ALTERNATIVE = /\sv-else\b|\sv-else-if\b/
 const DIV = /<div\b([^>]*)>|<\/div>/g
 const MANAGED = /<ButtonRow\b[\s\S]*?<\/ButtonRow>/g
-const FLEX = /class="[^"]*\bflex\b/
+const SCREEN_READER_ONLY = /<span[^>]*\bsr-only\b[\s\S]*?<\/span>/g
+const CLASSES = /class="([^"]*)"/
 const RESPONSIVE = /\b(?:sm|md|lg|xl):|flex-col|\bgrid\b/
+
+/**
+ * Whether the tag lays its children out in a row. The class has to be `flex` itself: `flex-1` sizes
+ * a child inside somebody else's row and lays out nothing of its own.
+ */
+function laysOutARow(attributes) {
+    const classes = CLASSES.exec(attributes)
+    return classes !== null && classes[1].split(/\s+/).includes('flex')
+}
 
 /**
  * Whether the button says anything a reader could read. Its own tags do not count, so a button
  * holding nothing but an icon comes back false; a mustache does count, because that is where every
- * translated label sits.
+ * translated label sits. Words put there only for a screen reader do not count either: on the page
+ * that button is an icon, and an icon has nothing to break onto a second line.
  */
 function carriesLabel(inner) {
     if (inner === undefined) return false
-    return inner.replace(/<[^>]*>/g, '').trim() !== ''
+    return inner.replace(SCREEN_READER_ONLY, '').replace(/<[^>]*>/g, '').trim() !== ''
 }
 
 /**
  * How many labelled buttons the given slice of template holds loose. Buttons already handed to a
- * `ButtonRow` are somebody else's problem, so the rows around one are not reported again.
+ * `ButtonRow` are somebody else's problem, so the rows around one are not reported again. A button
+ * standing as the alternative to another never shares the line with it, so it is not counted: one
+ * of the two is all the page ever draws.
  */
 function labelledButtonsIn(slice) {
     let count = 0
     for (const match of slice.replace(MANAGED, '').matchAll(BUTTON)) {
-        if (carriesLabel(match[2])) count++
+        if (REPEATED.test(match[2])) return 0
+        if (ALTERNATIVE.test(match[2])) continue
+        if (carriesLabel(match[3])) count++
     }
     return count
+}
+
+/**
+ * What the row itself lays out, with every nested div left out. A button inside one of those is laid
+ * out by that div and not by this row, so counting it here would blame a page shell for the buttons
+ * scattered down its branches.
+ */
+function ownContentOf(template, tags, position) {
+    const opening = tags[position]
+    const kept = []
+    let depth = 1
+    let from = opening.index + opening[0].length
+
+    for (const inner of tags.slice(position + 1)) {
+        if (inner[1] !== undefined) {
+            if (depth === 1) kept.push(template.slice(from, inner.index))
+            depth++
+            continue
+        }
+        depth--
+        if (depth === 1) from = inner.index + inner[0].length
+        if (depth === 0) {
+            kept.push(template.slice(from, inner.index))
+            return kept.join('')
+        }
+    }
+    kept.push(template.slice(from))
+    return kept.join('')
 }
 
 /**
@@ -59,19 +104,9 @@ function reportRowsIn(file, template, lineOf) {
     for (const [position, opening] of tags.entries()) {
         const attributes = opening[1]
         if (attributes === undefined) continue
-        if (!FLEX.test(attributes) || RESPONSIVE.test(attributes)) continue
+        if (!laysOutARow(attributes) || RESPONSIVE.test(attributes)) continue
 
-        let depth = 1
-        let end = template.length
-        for (const inner of tags.slice(position + 1)) {
-            depth += inner[1] === undefined ? -1 : 1
-            if (depth === 0) {
-                end = inner.index
-                break
-            }
-        }
-
-        const labelled = labelledButtonsIn(template.slice(opening.index, end))
+        const labelled = labelledButtonsIn(ownContentOf(template, tags, position))
         if (labelled < 2) continue
 
         const report = asError ? reporter.error : reporter.warn

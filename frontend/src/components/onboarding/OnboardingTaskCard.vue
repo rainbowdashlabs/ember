@@ -11,6 +11,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {emberGuide, defaultGazePositions} from '@/composables/useEmberLogo'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
@@ -126,7 +127,7 @@ onMounted(() => load(props.level))
           class="space-y-1 border-t border-(--border) pt-3 first:border-0 first:pt-0">
         <div class="font-medium">{{ title(task) }}</div>
         <MutedText tag="p" size="sm">{{ body(task) }}</MutedText>
-        <div class="flex flex-wrap items-center gap-2 pt-1">
+        <ButtonRow class="pt-1">
           <PrimaryButton v-if="walkable(task)" class="text-xs" @click="start(level, task)">
             {{ t('onboarding.card.begin') }}
           </PrimaryButton>
@@ -139,7 +140,7 @@ onMounted(() => load(props.level))
           <SecondaryButton class="text-xs" @click="skip(level, task.id)">
             {{ t('onboarding.card.skip') }}
           </SecondaryButton>
-        </div>
+        </ButtonRow>
       </li>
     </ul>
 
@@ -151,12 +152,14 @@ onMounted(() => load(props.level))
         <MutedText v-if="shared && task.actorName" size="sm">
           {{ t('onboarding.card.settledBy', {name: task.actorName}) }}
         </MutedText>
-        <SecondaryButton class="ml-auto text-xs" @click="resume(level, task.id)">
-          {{ t('onboarding.card.resume') }}
-        </SecondaryButton>
-        <SecondaryButton class="text-xs" @click="discard(level, task.id)">
-          {{ t('onboarding.card.discard') }}
-        </SecondaryButton>
+        <ButtonRow pair class="sm:ml-auto">
+          <SecondaryButton class="text-xs" @click="resume(level, task.id)">
+            {{ t('onboarding.card.resume') }}
+          </SecondaryButton>
+          <SecondaryButton class="text-xs" @click="discard(level, task.id)">
+            {{ t('onboarding.card.discard') }}
+          </SecondaryButton>
+        </ButtonRow>
       </div>
     </div>
   </NeutralContainer>

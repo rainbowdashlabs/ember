@@ -9,6 +9,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 
 /**
@@ -39,12 +40,12 @@ const {t} = useI18n()
     <div class="space-y-4">
       <SubHeader>{{ title }}</SubHeader>
       <TextInput v-model="value" :placeholder="placeholder"/>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!value.trim()" @click="emit('confirm')">
           {{ confirmLabel }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

@@ -13,6 +13,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DragList from '@/components/input/DragList.vue'
 import MailProviderRow from '@/components/mail/MailProviderRow.vue'
 import {emptyMailProvider, type MailProvider} from '@/api/mailProviders'
@@ -98,8 +99,8 @@ function move(fromIndex: number, toIndex: number) {
       </template>
     </DragList>
 
-    <div class="flex justify-between gap-2 flex-wrap border-t border-(--border) pt-4">
-      <div class="flex gap-2">
+    <ButtonRow align="between" class="border-t border-(--border) pt-4">
+      <ButtonRow pair>
         <SecondaryButton data-onboarding="mailing.add-provider" :icon="['fas', 'plus']" :disabled="props.ready === false" @click="add">
           {{ t('mailChain.add') }}
         </SecondaryButton>
@@ -110,8 +111,8 @@ function move(fromIndex: number, toIndex: number) {
             @click="emit('clear')">
           {{ t('mailChain.clearAll') }}
         </ErrorButton>
-      </div>
+      </ButtonRow>
       <SaveButton data-testid="mail-providers-save" :disabled="props.ready === false" :action="props.save"/>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>

@@ -12,6 +12,7 @@ import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {PublicBlogEntry} from '@/api/news'
 import {news} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -54,7 +55,7 @@ function excerpt(html: string, maxLength = 200): string {
   <ViewContent :title="t('pages.public-blog.title')" :subtitle="t('pages.public-blog.subtitle')">
   <div class="space-y-6">
     <div class="flex flex-wrap items-center justify-end gap-3">
-      <div class="flex items-center gap-2">
+      <ButtonRow pair>
         <SecondaryButton @click="openFeed(rssUrl)">
           <font-awesome-icon :icon="['fas', 'rss']" class="mr-1"/>
           RSS
@@ -63,7 +64,7 @@ function excerpt(html: string, maxLength = 200): string {
           <font-awesome-icon :icon="['fas', 'rss']" class="mr-1"/>
           Atom
         </SecondaryButton>
-      </div>
+      </ButtonRow>
     </div>
 
     <AsyncSection

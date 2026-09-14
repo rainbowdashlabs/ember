@@ -13,6 +13,7 @@ import MentionInput, {type SpecialMention} from '@/components/comment/MentionInp
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useSession} from '@/composables/useSession'
@@ -233,19 +234,19 @@ const maxDepth = 6
       <!-- Edit form -->
       <div v-else class="space-y-2">
         <MentionInput v-model="editContent" :members="members" :groups="groups" :special-mentions="specialMentions"/>
-        <div class="flex gap-2">
+        <ButtonRow pair>
           <PrimaryButton compact @click="submitEdit">{{ t('comments.save') }}</PrimaryButton>
           <SecondaryButton compact @click="cancelEdit">{{ t('common.cancel') }}</SecondaryButton>
-        </div>
+        </ButtonRow>
       </div>
 
       <!-- Reply form -->
       <div v-if="replyingTo === comment.id" class="ml-4 space-y-2">
         <MentionInput v-model="replyContent" :members="members" :groups="groups" :special-mentions="specialMentions" :placeholder="t('comments.replyPlaceholder')"/>
-        <div class="flex gap-2">
+        <ButtonRow pair>
           <PrimaryButton compact @click="submitReply">{{ t('comments.reply') }}</PrimaryButton>
           <SecondaryButton compact @click="cancelReply">{{ t('common.cancel') }}</SecondaryButton>
-        </div>
+        </ButtonRow>
       </div>
 
       <!-- Recursive children -->

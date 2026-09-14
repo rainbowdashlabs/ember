@@ -10,6 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 const props = defineProps<{
   initialText: string
@@ -93,14 +94,14 @@ function selectResult(result: SearchResult) {
       <font-awesome-icon :icon="['fas', 'spinner']" spin class="mr-1" /> Suche...
     </div>
 
-    <div class="flex items-center gap-2">
+    <ButtonRow>
       <PrimaryButton compact :disabled="!linkUrl" @click="$emit('apply', linkUrl, linkText)">
         <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> Einfügen
       </PrimaryButton>
       <SecondaryButton compact @click="$emit('cancel')">Abbrechen</SecondaryButton>
-      <button v-if="isEditing" type="button" class="text-xs text-red-500 hover:underline cursor-pointer ml-auto" @click="$emit('remove')">
+      <button v-if="isEditing" type="button" class="text-xs text-red-500 hover:underline cursor-pointer sm:ml-auto" @click="$emit('remove')">
         <font-awesome-icon :icon="['fas', 'link-slash']" class="mr-0.5" /> Entfernen
       </button>
-    </div>
+    </ButtonRow>
   </div>
 </template>
