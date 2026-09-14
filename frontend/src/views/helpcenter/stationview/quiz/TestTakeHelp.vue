@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -91,7 +92,7 @@ const { t } = useI18n()
     <!-- Dummy: Navigation buttons -->
     <HelpSection :title="t('helpCenter.quizTestTake.navigationTitle')">
       <p>{{ t('helpCenter.quizTestTake.navigationText') }}</p>
-      <div class="flex items-center justify-between">
+      <ButtonRow align="between">
         <SecondaryButton :icon="['fas', 'chevron-left']" disabled>
           {{ t('quiz.attempt.prev') }}
         </SecondaryButton>
@@ -102,7 +103,7 @@ const { t } = useI18n()
           {{ t('quiz.attempt.next') }}
           <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1" />
         </SecondaryButton>
-      </div>
+      </ButtonRow>
     </HelpSection>
 
     <!-- Dummy: Submit confirmation modal -->
@@ -111,10 +112,10 @@ const { t } = useI18n()
       <NeutralContainer class="space-y-4">
         <SectionHeader>{{ t('quiz.attempt.confirmSubmitTitle') }}</SectionHeader>
         <p class="text-sm">{{ t('quiz.attempt.confirmSubmitMessage') }}</p>
-        <div class="flex justify-end gap-3">
+        <ButtonRow pair align="end">
           <SecondaryButton disabled>{{ t('common.cancel') }}</SecondaryButton>
           <SuccessButton disabled>{{ t('quiz.attempt.submit') }}</SuccessButton>
-        </div>
+        </ButtonRow>
       </NeutralContainer>
     </HelpSection>
 

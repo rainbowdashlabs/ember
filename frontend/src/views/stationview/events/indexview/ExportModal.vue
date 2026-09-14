@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {EventCategory} from '@/api/events'
 import {events} from '@/api'
@@ -155,12 +156,12 @@ const {running: exporting, run: doExport} = useAsyncAction(async () => {
           @reorder="reorderColumns"
       />
 
-      <div class="flex justify-end gap-2 pt-2">
+      <ButtonRow pair align="end" class="pt-2">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :icon="['fas', 'file-export']" :disabled="exporting || selectedColumns.length === 0" @click="doExport">
           {{ exporting ? t('common.loading') : t('events.exportPdf') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

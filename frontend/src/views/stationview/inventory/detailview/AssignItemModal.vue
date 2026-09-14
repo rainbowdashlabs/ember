@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
@@ -43,10 +44,10 @@ const userTypes = computed(() => userTypesOf(options.value))
           :placeholder="t('inventory.detail.selectMember')"
       />
 
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!memberId" @click="emit('submit')">{{ t('inventory.detail.assign') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

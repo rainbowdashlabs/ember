@@ -10,6 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -49,12 +50,12 @@ const ready = computed(() => !props.busy && reason.value.trim().length > 0)
           data-testid="review-refuse-reason"
       />
       <FailureAlert :message="error"/>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton :disabled="!ready" data-testid="review-refuse-confirm" @click="emit('confirm')">
           {{ t('selfCheck.review.refuse') }}
         </ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

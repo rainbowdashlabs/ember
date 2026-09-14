@@ -11,6 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -90,14 +91,14 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       <SectionHeader>{{ run?.name ?? '' }}</SectionHeader>
       <SuccessBadge v-if="run?.status === 'CLOSED'">{{ t('protocol.closed') }}</SuccessBadge>
       <PrimaryBadge v-else-if="run">{{ t('protocol.open') }}</PrimaryBadge>
-      <div class="flex gap-2 ml-auto">
+      <ButtonRow align="end" class="sm:ml-auto">
         <PrimaryButton v-if="run?.status === 'OPEN' && canManageProtocol()" @click="handleClose">
           {{ t('protocol.closeRun') }}
         </PrimaryButton>
         <SecondaryButton @click="router.push({ name: 'protocol-evaluation', params: { id: runId } })">
           <font-awesome-icon :icon="['fas', 'chart-bar']" class="mr-1" /> {{ t('protocol.evaluation') }}
         </SecondaryButton>
-      </div>
+      </ButtonRow>
     </div>
 
     <Spinner v-if="loading" />

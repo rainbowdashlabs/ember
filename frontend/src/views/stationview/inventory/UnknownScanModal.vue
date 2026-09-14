@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -275,12 +276,12 @@ load()
         @removeNewSize="removeNewSizeRow"
     />
 
-    <div class="flex justify-end gap-2 mt-4">
+    <ButtonRow pair align="end" class="mt-4">
       <SecondaryButton @click="onClose">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton :disabled="submitting || loading" @click="submit">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
         {{ submitting ? t('common.saving') : t('inventory.unknownScan.create') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </Modal>
 </template>

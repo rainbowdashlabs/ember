@@ -9,6 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {InventoryContainer} from '@/api/inventoryContainers'
 
 defineProps<{
@@ -40,7 +41,7 @@ const {t} = useI18n()
           {{ t('inventory.checkContainer.walkPosition', {current: position, total}) }}
         </div>
       </div>
-      <div class="flex gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton :disabled="position === 1" @click="emit('prev')">
           <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-2" />
           {{ t('inventory.checkContainer.walkPrev') }}
@@ -49,7 +50,7 @@ const {t} = useI18n()
           {{ t('inventory.checkContainer.walkNext') }}
           <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-2" />
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
     <div v-if="isLast" class="mt-3 text-sm text-(--text-muted)">
       {{ t('inventory.checkContainer.walkFinishHint') }}

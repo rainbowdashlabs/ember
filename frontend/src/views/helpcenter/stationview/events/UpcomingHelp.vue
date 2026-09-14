@@ -16,6 +16,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -94,14 +95,14 @@ const activeView = ref('')
               <InfoBadge>2 {{ t('eventsUpcoming.pendingCount') }}</InfoBadge>
             </div>
           </div>
-          <div class="flex items-center gap-2">
+          <ButtonRow pair>
             <PrimaryButton :icon="['fas', 'check']">
               {{ t('eventsUpcoming.register') }}
             </PrimaryButton>
             <ErrorButton :icon="['fas', 'ban']">
               {{ t('eventsUpcoming.decline') }}
             </ErrorButton>
-          </div>
+          </ButtonRow>
         </NeutralContainer>
         <NeutralContainer class="space-y-2">
           <div class="flex items-center justify-between flex-wrap gap-2">

@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -73,12 +74,12 @@ const {t} = useI18n()
         </div>
 
         <!-- Action buttons -->
-        <div class="flex justify-end gap-2">
+        <ButtonRow pair align="end">
           <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton :icon="['fas', 'paper-plane']">
             {{ t('helpCenter.inventoryLendingCreate.dummySend') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </NeutralContainer>
     </HelpSection>
 

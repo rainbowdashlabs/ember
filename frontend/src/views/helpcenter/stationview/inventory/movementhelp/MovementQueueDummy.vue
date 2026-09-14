@@ -9,6 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import MovementRowDummy from './MovementRowDummy.vue'
 import {MovementPurpose, StepActor} from '@/api/movements'
 
@@ -23,12 +24,12 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-3">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <SectionHeader>{{ t('movements.queue.title') }}</SectionHeader>
-      <div class="flex flex-wrap items-center gap-2">
+      <ButtonRow>
         <SecondaryButton v-if="managerView" :icon="['fas', 'file-export']">
           {{ t('movements.queue.export') }}
         </SecondaryButton>
         <PrimaryButton :icon="['fas', 'plus']">{{ t('movements.queue.create') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
 
     <div class="space-y-2">

@@ -9,6 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Th from '@/components/table/Th.vue'
 import THead from '@/components/table/THead.vue'
 import ItemsTableRows from '@/views/helpcenter/stationview/inventory/edithelp/ItemsTableRows.vue'
@@ -20,14 +21,14 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <SubHeader>{{ t('inventory.edit.itemsTitle') }}</SubHeader>
-      <div class="flex gap-2">
+      <ButtonRow pair>
         <SecondaryButton :icon="['fas', 'user-plus']">
           {{ t('helpCenter.inventoryEdit.dummyQuickAssign') }}
         </SecondaryButton>
         <PrimaryButton :icon="['fas', 'plus']">
           {{ t('inventory.edit.addItem') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">

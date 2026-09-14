@@ -16,6 +16,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import {ref} from 'vue'
 
 const {t} = useI18n()
@@ -43,7 +44,7 @@ const tabs = [
         <SecondaryButton :icon="['fas', 'chevron-left']">
           {{ t('memberDetail.back') }}
         </SecondaryButton>
-        <div class="flex items-center gap-2">
+        <ButtonRow align="end">
           <ErrorButton :icon="['fas', 'user-slash']">
             {{ t('memberDetail.markFormer') }}
           </ErrorButton>
@@ -53,7 +54,7 @@ const tabs = [
           <PrimaryButton :icon="['fas', 'pen']">
             {{ t('memberDetail.edit') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
 
       <SectionHeader class="mt-3">Max Mustermann</SectionHeader>

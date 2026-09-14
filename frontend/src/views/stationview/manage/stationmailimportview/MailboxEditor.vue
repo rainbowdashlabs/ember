@@ -11,6 +11,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import MailboxConnectionFields from './MailboxConnectionFields.vue'
 import {MailSecurity} from '@/api/mailImport'
 import type {Mailbox, MailboxRequest, MailSecurityName} from '@/api/mailImport'
@@ -118,12 +119,12 @@ function save() {
         <MutedText size="sm" tag="p">{{ t('mailImport.field.verifyDkimHint') }}</MutedText>
       </div>
 
-      <div class="flex flex-wrap justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!canSave" data-testid="mailbox-save" @click="save">
           {{ t('common.save') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </NeutralContainer>
 </template>

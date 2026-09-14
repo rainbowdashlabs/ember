@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
@@ -31,14 +32,14 @@ const { t } = useI18n()
 <template>
   <div class="flex items-center justify-between flex-wrap gap-2">
     <SubHeader>{{ t('quiz.catalogs.title') }}</SubHeader>
-    <div class="flex gap-2 flex-wrap">
+    <ButtonRow pair align="end">
       <SecondaryButton :icon="['fas', 'file-import']" @click="emit('triggerImport')">
         {{ t('quiz.catalogs.import') }}
       </SecondaryButton>
       <PrimaryButton :icon="['fas', 'plus']" @click="emit('openCreateModal')">
         {{ t('quiz.catalogs.create') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </div>
 
   <div>

@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ContainerContentsTree from '@/views/stationview/inventory/storageview/ContainerContentsTree.vue'
@@ -41,15 +42,15 @@ const {t} = useI18n()
       </label>
     </div>
 
-    <div class="flex gap-2 mb-2">
-      <PrimaryButton full-width class="flex-1" :icon="['fas', 'plus']" data-testid="container-add-items"
+    <ButtonRow pair class="mb-2">
+      <PrimaryButton full-width class="sm:flex-1" :icon="['fas', 'plus']" data-testid="container-add-items"
                      @click="emit('addItems')">
         {{ t('inventory.storage.addItems.button') }}
       </PrimaryButton>
-      <PrimaryButton full-width class="flex-1" :icon="['fas', 'plus']" @click="emit('addChild')">
+      <PrimaryButton full-width class="sm:flex-1" :icon="['fas', 'plus']" @click="emit('addChild')">
         {{ t('inventory.storage.addChild') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
 
     <NeutralContainer class="mb-6">
       <template v-if="props.contents">

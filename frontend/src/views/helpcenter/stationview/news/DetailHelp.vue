@@ -15,6 +15,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import ProseContent from '@/components/display/ProseContent.vue'
@@ -80,10 +81,10 @@ const BODY = ref('<p>Am Samstag treffen wir uns um 9 Uhr an der Wache. Bringt bi
         <NeutralContainer class="space-y-3">
           <p class="text-sm">{{ t('news.deleteConfirmTitle') }}</p>
           <p class="text-sm">{{ t('news.deleteConfirmMessage') }}</p>
-          <div class="flex gap-2 justify-end">
+          <ButtonRow pair align="end">
             <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
             <ErrorButton>{{ t('common.delete') }}</ErrorButton>
-          </div>
+          </ButtonRow>
         </NeutralContainer>
       </HelpSection>
     </HelpPermissionGuard>

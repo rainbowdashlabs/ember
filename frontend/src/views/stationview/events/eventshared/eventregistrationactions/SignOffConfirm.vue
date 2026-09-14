@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 
 /**
@@ -34,12 +35,12 @@ const {t} = useI18n()
     <div class="space-y-4">
       <SubHeader>{{ t('eventsUpcoming.signOffConfirmTitle') }}</SubHeader>
       <p class="text-sm">{{ t('eventsUpcoming.signOffConfirmBody') }}</p>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton :disabled="busy" data-testid="confirm-sign-off" @click="emit('confirm')">
           {{ t('eventsUpcoming.decline') }}
         </ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

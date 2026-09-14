@@ -12,6 +12,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import RuleSenderPatterns from './RuleSenderPatterns.vue'
 import RuleFilterFields from './RuleFilterFields.vue'
 import RuleToggles from './RuleToggles.vue'
@@ -138,10 +139,10 @@ function save() {
           v-model:read-subject-for-member="readSubjectForMember"
       />
 
-      <div class="flex flex-wrap justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!canSave" data-testid="rule-save" @click="save">{{ t('common.save') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </SecondaryContainer>
 </template>

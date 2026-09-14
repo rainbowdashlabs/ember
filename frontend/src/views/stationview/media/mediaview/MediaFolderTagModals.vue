@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -51,10 +52,10 @@ const {t} = useI18n()
                     {{ f.name }}
                 </option>
             </SelectInput>
-            <div class="flex justify-end gap-2">
+            <ButtonRow pair align="end">
                 <SecondaryButton @click="folderOpen = false">{{ t('common.cancel') }}</SecondaryButton>
                 <PrimaryButton @click="emit('saveFolder')">{{ t('common.save') }}</PrimaryButton>
-            </div>
+            </ButtonRow>
         </div>
     </Modal>
 
@@ -68,10 +69,10 @@ const {t} = useI18n()
                 <ColorInput v-model="tagColor"/>
                 <span class="text-xs text-(--text-muted)">{{ tagColor }}</span>
             </div>
-            <div class="flex justify-end gap-2">
+            <ButtonRow pair align="end">
                 <SecondaryButton @click="tagOpen = false">{{ t('common.cancel') }}</SecondaryButton>
                 <PrimaryButton @click="emit('saveTag')">{{ t('common.save') }}</PrimaryButton>
-            </div>
+            </ButtonRow>
         </div>
     </Modal>
 </template>

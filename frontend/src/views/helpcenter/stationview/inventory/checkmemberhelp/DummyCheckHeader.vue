@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 const {t} = useI18n()
 </script>
@@ -18,12 +19,12 @@ const {t} = useI18n()
       <SectionHeader>Max Mustermann</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ t('inventory.check.title') }}</p>
     </div>
-    <div class="flex gap-2">
+    <ButtonRow>
       <PrimaryButton :icon="['fas', 'list-check']">
         {{ t('inventory.check.rapidCheck') }}
       </PrimaryButton>
       <SecondaryButton>{{ t('inventory.check.markAll') }}</SecondaryButton>
       <SecondaryButton>{{ t('inventory.check.cancel') }}</SecondaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>

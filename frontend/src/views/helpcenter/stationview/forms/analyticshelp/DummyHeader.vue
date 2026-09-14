@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 
 const {t} = useI18n()
@@ -17,11 +18,11 @@ const {t} = useI18n()
       <SectionHeader class="text-xl font-semibold">Zufriedenheitsumfrage</SectionHeader>
       <p class="text-(--text-muted) text-sm">{{ t('forms.analytics.totalResponses') }}: 12</p>
     </div>
-    <div class="flex gap-2">
+    <ButtonRow pair>
       <SecondaryButton :icon="['fas', 'file-export']" disabled>
         {{ t('forms.analytics.export') }}
       </SecondaryButton>
       <SecondaryButton disabled>{{ t('common.back') }}</SecondaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>

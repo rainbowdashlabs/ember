@@ -128,7 +128,7 @@ onMounted(load)
         </MutedText>
         <span v-if="movement.currentStepLabel" class="text-(--text-muted)"> · {{ movement.currentStepLabel }}</span>
       </div>
-      <ButtonRow pair>
+      <ButtonRow pair align="end">
         <SecondaryButton
             v-if="movement.itemStillWithMember"
             :disabled="busy"

@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -30,10 +31,10 @@ const {t} = useI18n()
       <SecondaryBadge>{{ t('adminApplications.pendingBadge') }}</SecondaryBadge>
     </Td>
     <Td align="right">
-      <div class="flex items-center justify-end gap-1">
+      <ButtonRow pair align="end">
         <PrimaryButton>{{ t('adminApplications.accept') }}</PrimaryButton>
         <ErrorButton>{{ t('adminApplications.deny') }}</ErrorButton>
-      </div>
+      </ButtonRow>
     </Td>
   </TRow>
   <TRow>

@@ -14,6 +14,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 
 const {t} = useI18n()
+
+const documents = ['privacy', 'tos', 'consent', 'imprint']
 </script>
 
 <template>
@@ -45,17 +47,9 @@ const {t} = useI18n()
 
         <!-- Tab navigation -->
         <div class="flex gap-2 flex-wrap">
-          <SecondaryButton class="ring-2 ring-primary">
-            {{ t('adminSettings.legal.privacy') }}
-          </SecondaryButton>
-          <SecondaryButton>
-            {{ t('adminSettings.legal.tos') }}
-          </SecondaryButton>
-          <SecondaryButton>
-            {{ t('adminSettings.legal.consent') }}
-          </SecondaryButton>
-          <SecondaryButton>
-            {{ t('adminSettings.legal.imprint') }}
+          <SecondaryButton v-for="document in documents" :key="document"
+                           :class="document === 'privacy' ? 'ring-2 ring-primary' : ''">
+            {{ t(`adminSettings.legal.${document}`) }}
           </SecondaryButton>
         </div>
 

@@ -147,20 +147,18 @@ onMounted(() => load(props.level))
     <div v-if="skipped.length > 0" class="space-y-2 border-t border-(--border) pt-3">
       <MutedText tag="p" size="sm">{{ t('onboarding.card.skippedTitle') }}</MutedText>
       <MutedText tag="p" size="sm">{{ t('onboarding.card.skippedHint') }}</MutedText>
-      <div v-for="task in skipped" :key="task.id" class="flex flex-wrap items-center gap-2 text-sm">
+      <ButtonRow v-for="task in skipped" :key="task.id" class="text-sm">
         <span class="text-(--text-muted)">{{ title(task) }}</span>
         <MutedText v-if="shared && task.actorName" size="sm">
           {{ t('onboarding.card.settledBy', {name: task.actorName}) }}
         </MutedText>
-        <ButtonRow pair class="sm:ml-auto">
-          <SecondaryButton class="text-xs" @click="resume(level, task.id)">
-            {{ t('onboarding.card.resume') }}
-          </SecondaryButton>
-          <SecondaryButton class="text-xs" @click="discard(level, task.id)">
-            {{ t('onboarding.card.discard') }}
-          </SecondaryButton>
-        </ButtonRow>
-      </div>
+        <SecondaryButton class="text-xs sm:ml-auto" @click="resume(level, task.id)">
+          {{ t('onboarding.card.resume') }}
+        </SecondaryButton>
+        <SecondaryButton class="text-xs" @click="discard(level, task.id)">
+          {{ t('onboarding.card.discard') }}
+        </SecondaryButton>
+      </ButtonRow>
     </div>
   </NeutralContainer>
 </template>
