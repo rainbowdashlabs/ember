@@ -29,7 +29,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class DeviceRequestRepository {
     private static final String COLUMNS =
             "id, purpose, approved_account_id, subject_account_id, requesting_account_id, requesting_session_id, "
-                    + "step_up_category, step_up_operation, approved_at, consumed_at, expires_at, attempts, "
+                    + "step_up_category, approved_at, consumed_at, expires_at, attempts, "
                     + "requested_user_agent, requested_country, claim_token_hash IS NOT NULL AS claim_token_issued, "
                     + "created_at";
 
@@ -69,15 +69,14 @@ public class DeviceRequestRepository {
             int requestingAccountId,
             int requestingSessionId,
             StepUpCategory category,
-            String operation,
             String userAgent,
             String country,
             Instant expiresAt) {
         return query("""
                 INSERT INTO device_request (purpose, code_hash, poll_secret_hash, requesting_account_id,
-                                            requesting_session_id, step_up_category, step_up_operation,
+                                            requesting_session_id, step_up_category,
                                             requested_user_agent, requested_country, expires_at)
-                VALUES ('STEP_UP', :code_hash, :poll_secret_hash, :account_id, :session_id, :category, :operation,
+                VALUES ('STEP_UP', :code_hash, :poll_secret_hash, :account_id, :session_id, :category,
                         :user_agent, :country, :expires_at)
                 RETURNING id;""")
                 .single(call().bind("code_hash", codeHash)
@@ -85,7 +84,6 @@ public class DeviceRequestRepository {
                         .bind("account_id", requestingAccountId)
                         .bind("session_id", requestingSessionId)
                         .bind("category", category)
-                        .bind("operation", operation)
                         .bind("user_agent", userAgent)
                         .bind("country", country)
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP))
@@ -186,26 +184,6 @@ public class DeviceRequestRepository {
                 .map(row -> row.getInt("attempts"))
                 .first()
                 .orElse(0);
-    }
-
-    /**
-     * Kills every request of an account that has not been claimed yet, approved or not.
-     *
-     * <p>Up to ten minutes can pass between an approval and the poll that spends it. Ending every
-     * session, changing the password and the administrator's reset are all somebody saying stop, and
-     * a grant that landed a minute earlier would otherwise still be waiting to let a device in after
-     * they said it. The account is reached through either side, because a sign-in a guardian
-     * approved names the guardian in one column and the member in the other.
-     *
-     * @return how many were voided
-     */
-    public int voidPendingFor(int accountId) {
-        return query("""
-                UPDATE device_request
-                SET consumed_at = now()
-                WHERE consumed_at IS NULL
-                AND (subject_account_id = :account_id OR approved_account_id = :account_id
-                     OR requesting_account_id = :account_id);""").single(call().bind("account_id", accountId)).update().rows();
     }
 
     /**

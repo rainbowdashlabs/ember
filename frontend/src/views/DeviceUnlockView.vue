@@ -18,6 +18,7 @@ import {passkeys} from '@/api'
 import type {DeviceRequest} from '@/api/passkeys'
 import {createWebAuthnCredential, getWebAuthnCredential, isWebAuthnSupported, webauthnErrorKey} from '@/util/webauthn'
 import {decideSignInLanding} from '@/util/signInLanding'
+import {showToast} from '@/util/toast'
 import {useStations} from '@/composables/useStations'
 import {useCluster} from '@/composables/useCluster'
 import {useSession} from '@/composables/useSession'
@@ -34,7 +35,7 @@ const {setActiveCluster, clearActiveCluster} = useCluster()
 const session = useSession()
 
 type Phase = 'choosing' | 'loading' | 'waiting' | 'enrolling' | 'signingIn' | 'done' | 'expired' | 'failed'
-const phase = ref<Phase>('choosing')
+const phase = ref<Phase>('loading')
 const error = ref('')
 const request = ref<DeviceRequest | null>(null)
 const signedInAs = ref('')
@@ -46,7 +47,15 @@ let pollTimer: ReturnType<typeof setInterval> | null = null
  * somebody wants on a machine they are borrowing.
  */
 const wants = ref<'ENROL_PASSKEY' | 'SIGN_IN'>('ENROL_PASSKEY')
-const canHoldPasskey = isWebAuthnSupported()
+
+/**
+ * Whether a passkey is on offer at all. Two things have to be true, and asking only the first is
+ * what made the screen offer a button the server then refused: the browser has to be able to hold
+ * one, and the instance has to use them. It starts false so that the choice is never shown before
+ * the instance has answered.
+ */
+const browserHoldsPasskeys = isWebAuthnSupported()
+const canHoldPasskey = ref(false)
 
 const groupedCode = computed(() => {
   const code = request.value?.code ?? ''
@@ -73,6 +82,7 @@ async function start(want: 'ENROL_PASSKEY' | 'SIGN_IN' = wants.value) {
   }
 }
 
+/** One tick of the wait. A lost poll is nothing: the next tick asks again. */
 async function poll() {
   if (!request.value || phase.value !== 'waiting') return
   try {
@@ -86,7 +96,7 @@ async function poll() {
       phase.value = 'expired'
     }
   } catch {
-    // A lost poll is nothing; the next tick asks again.
+    return
   }
 }
 
@@ -132,25 +142,43 @@ async function signInWithNewPasskey() {
   }
 }
 
-/** Where a fresh session lands, and whose it turned out to be. */
+/**
+ * Where a fresh session lands, and whose it turned out to be.
+ *
+ * <p>The name is read back and said out loud deliberately. Somebody whose open code a stranger
+ * guessed and approved would otherwise work inside that stranger's account without ever being told.
+ * It goes out as a toast rather than onto this screen, because this screen is gone the moment the
+ * navigation lands: the warning has to arrive where the reader actually ends up.
+ */
 async function landAfterSignIn() {
   phase.value = 'done'
   const redirectPath = route.query.redirect as string | undefined
   clearActiveStation()
   clearActiveCluster()
   const landing = await decideSignInLanding(redirectPath)
-  // Whose account this became, said out loud. Somebody whose open code a stranger guessed and
-  // approved would otherwise work inside that stranger's account without ever being told.
   await session.load()
   signedInAs.value = session.fullName()
+  showToast(t('passkeys.device.signedInAs', {name: signedInAs.value}), 'info', 8000)
   if (landing.stationId) setActiveStation(landing.stationId)
   if (landing.clusterUid) setActiveCluster(landing.clusterUid)
   await navigateTo(landing.path)
 }
 
-onMounted(() => {
-  // A browser that cannot hold a passkey is not asked to choose: there is one way in for it.
-  if (!canHoldPasskey) void start('SIGN_IN')
+/**
+ * A device with only one way in is not asked to choose. That is a browser that cannot hold a
+ * passkey, and equally an instance that does not use them: both leave signing in as the only answer,
+ * so the screen goes straight to it rather than offering a button that would be refused.
+ */
+onMounted(async () => {
+  if (browserHoldsPasskeys) {
+    try {
+      canHoldPasskey.value = (await passkeys.publicPasskeyMode()) !== 'OFF'
+    } catch {
+      canHoldPasskey.value = false
+    }
+  }
+  if (canHoldPasskey.value) phase.value = 'choosing'
+  else void start('SIGN_IN')
 })
 onBeforeUnmount(stopPolling)
 </script>

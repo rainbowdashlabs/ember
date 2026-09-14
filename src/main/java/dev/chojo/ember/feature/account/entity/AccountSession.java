@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.account.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 
 import java.time.Instant;
@@ -36,6 +37,7 @@ public record AccountSession(
         String location,
         Instant twoFactorVerifiedAt,
         StepUpProof twoFactorProof,
+        StepUpCategory twoFactorCategory,
         boolean trustedDevice,
         boolean vouchedFor) {
 
@@ -54,6 +56,7 @@ public record AccountSession(
                 row.getString("location"),
                 row.get("two_factor_verified_at", INSTANT_TIMESTAMP),
                 row.getEnum("two_factor_proof", StepUpProof.class),
+                row.getEnum("two_factor_category", StepUpCategory.class),
                 row.getBoolean("trusted_device"),
                 row.getBoolean("vouched_for"));
     }

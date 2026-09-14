@@ -426,6 +426,7 @@ export default {
                 + 'beendet wird. Es wird nichts auf dem Gerät gespeichert.',
             purposeStepUp: 'Du bestätigst damit eine sensible Aktion auf dem anderen Gerät.',
             purposeStepUpCategory: 'Du bestätigst damit auf dem anderen Gerät: {category}',
+            purposeStepUpFor: 'Diese Bestätigung gehört nicht zu deinem eigenen Konto, sondern zu {name}. Bestätige nur, wenn diese Person gerade neben dir darum gebeten hat.',
             signInFor: 'Wen meldest du an?',
         },
         create: {

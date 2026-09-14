@@ -53,9 +53,12 @@ const offersSecurityKey = computed(() => proofs.value.includes('SECURITY_KEY') &
 
 /**
  * Offered only where the server said another live session could answer, which is what keeps the
- * dialog from showing a way out that nobody could take.
+ * dialog from showing a way out that nobody could take, and only where the refusal named a category:
+ * that is what the other device is shown, and the only thing its answer buys.
  */
-const offersAnotherDevice = computed(() => proofs.value.includes('ANOTHER_DEVICE'))
+const offersAnotherDevice = computed(
+    () => proofs.value.includes('ANOTHER_DEVICE') && Boolean(current.value?.category),
+)
 const offersNothing = computed(
     () => !offersPasskey.value && !offersPassword.value && !offersTotp.value && !offersBackup.value
         && !offersSecurityKey.value && !offersAnotherDevice.value,
@@ -211,7 +214,7 @@ function onCancel() {
 
       <StepUpAnotherDevice
           v-if="offersAnotherDevice"
-          :category="current?.category ?? null"
+          :category="current!.category!"
           @confirmed="complete"
       />
 

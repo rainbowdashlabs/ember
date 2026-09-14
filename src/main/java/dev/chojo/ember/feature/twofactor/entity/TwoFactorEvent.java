@@ -30,5 +30,12 @@ public enum TwoFactorEvent {
      */
     SIGNED_IN_VIA_DEVICE_CODE,
     /** A step-up was confirmed on another device the account is signed in on. */
-    STEPUP_VIA_DEVICE_CODE
+    STEPUP_VIA_DEVICE_CODE,
+    /**
+     * Somebody approved a device request. Written when the approval is given rather than when the
+     * grant is spent, because the two are up to ten minutes apart and the interesting cases are the
+     * ones where the second never happens: a grant nobody claimed, or one a revoke voided, would
+     * otherwise leave no record that anybody ever said yes.
+     */
+    DEVICE_REQUEST_APPROVED
 }

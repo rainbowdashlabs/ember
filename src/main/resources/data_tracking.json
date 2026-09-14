@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "schemaHash": "sha256:3ae742025a7f469a03a864f3cb380483763228a73e9754d18e52237364dd319b",
-  "generatedAt": "2026-09-14T11:14:52Z",
+  "schemaHash": "sha256:637bb35eddbfcb67a601935b072c97672d020ee7e80c1c9a34ea5eb55a7eac66",
+  "generatedAt": "2026-09-14T13:46:41Z",
   "tables": {
     "account": {
       "feature": "account",
       "scope": "USER",
-      "tableHash": "sha256:ee2f996b3319f6e328b5599c8e0669a2ce61781cbdebab4ecab4251017f620fb",
+      "tableHash": "sha256:2b233be8f7af9197d383b64cf45313c0b184acdeaa5f48f4eef68a6ef0227013",
       "columns": [
         {
           "name": "id",
@@ -103,6 +103,13 @@
           "nullable": true,
           "verified": true,
           "description": "When the account last signed in, by any method. setup_completed_at answers when somebody started, not when they were last here."
+        },
+        {
+          "name": "sessions_revoked_at",
+          "type": "timestamp",
+          "nullable": true,
+          "verified": true,
+          "description": "When every session of this account was last ended at once. A device grant approved before that moment is refused at claim time, which catches the one a revoke could not see because it had no account on it yet."
         }
       ],
       "foreignKeys": [
@@ -764,7 +771,7 @@
     "account_session": {
       "feature": "account",
       "scope": "USER",
-      "tableHash": "sha256:8f97cd67bcde6da4e28c2ee3cba6bd33c2c843bd41e9bdf604303c91ee8e8cf1",
+      "tableHash": "sha256:df64d719e29b309baadd5b97558e680b9ff12dd9cd881c0cd8b4fb243fc047d5",
       "columns": [
         {
           "name": "id",
@@ -849,6 +856,13 @@
           "nullable": true,
           "verified": true,
           "description": "What the last step-up was answered with: TOTP, SECURITY_KEY, BACKUP_CODE, PASSKEY, PASSWORD, or ANOTHER_DEVICE. Routes that must rest on somebody proving themselves here and now refuse the last of those."
+        },
+        {
+          "name": "two_factor_category",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The category a confirmation given on another device answered. NULL where the proof was given here, which answers every category the way it always has."
         },
         {
           "name": "vouched_for",
@@ -5395,7 +5409,7 @@
       "description": "The rows and cells of one piece of authored content. A page, a news entry or a knowledge-base article owns one; the container itself knows nothing about which."
     },
     "device_request": {
-      "tableHash": "sha256:b370755c2e06e5216fc6d2013565ee972c2c48eeb3a3567b7ef3204e5f3dddf6",
+      "tableHash": "sha256:8c2256c7f1284e968266b4a33d9a2b5f93849068db8827f43d68d84b6d4159d2",
       "columns": [
         {
           "name": "id",
@@ -5479,7 +5493,7 @@
           "type": "int2",
           "nullable": false,
           "verified": true,
-          "description": "Failed credential ceremonies by the requesting device. The request dies after five of them. Wrong codes typed on the approval screen are not counted here and are throttled by the rate limiter instead."
+          "description": "Failed credential ceremonies by the requesting device. Vestigial: the claim is spent before the ceremony runs, so a request cannot live to see a second one. Wrong codes typed on the approval screen never reach this row and are throttled by the rate limiter instead."
         },
         {
           "name": "purpose",
@@ -5514,14 +5528,7 @@
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "The sensitivity category the step-up was demanded for, shown on the approval screen so nobody confirms an operation they cannot see."
-        },
-        {
-          "name": "step_up_operation",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "The operation in a sentence, where the caller knew one. Shown beneath the category."
+          "description": "The sensitivity category the step-up was demanded for. Shown on the approval screen, and the only thing the approval buys: a confirmation given for one category does not answer a demand for another."
         }
       ],
       "foreignKeys": [

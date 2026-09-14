@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * The device handshake: the asking device shows a code, a device that is already signed in approves
@@ -45,6 +46,12 @@ import java.util.Optional;
  * <p>What stops somebody guessing a code is not this class. A wrong code is thrown away by the
  * lookup without ever reaching a row, so the attempt counter here never sees it; the brake is the
  * rate limiter on the approval screen, which can only exist because that screen is authenticated.
+ *
+ * <p>A request belongs to the instance it was raised on and to no other. The rows live in that
+ * instance's own schema and the lookup reads nothing else, so a code shown here cannot be approved
+ * from another installation. Nothing wants otherwise: federation joins installations that each hold
+ * their own accounts, and an account there is not an account here, while a cluster is stations of
+ * one installation sharing the one database, where this is already the same instance.
  */
 @Singleton
 public class DeviceRequestService {
@@ -136,16 +143,29 @@ public class DeviceRequestService {
      * Approves the request, naming both who approved it and whose account the grant is for. The two
      * differ only where a guardian signs in a member in their care; everywhere else the approver is
      * the subject. The caller has already proved itself locally; this ties the row, exactly once.
+     *
+     * <p>The approval is written down here rather than only where the grant is spent. Up to ten
+     * minutes lie between the two, and the cases worth investigating are the ones where the second
+     * never happens: a grant nobody claimed and a grant a revoke voided would otherwise leave no
+     * record that anybody ever said yes.
      */
     public boolean approve(int approvedAccountId, int subjectAccountId, String code) {
         Optional<DeviceRequest> request = repository.findOpenByCode(tokenHasher.hash(normalizeCode(code)));
         if (request.isEmpty()) return false;
-        boolean approved = repository.approve(request.get().id(), approvedAccountId, subjectAccountId);
+        DeviceRequest open = request.get();
+        boolean approved = repository.approve(open.id(), approvedAccountId, subjectAccountId);
         if (approved) {
+            auditService.record(
+                    subjectAccountId,
+                    approvedAccountId,
+                    TwoFactorEvent.DEVICE_REQUEST_APPROVED,
+                    null,
+                    open.requestedUserAgent(),
+                    open.requestedCountry());
             log.info(
                     "Device request {} ({}) approved by account {} for account {}",
-                    request.get().id(),
-                    request.get().purpose(),
+                    open.id(),
+                    open.purpose(),
                     approvedAccountId,
                     subjectAccountId);
         }
@@ -156,11 +176,19 @@ public class DeviceRequestService {
      * The asking device wanting to know whether anything happened yet. The claim token is minted on
      * the first poll after the approval and delivered exactly once; the guarded update means two
      * racing polls cannot both walk away with one.
+     *
+     * <p>The caller names the purpose it came for, and a request of any other is answered as though
+     * the secret were unknown. Minting is where the one-time delivery is spent, so a poll that
+     * reached the wrong door would either hand a grant to an endpoint that must not have it or burn
+     * the only delivery of one it then throws away.
+     *
+     * @param allowed what the calling endpoint is entitled to hand over
      */
-    public PollResult poll(String pollSecret) {
+    public PollResult poll(String pollSecret, Set<DeviceRequestPurpose> allowed) {
         Optional<DeviceRequest> requestOpt = repository.findByPollSecret(tokenHasher.hash(pollSecret));
         if (requestOpt.isEmpty()) return new PollResult(PollStatus.UNKNOWN, null, null);
         DeviceRequest request = requestOpt.get();
+        if (!allowed.contains(request.purpose())) return new PollResult(PollStatus.UNKNOWN, null, null);
         if (request.isExpired() || request.consumedAt() != null) {
             return new PollResult(PollStatus.EXPIRED, null, null);
         }
@@ -236,6 +264,10 @@ public class DeviceRequestService {
      * devices racing the same token cannot both walk away signed in. What follows is an ordinary
      * sign-in for the account the approval named: unstamped, untrusted, and refused outright if the
      * account is in no state to be used.
+     *
+     * <p>The request row is a scratchpad that the sweep deletes minutes later, so the audit entry is
+     * what outlives it. It is written against the account that was signed in, because that is whose
+     * access is in question, and names the approver so the two can be told apart afterwards.
      */
     public Optional<LoginResult> claimSignIn(String claimToken, String userAgent, String location) {
         Optional<DeviceRequest> claimed =
@@ -243,12 +275,17 @@ public class DeviceRequestService {
         if (claimed.isEmpty()) return Optional.empty();
         DeviceRequest request = claimed.get();
         if (request.subjectAccountId() == null) return Optional.empty();
+        if (revokedSinceApproval(request)) {
+            log.info(
+                    "Device request {} was approved before account {} ended every session, so it opens nothing",
+                    request.id(),
+                    request.subjectAccountId());
+            return Optional.empty();
+        }
 
         LoginResult result = authService.admitVouchedForAccount(request.subjectAccountId(), userAgent, location);
         if (!result.success()) return Optional.of(result);
 
-        // The row goes; this stays. Written against the account that was signed in, because that is
-        // whose access is in question, and naming the approver so the two can be told apart.
         auditService.record(
                 request.subjectAccountId(),
                 request.approvedAccountId(),
@@ -274,7 +311,7 @@ public class DeviceRequestService {
      * can judge.
      */
     public CreatedRequest createStepUpRequest(
-            int accountId, int sessionId, StepUpCategory category, String operation, String userAgent, String country) {
+            int accountId, int sessionId, StepUpCategory category, String userAgent, String country) {
         String code = newCode();
         String pollSecret = newSecret();
         Instant expiresAt = Instant.now().plus(REQUEST_TTL);
@@ -284,7 +321,6 @@ public class DeviceRequestService {
                 accountId,
                 sessionId,
                 category,
-                operation,
                 userAgent,
                 country,
                 expiresAt);
@@ -295,7 +331,9 @@ public class DeviceRequestService {
      * Spends a step-up claim and stamps the session that raised it.
      *
      * <p>The stamp records that another device answered, which is what stops that session going on to
-     * vouch for a third: every chain has to end in somebody proving themselves at a keyboard.
+     * vouch for a third: every chain has to end in somebody proving themselves at a keyboard. It also
+     * records the category the approver was shown, and the stamp answers that one only: a
+     * confirmation given for the mildest thing the product asks about must not buy the gravest.
      */
     public boolean claimStepUp(String claimToken) {
         Optional<DeviceRequest> claimed =
@@ -304,7 +342,8 @@ public class DeviceRequestService {
         DeviceRequest request = claimed.get();
         if (request.requestingSessionId() == null) return false;
 
-        twoFactorService.markSessionTwoFactorVerified(request.requestingSessionId(), StepUpProof.ANOTHER_DEVICE);
+        twoFactorService.markSessionTwoFactorVerified(
+                request.requestingSessionId(), StepUpProof.ANOTHER_DEVICE, request.stepUpCategory());
         auditService.record(
                 request.requestingAccountId(),
                 request.approvedAccountId(),
@@ -322,22 +361,45 @@ public class DeviceRequestService {
     }
 
     /**
+     * Whether somebody ended every session of this account after the grant was approved.
+     *
+     * <p>Voiding the pending requests catches everything that already names the account, and a
+     * sign-in names nobody until it is approved. A revoke landing in the moment between the approval
+     * screen's checks and its write therefore passes the row by. Asking here rather than trusting the
+     * void is what makes saying stop mean it, however the two land relative to each other.
+     */
+    private boolean revokedSinceApproval(DeviceRequest request) {
+        if (request.approvedAt() == null) return true;
+        return accountRepository
+                .findSessionsRevokedAt(request.subjectAccountId())
+                .filter(revokedAt -> revokedAt.isAfter(request.approvedAt()))
+                .isPresent();
+    }
+
+    /**
      * Tells the account a device was signed in as them. Best effort: an instance can be run with no
      * mail at all, and the audit row above is what an investigation actually reads.
+     *
+     * <p>Only where there is somewhere to tell. A managed member's address is synthetic and receives
+     * nothing, and the person who would otherwise be told is the guardian who just approved it and
+     * already knows.
      */
     private void notifyVouchedSignIn(DeviceRequest request) {
-        accountRepository.findById(request.subjectAccountId()).ifPresent(account -> {
-            try {
-                emailService.sendDeviceSignedInNotice(
-                        account.email(),
-                        account.firstName(),
-                        request.requestedUserAgent(),
-                        request.requestedCountry(),
-                        mailLocaleService.forAccount(account.id()));
-            } catch (Exception e) {
-                log.warn("Failed to enqueue the vouched sign-in notice for account {}", account.id(), e);
-            }
-        });
+        accountRepository
+                .findById(request.subjectAccountId())
+                .filter(Account::hasRealEmail)
+                .ifPresent(account -> {
+                    try {
+                        emailService.sendDeviceSignedInNotice(
+                                account.email(),
+                                account.firstName(),
+                                request.requestedUserAgent(),
+                                request.requestedCountry(),
+                                mailLocaleService.forAccount(account.id()));
+                    } catch (Exception e) {
+                        log.warn("Failed to enqueue the vouched sign-in notice for account {}", account.id(), e);
+                    }
+                });
     }
 
     public record CreatedRequest(String code, String pollSecret, Instant expiresAt) {}

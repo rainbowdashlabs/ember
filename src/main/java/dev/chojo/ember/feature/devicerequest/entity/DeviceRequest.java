@@ -25,8 +25,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param requestingAccountId the account that raised a step-up request, {@code null} for the
  *         purposes an unidentified device raises
  * @param requestingSessionId the session a successful step-up stamps, {@code null} otherwise
- * @param stepUpCategory what the step-up was demanded for, so the approval screen can say
- * @param stepUpOperation the operation in a sentence where the caller knew one, or {@code null}
+ * @param stepUpCategory what the step-up was demanded for, so the approval screen can say, and the
+ *         only thing an approval answers
  * @param claimTokenIssued whether the one-time token was already handed out; it is delivered exactly
  *         once, on the first poll after the approval
  */
@@ -38,7 +38,6 @@ public record DeviceRequest(
         Integer requestingAccountId,
         Integer requestingSessionId,
         StepUpCategory stepUpCategory,
-        String stepUpOperation,
         Instant approvedAt,
         Instant consumedAt,
         Instant expiresAt,
@@ -57,7 +56,6 @@ public record DeviceRequest(
                 row.getObject("requesting_account_id", Integer.class),
                 row.getObject("requesting_session_id", Integer.class),
                 row.getEnum("step_up_category", StepUpCategory.class),
-                row.getString("step_up_operation"),
                 row.get("approved_at", INSTANT_TIMESTAMP),
                 row.get("consumed_at", INSTANT_TIMESTAMP),
                 row.get("expires_at", INSTANT_TIMESTAMP),

@@ -117,11 +117,10 @@ function reset() {
             <div>{{ t('passkeys.approve.place', {place: details.country || '?'}) }}</div>
             <div>{{ t('passkeys.approve.when', {when: formatDateTime(details.createdAt)}) }}</div>
           </div>
-          <!-- What is actually being approved, in the reader's terms. The three grants differ
-               enormously and showing the same sentence for all of them asks somebody to confirm a
-               blank. -->
           <Alert variant="info">{{ purposeSentence }}</Alert>
-          <p v-if="details.stepUpOperation" class="text-sm font-medium">{{ details.stepUpOperation }}</p>
+          <Alert v-if="details.stepUpSubject" variant="info">
+            {{ t('passkeys.approve.purposeStepUpFor', {name: details.stepUpSubject}) }}
+          </Alert>
 
           <div v-if="offersCandidates" class="space-y-1">
             <FieldLabel>{{ t('passkeys.approve.signInFor') }}</FieldLabel>

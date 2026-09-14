@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.twofactor.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.twofactor.entity.BackupCode;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TotpFactor;
@@ -550,22 +551,29 @@ public class TwoFactorRepository {
      * much as the time: a route that must rest on somebody proving themselves at the keyboard has to
      * be able to tell that apart from a session another device vouched for.
      */
-    public boolean setTwoFactorVerified(int sessionId, StepUpProof proof) {
-        return query(
-                        "UPDATE account_session SET two_factor_verified_at = now(), two_factor_proof = :proof WHERE id = :id;")
-                .single(call().bind("id", sessionId).bind("proof", proof))
+    public boolean setTwoFactorVerified(int sessionId, StepUpProof proof, StepUpCategory category) {
+        return query("""
+                UPDATE account_session
+                SET two_factor_verified_at = now(), two_factor_proof = :proof, two_factor_category = :category
+                WHERE id = :id;""")
+                .single(call().bind("id", sessionId).bind("proof", proof).bind("category", category))
                 .update()
                 .changed();
     }
 
     /**
-     * Spends the stamp, so the next sensitive action asks again. Used where a proof buys exactly one
-     * thing rather than a window of them.
+     * Spends the stamp, so the next sensitive action asks again, and reports whether it was still the
+     * one the caller read. Used where a proof buys exactly one thing rather than a window of them.
+     *
+     * <p>The timestamp in the guard is what makes it one thing rather than as many as fit between two
+     * reads: of two requests racing on one proof, the second matches nothing and is refused.
      */
-    public boolean clearTwoFactorVerified(int sessionId) {
-        return query(
-                        "UPDATE account_session SET two_factor_verified_at = NULL, two_factor_proof = NULL WHERE id = :id;")
-                .single(call().bind("id", sessionId))
+    public boolean clearTwoFactorVerifiedAsOf(int sessionId, Instant seenAt) {
+        return query("""
+                UPDATE account_session
+                SET two_factor_verified_at = NULL, two_factor_proof = NULL, two_factor_category = NULL
+                WHERE id = :id AND two_factor_verified_at = :seen;""")
+                .single(call().bind("id", sessionId).bind("seen", seenAt, INSTANT_TIMESTAMP))
                 .update()
                 .changed();
     }

@@ -54,7 +54,7 @@ describe('StepUpAnotherDevice', () => {
         await wrapper.get('button').trigger('click')
         await flushPromises()
 
-        expect(stepUpDeviceBegin).toHaveBeenCalledWith('ACCOUNT_SECURITY', null)
+        expect(stepUpDeviceBegin).toHaveBeenCalledWith('ACCOUNT_SECURITY')
     })
 
     it('reports the confirmation once the other device answers', async () => {

@@ -384,6 +384,91 @@ test.describe('Passkeys', () => {
         await context.close()
     })
 
+    /**
+     * A guardian signs a member in their care in, on the machine in the hall.
+     *
+     * <p>The one shape of this handshake where the approver and the account signed in are two
+     * different people, which is what the subject column exists for. It is also the only way the
+     * flow can be proved here at all: a dev instance keeps one session row per account, so the
+     * same-account version of this refuses to start, while a guardian and their charge are two
+     * accounts with a session each.
+     *
+     * <p>The guardian first gives them something to sign in with and switches their access on,
+     * because neither is true of a seeded managed member, and the approval screen offers only the
+     * people who could actually sign in.
+     */
+    test('a guardian signs a member in their care in on a borrowed machine', async ({browser, request}) => {
+        // Nobody another story is acting as, on either side. Signing in replaces a dev session row
+        // and giving a managed member an address ends their sessions outright, so a guardian or a
+        // charge that is also a shared role or another story's slot would take that story's session
+        // out from under it in the middle of the run.
+        const spokenFor = new Set([
+            (await pinnedRole('manager')).email,
+            (await pinnedRole('member')).email,
+            ...(await storyCandidates(request)).slice(0, STORY_SLOTS + 1).map(candidate => candidate.email),
+        ])
+
+        const accounts = await demoAccounts(request)
+        const guardianAccount = accounts.find(account => !!account.email
+            && !spokenFor.has(account.email)
+            && account.permissions.includes('MEMBER_GUARDIAN'))
+        test.skip(!guardianAccount, 'no guardian in the seed is free for this story to act as')
+
+        const guardian = await pageAsThrowaway(browser, request, [], guardianAccount)
+        await answerStepUpPrompts(guardian)
+        const headers = await apiHeaders(guardian)
+
+        const managed = await guardian.request
+            .get('/api/v1/managed-members', {headers})
+            .then(response => response.json())
+        const charge = managed.find((member: {email?: string}) => !!member.email && !spokenFor.has(member.email))
+        test.skip(!charge, 'every member this guardian looks after is already spoken for by another story')
+
+        // Something to sign in with, and permission to. A managed member is seeded with neither, and
+        // the approval screen offers only the people for whom both are true. A name rather than an
+        // address on purpose: a dev session token is the account's address, so giving one out would
+        // sign this member out of wherever else they are, which is the trap the choice above avoids.
+        await freshStepUpProof(guardian)
+        const loginName = `charge${Date.now()}`
+        await guardian.request.put(`/api/v1/managed-members/${charge.id}/username`, {
+            headers,
+            data: {username: loginName},
+        })
+        await guardian.request.put(`/api/v1/managed-members/${charge.id}/login`, {headers, data: {enabled: true}})
+
+        const newContext = await browser.newContext()
+        const newDevice = await newContext.newPage()
+        await newDevice.addInitScript(() => window.localStorage.setItem('storage_consent', 'accepted'))
+
+        await newDevice.goto('/unlock-device')
+        await newDevice.getByRole('button', {name: 'Nur anmelden, nichts speichern'}).click()
+        const codeElement = newDevice.locator('.font-mono').first()
+        await expect(codeElement).toHaveText(/[0-9A-Z-]{8,9}/, {timeout: 15_000})
+        const code = (await codeElement.innerText()).trim()
+
+        await guardian.goto('/account/unlock-device')
+        await guardian.getByPlaceholder('K7RM-2WQD').fill(code)
+        await guardian.getByRole('button', {name: 'Code prüfen'}).click()
+
+        // The choice the guardian gets and nobody else does: whose sign-in this is.
+        const forWhom = guardian.getByTestId('approve-for')
+        await expect(forWhom).toBeVisible({timeout: 15_000})
+        await forWhom.selectOption(String(charge.accountId))
+        await guardian.getByRole('button', {name: 'Freischalten', exact: true}).click()
+        await expect(guardian.getByText('Freigeschaltet.', {exact: false})).toBeVisible({timeout: 15_000})
+
+        // The device is signed in as the charge, not as the guardian who approved it.
+        await expect(newDevice.getByTestId('app-shell')).toBeVisible({timeout: 30_000})
+        const session = await newDevice.request
+            .get('/api/v1/session', {headers: await apiHeaders(newDevice)})
+            .then(response => response.json())
+        expect(session.account.username).toBe(loginName)
+        expect(session.account.email).not.toBe(guardianAccount!.email)
+
+        await newContext.close()
+        await guardian.context().close()
+    })
+
     test('a manager onboards a member again and gets a passkey code for an addressless one', async ({browser, request}) => {
         // The shared manager session acts here; a fresh login as the manager would replace it
         // under every other story. The target is a slot of its own, because onboarding again

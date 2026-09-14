@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.twofactor.repository;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
@@ -209,9 +210,45 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         accountRepo.createSession(accountId, "session-bearer", Instant.now().plusSeconds(60), "ua", null);
         var session = accountRepo.findSession("session-bearer").orElseThrow();
         assertNull(session.twoFactorVerifiedAt());
-        assertTrue(twoFactorRepo.setTwoFactorVerified(session.id(), StepUpProof.PASSWORD));
+        assertTrue(twoFactorRepo.setTwoFactorVerified(session.id(), StepUpProof.PASSWORD, null));
         var refreshed = accountRepo.findSession("session-bearer").orElseThrow();
         assertNotNull(refreshed.twoFactorVerifiedAt());
+    }
+
+    /**
+     * The stamp buys one action, not as many as fit between two reads. The spend names the timestamp
+     * it read, so of two callers racing on one proof the second matches nothing and is refused.
+     */
+    @Test
+    void aStampCanOnlyBeSpentOnce() {
+        int accountId = newAccountId("spend");
+        accountRepo.createSession(accountId, "spend-bearer", Instant.now().plusSeconds(60), "ua", null);
+        var session = accountRepo.findSession("spend-bearer").orElseThrow();
+        twoFactorRepo.setTwoFactorVerified(session.id(), StepUpProof.PASSWORD, null);
+        var stamped = accountRepo.findSession("spend-bearer").orElseThrow();
+
+        assertTrue(twoFactorRepo.clearTwoFactorVerifiedAsOf(session.id(), stamped.twoFactorVerifiedAt()));
+        assertFalse(twoFactorRepo.clearTwoFactorVerifiedAsOf(session.id(), stamped.twoFactorVerifiedAt()));
+        assertNull(accountRepo.findSession("spend-bearer").orElseThrow().twoFactorVerifiedAt());
+    }
+
+    /**
+     * A confirmation given on another device records what it answered. Nothing else does: a proof
+     * given at this keyboard leaves the category blank and answers every one of them.
+     */
+    @Test
+    void onlyAConfirmationGivenElsewhereCarriesACategory() {
+        int accountId = newAccountId("category");
+        accountRepo.createSession(accountId, "category-bearer", Instant.now().plusSeconds(60), "ua", null);
+        var session = accountRepo.findSession("category-bearer").orElseThrow();
+
+        twoFactorRepo.setTwoFactorVerified(session.id(), StepUpProof.ANOTHER_DEVICE, StepUpCategory.FEDERATION);
+        assertEquals(
+                StepUpCategory.FEDERATION,
+                accountRepo.findSession("category-bearer").orElseThrow().twoFactorCategory());
+
+        twoFactorRepo.setTwoFactorVerified(session.id(), StepUpProof.PASSWORD, null);
+        assertNull(accountRepo.findSession("category-bearer").orElseThrow().twoFactorCategory());
     }
 
     @Test

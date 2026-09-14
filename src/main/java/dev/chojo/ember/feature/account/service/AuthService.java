@@ -797,9 +797,11 @@ public class AuthService {
      * nothing about whether somebody finished their setup, and the ordinary sign-in paths are where
      * that is decided.
      *
-     * <p>The refusals are the ones every sign-in makes. An account whose address is unverified, or
-     * that must change its password first, cannot be let in this way either: the approval says the
-     * account holder is present, not that the account is in a state to be used.
+     * <p>The refusals are the ones every sign-in makes, and an account owing a password change is
+     * refused outright rather than handed the token for it. An ordinary sign-in earns that token by
+     * typing the old password; this one was vouched for from across the room, and the token would let
+     * the borrowed machine set the account's password. The approval says the account holder is
+     * present, not that the account is in a state to be used.
      *
      * @param accountId whose session it becomes, which is not always who approved it
      * @return a session, or what has to happen before there can be one
@@ -820,8 +822,8 @@ public class AuthService {
         boolean passwordWorks =
                 credOpt.map(AccountCredential::passwordLoginEnabled).orElse(false);
         if (passwordWorks && credOpt.get().forcePasswordChange()) {
-            log.info("Account {} requires a password change before a vouched sign-in completes", account.id());
-            return forcedStep(account, TokenType.FORCE_PASSWORD_CHANGE, LoginResult::passwordChangeRequired);
+            log.info("Vouched sign-in refused for account {}: a password change is owed first", account.id());
+            return LoginResult.failure("Sign-in failed");
         }
 
         return createVouchedSession(account.id(), userAgent, location);

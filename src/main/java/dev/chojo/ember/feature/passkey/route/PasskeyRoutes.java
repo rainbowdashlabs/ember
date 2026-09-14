@@ -52,6 +52,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -169,8 +170,6 @@ public class PasskeyRoutes implements Routes {
         routes.post(prefix + "/auth/passkey/device-request", this::createDeviceRequest);
         routes.post(prefix + "/auth/passkey/device-request/poll", this::pollDeviceRequest);
 
-        // The same handshake, where what the approval buys is a session rather than a credential.
-        // For a browser that cannot hold a passkey, and for a machine nobody wants to leave one on.
         routes.post(prefix + "/auth/device/sign-in-request", this::createSignInRequest);
         routes.post(prefix + "/auth/device/sign-in-claim", this::claimSignIn);
 
@@ -184,10 +183,6 @@ public class PasskeyRoutes implements Routes {
         routes.post(prefix + "/auth/passkey/token-enroll/begin", this::beginTokenEnrollment);
         routes.post(prefix + "/auth/passkey/token-enroll/finish", this::finishTokenEnrollment);
         routes.post(prefix + "/account/passkeys/device-lookup", this::lookupDeviceRequest, StationPermission.LOGIN);
-        // No StepUpCategory role here, deliberately. That role is a freshness check, and a session
-        // already fresh would pass it without anybody being asked anything. Vouching for another
-        // device is the one action that has to rest on a proof given at this keyboard now, so the
-        // handler demands one itself and spends it.
         routes.post(prefix + "/account/passkeys/device-approve", this::approveDeviceRequest, StationPermission.LOGIN);
     }
 
@@ -248,7 +243,8 @@ public class PasskeyRoutes implements Routes {
         if (isBlank(request.pollSecret())) {
             throw new BadRequestResponse("pollSecret is required");
         }
-        var result = deviceService.poll(request.pollSecret());
+        var result = deviceService.poll(
+                request.pollSecret(), Set.of(DeviceRequestPurpose.ENROL_PASSKEY, DeviceRequestPurpose.SIGN_IN));
         ctx.json(new DevicePollResponse(
                 result.status().name(),
                 result.claimToken(),
@@ -331,10 +327,7 @@ public class PasskeyRoutes implements Routes {
             throw new BadRequestResponse("code is required");
         }
         var open = deviceService.lookup(request.code()).orElseThrow(NotFoundResponse::new);
-        // A step-up raised by somebody else's session is not this reader's to confirm, and saying so
-        // by answering nothing at all is what a wrong code already earns.
-        if (open.is(DeviceRequestPurpose.STEP_UP)
-                && !Integer.valueOf(session.accountId()).equals(open.requestingAccountId())) {
+        if (!mayConfirm(session, open)) {
             throw new NotFoundResponse();
         }
         ctx.json(new DeviceLookupResponse(
@@ -343,35 +336,66 @@ public class PasskeyRoutes implements Routes {
                 open.createdAt(),
                 open.purpose().name(),
                 open.stepUpCategory() == null ? null : open.stepUpCategory().name(),
-                open.stepUpOperation(),
+                stepUpSubject(session, open),
                 managedCandidates(session, open)));
     }
 
     /**
-     * Whom this reader may sign in, where the request is a sign-in. Themselves always, plus anybody
-     * in their care: a parent is who signs a child in on the machine in the hall, and the child has
-     * no password of their own to do it with.
+     * Whose step-up this is, where it is not the reader's own.
+     *
+     * <p>A guardian may be answering for themselves or for a child, and the two look identical
+     * otherwise: same screen, same category, and a browser and country that are the child's. Naming
+     * them is what lets a guardian refuse a code that is not the one somebody beside them just asked
+     * for. Their own request says nothing, because there is nothing to tell apart.
      */
+    private String stepUpSubject(UserSession session, DeviceRequest open) {
+        if (!open.is(DeviceRequestPurpose.STEP_UP)) return null;
+        Integer requester = open.requestingAccountId();
+        if (requester == null || requester == session.accountId()) return null;
+        return accountRepository.findById(requester).map(Account::fullName).orElse(null);
+    }
+
+    /**
+     * Whether this reader is allowed to see a step-up request at all, let alone answer it.
+     *
+     * <p>Their own, or one raised by somebody in their care: a member signed in by their guardian has
+     * no password and no passkey, so the guardian is the only one who can answer a demand made of
+     * them. Everybody else is told nothing, which is exactly what a wrong code already earns, so the
+     * answer cannot be read as "this code exists".
+     */
+    private boolean mayConfirm(UserSession session, DeviceRequest open) {
+        if (!open.is(DeviceRequestPurpose.STEP_UP)) return true;
+        if (Integer.valueOf(session.accountId()).equals(open.requestingAccountId())) return true;
+        return open.requestingAccountId() != null
+                && accountRepository.isGuardianOf(session.accountId(), open.requestingAccountId());
+    }
+
+    private boolean manages(UserSession session, Integer accountId) {
+        if (accountId == null) return false;
+        return session.memberOpt()
+                .map(member -> managedAccessService.signInCandidates(member.id()).stream()
+                        .anyMatch(candidate -> candidate.accountId() == accountId.intValue()))
+                .orElse(false);
+    }
+
     /**
      * Whose account the grant is for.
      *
-     * <p>The approver, unless this is a sign-in they are making for somebody in their care. The
-     * guardianship is checked here and not only where the screen offered the choice, so a
-     * guardianship that ended in between cannot be spent on a list drawn before it did.
+     * <p>A step-up always stamps the session that raised it, so the subject is the account that
+     * asked, whoever answers for it. A guardian answering for a member in their care is the point of
+     * the exercise, and the choice the screen offered has no say in it.
      *
-     * <p>A step-up is never for anybody else: it stamps the session that raised it, and that session
-     * belongs to one account.
+     * <p>Otherwise the approver, unless this is a sign-in they are making for somebody in their care.
+     * The guardianship is checked here and not only where the screen offered the choice, so a
+     * guardianship that ended in between cannot be spent on a list drawn before it did.
      */
     private int subjectFor(UserSession session, DeviceRequest open, Integer requested) {
+        if (open.is(DeviceRequestPurpose.STEP_UP)) return open.requestingAccountId();
         if (requested == null || requested == session.accountId()) return session.accountId();
         if (!open.is(DeviceRequestPurpose.SIGN_IN)) {
             throw new ForbiddenResponse("Only a sign-in can be approved for somebody else");
         }
-        boolean manages = session.memberOpt()
-                .map(member -> managedAccessService.signInCandidates(member.id()).stream()
-                        .anyMatch(candidate -> candidate.accountId() == requested))
-                .orElse(false);
-        if (!manages) {
+        if (!manages(session, requested)) {
             throw new ForbiddenResponse("You do not manage this member");
         }
         return requested;
@@ -393,22 +417,34 @@ public class PasskeyRoutes implements Routes {
         return Stream.concat(Stream.of(self), managed).toList();
     }
 
+    /**
+     * Vouching for another device, which is the one action a session can take that lets somebody else
+     * in.
+     *
+     * <p>It carries no {@code StepUpCategory} route role, deliberately. That role is a freshness
+     * check, and a session already fresh would pass it without anybody being asked anything. This is
+     * the one action that has to rest on a proof given at this keyboard now, so the handler demands
+     * one itself and spends it rather than riding a window somebody opened earlier.
+     *
+     * <p>The demand comes after the code has been read and the subject settled, so a reader who typed
+     * a wrong code is told so without being asked to prove themselves first.
+     */
     private void approveDeviceRequest(Context ctx) {
         UserSession session = UserSession.from(ctx);
         enforceLimit(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
-        stepUpGuard.requireLocalProof(session, StepUpCategory.ACCOUNT_SECURITY);
         var request = ctx.bodyAsClass(DeviceCodeRequest.class);
         if (isBlank(request.code())) {
             throw new BadRequestResponse("code is required");
         }
         var open = deviceService.lookup(request.code()).orElseThrow(NotFoundResponse::new);
+        if (!mayConfirm(session, open)) {
+            throw new NotFoundResponse();
+        }
         int subject = subjectFor(session, open, request.forAccountId());
+        stepUpGuard.spendLocalProof(session, StepUpCategory.ACCOUNT_SECURITY);
         if (!deviceService.approve(session.accountId(), subject, request.code())) {
             throw new NotFoundResponse();
         }
-        // The proof bought this one approval. Approving the next device asks again, which is what
-        // keeps every link of the chain an answer somebody gave rather than a window they are inside.
-        twoFactorService.clearSessionTwoFactorVerified(session.sessionId());
         ctx.json(Map.of("message", "Device approved"));
     }
 
@@ -700,7 +736,8 @@ public class PasskeyRoutes implements Routes {
     /**
      * @param purpose what approving this buys, so the screen can say it in the reader's terms
      * @param stepUpCategory what a step-up was demanded for, absent for the other purposes
-     * @param stepUpOperation the action in a sentence, where the asking side knew one
+     * @param stepUpSubject whose step-up it is, where that is somebody in the reader's care rather
+     *         than the reader themselves
      * @param candidates whom this reader may sign in, for a sign-in. Themselves first
      */
     public record DeviceLookupResponse(
@@ -709,7 +746,7 @@ public class PasskeyRoutes implements Routes {
             Instant createdAt,
             String purpose,
             String stepUpCategory,
-            String stepUpOperation,
+            String stepUpSubject,
             List<ApprovalCandidate> candidates) {}
 
     public record ApprovalCandidate(int accountId, String name) {}

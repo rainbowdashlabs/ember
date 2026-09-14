@@ -11,6 +11,7 @@ import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -48,6 +49,7 @@ public record UserSession(
         Set<InstancePermission> instancePermissions,
         Instant twoFactorVerifiedAt,
         StepUpProof twoFactorProof,
+        StepUpCategory twoFactorCategory,
         boolean vouchedFor,
         Integer clusterId,
         UUID clusterUid,
@@ -102,6 +104,7 @@ public record UserSession(
                 instancePermissions,
                 twoFactorVerifiedAt,
                 twoFactorProof,
+                null,
                 false,
                 null,
                 null,
@@ -124,6 +127,7 @@ public record UserSession(
             Set<InstancePermission> instancePermissions,
             Instant twoFactorVerifiedAt,
             StepUpProof twoFactorProof,
+            StepUpCategory twoFactorCategory,
             boolean vouchedFor) {
         this(
                 account,
@@ -135,6 +139,7 @@ public record UserSession(
                 instancePermissions,
                 twoFactorVerifiedAt,
                 twoFactorProof,
+                twoFactorCategory,
                 vouchedFor,
                 null,
                 null,

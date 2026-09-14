@@ -145,6 +145,7 @@ public class AccessManager {
                                 instancePermissions,
                                 accountSession.twoFactorVerifiedAt(),
                                 accountSession.twoFactorProof(),
+                                accountSession.twoFactorCategory(),
                                 accountSession.vouchedFor()),
                         cluster,
                         accountId));
@@ -164,6 +165,7 @@ public class AccessManager {
                         instancePermissions,
                         accountSession.twoFactorVerifiedAt(),
                         accountSession.twoFactorProof(),
+                        accountSession.twoFactorCategory(),
                         accountSession.vouchedFor()),
                 cluster,
                 accountId));
@@ -195,6 +197,7 @@ public class AccessManager {
                 session.instancePermissions(),
                 session.twoFactorVerifiedAt(),
                 session.twoFactorProof(),
+                session.twoFactorCategory(),
                 session.vouchedFor(),
                 cluster.id(),
                 cluster.uid(),

@@ -62,7 +62,8 @@ class AvatarAccessServiceTest {
     /** Somebody acting for an association, who may hold no station of their own. */
     private static UserSession clusterSession(Account account, Integer clusterId) {
         return new UserSession(
-                account, 1, null, null, null, Set.of(), Set.of(), null, null, false, clusterId, null, null, Set.of());
+                account, 1, null, null, null, Set.of(), Set.of(), null, null, null, false, clusterId, null, null,
+                Set.of());
     }
 
     private static FederationPartner partner(FederationPartner.FederationStatus status) {

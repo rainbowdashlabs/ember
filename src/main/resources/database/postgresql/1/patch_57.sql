@@ -20,8 +20,7 @@ ALTER TABLE ember_schema.device_request
     ADD COLUMN subject_account_id    INTEGER NULL REFERENCES ember_schema.account (id) ON DELETE CASCADE,
     ADD COLUMN requesting_account_id INTEGER NULL REFERENCES ember_schema.account (id) ON DELETE CASCADE,
     ADD COLUMN requesting_session_id INTEGER NULL REFERENCES ember_schema.account_session (id) ON DELETE CASCADE,
-    ADD COLUMN step_up_category      TEXT    NULL,
-    ADD COLUMN step_up_operation     TEXT    NULL;
+    ADD COLUMN step_up_category      TEXT    NULL;
 
 -- Every request written before this patch was an enrolment whose subject was whoever approved it.
 UPDATE ember_schema.device_request
@@ -69,9 +68,7 @@ COMMENT ON COLUMN ember_schema.device_request.requesting_account_id IS
 COMMENT ON COLUMN ember_schema.device_request.requesting_session_id IS
     'The session that raised a step-up request and that a successful approval stamps. NULL for the other purposes.';
 COMMENT ON COLUMN ember_schema.device_request.step_up_category IS
-    'The sensitivity category the step-up was demanded for, shown on the approval screen so nobody confirms an operation they cannot see.';
-COMMENT ON COLUMN ember_schema.device_request.step_up_operation IS
-    'The operation in a sentence, where the caller knew one. Shown beneath the category.';
+    'The sensitivity category the step-up was demanded for. Shown on the approval screen, and the only thing the approval buys: a confirmation given for one category does not answer a demand for another.';
 COMMENT ON COLUMN ember_schema.device_request.claim_token_hash IS
     'HMAC-SHA-256 of the one-time token the poll returns after approval. It buys exactly what the purpose says and nothing else.';
 
@@ -82,6 +79,13 @@ COMMENT ON COLUMN ember_schema.device_request.claim_token_hash IS
 
 ALTER TABLE ember_schema.account_session
     ADD COLUMN two_factor_proof TEXT NULL;
+
+-- Nor is it enough to know that a stamp came from elsewhere. A confirmation given on another device
+-- answers the demand the approver was shown and no other, or somebody talked into confirming the
+-- mildest thing the product asks about would have confirmed the most sensitive one at the same time.
+
+ALTER TABLE ember_schema.account_session
+    ADD COLUMN two_factor_category TEXT NULL;
 
 -- A session another device vouched for may never vouch in turn, however it has proved itself since.
 -- Otherwise two devices could approve each other in a circle and the ladder would rest on nothing.
@@ -96,14 +100,33 @@ COMMENT ON COLUMN ember_schema.account_session.vouched_for IS
 COMMENT ON COLUMN ember_schema.account_session.two_factor_proof IS
     'What the last step-up was answered with: TOTP, SECURITY_KEY, BACKUP_CODE, PASSKEY, PASSWORD, or ANOTHER_DEVICE. Routes that must rest on somebody proving themselves here and now refuse the last of those.';
 
+COMMENT ON COLUMN ember_schema.account_session.two_factor_category IS
+    'The category a confirmation given on another device answered. NULL where the proof was given here, which answers every category the way it always has.';
+
 -- The request row is a scratchpad: the sweep deletes it minutes after it expires. What happened has
 -- to outlive it, or an account taken over through this door could never be investigated afterwards.
 
 ALTER TYPE ember_schema.two_factor_event ADD VALUE IF NOT EXISTS 'SIGNED_IN_VIA_DEVICE_CODE';
 ALTER TYPE ember_schema.two_factor_event ADD VALUE IF NOT EXISTS 'STEPUP_VIA_DEVICE_CODE';
 
+-- The approval and the grant being spent are up to ten minutes apart, and the interesting cases are
+-- the ones where the second never happens. Without an event of its own, a grant nobody claimed and
+-- a grant a revoke voided both leave no record that anybody ever said yes.
+ALTER TYPE ember_schema.two_factor_event ADD VALUE IF NOT EXISTS 'DEVICE_REQUEST_APPROVED';
+
+-- Voiding the pending requests reaches only rows that already name the account, and a sign-in names
+-- nobody until it is approved. A revoke landing in the moment between the approval screen's checks
+-- and its write therefore misses the row, which is then claimable by the device the revoke was meant
+-- to shut out. Remembering when somebody last said stop closes that: the claim compares against it.
+
+ALTER TABLE ember_schema.account
+    ADD COLUMN sessions_revoked_at TIMESTAMP NULL;
+
+COMMENT ON COLUMN ember_schema.account.sessions_revoked_at IS
+    'When every session of this account was last ended at once. A device grant approved before that moment is refused at claim time, which catches the one a revoke could not see because it had no account on it yet.';
+
 -- The old comment read as though five wrong codes killed a request. They never did: this counts
 -- failed credential ceremonies by the asking device, and a mistyped code is thrown away without
 -- ever reaching the row. What stops a guesser is the rate limiter on the approval screen.
 COMMENT ON COLUMN ember_schema.device_request.attempts IS
-    'Failed credential ceremonies by the requesting device. The request dies after five of them. Wrong codes typed on the approval screen are not counted here and are throttled by the rate limiter instead.';
+    'Failed credential ceremonies by the requesting device. Vestigial: the claim is spent before the ceremony runs, so a request cannot live to see a second one. Wrong codes typed on the approval screen never reach this row and are throttled by the rate limiter instead.';

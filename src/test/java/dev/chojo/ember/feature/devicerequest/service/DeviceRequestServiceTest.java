@@ -36,6 +36,8 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.time.Instant;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -72,8 +74,6 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
         var challengeRepo = new WebAuthnChallengeRepository(TokenHasher.forTesting("repository-test-pepper"));
         var passkeyService = new PasskeyService(
                 parties, twoFactorRepo, new TwoFactorAuditService(twoFactorRepo), challengeRepo, settings);
-        // The two-factor settings need a real key: the code and backup services refuse to start
-        // without one, and this test only wants the session stamp they sit beside.
         var twoFactorSettings = new TwoFactorSettings();
         setField(twoFactorSettings, "enabled", true);
         setField(twoFactorSettings, "secretKey", validKey());
@@ -120,6 +120,11 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
         reset(emailService);
     }
 
+    /** Whatever the request is for, where the story under test is not about which door it came to. */
+    private DeviceRequestService.PollResult poll(String pollSecret) {
+        return service.poll(pollSecret, EnumSet.allOf(DeviceRequestPurpose.class));
+    }
+
     private int newAccount() {
         return accountRepo
                 .create("device-" + UUID.randomUUID() + "@test.com", "Device", "Owner", true)
@@ -148,31 +153,34 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
 
         assertEquals(
                 DeviceRequestService.PollStatus.PENDING,
-                service.poll(request.pollSecret()).status());
+                poll(request.pollSecret()).status());
         assertTrue(service.approve(accountId, accountId, request.code()));
         assertFalse(service.approve(accountId, accountId, request.code()), "an approval happens exactly once");
 
-        var first = service.poll(request.pollSecret());
+        var first = poll(request.pollSecret());
         assertEquals(DeviceRequestService.PollStatus.APPROVED, first.status());
         assertNotNull(first.claimToken(), "the first poll after the approval carries the token");
 
-        var second = service.poll(request.pollSecret());
+        var second = poll(request.pollSecret());
         assertEquals(DeviceRequestService.PollStatus.APPROVED, second.status());
         assertNull(second.claimToken(), "the token is delivered exactly once");
     }
 
+    /**
+     * The claim happens at the finish, so a garbage ceremony burns the token rather than leaving it
+     * spendable a second time. Failing closed is the direction that matters: the member asks for a
+     * new code, instead of an attacker getting another try at one they already hold.
+     */
     @Test
     void theEnrolmentTokenHasExactlyOnePower() {
         int accountId = newAccount();
         var request = service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, "Safari on iPhone", null);
         service.approve(accountId, accountId, request.code());
-        String enrollToken = service.poll(request.pollSecret()).claimToken();
+        String enrollToken = poll(request.pollSecret()).claimToken();
 
         var ceremony = service.beginEnrollment(enrollToken).orElseThrow();
         assertNotNull(ceremony.optionsJson());
 
-        // The claim happens at the finish; a garbage ceremony burns the token rather than
-        // leaving it spendable a second time.
         assertFalse(service.finishEnrollment(enrollToken, ceremony.challengeToken(), "{}", null));
         assertFalse(
                 service.finishEnrollment(enrollToken, ceremony.challengeToken(), "{}", null),
@@ -185,7 +193,7 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
         int accountId = newAccount();
         var request = service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, "Chrome on Android", "DE");
         service.approve(accountId, accountId, request.code());
-        String enrollToken = service.poll(request.pollSecret()).claimToken();
+        String enrollToken = poll(request.pollSecret()).claimToken();
         var ceremony = service.beginEnrollment(enrollToken).orElseThrow();
 
         assertTrue(service.finishEnrollment(
@@ -210,7 +218,7 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
 
         var request = service.createRequest(DeviceRequestPurpose.SIGN_IN, "Firefox on a borrowed laptop", "DE");
         service.approve(accountId, accountId, request.code());
-        service.claimSignIn(service.poll(request.pollSecret()).claimToken(), "Firefox on a borrowed laptop", "DE");
+        service.claimSignIn(poll(request.pollSecret()).claimToken(), "Firefox on a borrowed laptop", "DE");
 
         verify(emailService).sendDeviceSignedInNotice(any(), any(), any(), any(), any());
         verify(emailService, never()).sendPasskeyDeviceApprovedNotice(any(), any(), any(), any(), any());
@@ -233,7 +241,7 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
         var request = service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, "Chrome on Windows", "DE");
 
         assertTrue(service.approve(accountId, accountId, request.code()));
-        service.poll(request.pollSecret());
+        poll(request.pollSecret());
 
         var stored = deviceRepo.findByPollSecret(hashOf(request.pollSecret())).orElseThrow();
         assertEquals(accountId, stored.approvedAccountId());
@@ -249,7 +257,7 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
         int accountId = newAccount();
         var request = service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, "Firefox on Linux", "DE");
         service.approve(accountId, accountId, request.code());
-        String claimToken = service.poll(request.pollSecret()).claimToken();
+        String claimToken = poll(request.pollSecret()).claimToken();
 
         assertTrue(
                 deviceRepo
@@ -286,7 +294,6 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
                 accountId,
                 sessionId,
                 StepUpCategory.ACCOUNT_SECURITY,
-                "Das Passwort ändern",
                 "Firefox on Linux",
                 "DE",
                 Instant.now().plusSeconds(600));
@@ -296,7 +303,41 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
         assertEquals(accountId, stored.requestingAccountId());
         assertEquals(sessionId, stored.requestingSessionId());
         assertEquals(StepUpCategory.ACCOUNT_SECURITY, stored.stepUpCategory());
-        assertEquals("Das Passwort ändern", stored.stepUpOperation());
+    }
+
+    /**
+     * Minting the claim token is where the one-time delivery is spent, so a poll that reached the
+     * wrong door must not reach the row at all. The unauthenticated door would otherwise hand a
+     * step-up grant to whoever holds the secret, and the step-up door would mint a sign-in token and
+     * throw it away, stranding a grant nobody can now claim.
+     */
+    @Test
+    void aPollOnlyEverHandsOverWhatItsOwnDoorIsFor() {
+        int accountId = newAccount();
+        String sessionToken = "session-" + UUID.randomUUID();
+        accountRepo.createSession(accountId, sessionToken, Instant.now().plusSeconds(600), "ua", null);
+        int sessionId = accountRepo.findSession(sessionToken).orElseThrow().id();
+
+        var stepUp =
+                service.createStepUpRequest(accountId, sessionId, StepUpCategory.ACCOUNT_SECURITY, "Firefox", "DE");
+        service.approve(accountId, accountId, stepUp.code());
+
+        assertEquals(
+                DeviceRequestService.PollStatus.UNKNOWN,
+                service.poll(
+                                stepUp.pollSecret(),
+                                Set.of(DeviceRequestPurpose.ENROL_PASSKEY, DeviceRequestPurpose.SIGN_IN))
+                        .status(),
+                "the unauthenticated door says nothing at all about a step-up");
+
+        var signIn = service.createRequest(DeviceRequestPurpose.SIGN_IN, "Chrome", "DE");
+        service.approve(accountId, accountId, signIn.code());
+        assertEquals(
+                DeviceRequestService.PollStatus.UNKNOWN,
+                service.poll(signIn.pollSecret(), Set.of(DeviceRequestPurpose.STEP_UP))
+                        .status(),
+                "and the step-up door does not burn a sign-in's one delivery");
+        assertNotNull(poll(signIn.pollSecret()).claimToken(), "which is why the sign-in is still there to be claimed");
     }
 
     @Test
@@ -325,7 +366,7 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
 
         var request = service.createRequest(DeviceRequestPurpose.SIGN_IN, "Firefox on a borrowed laptop", "DE");
         assertTrue(service.approve(accountId, accountId, request.code()));
-        var poll = service.poll(request.pollSecret());
+        var poll = poll(request.pollSecret());
 
         assertEquals(DeviceRequestPurpose.SIGN_IN, poll.purpose(), "the asking device is told what it may claim");
 
@@ -348,7 +389,7 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
 
         var request = service.createRequest(DeviceRequestPurpose.SIGN_IN, "Chrome on a shared machine", null);
         service.approve(accountId, accountId, request.code());
-        String claimToken = service.poll(request.pollSecret()).claimToken();
+        String claimToken = poll(request.pollSecret()).claimToken();
 
         assertTrue(
                 service.beginEnrollment(claimToken).isEmpty(),
@@ -367,10 +408,10 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
         accountRepo.createSession(accountId, sessionToken, Instant.now().plusSeconds(600), "ua", null);
         int sessionId = accountRepo.findSession(sessionToken).orElseThrow().id();
 
-        var request = service.createStepUpRequest(
-                accountId, sessionId, StepUpCategory.ACCOUNT_SECURITY, "Das Passwort ändern", "Firefox", "DE");
+        var request =
+                service.createStepUpRequest(accountId, sessionId, StepUpCategory.ACCOUNT_SECURITY, "Firefox", "DE");
         assertTrue(service.approve(accountId, accountId, request.code()));
-        String claimToken = service.poll(request.pollSecret()).claimToken();
+        String claimToken = poll(request.pollSecret()).claimToken();
 
         assertTrue(service.claimStepUp(claimToken));
 
@@ -394,7 +435,7 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
 
         var request = service.createRequest(DeviceRequestPurpose.SIGN_IN, "Firefox on a borrowed laptop", "DE");
         service.approve(accountId, accountId, request.code());
-        String claimToken = service.poll(request.pollSecret()).claimToken();
+        String claimToken = poll(request.pollSecret()).claimToken();
 
         accountRepo.deleteSessionsByAccount(accountId);
 
@@ -409,10 +450,9 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
         var request = service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, "Edge on Windows", null);
         assertTrue(service.beginEnrollment("no-such-token").isEmpty());
         assertEquals(
-                DeviceRequestService.PollStatus.UNKNOWN,
-                service.poll("no-such-secret").status());
+                DeviceRequestService.PollStatus.UNKNOWN, poll("no-such-secret").status());
         assertEquals(
                 DeviceRequestService.PollStatus.PENDING,
-                service.poll(request.pollSecret()).status());
+                poll(request.pollSecret()).status());
     }
 }

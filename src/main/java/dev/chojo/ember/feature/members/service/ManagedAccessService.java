@@ -269,15 +269,13 @@ public class ManagedAccessService {
     }
 
     /**
-     * Refuses anything but a member the guardian actually manages, and anything but the member
-     * types a guardian can be assigned to in the first place.
-     */
-    /**
      * Somebody a guardian may sign in on a device in front of them.
      *
-     * <p>The same people they may already give an address, a name and a password to, narrowed to the
-     * ones who could sign in at all: an account whose access is switched off is not one to hand a
-     * session to. Ordered by name, because a guardian picks a child by their name and nothing else.
+     * <p>The same people they may already give an address, a name and a password to, narrowed twice.
+     * They must have something to sign in with, and their access must still be switched on: a
+     * guardian who said stop revoked the sessions and the pending grants, and the next approval must
+     * not quietly undo that. Ordered by name, because a guardian picks a child by their name and
+     * nothing else.
      *
      * @param guardianMemberId the guardian's own member row at the station
      */
@@ -286,6 +284,7 @@ public class ManagedAccessService {
                 .filter(managed ->
                         managed.userType() == StationUserType.MEMBER || managed.userType() == StationUserType.TRIAL)
                 .filter(managed -> managed.accountId() != null)
+                .filter(managed -> hasLogin(managed.id()))
                 .flatMap(managed -> accountRepository.findById(managed.accountId()).stream()
                         .filter(ManagedAccessService::canSignIn)
                         .map(account -> new SignInCandidate(account.id(), nameOf(managed, account))))

@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose;
 import dev.chojo.ember.feature.devicerequest.service.DeviceRequestService;
 import dev.chojo.ember.feature.passkey.service.PasskeyService;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
@@ -75,30 +76,30 @@ public class StepUpRoutes implements Routes {
         routes.post(prefix + "/auth/stepup/passkey/begin", this::beginPasskeyStepUp, StationPermission.LOGIN);
         routes.post(prefix + "/auth/stepup/passkey/finish", this::finishPasskeyStepUp, StationPermission.LOGIN);
 
-        // Confirming on a device the reader is already signed in on. The answer for somebody with
-        // no password and no passkey on the machine in front of them.
         routes.post(prefix + "/auth/stepup/device/begin", this::beginDeviceStepUp, StationPermission.LOGIN);
         routes.post(prefix + "/auth/stepup/device/poll", this::pollDeviceStepUp, StationPermission.LOGIN);
     }
 
     /**
-     * Raises the request and shows its code. The category travels with it so the approving device can
-     * say what it is confirming rather than asking somebody to trust a blank.
+     * Raises the request and shows its code.
+     *
+     * <p>The category travels with it so the approving device can say what it is confirming rather
+     * than asking somebody to trust a blank, and nothing else does: whoever raises this may already
+     * hold a stolen cookie, so every word on the approval screen is the product's own.
      */
     private void beginDeviceStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        enforceLimit(rateLimiter.tryDeviceRequest(clientIp(ctx)));
         if (!twoFactorService
                 .availableProofs(session.accountId(), session.sessionId())
                 .contains(StepUpProof.ANOTHER_DEVICE)) {
             throw new ForbiddenResponse("No other device of this account could confirm");
         }
         var request = ctx.bodyAsClass(DeviceStepUpBeginRequest.class);
-        StepUpCategory category = parseCategory(request.category());
         var created = deviceRequestService.createStepUpRequest(
                 session.accountId(),
                 session.sessionId(),
-                category,
-                request.operation(),
+                parseCategory(request.category()),
                 ctx.userAgent(),
                 ctx.header("CF-IPCountry"));
         ctx.json(new DeviceStepUpBeginResponse(created.code(), created.pollSecret(), created.expiresAt()));
@@ -110,11 +111,12 @@ public class StepUpRoutes implements Routes {
      */
     private void pollDeviceStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        enforceLimit(rateLimiter.tryDevicePoll(clientIp(ctx)));
         var request = ctx.bodyAsClass(DeviceStepUpPollRequest.class);
         if (request.pollSecret() == null || request.pollSecret().isBlank()) {
             throw new BadRequestResponse("pollSecret is required");
         }
-        var result = deviceRequestService.poll(request.pollSecret());
+        var result = deviceRequestService.poll(request.pollSecret(), Set.of(DeviceRequestPurpose.STEP_UP));
         if (result.claimToken() != null && deviceRequestService.claimStepUp(result.claimToken())) {
             auditService.record(
                     session.accountId(),
@@ -129,8 +131,15 @@ public class StepUpRoutes implements Routes {
         ctx.json(new DeviceStepUpPollResponse(result.status().name()));
     }
 
+    /**
+     * The category is what the approver is shown and what their answer buys, so a blank one is a bad
+     * request rather than a guess: defaulting it would let a caller who named nothing be handed the
+     * gravest category the product has.
+     */
     private static StepUpCategory parseCategory(String raw) {
-        if (raw == null || raw.isBlank()) return StepUpCategory.ACCOUNT_SECURITY;
+        if (raw == null || raw.isBlank()) {
+            throw new BadRequestResponse("category is required");
+        }
         try {
             return StepUpCategory.valueOf(raw);
         } catch (IllegalArgumentException e) {
@@ -240,10 +249,10 @@ public class StepUpRoutes implements Routes {
     public record StepUpVerifiedResponse(Instant verifiedAt) {}
 
     /**
-     * @param category what the step-up was demanded for
-     * @param operation the action in a sentence, where the caller knows one. Shown to whoever confirms
+     * @param category what the step-up was demanded for. The only thing the approval screen shows and
+     *         the only thing a confirmation answers, so it is never text the caller composed
      */
-    public record DeviceStepUpBeginRequest(String category, String operation) {}
+    public record DeviceStepUpBeginRequest(String category) {}
 
     public record DeviceStepUpBeginResponse(String code, String pollSecret, Instant expiresAt) {}
 

@@ -47,7 +47,7 @@ public class AccountRepository {
     private static final String TOKEN_COLUMNS =
             "id, account_id, token_hash, token_type, metadata, expires_at, created_at, confirmed_at";
     private static final String SESSION_COLUMNS =
-            "id, account_id, token_hash, expires_at, created_at, user_agent, last_used_at, location, two_factor_verified_at, two_factor_proof, trusted_device, vouched_for";
+            "id, account_id, token_hash, expires_at, created_at, user_agent, last_used_at, location, two_factor_verified_at, two_factor_proof, two_factor_category, trusted_device, vouched_for";
 
     private final TokenHasher tokenHasher;
 
@@ -878,6 +878,60 @@ public class AccountRepository {
     }
 
     /**
+     * Whether a guardian of this account holds a live session that could confirm for it.
+     *
+     * <p>A member signed in by their guardian has no password and no passkey of their own, and no
+     * second session either, so without this the dialog would have nothing to offer them and the
+     * product would have minted a session that can never answer a demand. The guardian is exactly who
+     * answers for them everywhere else.
+     *
+     * <p>A session another device vouched for is left out on both sides, the same way it is
+     * everywhere: the ladder has to end in somebody proving themselves at a keyboard.
+     */
+    public boolean hasGuardianSession(int accountId) {
+        return query("""
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM station_member managed
+                    JOIN member_manager mm ON mm.managed_id = managed.id
+                    JOIN station_member guardian ON guardian.id = mm.manager_id
+                    JOIN account_session s ON s.account_id = guardian.account_id
+                    WHERE managed.account_id = :account_id
+                    AND managed.former = FALSE AND guardian.former = FALSE
+                    AND s.expires_at > now() AND s.vouched_for = FALSE
+                ) AS held;""")
+                .single(call().bind("account_id", accountId))
+                .map(row -> row.getBoolean("held"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * Whether one account looks after another, at any station either of them belongs to.
+     *
+     * <p>Asked when the guardian answers rather than when the offer was made, and deliberately as
+     * wide as {@link #hasGuardianSession(int)}: the two have to agree, or the dialog would offer a
+     * confirmation that the approval screen then refuses as an unknown code. Guardianship is a
+     * relationship between two people, and which station the guardian happens to be looking at when
+     * they type the code is not part of it.
+     */
+    public boolean isGuardianOf(int guardianAccountId, int managedAccountId) {
+        return query("""
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM station_member managed
+                    JOIN member_manager mm ON mm.managed_id = managed.id
+                    JOIN station_member guardian ON guardian.id = mm.manager_id
+                    WHERE managed.account_id = :managed_id AND guardian.account_id = :guardian_id
+                    AND managed.former = FALSE AND guardian.former = FALSE
+                ) AS manages;""")
+                .single(call().bind("managed_id", managedAccountId).bind("guardian_id", guardianAccountId))
+                .map(row -> row.getBoolean("manages"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
      * A session another device vouched for. Its own method rather than a flag on the others, because
      * everything about it is deliberately the plainest the product can mint: nothing proved here, no
      * trusted device, and a mark it carries for life saying it may never vouch for anybody else.
@@ -1078,21 +1132,15 @@ public class AccountRepository {
     /**
      * Deletes all sessions for an account, effectively logging out all devices.
      *
-     * <p>A device request the account has in flight dies with them. Ending every session is somebody
-     * saying stop, and an approval given a minute earlier is still waiting to let a device in for up
-     * to ten: without this, the one action a frightened person takes would be the one it survives.
-     * It lives here rather than at each caller because revoking is reached from four directions, and
-     * a fifth that forgot would reopen the hole silently.
+     * <p>A device request the account has in flight dies with them. It lives here rather than at each
+     * caller because revoking is reached from four directions, and a fifth that forgot would reopen
+     * the hole silently.
      *
      * @param accountId the account identifier
      * @return {@code true} if any sessions were deleted
      */
     public boolean deleteSessionsByAccount(int accountId) {
-        query("""
-                UPDATE device_request SET consumed_at = now()
-                WHERE consumed_at IS NULL
-                AND (subject_account_id = :account_id OR approved_account_id = :account_id
-                     OR requesting_account_id = :account_id);""").single(call().bind("account_id", accountId)).update();
+        voidPendingDeviceRequests(accountId);
         return query("DELETE FROM account_session WHERE account_id = :account_id;")
                 .single(call().bind("account_id", accountId))
                 .delete()
@@ -1110,10 +1158,49 @@ public class AccountRepository {
      * @return {@code true} if any sessions were deleted
      */
     public boolean deleteSessionsExceptToken(int accountId, String keepToken) {
+        voidPendingDeviceRequests(accountId);
         return query("DELETE FROM account_session WHERE account_id = :account_id AND token_hash <> :keep_hash;")
                 .single(call().bind("account_id", accountId).bind("keep_hash", tokenHasher.hash(keepToken)))
                 .delete()
                 .changed();
+    }
+
+    /**
+     * Kills every device request of an account that has not been claimed yet, approved or not.
+     *
+     * <p>Up to ten minutes can pass between an approval and the poll that spends it. Both ways of
+     * ending an account's sessions are somebody saying stop, and a grant that landed a minute earlier
+     * would otherwise still be waiting to let a device in after they said it. Changing a password
+     * while keeping the current session is the likeliest thing a worried person does, so it has to
+     * reach as far as revoking everything does.
+     *
+     * <p>The account is reached through either side, because a sign-in a guardian approved names the
+     * guardian in one column and the member in the other.
+     */
+    private void voidPendingDeviceRequests(int accountId) {
+        query("""
+                UPDATE device_request SET consumed_at = now()
+                WHERE consumed_at IS NULL
+                AND (subject_account_id = :account_id OR approved_account_id = :account_id
+                     OR requesting_account_id = :account_id);""").single(call().bind("account_id", accountId)).update();
+        query("UPDATE account SET sessions_revoked_at = now() WHERE id = :account_id;")
+                .single(call().bind("account_id", accountId))
+                .update();
+    }
+
+    /**
+     * When this account last ended every session at once, or empty if it never has.
+     *
+     * <p>The void above reaches only rows that already name the account, and a sign-in request names
+     * nobody until somebody approves it. A revoke landing in the moment between the approval screen's
+     * checks and its write therefore passes the row by, leaving a grant the revoke was meant to shut
+     * out. Comparing the approval against this closes that door from the other side.
+     */
+    public Optional<Instant> findSessionsRevokedAt(int accountId) {
+        return query("SELECT sessions_revoked_at FROM account WHERE id = :id;")
+                .single(call().bind("id", accountId))
+                .map(row -> row.get("sessions_revoked_at", INSTANT_TIMESTAMP))
+                .first();
     }
 
     /**

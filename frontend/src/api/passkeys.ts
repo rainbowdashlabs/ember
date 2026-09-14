@@ -178,8 +178,8 @@ export interface DeviceLookup {
     purpose: DeviceRequestPurposeName
     /** What a step-up was demanded for, absent for the other purposes. */
     stepUpCategory: string | null
-    /** The action in a sentence, where the asking side knew one. */
-    stepUpOperation: string | null
+    /** Whose step-up it is, where that is somebody in the reader's care rather than the reader. */
+    stepUpSubject: string | null
     /** Whom this reader may sign in, for a sign-in. Themselves first. */
     candidates: ApprovalCandidate[]
 }
@@ -258,8 +258,12 @@ export interface DeviceStepUp {
 
 export type DeviceStepUpStatus = DevicePollStatus | 'CONFIRMED'
 
-export async function stepUpDeviceBegin(category: string | null, operation: string | null): Promise<DeviceStepUp> {
-    const res = await client.post<DeviceStepUp>('/auth/stepup/device/begin', {category, operation})
+/**
+ * Raises the request the other device will confirm. The category is all that travels: it is what the
+ * approval screen shows and the only thing a confirmation answers.
+ */
+export async function stepUpDeviceBegin(category: string): Promise<DeviceStepUp> {
+    const res = await client.post<DeviceStepUp>('/auth/stepup/device/begin', {category})
     return res.data
 }
 

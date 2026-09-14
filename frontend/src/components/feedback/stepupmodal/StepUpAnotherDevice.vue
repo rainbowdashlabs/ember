@@ -21,8 +21,8 @@ import {passkeys} from '@/api'
  * device types it into its settings, sees what it is confirming, and answers for itself.
  */
 const props = defineProps<{
-  /** What the step-up was demanded for, so the confirming device can say it. */
-  category: string | null
+  /** What the step-up was demanded for, and the only thing a confirmation answers. */
+  category: string
 }>()
 
 const emit = defineEmits<{
@@ -48,7 +48,7 @@ async function start() {
   stopPolling()
   phase.value = 'starting'
   try {
-    const request = await passkeys.stepUpDeviceBegin(props.category, null)
+    const request = await passkeys.stepUpDeviceBegin(props.category)
     code.value = request.code
     phase.value = 'waiting'
     pollTimer = setInterval(() => void poll(request.pollSecret), 2500)
@@ -57,6 +57,7 @@ async function start() {
   }
 }
 
+/** One tick of the wait. A lost poll is nothing: the next tick asks again. */
 async function poll(pollSecret: string) {
   if (phase.value !== 'waiting') return
   try {
@@ -69,7 +70,7 @@ async function poll(pollSecret: string) {
       phase.value = 'expired'
     }
   } catch {
-    // A lost poll is nothing; the next tick asks again.
+    return
   }
 }
 

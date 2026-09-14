@@ -1266,7 +1266,10 @@ class AuthServiceTest extends RepositoryTestBase {
         accountRepo.setEmailVerified(id);
         accountRepo.setForcePasswordChange(id, true);
         var rotating = service.admitVouchedForAccount(id, "agent", "DE");
-        assertTrue(rotating.passwordChangeRequired(), "a leaked password must still be rotated");
+        assertFalse(rotating.success(), "an account owing a password change is not let in this way");
+        assertFalse(
+                rotating.passwordChangeRequired(),
+                "and it is not handed the token for it either: that would let the borrowed machine set the password");
 
         assertFalse(
                 service.admitVouchedForAccount(999_999, "agent", "DE").success(), "and an account that is not there");
