@@ -18,6 +18,7 @@ import { useQuestionListState } from './questionsection/useQuestionListState'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -208,10 +209,10 @@ function onBatchDone() {
     <div class="space-y-4">
       <SubHeader>{{ t('common.delete') }}</SubHeader>
       <p class="text-sm">{{ t('quiz.questions.deleteConfirm') }}</p>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="showDeleteQuestionModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton @click="deleteQuestion">{{ t('common.delete') }}</ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 
