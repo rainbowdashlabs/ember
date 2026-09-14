@@ -14,6 +14,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
@@ -167,10 +168,10 @@ watch(loaded, (isLoaded) => {
         <Modal v-model="showRevertModal">
             <template #title>{{ t('kb.revert') }}</template>
             <p class="mb-4">{{ t('kb.revertConfirm') }}</p>
-            <div class="flex gap-2 justify-end">
+            <ButtonRow pair align="end">
                 <SecondaryButton @click="showRevertModal = false">{{ t('common.cancel') }}</SecondaryButton>
                 <PrimaryButton @click="handleRevert">{{ t('kb.revert') }}</PrimaryButton>
-            </div>
+            </ButtonRow>
         </Modal>
     </ViewContent>
 </template>

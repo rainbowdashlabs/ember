@@ -10,6 +10,7 @@ import { useRouter } from 'vue-router'
 import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import BoardCreateTicketFields from './BoardCreateTicketFields.vue'
@@ -104,13 +105,13 @@ function openFullEditor() {
                 :assignable-members="assignableMembers"
             />
             <FailureAlert :message="error"/>
-            <div class="flex items-center justify-between">
+            <ButtonRow align="between">
                 <SecondaryButton @click="openFullEditor">
                     <font-awesome-icon :icon="['fas', 'expand']" class="mr-1" />
                     {{ t('boards.moreOptions') }}
                 </SecondaryButton>
                 <PrimaryButton @click="submit">{{ t('common.create') }}</PrimaryButton>
-            </div>
+            </ButtonRow>
         </div>
     </Modal>
 </template>

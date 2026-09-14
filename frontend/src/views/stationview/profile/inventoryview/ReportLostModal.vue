@@ -10,6 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -60,12 +61,12 @@ const canSubmit = computed(() => !props.submitting && (!props.noteRequired || no
           data-testid="report-lost-note"
       />
       <FailureAlert :message="error"/>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton :disabled="!canSubmit" data-testid="report-lost-submit" @click="emit('submit')">
           {{ t('profile.submitLost') }}
         </ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

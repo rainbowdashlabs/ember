@@ -10,6 +10,7 @@ import {useRouter} from 'vue-router'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {knowledgeBase} from '@/api'
@@ -263,10 +264,10 @@ defineExpose({
             <FileInput accept=".docx,.odt,.rtf,.html,.htm,.epub,.tex" @select="onImportFileSelect"/>
             <TextInput v-model="importFileName" :placeholder="t('kb.fileName')" />
             <TextAreaInput v-model="importFileDescription" :placeholder="t('kb.description')" />
-            <div class="flex gap-2 justify-end">
+            <ButtonRow pair align="end">
                 <SecondaryButton type="button" @click="showImportModal = false">{{ t('common.cancel') }}</SecondaryButton>
                 <PrimaryButton type="submit" :disabled="!importFileRef">{{ t('kb.importBtn') }}</PrimaryButton>
-            </div>
+            </ButtonRow>
         </form>
     </Modal>
 

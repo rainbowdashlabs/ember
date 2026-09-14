@@ -14,6 +14,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import {QuestionTypes, type EligibleMembers, type Form, type FormQuestion} from '@/api/forms'
 import { forms } from '@/api'
@@ -219,12 +220,12 @@ watch(loaded, (isLoaded) => {
                         :question="q" />
         </div>
 
-        <div class="flex justify-end gap-3">
+        <ButtonRow pair align="end">
           <SecondaryButton @click="router.push({ name: 'forms-list' })">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton @click="submit">
             {{ hasExistingResponse ? t('forms.update') : t('forms.submit') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </template>
     </div>
   </ViewContent>

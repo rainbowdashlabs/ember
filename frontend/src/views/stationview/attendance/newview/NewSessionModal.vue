@@ -13,6 +13,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import {instantToLocalInput, localInputToInstant} from '@/util/format'
 
@@ -80,12 +81,12 @@ function create() {
         </div>
       </div>
 
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton data-cancel @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="busy || !start || !end" data-testid="new-session-create" @click="create">
           {{ t('attendanceNew.create') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

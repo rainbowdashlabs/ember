@@ -11,6 +11,7 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import MemberCheckNotes from './MemberCheckNotes.vue'
@@ -68,10 +69,10 @@ const emit = defineEmits<{
           {{ t('attendanceSession.declined') }}
         </InfoButton>
       </div>
-      <div class="flex justify-center gap-3 pt-2">
+      <ButtonRow pair align="center" class="pt-2">
         <SecondaryButton @click="emit('skip')">{{ t('attendanceSession.skip') }}</SecondaryButton>
         <SecondaryButton @click="emit('end')">{{ t('attendanceSession.endCheck') }}</SecondaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </NeutralContainer>
 

@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -125,12 +126,12 @@ defineExpose({openMove, openTags, openDelete})
             {{ t('kb.bulkMoveHint', {count: folderIds.length + fileIds.length}) }}
         </MutedText>
         <KbFolderPicker v-model="target" :folders="folders"/>
-        <div class="mt-4 flex justify-end gap-2">
+        <ButtonRow pair align="end" class="mt-4">
             <SecondaryButton data-cancel @click="showMove = false">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton :disabled="saving" data-testid="kb-bulk-move-confirm" @click="submitMove">
                 {{ t('kb.move') }}
             </PrimaryButton>
-        </div>
+        </ButtonRow>
     </Modal>
 
     <Modal v-model="showTags">
@@ -140,12 +141,12 @@ defineExpose({openMove, openTags, openDelete})
         </MutedText>
         <KbTagsEditor v-model="addTags" :label="t('kb.bulkTagsAdd')"/>
         <KbTagsEditor v-model="removeTags" :label="t('kb.bulkTagsRemove')"/>
-        <div class="mt-4 flex justify-end gap-2">
+        <ButtonRow pair align="end" class="mt-4">
             <SecondaryButton data-cancel @click="showTags = false">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton :disabled="saving" data-testid="kb-bulk-tags-confirm" @click="submitTags">
                 {{ t('common.save') }}
             </PrimaryButton>
-        </div>
+        </ButtonRow>
     </Modal>
 
     <Modal v-model="showDelete">
@@ -156,11 +157,11 @@ defineExpose({openMove, openTags, openDelete})
                 : t('kb.bulkDeleteCounting') }}
         </MutedText>
         <MutedText tag="p" size="sm" class="mb-3">{{ t('kb.bulkDeleteRecoverable') }}</MutedText>
-        <div class="mt-4 flex justify-end gap-2">
+        <ButtonRow pair align="end" class="mt-4">
             <SecondaryButton data-cancel @click="showDelete = false">{{ t('common.cancel') }}</SecondaryButton>
             <DeleteButton :disabled="saving" data-testid="kb-bulk-delete-confirm" @click="submitDelete">
                 {{ t('common.delete') }}
             </DeleteButton>
-        </div>
+        </ButtonRow>
     </Modal>
 </template>

@@ -11,6 +11,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -88,10 +89,10 @@ function pollStationImport() {
     <div class="space-y-4">
       <SectionHeader>{{ t('stationManage.importConfirmTitle') }}</SectionHeader>
       <p class="text-sm">{{ t('stationManage.importConfirmText') }}</p>
-      <div class="flex justify-end gap-3">
+      <ButtonRow align="end">
         <SecondaryButton @click="showImportConfirm = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton @click="startStationImport">{{ t('stationManage.importConfirmAction') }}</ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

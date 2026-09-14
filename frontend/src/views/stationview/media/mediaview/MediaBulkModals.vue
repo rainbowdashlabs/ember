@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -43,10 +44,10 @@ const {t} = useI18n()
                 <option value="">{{ t('stationPages.editor.rootFolder') }}</option>
                 <option v-for="f in folders" :key="f.id" :value="f.id">{{ f.name }}</option>
             </SelectInput>
-            <div class="flex justify-end gap-2">
+            <ButtonRow pair align="end">
                 <SecondaryButton @click="moveOpen = false">{{ t('common.cancel') }}</SecondaryButton>
                 <PrimaryButton @click="emit('move')">{{ t('stationPages.editor.moveSelected') }}</PrimaryButton>
-            </div>
+            </ButtonRow>
         </div>
     </Modal>
 
@@ -56,10 +57,10 @@ const {t} = useI18n()
             <p class="text-sm">
                 {{ t('stationPages.editor.deleteSelectedPrompt', {count: selectedCount}) }}
             </p>
-            <div class="flex justify-end gap-2">
+            <ButtonRow align="end">
                 <SecondaryButton @click="deleteOpen = false">{{ t('common.cancel') }}</SecondaryButton>
                 <ErrorButton @click="emit('delete')">{{ t('stationPages.editor.deleteSelected') }}</ErrorButton>
-            </div>
+            </ButtonRow>
         </div>
     </Modal>
 </template>

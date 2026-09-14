@@ -12,6 +12,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember} from '@/components/input/select/memberOption'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import type {ManagedMember} from '@/api/managedMembers'
 
@@ -68,12 +69,12 @@ watch(visible, value => {
         />
       </div>
 
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="visible = false">{{ t('common.cancel') }}</SecondaryButton>
         <SuccessButton :disabled="loading" @click="emit('confirm', forMemberId)">
           {{ loading ? t('common.loading') : t('lostAndFound.claim') }}
         </SuccessButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

@@ -10,6 +10,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import type {ChecklistColumnDto} from '@/api/checklists'
 
@@ -107,10 +108,10 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
       <div class="space-y-3">
         <div class="font-semibold">{{ t('checklist.bulkConfirmTickTitle') }}</div>
         <p>{{ t('checklist.bulkConfirmMessage', {count: visibleCount}) }}</p>
-        <div class="flex justify-end gap-2">
+        <ButtonRow pair align="end">
           <SecondaryButton @click="confirmTick = false">{{ t('checklist.cancel') }}</SecondaryButton>
           <PrimaryButton @click="applyBulkTick">{{ t('checklist.bulkTickShown') }}</PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </Modal>
 
@@ -118,10 +119,10 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
       <div class="space-y-3">
         <div class="font-semibold">{{ t('checklist.bulkConfirmClearTitle') }}</div>
         <p>{{ t('checklist.bulkConfirmMessage', {count: visibleCount}) }}</p>
-        <div class="flex justify-end gap-2">
+        <ButtonRow pair align="end">
           <SecondaryButton @click="confirmClear = false">{{ t('checklist.cancel') }}</SecondaryButton>
           <PrimaryButton @click="applyBulkClear">{{ t('checklist.bulkClearShown') }}</PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </Modal>
   </th>
