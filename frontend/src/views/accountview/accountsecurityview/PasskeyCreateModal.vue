@@ -13,6 +13,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import {usePasskeyCreation} from '@/composables/usePasskeyCreation'
 
 /**
@@ -61,17 +62,17 @@ function close() {
         <MutedText tag="p" size="sm">{{ t('passkeys.explainer') }}</MutedText>
         <TextInput v-model="label" :placeholder="t('passkeys.section.labelPlaceholder')"/>
         <MutedText tag="p" size="sm">{{ t('passkeys.create.preparing') }}</MutedText>
-        <div class="flex justify-between gap-2">
+        <ButtonRow pair align="between">
           <SecondaryButton type="button" @click="close">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton type="button" @click="create">{{ t('passkeys.offer.accept') }}</PrimaryButton>
-        </div>
+        </ButtonRow>
       </template>
 
       <p v-else-if="phase === 'creating'">{{ t('passkeys.create.preparing') }}</p>
 
       <template v-else-if="phase === 'trial' || phase === 'trialRunning'">
         <p>{{ t('passkeys.create.trialPrompt') }}</p>
-        <div class="flex justify-between gap-2">
+        <ButtonRow pair align="between">
           <SecondaryButton type="button" :disabled="phase === 'trialRunning'" @click="skipTrial">
             {{ t('passkeys.create.trialSkip') }}
           </SecondaryButton>
