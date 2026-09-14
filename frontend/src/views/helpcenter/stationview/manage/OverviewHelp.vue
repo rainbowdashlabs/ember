@@ -22,6 +22,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.manageOverview.pagesText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.manageOverview.pdfTitle')">
+      <p>{{ t('helpCenter.manageOverview.pdfText') }}</p>
+      <p class="mt-2 text-sm">{{ t('helpCenter.manageOverview.pdfPerDocument') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.manageOverview.overviewTip') }}</HelpTip>
   </HelpArticle>
 </template>

@@ -19,6 +19,9 @@ import type {
 import {StationPermission, type MemberGroup, type StationMember} from '@/api/types'
 import {attendance, events, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import type {SheetOptions} from '@/api/attendance'
+import ExportSheetModal from './sessionview/ExportSheetModal.vue'
 import {useSessionMeta} from './sessionview/useSessionMeta'
 import {useCheckMode, type CheckRow} from './sessionview/useCheckMode'
 import {useSessionFields} from './sessionview/useSessionFields'
@@ -32,7 +35,7 @@ import {reportCaughtError} from '@/util/devErrorReporter'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {loaded, hasPermission} = useSession()
+const {loaded, hasPermission, sessionInfo} = useSession()
 
 const canManage = computed(() => hasPermission(StationPermission.ATTENDANCE_MANAGER))
 
@@ -353,14 +356,17 @@ async function lockSession() {
   }
 }
 
-async function exportPdf() {
+const showExportOptions = ref(false)
+
+const {running: exporting, run: exportSheet} = useAsyncAction(async (options: SheetOptions) => {
   error.value = ''
   try {
-    saveBlob(await attendance.exportPdf(sessionId.value), `attendance-${sessionId.value}.pdf`)
+    saveBlob(await attendance.exportPdf(sessionId.value, options), `attendance-${sessionId.value}.pdf`)
+    showExportOptions.value = false
   } catch {
     error.value = t('common.error')
   }
-}
+})
 
 function goBack() {
   router.push({name: 'attendance-past'})
@@ -424,7 +430,7 @@ watch(loaded, (isLoaded) => {
         :event-end-time="eventEndTime"
         :spans-days="spansDays"
         @back="goBack"
-        @export="exportPdf"
+        @export="showExportOptions = true"
         @sync="syncFromEvent"
         @start-check-mode="startCheckMode"
         @remove="showDeleteConfirm = true"
@@ -448,6 +454,14 @@ watch(loaded, (isLoaded) => {
         @check-out="setCheckOut"
         @reset-times="resetEntryTimes"
         @add-member="addMember"
+    />
+
+    <ExportSheetModal
+        v-model="showExportOptions"
+        :exporting="exporting"
+        :session-title="session?.title ?? ''"
+        :shows-instance-url="!sessionInfo?.pdfHidesInstanceUrl"
+        @export="exportSheet"
     />
 
     <ConfirmDeleteModal

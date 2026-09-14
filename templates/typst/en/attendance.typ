@@ -35,8 +35,17 @@
   #v(0.3em)
 ]
 
+#let signing = data.at("signatureColumn", default: false)
+#let blank-rows = data.at("blankRows", default: 0)
+
+// A sheet handed out to be filled in can be given its heading by hand, which is what an empty
+// title means: a line to write on rather than a title somebody has to cross out.
 #align(center)[
-  #text(size: 16pt, weight: "bold")[#data.title]
+  #if data.title != "" [
+    #text(size: 16pt, weight: "bold")[#data.title]
+  ] else [
+    #box(width: 60%, line(length: 100%, stroke: 0.5pt + luma(120)))
+  ]
 ]
 
 #v(0.5em)
@@ -71,42 +80,91 @@
 ]
 
 // Summary
-#let present = data.entries.filter(e => e.status == "PRESENT").len()
-#let absent = data.entries.filter(e => e.status == "ABSENT").len()
-#let declined = data.entries.filter(e => e.status == "DECLINED").len()
-#let unconfirmed = data.entries.filter(e => e.status == "UNCONFIRMED").len()
+//
+// What Ember recorded is left off a sheet that is about to be signed: the paper is the record of who
+// came, and a count taken before it was handed out would contradict it by the end of the evening.
+#if not signing [
+  #let present = data.entries.filter(e => e.status == "PRESENT").len()
+  #let absent = data.entries.filter(e => e.status == "ABSENT").len()
+  #let declined = data.entries.filter(e => e.status == "DECLINED").len()
+  #let unconfirmed = data.entries.filter(e => e.status == "UNCONFIRMED").len()
 
-#text(size: 9pt, fill: luma(100))[
-  Present: #present · Absent: #absent · Declined: #declined · Pending: #unconfirmed · Total: #data.entries.len()
+  #text(size: 9pt, fill: luma(100))[
+    Present: #present · Absent: #absent · Declined: #declined · Pending: #unconfirmed · Total: #data.entries.len()
+  ]
 ]
 
 #v(0.5em)
 
 // Attendance by group
+//
+// Everybody on the list gets a line to sign, whatever status was recorded of them: who came is what
+// the paper answers. A line signed by hand needs room for a hand; a line that is only read does not.
+#let row-inset = if signing { (x: 6pt, y: 14pt) } else { 6pt }
+
 #for section in data.sections [
   #v(0.5em)
   #text(size: 11pt, weight: "bold")[#section.name]
   #v(0.3em)
 
-  #table(
-    columns: (auto, 1fr, auto, auto, auto),
-    stroke: 0.5pt + luma(180),
-    inset: 6pt,
-    align: (center, left, center, center, center),
-    table.header(
-      [], [*Name*], [*Status*], [*From*], [*To*],
-    ),
-    ..for (i, entry) in section.entries.enumerate() {
-      let status = if entry.status == "PRESENT" {
-        text(fill: rgb("#00C507"))[Present]
-      } else if entry.status == "ABSENT" {
-        text(fill: rgb("#ec2929"))[Absent]
-      } else if entry.status == "DECLINED" {
-        text(fill: rgb("#3694FF"))[Declined]
-      } else {
-        text(fill: luma(150))[Pending]
+  #if signing [
+    #table(
+      columns: (auto, 1fr, 1fr),
+      stroke: 0.5pt + luma(180),
+      inset: row-inset,
+      align: (center, left, left),
+      table.header(
+        [], [*Name*], [*Signature*],
+      ),
+      ..for (i, entry) in section.entries.enumerate() {
+        (str(i + 1), entry.name, [])
       }
-      (str(i + 1), entry.name, status, entry.checkIn, entry.checkOut)
+    )
+  ] else [
+    #table(
+      columns: (auto, 1fr, auto, auto, auto),
+      stroke: 0.5pt + luma(180),
+      inset: row-inset,
+      align: (center, left, center, center, center),
+      table.header(
+        [], [*Name*], [*Status*], [*From*], [*To*],
+      ),
+      ..for (i, entry) in section.entries.enumerate() {
+        let status = if entry.status == "PRESENT" {
+          text(fill: rgb("#00C507"))[Present]
+        } else if entry.status == "ABSENT" {
+          text(fill: rgb("#ec2929"))[Absent]
+        } else if entry.status == "DECLINED" {
+          text(fill: rgb("#3694FF"))[Declined]
+        } else {
+          text(fill: luma(150))[Pending]
+        }
+        (str(i + 1), entry.name, status, entry.checkIn, entry.checkOut)
+      }
+    )
+  ]
+]
+
+// Room for whoever turns up without being on the list.
+#if blank-rows > 0 [
+  #v(0.5em)
+  #text(size: 11pt, weight: "bold")[Further attendees]
+  #v(0.3em)
+
+  #table(
+    columns: if signing { (auto, 1fr, 1fr) } else { (auto, 1fr) },
+    stroke: 0.5pt + luma(180),
+    inset: row-inset,
+    align: (center, left, left),
+    table.header(
+      ..if signing { ([], [*Name*], [*Signature*]) } else { ([], [*Name*]) },
+    ),
+    ..for i in range(blank-rows) {
+      if signing {
+        (str(i + 1), [], [])
+      } else {
+        (str(i + 1), [])
+      }
     }
   )
 ]

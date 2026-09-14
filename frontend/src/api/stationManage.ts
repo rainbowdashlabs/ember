@@ -29,6 +29,8 @@ export interface StationManageInfo {
     publicWaitlistEnabled?: boolean
     publicBlogEnabled?: boolean
     publicSlug?: string | null
+    /** Whether exported PDFs leave the address of this installation off the foot of the page. */
+    pdfHidesInstanceUrl?: boolean
     /** What the cluster above the station has taken out of its hands, and who to name for it. */
     themeLocked?: boolean
     colorsLocked?: boolean
@@ -55,6 +57,7 @@ export interface UpdateStationNameRequest {
     publicWaitlistEnabled?: boolean
     publicBlogEnabled?: boolean
     publicSlug?: string | null
+    pdfHidesInstanceUrl?: boolean
 }
 
 export async function getStationInfo(): Promise<StationManageInfo> {

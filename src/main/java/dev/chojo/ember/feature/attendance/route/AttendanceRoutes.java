@@ -916,13 +916,28 @@ public class AttendanceRoutes implements Routes {
         verifySessionOwnership(sessionId, session);
         String generatedBy =
                 (session.account().firstName() + " " + session.account().lastName()).trim();
-        var pdf = exportService.exportSessionPdf(sessionId, generatedBy);
+        var pdf = exportService.exportSessionPdf(sessionId, generatedBy, sheetOptions(ctx));
         if (pdf.isEmpty()) {
             throw new NotFoundResponse();
         }
         ctx.contentType("application/pdf");
         ctx.header("Content-Disposition", "attachment; filename=\"attendance-" + sessionId + ".pdf\"");
         ctx.result(pdf.get());
+    }
+
+    /**
+     * How the sheet was asked for, read off the address.
+     *
+     * <p>They travel in the query rather than in a body because the browser downloads the answer
+     * itself, and an address with nothing in it is the export the product has always produced.
+     */
+    private AttendanceExportService.SheetOptions sheetOptions(Context ctx) {
+        boolean signature = "true".equals(ctx.queryParam("signature"));
+        String title = ctx.queryParam("title");
+        int blankRows = ctx.queryParamAsClass("blankRows", Integer.class).getOrDefault(0);
+        String instanceUrl = ctx.queryParam("instanceUrl");
+        return new AttendanceExportService.SheetOptions(
+                signature, title, blankRows, instanceUrl == null ? null : "true".equals(instanceUrl));
     }
 
     @OpenApi(

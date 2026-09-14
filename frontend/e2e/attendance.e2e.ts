@@ -101,6 +101,23 @@ function asLocalInput(moment: Date): string {
  * <p>The step is prefilled with the current time and the length the template last ran for, so the
  * ordinary evening is one further click and nothing has to be typed here.
  */
+/**
+ * Presses the export, wherever the toolbar is keeping it.
+ *
+ * <p>A sheet with names still to check offers the check as its button and puts the export in the
+ * menu beside it; a sheet with nothing left to check offers the export itself. A story that opened
+ * a sheet a moment ago cannot know which of the two it is looking at.
+ */
+async function openExport(page: Page) {
+    const button = page.getByRole('button', {name: 'PDF Export'})
+    if (await button.count() > 0) {
+        await button.first().click()
+        return
+    }
+    await page.getByTestId('session-actions-trigger').click()
+    await page.getByTestId('session-actions').getByText('PDF Export').click()
+}
+
 async function openSheetFromTemplate(page: Page) {
     await page.getByRole('button', {name: 'Erstellen'}).first().click()
     await page.getByTestId('new-session-create').click()
@@ -546,6 +563,33 @@ test.describe('Attendance', () => {
         const file = await (await download).path()
         expect(file).toBeTruthy()
         expect(statSync(file!).size).toBeGreaterThan(0)
+    })
+
+    /**
+     * A sheet handed out to be signed. The story opens one of its own, asks for the signature column
+     * and room for people nobody expected, and takes the file: an export that renders nothing is a
+     * download of no bytes, which is what the size says.
+     */
+    test('a sheet is printed to be signed by hand', async ({managerPage: page}) => {
+        await page.goto('/station/attendance/new')
+        await openSheetFromTemplate(page)
+
+        // The dialog that opened the sheet fades out over the page, and its backdrop swallows the
+        // press underneath it while it does.
+        await expect(page.getByTestId('modal')).toHaveCount(0)
+        await openExport(page)
+
+        const dialog = page.getByTestId('export-sheet-modal')
+        await expect(dialog).toBeVisible()
+        await dialog.getByTestId('export-signature-toggle').getByRole('switch').click()
+        await dialog.getByRole('spinbutton').fill('4')
+
+        const download = page.waitForEvent('download')
+        await dialog.getByTestId('export-submit').click()
+
+        const file = await (await download).path()
+        expect(file).toBeTruthy()
+        expect(statSync(file!).size, 'the sheet carries bytes').toBeGreaterThan(0)
     })
 
     test('a member does not record attendance', async ({memberPage: page}) => {

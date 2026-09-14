@@ -101,6 +101,7 @@ class IcalEventRendererTest {
                 null,
                 StationKind.REGULAR,
                 null,
+                false,
                 false);
     }
 
