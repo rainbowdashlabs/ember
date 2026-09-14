@@ -14,6 +14,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DummyNotificationMatrix from './notificationshelp/DummyNotificationMatrix.vue'
 
 const {t} = useI18n()
@@ -92,14 +93,14 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.notifications.guidesTitle')">
       <p>{{ t('helpCenter.notifications.guidesText') }}</p>
-      <div class="flex gap-2 mt-3">
+      <ButtonRow pair class="mt-3">
         <router-link :to="{name: 'help-profile-rss-feed'}">
           <SecondaryButton :icon="['fas', 'rss']">{{ t('helpCenter.notifications.rssFeedGuide') }}</SecondaryButton>
         </router-link>
         <router-link :to="{name: 'help-profile-ical-feed'}">
           <SecondaryButton :icon="['fas', 'calendar-days']">{{ t('helpCenter.notifications.icalGuide') }}</SecondaryButton>
         </router-link>
-      </div>
+      </ButtonRow>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.notifications.tip') }}</HelpTip>

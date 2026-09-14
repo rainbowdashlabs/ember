@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -77,13 +78,13 @@ const groupOptions = [
         </SelectInput>
       </div>
     </div>
-    <div class="flex items-center gap-2 flex-wrap">
+    <ButtonRow>
       <PrimaryButton :icon="['fas', 'eye']" disabled>
         {{ t('attendanceReport.preview') }}
       </PrimaryButton>
       <SecondaryButton :icon="['fas', 'copy']" disabled>
         {{ t('attendanceReport.savePreset') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>

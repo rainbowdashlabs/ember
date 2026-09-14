@@ -15,6 +15,7 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -120,7 +121,7 @@ const {t} = useI18n()
         <div class="text-center space-y-4 py-4">
           <p class="text-2xl font-bold">Anna Schmidt</p>
           <p class="text-sm text-(--text-muted)">1 / 2</p>
-          <div class="flex justify-center gap-4">
+          <ButtonRow align="center">
             <SuccessButton :icon="['fas', 'check']" disabled>
               {{ t('attendanceSession.present') }}
             </SuccessButton>
@@ -130,7 +131,7 @@ const {t} = useI18n()
             <InfoButton :icon="['fas', 'ban']" disabled>
               {{ t('attendanceSession.declined') }}
             </InfoButton>
-          </div>
+          </ButtonRow>
         </div>
       </NeutralContainer>
     </HelpSection>

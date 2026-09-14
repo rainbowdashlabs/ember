@@ -12,6 +12,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ItemChip from '@/components/inventory/ItemChip.vue'
 import {glyphFor} from '@/util/glyph'
 import type {MovementPurposeName, StepActorName} from '@/api/movements'
@@ -53,9 +54,11 @@ const {t} = useI18n()
     </div>
 
     <div class="flex flex-wrap items-center justify-end gap-2">
-      <PrimaryButton v-if="props.ours" class="text-xs">{{ t('movements.queue.acknowledge') }}</PrimaryButton>
-      <SecondaryButton v-if="props.managerView" class="text-xs">{{ t('movements.queue.correct') }}</SecondaryButton>
-      <SecondaryButton class="text-xs">{{ t('movements.queue.openDetail') }}</SecondaryButton>
+      <ButtonRow align="end" class="max-sm:w-full">
+        <PrimaryButton v-if="props.ours" class="text-xs">{{ t('movements.queue.acknowledge') }}</PrimaryButton>
+        <SecondaryButton v-if="props.managerView" class="text-xs">{{ t('movements.queue.correct') }}</SecondaryButton>
+        <SecondaryButton class="text-xs">{{ t('movements.queue.openDetail') }}</SecondaryButton>
+      </ButtonRow>
       <MutedText size="sm">{{ props.date }}</MutedText>
     </div>
   </NeutralContainer>

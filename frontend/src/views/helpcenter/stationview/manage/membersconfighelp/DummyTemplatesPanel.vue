@@ -10,23 +10,29 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
+
+const templates = [
+  {icon: 'house', label: 'Adresse'},
+  {icon: 'calendar-plus', label: 'Geburtsdatum'},
+  {icon: 'phone', label: 'Festnetz'},
+  {icon: 'mobile-screen', label: 'Mobilnummer'},
+  {icon: 'triangle-exclamation', label: 'Notfallkontakt'},
+  {icon: 'id-card', label: 'Führerschein'},
+  {icon: 'calendar-plus', label: 'Beitrittsdatum'},
+  {icon: 'hashtag', label: 'Personalnummer'},
+  {icon: 'rainbow', label: 'Geschlecht'},
+  {icon: 'fire', label: 'Jugendflamme'},
+  {icon: 'medal', label: 'Leistungsspange'},
+]
 </script>
 
 <template>
   <NeutralContainer class="space-y-3">
     <FieldLabel hint>{{ t('membersConfig.templates') }}</FieldLabel>
     <div class="flex flex-wrap gap-2">
-      <SecondaryButton :icon="['fas', 'house']" disabled>Adresse</SecondaryButton>
-      <SecondaryButton :icon="['fas', 'calendar-plus']" disabled>Geburtsdatum</SecondaryButton>
-      <SecondaryButton :icon="['fas', 'phone']" disabled>Festnetz</SecondaryButton>
-      <SecondaryButton :icon="['fas', 'mobile-screen']" disabled>Mobilnummer</SecondaryButton>
-      <SecondaryButton :icon="['fas', 'triangle-exclamation']" disabled>Notfallkontakt</SecondaryButton>
-      <SecondaryButton :icon="['fas', 'id-card']" disabled>Führerschein</SecondaryButton>
-      <SecondaryButton :icon="['fas', 'calendar-plus']" disabled>Beitrittsdatum</SecondaryButton>
-      <SecondaryButton :icon="['fas', 'hashtag']" disabled>Personalnummer</SecondaryButton>
-      <SecondaryButton :icon="['fas', 'rainbow']" disabled>Geschlecht</SecondaryButton>
-      <SecondaryButton :icon="['fas', 'fire']" disabled>Jugendflamme</SecondaryButton>
-      <SecondaryButton :icon="['fas', 'medal']" disabled>Leistungsspange</SecondaryButton>
+      <SecondaryButton v-for="template in templates" :key="template.label" :icon="['fas', template.icon]" disabled>
+        {{ template.label }}
+      </SecondaryButton>
     </div>
   </NeutralContainer>
 </template>

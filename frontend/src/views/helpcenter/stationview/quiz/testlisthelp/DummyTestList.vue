@@ -10,6 +10,7 @@ import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -44,13 +45,13 @@ const tabs = [
         <SuccessBadge>{{ t('quiz.tests.statusActive') }}</SuccessBadge>
       </template>
       <template #actions>
-        <div class="flex items-center gap-2" @click.stop>
+        <ButtonRow @click.stop>
           <PrimaryButton disabled>{{ t('quiz.tests.takeTest') }}</PrimaryButton>
           <HelpPermissionGuard :permissions="[StationPermission.TEST_CONFIGURE]" :label="t('helpCenter.permissionLabel.testConfigure')">
             <SecondaryButton disabled>{{ t('common.edit') }}</SecondaryButton>
             <ErrorButton disabled>{{ t('common.delete') }}</ErrorButton>
           </HelpPermissionGuard>
-        </div>
+        </ButtonRow>
       </template>
     </DummyTestCard>
 
@@ -60,10 +61,10 @@ const tabs = [
       </template>
       <template #actions>
         <HelpPermissionGuard :permissions="[StationPermission.TEST_CONFIGURE]" :label="t('helpCenter.permissionLabel.testConfigure')">
-          <div class="flex items-center gap-2" @click.stop>
+          <ButtonRow pair @click.stop>
             <SecondaryButton disabled>{{ t('common.edit') }}</SecondaryButton>
             <ErrorButton disabled>{{ t('common.delete') }}</ErrorButton>
-          </div>
+          </ButtonRow>
         </HelpPermissionGuard>
       </template>
     </DummyTestCard>

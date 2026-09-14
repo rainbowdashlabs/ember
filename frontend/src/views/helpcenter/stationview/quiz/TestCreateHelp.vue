@@ -16,6 +16,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import DummySectionsSystem from '@/views/helpcenter/stationview/quiz/testcreatehelp/DummySectionsSystem.vue'
@@ -85,10 +86,10 @@ const { t } = useI18n()
     <!-- Actions -->
     <HelpSection :title="t('helpCenter.quizTestCreate.nextTitle')">
       <p>{{ t('helpCenter.quizTestCreate.nextText') }}</p>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton disabled>{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton disabled>{{ t('common.save') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.quizTestCreate.tip') }}</HelpTip>

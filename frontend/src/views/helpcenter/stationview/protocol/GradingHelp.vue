@@ -13,6 +13,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 
@@ -102,23 +103,22 @@ const { t } = useI18n()
     <HelpSection :title="t('helpCenter.protocolGrading.navigationTitle')">
       <p>{{ t('helpCenter.protocolGrading.navigationText') }}</p>
       <div class="space-y-2">
-        <div class="flex items-center gap-2">
+        <ButtonRow pair>
           <SuccessButton disabled>
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('protocol.markDoneAndNext') }}
           </SuccessButton>
           <SuccessButton disabled>
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('protocol.markDoneAndExit') }}
           </SuccessButton>
-        </div>
-        <div class="flex items-center gap-2">
+        </ButtonRow>
+        <ButtonRow pair align="between">
           <SecondaryButton disabled>
             <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" /> {{ t('protocol.prevSection') }}
           </SecondaryButton>
-          <div class="flex-1" />
           <PrimaryButton disabled>
             {{ t('protocol.nextSection') }} <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1" />
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </HelpSection>
 

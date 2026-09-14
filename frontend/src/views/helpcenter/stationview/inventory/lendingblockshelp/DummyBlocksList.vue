@@ -9,6 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DummyBlockFull from '@/views/helpcenter/stationview/inventory/lendingblockshelp/DummyBlockFull.vue'
 import DummyBlockMixed from '@/views/helpcenter/stationview/inventory/lendingblockshelp/DummyBlockMixed.vue'
 import DummyBlockInventory from '@/views/helpcenter/stationview/inventory/lendingblockshelp/DummyBlockInventory.vue'
@@ -20,14 +21,14 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <SectionHeader>{{ t('helpCenter.inventoryLendingBlocks.dummyTitle') }}</SectionHeader>
-      <div class="flex gap-2">
+      <ButtonRow pair>
         <SecondaryButton :icon="['fas', 'chevron-left']">
           {{ t('helpCenter.inventoryLendingBlocks.dummyBack') }}
         </SecondaryButton>
         <PrimaryButton :icon="['fas', 'plus']">
           {{ t('helpCenter.inventoryLendingBlocks.dummyAddBlock') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
 
     <DummyBlockFull />

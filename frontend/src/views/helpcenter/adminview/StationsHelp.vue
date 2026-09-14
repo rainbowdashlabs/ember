@@ -13,6 +13,7 @@ import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -77,10 +78,10 @@ const {t} = useI18n()
           <FieldLabel>{{ t('adminStations.importToken') }}</FieldLabel>
           <TextInput :model-value="''" :placeholder="t('adminStations.importTokenPlaceholder')" />
         </div>
-        <div class="flex justify-end gap-3">
+        <ButtonRow pair align="end">
           <SecondaryButton>{{ t('adminStations.cancel') }}</SecondaryButton>
           <PrimaryButton>{{ t('adminStations.importStart') }}</PrimaryButton>
-        </div>
+        </ButtonRow>
       </NeutralContainer>
     </HelpSection>
 

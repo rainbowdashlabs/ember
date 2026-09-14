@@ -16,6 +16,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
@@ -44,7 +45,7 @@ const {t} = useI18n()
 
       <NeutralContainer class="space-y-3">
         <SubHeader>{{ t('itemDetail.actions') }}</SubHeader>
-        <div class="flex flex-wrap gap-2">
+        <ButtonRow>
           <PrimaryButton :icon="['fas', 'user-plus']">
             {{ t('itemDetail.assign') }}
           </PrimaryButton>
@@ -57,7 +58,7 @@ const {t} = useI18n()
           <SuccessButton :icon="['fas', 'check']">
             {{ t('itemDetail.markFound') }}
           </SuccessButton>
-        </div>
+        </ButtonRow>
       </NeutralContainer>
     </HelpSection>
 
@@ -72,10 +73,10 @@ const {t} = useI18n()
           <option>Max Mustermann</option>
           <option>Erika Musterfrau</option>
         </SelectInput>
-        <div class="flex justify-end gap-2">
+        <ButtonRow pair align="end">
           <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton disabled>{{ t('itemDetail.assign') }}</PrimaryButton>
-        </div>
+        </ButtonRow>
       </NeutralContainer>
     </HelpSection>
 

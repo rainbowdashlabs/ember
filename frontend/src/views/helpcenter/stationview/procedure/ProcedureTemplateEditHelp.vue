@@ -11,6 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -56,10 +57,10 @@ const getItemById = (id: number) => ITEMS.find(item => item.id === id)
       <p>{{ t('helpCenter.procedureTemplateEdit.howToStep1') }}</p>
       <p>{{ t('helpCenter.procedureTemplateEdit.howToStep2') }}</p>
       <p>{{ t('helpCenter.procedureTemplateEdit.howToStep3') }}</p>
-      <div class="flex items-start justify-end mb-4 gap-2">
+      <ButtonRow pair align="end" class="mb-4">
         <SecondaryButton :icon="['fas', 'pen']">{{ t('common.edit') }}</SecondaryButton>
         <SecondaryButton :icon="['fas', 'arrow-left']">{{ t('common.back') }}</SecondaryButton>
-      </div>
+      </ButtonRow>
       <div class="flex items-center justify-between mb-3">
         <SubHeader>{{ t('procedures.items') }}</SubHeader>
         <PrimaryButton :icon="['fas', 'plus']">{{ t('procedures.addItem') }}</PrimaryButton>

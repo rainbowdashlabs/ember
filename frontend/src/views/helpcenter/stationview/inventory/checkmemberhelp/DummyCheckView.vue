@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DummyCheckHeader from '@/views/helpcenter/stationview/inventory/checkmemberhelp/DummyCheckHeader.vue'
 import DummyConfirmedSection from '@/views/helpcenter/stationview/inventory/checkmemberhelp/DummyConfirmedSection.vue'
 import DummyLostSection from '@/views/helpcenter/stationview/inventory/checkmemberhelp/DummyLostSection.vue'
@@ -23,9 +24,9 @@ const {t} = useI18n()
     <DummyLostSection />
     <DummyEmptySection />
 
-    <div class="flex justify-end gap-3">
+    <ButtonRow pair align="end">
       <SecondaryButton>{{ t('inventory.check.cancel') }}</SecondaryButton>
       <PrimaryButton>{{ t('inventory.check.complete') }}</PrimaryButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>

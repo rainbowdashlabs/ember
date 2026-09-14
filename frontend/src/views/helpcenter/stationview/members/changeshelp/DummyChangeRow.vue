@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
@@ -29,10 +30,10 @@ const {t} = useI18n()
       <MutedIcon :icon="['fas', 'chevron-right']"/>
       <span class="font-medium">0170 2222222</span>
     </div>
-    <div class="flex items-center gap-2 pt-1">
+    <ButtonRow pair class="pt-1">
       <PrimaryButton :icon="['fas', 'check']">{{ t('memberDetail.acknowledge') }}</PrimaryButton>
       <SecondaryButton :icon="['fas', 'comment']">{{ t('memberDetail.acknowledgeWithComment') }}</SecondaryButton>
-    </div>
+    </ButtonRow>
     <div class="space-y-2 pt-1">
       <TextAreaInput :model-value="''" :placeholder="t('memberDetail.commentPlaceholder')" class="text-sm"/>
       <PrimaryButton>{{ t('memberDetail.submitAcknowledge') }}</PrimaryButton>
