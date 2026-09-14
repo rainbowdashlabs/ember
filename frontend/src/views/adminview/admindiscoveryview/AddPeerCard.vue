@@ -10,6 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {DiscoveryInfoProbe} from '@/api/discovery'
 
@@ -38,14 +39,14 @@ const {t} = useI18n()
       <TextInput v-model="baseUrl" :placeholder="t('adminDiscovery.baseUrlPlaceholder')"/>
       <TextInput v-model="expectedKey" :placeholder="t('adminDiscovery.expectedKey')"/>
     </div>
-    <div class="flex flex-wrap gap-2">
+    <ButtonRow pair>
       <SecondaryButton :disabled="!baseUrl.trim() || probing" @click="emit('probe')">
         {{ t('adminDiscovery.probe') }}
       </SecondaryButton>
       <SuccessButton :disabled="!baseUrl.trim()" @click="emit('add')">
         {{ t('adminDiscovery.add') }}
       </SuccessButton>
-    </div>
+    </ButtonRow>
     <Alert v-if="probeError" variant="error">{{ probeError }}</Alert>
     <Alert v-if="probeResult" variant="success">
       {{ t('adminDiscovery.probeOk') }}

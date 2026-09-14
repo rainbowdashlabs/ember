@@ -12,6 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -74,10 +75,10 @@ async function invalidateAll() {
           <ErrorContainer>
             <p class="text-sm">{{ t('userSettings.invalidateAllWarning') }}</p>
           </ErrorContainer>
-          <div class="flex justify-end gap-2">
+          <ButtonRow align="end">
             <SecondaryButton @click="showInvalidateAllModal = false">{{ t('common.cancel') }}</SecondaryButton>
             <ErrorButton @click="invalidateAll">{{ t('userSettings.invalidateAll') }}</ErrorButton>
-          </div>
+          </ButtonRow>
         </div>
       </Modal>
     </div>

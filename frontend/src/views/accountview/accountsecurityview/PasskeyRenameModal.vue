@@ -11,6 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {PasskeyEntry} from '@/api/passkeys'
 
 const {t} = useI18n()
@@ -38,12 +39,12 @@ function save() {
     <div class="space-y-4 p-4">
       <SubHeader>{{ t('passkeys.section.renameTitle') }}</SubHeader>
       <TextInput v-model="label" :placeholder="t('passkeys.section.labelPlaceholder')"/>
-      <div class="flex justify-between gap-2">
+      <ButtonRow pair align="between">
         <SecondaryButton type="button" @click="target = null">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton type="button" :disabled="!label.trim()" @click="save">
           {{ t('common.save') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

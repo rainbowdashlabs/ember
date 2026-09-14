@@ -12,6 +12,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 defineProps<{
   saving: boolean
@@ -36,14 +37,14 @@ const {t} = useI18n()
         <ToggleInput v-model="keepSource"/>
         <span>{{ t('adminStorageBackend.confirm.keepSource') }}</span>
       </FieldLabel>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">
           {{ t('adminStorageBackend.confirm.cancel') }}
         </SecondaryButton>
         <PrimaryButton :disabled="saving" @click="emit('confirm')">
           {{ t('adminStorageBackend.confirm.confirm') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

@@ -13,6 +13,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import InventoryKindField from '@/components/inventory/InventoryKindField.vue'
 import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {InventoryTypes, type InventoryTypeName} from '@/api/inventory'
 
@@ -64,10 +65,10 @@ watch(homogeneous, value => {
     <ToggleInput v-model="hasSizes" data-testid="inventory-has-sizes" />
   </div>
 
-  <div class="flex justify-end gap-3">
+  <ButtonRow pair align="end">
     <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
     <PrimaryButton :disabled="!name.trim()" @click="emit('next')">
       {{ hasSizes ? t('inventory.manage.next') : t('common.save') }}
     </PrimaryButton>
-  </div>
+  </ButtonRow>
 </template>

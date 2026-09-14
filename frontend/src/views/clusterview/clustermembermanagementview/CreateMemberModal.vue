@@ -12,6 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import NewMemberFields from './NewMemberFields.vue'
 import {clusterMembers} from '@/api'
 import type {ManagedStation} from '@/api/clusterMembers'
@@ -90,12 +91,12 @@ const {running, error, failure, run: save} = useAsyncAction(async () => {
 
       <FailureAlert :failure="failure"/>
 
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton :disabled="running" @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="running || !canSave" data-testid="cluster-member-create-save" @click="save">
           {{ t('clusterMemberManagement.create.save') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

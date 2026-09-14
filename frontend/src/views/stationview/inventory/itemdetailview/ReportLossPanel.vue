@@ -10,6 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -95,12 +96,12 @@ const {running, error, failure, run: send} = useAsyncAction(async () => {
           <input type="file" data-testid="report-loss-document" class="text-sm" @change="pick"/>
         </div>
 
-        <div class="flex justify-end gap-3">
+        <ButtonRow pair align="end">
           <SecondaryButton :disabled="running" @click="asking = false">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton :disabled="running || !canSend" data-testid="report-loss-send" @click="send">
             {{ running ? t('common.loading') : t('common.send') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </Modal>
   </NeutralContainer>

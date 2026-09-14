@@ -8,6 +8,7 @@ import { ref } from 'vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 
 defineProps<{
@@ -58,11 +59,11 @@ function onInput() {
     </p>
     <p class="text-[10px] text-[var(--text-muted)]">YouTube, Vimeo, PeerTube, Dailymotion oder beliebige Embed-URL</p>
 
-    <div class="flex items-center gap-2">
+    <ButtonRow pair>
       <PrimaryButton compact :disabled="!videoUrl" @click="$emit('apply', videoUrl)">
         <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> Einfügen
       </PrimaryButton>
       <SecondaryButton compact @click="$emit('cancel')">Abbrechen</SecondaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>

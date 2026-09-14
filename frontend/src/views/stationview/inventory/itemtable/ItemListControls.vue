@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
@@ -34,7 +35,7 @@ const { t } = useI18n()
 <template>
   <div class="flex flex-wrap items-center justify-between gap-2">
     <SubHeader>{{ t('inventory.edit.itemsTitle') }} ({{ count }})</SubHeader>
-    <div v-if="showQuickAssign || showAdd || showIntake" class="flex items-center gap-2">
+    <ButtonRow v-if="showQuickAssign || showAdd || showIntake" align="end">
       <SecondaryButton v-if="showIntake" :icon="['fas', 'table-columns']" data-testid="open-intake"
                        @click="emit('intake')">
         {{ t('inventory.intake.open') }}
@@ -45,7 +46,7 @@ const { t } = useI18n()
       <PrimaryButton v-if="showAdd" :icon="['fas', 'plus']" @click="emit('add')">
         {{ t('inventory.edit.addItem') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </div>
   <slot/>
   <div v-if="showSearch" class="flex items-center gap-2">

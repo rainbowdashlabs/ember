@@ -14,6 +14,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -166,14 +167,14 @@ watch([dateFrom, dateTo], () => {
         </div>
 
         <!-- Submit -->
-        <div class="flex justify-end gap-2 mt-2">
+        <ButtonRow pair align="end" class="mt-2">
           <SecondaryButton @click="router.push({name: routes.lending})">
             {{ t('common.cancel') }}
           </SecondaryButton>
           <PrimaryButton :icon="['fas', 'paper-plane']" :disabled="submitting || !dateFrom" @click="handleSubmit">
             {{ t('lending.sendRequest') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </template>
   </ViewContent>

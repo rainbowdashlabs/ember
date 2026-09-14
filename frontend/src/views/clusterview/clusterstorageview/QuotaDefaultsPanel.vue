@@ -10,6 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import QuotaFieldsInput from '@/views/adminview/adminstorageview/QuotaFieldsInput.vue'
 import type {QuotaDimensions} from '@/api/clusterStorage'
@@ -97,10 +98,10 @@ function save() {
       <SectionHeader>{{ t('clusterStorage.defaultsTitle') }}</SectionHeader>
       <p class="text-sm text-(--text-muted) mt-2 mb-3">{{ t('clusterStorage.emptyMeansInstance') }}</p>
       <QuotaFieldsInput :fields="fields"/>
-      <div class="flex justify-end gap-2 mt-4">
+      <ButtonRow pair align="end" class="mt-4">
         <SecondaryButton @click="showModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton data-testid="cluster-defaults-save" @click="save">{{ t('common.save') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </Modal>
   </NeutralContainer>
 </template>

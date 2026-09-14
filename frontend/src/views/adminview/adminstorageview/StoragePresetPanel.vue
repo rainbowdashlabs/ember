@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -174,10 +175,10 @@ function toggleStation(id: string) {
         </div>
         <QuotaFieldsInput :fields="tierFields"/>
       </div>
-      <div class="flex justify-end gap-2 mt-4">
+      <ButtonRow pair align="end" class="mt-4">
         <SecondaryButton @click="showTierModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton data-testid="tier-save" @click="save">{{ t('common.save') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </Modal>
 
     <Modal v-model="showApplyModal">
@@ -192,12 +193,12 @@ function toggleStation(id: string) {
           <span class="text-xs text-(--text-muted)">({{ station.quotaUsedPercent }}%)</span>
         </label>
       </div>
-      <div class="flex justify-end gap-2 mt-4">
+      <ButtonRow pair align="end" class="mt-4">
         <SecondaryButton @click="showApplyModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="selectedStations.length === 0" data-testid="tier-apply-save" @click="handleApply">
           {{ t('storageMonitoring.apply') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </Modal>
 
     <Modal v-model="showDeleteModal">

@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import type { MemberCheckState } from '@/api/inventoryCheck'
@@ -32,7 +33,7 @@ const { t } = useI18n()
       <SubHeader><MemberName :identity="state.memberIdentity ?? null"/></SubHeader>
       <p class="text-sm text-(--text-muted)">{{ t('inventory.check.title') }}</p>
     </div>
-    <div class="flex gap-2">
+    <ButtonRow align="end">
       <PrimaryButton :icon="['fas', 'list-check']" v-if="uncheckedCount > 0 && !checkMode" class="text-sm" @click="$emit('startCheckMode')">
         {{ t('inventory.check.rapidCheck') }}
       </PrimaryButton>
@@ -40,6 +41,6 @@ const { t } = useI18n()
         {{ t('inventory.check.markAll') }}
       </SecondaryButton>
       <SecondaryButton @click="$emit('cancel')">{{ t('inventory.check.cancel') }}</SecondaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>

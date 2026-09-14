@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import type {MemberCheckSummary} from '@/api/inventoryCheck'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 
@@ -25,7 +26,7 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <div class="flex items-center justify-end gap-1">
+  <ButtonRow align="end">
     <MutedIconButton
         v-if="member.lastCheckedAt"
         :icon="['fas', 'eye']"
@@ -39,5 +40,5 @@ const {t} = useI18n()
                    @click="emit('start-check', member.memberId)">
       {{ t('inventory.check.start') }}
     </PrimaryButton>
-  </div>
+  </ButtonRow>
 </template>
