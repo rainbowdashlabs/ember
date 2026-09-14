@@ -10,6 +10,7 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -66,7 +67,7 @@ watch(() => [props.stationUid, props.protocolId], () => reload())
         <Spinner v-if="loading" size="lg"/>
 
         <template v-else-if="detail">
-            <div class="flex flex-wrap items-center gap-2 mb-4">
+            <ButtonRow class="mb-4">
                 <SecondaryButton @click="router.push({name: 'protocol-list'})">
                     <font-awesome-icon :icon="['fas', 'chevron-left']"/>
                     {{ t('common.back') }}
@@ -76,7 +77,7 @@ watch(() => [props.stationUid, props.protocolId], () => reload())
                     <font-awesome-icon :icon="['fas', 'copy']"/>
                     {{ t('federation.copyToStation') }}
                 </PrimaryButton>
-            </div>
+            </ButtonRow>
 
             <StationBadge :station-name="t('federation.partnerStation')" class="mb-2"/>
             <MutedText v-if="detail.protocol.description" tag="p" size="sm" class="mb-4">
