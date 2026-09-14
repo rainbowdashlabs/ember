@@ -9,6 +9,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 const {t} = useI18n()
 
@@ -26,10 +27,10 @@ const emit = defineEmits<{
     <div class="space-y-4 p-4">
       <SubHeader>{{ t('passkeys.section.removeTitle') }}</SubHeader>
       <p class="text-sm">{{ t('passkeys.section.removeConfirm', {label}) }}</p>
-      <div class="flex justify-between gap-2">
+      <ButtonRow pair align="between">
         <SecondaryButton type="button" @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton type="button" @click="emit('confirm')">{{ t('passkeys.section.remove') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>
