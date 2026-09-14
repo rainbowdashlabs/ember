@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.util.LeakyBucket;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.nio.charset.StandardCharsets;
@@ -27,6 +29,10 @@ import java.util.Optional;
  * <p>State is in-memory; a restart resets every bucket. Clustered deployments would
  * need a shared backing store - tracked as a follow-up alongside the federation
  * replay cache.
+ *
+ * <p>A development instance is exempt: it runs the whole suite and every hand test from one
+ * address, where buckets meant for a stranger grinding an endpoint only ever catch the person
+ * working on it. The public demo is not exempt, being on the internet.
  */
 @Singleton
 public class AuthRateLimiter {
@@ -58,36 +64,59 @@ public class AuthRateLimiter {
     private final LeakyBucket deviceCodeEntrySession;
     private final LeakyBucket deviceApproveIdentity;
 
-    public AuthRateLimiter() {
-        this(Clock.systemUTC());
+    @Inject
+    public AuthRateLimiter(Demo demo) {
+        this(demo.dev(), Clock.systemUTC());
     }
 
     /**
-     * Visible-for-testing constructor that lets tests drive time deterministically.
+     * Visible-for-testing constructor that lets tests drive time deterministically. It limits like a
+     * real instance: the tests here exist to hold the numbers, so a waiver would empty them.
      */
     public AuthRateLimiter(Clock clock) {
-        this.loginIp = new LeakyBucket(10, 10, PRUNE_AFTER, clock);
-        this.loginIdentity = new LeakyBucket(20, FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
-        this.registerIp = new LeakyBucket(5, FIFTEEN_MIN, PRUNE_AFTER, clock);
-        this.forgotIp = new LeakyBucket(3, FIFTEEN_MIN, PRUNE_AFTER, clock);
-        this.forgotIdentity = new LeakyBucket(3, HOUR, PRUNE_AFTER, clock);
-        this.resendIp = new LeakyBucket(3, FIFTEEN_MIN, PRUNE_AFTER, clock);
-        this.resendIdentity = new LeakyBucket(3, HOUR, PRUNE_AFTER, clock);
-        this.verifyIp = new LeakyBucket(30, 30, PRUNE_AFTER, clock);
-        this.setPasswordIp = new LeakyBucket(30, 30, PRUNE_AFTER, clock);
-        this.confirmEmailIp = new LeakyBucket(30, 30, PRUNE_AFTER, clock);
-        this.refreshIp = new LeakyBucket(60, 60, PRUNE_AFTER, clock);
-        this.changePasswordIdentity = new LeakyBucket(10, HOUR.dividedBy(5), PRUNE_AFTER, clock);
-        this.twoFactorIp = new LeakyBucket(20, 20, PRUNE_AFTER, clock);
-        this.twoFactorIdentity = new LeakyBucket(10, FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
-        this.passkeySignInIp = new LeakyBucket(10, 10, PRUNE_AFTER, clock);
-        this.stepUpPasswordIp = new LeakyBucket(20, 20, PRUNE_AFTER, clock);
-        this.stepUpPasswordIdentity = new LeakyBucket(10, FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
-        this.deviceRequestIp = new LeakyBucket(5, FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
-        this.devicePollIp = new LeakyBucket(40, 40, PRUNE_AFTER, clock);
-        this.deviceEnrollIp = new LeakyBucket(10, 10, PRUNE_AFTER, clock);
-        this.deviceCodeEntrySession = new LeakyBucket(3, Duration.ofMinutes(1).dividedBy(3), PRUNE_AFTER, clock);
-        this.deviceApproveIdentity = new LeakyBucket(5, HOUR.dividedBy(5), PRUNE_AFTER, clock);
+        this(false, clock);
+    }
+
+    private AuthRateLimiter(boolean unlimited, Clock clock) {
+        this.loginIp = new LeakyBucket(cap(unlimited, 10), 10, PRUNE_AFTER, clock);
+        this.loginIdentity = new LeakyBucket(cap(unlimited, 20), FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
+        this.registerIp = new LeakyBucket(cap(unlimited, 5), FIFTEEN_MIN, PRUNE_AFTER, clock);
+        this.forgotIp = new LeakyBucket(cap(unlimited, 3), FIFTEEN_MIN, PRUNE_AFTER, clock);
+        this.forgotIdentity = new LeakyBucket(cap(unlimited, 3), HOUR, PRUNE_AFTER, clock);
+        this.resendIp = new LeakyBucket(cap(unlimited, 3), FIFTEEN_MIN, PRUNE_AFTER, clock);
+        this.resendIdentity = new LeakyBucket(cap(unlimited, 3), HOUR, PRUNE_AFTER, clock);
+        this.verifyIp = new LeakyBucket(cap(unlimited, 30), 30, PRUNE_AFTER, clock);
+        this.setPasswordIp = new LeakyBucket(cap(unlimited, 30), 30, PRUNE_AFTER, clock);
+        this.confirmEmailIp = new LeakyBucket(cap(unlimited, 30), 30, PRUNE_AFTER, clock);
+        this.refreshIp = new LeakyBucket(cap(unlimited, 60), 60, PRUNE_AFTER, clock);
+        this.changePasswordIdentity = new LeakyBucket(cap(unlimited, 10), HOUR.dividedBy(5), PRUNE_AFTER, clock);
+        this.twoFactorIp = new LeakyBucket(cap(unlimited, 20), 20, PRUNE_AFTER, clock);
+        this.twoFactorIdentity = new LeakyBucket(cap(unlimited, 10), FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
+        this.passkeySignInIp = new LeakyBucket(cap(unlimited, 10), 10, PRUNE_AFTER, clock);
+        this.stepUpPasswordIp = new LeakyBucket(cap(unlimited, 20), 20, PRUNE_AFTER, clock);
+        this.stepUpPasswordIdentity = new LeakyBucket(cap(unlimited, 10), FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
+        this.deviceRequestIp = new LeakyBucket(cap(unlimited, 5), FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
+        this.devicePollIp = new LeakyBucket(cap(unlimited, 40), 40, PRUNE_AFTER, clock);
+        this.deviceEnrollIp = new LeakyBucket(cap(unlimited, 10), 10, PRUNE_AFTER, clock);
+        this.deviceCodeEntrySession =
+                new LeakyBucket(cap(unlimited, 3), Duration.ofMinutes(1).dividedBy(3), PRUNE_AFTER, clock);
+        this.deviceApproveIdentity = new LeakyBucket(cap(unlimited, 5), HOUR.dividedBy(5), PRUNE_AFTER, clock);
+    }
+
+    /**
+     * How deep a bucket is, which on a development run is deep enough never to empty.
+     *
+     * <p>A dev instance runs the whole suite and every hand test from one address, so the buckets
+     * that exist to stop a stranger grinding an endpoint instead stop the person working on it: five
+     * device requests per address, refilling one every three minutes, is three stories.
+     *
+     * <p>The waiver is here rather than in each of the twenty methods that ask, so a bucket added
+     * later cannot be the one somebody forgot. {@code demo.dev()} alone and never
+     * {@code demo.enabled()}: the public demo is on the internet and is exactly where an unthrottled
+     * auth surface would be found.
+     */
+    private static int cap(boolean unlimited, int configured) {
+        return unlimited ? Integer.MAX_VALUE : configured;
     }
 
     /**
