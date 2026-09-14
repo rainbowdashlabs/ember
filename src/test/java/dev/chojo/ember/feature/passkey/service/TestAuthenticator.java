@@ -28,8 +28,11 @@ import java.util.Base64;
  *
  * <p>The origin is the one every test setup configures ({@code https://ember.test}); the rpId and
  * the challenge come from the ceremony itself.
+ *
+ * <p>Public because the device handshake lives in its own feature now and still runs the passkey
+ * ceremony for one of its purposes, so its tests need the same authenticator.
  */
-final class TestAuthenticator {
+public final class TestAuthenticator {
 
     private static final String ORIGIN = "https://ember.test";
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -39,7 +42,7 @@ final class TestAuthenticator {
     private byte[] userHandle;
     private int counter;
 
-    TestAuthenticator() {
+    public TestAuthenticator() {
         try {
             var keyGen = KeyPairGenerator.getInstance("EC");
             keyGen.initialize(new ECGenParameterSpec("secp256r1"));
@@ -76,7 +79,7 @@ final class TestAuthenticator {
      * Answers a creation ceremony: a registration response with this authenticator's key, the
      * ceremony's own challenge and a {@code none} attestation, flagged user-verified.
      */
-    String register(String optionsJson) {
+    public String register(String optionsJson) {
         return register(optionsJson, true);
     }
 

@@ -5,11 +5,13 @@
  */
 package dev.chojo.ember.feature.twofactor.service;
 
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
+import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -148,7 +150,7 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         int accountId = newAccount();
         accountRepo.createSession(accountId, "tfs-bearer", Instant.now().plusSeconds(60), "ua", null);
         var session = accountRepo.findSession("tfs-bearer").orElseThrow();
-        service.markSessionTwoFactorVerified(session.id());
+        service.markSessionTwoFactorVerified(session.id(), StepUpProof.PASSWORD);
         assertNotNull(accountRepo.findSession("tfs-bearer").orElseThrow().twoFactorVerifiedAt());
     }
 
@@ -334,6 +336,58 @@ class TwoFactorServiceTest extends RepositoryTestBase {
                 java.util.Set.of(dev.chojo.ember.feature.twofactor.entity.StepUpProof.PASSKEY),
                 service.availableProofs(accountId),
                 "a missing credential row must not read as a password on offer");
+    }
+
+    /**
+     * Confirming elsewhere is offered only where somebody could actually answer. A second live
+     * session of the account's own is one such somebody; the session doing the asking is not.
+     */
+    @Test
+    void confirmingElsewhereIsOfferedOnlyWhereAnotherDeviceCouldAnswer() {
+        int accountId = newAccount();
+        accountRepo.createCredential(accountId, "hash");
+        String asking = "asking-" + UUID.randomUUID();
+        accountRepo.createSession(accountId, asking, Instant.now().plusSeconds(600), "ua", null);
+        int askingId = accountRepo.findSession(asking).orElseThrow().id();
+
+        assertFalse(
+                service.availableProofs(accountId, askingId).contains(StepUpProof.ANOTHER_DEVICE),
+                "one session alone cannot confirm for itself");
+
+        accountRepo.createSession(
+                accountId, "other-" + UUID.randomUUID(), Instant.now().plusSeconds(600), "ua", null);
+        assertTrue(
+                service.availableProofs(accountId, askingId).contains(StepUpProof.ANOTHER_DEVICE),
+                "a second device of their own can");
+        assertFalse(
+                accountRepo.hasGuardianSession(accountId),
+                "and nobody is looking after this account, so that is not what said yes");
+    }
+
+    /**
+     * The stamp and what it buys. A proof given here carries no category and answers every one of
+     * them; one given elsewhere carries the category it answered, and either way it is spent once.
+     */
+    @Test
+    void aStampRecordsWhatAnsweredItAndIsSpentOnce() {
+        int accountId = newAccount();
+        String token = "stamp-" + UUID.randomUUID();
+        accountRepo.createSession(accountId, token, Instant.now().plusSeconds(600), "ua", null);
+        int sessionId = accountRepo.findSession(token).orElseThrow().id();
+
+        service.markSessionTwoFactorVerified(sessionId, StepUpProof.PASSWORD);
+        assertNull(
+                accountRepo.findSession(token).orElseThrow().twoFactorCategory(),
+                "a proof given here answers every category");
+
+        service.markSessionTwoFactorVerified(sessionId, StepUpProof.ANOTHER_DEVICE, StepUpCategory.FEDERATION);
+        var stamped = accountRepo.findSession(token).orElseThrow();
+        assertEquals(StepUpCategory.FEDERATION, stamped.twoFactorCategory());
+
+        assertTrue(service.spendSessionProof(sessionId, stamped.twoFactorVerifiedAt()));
+        assertFalse(
+                service.spendSessionProof(sessionId, stamped.twoFactorVerifiedAt()),
+                "and there is nothing left for a second caller to spend");
     }
 
     /**

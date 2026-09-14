@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.account.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 
 import java.time.Instant;
 
@@ -34,7 +36,10 @@ public record AccountSession(
         Instant lastUsedAt,
         String location,
         Instant twoFactorVerifiedAt,
-        boolean trustedDevice) {
+        StepUpProof twoFactorProof,
+        StepUpCategory twoFactorCategory,
+        boolean trustedDevice,
+        boolean vouchedFor) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -50,7 +55,10 @@ public record AccountSession(
                 row.get("last_used_at", INSTANT_TIMESTAMP),
                 row.getString("location"),
                 row.get("two_factor_verified_at", INSTANT_TIMESTAMP),
-                row.getBoolean("trusted_device"));
+                row.getEnum("two_factor_proof", StepUpProof.class),
+                row.getEnum("two_factor_category", StepUpCategory.class),
+                row.getBoolean("trusted_device"),
+                row.getBoolean("vouched_for"));
     }
 
     /**

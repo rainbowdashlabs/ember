@@ -5,8 +5,10 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.conf.file.elements.Demo;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -173,9 +175,42 @@ class AuthRateLimiterTest {
     }
 
     @Test
-    void defaultConstructorCreatesWorkingInstance() {
-        var limiter = new AuthRateLimiter();
+    void theInjectedConstructorCreatesWorkingInstance() throws Exception {
+        var limiter = new AuthRateLimiter(demo(false));
         assertTrue(limiter.tryLogin("9.9.9.9", "test@example.com").isEmpty());
+    }
+
+    /**
+     * A development instance runs the whole suite and every hand test from one address, so buckets
+     * meant for a stranger grinding an endpoint would only ever catch the person working on it. The
+     * public demo is on the internet and keeps every limit it has.
+     */
+    @Test
+    void aDevelopmentInstanceIsNotThrottledAndAPublicDemoStillIs() throws Exception {
+        var onDev = new AuthRateLimiter(demo(true));
+        for (int i = 0; i < 50; i++) {
+            assertTrue(onDev.tryDeviceRequest("1.2.3.4").isEmpty(), "a dev run never meets a bucket");
+        }
+
+        var onDemo = new AuthRateLimiter(demo(false, true));
+        for (int i = 0; i < 5; i++) onDemo.tryDeviceRequest("1.2.3.4");
+        assertTrue(
+                onDemo.tryDeviceRequest("1.2.3.4").isPresent(),
+                "the public demo is exactly where an unthrottled auth surface would be found");
+    }
+
+    private static Demo demo(boolean dev) throws Exception {
+        return demo(dev, false);
+    }
+
+    private static Demo demo(boolean dev, boolean enabled) throws Exception {
+        var demo = new Demo();
+        for (var name : new String[] {"dev", "enabled"}) {
+            Field field = Demo.class.getDeclaredField(name);
+            field.setAccessible(true);
+            field.set(demo, name.equals("dev") ? dev : enabled);
+        }
+        return demo;
     }
 
     @Test

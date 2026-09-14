@@ -786,6 +786,50 @@ public class AuthService {
     }
 
     /**
+     * A session for somebody another device vouched for.
+     *
+     * <p>Deliberately the plainest session the product can mint. Not a trusted device, because the
+     * case this exists for is a borrowed machine. Not stamped as freshly proved, because the person
+     * who proved anything was at the other device: this one meets step-up like any other session the
+     * moment it wants something sensitive, and may answer that by asking the same device again.
+     *
+     * <p>It also does not complete a half-finished account. Signing in from a borrowed laptop says
+     * nothing about whether somebody finished their setup, and the ordinary sign-in paths are where
+     * that is decided.
+     *
+     * <p>The refusals are the ones every sign-in makes, and an account owing a password change is
+     * refused outright rather than handed the token for it. An ordinary sign-in earns that token by
+     * typing the old password; this one was vouched for from across the room, and the token would let
+     * the borrowed machine set the account's password. The approval says the account holder is
+     * present, not that the account is in a state to be used.
+     *
+     * @param accountId whose session it becomes, which is not always who approved it
+     * @return a session, or what has to happen before there can be one
+     */
+    public LoginResult admitVouchedForAccount(int accountId, String userAgent, String location) {
+        Optional<Account> accountOpt = accountRepository.findById(accountId);
+        if (accountOpt.isEmpty()) {
+            return LoginResult.failure("Sign-in failed");
+        }
+        Account account = accountOpt.get();
+
+        if (account.hasRealEmail() && !account.emailVerified()) {
+            log.info("Vouched sign-in refused for account {}: email not verified", account.id());
+            return LoginResult.failure("Email not verified");
+        }
+
+        Optional<AccountCredential> credOpt = accountRepository.findCredential(account.id());
+        boolean passwordWorks =
+                credOpt.map(AccountCredential::passwordLoginEnabled).orElse(false);
+        if (passwordWorks && credOpt.get().forcePasswordChange()) {
+            log.info("Vouched sign-in refused for account {}: a password change is owed first", account.id());
+            return LoginResult.failure("Sign-in failed");
+        }
+
+        return createVouchedSession(account.id(), userAgent, location);
+    }
+
+    /**
      * What happens once the password has been established, whichever way it was established.
      *
      * <p>Signing in and setting a password both end here, because both have just proved the same
@@ -1416,6 +1460,22 @@ public class AuthService {
         accountRepository.markSetupCompleted(accountId);
         accountRepository.touchLastSignIn(accountId);
         log.info("Session created for account {}", accountId);
+        return LoginResult.success(token, expiresAt);
+    }
+
+    /**
+     * Mints the session an approval bought.
+     *
+     * <p>Always a random token, even on a demo or dev instance where the ordinary paths use the
+     * address as a stable one. Two sessions sharing a token there would mean this one replaced the
+     * very session that approved it, which is the opposite of what happened.
+     */
+    private LoginResult createVouchedSession(int accountId, String userAgent, String location) {
+        String token = generateToken();
+        Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(false), ChronoUnit.MINUTES);
+        accountRepository.createVouchedSession(accountId, token, expiresAt, userAgent, location);
+        accountRepository.touchLastSignIn(accountId);
+        log.info("Vouched session created for account {}", accountId);
         return LoginResult.success(token, expiresAt);
     }
 

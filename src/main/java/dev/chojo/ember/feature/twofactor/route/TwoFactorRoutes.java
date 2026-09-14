@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
@@ -380,7 +381,8 @@ public class TwoFactorRoutes implements Routes {
             throw new UnauthorizedResponse("Invalid verification code");
         }
 
-        twoFactorService.markSessionTwoFactorVerified(session.sessionId());
+        twoFactorService.markSessionTwoFactorVerified(
+                session.sessionId(), kind == TwoFactorKind.BACKUP_CODES ? StepUpProof.BACKUP_CODE : StepUpProof.TOTP);
         auditService.record(
                 session.accountId(),
                 null,
@@ -524,7 +526,7 @@ public class TwoFactorRoutes implements Routes {
         if (!webAuthnService.finishAssertion(session.accountId(), request.challengeToken(), request.credentialJson())) {
             throw new UnauthorizedResponse("WebAuthn verification failed");
         }
-        twoFactorService.markSessionTwoFactorVerified(session.sessionId());
+        twoFactorService.markSessionTwoFactorVerified(session.sessionId(), StepUpProof.SECURITY_KEY);
         auditService.record(
                 session.accountId(),
                 null,

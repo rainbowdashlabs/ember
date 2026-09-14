@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.twofactor.service;
 
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -110,6 +111,27 @@ public class TwoFactorService {
             if (passwordOn) {
                 proofs.add(StepUpProof.PASSWORD);
             }
+        }
+        return proofs;
+    }
+
+    /**
+     * The same, for a session that is about to be asked.
+     *
+     * <p>Adds the one proof that depends on more than the account: confirming on a device the reader
+     * is already signed in on. It is offered only where such a device exists, so the dialog never
+     * shows an answer nobody present could give. The session doing the asking does not count as one,
+     * nor does a session another device vouched for, since neither can confirm anything.
+     *
+     * <p>A guardian's device counts too, and for a member signed in by their guardian it is the only
+     * thing that does: they hold no password, no passkey and no second session, so without it the
+     * product would mint a session and then have nothing to ask when it wanted something sensitive.
+     */
+    public Set<StepUpProof> availableProofs(int accountId, int askingSessionId) {
+        Set<StepUpProof> proofs = availableProofs(accountId);
+        if (accountRepository.hasOtherVouchingSession(accountId, askingSessionId)
+                || accountRepository.hasGuardianSession(accountId)) {
+            proofs.add(StepUpProof.ANOTHER_DEVICE);
         }
         return proofs;
     }
@@ -368,8 +390,29 @@ public class TwoFactorService {
 
     // -- Verification --
 
-    public void markSessionTwoFactorVerified(int sessionId) {
-        repository.setTwoFactorVerified(sessionId);
+    /**
+     * Stamps the session as freshly proved and records what proved it. Every caller says which proof
+     * it accepted, because a route that vouches for another device has to refuse a stamp that came
+     * from a device vouching in the first place.
+     */
+    public void markSessionTwoFactorVerified(int sessionId, StepUpProof proof) {
+        repository.setTwoFactorVerified(sessionId, proof, null);
+    }
+
+    /**
+     * Stamps the session for one category and no other. For a confirmation given somewhere else,
+     * where what was answered is only what the approver was shown.
+     */
+    public void markSessionTwoFactorVerified(int sessionId, StepUpProof proof, StepUpCategory category) {
+        repository.setTwoFactorVerified(sessionId, proof, category);
+    }
+
+    /**
+     * Spends the stamp the caller read, and says whether it was still there to spend. Two callers
+     * racing on one proof both see it; only the one whose update matches the timestamp it read wins.
+     */
+    public boolean spendSessionProof(int sessionId, Instant seenAt) {
+        return repository.clearTwoFactorVerifiedAsOf(sessionId, seenAt);
     }
 
     private void createBackupCodeFactor(int accountId, List<String> plaintextCodes) {

@@ -143,7 +143,10 @@ public class AccessManager {
                                 member,
                                 permissions,
                                 instancePermissions,
-                                accountSession.twoFactorVerifiedAt()),
+                                accountSession.twoFactorVerifiedAt(),
+                                accountSession.twoFactorProof(),
+                                accountSession.twoFactorCategory(),
+                                accountSession.vouchedFor()),
                         cluster,
                         accountId));
             }
@@ -160,7 +163,10 @@ public class AccessManager {
                         null,
                         baseline,
                         instancePermissions,
-                        accountSession.twoFactorVerifiedAt()),
+                        accountSession.twoFactorVerifiedAt(),
+                        accountSession.twoFactorProof(),
+                        accountSession.twoFactorCategory(),
+                        accountSession.vouchedFor()),
                 cluster,
                 accountId));
     }
@@ -190,6 +196,9 @@ public class AccessManager {
                 atOwnStation ? withOwnStationRights(session, permissions) : session.permissions(),
                 session.instancePermissions(),
                 session.twoFactorVerifiedAt(),
+                session.twoFactorProof(),
+                session.twoFactorCategory(),
+                session.vouchedFor(),
                 cluster.id(),
                 cluster.uid(),
                 memberOpt.orElse(null),

@@ -19,6 +19,16 @@ public class TwoFactorSettings {
     @Overwrite(env = @Env)
     private int stepUpFreshnessSeconds = 300;
 
+    /**
+     * How long a proof given at this keyboard counts for the routes that vouch for another device.
+     *
+     * <p>Far shorter than the ordinary window on purpose: approving a device is an answer given now,
+     * not a right earned earlier in the session. Long enough only to cross the dialog and press the
+     * button.
+     */
+    @Overwrite(env = @Env)
+    private int localProofFreshnessSeconds = 120;
+
     @Overwrite(env = @Env)
     private int trustedDeviceMaxDays = 30;
 
@@ -39,6 +49,10 @@ public class TwoFactorSettings {
 
     public int stepUpFreshnessSeconds() {
         return stepUpFreshnessSeconds;
+    }
+
+    public int localProofFreshnessSeconds() {
+        return localProofFreshnessSeconds;
     }
 
     public int trustedDeviceMaxDays() {

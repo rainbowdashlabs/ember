@@ -9,21 +9,27 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.route.AuthRoutes.LoginResponse;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.devicerequest.entity.DeviceRequest;
+import dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose;
+import dev.chojo.ember.feature.devicerequest.service.DeviceRequestService;
+import dev.chojo.ember.feature.members.service.ManagedAccessService;
 import dev.chojo.ember.feature.passkey.service.PasskeyAccountService;
-import dev.chojo.ember.feature.passkey.service.PasskeyDeviceService;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.feature.passkey.service.PasskeyService;
 import dev.chojo.ember.feature.twofactor.service.RelyingParties;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -46,6 +52,8 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -64,9 +72,12 @@ public class PasskeyRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final AuthRateLimiter rateLimiter;
     private final RelyingParties relyingParties;
-    private final PasskeyDeviceService deviceService;
+    private final DeviceRequestService deviceService;
     private final PasskeyEnrollmentService enrollmentService;
     private final TotpService totpService;
+    private final StepUpGuard stepUpGuard;
+    private final TwoFactorService twoFactorService;
+    private final ManagedAccessService managedAccessService;
     private final Api api;
     private final Network network;
 
@@ -79,9 +90,12 @@ public class PasskeyRoutes implements Routes {
             AccountRepository accountRepository,
             AuthRateLimiter rateLimiter,
             RelyingParties relyingParties,
-            PasskeyDeviceService deviceService,
+            DeviceRequestService deviceService,
             PasskeyEnrollmentService enrollmentService,
             TotpService totpService,
+            StepUpGuard stepUpGuard,
+            TwoFactorService twoFactorService,
+            ManagedAccessService managedAccessService,
             Api api,
             Network network) {
         this.passkeyService = passkeyService;
@@ -94,6 +108,9 @@ public class PasskeyRoutes implements Routes {
         this.deviceService = deviceService;
         this.enrollmentService = enrollmentService;
         this.totpService = totpService;
+        this.stepUpGuard = stepUpGuard;
+        this.twoFactorService = twoFactorService;
+        this.managedAccessService = managedAccessService;
         this.api = api;
         this.network = network;
     }
@@ -152,6 +169,10 @@ public class PasskeyRoutes implements Routes {
         // approves, and the enrolment token the poll returns may create exactly one credential.
         routes.post(prefix + "/auth/passkey/device-request", this::createDeviceRequest);
         routes.post(prefix + "/auth/passkey/device-request/poll", this::pollDeviceRequest);
+
+        routes.post(prefix + "/auth/device/sign-in-request", this::createSignInRequest);
+        routes.post(prefix + "/auth/device/sign-in-claim", this::claimSignIn);
+
         routes.post(prefix + "/auth/passkey/enroll/begin", this::beginDeviceEnrollment);
         routes.post(prefix + "/auth/passkey/enroll/finish", this::finishDeviceEnrollment);
 
@@ -162,11 +183,7 @@ public class PasskeyRoutes implements Routes {
         routes.post(prefix + "/auth/passkey/token-enroll/begin", this::beginTokenEnrollment);
         routes.post(prefix + "/auth/passkey/token-enroll/finish", this::finishTokenEnrollment);
         routes.post(prefix + "/account/passkeys/device-lookup", this::lookupDeviceRequest, StationPermission.LOGIN);
-        routes.post(
-                prefix + "/account/passkeys/device-approve",
-                this::approveDeviceRequest,
-                StationPermission.LOGIN,
-                StepUpCategory.ACCOUNT_SECURITY);
+        routes.post(prefix + "/account/passkeys/device-approve", this::approveDeviceRequest, StationPermission.LOGIN);
     }
 
     // -- The device handshake --
@@ -174,12 +191,50 @@ public class PasskeyRoutes implements Routes {
     private void createDeviceRequest(Context ctx) {
         requirePasskeysOn();
         enforceLimit(rateLimiter.tryDeviceRequest(clientIp(ctx)));
-        var request = deviceService.createRequest(ctx.userAgent(), ctx.header("CF-IPCountry"));
+        var request = deviceService.createRequest(
+                DeviceRequestPurpose.ENROL_PASSKEY, ctx.userAgent(), ctx.header("CF-IPCountry"));
         // The QR opens the approval screen and nothing more. A link that arrives with the code
         // already filled in would be exactly the relayable artifact this flow is shaped to avoid.
         String approvalUrl = api.baseUrl() + "/account/unlock-device";
         String qrPng = Base64.getEncoder().encodeToString(totpService.generateQrPng(approvalUrl, 240));
         ctx.json(new DeviceRequestResponse(request.code(), request.pollSecret(), request.expiresAt(), qrPng));
+    }
+
+    /**
+     * A device asking to be signed in rather than given a credential. Unlike the enrolment request
+     * this does not need passkeys to be on at all: not needing them is the point.
+     */
+    private void createSignInRequest(Context ctx) {
+        enforceLimit(rateLimiter.tryDeviceRequest(clientIp(ctx)));
+        var request =
+                deviceService.createRequest(DeviceRequestPurpose.SIGN_IN, ctx.userAgent(), ctx.header("CF-IPCountry"));
+        String approvalUrl = api.baseUrl() + "/account/unlock-device";
+        String qrPng = Base64.getEncoder().encodeToString(totpService.generateQrPng(approvalUrl, 240));
+        ctx.json(new DeviceRequestResponse(request.code(), request.pollSecret(), request.expiresAt(), qrPng));
+    }
+
+    /**
+     * Spends the claim the poll handed over and answers with the session. Throttled on the address
+     * like every other way into an account, because this one ends in a session as surely as a
+     * password does.
+     */
+    private void claimSignIn(Context ctx) {
+        enforceLimit(rateLimiter.tryDevicePoll(clientIp(ctx)));
+        var request = ctx.bodyAsClass(SignInClaimRequest.class);
+        if (isBlank(request.claimToken())) {
+            throw new BadRequestResponse("claimToken is required");
+        }
+        var result = deviceService
+                .claimSignIn(request.claimToken(), ctx.userAgent(), ctx.header("CF-IPCountry"))
+                .orElseThrow(() -> new UnauthorizedResponse("Sign-in failed"));
+        if (!result.success()) {
+            throw new UnauthorizedResponse(result.message());
+        }
+        if (result.passwordChangeRequired()) {
+            ctx.json(LoginResponse.passwordChange(result.token(), result.expiresAt()));
+            return;
+        }
+        ctx.json(LoginResponse.session(result.token(), result.expiresAt()));
     }
 
     private void pollDeviceRequest(Context ctx) {
@@ -188,8 +243,12 @@ public class PasskeyRoutes implements Routes {
         if (isBlank(request.pollSecret())) {
             throw new BadRequestResponse("pollSecret is required");
         }
-        var result = deviceService.poll(request.pollSecret());
-        ctx.json(new DevicePollResponse(result.status().name(), result.enrollToken()));
+        var result = deviceService.poll(
+                request.pollSecret(), Set.of(DeviceRequestPurpose.ENROL_PASSKEY, DeviceRequestPurpose.SIGN_IN));
+        ctx.json(new DevicePollResponse(
+                result.status().name(),
+                result.claimToken(),
+                result.purpose() == null ? null : result.purpose().name()));
     }
 
     private void beginDeviceEnrollment(Context ctx) {
@@ -268,9 +327,108 @@ public class PasskeyRoutes implements Routes {
             throw new BadRequestResponse("code is required");
         }
         var open = deviceService.lookup(request.code()).orElseThrow(NotFoundResponse::new);
-        ctx.json(new DeviceLookupResponse(open.requestedUserAgent(), open.requestedCountry(), open.createdAt()));
+        if (!mayConfirm(session, open)) {
+            throw new NotFoundResponse();
+        }
+        ctx.json(new DeviceLookupResponse(
+                open.requestedUserAgent(),
+                open.requestedCountry(),
+                open.createdAt(),
+                open.purpose().name(),
+                open.stepUpCategory() == null ? null : open.stepUpCategory().name(),
+                stepUpSubject(session, open),
+                managedCandidates(session, open)));
     }
 
+    /**
+     * Whose step-up this is, where it is not the reader's own.
+     *
+     * <p>A guardian may be answering for themselves or for a child, and the two look identical
+     * otherwise: same screen, same category, and a browser and country that are the child's. Naming
+     * them is what lets a guardian refuse a code that is not the one somebody beside them just asked
+     * for. Their own request says nothing, because there is nothing to tell apart.
+     */
+    private String stepUpSubject(UserSession session, DeviceRequest open) {
+        if (!open.is(DeviceRequestPurpose.STEP_UP)) return null;
+        Integer requester = open.requestingAccountId();
+        if (requester == null || requester == session.accountId()) return null;
+        return accountRepository.findById(requester).map(Account::fullName).orElse(null);
+    }
+
+    /**
+     * Whether this reader is allowed to see a step-up request at all, let alone answer it.
+     *
+     * <p>Their own, or one raised by somebody in their care: a member signed in by their guardian has
+     * no password and no passkey, so the guardian is the only one who can answer a demand made of
+     * them. Everybody else is told nothing, which is exactly what a wrong code already earns, so the
+     * answer cannot be read as "this code exists".
+     */
+    private boolean mayConfirm(UserSession session, DeviceRequest open) {
+        if (!open.is(DeviceRequestPurpose.STEP_UP)) return true;
+        if (Integer.valueOf(session.accountId()).equals(open.requestingAccountId())) return true;
+        return open.requestingAccountId() != null
+                && accountRepository.isGuardianOf(session.accountId(), open.requestingAccountId());
+    }
+
+    private boolean manages(UserSession session, Integer accountId) {
+        if (accountId == null) return false;
+        return session.memberOpt()
+                .map(member -> managedAccessService.signInCandidates(member.id()).stream()
+                        .anyMatch(candidate -> candidate.accountId() == accountId.intValue()))
+                .orElse(false);
+    }
+
+    /**
+     * Whose account the grant is for.
+     *
+     * <p>A step-up always stamps the session that raised it, so the subject is the account that
+     * asked, whoever answers for it. A guardian answering for a member in their care is the point of
+     * the exercise, and the choice the screen offered has no say in it.
+     *
+     * <p>Otherwise the approver, unless this is a sign-in they are making for somebody in their care.
+     * The guardianship is checked here and not only where the screen offered the choice, so a
+     * guardianship that ended in between cannot be spent on a list drawn before it did.
+     */
+    private int subjectFor(UserSession session, DeviceRequest open, Integer requested) {
+        if (open.is(DeviceRequestPurpose.STEP_UP)) return open.requestingAccountId();
+        if (requested == null || requested == session.accountId()) return session.accountId();
+        if (!open.is(DeviceRequestPurpose.SIGN_IN)) {
+            throw new ForbiddenResponse("Only a sign-in can be approved for somebody else");
+        }
+        if (!manages(session, requested)) {
+            throw new ForbiddenResponse("You do not manage this member");
+        }
+        return requested;
+    }
+
+    private List<ApprovalCandidate> managedCandidates(UserSession session, DeviceRequest open) {
+        if (!open.is(DeviceRequestPurpose.SIGN_IN)) return List.of();
+        var self = new ApprovalCandidate(
+                session.accountId(),
+                accountRepository
+                        .findById(session.accountId())
+                        .map(Account::fullName)
+                        .orElse(""));
+        if (session.memberOpt().isEmpty()) return List.of(self);
+        var managed = managedAccessService
+                .signInCandidates(session.memberOpt().get().id())
+                .stream()
+                .map(candidate -> new ApprovalCandidate(candidate.accountId(), candidate.name()));
+        return Stream.concat(Stream.of(self), managed).toList();
+    }
+
+    /**
+     * Vouching for another device, which is the one action a session can take that lets somebody else
+     * in.
+     *
+     * <p>It carries no {@code StepUpCategory} route role, deliberately. That role is a freshness
+     * check, and a session already fresh would pass it without anybody being asked anything. This is
+     * the one action that has to rest on a proof given at this keyboard now, so the handler demands
+     * one itself and spends it rather than riding a window somebody opened earlier.
+     *
+     * <p>The demand comes after the code has been read and the subject settled, so a reader who typed
+     * a wrong code is told so without being asked to prove themselves first.
+     */
     private void approveDeviceRequest(Context ctx) {
         UserSession session = UserSession.from(ctx);
         enforceLimit(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
@@ -278,7 +436,13 @@ public class PasskeyRoutes implements Routes {
         if (isBlank(request.code())) {
             throw new BadRequestResponse("code is required");
         }
-        if (!deviceService.approve(session.accountId(), request.code())) {
+        var open = deviceService.lookup(request.code()).orElseThrow(NotFoundResponse::new);
+        if (!mayConfirm(session, open)) {
+            throw new NotFoundResponse();
+        }
+        int subject = subjectFor(session, open, request.forAccountId());
+        stepUpGuard.spendLocalProof(session, StepUpCategory.ACCOUNT_SECURITY);
+        if (!deviceService.approve(session.accountId(), subject, request.code())) {
             throw new NotFoundResponse();
         }
         ctx.json(Map.of("message", "Device approved"));
@@ -551,15 +715,41 @@ public class PasskeyRoutes implements Routes {
 
     public record DevicePollRequest(String pollSecret) {}
 
-    public record DevicePollResponse(String status, String enrollToken) {}
+    /**
+     * @param purpose what the waiting claim buys, so the asking device knows which ceremony follows.
+     *         Absent until there is something to claim.
+     */
+    public record DevicePollResponse(String status, String enrollToken, String purpose) {}
+
+    public record SignInClaimRequest(String claimToken) {}
 
     public record DeviceEnrollBeginRequest(String enrollToken) {}
 
     public record DeviceEnrollFinishRequest(String enrollToken, String challengeToken, String credentialJson) {}
 
-    public record DeviceCodeRequest(String code) {}
+    /**
+     * @param forAccountId whom the sign-in is for, where a guardian is signing in somebody in their
+     *         care. Absent means the approver themselves
+     */
+    public record DeviceCodeRequest(String code, Integer forAccountId) {}
 
-    public record DeviceLookupResponse(String userAgent, String country, Instant createdAt) {}
+    /**
+     * @param purpose what approving this buys, so the screen can say it in the reader's terms
+     * @param stepUpCategory what a step-up was demanded for, absent for the other purposes
+     * @param stepUpSubject whose step-up it is, where that is somebody in the reader's care rather
+     *         than the reader themselves
+     * @param candidates whom this reader may sign in, for a sign-in. Themselves first
+     */
+    public record DeviceLookupResponse(
+            String userAgent,
+            String country,
+            Instant createdAt,
+            String purpose,
+            String stepUpCategory,
+            String stepUpSubject,
+            List<ApprovalCandidate> candidates) {}
+
+    public record ApprovalCandidate(int accountId, String name) {}
 
     public record TokenEnrollRequest(String token) {}
 

@@ -24,6 +24,7 @@
     "waitlist-removal-warning": "Wartelisten-Entfernung in 2 Wochen{stationSuffix}",
     "test-mail": "Test-E-Mail von Ember",
     "passkey-device-approved": "Ein neues Gerät kann sich jetzt bei deinem Konto anmelden",
+    "device-signed-in": "Ein Gerät wurde bei deinem Konto angemeldet",
     "passkey-code-issued": "Ein Passkey-Code für {name} wurde ausgestellt"
   },
   "body": {

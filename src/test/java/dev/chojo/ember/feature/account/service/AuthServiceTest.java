@@ -1223,6 +1223,88 @@ class AuthServiceTest extends RepositoryTestBase {
         accountRepo.delete(id);
     }
 
+    /**
+     * A session another device vouched for is deliberately the plainest one the product can mint.
+     * Every property asserted here is a decision somebody could undo without noticing, and each of
+     * them is what keeps a borrowed laptop from being handed the whole account.
+     */
+    @Test
+    @Order(94)
+    void aVouchedSessionIsPlain() {
+        String email = "vouched-admit@test.com";
+        var registered = service.registerSelf(email, "Vouched", "Admit", PASSWORD, null);
+        int id = registered.account().id();
+        accountRepo.setEmailVerified(id);
+
+        var result = service.admitVouchedForAccount(id, "agent", "DE");
+        assertTrue(result.success());
+
+        var session = accountRepo.findSession(result.token()).orElseThrow();
+        assertNull(session.twoFactorVerifiedAt(), "nobody proved anything at this keyboard");
+        assertNull(session.twoFactorProof(), "so there is no proof to name either");
+        assertFalse(session.trustedDevice(), "a borrowed machine is not a trusted one");
+        assertTrue(session.vouchedFor(), "and it carries the mark that stops it vouching in turn");
+        assertNotNull(accountRepo.findLastSignInAt(id).orElseThrow(), "every sign-in stamps when it happened");
+        accountRepo.delete(id);
+    }
+
+    /**
+     * The approval says the account holder is present. It does not say the account is in a state to
+     * be used, so the refusals every other sign-in makes are made here too.
+     */
+    @Test
+    @Order(94)
+    void aVouchedSignInIsRefusedTheSameWaysAnyOtherIs() {
+        String email = "vouched-refused@test.com";
+        var registered = service.registerSelf(email, "Vouched", "Refused", PASSWORD, null);
+        int id = registered.account().id();
+
+        var unverified = service.admitVouchedForAccount(id, "agent", "DE");
+        assertFalse(unverified.success(), "an unverified address is no more verified for being vouched for");
+        assertEquals("Email not verified", unverified.message());
+
+        accountRepo.setEmailVerified(id);
+        accountRepo.setForcePasswordChange(id, true);
+        var rotating = service.admitVouchedForAccount(id, "agent", "DE");
+        assertFalse(rotating.success(), "an account owing a password change is not let in this way");
+        assertFalse(
+                rotating.passwordChangeRequired(),
+                "and it is not handed the token for it either: that would let the borrowed machine set the password");
+
+        assertFalse(
+                service.admitVouchedForAccount(999_999, "agent", "DE").success(), "and an account that is not there");
+        accountRepo.delete(id);
+    }
+
+    /**
+     * Whether another device could answer a step-up is a question about live sessions, and two of
+     * them do not count: the one asking, and any that was itself only vouched for.
+     */
+    @Test
+    @Order(94)
+    void onlyALocallySignedInOtherSessionCanBeAskedToVouch() {
+        String email = "vouched-peers@test.com";
+        var registered = service.registerSelf(email, "Vouched", "Peers", PASSWORD, null);
+        int id = registered.account().id();
+        accountRepo.setEmailVerified(id);
+
+        accountRepo.createSession(id, "peer-local", Instant.now().plusSeconds(600), "ua", null);
+        int local = accountRepo.findSession("peer-local").orElseThrow().id();
+
+        assertFalse(
+                accountRepo.hasOtherVouchingSession(id, local),
+                "its own session is not somebody else who could answer");
+
+        accountRepo.createVouchedSession(id, "peer-vouched", Instant.now().plusSeconds(600), "ua", null);
+        int vouched = accountRepo.findSession("peer-vouched").orElseThrow().id();
+
+        assertTrue(accountRepo.hasOtherVouchingSession(id, vouched), "the locally signed-in one can answer for it");
+        assertFalse(
+                accountRepo.hasOtherVouchingSession(id, local),
+                "but the vouched-for one cannot answer for anybody, which is what breaks the circle");
+        accountRepo.delete(id);
+    }
+
     @Test
     @Order(95)
     void passkeyAdmissionRefusesUnverifiedEmail() {

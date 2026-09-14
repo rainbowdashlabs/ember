@@ -146,6 +146,67 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
                 accountRepo.findById(childAccount.id()).orElseThrow().email());
     }
 
+    /**
+     * Whom a guardian may sign in on a device in front of them: the people they already manage, and
+     * only those who could sign in at all. A child with nothing to sign in with is not somebody to
+     * hand a session to, a child whose access was switched off is not one either, and a stranger is
+     * not theirs to offer at any point.
+     */
+    @Test
+    void aGuardianMaySignInOnlyTheMembersTheyManageWhoCouldSignInAtAll() {
+        assertTrue(
+                service.signInCandidates(guardian.id()).isEmpty(),
+                "a child with only a synthetic address has no way in to be handed");
+
+        service.setEmail(guardian.id(), child.id(), "lena@example.org");
+        service.setLogin(guardian.id(), child.id(), true);
+
+        var offered = service.signInCandidates(guardian.id());
+        assertEquals(1, offered.size());
+        assertEquals(childAccount.id(), offered.getFirst().accountId());
+        assertFalse(offered.getFirst().name().isBlank(), "a child is picked by their name and nothing else");
+
+        assertTrue(
+                offered.stream().noneMatch(candidate -> candidate.accountId() == strangerAccount.id()),
+                "somebody they do not manage is never on offer");
+
+        service.setLogin(guardian.id(), child.id(), false);
+        assertTrue(
+                service.signInCandidates(guardian.id()).isEmpty(),
+                "switching their access off means no new session either, or the next approval undoes the saying");
+    }
+
+    /**
+     * A member signed in by their guardian holds no password, no passkey and no second session, so
+     * the guardian's own device is the only thing that can answer a demand made of them. Both sides
+     * of that ask the same question: the dialog, deciding whether to offer confirming elsewhere, and
+     * the approval screen, deciding whether this reader may see the code at all. They have to agree,
+     * or the dialog offers a way out that the other screen then calls an unknown code.
+     */
+    @Test
+    void aGuardiansDeviceIsWhatCanConfirmForAMemberInTheirCare() {
+        assertFalse(
+                accountRepo.hasGuardianSession(childAccount.id()),
+                "a guardian who is not signed in anywhere cannot confirm anything");
+
+        accountRepo.createSession(
+                guardianAccount.id(),
+                "guardian-" + java.util.UUID.randomUUID(),
+                java.time.Instant.now().plusSeconds(600),
+                "ua",
+                null);
+
+        assertTrue(accountRepo.hasGuardianSession(childAccount.id()));
+        assertTrue(accountRepo.isGuardianOf(guardianAccount.id(), childAccount.id()));
+
+        assertFalse(
+                accountRepo.hasGuardianSession(strangerAccount.id()),
+                "somebody they do not look after is not theirs to confirm for");
+        assertFalse(accountRepo.isGuardianOf(guardianAccount.id(), strangerAccount.id()));
+        assertFalse(
+                accountRepo.isGuardianOf(childAccount.id(), guardianAccount.id()), "and the relationship runs one way");
+    }
+
     @Test
     void anAddressThatBelongsToSomeoneElseIsRefused() {
         assertThrows(BadRequestResponse.class, () -> service.setEmail(guardian.id(), child.id(), "stranger@test.com"));
