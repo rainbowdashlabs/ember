@@ -39,7 +39,7 @@ const purposes = defineModel<string[]>('purposes', {required: true})
 const states = defineModel<string[]>('states', {required: true})
 const turns = defineModel<string[]>('turns', {required: true})
 
-const sortKeys: MovementSortKey[] = ['turn', 'date', 'member', 'inventory', 'purpose']
+const sortKeys: MovementSortKey[] = ['turn', 'created', 'modified', 'member', 'inventory', 'purpose']
 
 const {t} = useI18n()
 

@@ -9,6 +9,7 @@ import {glyphFor} from '@/util/glyph'
 import {formatDate} from '@/util/format'
 import {useMovementParties} from '@/composables/useMovementParties'
 import {MovementState, type Movement} from '@/api/movements'
+import {hasMoved, lastMovedAt} from './movementFilter'
 
 /**
  * What one movement looks like in a list, whichever shape the list has.
@@ -43,15 +44,13 @@ export function useMovementRowView(movement: Ref<Movement>) {
     const startedOn = computed(() => formatDate(movement.value.createdAt))
 
     /**
-     * When it last moved, said only where that is not the day it started: a row that has never moved
-     * would otherwise carry the same date twice, which reads as two facts and is one.
+     * When it last moved, said for every row that has actually moved. A row still sitting where it
+     * was created carries no second date, because that would read as two facts and is one. Whether
+     * it moved is the timestamp itself rather than the day it falls on: most movements are dealt
+     * with the day they are raised, and comparing the printed days hid the date on all of them.
      */
-    const movedOn = computed(() => {
-        const moved = movement.value.updatedAt
-        if (!moved) return ''
-        const said = formatDate(moved)
-        return said === startedOn.value ? '' : said
-    })
+    const movedOn = computed(() =>
+        hasMoved(movement.value) ? formatDate(lastMovedAt(movement.value)) : '')
 
     /** Who is being waited on, or how it ended for one that is over. */
     const standing = computed(() => {
