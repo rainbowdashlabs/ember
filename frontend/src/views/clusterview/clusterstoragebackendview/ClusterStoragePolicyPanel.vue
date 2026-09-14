@@ -13,6 +13,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import {ClusterBackendReach, type ClusterBackendReachName} from '@/api/clusterStorageBackend'
 
 /**
@@ -67,7 +68,7 @@ const {t} = useI18n()
             <ToggleInput v-model="locked" data-testid="cluster-storage-lock"/>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
+        <ButtonRow>
             <PrimaryButton :disabled="saving" data-testid="cluster-storage-policy-save" @click="emit('save')">
                 {{ t('clusterStorageBackend.policy.save') }}
             </PrimaryButton>
@@ -75,6 +76,6 @@ const {t} = useI18n()
                          @click="emit('drop')">
                 {{ t('clusterStorageBackend.policy.drop') }}
             </ErrorButton>
-        </div>
+        </ButtonRow>
     </NeutralContainer>
 </template>

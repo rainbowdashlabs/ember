@@ -10,6 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 defineProps<{
   importing: boolean
@@ -33,12 +34,12 @@ const {t} = useI18n()
         <FieldLabel>{{ t('adminStations.importToken') }}</FieldLabel>
         <TextInput v-model="token" :placeholder="t('adminStations.importTokenPlaceholder')"/>
       </div>
-      <div class="flex justify-end gap-3">
+      <ButtonRow align="end">
         <SecondaryButton @click="open = false">{{ t('adminStations.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="importing || !token" @click="emit('start')">
           {{ importing ? t('adminStations.importStarting') : t('adminStations.importStart') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

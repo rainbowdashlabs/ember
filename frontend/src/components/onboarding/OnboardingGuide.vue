@@ -10,6 +10,7 @@ import {useRouter} from 'vue-router'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import {useOnboardingGuide} from '@/composables/useOnboardingGuide'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
@@ -211,13 +212,13 @@ function close() {
           <div class="min-w-0 flex-1 space-y-2">
             <p class="text-sm font-semibold text-(--text-muted)">{{ taskTitle }}</p>
             <p class="text-base text-(--text)">{{ bubbleText }}</p>
-            <div v-if="completed" class="flex flex-wrap items-center gap-2">
+            <ButtonRow v-if="completed">
               <PrimaryButton class="text-sm" @click="goToList">{{ t('onboarding.guide.toList') }}</PrimaryButton>
               <SecondaryButton class="text-sm" @click="completed = null">
                 {{ t('onboarding.guide.stayHere') }}
               </SecondaryButton>
-            </div>
-            <div v-else class="flex flex-wrap items-center gap-2">
+            </ButtonRow>
+            <ButtonRow v-else>
               <PrimaryButton v-if="step?.advance === 'read'" class="text-sm" @click="advance">
                 {{ t('onboarding.guide.understood') }}
               </PrimaryButton>
@@ -225,8 +226,8 @@ function close() {
                 {{ t('onboarding.guide.takeMeThere') }}
               </PrimaryButton>
               <SecondaryButton class="text-sm" @click="skipTask">{{ t('onboarding.guide.skip') }}</SecondaryButton>
-              <span class="ml-auto text-xs text-(--text-muted)">{{ progress }}</span>
-            </div>
+              <span class="text-xs text-(--text-muted) sm:ml-auto">{{ progress }}</span>
+            </ButtonRow>
           </div>
           <MutedIconButton
               :icon="['fas', 'xmark']"

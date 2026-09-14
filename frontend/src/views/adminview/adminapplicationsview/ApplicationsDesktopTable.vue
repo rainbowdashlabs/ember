@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
@@ -53,14 +54,14 @@ const {t} = useI18n()
         <ApplicationStatusBadge :status="app.status"/>
       </Td>
       <Td align="right">
-        <div v-if="app.status === ApplicationStatus.PENDING" class="flex items-center justify-end gap-1">
+        <ButtonRow v-if="app.status === ApplicationStatus.PENDING" pair align="end">
           <PrimaryButton :disabled="processing" @click="$emit('accept', app)">
             {{ t('adminApplications.accept') }}
           </PrimaryButton>
           <ErrorButton :disabled="processing" @click="$emit('deny', app)">
             {{ t('adminApplications.deny') }}
           </ErrorButton>
-        </div>
+        </ButtonRow>
         <MutedText v-else-if="app.status === ApplicationStatus.DENIED && app.denyReason" tag="div">
           {{ app.denyReason }}
         </MutedText>

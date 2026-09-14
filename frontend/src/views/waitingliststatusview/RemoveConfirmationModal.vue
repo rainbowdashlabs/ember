@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 
 const props = defineProps<{ removing: boolean }>()
@@ -26,12 +27,12 @@ const { t } = useI18n()
       <SectionHeader>{{ t('waitingList.publicStatus.removeTitle') }}</SectionHeader>
       <p class="text-sm">{{ t('waitingList.publicStatus.removeConfirm') }}</p>
       <p class="text-xs text-(--text-muted)">{{ t('waitingList.publicStatus.removeHint') }}</p>
-      <div class="flex justify-end gap-2">
+      <ButtonRow align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton :disabled="props.removing" @click="emit('confirm')">
           {{ props.removing ? t('common.loading') : t('waitingList.publicStatus.removeFromList') }}
         </ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>
