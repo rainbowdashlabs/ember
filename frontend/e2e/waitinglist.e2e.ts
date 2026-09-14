@@ -181,6 +181,64 @@ test.describe('Waiting lists', () => {
     })
 
     /**
+     * A station nobody outside its own network can reach sends links nobody can open, so its lists
+     * write to nobody. The story makes such a list, opens it to the public, and registers on it as
+     * a stranger who leaves no address at all: the registration is on the list the moment it is
+     * sent, rather than waiting for a confirmation that could never arrive.
+     */
+    test('a list that sends no mail takes a registration without confirming it', async ({managerPage: page, page: visitor}) => {
+        const listName = `Ohne Mail ${Date.now()}`
+        const surname = `Ohnemail-${Date.now()}`
+
+        await page.goto('/station/members/waiting-lists')
+        await page.getByRole('button', {name: 'Erstellen'}).click()
+
+        const dialog = page.getByTestId('modal')
+        await dialog.getByPlaceholder('z.B. Warteliste 2026').fill(listName)
+        await dialog.getByTestId('waitlist-mail-toggle').getByRole('switch').click()
+        await dialog.getByRole('button', {name: 'Erstellen'}).click()
+
+        await page.waitForURL(/\/station\/members\/waiting-lists\/(\d+)/)
+        const id = page.url().match(/waiting-lists\/(\d+)/)?.[1]
+
+        await page.getByRole('button', {name: 'Bearbeiten', exact: true}).first().click()
+        await expect(
+            page.getByTestId('waitlist-mail-toggle').getByRole('switch'),
+            'the list was made with its mails switched off',
+        ).toHaveAttribute('aria-checked', 'false')
+        await page.getByTestId('waitlist-public-toggle').getByRole('switch').click()
+        await page.getByRole('button', {name: 'Speichern'}).click()
+
+        const headers = await apiHeaders(page)
+        const station = await page.request.get('/api/v1/station/manage', {headers})
+        expect(station.ok(), `the station was readable (${station.status()})`).toBeTruthy()
+        const slug = (await station.json()).publicSlug
+
+        await visitor.goto(`/public/station/${slug}/waitlist`)
+        await visitor.getByText(listName).first().click()
+
+        const fields = visitor.getByRole('textbox')
+        await fields.nth(0).fill('Kein')
+        await fields.nth(1).fill(surname)
+        const consent = visitor.getByRole('checkbox')
+        if (await consent.count() > 0) await consent.first().check()
+
+        await visitor.getByRole('button', {name: 'Anmeldung absenden'}).click()
+
+        await expect(
+            visitor.getByText('Anmeldung eingegangen'),
+            'nobody is sent to an inbox for a link that was never written',
+        ).toBeVisible()
+
+        const entries = await page.request.get(`/api/v1/waiting-lists/${id}/entries`, {headers})
+        expect(entries.ok(), `the entries were readable (${entries.status()})`).toBeTruthy()
+        const body = await entries.json()
+        const landed = body.find((item: {entry: {lastname: string; status: string}}) => item.entry.lastname === surname)
+        expect(landed, 'the registration is on the list without anything being confirmed').toBeTruthy()
+        expect(landed.entry.status, 'and waits for the station to look at it').toBe('PENDING')
+    })
+
+    /**
      * A field offering a choice is only worth having if the choices come back. They are saved as
      * an object and were read as though they were text, which left every such field looking empty
      * everywhere it was shown while the answers sat in the database intact.

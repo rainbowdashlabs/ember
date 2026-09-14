@@ -15,6 +15,15 @@ import java.util.List;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * A waiting list of a station.
+ *
+ * @param sendsMail whether the list writes to the people on it. A list that does not sends neither
+ *                  the confirmation link of a public registration nor an invitation, and its
+ *                  confirmation cycle with its reminders, its warning and the removal that follows
+ *                  them does not run: an installation nobody outside can reach sends links nobody
+ *                  can open, and a list kept for local tracking speaks to its people in person.
+ */
 public record WaitingList(
         int id,
         int stationId,
@@ -29,6 +38,7 @@ public record WaitingList(
         StationUserType joinUserType,
         int attendanceThreshold,
         boolean isPublic,
+        boolean sendsMail,
         Integer minAgeRegister,
         Integer minAgeJoin) {
 
@@ -47,6 +57,7 @@ public record WaitingList(
                 row.getEnum("join_user_type", StationUserType.class),
                 row.getInt("attendance_threshold"),
                 row.getBoolean("public"),
+                row.getBoolean("sends_mail"),
                 row.getObject("min_age_register", Integer.class),
                 row.getObject("min_age_join", Integer.class));
     }

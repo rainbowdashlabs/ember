@@ -5422,6 +5422,11 @@ export default {
         moveDown: 'Nach unten',
         isPublic: 'Öffentlich',
         isPublicHint: 'Warteliste für öffentliche Anmeldungen freigeben.',
+        sendsMail: 'E-Mails senden',
+        sendsMailHint:
+            'Aus: Diese Warteliste verschickt keine E-Mails. Anmeldungen müssen nicht bestätigt werden, '
+            + 'Einladungen und Erinnerungen gehen nicht raus, und niemand wird wegen einer fehlenden '
+            + 'Bestätigung entfernt. Für Wartelisten, die nur intern geführt werden.',
         fieldPublic: 'Im öffentlichen Formular',
         publicBadge: 'Öffentlich',
         sectionPending: 'Ausstehende Anmeldungen',
@@ -5440,6 +5445,9 @@ export default {
             successTitle: 'Fast geschafft!',
             successText: 'Wir haben dir eine E-Mail zur Bestätigung gesendet. Bitte klicke auf den Link in der E-Mail, um deine Anmeldung abzuschließen.',
             successHint: 'Der Link ist 24 Stunden gültig.',
+            receivedTitle: 'Anmeldung eingegangen',
+            receivedText: 'Deine Anmeldung liegt vor und wird von einem Betreuer geprüft. '
+                + 'Eine Bestätigung per E-Mail ist nicht nötig.',
             verifyTitle: 'E-Mail bestätigt',
             verifyText: 'Deine E-Mail-Adresse wurde bestätigt. Deine Anmeldung wird nun von einem Betreuer geprüft.',
             verifyError: 'Der Bestätigungslink ist ungültig oder abgelaufen.',

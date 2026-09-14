@@ -497,6 +497,7 @@ public class WaitingListRoutes implements Routes {
                 request.joinGroupId(),
                 request.attendanceThreshold() != null ? request.attendanceThreshold() : 5,
                 request.isPublic() != null && request.isPublic(),
+                request.sendsMail() == null || request.sendsMail(),
                 request.minAgeRegister(),
                 request.minAgeJoin());
         ctx.status(HttpStatus.CREATED).json(list);
@@ -540,6 +541,7 @@ public class WaitingListRoutes implements Routes {
                         request.joinGroupId(),
                         request.attendanceThreshold() != null ? request.attendanceThreshold() : 5,
                         request.isPublic() != null && request.isPublic(),
+                        request.sendsMail() == null || request.sendsMail(),
                         request.minAgeRegister(),
                         request.minAgeJoin())
                 .orElseThrow(NotFoundResponse::new);
@@ -901,7 +903,7 @@ public class WaitingListRoutes implements Routes {
         var list = service.findById(wid).orElseThrow(NotFoundResponse::new);
         if (list.stationId() != stationId || !list.isPublic()) throw new NotFoundResponse();
         var fields = service.findPublicFieldsByList(wid);
-        ctx.json(new PublicFormResponse(list.name(), list.description(), fields));
+        ctx.json(new PublicFormResponse(list.name(), list.description(), list.sendsMail(), fields));
     }
 
     private void submitPublicRegistration(Context ctx) {
@@ -913,7 +915,7 @@ public class WaitingListRoutes implements Routes {
         if (request.firstname() == null || request.firstname().isBlank()) {
             throw new BadRequestResponse("firstname is required");
         }
-        if (request.email() == null || request.email().isBlank()) {
+        if (list.sendsMail() && (request.email() == null || request.email().isBlank())) {
             throw new BadRequestResponse("email is required");
         }
         var retryAfter = rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), "list:" + wid);
@@ -939,12 +941,13 @@ public class WaitingListRoutes implements Routes {
                 wid,
                 request.firstname(),
                 request.lastname() != null ? request.lastname() : "",
-                request.email(),
+                request.email() != null ? request.email() : "",
                 guardianInputs,
                 request.values() != null ? request.values() : Map.of(),
                 request.notes(),
                 consent);
-        ctx.status(HttpStatus.ACCEPTED).json(new StatusResponse("verification_email_sent"));
+        ctx.status(HttpStatus.ACCEPTED)
+                .json(new StatusResponse(list.sendsMail() ? "verification_email_sent" : "registered"));
     }
 
     @StationFree("the verification token is mailed to the address it confirms and names one registration")
@@ -1044,6 +1047,11 @@ public class WaitingListRoutes implements Routes {
     @OpenApiName("WaitingListInvitationAnswerRequest")
     public record AnswerRequest(Integer eventId, String date, String answer, String note) {}
 
+    /**
+     * @param sendsMail whether the list writes to the people on it, sending nothing at all where it
+     *                  is false. Unanswered reads as true, which is what every list did before the
+     *                  setting existed.
+     */
     public record ListRequest(
             String name,
             String description,
@@ -1053,6 +1061,7 @@ public class WaitingListRoutes implements Routes {
             Integer joinGroupId,
             Integer attendanceThreshold,
             Boolean isPublic,
+            Boolean sendsMail,
             Integer minAgeRegister,
             Integer minAgeJoin) {}
 
@@ -1120,7 +1129,12 @@ public class WaitingListRoutes implements Routes {
 
     public record PublicWaitlistSummary(int id, String name, String description) {}
 
-    public record PublicFormResponse(String listName, String listDescription, List<WaitingListField> fields) {}
+    /**
+     * @param sendsMail whether a confirmation link follows the registration, which is what decides
+     *                  whether an address is asked for at all
+     */
+    public record PublicFormResponse(
+            String listName, String listDescription, boolean sendsMail, List<WaitingListField> fields) {}
 
     public record PublicRegistrationRequest(
             String firstname,

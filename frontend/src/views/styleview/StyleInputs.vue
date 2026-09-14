@@ -21,6 +21,7 @@ import TimeInput from '@/components/input/datetime/TimeInput.vue'
 import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 import CompactToggle from '@/components/input/toggle/CompactToggle.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import RadioInput from '@/components/input/toggle/RadioInput.vue'
@@ -140,6 +141,11 @@ const radioValue = ref('a')
       <FieldLabel inline class="opacity-60"><ToggleInput disabled/> Disabled (off)</FieldLabel>
       <FieldLabel inline class="opacity-60"><ToggleInput :model-value="true" disabled/> Disabled (on)</FieldLabel>
     </div>
+  </section>
+
+  <section class="space-y-4">
+    <SectionHeader>Toggle Setting</SectionHeader>
+    <ToggleSetting v-model="toggleValue" hint="What the setting does when it is on." label="A setting"/>
   </section>
 
   <section class="space-y-4">

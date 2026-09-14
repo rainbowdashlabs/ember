@@ -7,10 +7,10 @@
 import { useI18n } from 'vue-i18n'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 
 const isPublic = defineModel<boolean>('isPublic', {required: true})
+const sendsMail = defineModel<boolean>('sendsMail', {required: true})
 
 defineProps<{
   canSave: boolean
@@ -26,13 +26,18 @@ const { t } = useI18n()
 
 <template>
   <div class="space-y-3">
-    <div class="flex items-center justify-between">
-      <div>
-        <FieldLabel>{{ t('waitingList.isPublic') }}</FieldLabel>
-        <p class="text-xs text-(--text-muted)">{{ t('waitingList.isPublicHint') }}</p>
-      </div>
-      <ToggleInput v-model="isPublic" />
-    </div>
+    <ToggleSetting
+      v-model="isPublic"
+      :hint="t('waitingList.isPublicHint')"
+      :label="t('waitingList.isPublic')"
+      data-testid="waitlist-public-toggle"
+    />
+    <ToggleSetting
+      v-model="sendsMail"
+      :hint="t('waitingList.sendsMailHint')"
+      :label="t('waitingList.sendsMail')"
+      data-testid="waitlist-mail-toggle"
+    />
     <div class="flex justify-end gap-2">
       <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
       <SaveButton :disabled="!canSave" :action="save" />

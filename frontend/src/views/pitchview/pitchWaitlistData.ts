@@ -33,7 +33,7 @@ const LIST: WaitingList = {
     description: 'Anmeldungen für die Aufnahme im kommenden Jahr',
     scoringFormula: '[wartezeit_monate] + (age([Geburtsdatum]) < 12 ? 5 : 0)',
     confirmIntervalDays: 90, createdAt: daysAgo(300), visibleFields: [1, 2],
-    testingGroupId: 3, joinGroupId: 2, attendanceThreshold: 4, isPublic: true,
+    testingGroupId: 3, joinGroupId: 2, attendanceThreshold: 4, isPublic: true, sendsMail: true,
 }
 
 export const WAITLISTS: WaitingListWithCount[] = [

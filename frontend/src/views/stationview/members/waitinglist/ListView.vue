@@ -34,10 +34,12 @@ const { config: lists, loading, error } = useConfigPanel<WaitingListWithCount[]>
 const showCreateModal = ref(false)
 const newName = ref('')
 const newDescription = ref('')
+const newSendsMail = ref(true)
 
 function openCreate() {
   newName.value = ''
   newDescription.value = ''
+  newSendsMail.value = true
   showCreateModal.value = true
 }
 
@@ -47,6 +49,7 @@ const { running: creating, error: createError, run: createList } = useAsyncActio
   const created = await waitingList.create({
     name: newName.value.trim(),
     description: newDescription.value.trim(),
+    sendsMail: newSendsMail.value,
   })
   showCreateModal.value = false
   router.push({ name: 'waiting-list-detail', params: { id: created.id } })
@@ -81,6 +84,7 @@ function navigateToDetail(id: number) {
         v-model="showCreateModal"
         v-model:name="newName"
         v-model:description="newDescription"
+        v-model:sends-mail="newSendsMail"
         :creating="creating"
         @submit="createList"
       />

@@ -234,6 +234,16 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.waitingList.confirmationText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.waitingList.noMailTitle')">
+      <p>{{ t('helpCenter.waitingList.noMailText') }}</p>
+      <BulletList>
+        <li>{{ t('helpCenter.waitingList.noMailRegistration') }}</li>
+        <li>{{ t('helpCenter.waitingList.noMailInvitation') }}</li>
+        <li>{{ t('helpCenter.waitingList.noMailConfirmation') }}</li>
+      </BulletList>
+      <p class="mt-2 text-sm">{{ t('helpCenter.waitingList.noMailWhere') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.waitingList.tip') }}</HelpTip>
   </HelpArticle>
 </template>

@@ -9,6 +9,7 @@
 - **Gear can be given a picture.** An inventory, and each kind inside a collection, can be given an icon and a colour. Wherever a piece is named after that, in a picker, a list or the queue, it carries that picture along with its size and the identifier written on it.
 - **A hand-out can be planned rather than done.** Every screen that assigns gear to a member now offers the same choice: hand the piece over now, or promise it. A promised piece stays on the shelf, is marked as spoken for so nobody else is given it, and the handing over is confirmed later.
 - **An order that arrives sets the hand-out going.** Marking a procurement as arrived no longer writes the piece straight onto the member. It records what turned up and starts the hand-out, so the piece stays on the shelf, spoken for, until somebody gives it to them and says so.
+- **A waiting list can be kept without any mail.** A switch in the list's settings stops everything it would send, so a public registration lands without a confirmation link and an invitation is passed on by hand. The reminders that ask whether somebody is still interested stop with it, and nobody is removed for leaving one unanswered.
 
 ### Improvements
 
@@ -20,6 +21,7 @@
 - **Picking a replacement only offers pieces that can be given.** The search on the step that asks which piece arrived is now limited to free pieces of the same inventory and the same owner: nothing on a member, nothing reported missing, nothing another movement has already promised, and nothing out of a different kind of gear.
 - **A name in the inventory leads to what that person is holding.** The lists of gear, the queue and the overview all link the member's name to their inventory, which several of them did not.
 - **Tags are called tags.** The word "Schlagwörter" is gone from the German interface, and the column of them appears on an inventory only where something in it wears one.
+- **A public registration can be made without an address.** On a waiting list that sends no mail the form no longer insists on an e-mail address, and the registration reaches the station at once, where it waits to be accepted as before.
 
 ### Changes
 

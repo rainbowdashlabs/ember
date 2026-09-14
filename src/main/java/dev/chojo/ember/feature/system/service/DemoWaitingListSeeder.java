@@ -89,6 +89,7 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                 joinGroupId,
                 5,
                 true,
+                true,
                 null,
                 null);
 
@@ -113,6 +114,7 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                 null,
                 null,
                 0,
+                true,
                 true,
                 null,
                 null);
@@ -147,6 +149,7 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                 null,
                 null,
                 0,
+                true,
                 true,
                 null,
                 null);
