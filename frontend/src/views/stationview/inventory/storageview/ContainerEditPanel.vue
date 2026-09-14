@@ -11,6 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import ContainerKindPicker from '@/views/stationview/inventory/storageview/ContainerKindPicker.vue'
@@ -106,11 +107,11 @@ async function save() {
         <TextAreaInput v-model="description" :rows="3" />
       </label>
     </div>
-    <div class="flex justify-end gap-2 mt-4">
+    <ButtonRow pair align="end" class="mt-4">
       <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton :disabled="submitting" @click="save">
         {{ submitting ? t('common.saving') : t('common.save') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>
