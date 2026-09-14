@@ -241,6 +241,9 @@ public class AuthRoutes implements Routes {
             case TOKEN_INVALID -> throw new BadRequestResponse("setPassword.tokenInvalid");
             case TOKEN_EXPIRED -> throw new BadRequestResponse("setPassword.tokenExpired");
             case PASSWORDLESS_MODE -> throw new ForbiddenResponse("setPassword.passwordlessMode");
+            // An outcome added later and not answered here would otherwise fall out of the switch
+            // with nothing written, and an empty 200 reads as a password that was set.
+            default -> throw new IllegalStateException("Unhandled set-password outcome: " + result.outcome());
         }
     }
 
@@ -463,6 +466,9 @@ public class AuthRoutes implements Routes {
                                 "Confirmation received. Waiting for the other address to confirm before the change takes effect."));
             case DUPLICATE -> throw new BadRequestResponse("Email already in use");
             case INVALID -> throw new BadRequestResponse("Invalid or expired token");
+            // An outcome added later and not answered here would otherwise fall out of the switch
+            // with nothing written, and an empty 200 reads as an address that changed.
+            default -> throw new IllegalStateException("Unhandled email-change outcome: " + result);
         }
     }
 
