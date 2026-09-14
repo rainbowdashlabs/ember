@@ -2107,8 +2107,9 @@ volumes:
             notesTitle: 'Hinweise zum Mitglied',
             notesText: 'Neben jedem Namen steht, was für dieses Mitglied noch offen ist: ein laufender Tausch mit dem, worauf gerade gewartet wird, eine Fundsache, die noch abgeholt werden muss, und ein Geburtstag der letzten sechs Tage. '
                 + 'Die Hinweise stehen sowohl in der Schnellprüfung als auch in der Liste aller Anwesenheiten, denn genau dann steht die Person vor dir.',
-            notesActionsText: 'Zwei davon lassen sich direkt erledigen: Ein Tausch kann einen Schritt weiterbewegt werden, und liegt der Ersatz bereit, ist dieser Schritt die Übergabe selbst. '
-                + 'Eine Fundsache wird mit "Übergabe quittieren" ausgehändigt und verschwindet damit aus der Liste.',
+            notesActionsText: 'Zwei davon lassen sich direkt erledigen: Bei einem Vorgang trägt der Button den Namen des Schritts, den du gerade erledigst, samt Teil und Größe. '
+                + 'Angezeigt werden nur Schritte, bei denen das Mitglied beteiligt ist; ist das Mitglied selbst am Zug, steht der Schritt da, ohne Button. '
+                + 'Eine Fundsache wird mit "Übergeben" ausgehändigt und verschwindet damit aus der Liste.',
             notesRightsText: 'Angezeigt wird nur, wofür du auch sonst die Rechte hast: Tauschvorgänge brauchen Leserechte auf das Inventar, das Weiterbewegen zusätzlich das Recht für Tauschvorgänge, Fundsachen das Recht zur Verwaltung des Fundbüros. '
                 + 'Der Geburtstag folgt der Sichtbarkeit des Profilfelds. Wer nichts davon hat, sieht die Anwesenheitsliste unverändert.',
             frozenTitle: 'Abgeschlossene Anwesenheiten',

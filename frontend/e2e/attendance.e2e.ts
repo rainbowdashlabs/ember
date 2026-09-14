@@ -311,7 +311,7 @@ test.describe('Attendance', () => {
         const handOver = page
             .getByTestId(`member-row-${waiting.memberId}`)
             .locator(`[data-testid="note-swap"][data-swap="${waiting.id}"]`)
-            .getByTestId('note-swap-hand-over')
+            .getByTestId('note-swap-step')
         await expect(handOver, 'our swap is waiting to be handed over').toBeVisible()
 
         const handed = page.waitForResponse(
@@ -399,7 +399,12 @@ test.describe('Attendance', () => {
 
         await expect(page.getByTestId('member-check-notes').first()).toBeVisible()
         await expect(page.getByTestId('note-swap').first()).toBeVisible()
-        await expect(page.getByTestId('note-swap-hand-over').first()).toBeVisible()
+
+        // The button carries the name of the step it walks rather than a word of its own, so what it
+        // says is whatever the chain calls that step.
+        const step = page.getByTestId('note-swap-step').first()
+        await expect(step).toBeVisible()
+        expect((await step.innerText()).trim(), 'the step is named on the button').not.toBe('')
     })
 
     /**

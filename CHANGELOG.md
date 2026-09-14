@@ -17,6 +17,7 @@
 
 ### Improvements
 
+- **What is outstanding with a member names the step it is on.** Beside a name on the attendance list and in the quick check, the button now carries the name of the step it walks, along with the piece it is about and the size written on it. Only what happens with the member in the room is shown, so a piece travelling between the station and the association no longer stands beside their name.
 - **Exported PDFs can leave the address of the installation off.** A switch in the station's settings drops it from the foot of every export, and the attendance export can differ from that for one document. Everything else the footer carries stays: the logo, the station's name, who made the document and which page it is.
 - **The inventory and item pickers are searched and walked with the keyboard.** Arrow keys walk the list, Enter takes the highlighted entry and Escape closes, so the usual case is a few letters and Enter. The picked entry is shown the same way as the list: picture, name, size and identifier.
 - **Every place that asks which member now asks the same way.** A member is chosen from one menu throughout the product: a face, the name in the colour their group gives it, and a search that is always there, in place of the dropdowns of several hundred lines that some screens still offered. Arrow keys walk the list, Enter takes the highlighted person and Escape closes, so the usual case is three letters and Enter.

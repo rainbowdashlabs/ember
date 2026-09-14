@@ -9,9 +9,7 @@ import {useI18n} from 'vue-i18n'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import type {MemberNotes} from '@/api/attendance'
-import {StepActor} from '@/api/movements'
+import type {MemberNotes, SwapNote} from '@/api/attendance'
 
 const {t} = useI18n()
 
@@ -40,6 +38,14 @@ const hasAnything = computed(
     () => !!props.notes && (props.notes.swaps.length > 0 || props.notes.foundItems.length > 0
         || props.notes.birthdayDaysAgo !== null),
 )
+
+/**
+ * What the note is about: the piece the step names, falling back to the inventory it is out of for a
+ * step whose piece has not been picked yet.
+ */
+function pieceOf(swap: SwapNote): string {
+  return swap.itemName?.trim() || swap.inventoryName
+}
 
 /**
  * The birthday in words. Today is its own sentence rather than "no days ago", which is what somebody
@@ -73,31 +79,24 @@ const birthdayText = computed(() => {
         data-testid="note-swap"
     >
       <font-awesome-icon :icon="['fas', 'right-left']" class="text-primary"/>
-      <span>{{ swap.inventoryName }}</span>
-      <InfoBadge>{{ swap.stepLabel }}</InfoBadge>
-      <PrimaryButton
-          v-if="canMoveSwap && swap.stepId !== null && swap.handOverNext && swap.replacementItemId !== null"
-          class="text-xs"
-          data-testid="note-swap-hand-over"
-          @click="emit('moveSwap', swap.movementId, swap.stepId, swap.replacementItemId)"
-      >
-        {{ t('checkNotes.handOver') }}
-      </PrimaryButton>
+      <span>{{ pieceOf(swap) }}</span>
+      <InfoBadge v-if="swap.itemSize">{{ swap.itemSize }}</InfoBadge>
       <span
-          v-else-if="swap.handOverNext"
+          v-if="swap.handOverNext && swap.replacementItemId === null"
           class="text-xs text-(--text-muted)"
           data-testid="note-swap-needs-replacement"
       >
         {{ t('checkNotes.replacementNotChosen') }}
       </span>
-      <SecondaryButton
-          v-else-if="canMoveSwap && swap.stepId !== null && swap.stepActor === StepActor.STATION"
+      <PrimaryButton
+          v-else-if="canMoveSwap && swap.stepId !== null"
           class="text-xs"
-          data-testid="note-swap-move-on"
+          data-testid="note-swap-step"
           @click="emit('moveSwap', swap.movementId, swap.stepId, swap.replacementItemId)"
       >
-        {{ t('checkNotes.moveOn') }}
-      </SecondaryButton>
+        {{ swap.stepLabel }}
+      </PrimaryButton>
+      <InfoBadge v-else data-testid="note-swap-waiting">{{ swap.stepLabel }}</InfoBadge>
     </ButtonRow>
 
     <div

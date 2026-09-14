@@ -7,9 +7,13 @@ package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventorySize;
+import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
+import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
@@ -129,12 +133,14 @@ public class MemberCheckNotesService {
     private Map<Integer, List<SwapNote>> openSwaps(int stationId) {
         var byMember = new HashMap<Integer, List<SwapNote>>();
         for (var movement : movementService.findAtMemberByStation(stationId)) {
+            if (!movementService.involvesMemberNext(movement)) continue;
             var inventory = movement.inventoryId() == null
                     ? Optional.<Inventory>empty()
                     : inventoryService.findById(movement.inventoryId());
             var standing = movementService.stepsOf(movement).stream()
                     .filter(step -> movement.currentStepId() != null && step.id() == movement.currentStepId())
                     .findFirst();
+            var subject = subjectOf(movement, standing.orElse(null));
             byMember.computeIfAbsent(movement.memberId(), key -> new ArrayList<>())
                     .add(new SwapNote(
                             movement.id(),
@@ -144,9 +150,29 @@ public class MemberCheckNotesService {
                             standing.map(MovementFlowStep::actor).orElse(null),
                             movementService.handsOverNext(movement),
                             movement.incomingItemId(),
-                            inventory.map(Inventory::name).orElse("")));
+                            inventory.map(Inventory::name).orElse(""),
+                            subject.map(InventoryItem::name).orElse(""),
+                            subject.flatMap(this::sizeOf).orElse(null)));
         }
         return byMember;
+    }
+
+    /**
+     * The piece the step is about, which is the one it names rather than the one the movement began
+     * with: a step bringing a replacement is about the replacement.
+     */
+    private Optional<InventoryItem> subjectOf(ItemMovement movement, MovementFlowStep step) {
+        Integer itemId = step != null && step.subject() == StepSubject.INCOMING
+                ? movement.incomingItemId()
+                : movement.outgoingItemId();
+        return itemId == null ? Optional.empty() : inventoryService.findItemById(itemId);
+    }
+
+    /** The size written on a piece, where its inventory keeps sizes at all. */
+    private Optional<String> sizeOf(InventoryItem item) {
+        return item.sizeId() == null
+                ? Optional.empty()
+                : inventoryService.findSizeById(item.sizeId()).map(InventorySize::label);
     }
 
     /**
@@ -250,6 +276,9 @@ public class MemberCheckNotesService {
      *     because the movement knows it: asking whoever runs the check to pick it out again, from a
      *     sheet of names, would be asking them a question the movement has already answered
      * @param inventoryName what it is out of, for saying which movement this is
+     * @param itemName      the piece this step is about, which is the one arriving where the step
+     *     brings one and the one they are holding otherwise
+     * @param itemSize      the size written on that piece, or null where its inventory keeps no sizes
      */
     public record SwapNote(
             int movementId,
@@ -259,7 +288,9 @@ public class MemberCheckNotesService {
             StepActor stepActor,
             boolean handOverNext,
             Integer replacementItemId,
-            String inventoryName) {}
+            String inventoryName,
+            String itemName,
+            String itemSize) {}
 
     /**
      * @param itemId      the found item

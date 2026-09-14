@@ -269,6 +269,10 @@ export interface SwapNote {
     /** The piece set aside for the member, which the step that hands it over has to be told about. */
     replacementItemId: number | null
     inventoryName: string
+    /** The piece this step is about: the one arriving where it brings one, the one held otherwise. */
+    itemName: string
+    /** The size written on that piece, absent where its inventory keeps no sizes. */
+    itemSize: string | null
 }
 
 /** A found item the member claimed and has not collected. */
