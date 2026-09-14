@@ -189,6 +189,62 @@ test.describe('Inventory', () => {
         await expect(page.getByText(/zurückgenommen/).first()).toBeVisible()
     })
 
+    /**
+     * Somebody written down while the counter stands open is handed their gear at the same counter,
+     * without the page being reloaded first.
+     *
+     * <p>The menu asks the server as it is typed in, so it offers people the page's own list, loaded
+     * when it opened, does not hold. The screen asks about that one person rather than loading every
+     * member again, which is what the story presses on: the piece is scanned straight away.
+     */
+    test('a member entered while the counter is open can be given gear at once', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const code = await pieceOfItsOwn(page, headers)
+        const surname = unique('Spaet')
+
+        // The counter opens first, so its list of members is older than the person about to join it.
+        await page.goto('/station/inventory/assign')
+        await expect(page.getByRole('heading', {name: 'Mitglied'})).toBeVisible()
+
+        const invited = await page.request.post('/api/v1/members/invite', {
+            headers,
+            data: {
+                firstName: 'Nachzuegler',
+                lastName: surname,
+                email: `${surname.toLowerCase()}@example.test`,
+                sendSetupMail: false,
+            },
+        })
+        expect(invited.ok(), `the station writes somebody down (${invited.status()})`).toBeTruthy()
+
+        await pickMemberByName(page, `Nachzuegler ${surname}`)
+
+        const picker = page.getByPlaceholder('Item suchen oder Code scannen…')
+        await expect(picker, 'the gear can be scanned for somebody entered a moment ago').toBeEnabled()
+        await picker.fill(code)
+        await page.getByRole('button').filter({hasText: code}).first().click()
+
+        await expect(page.getByText(/zugewiesen/).first()).toBeVisible()
+    })
+
+    /** The one member a screen asks about by their UUID, and the answer for anybody else. */
+    test('a member is answered for by their own identifier, and a stranger is not', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+
+        const listed = await page.request.get('/api/v1/station-members', {headers})
+        expect(listed.ok(), `the members were readable (${listed.status()})`).toBeTruthy()
+        const anybody = (await listed.json())[0]
+        const uid = anybody.identity.memberUid
+
+        const found = await page.request.get(`/api/v1/station-members/by-uid/${uid}`, {headers})
+        expect(found.ok(), `a member of this station is answered for (${found.status()})`).toBeTruthy()
+        expect((await found.json()).id, 'and it is the one that was asked about').toBe(anybody.id)
+
+        const stranger = await page.request.get(
+            '/api/v1/station-members/by-uid/00000000-0000-4000-8000-000000000000', {headers})
+        expect(stranger.status(), 'nobody of that name is at this station').toBe(404)
+    })
+
     /** Assigning starts by naming a person or scanning a code, and offers both. */
     test('the assignment page asks who is receiving something', async ({managerPage: page}) => {
         await page.goto('/station/inventory/assign')

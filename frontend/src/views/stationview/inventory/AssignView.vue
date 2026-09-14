@@ -72,28 +72,32 @@ function memberDisplay(m: StationMember): string {
 
 /**
  * The menu names somebody by their UUID and everything below works from the row id, which is the one
- * translation between them. A member the loaded list does not hold yet is reason to load it again.
+ * translation between them.
+ *
+ * <p>The list this page holds was loaded when it opened, and the menu asks the server as it is typed
+ * in, so it offers people the list does not hold: anybody entered since, which on the day somebody is
+ * written down and handed their gear is exactly who this screen is for. Whoever the list cannot name
+ * is asked about on their own, and what comes back joins the list so the rest of the page can name
+ * them too.
  */
 async function onMemberPicked(uid: string | null) {
   if (!uid) {
     memberId.value = null
     return
   }
-  let match = members.value.find(m => m.identity?.memberUid === uid)
-  if (!match) {
-    try {
-      members.value = await stationMembers.listMembers()
-      match = members.value.find(m => m.identity?.memberUid === uid)
-    } catch {
-      match = undefined
-    }
+  const known = members.value.find(m => m.identity?.memberUid === uid)
+  if (known) {
+    memberId.value = known.id
+    return
   }
-  if (!match) {
+  const fetched = await stationMembers.getMemberByUid(uid)
+  if (!fetched) {
     flashError(t('inventory.assign.errors.memberLookupFailed'))
     memberId.value = null
     return
   }
-  memberId.value = match.id
+  members.value = [...members.value, fetched]
+  memberId.value = fetched.id
 }
 
 watch(memberUid, onMemberPicked)

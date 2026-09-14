@@ -51,6 +51,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
@@ -139,6 +140,13 @@ public class StationMemberRoutes implements Routes {
                 StationPermission.POLL_VIEW_RESULTS,
                 StationPermission.PROTOCOL_TESTER,
                 StationPermission.TEST_RESULT_READ);
+        routes.get(
+                prefix + "/station-members/by-uid/{uid}",
+                this::getByUid,
+                StationPermission.PAGE_EDIT,
+                StationPermission.INVENTORY_ASSIGN,
+                StationPermission.INVENTORY_EDIT,
+                StationPermission.MEMBER_READ);
         routes.get(
                 prefix + "/station-members/former",
                 this::listFormer,
@@ -332,6 +340,39 @@ public class StationMemberRoutes implements Routes {
     private void get(Context ctx) {
         int id = pathInt(ctx, "id");
         var member = requireOwnedMember(ctx, id);
+        ctx.json(toMemberWithName(member));
+    }
+
+    /**
+     * One member of this station, named by the UUID a member menu hands over.
+     *
+     * <p>The menus identify a person by their UUID and everything below them works from the row id,
+     * and a screen holding a list of members could only translate the one into the other for as long
+     * as its list was current. A menu asks the server as it is typed in, so it offers people a list
+     * loaded when the page opened does not hold, and the screen was left unable to act on a person it
+     * was showing as chosen. This answers for one person, whenever they are asked about.
+     *
+     * <p>Somebody marked former is answered as not found, which is what the menus already do: a page
+     * left open while somebody leaves the station must not be able to act on them afterwards.
+     */
+    @OpenApi(
+            path = "/api/v1/station-members/by-uid/{uid}",
+            methods = HttpMethod.GET,
+            summary = "Get a station member of the caller's station by member UUID",
+            tags = {"Station Members"},
+            pathParams = @OpenApiParam(name = "uid", required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void getByUid(Context ctx) {
+        var session = UserSession.from(ctx);
+        var member = memberService
+                .resolveId(session.stationId(), pathUuid(ctx, "uid"))
+                .flatMap(memberService::findById)
+                .filter(found -> found.stationId() == session.stationId())
+                .filter(found -> !found.former())
+                .orElseThrow(NotFoundResponse::new);
         ctx.json(toMemberWithName(member));
     }
 
