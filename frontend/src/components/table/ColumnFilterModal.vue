@@ -88,10 +88,10 @@ function close() {
       </template>
 
       <template v-else>
-        <div class="flex gap-2 text-xs">
+        <ButtonRow pair class="text-xs">
           <SecondaryButton @click="selectAll">{{ t('tableFilter.selectAll') }}</SecondaryButton>
           <SecondaryButton @click="selectNone">{{ t('tableFilter.selectNone') }}</SecondaryButton>
-        </div>
+        </ButtonRow>
 
         <div class="max-h-64 overflow-y-auto space-y-1 border rounded border-bg-light-accent dark:border-bg-dark-accent p-2">
           <FieldLabel inline class="cursor-pointer dark:hover:bg-bg-dark-accent/50 hover:bg-bg-light-accent/50 px-2 py-1 rounded">

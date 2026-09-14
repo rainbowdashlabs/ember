@@ -16,6 +16,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import MultiSelectInput from '@/components/input/select/MultiSelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import * as federation from '@/api/federation'
 import * as lending from '@/api/lending'
@@ -140,7 +141,7 @@ async function clear() {
           <FieldHint>{{ t('lendingShare.partnersHint') }}</FieldHint>
         </div>
 
-        <div class="flex flex-wrap justify-end gap-2 pt-2">
+        <ButtonRow align="end" class="pt-2">
           <SecondaryButton data-cancel @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
           <ErrorButton v-if="shared" :disabled="saving" data-testid="lending-share-clear" @click="clear">
             {{ t('lendingShare.clear') }}
@@ -148,7 +149,7 @@ async function clear() {
           <PrimaryButton :disabled="saving" data-testid="lending-share-save" @click="save">
             {{ t('lendingShare.save') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </template>
     </div>
   </Modal>
