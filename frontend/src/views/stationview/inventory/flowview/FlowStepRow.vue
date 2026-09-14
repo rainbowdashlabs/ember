@@ -10,6 +10,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -151,12 +152,12 @@ function save() {
         <ToggleInput v-model="picksItem" :aria-label="t('flows.picksItem')"/>
         <span class="text-sm">{{ t('flows.picksItem') }}</span>
       </div>
-      <div class="flex gap-2">
+      <ButtonRow pair>
         <PrimaryButton :disabled="!label.trim()" data-testid="flow-step-save" @click="save">
           {{ t('common.save') }}
         </PrimaryButton>
         <SecondaryButton @click="editing = false">{{ t('common.cancel') }}</SecondaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </div>
 </template>

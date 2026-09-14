@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
@@ -34,7 +35,7 @@ const {t} = useI18n()
 <template>
   <NeutralContainer class="space-y-3">
     <SubHeader>{{ t('itemDetail.actions') }}</SubHeader>
-    <div class="flex flex-wrap gap-2">
+    <ButtonRow>
       <PrimaryButton v-if="props.canAssign" :icon="['fas', 'user-plus']" @click="emit('assign')">
         {{ t('itemDetail.assign') }}
       </PrimaryButton>
@@ -47,6 +48,6 @@ const {t} = useI18n()
       <SuccessButton v-if="props.item.lostAt" :icon="['fas', 'check']" @click="emit('markFound')">
         {{ t('itemDetail.markFound') }}
       </SuccessButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>
