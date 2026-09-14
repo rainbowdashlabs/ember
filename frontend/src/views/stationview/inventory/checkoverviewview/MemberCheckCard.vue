@@ -9,6 +9,7 @@ import type {MemberCheckSummary} from '@/api/inventoryCheck'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MemberStatusBadge from './MemberStatusBadge.vue'
 import {checkerName, formatDate, isLockedByMe, isLockedByOther} from './memberHelpers'
@@ -40,17 +41,17 @@ const {t} = useI18n()
         &middot; {{ checkerName(member) }}
       </template>
     </div>
-    <div class="flex gap-2">
-      <SecondaryButton :icon="['fas', 'eye']" v-if="member.lastCheckedAt" class="text-sm flex-1" @click="emit('view-last-check', member)">
+    <ButtonRow>
+      <SecondaryButton :icon="['fas', 'eye']" v-if="member.lastCheckedAt" class="text-sm sm:flex-1" @click="emit('view-last-check', member)">
         {{ t('inventory.check.showLastCheck') }}
       </SecondaryButton>
       <SecondaryButton v-if="isLockedByMe(member, currentMemberId)" class="text-sm flex-1" @click="emit('start-check', member.memberId)">
         {{ t('inventory.check.continue') }}
       </SecondaryButton>
-      <PrimaryButton v-else :disabled="isLockedByOther(member, currentMemberId)" class="text-sm flex-1"
+      <PrimaryButton v-else :disabled="isLockedByOther(member, currentMemberId)" class="text-sm sm:flex-1"
                      @click="emit('start-check', member.memberId)">
         {{ t('inventory.check.start') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>

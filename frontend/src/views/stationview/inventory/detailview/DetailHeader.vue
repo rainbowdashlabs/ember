@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import InventoryBadges from '@/components/inventory/InventoryBadges.vue'
 import type {InventoryTypeName} from '@/api/inventory'
@@ -41,13 +42,13 @@ const {t} = useI18n()
           :art-count="artCount"
       />
     </div>
-    <div class="flex flex-wrap items-center gap-2">
+    <ButtonRow pair>
       <SecondaryButton :icon="['fas', 'chevron-left']" @click="$emit('back')">
         {{ t('inventory.manage.back') }}
       </SecondaryButton>
       <PrimaryButton v-if="canEdit" :icon="['fas', 'pen']" data-testid="inventory-detail-edit" @click="$emit('edit')">
         {{ t('inventory.detail.edit') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>
