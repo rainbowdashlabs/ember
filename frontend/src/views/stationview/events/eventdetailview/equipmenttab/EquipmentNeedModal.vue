@@ -15,6 +15,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import LineTargetFields from '@/components/inventory/LineTargetFields.vue'
 import type {Inventory, InventoryItem} from '@/api/inventory'
@@ -92,12 +93,12 @@ const incomplete = computed(() => {
       </label>
       <FieldHint v-if="recurring">{{ t('eventEquipment.thisEveningOnlyHint') }}</FieldHint>
 
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton data-cancel @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="saving || incomplete" data-testid="equipment-line-submit" @click="emit('submit')">
           {{ t('eventEquipment.addLine') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

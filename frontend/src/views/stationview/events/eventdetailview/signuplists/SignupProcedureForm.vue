@@ -16,6 +16,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SignupSetNotes from './SignupSetNotes.vue'
 import type {ProcedureTemplate} from '@/api/procedures'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
@@ -93,11 +94,11 @@ const canSubmit = computed(() =>
     <Alert variant="info">{{ t('signupLists.procedureAssignees', {count: memberSet.count}) }}</Alert>
     <FailureAlert :message="error"/>
 
-    <div class="flex justify-end gap-2 pt-2">
+    <ButtonRow pair align="end" class="pt-2">
       <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton :disabled="!canSubmit" data-testid="signup-procedure-submit" @click="emit('submit')">
         {{ t('common.create') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>
