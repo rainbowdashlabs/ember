@@ -145,20 +145,75 @@ export interface DeviceRequest {
 
 export type DevicePollStatus = 'PENDING' | 'APPROVED' | 'EXPIRED' | 'UNKNOWN'
 
+/**
+ * What approving a device request buys. The handshake is the same either way; only what the poll
+ * hands over at the end of it differs.
+ */
+export const DeviceRequestPurpose = {
+    ENROL_PASSKEY: 'ENROL_PASSKEY',
+    SIGN_IN: 'SIGN_IN',
+    STEP_UP: 'STEP_UP',
+} as const
+
+export type DeviceRequestPurposeName = (typeof DeviceRequestPurpose)[keyof typeof DeviceRequestPurpose]
+
 export interface DevicePollResult {
     status: DevicePollStatus
     /** Present exactly once: on the poll that found the approval first. */
     enrollToken: string | null
+    /** What that token buys. Absent until there is something to claim. */
+    purpose: DeviceRequestPurposeName | null
+}
+
+/** Somebody the approving reader may sign in: themselves, or a member in their care. */
+export interface ApprovalCandidate {
+    accountId: number
+    name: string
 }
 
 export interface DeviceLookup {
     userAgent: string | null
     country: string | null
     createdAt: string
+    purpose: DeviceRequestPurposeName
+    /** What a step-up was demanded for, absent for the other purposes. */
+    stepUpCategory: string | null
+    /** The action in a sentence, where the asking side knew one. */
+    stepUpOperation: string | null
+    /** Whom this reader may sign in, for a sign-in. Themselves first. */
+    candidates: ApprovalCandidate[]
 }
 
 export async function deviceRequest(): Promise<DeviceRequest> {
     const res = await client.post<DeviceRequest>('/auth/passkey/device-request')
+    return res.data
+}
+
+/**
+ * Asks to be signed in rather than given a credential. Nothing is left on this device, and the
+ * instance does not need passkeys switched on at all.
+ */
+export async function signInRequest(): Promise<DeviceRequest> {
+    const res = await client.post<DeviceRequest>('/auth/device/sign-in-request')
+    return res.data
+}
+
+/**
+ * Spends the claim and keeps the session it bought, the way a password or passkey sign-in does.
+ * Without persisting it here the device would be signed in on the server and know nothing about it.
+ */
+export async function signInClaim(claimToken: string): Promise<LoginResponse> {
+    if (isStorageDenied()) {
+        throw new StorageDeniedError()
+    }
+    const res = await client.post<LoginResponse>('/auth/device/sign-in-claim', {claimToken})
+    if (res.data.token) {
+        setItem('session_token', res.data.token)
+        if (res.data.expiresAt) {
+            setItem('session_expires_at', res.data.expiresAt)
+            scheduleTokenRefresh(res.data.expiresAt)
+        }
+    }
     return res.data
 }
 
@@ -185,8 +240,32 @@ export async function deviceLookup(code: string): Promise<DeviceLookup> {
     return res.data
 }
 
-export async function deviceApprove(code: string): Promise<void> {
-    await client.post('/account/passkeys/device-approve', {code})
+/**
+ * Approves a request. {@code forAccountId} names somebody in the reader's care where a guardian is
+ * signing a member in; left out, the grant is for the reader themselves.
+ */
+export async function deviceApprove(code: string, forAccountId?: number): Promise<void> {
+    await client.post('/account/passkeys/device-approve', {code, forAccountId: forAccountId ?? null})
+}
+
+// -- Confirming a step-up on a device that is already signed in --
+
+export interface DeviceStepUp {
+    code: string
+    pollSecret: string
+    expiresAt: string
+}
+
+export type DeviceStepUpStatus = DevicePollStatus | 'CONFIRMED'
+
+export async function stepUpDeviceBegin(category: string | null, operation: string | null): Promise<DeviceStepUp> {
+    const res = await client.post<DeviceStepUp>('/auth/stepup/device/begin', {category, operation})
+    return res.data
+}
+
+export async function stepUpDevicePoll(pollSecret: string): Promise<{status: DeviceStepUpStatus}> {
+    const res = await client.post<{status: DeviceStepUpStatus}>('/auth/stepup/device/poll', {pollSecret})
+    return res.data
 }
 
 // -- The token doors: a mail link, a QR in the room or a console line --

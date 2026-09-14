@@ -9,21 +9,27 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.route.AuthRoutes.LoginResponse;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.devicerequest.entity.DeviceRequest;
+import dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose;
+import dev.chojo.ember.feature.devicerequest.service.DeviceRequestService;
+import dev.chojo.ember.feature.members.service.ManagedAccessService;
 import dev.chojo.ember.feature.passkey.service.PasskeyAccountService;
-import dev.chojo.ember.feature.passkey.service.PasskeyDeviceService;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.feature.passkey.service.PasskeyService;
 import dev.chojo.ember.feature.twofactor.service.RelyingParties;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -46,6 +52,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -64,9 +71,12 @@ public class PasskeyRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final AuthRateLimiter rateLimiter;
     private final RelyingParties relyingParties;
-    private final PasskeyDeviceService deviceService;
+    private final DeviceRequestService deviceService;
     private final PasskeyEnrollmentService enrollmentService;
     private final TotpService totpService;
+    private final StepUpGuard stepUpGuard;
+    private final TwoFactorService twoFactorService;
+    private final ManagedAccessService managedAccessService;
     private final Api api;
     private final Network network;
 
@@ -79,9 +89,12 @@ public class PasskeyRoutes implements Routes {
             AccountRepository accountRepository,
             AuthRateLimiter rateLimiter,
             RelyingParties relyingParties,
-            PasskeyDeviceService deviceService,
+            DeviceRequestService deviceService,
             PasskeyEnrollmentService enrollmentService,
             TotpService totpService,
+            StepUpGuard stepUpGuard,
+            TwoFactorService twoFactorService,
+            ManagedAccessService managedAccessService,
             Api api,
             Network network) {
         this.passkeyService = passkeyService;
@@ -94,6 +107,9 @@ public class PasskeyRoutes implements Routes {
         this.deviceService = deviceService;
         this.enrollmentService = enrollmentService;
         this.totpService = totpService;
+        this.stepUpGuard = stepUpGuard;
+        this.twoFactorService = twoFactorService;
+        this.managedAccessService = managedAccessService;
         this.api = api;
         this.network = network;
     }
@@ -152,6 +168,12 @@ public class PasskeyRoutes implements Routes {
         // approves, and the enrolment token the poll returns may create exactly one credential.
         routes.post(prefix + "/auth/passkey/device-request", this::createDeviceRequest);
         routes.post(prefix + "/auth/passkey/device-request/poll", this::pollDeviceRequest);
+
+        // The same handshake, where what the approval buys is a session rather than a credential.
+        // For a browser that cannot hold a passkey, and for a machine nobody wants to leave one on.
+        routes.post(prefix + "/auth/device/sign-in-request", this::createSignInRequest);
+        routes.post(prefix + "/auth/device/sign-in-claim", this::claimSignIn);
+
         routes.post(prefix + "/auth/passkey/enroll/begin", this::beginDeviceEnrollment);
         routes.post(prefix + "/auth/passkey/enroll/finish", this::finishDeviceEnrollment);
 
@@ -162,11 +184,11 @@ public class PasskeyRoutes implements Routes {
         routes.post(prefix + "/auth/passkey/token-enroll/begin", this::beginTokenEnrollment);
         routes.post(prefix + "/auth/passkey/token-enroll/finish", this::finishTokenEnrollment);
         routes.post(prefix + "/account/passkeys/device-lookup", this::lookupDeviceRequest, StationPermission.LOGIN);
-        routes.post(
-                prefix + "/account/passkeys/device-approve",
-                this::approveDeviceRequest,
-                StationPermission.LOGIN,
-                StepUpCategory.ACCOUNT_SECURITY);
+        // No StepUpCategory role here, deliberately. That role is a freshness check, and a session
+        // already fresh would pass it without anybody being asked anything. Vouching for another
+        // device is the one action that has to rest on a proof given at this keyboard now, so the
+        // handler demands one itself and spends it.
+        routes.post(prefix + "/account/passkeys/device-approve", this::approveDeviceRequest, StationPermission.LOGIN);
     }
 
     // -- The device handshake --
@@ -174,12 +196,50 @@ public class PasskeyRoutes implements Routes {
     private void createDeviceRequest(Context ctx) {
         requirePasskeysOn();
         enforceLimit(rateLimiter.tryDeviceRequest(clientIp(ctx)));
-        var request = deviceService.createRequest(ctx.userAgent(), ctx.header("CF-IPCountry"));
+        var request = deviceService.createRequest(
+                DeviceRequestPurpose.ENROL_PASSKEY, ctx.userAgent(), ctx.header("CF-IPCountry"));
         // The QR opens the approval screen and nothing more. A link that arrives with the code
         // already filled in would be exactly the relayable artifact this flow is shaped to avoid.
         String approvalUrl = api.baseUrl() + "/account/unlock-device";
         String qrPng = Base64.getEncoder().encodeToString(totpService.generateQrPng(approvalUrl, 240));
         ctx.json(new DeviceRequestResponse(request.code(), request.pollSecret(), request.expiresAt(), qrPng));
+    }
+
+    /**
+     * A device asking to be signed in rather than given a credential. Unlike the enrolment request
+     * this does not need passkeys to be on at all: not needing them is the point.
+     */
+    private void createSignInRequest(Context ctx) {
+        enforceLimit(rateLimiter.tryDeviceRequest(clientIp(ctx)));
+        var request =
+                deviceService.createRequest(DeviceRequestPurpose.SIGN_IN, ctx.userAgent(), ctx.header("CF-IPCountry"));
+        String approvalUrl = api.baseUrl() + "/account/unlock-device";
+        String qrPng = Base64.getEncoder().encodeToString(totpService.generateQrPng(approvalUrl, 240));
+        ctx.json(new DeviceRequestResponse(request.code(), request.pollSecret(), request.expiresAt(), qrPng));
+    }
+
+    /**
+     * Spends the claim the poll handed over and answers with the session. Throttled on the address
+     * like every other way into an account, because this one ends in a session as surely as a
+     * password does.
+     */
+    private void claimSignIn(Context ctx) {
+        enforceLimit(rateLimiter.tryDevicePoll(clientIp(ctx)));
+        var request = ctx.bodyAsClass(SignInClaimRequest.class);
+        if (isBlank(request.claimToken())) {
+            throw new BadRequestResponse("claimToken is required");
+        }
+        var result = deviceService
+                .claimSignIn(request.claimToken(), ctx.userAgent(), ctx.header("CF-IPCountry"))
+                .orElseThrow(() -> new UnauthorizedResponse("Sign-in failed"));
+        if (!result.success()) {
+            throw new UnauthorizedResponse(result.message());
+        }
+        if (result.passwordChangeRequired()) {
+            ctx.json(LoginResponse.passwordChange(result.token(), result.expiresAt()));
+            return;
+        }
+        ctx.json(LoginResponse.session(result.token(), result.expiresAt()));
     }
 
     private void pollDeviceRequest(Context ctx) {
@@ -189,7 +249,10 @@ public class PasskeyRoutes implements Routes {
             throw new BadRequestResponse("pollSecret is required");
         }
         var result = deviceService.poll(request.pollSecret());
-        ctx.json(new DevicePollResponse(result.status().name(), result.enrollToken()));
+        ctx.json(new DevicePollResponse(
+                result.status().name(),
+                result.claimToken(),
+                result.purpose() == null ? null : result.purpose().name()));
     }
 
     private void beginDeviceEnrollment(Context ctx) {
@@ -268,19 +331,84 @@ public class PasskeyRoutes implements Routes {
             throw new BadRequestResponse("code is required");
         }
         var open = deviceService.lookup(request.code()).orElseThrow(NotFoundResponse::new);
-        ctx.json(new DeviceLookupResponse(open.requestedUserAgent(), open.requestedCountry(), open.createdAt()));
+        // A step-up raised by somebody else's session is not this reader's to confirm, and saying so
+        // by answering nothing at all is what a wrong code already earns.
+        if (open.is(DeviceRequestPurpose.STEP_UP)
+                && !Integer.valueOf(session.accountId()).equals(open.requestingAccountId())) {
+            throw new NotFoundResponse();
+        }
+        ctx.json(new DeviceLookupResponse(
+                open.requestedUserAgent(),
+                open.requestedCountry(),
+                open.createdAt(),
+                open.purpose().name(),
+                open.stepUpCategory() == null ? null : open.stepUpCategory().name(),
+                open.stepUpOperation(),
+                managedCandidates(session, open)));
+    }
+
+    /**
+     * Whom this reader may sign in, where the request is a sign-in. Themselves always, plus anybody
+     * in their care: a parent is who signs a child in on the machine in the hall, and the child has
+     * no password of their own to do it with.
+     */
+    /**
+     * Whose account the grant is for.
+     *
+     * <p>The approver, unless this is a sign-in they are making for somebody in their care. The
+     * guardianship is checked here and not only where the screen offered the choice, so a
+     * guardianship that ended in between cannot be spent on a list drawn before it did.
+     *
+     * <p>A step-up is never for anybody else: it stamps the session that raised it, and that session
+     * belongs to one account.
+     */
+    private int subjectFor(UserSession session, DeviceRequest open, Integer requested) {
+        if (requested == null || requested == session.accountId()) return session.accountId();
+        if (!open.is(DeviceRequestPurpose.SIGN_IN)) {
+            throw new ForbiddenResponse("Only a sign-in can be approved for somebody else");
+        }
+        boolean manages = session.memberOpt()
+                .map(member -> managedAccessService.signInCandidates(member.id()).stream()
+                        .anyMatch(candidate -> candidate.accountId() == requested))
+                .orElse(false);
+        if (!manages) {
+            throw new ForbiddenResponse("You do not manage this member");
+        }
+        return requested;
+    }
+
+    private List<ApprovalCandidate> managedCandidates(UserSession session, DeviceRequest open) {
+        if (!open.is(DeviceRequestPurpose.SIGN_IN)) return List.of();
+        var self = new ApprovalCandidate(
+                session.accountId(),
+                accountRepository
+                        .findById(session.accountId())
+                        .map(Account::fullName)
+                        .orElse(""));
+        if (session.memberOpt().isEmpty()) return List.of(self);
+        var managed = managedAccessService
+                .signInCandidates(session.memberOpt().get().id())
+                .stream()
+                .map(candidate -> new ApprovalCandidate(candidate.accountId(), candidate.name()));
+        return Stream.concat(Stream.of(self), managed).toList();
     }
 
     private void approveDeviceRequest(Context ctx) {
         UserSession session = UserSession.from(ctx);
         enforceLimit(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
+        stepUpGuard.requireLocalProof(session, StepUpCategory.ACCOUNT_SECURITY);
         var request = ctx.bodyAsClass(DeviceCodeRequest.class);
         if (isBlank(request.code())) {
             throw new BadRequestResponse("code is required");
         }
-        if (!deviceService.approve(session.accountId(), request.code())) {
+        var open = deviceService.lookup(request.code()).orElseThrow(NotFoundResponse::new);
+        int subject = subjectFor(session, open, request.forAccountId());
+        if (!deviceService.approve(session.accountId(), subject, request.code())) {
             throw new NotFoundResponse();
         }
+        // The proof bought this one approval. Approving the next device asks again, which is what
+        // keeps every link of the chain an answer somebody gave rather than a window they are inside.
+        twoFactorService.clearSessionTwoFactorVerified(session.sessionId());
         ctx.json(Map.of("message", "Device approved"));
     }
 
@@ -551,15 +679,40 @@ public class PasskeyRoutes implements Routes {
 
     public record DevicePollRequest(String pollSecret) {}
 
-    public record DevicePollResponse(String status, String enrollToken) {}
+    /**
+     * @param purpose what the waiting claim buys, so the asking device knows which ceremony follows.
+     *         Absent until there is something to claim.
+     */
+    public record DevicePollResponse(String status, String enrollToken, String purpose) {}
+
+    public record SignInClaimRequest(String claimToken) {}
 
     public record DeviceEnrollBeginRequest(String enrollToken) {}
 
     public record DeviceEnrollFinishRequest(String enrollToken, String challengeToken, String credentialJson) {}
 
-    public record DeviceCodeRequest(String code) {}
+    /**
+     * @param forAccountId whom the sign-in is for, where a guardian is signing in somebody in their
+     *         care. Absent means the approver themselves
+     */
+    public record DeviceCodeRequest(String code, Integer forAccountId) {}
 
-    public record DeviceLookupResponse(String userAgent, String country, Instant createdAt) {}
+    /**
+     * @param purpose what approving this buys, so the screen can say it in the reader's terms
+     * @param stepUpCategory what a step-up was demanded for, absent for the other purposes
+     * @param stepUpOperation the action in a sentence, where the asking side knew one
+     * @param candidates whom this reader may sign in, for a sign-in. Themselves first
+     */
+    public record DeviceLookupResponse(
+            String userAgent,
+            String country,
+            Instant createdAt,
+            String purpose,
+            String stepUpCategory,
+            String stepUpOperation,
+            List<ApprovalCandidate> candidates) {}
+
+    public record ApprovalCandidate(int accountId, String name) {}
 
     public record TokenEnrollRequest(String token) {}
 

@@ -14,6 +14,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import io.javalin.http.Context;
 
 import java.time.Instant;
@@ -46,13 +47,16 @@ public record UserSession(
         Set<StationPermission> permissions,
         Set<InstancePermission> instancePermissions,
         Instant twoFactorVerifiedAt,
+        StepUpProof twoFactorProof,
+        boolean vouchedFor,
         Integer clusterId,
         UUID clusterUid,
         ClusterMember clusterMember,
         Set<ClusterPermission> clusterPermissions) {
 
     /**
-     * A session carrying no cluster context, which is every request that did not name one.
+     * A session whose last proof is not known, which counts as no local proof at all. The safe
+     * direction: a route that must rest on somebody proving themselves refuses rather than assumes.
      */
     public UserSession(
             Account account,
@@ -72,6 +76,66 @@ public record UserSession(
                 permissions,
                 instancePermissions,
                 twoFactorVerifiedAt,
+                null);
+    }
+
+    /**
+     * A session carrying no cluster context, which is every request that did not name one.
+     */
+    public UserSession(
+            Account account,
+            int sessionId,
+            Integer stationId,
+            UUID stationUid,
+            StationMember member,
+            Set<StationPermission> permissions,
+            Set<InstancePermission> instancePermissions,
+            Instant twoFactorVerifiedAt,
+            StepUpProof twoFactorProof) {
+        this(
+                account,
+                sessionId,
+                stationId,
+                stationUid,
+                member,
+                permissions,
+                instancePermissions,
+                twoFactorVerifiedAt,
+                twoFactorProof,
+                false,
+                null,
+                null,
+                null,
+                Set.of());
+    }
+
+    /**
+     * The same, for a session another device vouched for. Separate rather than a defaulted parameter
+     * because the mark decides whether this session may vouch in turn, and a caller that forgets it
+     * should get the answer that refuses.
+     */
+    public UserSession(
+            Account account,
+            int sessionId,
+            Integer stationId,
+            UUID stationUid,
+            StationMember member,
+            Set<StationPermission> permissions,
+            Set<InstancePermission> instancePermissions,
+            Instant twoFactorVerifiedAt,
+            StepUpProof twoFactorProof,
+            boolean vouchedFor) {
+        this(
+                account,
+                sessionId,
+                stationId,
+                stationUid,
+                member,
+                permissions,
+                instancePermissions,
+                twoFactorVerifiedAt,
+                twoFactorProof,
+                vouchedFor,
                 null,
                 null,
                 null,

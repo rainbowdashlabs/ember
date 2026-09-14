@@ -41,8 +41,15 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.security.trustedDevicesText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.security.anotherDeviceTitle')">
+      <p>{{ t('helpCenter.security.anotherDeviceText') }}</p>
+      <p>{{ t('helpCenter.security.anotherDeviceSignIn') }}</p>
+      <p>{{ t('helpCenter.security.anotherDeviceGuardian') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.security.stepUpTitle')">
       <p>{{ t('helpCenter.security.stepUpText') }}</p>
+      <p>{{ t('helpCenter.security.stepUpAnotherDevice') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.security.lockedOutTitle')">

@@ -16,6 +16,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import StepUpAnotherDevice from '@/components/feedback/stepupmodal/StepUpAnotherDevice.vue'
 import {
   passkeyStepUpBegin,
   passkeyStepUpFinish,
@@ -49,8 +50,15 @@ const offersPassword = computed(() => proofs.value.includes('PASSWORD'))
 const offersTotp = computed(() => proofs.value.includes('TOTP'))
 const offersBackup = computed(() => proofs.value.includes('BACKUP_CODE'))
 const offersSecurityKey = computed(() => proofs.value.includes('SECURITY_KEY') && webauthnSupported)
+
+/**
+ * Offered only where the server said another live session could answer, which is what keeps the
+ * dialog from showing a way out that nobody could take.
+ */
+const offersAnotherDevice = computed(() => proofs.value.includes('ANOTHER_DEVICE'))
 const offersNothing = computed(
-    () => !offersPasskey.value && !offersPassword.value && !offersTotp.value && !offersBackup.value && !offersSecurityKey.value,
+    () => !offersPasskey.value && !offersPassword.value && !offersTotp.value && !offersBackup.value
+        && !offersSecurityKey.value && !offersAnotherDevice.value,
 )
 
 const open = computed({
@@ -200,6 +208,12 @@ function onCancel() {
           </SecondaryButton>
         </div>
       </template>
+
+      <StepUpAnotherDevice
+          v-if="offersAnotherDevice"
+          :category="current?.category ?? null"
+          @confirmed="complete"
+      />
 
       <SecondaryButton
           v-if="offersSecurityKey"

@@ -17,6 +17,12 @@ export const StepUpProof = {
     BACKUP_CODE: 'BACKUP_CODE',
     PASSKEY: 'PASSKEY',
     PASSWORD: 'PASSWORD',
+    /**
+     * Confirming on a device the reader is already signed in on. The answer for somebody with no
+     * password and no passkey on the machine in front of them, and never offered where the account
+     * has no other live session to confirm from.
+     */
+    ANOTHER_DEVICE: 'ANOTHER_DEVICE',
 } as const
 
 export type StepUpProofName = (typeof StepUpProof)[keyof typeof StepUpProof]

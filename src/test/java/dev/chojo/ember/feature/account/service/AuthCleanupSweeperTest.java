@@ -22,7 +22,7 @@ class AuthCleanupSweeperTest extends RepositoryTestBase {
     @Test
     void sweepRemovesExpiredTokensSessionsAndChallenges() {
         var challengeRepo = new WebAuthnChallengeRepository(TokenHasher.forTesting("repository-test-pepper"));
-        var deviceRequestRepo = new dev.chojo.ember.feature.passkey.repository.PasskeyDeviceRequestRepository();
+        var deviceRequestRepo = new dev.chojo.ember.feature.devicerequest.repository.DeviceRequestRepository();
         var sweeper = new AuthCleanupSweeper(accountRepo, challengeRepo, deviceRequestRepo);
 
         int accountId = accountRepo
@@ -45,7 +45,13 @@ class AuthCleanupSweeperTest extends RepositoryTestBase {
         challengeRepo.create(expiredChallenge, ChallengePurpose.REGISTRATION, accountId, "{}", past);
 
         String expiredPollSecret = "expired-poll-" + UUID.randomUUID();
-        deviceRequestRepo.create("code-hash-" + UUID.randomUUID(), expiredPollSecret, "ua", null, past);
+        deviceRequestRepo.create(
+                dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose.ENROL_PASSKEY,
+                "code-hash-" + UUID.randomUUID(),
+                expiredPollSecret,
+                "ua",
+                null,
+                past);
 
         sweeper.sweep();
 

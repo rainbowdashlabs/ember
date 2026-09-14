@@ -1,0 +1,10 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Ein Gerät wurde für dich angemeldet</h2>
+      <p>Hallo {{ name }}, ein Gerät wurde gerade bei deinem Konto angemeldet, weil es auf einem Gerät bestätigt wurde, auf dem du bereits angemeldet bist:</p>
+      <p><strong>{{ device }}</strong> ({{ place }})</p>
+      <p>Auf diesem Gerät wurde nichts gespeichert. Die Anmeldung endet, sobald die Sitzung beendet wird.</p>
+      <p>Wenn das du warst, musst du nichts weiter tun.</p>
+      <p>Wenn nicht, beende alle Sitzungen und ändere dein Passwort:</p>
+      <div class="btn-wrap"><a class="btn" href="{{ securityUrl }}">Sicherheitseinstellungen öffnen</a></div>
+{% endblock %}

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.twofactor.repository;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.twofactor.entity.BackupCode;
+import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TotpFactor;
 import dev.chojo.ember.feature.twofactor.entity.TrustedDevice;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorAuditEntry;
@@ -544,8 +545,26 @@ public class TwoFactorRepository {
 
     // -- Session 2FA timestamp --
 
-    public boolean setTwoFactorVerified(int sessionId) {
-        return query("UPDATE account_session SET two_factor_verified_at = now() WHERE id = :id;")
+    /**
+     * Stamps the session as freshly proved, recording what it was proved with. The kind matters as
+     * much as the time: a route that must rest on somebody proving themselves at the keyboard has to
+     * be able to tell that apart from a session another device vouched for.
+     */
+    public boolean setTwoFactorVerified(int sessionId, StepUpProof proof) {
+        return query(
+                        "UPDATE account_session SET two_factor_verified_at = now(), two_factor_proof = :proof WHERE id = :id;")
+                .single(call().bind("id", sessionId).bind("proof", proof))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Spends the stamp, so the next sensitive action asks again. Used where a proof buys exactly one
+     * thing rather than a window of them.
+     */
+    public boolean clearTwoFactorVerified(int sessionId) {
+        return query(
+                        "UPDATE account_session SET two_factor_verified_at = NULL, two_factor_proof = NULL WHERE id = :id;")
                 .single(call().bind("id", sessionId))
                 .update()
                 .changed();

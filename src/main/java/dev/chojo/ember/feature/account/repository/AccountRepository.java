@@ -47,7 +47,7 @@ public class AccountRepository {
     private static final String TOKEN_COLUMNS =
             "id, account_id, token_hash, token_type, metadata, expires_at, created_at, confirmed_at";
     private static final String SESSION_COLUMNS =
-            "id, account_id, token_hash, expires_at, created_at, user_agent, last_used_at, location, two_factor_verified_at, trusted_device";
+            "id, account_id, token_hash, expires_at, created_at, user_agent, last_used_at, location, two_factor_verified_at, two_factor_proof, trusted_device, vouched_for";
 
     private final TokenHasher tokenHasher;
 
@@ -858,6 +858,47 @@ public class AccountRepository {
     }
 
     /**
+     * Whether the account holds another live session that could confirm something for this one.
+     *
+     * <p>The asking session is excluded, because a device cannot vouch for itself, and so is any
+     * session another device vouched for, because such a session may never vouch in turn. Where this
+     * is false the dialog must not offer confirming elsewhere: nobody could answer it.
+     */
+    public boolean hasOtherVouchingSession(int accountId, int askingSessionId) {
+        return query("""
+                SELECT EXISTS(
+                    SELECT 1 FROM account_session
+                    WHERE account_id = :account_id AND id <> :asking_id
+                    AND expires_at > now() AND vouched_for = FALSE
+                ) AS held;""")
+                .single(call().bind("account_id", accountId).bind("asking_id", askingSessionId))
+                .map(row -> row.getBoolean("held"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * A session another device vouched for. Its own method rather than a flag on the others, because
+     * everything about it is deliberately the plainest the product can mint: nothing proved here, no
+     * trusted device, and a mark it carries for life saying it may never vouch for anybody else.
+     */
+    public void createVouchedSession(
+            int accountId, String token, Instant expiresAt, String userAgent, String location) {
+        query("""
+                INSERT
+                INTO
+                    account_session(account_id, token_hash, expires_at, user_agent, location, vouched_for)
+                VALUES
+                    (:account_id, :token_hash, :expires_at, :user_agent, :location, TRUE);""")
+                .single(call().bind("account_id", accountId)
+                        .bind("token_hash", tokenHasher.hash(token))
+                        .bind("expires_at", expiresAt, INSTANT_TIMESTAMP)
+                        .bind("user_agent", userAgent)
+                        .bind("location", location))
+                .insert();
+    }
+
+    /**
      * Creates a session and additionally records the 2FA-verification timestamp and trusted-device
      * link. Used by the 2FA verify and trusted-device login paths to mint a session that already
      * counts as "freshly verified" for step-up freshness checks.
@@ -1037,10 +1078,21 @@ public class AccountRepository {
     /**
      * Deletes all sessions for an account, effectively logging out all devices.
      *
+     * <p>A device request the account has in flight dies with them. Ending every session is somebody
+     * saying stop, and an approval given a minute earlier is still waiting to let a device in for up
+     * to ten: without this, the one action a frightened person takes would be the one it survives.
+     * It lives here rather than at each caller because revoking is reached from four directions, and
+     * a fifth that forgot would reopen the hole silently.
+     *
      * @param accountId the account identifier
      * @return {@code true} if any sessions were deleted
      */
     public boolean deleteSessionsByAccount(int accountId) {
+        query("""
+                UPDATE device_request SET consumed_at = now()
+                WHERE consumed_at IS NULL
+                AND (subject_account_id = :account_id OR approved_account_id = :account_id
+                     OR requesting_account_id = :account_id);""").single(call().bind("account_id", accountId)).update();
         return query("DELETE FROM account_session WHERE account_id = :account_id;")
                 .single(call().bind("account_id", accountId))
                 .delete()

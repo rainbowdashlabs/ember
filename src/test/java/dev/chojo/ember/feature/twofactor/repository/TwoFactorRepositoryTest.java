@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.twofactor.repository;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
@@ -208,7 +209,7 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         accountRepo.createSession(accountId, "session-bearer", Instant.now().plusSeconds(60), "ua", null);
         var session = accountRepo.findSession("session-bearer").orElseThrow();
         assertNull(session.twoFactorVerifiedAt());
-        assertTrue(twoFactorRepo.setTwoFactorVerified(session.id()));
+        assertTrue(twoFactorRepo.setTwoFactorVerified(session.id(), StepUpProof.PASSWORD));
         var refreshed = accountRepo.findSession("session-bearer").orElseThrow();
         assertNotNull(refreshed.twoFactorVerifiedAt());
     }

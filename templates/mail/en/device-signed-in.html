@@ -1,0 +1,10 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>A device was signed in for you</h2>
+      <p>Hello {{ name }}, a device was just signed in to your account because it was confirmed on a device you are already signed in on:</p>
+      <p><strong>{{ device }}</strong> ({{ place }})</p>
+      <p>Nothing was stored on that device. The sign-in ends when the session does.</p>
+      <p>If this was you, there is nothing to do.</p>
+      <p>If it was not, end every session and change your password:</p>
+      <div class="btn-wrap"><a class="btn" href="{{ securityUrl }}">Open security settings</a></div>
+{% endblock %}

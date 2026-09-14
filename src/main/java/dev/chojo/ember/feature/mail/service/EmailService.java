@@ -470,6 +470,22 @@ public class EmailService {
     }
 
     /**
+     * Sent when a device was signed in because another one vouched for it.
+     *
+     * <p>Its own mail rather than the passkey one: nothing was created and nothing was left behind,
+     * and telling somebody a credential exists when none does would send them hunting for a passkey
+     * to delete that is not there.
+     */
+    public void sendDeviceSignedInNotice(String email, String name, String device, String place, String locale) {
+        var vars = baseVars(name, null);
+        vars.put("device", device == null || device.isBlank() ? "?" : device);
+        vars.put("place", place == null || place.isBlank() ? "?" : place);
+        vars.put("securityUrl", api.baseUrl() + "/account/security");
+        enqueueGlobal(
+                email, subject("device-signed-in", locale, null), loadTemplate("device-signed-in.html", locale, vars));
+    }
+
+    /**
      * Sent to whoever mail about a managed member goes to when an enrolment code for their
      * account was put on a screen. Somebody has to be told, and it cannot be the member: they
      * have no mailbox, which is why the code exists.

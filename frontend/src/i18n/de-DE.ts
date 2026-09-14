@@ -390,11 +390,23 @@ export default {
             qrAlt: 'QR-Code zum Freischalt-Bildschirm',
             qrHint: 'Der QR-Code öffnet nur den Freischalt-Bildschirm. Den Code oben tippst du selbst ein.',
             waiting: 'Warte auf die Freischaltung ...',
-            signingIn: 'Passkey angelegt. Du wirst angemeldet ...',
+            signingIn: 'Du wirst angemeldet ...',
+            signedInAs: 'Angemeldet als {name}.',
             expired: 'Die Anfrage ist abgelaufen oder wurde nicht freigeschaltet.',
             requestFailed: 'Die Anfrage konnte nicht erstellt werden. Versuche es später noch einmal.',
+            signInFailed: 'Die Anmeldung hat nicht geklappt. Fordere einen neuen Code an.',
             retry: 'Neuen Code anfordern',
             backToLogin: 'Zurück zur Anmeldung',
+            chooseIntro: 'Wie möchtest du dich auf diesem Gerät anmelden?',
+            choosePasskey: 'Passkey auf diesem Gerät anlegen',
+            choosePasskeyHint: 'Empfohlen für dein eigenes Gerät. Danach meldest du dich hier ohne ein '
+                + 'zweites Gerät an.',
+            chooseSignIn: 'Nur anmelden, nichts speichern',
+            chooseSignInHint: 'Für ein geliehenes oder fremdes Gerät. Es bleibt nichts zurück, und die '
+                + 'Anmeldung endet mit der Sitzung.',
+            instructionSignIn: 'Öffne auf einem Gerät, auf dem du schon angemeldet bist, Konto, Sicherheit, '
+                + '"Neues Gerät freischalten" und gib dort diesen Code ein. Auf diesem Gerät wird nichts '
+                + 'gespeichert:',
         },
         approve: {
             title: 'Neues Gerät freischalten',
@@ -407,8 +419,14 @@ export default {
             when: 'Angefragt am {when}',
             warning: 'Nur freischalten, wenn du gerade selbst an diesem Gerät sitzt.',
             approve: 'Freischalten',
-            done: 'Freigeschaltet. Das andere Gerät legt jetzt seinen Passkey an.',
+            done: 'Freigeschaltet. Das andere Gerät macht jetzt weiter.',
             another: 'Weiteren Code eingeben',
+            purposePasskey: 'Das Gerät legt danach einen Passkey für dein Konto an.',
+            purposeSignIn: 'Das Gerät wird danach in deinem Namen angemeldet, bis die Sitzung dort '
+                + 'beendet wird. Es wird nichts auf dem Gerät gespeichert.',
+            purposeStepUp: 'Du bestätigst damit eine sensible Aktion auf dem anderen Gerät.',
+            purposeStepUpCategory: 'Du bestätigst damit auf dem anderen Gerät: {category}',
+            signInFor: 'Wen meldest du an?',
         },
         create: {
             preparing: 'Gleich fragt dich dein Gerät nach Fingerabdruck, Gesicht oder PIN. Bestätige einfach.',
@@ -4498,6 +4516,21 @@ export default {
             categoryFederation: 'Du bestätigst eine Änderung an der Vernetzung mit anderen Wachen.',
             categoryInstanceConfig: 'Du bestätigst eine Änderung an der Instanz­konfiguration.',
             categoryRoleChange: 'Du bestätigst eine Änderung an Berechtigungen oder Rollen.',
+            /** Named for the approving screen, which says which kind of action it is confirming. */
+            category: {
+                ACCOUNT_SECURITY: 'eine Änderung an den Sicherheitseinstellungen',
+                FEDERATION: 'eine Änderung an der Vernetzung mit anderen Wachen',
+                INSTANCE_CONFIG: 'eine Änderung an der Instanzkonfiguration',
+                ROLE_CHANGE: 'eine Änderung an Berechtigungen oder Rollen',
+            },
+            anotherDevice: {
+                start: 'Auf einem anderen Gerät bestätigen',
+                hint: 'Öffne auf einem Gerät, auf dem du schon angemeldet bist, Konto, Sicherheit, '
+                    + '"Neues Gerät freischalten" und gib dort diesen Code ein:',
+                waiting: 'Warte auf die Bestätigung ...',
+                expired: 'Die Anfrage ist abgelaufen oder wurde nicht bestätigt.',
+                again: 'Neuen Code anfordern',
+            },
             submit: 'Bestätigen',
             cancel: 'Abbrechen',
             invalidCode: 'Ungültiger Code. Bitte versuche es erneut.',

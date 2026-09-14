@@ -23,6 +23,9 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Comparator;
+import java.util.List;
+
 /**
  * The access a guardian manages for the members in their care: the address the account is reached
  * at, the name and password it signs in with, and whether it may sign in at all.
@@ -269,6 +272,43 @@ public class ManagedAccessService {
      * Refuses anything but a member the guardian actually manages, and anything but the member
      * types a guardian can be assigned to in the first place.
      */
+    /**
+     * Somebody a guardian may sign in on a device in front of them.
+     *
+     * <p>The same people they may already give an address, a name and a password to, narrowed to the
+     * ones who could sign in at all: an account whose access is switched off is not one to hand a
+     * session to. Ordered by name, because a guardian picks a child by their name and nothing else.
+     *
+     * @param guardianMemberId the guardian's own member row at the station
+     */
+    public List<SignInCandidate> signInCandidates(int guardianMemberId) {
+        return memberService.findManaged(guardianMemberId).stream()
+                .filter(managed ->
+                        managed.userType() == StationUserType.MEMBER || managed.userType() == StationUserType.TRIAL)
+                .filter(managed -> managed.accountId() != null)
+                .flatMap(managed -> accountRepository.findById(managed.accountId()).stream()
+                        .filter(ManagedAccessService::canSignIn)
+                        .map(account -> new SignInCandidate(account.id(), nameOf(managed, account))))
+                .sorted(Comparator.comparing(SignInCandidate::name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    /**
+     * What to call somebody on the approval screen.
+     *
+     * <p>A member row can carry an empty display name as easily as none at all, and a guardian
+     * choosing between two blank lines is choosing blind, so anything blank falls through to the
+     * name on the account.
+     */
+    private static String nameOf(StationMember managed, Account account) {
+        String display = managed.displayName();
+        if (display != null && !display.isBlank()) return display;
+        return account.fullName();
+    }
+
+    /** Somebody a guardian may hand a session to, as the approval screen names them. */
+    public record SignInCandidate(int accountId, String name) {}
+
     private StationMember requireManaged(int guardianMemberId, int memberId) {
         boolean manages =
                 memberService.findManaged(guardianMemberId).stream().anyMatch(managed -> managed.id() == memberId);

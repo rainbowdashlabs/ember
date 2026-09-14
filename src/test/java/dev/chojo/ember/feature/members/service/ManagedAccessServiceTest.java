@@ -146,6 +146,29 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
                 accountRepo.findById(childAccount.id()).orElseThrow().email());
     }
 
+    /**
+     * Whom a guardian may sign in on a device in front of them: the people they already manage, and
+     * only those who could sign in at all. A child with nothing to sign in with is not somebody to
+     * hand a session to, and a stranger is not theirs to offer at any point.
+     */
+    @Test
+    void aGuardianMaySignInOnlyTheMembersTheyManageWhoCouldSignInAtAll() {
+        assertTrue(
+                service.signInCandidates(guardian.id()).isEmpty(),
+                "a child with only a synthetic address has no way in to be handed");
+
+        service.setEmail(guardian.id(), child.id(), "lena@example.org");
+
+        var offered = service.signInCandidates(guardian.id());
+        assertEquals(1, offered.size());
+        assertEquals(childAccount.id(), offered.getFirst().accountId());
+        assertFalse(offered.getFirst().name().isBlank(), "a child is picked by their name and nothing else");
+
+        assertTrue(
+                offered.stream().noneMatch(candidate -> candidate.accountId() == strangerAccount.id()),
+                "somebody they do not manage is never on offer");
+    }
+
     @Test
     void anAddressThatBelongsToSomeoneElseIsRefused() {
         assertThrows(BadRequestResponse.class, () -> service.setEmail(guardian.id(), child.id(), "stranger@test.com"));

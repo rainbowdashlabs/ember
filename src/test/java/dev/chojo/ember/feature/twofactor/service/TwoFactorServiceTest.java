@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
+import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -148,7 +149,7 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         int accountId = newAccount();
         accountRepo.createSession(accountId, "tfs-bearer", Instant.now().plusSeconds(60), "ua", null);
         var session = accountRepo.findSession("tfs-bearer").orElseThrow();
-        service.markSessionTwoFactorVerified(session.id());
+        service.markSessionTwoFactorVerified(session.id(), StepUpProof.PASSWORD);
         assertNotNull(accountRepo.findSession("tfs-bearer").orElseThrow().twoFactorVerifiedAt());
     }
 

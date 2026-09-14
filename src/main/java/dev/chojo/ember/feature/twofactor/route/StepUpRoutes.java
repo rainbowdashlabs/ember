@@ -8,9 +8,11 @@ package dev.chojo.ember.feature.twofactor.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.devicerequest.service.DeviceRequestService;
 import dev.chojo.ember.feature.passkey.service.PasskeyService;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
@@ -46,6 +48,7 @@ public class StepUpRoutes implements Routes {
     private final AuthService authService;
     private final TwoFactorAuditService auditService;
     private final AuthRateLimiter rateLimiter;
+    private final DeviceRequestService deviceRequestService;
     private final Network network;
 
     @Inject
@@ -55,12 +58,14 @@ public class StepUpRoutes implements Routes {
             AuthService authService,
             TwoFactorAuditService auditService,
             AuthRateLimiter rateLimiter,
+            DeviceRequestService deviceRequestService,
             Network network) {
         this.twoFactorService = twoFactorService;
         this.passkeyService = passkeyService;
         this.authService = authService;
         this.auditService = auditService;
         this.rateLimiter = rateLimiter;
+        this.deviceRequestService = deviceRequestService;
         this.network = network;
     }
 
@@ -69,6 +74,68 @@ public class StepUpRoutes implements Routes {
         routes.post(prefix + "/auth/stepup/password", this::passwordStepUp, StationPermission.LOGIN);
         routes.post(prefix + "/auth/stepup/passkey/begin", this::beginPasskeyStepUp, StationPermission.LOGIN);
         routes.post(prefix + "/auth/stepup/passkey/finish", this::finishPasskeyStepUp, StationPermission.LOGIN);
+
+        // Confirming on a device the reader is already signed in on. The answer for somebody with
+        // no password and no passkey on the machine in front of them.
+        routes.post(prefix + "/auth/stepup/device/begin", this::beginDeviceStepUp, StationPermission.LOGIN);
+        routes.post(prefix + "/auth/stepup/device/poll", this::pollDeviceStepUp, StationPermission.LOGIN);
+    }
+
+    /**
+     * Raises the request and shows its code. The category travels with it so the approving device can
+     * say what it is confirming rather than asking somebody to trust a blank.
+     */
+    private void beginDeviceStepUp(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        if (!twoFactorService
+                .availableProofs(session.accountId(), session.sessionId())
+                .contains(StepUpProof.ANOTHER_DEVICE)) {
+            throw new ForbiddenResponse("No other device of this account could confirm");
+        }
+        var request = ctx.bodyAsClass(DeviceStepUpBeginRequest.class);
+        StepUpCategory category = parseCategory(request.category());
+        var created = deviceRequestService.createStepUpRequest(
+                session.accountId(),
+                session.sessionId(),
+                category,
+                request.operation(),
+                ctx.userAgent(),
+                ctx.header("CF-IPCountry"));
+        ctx.json(new DeviceStepUpBeginResponse(created.code(), created.pollSecret(), created.expiresAt()));
+    }
+
+    /**
+     * The asking device waiting for the other one. A confirmed request stamps this session, and the
+     * caller then retries whatever it was refused for.
+     */
+    private void pollDeviceStepUp(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(DeviceStepUpPollRequest.class);
+        if (request.pollSecret() == null || request.pollSecret().isBlank()) {
+            throw new BadRequestResponse("pollSecret is required");
+        }
+        var result = deviceRequestService.poll(request.pollSecret());
+        if (result.claimToken() != null && deviceRequestService.claimStepUp(result.claimToken())) {
+            auditService.record(
+                    session.accountId(),
+                    null,
+                    TwoFactorEvent.STEPUP_VERIFIED,
+                    null,
+                    ctx.userAgent(),
+                    ctx.header("CF-IPCountry"));
+            ctx.json(new DeviceStepUpPollResponse("CONFIRMED"));
+            return;
+        }
+        ctx.json(new DeviceStepUpPollResponse(result.status().name()));
+    }
+
+    private static StepUpCategory parseCategory(String raw) {
+        if (raw == null || raw.isBlank()) return StepUpCategory.ACCOUNT_SECURITY;
+        try {
+            return StepUpCategory.valueOf(raw);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("Unknown step-up category");
+        }
     }
 
     private String clientIp(Context ctx) {
@@ -116,7 +183,7 @@ public class StepUpRoutes implements Routes {
             throw new UnauthorizedResponse("Password verification failed");
         }
 
-        twoFactorService.markSessionTwoFactorVerified(session.sessionId());
+        twoFactorService.markSessionTwoFactorVerified(session.sessionId(), StepUpProof.PASSWORD);
         auditService.record(
                 session.accountId(),
                 null,
@@ -153,7 +220,7 @@ public class StepUpRoutes implements Routes {
                     ctx.header("CF-IPCountry"));
             throw new UnauthorizedResponse("Passkey verification failed");
         }
-        twoFactorService.markSessionTwoFactorVerified(session.sessionId());
+        twoFactorService.markSessionTwoFactorVerified(session.sessionId(), StepUpProof.PASSKEY);
         auditService.record(
                 session.accountId(),
                 null,
@@ -171,4 +238,16 @@ public class StepUpRoutes implements Routes {
     public record PasskeyStepUpFinishRequest(String challengeToken, String credentialJson) {}
 
     public record StepUpVerifiedResponse(Instant verifiedAt) {}
+
+    /**
+     * @param category what the step-up was demanded for
+     * @param operation the action in a sentence, where the caller knows one. Shown to whoever confirms
+     */
+    public record DeviceStepUpBeginRequest(String category, String operation) {}
+
+    public record DeviceStepUpBeginResponse(String code, String pollSecret, Instant expiresAt) {}
+
+    public record DeviceStepUpPollRequest(String pollSecret) {}
+
+    public record DeviceStepUpPollResponse(String status) {}
 }

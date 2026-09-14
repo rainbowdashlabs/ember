@@ -61,7 +61,7 @@ test.describe('Passkeys', () => {
     }
 
     /** How many slots the independent stories occupy; the onboarding story picks past them. */
-    const STORY_SLOTS = 4
+    const STORY_SLOTS = 5
 
     async function storyAccount(request: APIRequestContext, slot: number): Promise<DemoAccount> {
         const account = (await storyCandidates(request))[slot]
@@ -277,15 +277,19 @@ test.describe('Passkeys', () => {
         await addAuthenticator(newDevice)
 
         await newDevice.goto('/unlock-device')
+        // A browser that can hold a passkey is asked which it wants; this story wants the credential.
+        await newDevice.getByRole('button', {name: 'Passkey auf diesem Gerät anlegen'}).click()
         // Waited for by content, not visibility: the element renders before the code arrives,
         // and an empty read here would be pasted into a form that rightly refuses it.
         const codeElement = newDevice.locator('.font-mono').first()
         await expect(codeElement).toHaveText(/[0-9A-Z-]{8,9}/, {timeout: 15_000})
         const code = (await codeElement.innerText()).trim()
 
+        await answerStepUpPrompts(approver)
         await approver.goto('/account/unlock-device')
         await approver.getByPlaceholder('K7RM-2WQD').fill(code)
         await approver.getByRole('button', {name: 'Code prüfen'}).click()
+        await expect(approver.getByText('Das Gerät legt danach einen Passkey für dein Konto an.')).toBeVisible()
         await expect(approver.getByText('Nur freischalten, wenn du gerade selbst an diesem Gerät sitzt.'))
             .toBeVisible()
         await approver.getByRole('button', {name: 'Freischalten', exact: true}).click()
@@ -293,6 +297,53 @@ test.describe('Passkeys', () => {
 
         // The new device enrols and signs in with the passkey it just made.
         await expect(newDevice.getByTestId('app-shell')).toBeVisible({timeout: 30_000})
+
+        await approver.context().close()
+        await newContext.close()
+    })
+
+    /**
+     * The other half of the same handshake: a device that wants no credential at all.
+     *
+     * <p>The case this exists for is a borrowed machine, and on a passwordless instance a browser
+     * that cannot hold a passkey has no other way in whatsoever. What proves it worked is that the
+     * device ends up signed in while holding nothing: no ceremony runs, and no authenticator is
+     * attached to this context at all.
+     */
+    test('a device with no credential is signed in by one that already holds a session', async ({browser, request}) => {
+        // A slot of its own: the approval screen is throttled per account, and sharing one with the
+        // enrolment story above made the second of the two meet a refusal instead of a code.
+        const account = await storyAccount(request, 4)
+        const approver = await pageAsThrowaway(browser, request, [], account)
+
+        // Deliberately no authenticator on this context: nothing here can hold a passkey.
+        const newContext = await browser.newContext()
+        const newDevice = await newContext.newPage()
+        await newDevice.addInitScript(() => window.localStorage.setItem('storage_consent', 'accepted'))
+
+        await newDevice.goto('/unlock-device')
+        await newDevice.getByRole('button', {name: 'Nur anmelden, nichts speichern'}).click()
+        const codeElement = newDevice.locator('.font-mono').first()
+        await expect(codeElement).toHaveText(/[0-9A-Z-]{8,9}/, {timeout: 15_000})
+        const code = (await codeElement.innerText()).trim()
+
+        await answerStepUpPrompts(approver)
+        await approver.goto('/account/unlock-device')
+        await approver.getByPlaceholder('K7RM-2WQD').fill(code)
+        await approver.getByRole('button', {name: 'Code prüfen'}).click()
+
+        // The screen says what this grant is, which is a different thing from a passkey.
+        await expect(approver.getByText('Das Gerät wird danach in deinem Namen angemeldet', {exact: false}))
+            .toBeVisible()
+        await approver.getByRole('button', {name: 'Freischalten', exact: true}).click()
+        await expect(approver.getByText('Freigeschaltet.', {exact: false})).toBeVisible({timeout: 15_000})
+
+        await expect(newDevice.getByTestId('app-shell')).toBeVisible({timeout: 30_000})
+
+        // And nothing was left behind: the account holds no passkey it did not have before.
+        const headers = await apiHeaders(newDevice)
+        const status = await newDevice.request.get('/api/v1/account/passkeys', {headers});
+        expect((await status.json()).passkeys ?? [], 'a sign-in leaves no credential on the device').toHaveLength(0)
 
         await approver.context().close()
         await newContext.close()

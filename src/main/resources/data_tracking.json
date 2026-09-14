@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:eedfe521934f9c4361759f217039ac16ccceeee3f96b2779e66d00c4171a081b",
-  "generatedAt": "2026-09-14T07:41:01Z",
+  "schemaHash": "sha256:3ae742025a7f469a03a864f3cb380483763228a73e9754d18e52237364dd319b",
+  "generatedAt": "2026-09-14T11:14:52Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -764,7 +764,7 @@
     "account_session": {
       "feature": "account",
       "scope": "USER",
-      "tableHash": "sha256:609f12da7248b6ab5573a6447b2b90c6db7690817608f1d52ded8169567048dd",
+      "tableHash": "sha256:8f97cd67bcde6da4e28c2ee3cba6bd33c2c843bd41e9bdf604303c91ee8e8cf1",
       "columns": [
         {
           "name": "id",
@@ -842,6 +842,20 @@
           "nullable": false,
           "verified": true,
           "description": "Whether the person signing in vouched for this machine, which grants the long session length."
+        },
+        {
+          "name": "two_factor_proof",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the last step-up was answered with: TOTP, SECURITY_KEY, BACKUP_CODE, PASSKEY, PASSWORD, or ANOTHER_DEVICE. Routes that must rest on somebody proving themselves here and now refuse the last of those."
+        },
+        {
+          "name": "vouched_for",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this session exists because another device approved it rather than because somebody signed in here. Such a session may never approve a device request itself, whatever it proves afterwards."
         }
       ],
       "foreignKeys": [
@@ -5379,6 +5393,176 @@
         "reason": "Authored content, not per-member."
       },
       "description": "The rows and cells of one piece of authored content. A page, a news entry or a knowledge-base article owns one; the container itself knows nothing about which."
+    },
+    "device_request": {
+      "tableHash": "sha256:b370755c2e06e5216fc6d2013565ee972c2c48eeb3a3567b7ef3204e5f3dddf6",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "code_hash",
+          "type": "bpchar",
+          "nullable": false,
+          "verified": true,
+          "description": "HMAC-SHA-256 of the eight-character code the new device shows and the approving member types."
+        },
+        {
+          "name": "poll_secret_hash",
+          "type": "bpchar",
+          "nullable": false,
+          "verified": true,
+          "description": "HMAC-SHA-256 of the secret the requesting device polls with. Carried in the POST body, never in a path."
+        },
+        {
+          "name": "requested_user_agent",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Browser and operating system of the requesting device, shown on the approval screen."
+        },
+        {
+          "name": "requested_country",
+          "type": "bpchar",
+          "nullable": true,
+          "verified": true,
+          "description": "Rough location of the requesting device, shown on the approval screen."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the request was made."
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the request dies unanswered. Ten minutes, because somebody has to walk to another machine."
+        },
+        {
+          "name": "approved_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account whose signed-in session approved the request. NULL until approved."
+        },
+        {
+          "name": "approved_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the request was approved."
+        },
+        {
+          "name": "claim_token_hash",
+          "type": "bpchar",
+          "nullable": true,
+          "verified": true,
+          "description": "HMAC-SHA-256 of the one-time token the poll returns after approval. It buys exactly what the purpose says and nothing else."
+        },
+        {
+          "name": "consumed_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the enrolment token was spent. Written in the same transaction as the credential it created."
+        },
+        {
+          "name": "attempts",
+          "type": "int2",
+          "nullable": false,
+          "verified": true,
+          "description": "Failed credential ceremonies by the requesting device. The request dies after five of them. Wrong codes typed on the approval screen are not counted here and are throttled by the rate limiter instead."
+        },
+        {
+          "name": "purpose",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the approval buys: ENROL_PASSKEY, SIGN_IN or STEP_UP. Checked in the WHERE clause of every guarded update, so a request approved for one thing can never be spent on another."
+        },
+        {
+          "name": "subject_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account the grant is for. Written at approval. The approver for every purpose but a sign-in a guardian made for a member in their care."
+        },
+        {
+          "name": "requesting_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account that raised a step-up request. NULL for the purposes an unidentified device raises."
+        },
+        {
+          "name": "requesting_session_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The session that raised a step-up request and that a successful approval stamps. NULL for the other purposes."
+        },
+        {
+          "name": "step_up_category",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The sensitivity category the step-up was demanded for, shown on the approval screen so nobody confirms an operation they cannot see."
+        },
+        {
+          "name": "step_up_operation",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The operation in a sentence, where the caller knew one. Shown beneath the category."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "approved_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "requesting_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "requesting_session_id",
+          "refTable": "account_session",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "subject_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Short-lived sign-in ceremony data, meaningless on another instance"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Time-limited token, no permanent personal data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Time-limited token, cascade-deleted via account(id) foreign key"
+      },
+      "description": "A device asking one that is already signed in to vouch for it. What the approval buys is the purpose: one passkey, a session, or the answer to a step-up demand."
     },
     "discovery_blocklist": {
       "feature": "discovery",
@@ -16919,116 +17103,6 @@
         "status": "IGNORED",
         "reason": "Public page content, not per-member"
       }
-    },
-    "passkey_device_request": {
-      "tableHash": "sha256:dd5c2548391da3a49d69771bf6c7c69073bd81b1db603c63ee1d24f173f6428a",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Auto-generated primary key."
-        },
-        {
-          "name": "code_hash",
-          "type": "bpchar",
-          "nullable": false,
-          "verified": true,
-          "description": "HMAC-SHA-256 of the eight-character code the new device shows and the approving member types."
-        },
-        {
-          "name": "poll_secret_hash",
-          "type": "bpchar",
-          "nullable": false,
-          "verified": true,
-          "description": "HMAC-SHA-256 of the secret the requesting device polls with. Carried in the POST body, never in a path."
-        },
-        {
-          "name": "requested_user_agent",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Browser and operating system of the requesting device, shown on the approval screen."
-        },
-        {
-          "name": "requested_country",
-          "type": "bpchar",
-          "nullable": true,
-          "verified": true,
-          "description": "Rough location of the requesting device, shown on the approval screen."
-        },
-        {
-          "name": "created_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true,
-          "description": "When the request was made."
-        },
-        {
-          "name": "expires_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true,
-          "description": "When the request dies unanswered. Ten minutes, because somebody has to walk to another machine."
-        },
-        {
-          "name": "approved_account_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "The account whose signed-in session approved the request. NULL until approved."
-        },
-        {
-          "name": "approved_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "When the request was approved."
-        },
-        {
-          "name": "enroll_token_hash",
-          "type": "bpchar",
-          "nullable": true,
-          "verified": true,
-          "description": "HMAC-SHA-256 of the one-time enrolment token the poll returns after approval. The token creates one passkey and does nothing else."
-        },
-        {
-          "name": "consumed_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "When the enrolment token was spent. Written in the same transaction as the credential it created."
-        },
-        {
-          "name": "attempts",
-          "type": "int2",
-          "nullable": false,
-          "verified": true,
-          "description": "Failed attempts against this request. The request dies after five."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "approved_account_id",
-          "refTable": "account",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "Short-lived sign-in ceremony data, meaningless on another instance"
-      },
-      "gdprExport": {
-        "status": "IGNORED",
-        "reason": "Time-limited token, no permanent personal data"
-      },
-      "gdprDeletion": {
-        "status": "IGNORED",
-        "reason": "Time-limited token, cascade-deleted via account(id) foreign key"
-      },
-      "description": "A device with no passkey asking a device that is already signed in to approve it. The approval hands the new device a token that may create exactly one credential."
     },
     "problem_report": {
       "feature": "system",

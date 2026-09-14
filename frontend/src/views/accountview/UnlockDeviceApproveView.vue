@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -12,6 +12,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -32,12 +34,34 @@ const details = ref<DeviceLookup | null>(null)
 const error = ref('')
 const done = ref(false)
 const busy = ref(false)
+const forAccountId = ref('')
+
+/**
+ * A sign-in a guardian may make for somebody in their care offers the choice. The other two grants
+ * are always for the reader themselves: a passkey belongs to whoever approved it, and a step-up
+ * stamps the session that asked for it.
+ */
+const offersCandidates = computed(() => (details.value?.candidates.length ?? 0) > 1)
+
+/** What approving this actually does, said plainly. The three differ enormously. */
+const purposeSentence = computed(() => {
+  const purpose = details.value?.purpose
+  if (purpose === 'SIGN_IN') return t('passkeys.approve.purposeSignIn')
+  if (purpose === 'STEP_UP') {
+    const category = details.value?.stepUpCategory
+    return category
+        ? t('passkeys.approve.purposeStepUpCategory', {category: t(`twoFactor.stepUp.category.${category}`)})
+        : t('passkeys.approve.purposeStepUp')
+  }
+  return t('passkeys.approve.purposePasskey')
+})
 
 async function lookup() {
   error.value = ''
   busy.value = true
   try {
     details.value = await passkeys.deviceLookup(code.value)
+    forAccountId.value = String(details.value.candidates[0]?.accountId ?? '')
   } catch (e) {
     details.value = null
     error.value = apiErrorStatus(e) === 404 ? t('passkeys.approve.unknownCode') : t('common.error')
@@ -50,7 +74,7 @@ async function approve() {
   error.value = ''
   busy.value = true
   try {
-    await passkeys.deviceApprove(code.value)
+    await passkeys.deviceApprove(code.value, offersCandidates.value ? Number(forAccountId.value) : undefined)
     done.value = true
   } catch (e) {
     error.value = apiErrorStatus(e) === 404 ? t('passkeys.approve.unknownCode') : t('common.error')
@@ -93,6 +117,21 @@ function reset() {
             <div>{{ t('passkeys.approve.place', {place: details.country || '?'}) }}</div>
             <div>{{ t('passkeys.approve.when', {when: formatDateTime(details.createdAt)}) }}</div>
           </div>
+          <!-- What is actually being approved, in the reader's terms. The three grants differ
+               enormously and showing the same sentence for all of them asks somebody to confirm a
+               blank. -->
+          <Alert variant="info">{{ purposeSentence }}</Alert>
+          <p v-if="details.stepUpOperation" class="text-sm font-medium">{{ details.stepUpOperation }}</p>
+
+          <div v-if="offersCandidates" class="space-y-1">
+            <FieldLabel>{{ t('passkeys.approve.signInFor') }}</FieldLabel>
+            <SelectInput v-model="forAccountId" class="w-full" data-testid="approve-for">
+              <option v-for="candidate in details.candidates" :key="candidate.accountId" :value="String(candidate.accountId)">
+                {{ candidate.name }}
+              </option>
+            </SelectInput>
+          </div>
+
           <Alert variant="error">{{ t('passkeys.approve.warning') }}</Alert>
           <div class="flex justify-between gap-2">
             <SecondaryButton type="button" :disabled="busy" @click="reset">{{ t('common.cancel') }}</SecondaryButton>

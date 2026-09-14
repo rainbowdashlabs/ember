@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.account.service;
 
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.passkey.repository.PasskeyDeviceRequestRepository;
+import dev.chojo.ember.feature.devicerequest.repository.DeviceRequestRepository;
 import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -31,13 +31,13 @@ public class AuthCleanupSweeper {
 
     private final AccountRepository accountRepository;
     private final WebAuthnChallengeRepository challengeRepository;
-    private final PasskeyDeviceRequestRepository deviceRequestRepository;
+    private final DeviceRequestRepository deviceRequestRepository;
 
     @Inject
     public AuthCleanupSweeper(
             AccountRepository accountRepository,
             WebAuthnChallengeRepository challengeRepository,
-            PasskeyDeviceRequestRepository deviceRequestRepository) {
+            DeviceRequestRepository deviceRequestRepository) {
         this.accountRepository = accountRepository;
         this.challengeRepository = challengeRepository;
         this.deviceRequestRepository = deviceRequestRepository;

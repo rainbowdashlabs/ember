@@ -9,12 +9,15 @@ import dev.chojo.ember.api.StepUpRequiredException;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
+import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Set;
 
 /**
  * Decides whether a session has proved itself recently enough for a sensitive operation. One
@@ -58,6 +61,49 @@ public class StepUpGuard {
      */
     public void require(UserSession session, StepUpCategory category) {
         if (isFresh(session)) return;
-        throw new StepUpRequiredException(category, twoFactorService.availableProofs(session.accountId()));
+        throw new StepUpRequiredException(
+                category, twoFactorService.availableProofs(session.accountId(), session.sessionId()));
+    }
+
+    /**
+     * Refuses unless somebody proved themselves at this keyboard, just now.
+     *
+     * <p>For the one thing a session can do that vouches for another device. Two differences from
+     * {@link #require}, and the feature rests on both.
+     *
+     * <p>The proof must be local. A stamp another device's approval produced is refused here and is
+     * left out of what the refusal offers, because a session made fresh by being vouched for cannot
+     * be the thing that vouches: two sessions would relay freshness to each other for ever and one
+     * proof from months ago would keep a pair of stolen cookies approving new devices.
+     *
+     * <p>And the window is its own, far shorter than the one every other sensitive route shares, so
+     * approving is an answer given now rather than a right earned earlier in the session. The caller
+     * spends the stamp afterwards, which is what makes it once rather than once per window.
+     */
+    public void requireLocalProof(UserSession session, StepUpCategory category) {
+        if (session.vouchedFor()) {
+            // Not a step-up demand: no proof this session could give would change the answer, and a
+            // dialog offering one would be a dialog that cannot be satisfied.
+            throw new ForbiddenResponse("A session another device vouched for cannot vouch for one");
+        }
+        if (demoConfig.enabled()) return;
+        if (isLocalAndRecent(session)) return;
+        throw new StepUpRequiredException(category, localProofs(session.accountId()));
+    }
+
+    private boolean isLocalAndRecent(UserSession session) {
+        StepUpProof proof = session.twoFactorProof();
+        if (proof == null || !proof.isLocal()) return false;
+        Instant verifiedAt = session.twoFactorVerifiedAt();
+        if (verifiedAt == null) return false;
+        Duration window = Duration.ofSeconds(authConfig.twoFactor().localProofFreshnessSeconds());
+        return verifiedAt.isAfter(Instant.now().minus(window));
+    }
+
+    /** What the dialog may offer where being vouched for is not an answer. */
+    private Set<StepUpProof> localProofs(int accountId) {
+        Set<StepUpProof> proofs = twoFactorService.availableProofs(accountId);
+        proofs.removeIf(proof -> !proof.isLocal());
+        return proofs;
     }
 }

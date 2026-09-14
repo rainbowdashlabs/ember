@@ -115,6 +115,22 @@ public class TwoFactorService {
     }
 
     /**
+     * The same, for a session that is about to be asked.
+     *
+     * <p>Adds the one proof that depends on more than the account: confirming on a device the reader
+     * is already signed in on. It is offered only where such a device exists, so the dialog never
+     * shows an answer nobody present could give. The session doing the asking does not count as one,
+     * nor does a session another device vouched for, since neither can confirm anything.
+     */
+    public Set<StepUpProof> availableProofs(int accountId, int askingSessionId) {
+        Set<StepUpProof> proofs = availableProofs(accountId);
+        if (accountRepository.hasOtherVouchingSession(accountId, askingSessionId)) {
+            proofs.add(StepUpProof.ANOTHER_DEVICE);
+        }
+        return proofs;
+    }
+
+    /**
      * Admin-initiated wipe of a target account's 2FA state. Disables every factor row,
      * marks every backup code used, revokes every trusted device and active session, sends
      * a notification email to the target, and records an {@link TwoFactorEvent#ADMIN_RESET}
@@ -368,8 +384,18 @@ public class TwoFactorService {
 
     // -- Verification --
 
-    public void markSessionTwoFactorVerified(int sessionId) {
-        repository.setTwoFactorVerified(sessionId);
+    /**
+     * Stamps the session as freshly proved and records what proved it. Every caller says which proof
+     * it accepted, because a route that vouches for another device has to refuse a stamp that came
+     * from a device vouching in the first place.
+     */
+    public void markSessionTwoFactorVerified(int sessionId, StepUpProof proof) {
+        repository.setTwoFactorVerified(sessionId, proof);
+    }
+
+    /** Spends the stamp, for the routes where one proof buys exactly one action. */
+    public void clearSessionTwoFactorVerified(int sessionId) {
+        repository.clearTwoFactorVerified(sessionId);
     }
 
     private void createBackupCodeFactor(int accountId, List<String> plaintextCodes) {
