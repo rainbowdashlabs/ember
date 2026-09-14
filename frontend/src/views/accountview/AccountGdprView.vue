@@ -13,6 +13,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {session as sessionApi, managedMembers as managedMembersApi} from '@/api'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
@@ -88,12 +89,12 @@ onMounted(async () => {
           <ErrorContainer>
             <p class="text-sm">{{ t('userSettings.deleteConfirmWarning') }}</p>
           </ErrorContainer>
-          <div class="flex justify-end gap-2">
+          <ButtonRow align="end">
             <SecondaryButton @click="showDeleteAccountModal = false">{{ t('common.cancel') }}</SecondaryButton>
             <ErrorButton :disabled="deletingAccount" @click="confirmDeleteAccount">
               {{ deletingAccount ? t('common.loading') : t('userSettings.deleteAccount') }}
             </ErrorButton>
-          </div>
+          </ButtonRow>
         </div>
       </Modal>
     </div>
