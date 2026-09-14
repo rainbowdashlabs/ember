@@ -13,6 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
@@ -149,14 +150,14 @@ function itemLabel(item: { id: number; name: string | null; internalId: string |
       :subtitle="t('pages.inventory-lending-blocks.subtitle')"
   >
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
-      <div class="flex gap-2">
+      <ButtonRow pair>
         <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({name: routes.lending})">
           {{ t('lending.backToList') }}
         </SecondaryButton>
         <PrimaryButton :icon="['fas', 'plus']" @click="router.push({name: routes.lendingBlocksCreate})">
           {{ t('lending.addBlock') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
 
     <AsyncSection
