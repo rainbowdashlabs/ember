@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 /**
  * Whether the piece was handed over there and then.
@@ -22,7 +23,7 @@ const {t} = useI18n()
 <template>
   <div class="space-y-1">
     <FieldLabel>{{ t('inventory.check.exchangeHandedIn') }}</FieldLabel>
-    <div class="flex flex-wrap gap-2">
+    <ButtonRow pair>
       <SecondaryButton
           :class="{'ring-2 ring-(--accent)': handedIn === true}"
           data-testid="rapid-exchange-handed-in"
@@ -37,6 +38,6 @@ const {t} = useI18n()
       >
         {{ t('inventory.check.exchangeHandedInNo') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>

@@ -14,6 +14,7 @@ import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type { InventorySize } from '@/api/inventory'
 import type { StationMember } from '@/api/types'
@@ -58,10 +59,10 @@ const userTypes = computed(() => userTypesOf(options.value))
         </SelectInput>
         <TextAreaInput v-model="notes" :placeholder="t('inventory.detail.procurementNotes')" :rows="2" />
       </template>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="modelValue = false">{{ t('common.close') }}</SecondaryButton>
         <PrimaryButton v-if="!created" :disabled="!memberId" @click="emit('submit')">{{ t('common.save') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

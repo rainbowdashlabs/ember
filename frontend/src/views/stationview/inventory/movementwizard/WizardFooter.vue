@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
 /**
@@ -36,7 +37,7 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <div class="flex justify-end gap-3">
+  <ButtonRow pair align="end">
     <SecondaryButton v-if="props.position > 1" data-testid="wizard-back" @click="emit('back')">
       {{ t('movements.wizard.back') }}
     </SecondaryButton>
@@ -52,5 +53,5 @@ const {t} = useI18n()
     >
       {{ t('movements.wizard.preview.start') }}
     </PrimaryButton>
-  </div>
+  </ButtonRow>
 </template>

@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
@@ -25,8 +26,8 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center justify-end gap-2">
-    <MutedText v-if="openCount > 0" size="sm" class="mr-auto">
+  <ButtonRow align="end">
+    <MutedText v-if="openCount > 0" size="sm" class="sm:mr-auto">
       {{ t('selfCheck.stillOpen', {count: openCount}) }}
     </MutedText>
     <SecondaryButton :disabled="saving" data-testid="self-check-save" @click="emit('save')">
@@ -35,5 +36,5 @@ const {t} = useI18n()
     <PrimaryButton :disabled="submitting || openCount > 0" data-testid="self-check-submit" @click="emit('submit')">
       {{ t('selfCheck.submit') }}
     </PrimaryButton>
-  </div>
+  </ButtonRow>
 </template>

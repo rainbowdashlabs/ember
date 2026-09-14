@@ -12,6 +12,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {inventory, inventoryContainers} from '@/api'
@@ -233,13 +234,13 @@ onMounted(load)
             @remove="removeExtra"
         />
 
-        <div class="flex justify-end gap-2">
+        <ButtonRow align="end">
           <SecondaryButton @click="backToOverview">{{ t('common.cancel') }}</SecondaryButton>
           <SuccessButton v-if="!hasWalk || isLast" :disabled="submitting" @click="finishCheck">
             <font-awesome-icon :icon="['fas', 'check-double']" class="mr-2" />
             {{ submitting ? t('common.saving') : t('inventory.checkContainer.finish') }}
           </SuccessButton>
-        </div>
+        </ButtonRow>
       </template>
     </template>
     <Alert v-else variant="error">{{ error }}</Alert>

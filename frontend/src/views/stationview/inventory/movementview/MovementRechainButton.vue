@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {movements} from '@/api'
@@ -94,12 +95,12 @@ function confirm() {
 
       <div v-else class="space-y-4">
         <MovementRechainPlan :plan="plan" :step-index="stepIndex" @choose="choose"/>
-        <div class="flex justify-end gap-3">
+        <ButtonRow pair align="end">
           <SecondaryButton data-cancel @click="asking = false">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton :disabled="stepIndex === null" data-confirm @click="confirm">
             {{ t('movements.rechain.confirm') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </div>
   </Modal>

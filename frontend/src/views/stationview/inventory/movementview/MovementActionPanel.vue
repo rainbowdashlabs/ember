@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -169,7 +170,7 @@ function payload(): AcknowledgePayload {
       <TextInput v-model="note" :placeholder="t('movements.notePlaceholder')"/>
     </div>
 
-    <div class="flex flex-wrap gap-2">
+    <ButtonRow>
       <PrimaryButton
           v-if="props.step.actionable"
           :disabled="props.busy || missingItem"
@@ -191,7 +192,7 @@ function payload(): AcknowledgePayload {
       <SecondaryButton v-if="props.step.actionable" :disabled="props.busy" @click="emit('cancel', note)">
         {{ t('movements.cancel') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
 
     <p v-if="props.canForce && !props.step.actionable" class="text-xs text-(--text-muted)">
       {{ t('movements.forceHint') }}

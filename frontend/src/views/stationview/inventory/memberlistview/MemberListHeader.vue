@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 
 const { t } = useI18n()
@@ -29,7 +30,7 @@ const emit = defineEmits<{
 <template>
   <div class="flex items-center justify-between flex-wrap gap-2">
     <SubHeader>{{ t('inventoryMembers.title') }}</SubHeader>
-    <div class="flex items-center gap-2">
+    <ButtonRow align="end">
       <template v-if="exportMode">
         <SecondaryButton :icon="['fas', 'download']" :disabled="exporting || selectedCount === 0" @click="emit('export-csv')">
           CSV ({{ selectedCount }})
@@ -44,6 +45,6 @@ const emit = defineEmits<{
           {{ t('inventoryMembers.export') }}
         </PrimaryButton>
       </template>
-    </div>
+    </ButtonRow>
   </div>
 </template>

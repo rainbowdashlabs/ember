@@ -15,6 +15,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CustodyChoice from './CustodyChoice.vue'
 import {movements} from '@/api'
@@ -118,12 +119,12 @@ async function submit() {
                    :placeholder="t('movements.queue.correctPanel.reasonPlaceholder')"/>
       </div>
 
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="model = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="busy || !reason.trim()" data-testid="correct-confirm" @click="submit">
           {{ t('movements.queue.correctPanel.confirm') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

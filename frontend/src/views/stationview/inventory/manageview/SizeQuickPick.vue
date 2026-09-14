@@ -7,6 +7,7 @@
 import {computed, onBeforeUnmount, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
@@ -120,12 +121,12 @@ function confirm() {
 
     <div class="flex items-center justify-between gap-2 pt-1">
       <MutedText size="sm" tag="span">{{ t('inventory.manage.quickSizesPicked', {count: inOrder.length}) }}</MutedText>
-      <div class="flex gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="emit('close')">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="inOrder.length === 0" data-testid="size-quick-add" @click="confirm">
           {{ t('inventory.manage.quickSizesAdd') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </div>
 </template>
