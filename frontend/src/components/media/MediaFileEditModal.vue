@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import type {StationFile} from '@/api/media'
@@ -43,10 +44,10 @@ function commit() {
             <SubHeader>{{ t('stationPages.editor.editFileMeta') }}</SubHeader>
             <TextInput v-model="alt" :placeholder="t('stationPages.editor.altText')"/>
             <TextInput v-model="description" :placeholder="t('stationPages.editor.imageDescription')"/>
-            <div class="flex justify-end gap-2">
+            <ButtonRow pair align="end">
                 <SecondaryButton @click="file = null">{{ t('common.cancel') }}</SecondaryButton>
                 <PrimaryButton @click="commit">{{ t('common.save') }}</PrimaryButton>
-            </div>
+            </ButtonRow>
         </div>
     </Modal>
 </template>
