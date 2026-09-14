@@ -8,6 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -101,7 +102,7 @@ function submit() {
       </div>
     </div>
 
-    <div class="flex gap-3">
+    <ButtonRow>
       <PrimaryButton
           :disabled="saving || !newAbsenceFrom || !newAbsenceUntil || selectedMemberIds.size === 0 || isAbsenceRangeInvalid"
           @click="submit">
@@ -110,6 +111,6 @@ function submit() {
       <SecondaryButton @click="emit('cancel')">
         {{ t('common.cancel') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>
