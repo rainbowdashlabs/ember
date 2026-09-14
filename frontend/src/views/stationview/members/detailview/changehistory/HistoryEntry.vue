@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -70,14 +71,14 @@ function updateComment(v: string | undefined) {
         :format-date="formatDate"
     />
 
-    <div v-if="change.requiresAcknowledgement && !acknowledgedByMe" class="flex items-center gap-2 pt-1">
+    <ButtonRow v-if="change.requiresAcknowledgement && !acknowledgedByMe" class="pt-1">
       <PrimaryButton :icon="['fas', 'check']" :disabled="acknowledging" @click="emit('acknowledge')">
         {{ t('memberDetail.acknowledge') }}
       </PrimaryButton>
       <SecondaryButton :icon="['fas', 'comment']" @click="emit('toggle-comment')">
         {{ t('memberDetail.acknowledgeWithComment') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
 
     <div v-if="commentOpen" class="space-y-2 pt-1">
       <TextAreaInput

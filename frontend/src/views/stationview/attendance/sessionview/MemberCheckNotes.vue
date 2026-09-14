@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type {MemberNotes} from '@/api/attendance'
 import {StepActor} from '@/api/movements'
@@ -64,11 +65,11 @@ const birthdayText = computed(() => {
       <span>{{ birthdayText }}</span>
     </div>
 
-    <div
+    <ButtonRow
         v-for="swap in notes?.swaps ?? []"
         :key="swap.movementId"
         :data-swap="swap.movementId"
-        class="flex flex-wrap items-center gap-2 text-sm"
+        class="text-sm"
         data-testid="note-swap"
     >
       <font-awesome-icon :icon="['fas', 'right-left']" class="text-primary"/>
@@ -97,7 +98,7 @@ const birthdayText = computed(() => {
       >
         {{ t('checkNotes.moveOn') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
 
     <div
         v-for="item in notes?.foundItems ?? []"

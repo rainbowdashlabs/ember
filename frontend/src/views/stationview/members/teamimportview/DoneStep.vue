@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -49,9 +50,9 @@ const router = useRouter()
       </div>
     </div>
     <Alert v-for="w in result.warnings" :key="w" variant="info">{{ w }}</Alert>
-    <div class="flex gap-3">
+    <ButtonRow>
       <SecondaryButton @click="$emit('start-over')">{{ t('memberImport.importAnother') }}</SecondaryButton>
       <PrimaryButton @click="router.push({ name: 'members-list' })">{{ t('memberImport.toList') }}</PrimaryButton>
-    </div>
+    </ButtonRow>
   </SuccessContainer>
 </template>

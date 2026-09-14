@@ -10,6 +10,7 @@ import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
@@ -167,10 +168,10 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           />
         </div>
 
-        <div class="flex gap-2 justify-end">
+        <ButtonRow pair align="end">
           <SecondaryButton type="button" @click="showCreateModal = false">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton type="submit" :disabled="!newProtocolId || !newName.trim()">{{ t('protocol.createRun') }}</PrimaryButton>
-        </div>
+        </ButtonRow>
       </form>
     </Modal>
   </ViewContent>

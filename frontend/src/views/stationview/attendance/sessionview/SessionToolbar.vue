@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
@@ -48,7 +49,7 @@ const canCheck = computed(() => !props.checkMode && props.uncheckedCount > 0)
     <SecondaryButton :icon="['fas', 'chevron-left']" @click="$emit('back')">
       {{ t('attendanceSession.back') }}
     </SecondaryButton>
-    <div v-if="locked" class="flex items-center gap-2">
+    <ButtonRow v-if="locked" pair align="end">
       <PrimaryButton :icon="['fas', 'download']" @click="$emit('export')">
         {{ t('attendanceSession.export') }}
       </PrimaryButton>
@@ -60,8 +61,8 @@ const canCheck = computed(() => !props.checkMode && props.uncheckedCount > 0)
       >
         {{ t('attendanceSession.reopen') }}
       </SecondaryButton>
-    </div>
-    <div v-else-if="!readonly" class="flex items-center gap-2">
+    </ButtonRow>
+    <ButtonRow v-else-if="!readonly" align="end">
       <PrimaryButton v-if="canCheck" :icon="['fas', 'clipboard-user']" @click="$emit('startCheckMode')">
         {{ t('attendanceSession.checkMode') }} ({{ uncheckedCount }})
       </PrimaryButton>
@@ -83,6 +84,6 @@ const canCheck = computed(() => !props.checkMode && props.uncheckedCount > 0)
           {{ t('attendanceSession.delete') }}
         </DropdownMenuItem>
       </ActionsMenu>
-    </div>
+    </ButtonRow>
   </div>
 </template>

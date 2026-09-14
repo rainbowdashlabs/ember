@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {WaitingListEntryWithScore, WaitingListField} from '@/api/waitingList'
 import {formatDate} from '@/util/format'
@@ -57,10 +58,10 @@ function toggle(id: number) {
             <span v-if="item.entry.email" class="text-xs text-(--text-muted) truncate">{{ item.entry.email }}</span>
             <InfoBadge class="shrink-0">{{ t('waitingList.status_PENDING') }}</InfoBadge>
           </div>
-          <div v-if="!readonly" class="flex items-center gap-2 shrink-0 ml-2" @click.stop>
+          <ButtonRow v-if="!readonly" pair class="shrink-0 ml-2" @click.stop>
             <SuccessButton compact :icon="['fas', 'check']" @click="emit('approve', item.entry.id)">{{ t('waitingList.approve') }}</SuccessButton>
             <ErrorButton compact :icon="['fas', 'xmark']" @click="emit('reject', item.entry.id)">{{ t('waitingList.reject') }}</ErrorButton>
-          </div>
+          </ButtonRow>
         </div>
         <div v-if="expandedId === item.entry.id" class="mt-3 pt-3 border-t border-(--border) space-y-2 text-sm">
           <div v-if="item.entry.notes" class="text-(--text-muted)">

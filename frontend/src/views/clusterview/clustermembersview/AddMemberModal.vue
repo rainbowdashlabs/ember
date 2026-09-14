@@ -13,6 +13,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import {ClusterUserType} from '@/api/clusters'
 
 /**
@@ -89,12 +90,12 @@ function submit() {
         </SelectInput>
       </div>
 
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="props.saving || !complete" data-testid="cluster-roster-add" @click="submit">
           {{ t('common.add') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

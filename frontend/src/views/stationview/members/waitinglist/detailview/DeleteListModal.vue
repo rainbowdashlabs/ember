@@ -8,6 +8,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 
@@ -35,12 +36,12 @@ const open = computed({
     <div class="space-y-4">
       <SubHeader>{{ t('waitingList.deleteListTitle') }}</SubHeader>
       <p class="text-sm">{{ t('waitingList.deleteListConfirm', { name: listName }) }}</p>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton :disabled="deleting" @click="emit('confirm')">
           {{ deleting ? t('common.loading') : t('waitingList.deleteList') }}
         </ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

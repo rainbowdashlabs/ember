@@ -12,6 +12,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import CorrectNewPiece from './correctitemmodal/CorrectNewPiece.vue'
 import {inventoryFields} from '@/api'
@@ -152,11 +153,11 @@ function confirm() {
         :asks-owner="asksOwner"
     />
 
-    <div class="mt-4 flex justify-end gap-2">
+    <ButtonRow pair align="end" class="mt-4">
       <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton :disabled="busy || !ready" data-testid="correct-confirm" @click="confirm">
         {{ t('inventory.check.correct.confirm') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </Modal>
 </template>

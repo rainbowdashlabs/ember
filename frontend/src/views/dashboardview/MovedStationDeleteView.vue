@@ -8,6 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -67,7 +68,7 @@ async function performDelete() {
           {{ t('pages.station-moved.deleteModalTypeName', {name: stationName}) }}
         </p>
         <TextInput v-model="typedName" :placeholder="stationName" class="mt-2"/>
-        <div class="mt-6 flex justify-end gap-2">
+        <ButtonRow pair align="end" class="mt-6">
           <SecondaryButton :disabled="deleting" @click="confirmOpen = false">
             {{ t('pages.station-moved.deleteModalCancel') }}
           </SecondaryButton>
@@ -75,7 +76,7 @@ async function performDelete() {
             <font-awesome-icon :icon="['fas', 'trash']" class="h-4 w-4 mr-2"/>
             {{ t('pages.station-moved.deleteModalConfirm') }}
           </ErrorButton>
-        </div>
+        </ButtonRow>
       </Modal>
     </div>
   </ViewContent>

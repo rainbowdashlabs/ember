@@ -8,6 +8,7 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import RadioInput from '@/components/input/toggle/RadioInput.vue'
@@ -73,13 +74,13 @@ watch(canExportValues, (can) => {
         </MutedText>
       </div>
 
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :icon="['fas', 'download']" :disabled="selectedColumns.size === 0"
                        data-testid="members-export-download" @click="emit('export', format)">
           {{ t('membersList.export.submit') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

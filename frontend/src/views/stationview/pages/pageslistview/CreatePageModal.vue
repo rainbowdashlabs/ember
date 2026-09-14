@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -43,10 +44,10 @@ const {t} = useI18n()
           <option v-for="p in props.topLevelPages" :key="p.id" :value="String(p.id)">{{ p.title }}</option>
         </SelectInput>
       </div>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!title.trim()" @click="emit('confirm')">{{ t('common.create') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

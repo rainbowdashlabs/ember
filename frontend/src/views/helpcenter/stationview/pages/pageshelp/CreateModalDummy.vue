@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 
@@ -27,9 +28,9 @@ const {t} = useI18n()
         <option value="">{{ t('stationPages.editor.noParent') }}</option>
       </SelectInput>
     </div>
-    <div class="flex justify-end gap-3">
+    <ButtonRow pair align="end">
       <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton>{{ t('common.create') }}</PrimaryButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>

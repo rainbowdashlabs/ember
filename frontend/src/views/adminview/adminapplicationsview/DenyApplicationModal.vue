@@ -10,6 +10,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import type {StationApplication} from '@/api/stationApplications'
 
@@ -39,14 +40,14 @@ const {t} = useI18n()
         <FieldLabel>{{ t('adminApplications.denyReasonLabel') }}</FieldLabel>
         <TextInput v-model="reason" :placeholder="t('adminApplications.denyReasonPlaceholder')"/>
       </div>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton type="button" @click="open = false">
           {{ t('common.cancel') }}
         </SecondaryButton>
         <ErrorButton :disabled="processing" type="submit">
           {{ processing ? t('common.loading') : t('adminApplications.deny') }}
         </ErrorButton>
-      </div>
+      </ButtonRow>
     </form>
   </Modal>
 </template>

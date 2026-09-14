@@ -16,6 +16,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FileInput from '@/components/input/FileInput.vue'
@@ -147,7 +148,7 @@ async function download(document: ManagedMemberDocument) {
           <TextInput v-model="title" data-testid="cluster-member-document-name"/>
         </div>
 
-        <div class="flex justify-end gap-2">
+        <ButtonRow pair align="end">
           <SecondaryButton @click="showUpload = false">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton
               :disabled="!file || saving"
@@ -156,7 +157,7 @@ async function download(document: ManagedMemberDocument) {
           >
             {{ saving ? t('common.loading') : t('clusterMemberDetail.documents.upload') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </Modal>
   </NeutralContainer>

@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -64,11 +65,11 @@ const { t } = useI18n()
         <label class="text-sm font-medium">{{ t('waitingList.fieldPublic') }}</label>
       </div>
     </div>
-    <div class="flex justify-end gap-2">
+    <ButtonRow pair align="end">
       <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton :disabled="saving || !fieldName.trim()" @click="emit('save')">
         {{ saving ? t('common.loading') : t('common.save') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>

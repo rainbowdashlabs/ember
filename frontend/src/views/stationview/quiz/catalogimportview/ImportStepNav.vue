@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
 defineProps<{
@@ -23,10 +24,10 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <div class="flex justify-between gap-3">
+  <ButtonRow pair align="between">
     <SecondaryButton @click="emit('back')">{{ t('common.back') }}</SecondaryButton>
     <PrimaryButton :disabled="loading" :icon="['fas', icon]" @click="emit('advance')">
       {{ loading ? t('common.loading') : label }}
     </PrimaryButton>
-  </div>
+  </ButtonRow>
 </template>

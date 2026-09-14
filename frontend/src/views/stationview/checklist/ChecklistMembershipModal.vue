@@ -12,6 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ChecklistMembershipEditor from './checklistmodals/ChecklistMembershipEditor.vue'
 import {toRestriction, type RestrictionSelection} from '@/components/input/restriction'
 import type {
@@ -106,12 +107,12 @@ function submit() {
 
       <FailureAlert :message="error"/>
 
-      <div class="flex justify-end gap-2 pt-2">
+      <ButtonRow pair align="end" class="pt-2">
         <SecondaryButton data-cancel @click="visible = false">{{ t('checklist.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="saving || incomplete" data-testid="checklist-membership-save" @click="submit">
           {{ t('checklist.save') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

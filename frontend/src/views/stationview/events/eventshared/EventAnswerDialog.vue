@@ -10,6 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -154,7 +155,7 @@ function confirm() {
             </NeutralContainer>
         </div>
 
-        <div class="flex justify-end gap-2">
+        <ButtonRow pair align="end">
             <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton
                 :disabled="busy || chosen.length === 0 || missing.length > 0"
@@ -163,6 +164,6 @@ function confirm() {
             >
                 {{ t('common.save') }}
             </PrimaryButton>
-        </div>
+        </ButtonRow>
     </Modal>
 </template>

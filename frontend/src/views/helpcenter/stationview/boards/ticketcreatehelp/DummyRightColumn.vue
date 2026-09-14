@@ -11,6 +11,7 @@ import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {MemberOption} from '@/components/input/select/memberOption'
 
 const {t} = useI18n()
@@ -53,9 +54,9 @@ const dummyMembers: MemberOption[] = [
       <DateInput model-value="2026-06-20" />
     </div>
 
-    <div class="flex gap-2">
-      <SecondaryButton class="flex-1">{{ t('common.cancel') }}</SecondaryButton>
-      <PrimaryButton class="flex-1">{{ t('common.create') }}</PrimaryButton>
-    </div>
+    <ButtonRow pair>
+      <SecondaryButton class="sm:flex-1">{{ t('common.cancel') }}</SecondaryButton>
+      <PrimaryButton class="sm:flex-1">{{ t('common.create') }}</PrimaryButton>
+    </ButtonRow>
   </div>
 </template>

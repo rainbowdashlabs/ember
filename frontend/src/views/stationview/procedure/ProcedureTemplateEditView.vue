@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -185,14 +186,14 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         <div class="flex-1 min-w-0">
           <p v-if="detail.template.description" class="text-[var(--text-muted)] text-sm mt-1">{{ detail.template.description }}</p>
         </div>
-        <div v-if="canManage" class="flex gap-2 shrink-0">
+        <ButtonRow v-if="canManage" pair align="end" class="shrink-0">
           <SecondaryButton @click="openEditModal">
             <font-awesome-icon :icon="['fas', 'pen']" class="mr-1" /> {{ t('common.edit') }}
           </SecondaryButton>
           <SecondaryButton @click="router.push({ name: 'procedure-template-list' })">
             <font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1" /> {{ t('common.back') }}
           </SecondaryButton>
-        </div>
+        </ButtonRow>
       </div>
 
       <!-- Items -->

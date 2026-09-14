@@ -17,6 +17,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
@@ -144,10 +145,10 @@ const dummyStiefel: MyInventoryItem = {
           </SelectInput>
         </div>
         <TextAreaInput model-value="" :placeholder="t('profile.exchangeReasonPlaceholder')" :rows="3"/>
-        <div class="flex justify-end gap-2">
+        <ButtonRow pair align="end">
           <SecondaryButton @click="showExchangeModal = false">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton disabled>{{ t('profile.submitExchange') }}</PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </Modal>
 

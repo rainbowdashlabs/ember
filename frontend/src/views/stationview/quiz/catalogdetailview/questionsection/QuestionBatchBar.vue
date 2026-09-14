@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
@@ -31,7 +32,7 @@ const { t } = useI18n()
     same reason a row of filters is never collapsed. What is done to the selection is a row of
     actions, and setting the points is the one it is opened for.
   -->
-  <div class="flex items-center gap-2 flex-wrap mb-3 p-2 rounded bg-primary/10 border border-primary/30">
+  <ButtonRow class="mb-3 p-2 rounded bg-primary/10 border border-primary/30">
     <MutedText size="sm" class="font-medium">{{ selectedCount }} {{ t('quiz.batch.selected') }}</MutedText>
     <SecondaryButton compact @click="emit('selectAll')">{{ t('quiz.batch.selectAll') }}</SecondaryButton>
     <SecondaryButton compact @click="emit('deselectAll')">{{ t('quiz.batch.deselectAll') }}</SecondaryButton>
@@ -52,5 +53,5 @@ const { t } = useI18n()
         {{ t('quiz.batch.generate') }}
       </DropdownMenuItem>
     </ActionsMenu>
-  </div>
+  </ButtonRow>
 </template>

@@ -10,6 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import QuotaFieldsInput from '@/views/adminview/adminstorageview/QuotaFieldsInput.vue'
 import type {ClusterStationRoom, QuotaDimensions} from '@/api/clusterStorage'
 import {QUOTA_FIELD_KEYS, emptyQuotaFields, fieldFromBytes, fieldToBytes, type QuotaFields} from '@/util/storage'
@@ -71,18 +72,20 @@ function save() {
     <SectionHeader>{{ t('clusterStorage.grantRoomTo', {name: props.station?.stationName ?? ''}) }}</SectionHeader>
     <p class="text-sm text-(--text-muted) mt-2 mb-3">{{ t('clusterStorage.emptyMeansDefaults') }}</p>
     <QuotaFieldsInput :fields="fields"/>
-    <div class="flex justify-between gap-2 mt-4">
-      <SecondaryButton :disabled="props.busy || !props.station"
-                       data-testid="station-room-hand-back"
-                       @click="props.station && emit('handBack', props.station.stationUid)">
-        {{ t('clusterStorage.handBack') }}
-      </SecondaryButton>
-      <div class="flex gap-2">
+    <div class="flex flex-col gap-2 mt-4 sm:flex-row sm:items-center sm:justify-between">
+      <ButtonRow>
+        <SecondaryButton :disabled="props.busy || !props.station"
+                         data-testid="station-room-hand-back"
+                         @click="props.station && emit('handBack', props.station.stationUid)">
+          {{ t('clusterStorage.handBack') }}
+        </SecondaryButton>
+      </ButtonRow>
+      <ButtonRow pair align="end">
         <SecondaryButton @click="emit('update:modelValue', false)">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="props.busy" data-testid="station-room-save" @click="save">
           {{ t('common.save') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

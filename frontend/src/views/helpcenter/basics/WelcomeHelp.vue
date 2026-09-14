@@ -12,6 +12,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
 const {t} = useI18n()
@@ -65,7 +66,7 @@ const sections = [
 
     <HelpSection :title="t('helpCenter.welcome.otherPages')">
       <p>{{ t('helpCenter.welcome.otherPagesText') }}</p>
-      <div class="flex flex-wrap gap-3 mt-3">
+      <ButtonRow class="mt-3">
         <router-link :to="{name: 'help-dashboard-overview'}">
           <PrimaryButton :icon="['fas', 'gauge']">
             {{ t('helpCenter.welcome.goToStation') }}
@@ -76,7 +77,7 @@ const sections = [
             {{ t('helpCenter.welcome.goToAdmin') }}
           </SecondaryButton>
         </router-link>
-      </div>
+      </ButtonRow>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.welcome.tip') }}</HelpTip>

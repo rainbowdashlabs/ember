@@ -12,6 +12,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 /** The tidying screen as it looks with one word written two ways, which is the case it exists for. */
 const {t} = useI18n()
@@ -63,10 +64,10 @@ const {t} = useI18n()
         <TextInput model-value="Funkgerät orange"/>
       </div>
       <p class="text-sm">{{ t('inventory.art.willRename', {count: 5, name: 'Funkgerät orange'}) }}</p>
-      <div class="flex flex-wrap gap-2">
+      <ButtonRow pair>
         <PrimaryButton :icon="['fas', 'broom']">{{ t('inventory.art.mergeSubmit') }}</PrimaryButton>
         <SecondaryButton :icon="['fas', 'tags']">{{ t('inventory.art.assignSubmit') }}</SecondaryButton>
-      </div>
+      </ButtonRow>
     </NeutralContainer>
   </div>
 </template>

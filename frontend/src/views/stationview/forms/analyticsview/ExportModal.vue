@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { FormQuestionAnalytics } from '@/api/forms'
@@ -63,12 +64,12 @@ const fieldOptions = computed((): ExportFieldOption<number>[] =>
         @toggle="emit('toggleField', $event)"
       />
 
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :icon="['fas', 'file-csv']" :disabled="selectedQuestionIds.size === 0" @click="emit('export')">
           {{ t('forms.analytics.exportCsv') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

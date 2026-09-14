@@ -13,6 +13,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
@@ -149,12 +150,12 @@ defineExpose({
       <template v-if="canMarkFormer">
         <p class="text-sm">{{ t('memberDetail.markFormerConfirm', { name: memberDisplayName }) }}</p>
         <p class="text-xs text-(--text-muted)">{{ t('memberDetail.markFormerHint') }}</p>
-        <div class="flex justify-end gap-2">
+        <ButtonRow pair align="end">
           <SecondaryButton @click="showFormerModal = false">{{ t('common.cancel') }}</SecondaryButton>
           <ErrorButton :disabled="markingFormer" @click="emit('markFormer'); showFormerModal = false">
             {{ markingFormer ? t('common.loading') : t('memberDetail.markFormer') }}
           </ErrorButton>
-        </div>
+        </ButtonRow>
       </template>
       <template v-else>
         <p class="text-sm">{{ t('memberDetail.formerBlocked') }}</p>
@@ -174,12 +175,12 @@ defineExpose({
       <SubHeader>{{ t('memberDetail.deleteTitle') }}</SubHeader>
       <p class="text-sm">{{ t('memberDetail.deleteText', { name: memberDisplayName }) }}</p>
       <p class="text-xs text-(--text-muted)">{{ t('memberDetail.deleteHint') }}</p>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton @click="showDeleteModal = false; showDeleteConfirm = true">
           {{ t('memberDetail.deleteConfirmAction') }}
         </ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 
@@ -188,12 +189,12 @@ defineExpose({
     <div class="space-y-4">
       <SubHeader>{{ t('memberDetail.deleteConfirmTitle') }}</SubHeader>
       <p class="text-sm font-semibold text-error">{{ t('memberDetail.deleteConfirmText') }}</p>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="showDeleteConfirm = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton :disabled="deletingMember" @click="emit('deleteMember'); showDeleteConfirm = false">
           {{ deletingMember ? t('common.loading') : t('memberDetail.deleteConfirmFinal') }}
         </ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 
@@ -232,12 +233,12 @@ defineExpose({
             :placeholder="t('memberDetail.selectTargetPlaceholder')"
         />
       </div>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="showReassignModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!reassignTargetId" @click="confirmReassign">
           {{ t('memberDetail.reassignItem') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 

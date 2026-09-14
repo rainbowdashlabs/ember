@@ -14,6 +14,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PoliciesPanel from './stationsecurityview/PoliciesPanel.vue'
 import MembersPanel from './stationsecurityview/MembersPanel.vue'
@@ -142,14 +143,14 @@ onMounted(load)
             {{ t('twoFactor.admin.resetConfirmText', {name: resetTarget.firstName + ' ' + resetTarget.lastName}) }}
           </p>
           <Alert variant="error">{{ t('twoFactor.admin.resetWarning') }}</Alert>
-          <div class="flex justify-end gap-2">
+          <ButtonRow pair align="end">
             <SecondaryButton :disabled="resetLoading" @click="resetTarget = null">
               {{ t('common.cancel') }}
             </SecondaryButton>
             <ErrorButton :disabled="resetLoading" @click="confirmReset">
               {{ resetLoading ? t('common.loading') : t('twoFactor.admin.reset') }}
             </ErrorButton>
-          </div>
+          </ButtonRow>
         </div>
       </Modal>
     </div>

@@ -9,6 +9,7 @@ import { useRouter } from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import { useSession } from '@/composables/useSession'
 
 const props = defineProps<{
@@ -29,11 +30,13 @@ const { canManageMembers } = useSession()
 </script>
 
 <template>
-  <div class="flex items-center justify-between">
-    <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'members-list' })">
-      {{ t('memberDetail.back') }}
-    </SecondaryButton>
-    <div v-if="canEdit" class="flex items-center gap-2">
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <ButtonRow>
+      <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'members-list' })">
+        {{ t('memberDetail.back') }}
+      </SecondaryButton>
+    </ButtonRow>
+    <ButtonRow v-if="canEdit" align="end">
       <ErrorButton :icon="['fas', 'user-slash']" v-if="canManageMembers() && !formerSuccess && !deleteSuccess" @click="emit('open-former-modal')">
         {{ t('memberDetail.markFormer') }}
       </ErrorButton>
@@ -43,6 +46,6 @@ const { canManageMembers } = useSession()
       <PrimaryButton :icon="['fas', 'pen']" @click="router.push({ name: 'members-edit', params: { id: props.memberId } })">
         {{ t('memberDetail.edit') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>

@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -58,12 +59,12 @@ const { t } = useI18n()
             @create-label="name => emit('createLabel', name)"
         />
         <FailureAlert :message="error"/>
-        <div class="flex gap-2">
-            <SecondaryButton class="flex-1" @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
-            <PrimaryButton class="flex-1" :disabled="submitting" @click="emit('submit')">
+        <ButtonRow pair>
+            <SecondaryButton class="sm:flex-1" @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
+            <PrimaryButton class="sm:flex-1" :disabled="submitting" @click="emit('submit')">
                 <Spinner v-if="submitting" size="sm" class="mr-1" />
                 {{ t('common.create') }}
             </PrimaryButton>
-        </div>
+        </ButtonRow>
     </div>
 </template>

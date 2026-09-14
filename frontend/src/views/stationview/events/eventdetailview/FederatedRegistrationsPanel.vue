@@ -13,6 +13,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import type {FederatedEventRegistration} from '@/api/events'
 import {formatDate} from '@/util/format'
@@ -41,7 +42,7 @@ const {t} = useI18n()
           <InfoBadge v-else-if="fr.registration.status === 'PENDING'">{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
           <ErrorBadge v-else-if="fr.registration.status === 'DENIED'">{{ t('eventsUpcoming.statusDenied') }}</ErrorBadge>
         </div>
-        <div v-if="fr.registration.status === 'PENDING'" class="flex items-center gap-2">
+        <ButtonRow v-if="fr.registration.status === 'PENDING'" pair>
           <PrimaryButton compact @click="emit('accept', fr.registration.id)">
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
             {{ t('eventsRegistrations.accept') }}
@@ -50,7 +51,7 @@ const {t} = useI18n()
             <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
             {{ t('eventsRegistrations.deny') }}
           </ErrorButton>
-        </div>
+        </ButtonRow>
       </NeutralContainer>
     </div>
   </NeutralContainer>

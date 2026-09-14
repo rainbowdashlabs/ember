@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SetupMailChoice from '@/components/input/toggle/SetupMailChoice.vue'
@@ -61,11 +62,11 @@ const emit = defineEmits<{
 
     <SetupMailChoice v-model="sendSetupMail" :has-address="canLogin"/>
 
-    <div class="flex justify-between">
+    <ButtonRow pair align="between">
       <SecondaryButton @click="emit('back')">{{ t('membersCreate.back') }}</SecondaryButton>
       <PrimaryButton :disabled="!firstName || !lastName || (canLogin && !email)" @click="emit('next')">
         {{ t('membersCreate.next') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>

@@ -14,6 +14,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {checklists} from '@/api'
@@ -114,15 +115,17 @@ const {running: deleting, run: applyDelete} = useAsyncAction(async () => {
             :max="column ? totalColumns - 1 : totalColumns"
         />
       </div>
-      <div class="flex justify-between gap-2 pt-2">
-        <DeleteButton v-if="column" @click="askDelete">
-          <font-awesome-icon :icon="['fas', 'trash']" class="mr-1"/>
-          {{ t('checklist.deleteColumnTitle') }}
-        </DeleteButton>
-        <div class="flex gap-2 ml-auto">
+      <div class="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-between">
+        <ButtonRow>
+          <DeleteButton v-if="column" @click="askDelete">
+            <font-awesome-icon :icon="['fas', 'trash']" class="mr-1"/>
+            {{ t('checklist.deleteColumnTitle') }}
+          </DeleteButton>
+        </ButtonRow>
+        <ButtonRow pair align="end" class="sm:ml-auto">
           <SecondaryButton @click="emit('close')">{{ t('checklist.cancel') }}</SecondaryButton>
           <PrimaryButton :disabled="saving || !label.trim()" @click="save">{{ t('checklist.save') }}</PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </div>
   </Modal>
@@ -131,10 +134,10 @@ const {running: deleting, run: applyDelete} = useAsyncAction(async () => {
     <div class="space-y-3">
       <div class="font-semibold">{{ t('checklist.deleteColumnTitle') }}</div>
       <p>{{ t('checklist.deleteColumnMessage', {name: column.label, count: checkedCount}) }}</p>
-      <div class="flex justify-end gap-2">
+      <ButtonRow align="end">
         <SecondaryButton @click="showDeleteConfirm = false">{{ t('checklist.cancel') }}</SecondaryButton>
         <DeleteButton :disabled="deleting" @click="applyDelete">{{ t('checklist.deleteColumnTitle') }}</DeleteButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

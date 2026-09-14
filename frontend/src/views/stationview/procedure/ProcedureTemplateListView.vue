@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
@@ -83,12 +84,11 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       :title="t('pages.procedure-template-list.title')"
       :subtitle="t('pages.procedure-template-list.subtitle')"
   >
-    <div class="flex items-center justify-between mb-4">
-      <div />
+    <ButtonRow align="end" class="mb-4">
       <PrimaryButton v-if="canManage" @click="showCreateModal = true">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('procedures.createTemplate') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
 
     <div class="flex items-center gap-2 mb-4">
       <SelectionToggleButton :selected="showArchived" @toggle="showArchived = !showArchived">

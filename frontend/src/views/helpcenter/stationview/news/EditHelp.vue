@@ -11,6 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -134,10 +135,10 @@ const {t} = useI18n()
     </HelpSection>
 
     <!-- Dummy: Save buttons -->
-    <div class="flex justify-end gap-3">
+    <ButtonRow pair align="end">
       <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton>{{ t('common.save') }}</PrimaryButton>
-    </div>
+    </ButtonRow>
 
     <HelpTip>{{ t('helpCenter.newsEdit.tip') }}</HelpTip>
   </HelpArticle>

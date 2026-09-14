@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -112,12 +113,12 @@ const { t } = useI18n()
       <div class="text-center space-y-2 py-2">
         <font-awesome-icon :icon="['fas', 'trophy']" class="text-2xl" />
         <p class="font-semibold">{{ t('quiz.training.finished') }}</p>
-        <div class="flex justify-center gap-3">
+        <ButtonRow pair align="center">
           <SecondaryButton :icon="['fas', 'redo']" disabled>
             {{ t('quiz.training.restart') }}
           </SecondaryButton>
           <PrimaryButton disabled>{{ t('common.back') }}</PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </SuccessContainer>
 

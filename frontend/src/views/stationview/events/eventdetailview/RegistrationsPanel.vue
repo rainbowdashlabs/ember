@@ -13,6 +13,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
@@ -201,7 +202,7 @@ function statusLabel(status: string): string {
               {{ t('eventDetail.answerMissing') }}
             </ErrorBadge>
           </div>
-          <div v-if="decidable(reg) || canEditAnswers" class="flex items-center gap-2">
+          <ButtonRow v-if="decidable(reg) || canEditAnswers" pair>
             <template v-if="decidable(reg)">
               <PrimaryButton v-if="reg.status !== RegistrationStatus.ACCEPTED" @click="emit('accept', reg.id)">
                 <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
@@ -217,7 +218,7 @@ function statusLabel(status: string): string {
                 :data-testid="`edit-answers-${reg.id}`"
                 @click="emit('editAnswers', reg.id)"
             />
-          </div>
+          </ButtonRow>
         </div>
         <RegistrationFieldAnswers :fields="fields" :values="reg.fields" :overview-only="!runsEvent" class="mt-1"/>
       </NeutralContainer>

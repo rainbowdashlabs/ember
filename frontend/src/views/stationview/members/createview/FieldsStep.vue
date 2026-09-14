@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import {questionKindOf} from '@/util/questions'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -70,9 +71,9 @@ function getValue(fieldId: number): string {
       </div>
     </template>
 
-    <div class="flex justify-between">
+    <ButtonRow pair align="between">
       <SecondaryButton @click="emit('back')">{{ t('membersCreate.back') }}</SecondaryButton>
       <PrimaryButton @click="emit('next')">{{ t('membersCreate.next') }}</PrimaryButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>

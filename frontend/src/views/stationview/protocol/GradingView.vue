@@ -10,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -259,15 +260,15 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       />
 
       <div class="space-y-2">
-        <div class="flex items-center gap-2">
-          <SuccessButton v-if="!doneSections.has(currentSection.id) && currentSectionIndex < topSections.length - 1" class="flex-1 sm:flex-initial" @click="markDoneAndNext" :disabled="saving">
+        <ButtonRow>
+          <SuccessButton v-if="!doneSections.has(currentSection.id) && currentSectionIndex < topSections.length - 1" class="sm:flex-initial" @click="markDoneAndNext" :disabled="saving">
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('protocol.markDoneAndNext') }}
           </SuccessButton>
-          <SuccessButton v-if="!doneSections.has(currentSection.id)" class="flex-1 sm:flex-initial" @click="markDoneAndExit" :disabled="saving">
+          <SuccessButton v-if="!doneSections.has(currentSection.id)" class="sm:flex-initial" @click="markDoneAndExit" :disabled="saving">
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('protocol.markDoneAndExit') }}
           </SuccessButton>
-        </div>
-        <div class="flex items-center gap-2">
+        </ButtonRow>
+        <ButtonRow>
           <SecondaryButton v-if="currentSectionIndex > 0" class="flex-1 sm:flex-initial" @click="savePrev" :disabled="saving">
             <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" /> {{ t('protocol.prevSection') }}
           </SecondaryButton>
@@ -275,10 +276,10 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           <SuccessButton v-if="currentSectionIndex === topSections.length - 1" class="flex-1 sm:flex-initial" @click="finishGrading" :disabled="saving">
             <font-awesome-icon :icon="['fas', 'flag']" class="mr-1" /> {{ t('protocol.finish') }}
           </SuccessButton>
-          <PrimaryButton v-if="currentSectionIndex < topSections.length - 1" class="flex-1 sm:flex-initial" @click="saveAndNext" :disabled="saving">
+          <PrimaryButton v-if="currentSectionIndex < topSections.length - 1" class="sm:flex-initial" @click="saveAndNext" :disabled="saving">
             {{ t('protocol.nextSection') }} <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1" />
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </template>
   </ViewContent>

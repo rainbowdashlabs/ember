@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -224,7 +225,7 @@ watch(loaded, (v) => {
             </button>
           </div>
         </div>
-        <div v-if="canEdit" class="flex gap-2 shrink-0">
+        <ButtonRow v-if="canEdit" align="end" class="shrink-0">
           <SecondaryButton @click="router.push({ name: 'procedure-edit', params: { id: procedureId } })">
             <font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/> {{ t('common.edit') }}
           </SecondaryButton>
@@ -234,7 +235,7 @@ watch(loaded, (v) => {
           <ErrorButton v-else @click="showResolveModal = true">
             <font-awesome-icon :icon="['fas', 'rotate-left']" class="mr-1"/> {{ t('procedures.reopen') }}
           </ErrorButton>
-        </div>
+        </ButtonRow>
       </div>
 
       <!-- Assignees -->
@@ -284,12 +285,12 @@ watch(loaded, (v) => {
         {{ detail?.procedure.status === ProcedureStatus.OPEN ? t('procedures.resolve') : t('procedures.reopen') }}
       </SubHeader>
       <p class="mb-4">{{ detail?.procedure.name }}</p>
-      <div class="flex gap-2 justify-end">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="showResolveModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton @click="handleResolve">
           {{ detail?.procedure.status === ProcedureStatus.OPEN ? t('procedures.resolve') : t('procedures.reopen') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </Modal>
   </ViewContent>
 </template>

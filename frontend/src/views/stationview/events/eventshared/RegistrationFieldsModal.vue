@@ -10,6 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
@@ -106,11 +107,11 @@ watch(show, (open) => {
       {{ t('events.registrationFields.missing', {fields: missing.map(f => f.name).join(', ')}) }}
     </p>
 
-    <div class="flex justify-end gap-2 mt-4">
+    <ButtonRow pair align="end" class="mt-4">
       <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton data-onboarding="events.registration-fields.submit" :disabled="busy || missing.length > 0" @click="confirm">
         {{ confirmLabel ?? t('events.register') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </Modal>
 </template>

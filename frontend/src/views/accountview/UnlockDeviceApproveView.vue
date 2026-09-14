@@ -14,6 +14,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {passkeys} from '@/api'
 import type {DeviceLookup} from '@/api/passkeys'
@@ -94,12 +95,12 @@ function reset() {
             <div>{{ t('passkeys.approve.when', {when: formatDateTime(details.createdAt)}) }}</div>
           </div>
           <Alert variant="error">{{ t('passkeys.approve.warning') }}</Alert>
-          <div class="flex justify-between gap-2">
+          <ButtonRow pair align="between">
             <SecondaryButton type="button" :disabled="busy" @click="reset">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton type="button" :disabled="busy" @click="approve">
               {{ t('passkeys.approve.approve') }}
             </PrimaryButton>
-          </div>
+          </ButtonRow>
         </template>
       </NeutralContainer>
     </div>

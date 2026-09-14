@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -36,10 +37,10 @@ const { t } = useI18n()
         <ToggleInput v-model="trainingEnabled" />
         {{ t('quiz.catalogs.trainingEnabled') }}
       </FieldLabel>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!name.trim()" @click="emit('submit')">{{ t('common.save') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

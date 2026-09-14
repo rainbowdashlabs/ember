@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import type {LostAndFoundItem} from '@/api/lostAndFound'
@@ -72,17 +73,17 @@ const canRelease = computed(() => props.canManage
         {{ t('lostAndFound.claimedBy', {name: item.claimedByName ?? '?'}) }}
       </SuccessBadge>
 
-      <div class="flex items-center gap-2">
-        <SuccessButton v-if="canManage" :icon="['fas', 'circle-check']" class="flex-1 text-sm"
+      <ButtonRow pair>
+        <SuccessButton v-if="canManage" :icon="['fas', 'circle-check']" class="text-sm sm:flex-1"
                        @click="emit('provided', item.id)">
           {{ t('lostAndFound.provided') }}
         </SuccessButton>
-        <SecondaryButton v-if="canRelease" :icon="['fas', 'rotate-left']" class="flex-1 text-sm"
+        <SecondaryButton v-if="canRelease" :icon="['fas', 'rotate-left']" class="text-sm sm:flex-1"
                          @click="emit('release', item.id)">
           {{ t('lostAndFound.release') }}
         </SecondaryButton>
         <DeleteButton v-if="canManage" @click="emit('delete', item.id)"/>
-      </div>
+      </ButtonRow>
     </div>
 
     <div v-else class="flex items-center gap-2">

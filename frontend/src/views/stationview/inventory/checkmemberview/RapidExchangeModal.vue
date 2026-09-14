@@ -13,6 +13,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import HandedInChoice from './rapidexchangemodal/HandedInChoice.vue'
 import type {InventorySize} from '@/api/inventory'
@@ -124,7 +125,7 @@ function confirm() {
     <div class="space-y-3">
       <div class="space-y-1">
         <FieldLabel>{{ t('inventory.check.exchangeReason') }}</FieldLabel>
-        <div class="flex flex-wrap gap-2">
+        <ButtonRow>
           <SecondaryButton
               :class="{'ring-2 ring-(--accent)': reasonKind === 'tooSmall'}"
               data-testid="rapid-exchange-reason-too-small"
@@ -146,7 +147,7 @@ function confirm() {
           >
             {{ t('inventory.check.exchangeReasonOther') }}
           </SecondaryButton>
-        </div>
+        </ButtonRow>
       </div>
 
       <div v-if="reasonKind === 'other'" class="space-y-1">
@@ -165,7 +166,7 @@ function confirm() {
       </div>
     </div>
 
-    <div class="mt-4 flex justify-end gap-2">
+    <ButtonRow pair align="end" class="mt-4">
       <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton
           :disabled="props.busy || !reasonText || handedIn === null"
@@ -174,6 +175,6 @@ function confirm() {
       >
         {{ t('inventory.check.exchangeCreate') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </Modal>
 </template>

@@ -13,6 +13,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import LostItemImageField from './LostItemImageField.vue'
 import {todayIsoDate} from '@/util/format'
@@ -101,14 +102,14 @@ watch(visible, (value, previous) => {
         <FieldLabel>{{ t('lostAndFound.foundAt') }}</FieldLabel>
         <DateInput v-model="newFoundAt" :disabled="savedWithoutImage"/>
       </div>
-      <div class="flex justify-end gap-2">
+      <ButtonRow align="end">
         <SecondaryButton @click="cancel">
           {{ savedWithoutImage ? t('lostAndFound.keepWithoutImage') : t('common.cancel') }}
         </SecondaryButton>
         <PrimaryButton :disabled="creating || (savedWithoutImage && !newImageFile)" @click="submit">
           {{ submitLabel }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

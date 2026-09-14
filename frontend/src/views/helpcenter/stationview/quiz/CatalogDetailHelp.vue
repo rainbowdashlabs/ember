@@ -18,6 +18,16 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SectionLabel from '@/components/typography/SectionLabel.vue'
 
 const { t } = useI18n()
+
+const questionTypes = [
+  'MULTIPLE_CHOICE',
+  'TRUE_FALSE',
+  'FILL_IN_THE_BLANK',
+  'FREE_ANSWER',
+  'ORDERING',
+  'CONNECT',
+  'IMAGE_TEXT',
+]
 </script>
 
 <template>
@@ -28,26 +38,8 @@ const { t } = useI18n()
 
     <!-- Dummy: Add question buttons -->
     <div class="flex flex-wrap gap-2">
-      <SecondaryButton :icon="['fas', 'plus']" disabled>
-        {{ t('quiz.questionTypes.MULTIPLE_CHOICE') }}
-      </SecondaryButton>
-      <SecondaryButton :icon="['fas', 'plus']" disabled>
-        {{ t('quiz.questionTypes.TRUE_FALSE') }}
-      </SecondaryButton>
-      <SecondaryButton :icon="['fas', 'plus']" disabled>
-        {{ t('quiz.questionTypes.FILL_IN_THE_BLANK') }}
-      </SecondaryButton>
-      <SecondaryButton :icon="['fas', 'plus']" disabled>
-        {{ t('quiz.questionTypes.FREE_ANSWER') }}
-      </SecondaryButton>
-      <SecondaryButton :icon="['fas', 'plus']" disabled>
-        {{ t('quiz.questionTypes.ORDERING') }}
-      </SecondaryButton>
-      <SecondaryButton :icon="['fas', 'plus']" disabled>
-        {{ t('quiz.questionTypes.CONNECT') }}
-      </SecondaryButton>
-      <SecondaryButton :icon="['fas', 'plus']" disabled>
-        {{ t('quiz.questionTypes.IMAGE_TEXT') }}
+      <SecondaryButton v-for="questionType in questionTypes" :key="questionType" :icon="['fas', 'plus']" disabled>
+        {{ t(`quiz.questionTypes.${questionType}`) }}
       </SecondaryButton>
     </div>
 

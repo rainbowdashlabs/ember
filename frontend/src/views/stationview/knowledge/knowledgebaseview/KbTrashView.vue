@@ -14,6 +14,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import {knowledgeBase} from '@/api'
@@ -108,7 +109,7 @@ async function empty() {
 
 <template>
     <div>
-        <div class="mb-4 flex flex-wrap items-center gap-2">
+        <ButtonRow class="mb-4">
             <SecondaryButton data-testid="kb-trash-back" @click="emit('back')">
                 <font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>
                 {{ t('kb.backToBrowse') }}
@@ -124,7 +125,7 @@ async function empty() {
             >
                 {{ t('kb.trashEmpty') }}
             </DeleteButton>
-        </div>
+        </ButtonRow>
 
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
         <Alert v-if="notice" variant="info" class="mb-4" data-testid="kb-trash-notice">{{ notice }}</Alert>
@@ -182,12 +183,12 @@ async function empty() {
             <MutedText tag="p" size="sm" class="mb-3">
                 {{ t('kb.trashPurgeConfirm', {name: purging?.name ?? ''}) }}
             </MutedText>
-            <div class="mt-4 flex justify-end gap-2">
+            <ButtonRow pair align="end" class="mt-4">
                 <SecondaryButton data-cancel @click="purging = null">{{ t('common.cancel') }}</SecondaryButton>
                 <DeleteButton :disabled="busy" data-testid="kb-trash-purge-confirm" @click="purge">
                     {{ t('common.delete') }}
                 </DeleteButton>
-            </div>
+            </ButtonRow>
         </Modal>
 
         <Modal v-model="showEmpty">
@@ -195,12 +196,12 @@ async function empty() {
             <MutedText tag="p" size="sm" class="mb-3">
                 {{ t('kb.trashEmptyConfirm', {size: formatBytes(bytes)}) }}
             </MutedText>
-            <div class="mt-4 flex justify-end gap-2">
+            <ButtonRow pair align="end" class="mt-4">
                 <SecondaryButton data-cancel @click="showEmpty = false">{{ t('common.cancel') }}</SecondaryButton>
                 <DeleteButton :disabled="busy" data-testid="kb-trash-empty-confirm" @click="empty">
                     {{ t('kb.trashEmpty') }}
                 </DeleteButton>
-            </div>
+            </ButtonRow>
         </Modal>
     </div>
 </template>

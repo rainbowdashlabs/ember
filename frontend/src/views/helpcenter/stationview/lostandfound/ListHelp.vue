@@ -16,6 +16,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -83,14 +84,14 @@ const {t} = useI18n()
         <p class="text-sm font-semibold">{{ t('lostAndFound.createTitle') }}</p>
         <div class="space-y-1">
           <FieldLabel>{{ t('lostAndFound.image') }}</FieldLabel>
-          <div class="flex gap-2">
-            <SecondaryButton :icon="['fas', 'upload']" class="flex-1" disabled>
+          <ButtonRow pair>
+            <SecondaryButton :icon="['fas', 'upload']" class="sm:flex-1" disabled>
               {{ t('lostAndFound.uploadImage') }}
             </SecondaryButton>
-            <SecondaryButton :icon="['fas', 'camera']" class="flex-1" disabled>
+            <SecondaryButton :icon="['fas', 'camera']" class="sm:flex-1" disabled>
               {{ t('lostAndFound.takePhoto') }}
             </SecondaryButton>
-          </div>
+          </ButtonRow>
         </div>
         <div>
           <FieldLabel hint class="mb-1">{{ t('lostAndFound.description') }}</FieldLabel>

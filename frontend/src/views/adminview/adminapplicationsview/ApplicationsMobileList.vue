@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ApplicationStatusBadge from '@/views/adminview/adminapplicationsview/ApplicationStatusBadge.vue'
 import {ApplicationStatus, type StationApplication} from '@/api/stationApplications'
 import {formatDateTime} from '@/util/format'
@@ -38,15 +39,15 @@ defineEmits<{
         <div class="text-(--text-muted)">{{ formatDateTime(app.createdAt) || '-' }}</div>
         <div v-if="app.introduction" class="text-(--text-muted) truncate">{{ app.introduction }}</div>
       </div>
-      <div v-if="app.status === ApplicationStatus.PENDING"
-           class="flex gap-1 pt-1 border-t border-bg-light-accent/50 dark:border-bg-dark-accent/50">
+      <ButtonRow v-if="app.status === ApplicationStatus.PENDING" pair
+                 class="pt-1 border-t border-bg-light-accent/50 dark:border-bg-dark-accent/50">
         <PrimaryButton :disabled="processing" @click="$emit('accept', app)">
           {{ t('adminApplications.accept') }}
         </PrimaryButton>
         <ErrorButton :disabled="processing" @click="$emit('deny', app)">
           {{ t('adminApplications.deny') }}
         </ErrorButton>
-      </div>
+      </ButtonRow>
       <div v-else-if="app.status === ApplicationStatus.DENIED && app.denyReason" class="text-xs text-(--text-muted)">
         {{ app.denyReason }}
       </div>

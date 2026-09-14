@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 
@@ -24,10 +25,10 @@ const { t } = useI18n()
     <div class="space-y-4">
       <SubHeader>{{ t('quiz.catalogs.deleteCatalog') }}</SubHeader>
       <p class="text-sm">{{ t('quiz.catalogs.deleteConfirm') }}</p>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton @click="emit('confirm')">{{ t('common.confirm') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

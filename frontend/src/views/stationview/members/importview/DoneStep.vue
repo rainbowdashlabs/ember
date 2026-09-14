@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Alert from '@/components/feedback/Alert.vue'
 
@@ -62,13 +63,13 @@ const { t } = useI18n()
       </div>
     </div>
     <Alert v-for="warning in result.warnings" :key="warning" variant="info">{{ warning }}</Alert>
-    <div class="flex gap-3">
+    <ButtonRow>
       <PrimaryButton :icon="['fas', 'users']" @click="emit('toList')">
         {{ t('memberImport.doneGoToList') }}
       </PrimaryButton>
       <SecondaryButton :icon="['fas', 'rotate']" @click="emit('startOver')">
         {{ t('memberImport.doneStartOver') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
   </SuccessContainer>
 </template>

@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import ActionsMenu from '@/components/button/ActionsMenu.vue'
@@ -72,7 +73,7 @@ const hasMenu = computed(() => canShareLink.value
 </script>
 
 <template>
-    <div class="flex flex-wrap items-center gap-2 mb-4" data-testid="kb-file-header">
+    <ButtonRow class="mb-4" data-testid="kb-file-header">
         <SecondaryButton @click="$emit('back')">
             <font-awesome-icon :icon="['fas', 'chevron-left']"/>
             {{ t('kb.backToBrowse') }}
@@ -144,5 +145,5 @@ const hasMenu = computed(() => canShareLink.value
                 </DropdownMenuItem>
             </template>
         </ActionsMenu>
-    </div>
+    </ButtonRow>
 </template>
