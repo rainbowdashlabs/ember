@@ -127,6 +127,7 @@ public class ChecklistExportService {
         data.put("generatedBy", generatedBy);
         data.put("generatedAt", PDF_DATE_TIME_FMT.format(Instant.now().atZone(zone)));
         data.put("baseUrl", apiConfig.baseUrl());
+        data.put("showInstanceUrl", StationFormat.showsInstanceUrl(station));
         data.put("hasLogo", false);
         data.put("checklistName", checklist.name());
         data.put("checklistDescription", checklist.description() == null ? "" : checklist.description());

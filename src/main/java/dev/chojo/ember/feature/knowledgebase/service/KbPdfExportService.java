@@ -138,6 +138,7 @@ public class KbPdfExportService {
         data.put("generatedBy", generatedBy);
         data.put("generatedAt", PDF_DATE_TIME_FMT.format(Instant.now().atZone(StationFormat.timezoneOf(station))));
         data.put("baseUrl", apiConfig.baseUrl());
+        data.put("showInstanceUrl", StationFormat.showsInstanceUrl(station));
         data.put("hasLogo", false);
         data.put("fileName", source.fileName());
         data.put("fileDescription", source.description() == null ? "" : source.description());

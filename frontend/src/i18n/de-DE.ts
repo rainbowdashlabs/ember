@@ -2723,6 +2723,20 @@ export default {
         back: 'Zurück',
         sync: 'Synchronisieren',
         export: 'PDF Export',
+        exportOptions: {
+            title: 'PDF exportieren',
+            signature: 'Zum Unterschreiben',
+            signatureHint:
+                'Jede Zeile bekommt ein Feld für die Unterschrift. Der in Ember erfasste Status '
+                + 'steht dann nicht auf dem Blatt: unterschrieben wird auf Papier, und was dort steht, gilt.',
+            documentTitle: 'Titel des Dokuments',
+            documentTitlePlaceholder: 'Titel der Erfassung',
+            documentTitleHint: 'Leer lassen, um stattdessen eine Linie zum Ausfüllen zu drucken.',
+            blankRows: 'Leerzeilen',
+            blankRowsHint: 'Zusätzliche leere Zeilen für alle, die nicht auf der Liste stehen.',
+            instanceUrl: 'Adresse der Instanz drucken',
+            instanceUrlHint: 'Gilt nur für dieses Dokument. Die Voreinstellung steht in den Einstellungen der Wache.',
+        },
         delete: 'Erfassung löschen',
         deleteConfirm: 'Diese Anwesenheitserfassung wirklich löschen? Alle erfassten Anwesenheiten gehen dabei verloren.',
         resetTimes: 'Zeiten zurücksetzen',
@@ -4269,6 +4283,11 @@ export default {
         namePlaceholder: 'Name der Wache',
         timezone: 'Zeitzone',
         locale: 'Sprache',
+        pdfHidesInstanceUrl: 'Adresse der Instanz auf PDFs ausblenden',
+        pdfHidesInstanceUrlHint:
+            'In der Fußzeile jedes exportierten PDFs steht die Adresse dieser Instanz. '
+            + 'Ausgeblendet bleibt alles andere erhalten: Logo, Wachname, wer das Dokument erstellt '
+            + 'hat und die Seitenzahl. Beim Export lässt sich das für ein einzelnes Dokument abweichend wählen.',
         save: 'Speichern',
         saved: 'Gespeichert',
         logoTitle: 'Logo',

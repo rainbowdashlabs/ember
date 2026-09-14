@@ -253,6 +253,7 @@ public class StationManageRoutes implements Routes {
                 station.publicSlug(),
                 station.publicWaitlistEnabled(),
                 station.publicBlogEnabled(),
+                station.pdfHidesInstanceUrl(),
                 locks.theme(),
                 locks.colors(),
                 locks.feel(),
@@ -319,6 +320,9 @@ public class StationManageRoutes implements Routes {
         }
         if (request.publicBlogEnabled() != null) {
             stationService.updatePublicBlogEnabled(session.stationId(), request.publicBlogEnabled());
+        }
+        if (request.pdfHidesInstanceUrl() != null) {
+            stationService.updatePdfHidesInstanceUrl(session.stationId(), request.pdfHidesInstanceUrl());
         }
         if (request.publicSlug() != null) {
             try {
@@ -838,7 +842,8 @@ public class StationManageRoutes implements Routes {
             Boolean publicPagesEnabled,
             String publicSlug,
             Boolean publicWaitlistEnabled,
-            Boolean publicBlogEnabled) {}
+            Boolean publicBlogEnabled,
+            Boolean pdfHidesInstanceUrl) {}
 
     // -- Station deletion --
 
@@ -875,6 +880,7 @@ public class StationManageRoutes implements Routes {
             String publicSlug,
             boolean publicWaitlistEnabled,
             boolean publicBlogEnabled,
+            boolean pdfHidesInstanceUrl,
             boolean themeLocked,
             boolean colorsLocked,
             boolean feelLocked,

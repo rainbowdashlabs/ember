@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:eedfe521934f9c4361759f217039ac16ccceeee3f96b2779e66d00c4171a081b",
-  "generatedAt": "2026-09-14T07:41:01Z",
+  "schemaHash": "sha256:e9fd5faf3aaa250e61d5156814ef31bb12924429a1033d2a9fea59407262af39",
+  "generatedAt": "2026-09-14T12:12:32Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -19371,7 +19371,7 @@
     "station": {
       "feature": "station",
       "scope": "STATION",
-      "tableHash": "sha256:3a4de2b41baf54c52f7335d2460d9be44b941c00ba982a4bf1a78cfcf2c10f42",
+      "tableHash": "sha256:90254df98d5a37056701f5d9d7d668454f4fa8b1d8d16712b41e4261646027b4",
       "columns": [
         {
           "name": "id",
@@ -19686,6 +19686,13 @@
           "nullable": false,
           "verified": true,
           "description": "The name this station goes by in beacon metrics and nowhere else, so counts cannot be tied back to it. Never sent beside the name, the address or the federation uid."
+        },
+        {
+          "name": "pdf_hides_instance_url",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "True where exported PDFs leave the address of this installation off the foot of the page. False, the state of every station before this column, prints it as a link the way it always was. An export can differ from this for one document without changing it."
         }
       ],
       "foreignKeys": [
