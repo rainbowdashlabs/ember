@@ -10,7 +10,6 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
 
 defineProps<{
   position: { top: number; left: number }
