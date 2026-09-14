@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+// @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
 import {findIconDefinition, library, type IconDefinition} from '@fortawesome/fontawesome-svg-core'
 import * as solid from '@fortawesome/free-solid-svg-icons'

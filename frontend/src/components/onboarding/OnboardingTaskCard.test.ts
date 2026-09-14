@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+// @vitest-environment happy-dom
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {mount, flushPromises} from '@vue/test-utils'
 import OnboardingTaskCard from './OnboardingTaskCard.vue'

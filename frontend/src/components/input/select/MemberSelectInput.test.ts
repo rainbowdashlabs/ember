@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+// @vitest-environment happy-dom
 import {describe, expect, it, vi} from 'vitest'
 import {mount} from '@vue/test-utils'
 import MemberSelectInput from './MemberSelectInput.vue'
