@@ -12,6 +12,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SignupProcedureForm from './SignupProcedureForm.vue'
 import type {Procedure, ProcedureTemplate} from '@/api/procedures'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
@@ -110,12 +111,12 @@ function submit() {
         <Alert variant="info" data-testid="signup-procedure-existing">
           {{ t('signupLists.procedureExists', {name: existing!.name, date: dateLabel}) }}
         </Alert>
-        <div class="flex flex-wrap justify-end gap-2 pt-2">
+        <ButtonRow align="end" class="pt-2">
           <SecondaryButton @click="anyway = true">{{ t('signupLists.procedureAnyway') }}</SecondaryButton>
           <PrimaryButton data-testid="signup-procedure-open" @click="emit('open', existing!)">
             {{ t('signupLists.procedureOpen') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </template>
 
       <template v-else-if="templates.length === 0">

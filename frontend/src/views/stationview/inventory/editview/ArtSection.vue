@@ -13,6 +13,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -138,7 +139,7 @@ watch(() => props.inventoryId, load, {immediate: true})
   <NeutralContainer class="space-y-4" data-testid="inventory-arts">
     <div class="flex items-center justify-between">
       <SubHeader>{{ t('inventory.art.title') }}</SubHeader>
-      <div class="flex items-center gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton v-if="routes.tidy" :icon="['fas', 'broom']" data-testid="open-tidy"
                          @click="$router.push({name: routes.tidy, params: {id: String(props.inventoryId)}})">
           {{ t('inventory.art.tidyLink') }}
@@ -146,7 +147,7 @@ watch(() => props.inventoryId, load, {immediate: true})
         <SecondaryButton :icon="['fas', 'plus']" data-testid="add-art" @click="openAdd">
           {{ t('inventory.art.add') }}
         </SecondaryButton>
-      </div>
+      </ButtonRow>
     </div>
     <p class="text-sm text-(--text-muted)">{{ t('inventory.art.intro') }}</p>
 

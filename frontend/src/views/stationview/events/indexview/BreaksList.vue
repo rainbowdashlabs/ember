@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -34,14 +35,14 @@ const emit = defineEmits<{
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <SectionHeader>{{ t('events.breaks') }}</SectionHeader>
-      <div class="flex items-center gap-2 flex-wrap">
+      <ButtonRow align="end">
         <SecondaryButton :icon="['fas', 'download']" @click="emit('importHolidays')">
           {{ t('events.importHolidays') }}
         </SecondaryButton>
         <PrimaryButton :icon="['fas', 'plus']" @click="emit('add')">
           {{ t('events.addBreak') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
 
     <EmptyState compact v-if="breaks.length === 0">{{ t('events.noBreaks') }}</EmptyState>

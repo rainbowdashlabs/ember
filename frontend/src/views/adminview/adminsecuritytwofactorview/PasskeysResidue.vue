@@ -10,6 +10,7 @@ import InfoContainer from '@/components/container/InfoContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {adminSettings} from '@/api'
 import type {BulkRetireResult, ResidueEntry} from '@/api/adminSettings'
@@ -61,14 +62,14 @@ function reachability(entry: ResidueEntry): string {
 
 <template>
   <div class="space-y-2">
-    <div class="flex flex-wrap gap-2">
+    <ButtonRow>
       <SecondaryButton type="button" :disabled="loading" @click="load">
         {{ t('adminSecurity.passkeys.loadResidue') }}
       </SecondaryButton>
       <SecondaryButton type="button" @click="retireAll">
         {{ t('adminSecurity.passkeys.retireAll') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
     <FailureAlert :message="error"/>
     <Alert v-if="bulkResult" variant="info">
       {{ t('adminSecurity.passkeys.retireAllResult', {retired: bulkResult.retired, passedOver: bulkResult.passedOver}) }}

@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -158,7 +159,7 @@ const {running: assigning, error: assignError, run: runAssign} = useAsyncAction(
 
             <div class="space-y-2">
               <p class="text-sm">{{ t('inventory.art.willRename', {count: selectedPieces, name: effectiveName}) }}</p>
-              <div class="flex flex-wrap gap-2">
+              <ButtonRow>
                 <PrimaryButton :disabled="!canTidy || merging" :icon="['fas', 'broom']"
                                data-testid="tidy-merge" @click="runMerge()">
                   {{ t('inventory.art.mergeSubmit') }}
@@ -167,7 +168,7 @@ const {running: assigning, error: assignError, run: runAssign} = useAsyncAction(
                                  data-testid="tidy-assign" @click="runAssign()">
                   {{ t('inventory.art.assignSubmit') }}
                 </SecondaryButton>
-              </div>
+              </ButtonRow>
               <p class="text-xs text-(--text-muted)">{{ t('inventory.art.assignHint') }}</p>
             </div>
           </template>

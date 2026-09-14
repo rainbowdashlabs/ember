@@ -10,6 +10,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -71,7 +72,7 @@ function onError(message: string) {
       :subtitle="t('pages.inventory-edit.subtitle')"
   >
     <div class="space-y-6">
-      <div class="flex flex-wrap gap-2">
+      <ButtonRow>
         <SecondaryButton :icon="['fas', 'chevron-left']" data-testid="inventory-edit-back"
                          @click="router.push({ name: routes.detail, params: { id: inventoryId } })">
           {{ t('inventory.edit.backToStock') }}
@@ -83,7 +84,7 @@ function onError(message: string) {
                          @click="router.push({ name: routes.move, params: { id: inventoryId } })">
           {{ t('inventory.edit.moveItems') }}
         </SecondaryButton>
-      </div>
+      </ButtonRow>
 
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :message="error"/>

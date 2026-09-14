@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldEditor from './EventFieldEditor.vue'
@@ -106,7 +107,7 @@ function moveField(fromIndex: number, toIndex: number) {
 <template>
   <div class="flex items-center justify-between">
     <SubHeader>{{ t('events.eventFields') }}</SubHeader>
-    <div class="flex items-center gap-2">
+    <ButtonRow align="end">
       <SecondaryButton
           v-for="qf in quickFields"
           :key="qf.name"
@@ -119,7 +120,7 @@ function moveField(fromIndex: number, toIndex: number) {
       <SecondaryButton :icon="['fas', 'plus']" @click="addField">
         {{ t('eventFields.addField') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
   </div>
   <AttendanceFieldPicker
       v-if="attendanceFields && attendanceFields.length > 0"

@@ -10,6 +10,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MailingNumberField from './MailingNumberField.vue'
 import type {MailingConfig} from '@/api/adminSettings'
@@ -46,7 +47,7 @@ const {t} = useI18n()
         :label="t('adminSettings.mailing.digestInterval')"
         :hint="t('adminSettings.mailing.digestIntervalHint')"
     />
-    <div class="flex justify-end gap-2 flex-wrap">
+    <ButtonRow align="end">
       <ErrorButton :icon="['fas', 'trash']" :disabled="clearing" @click="emit('clear')">
         {{ t('adminSettings.mailing.clear') }}
       </ErrorButton>
@@ -58,7 +59,7 @@ const {t} = useI18n()
         {{ sendingTestMail ? t('common.loading') : t('adminSettings.mailing.testMail') }}
       </SecondaryButton>
       <SaveButton :action="save"/>
-    </div>
+    </ButtonRow>
     <Alert v-if="testMailSent" variant="success">{{ t('adminSettings.mailing.testMailSent') }}</Alert>
   </NeutralContainer>
 </template>

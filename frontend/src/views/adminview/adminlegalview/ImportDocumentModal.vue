@@ -13,6 +13,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ImportResultPanel from './ImportResultPanel.vue'
 import {adminSettings} from '@/api'
@@ -93,12 +94,12 @@ watch(show, open => {
 
       <ImportResultPanel v-if="result" :result="result"/>
 
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!result || result.files.length === 0" @click="apply">
           {{ t('adminSettings.legal.importApply') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

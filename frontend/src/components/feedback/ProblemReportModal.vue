@@ -10,6 +10,7 @@ import Modal from './Modal.vue'
 import Alert from './Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {submitReport} from '@/api/problemReports'
@@ -108,7 +109,7 @@ function close() {
 
         <MutedText size="sm" tag="p">{{ t('problemReport.autoCapture') }}</MutedText>
 
-        <div class="flex flex-wrap justify-end gap-2">
+        <ButtonRow pair align="end">
           <SecondaryButton @click="close">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton
               :disabled="sending || !enoughSaid"
@@ -117,7 +118,7 @@ function close() {
           >
             {{ sending ? t('common.loading') : t('problemReport.send') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </template>
     </div>
   </Modal>

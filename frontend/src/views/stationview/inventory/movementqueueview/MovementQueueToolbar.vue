@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
 import type {ExportFieldOption} from '@/composables/useExport'
@@ -45,7 +46,7 @@ const {t} = useI18n()
 
 <template>
   <div class="space-y-2">
-    <div class="flex flex-wrap items-center justify-end gap-2">
+    <ButtonRow align="end">
       <template v-if="props.picking">
         <SecondaryButton data-testid="movement-export-all" @click="emit('toggleAll')">
           {{ props.allPicked ? t('movements.queue.selectNone') : t('movements.queue.selectAll') }}
@@ -73,7 +74,7 @@ const {t} = useI18n()
           {{ t('movements.queue.create') }}
         </PrimaryButton>
       </template>
-    </div>
+    </ButtonRow>
 
     <ExportFieldPicker
         v-if="props.picking && props.fieldOptions.length > 0"

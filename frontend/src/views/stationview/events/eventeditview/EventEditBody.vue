@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
 import type {EventCategory, EventFieldEntry, EventTemplate} from '@/api/events'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
@@ -141,10 +142,10 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
 
   <RegistrationFieldsEditor v-if="requiresRegistration" v-model="registrationFields"/>
 
-  <div class="flex justify-end gap-3">
+  <ButtonRow pair align="end">
     <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
     <PrimaryButton :disabled="!canSubmit" @click="emit('submit')">
       {{ props.saving ? t('common.loading') : t('common.save') }}
     </PrimaryButton>
-  </div>
+  </ButtonRow>
 </template>

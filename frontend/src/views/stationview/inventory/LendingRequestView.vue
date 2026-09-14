@@ -14,6 +14,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {LendingStatus, type AvailableItemDetail, type EnrichedMessage, type LendingRequestDetail} from '@/api/lending'
@@ -193,10 +194,10 @@ async function handleClose() {
     <Modal v-model="showDeclineModal">
       <SectionHeader class="mb-4">{{ t('lending.declineTitle') }}</SectionHeader>
       <TextAreaInput v-model="declineReason" :placeholder="t('lending.declineReasonPlaceholder')" :rows="3"/>
-      <div class="flex justify-end gap-2 mt-4">
+      <ButtonRow pair align="end" class="mt-4">
         <SecondaryButton @click="showDeclineModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton @click="handleDecline">{{ t('lending.decline') }}</ErrorButton>
-      </div>
+      </ButtonRow>
     </Modal>
   </ViewContent>
 </template>

@@ -11,6 +11,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ProblemLevelSummary from '@/components/problem/ProblemLevelSummary.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import ProblemEntryCard from './adminproblemsview/ProblemEntryCard.vue'
 import {beacon, problems} from '@/api'
@@ -117,17 +118,19 @@ async function sendSelected() {
                 <SelectionToggleButton :selected="levelFilter === 'WARN'" @toggle="toggleLevelFilter('WARN')">
                     {{ t('adminProblems.warnings') }}
                 </SelectionToggleButton>
-                <SecondaryButton :icon="['fas', 'check-double']" v-if="entries.some(e => !e.acknowledged)" @click="ackAll">
-                    {{ t('adminProblems.acknowledgeAll') }}
-                </SecondaryButton>
-                <SecondaryButton
-                    v-if="beaconStatus?.enabled && selected.size > 0"
-                    :icon="['fas', 'tower-broadcast']"
-                    data-testid="beacon-send-selected"
-                    @click="sendSelected"
-                >
-                    {{ t('beacon.sendSelected', {count: selected.size}) }}
-                </SecondaryButton>
+                <ButtonRow>
+                    <SecondaryButton :icon="['fas', 'check-double']" v-if="entries.some(e => !e.acknowledged)" @click="ackAll">
+                        {{ t('adminProblems.acknowledgeAll') }}
+                    </SecondaryButton>
+                    <SecondaryButton
+                        v-if="beaconStatus?.enabled && selected.size > 0"
+                        :icon="['fas', 'tower-broadcast']"
+                        data-testid="beacon-send-selected"
+                        @click="sendSelected"
+                    >
+                        {{ t('beacon.sendSelected', {count: selected.size}) }}
+                    </SecondaryButton>
+                </ButtonRow>
             </div>
         </div>
 

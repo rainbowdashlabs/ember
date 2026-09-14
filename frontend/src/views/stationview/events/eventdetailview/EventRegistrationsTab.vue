@@ -7,6 +7,7 @@
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -343,7 +344,7 @@ onMounted(loadRegistrations)
 
     <NeutralContainer v-if="event.requiresRegistration && !canManageEvents()" class="space-y-3">
       <SubHeader>{{ t('eventDetail.myRegistration') }}</SubHeader>
-      <div class="flex items-center gap-2 flex-wrap">
+      <ButtonRow pair>
         <PrimaryButton v-if="withoutPlace.length > 0" :disabled="registering" data-testid="answer-household"
                        @click="answerForHousehold()">
           <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>{{ answerLabel }}
@@ -352,7 +353,7 @@ onMounted(loadRegistrations)
                          @click="withdrawHousehold()">
           <font-awesome-icon :icon="['fas', 'rotate-left']" class="mr-1"/>{{ withdrawLabel }}
         </SecondaryButton>
-      </div>
+      </ButtonRow>
       <div v-for="member in registrableMembers" :key="member.key" class="flex items-center gap-3 flex-wrap">
         <span v-if="hasManagedMembers" class="text-sm font-medium min-w-24">{{ member.name }}</span>
         <component

@@ -11,6 +11,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -192,7 +193,7 @@ function answerLabel(answer: SelfCheckAnswerName): string {
       </SecondaryButton>
     </div>
 
-    <div v-if="mayReportLost || mayRequestExchange" class="flex flex-wrap gap-1">
+    <ButtonRow v-if="mayReportLost || mayRequestExchange">
       <PrimaryButton
           v-if="mayReportLost"
           class="text-xs px-3 py-1.5"
@@ -226,7 +227,7 @@ function answerLabel(answer: SelfCheckAnswerName): string {
       <MutedText v-if="fellAway" size="xs" tag="p" class="w-full" :data-testid="`self-check-fell-away-${entry.key}`">
         {{ t('selfCheck.reportFellAway') }}
       </MutedText>
-    </div>
+    </ButtonRow>
 
     <TextInput
         v-if="entry.type === 'place' && draft.answer === SelfCheckAnswer.HAVE_ONE"

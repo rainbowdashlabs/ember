@@ -9,6 +9,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 const {t} = useI18n()
 
@@ -28,10 +29,10 @@ const emit = defineEmits<{
     <div class="space-y-4">
       <SubHeader>{{ t('adminSettings.legal.deleteFileTitle') }}</SubHeader>
       <p class="text-sm">{{ t('adminSettings.legal.deleteFileConfirm', { name: displayName }) }}</p>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
         <DeleteButton @click="emit('confirm')">{{ t('common.delete') }}</DeleteButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

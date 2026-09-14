@@ -11,6 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
@@ -256,18 +257,18 @@ defineExpose({ currentEntry })
           @update:model-value="writeNote(($event as string) ?? '')"
       />
     </div>
-    <div class="flex justify-center gap-4">
+    <ButtonRow pair align="center">
       <SuccessButton :icon="['fas', 'check']" @click="handleSetResult('CONFIRMED')">
         {{ t('inventory.check.confirmed') }}
       </SuccessButton>
       <ErrorButton :icon="['fas', 'xmark']" @click="handleSetResult('LOST')">
         {{ t('inventory.check.lost') }}
       </ErrorButton>
-    </div>
+    </ButtonRow>
     <p v-if="runningStep !== null" class="text-center text-sm text-(--text-muted)" data-testid="rapid-on-the-move">
       {{ t('inventory.check.onTheMove') }}<span v-if="runningStep"> ({{ runningStep }})</span>
     </p>
-    <div class="flex flex-wrap justify-center gap-2">
+    <ButtonRow align="center">
       <InfoButton
           v-if="runningStep === null"
           :icon="['fas', 'right-left']"
@@ -283,8 +284,8 @@ defineExpose({ currentEntry })
       >
         {{ t('inventory.check.correct.action') }}
       </SecondaryButton>
-    </div>
-    <div class="flex justify-center gap-2">
+    </ButtonRow>
+    <ButtonRow align="center">
       <SecondaryButton v-if="walked.length > 0" :icon="['fas', 'arrow-left']" data-testid="rapid-back" @click="goBack">
         {{ t('inventory.check.previousItem') }}
       </SecondaryButton>
@@ -292,7 +293,7 @@ defineExpose({ currentEntry })
         {{ t('inventory.check.skip') }}
       </SecondaryButton>
       <ScanButton mode="continuous" @decoded="handleScan"/>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 
   <!-- Rapid check: empty slot -->
@@ -346,7 +347,7 @@ defineExpose({ currentEntry })
         {{ t('inventory.check.notInPossession') }}
       </InfoButton>
     </div>
-    <div class="flex justify-center gap-2">
+    <ButtonRow align="center">
       <SecondaryButton v-if="walked.length > 0" :icon="['fas', 'arrow-left']" data-testid="rapid-back" @click="goBack">
         {{ t('inventory.check.previousItem') }}
       </SecondaryButton>
@@ -354,7 +355,7 @@ defineExpose({ currentEntry })
         {{ t('inventory.check.skip') }}
       </SecondaryButton>
       <ScanButton mode="continuous" @decoded="handleScan"/>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 
   <!-- Rapid check: done -->

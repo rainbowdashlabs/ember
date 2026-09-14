@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import MovementWizard from '../movementwizard/MovementWizard.vue'
 import type {WizardPrefill} from '../movementwizard/useMovementWizard'
 import type {InventoryItem} from '@/api/inventory'
@@ -52,14 +53,14 @@ function ask(purpose: MovementPurposeName) {
     <SectionHeader>{{ t('itemDetail.ownedElsewhereTitle') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('itemDetail.ownedElsewhereHint') }}</p>
 
-    <div class="flex flex-wrap gap-2">
+    <ButtonRow pair>
       <SecondaryButton :icon="['fas', 'rotate-left']" @click="ask(MovementPurpose.RETURN)">
         {{ t('itemDetail.handBack') }}
       </SecondaryButton>
       <SecondaryButton :icon="['fas', 'right-left']" @click="ask(MovementPurpose.EXCHANGE)">
         {{ t('itemDetail.askExchange') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
 
     <MovementWizard v-model="asking" :prefill="prefill" @started="emit('started')"/>
   </NeutralContainer>
