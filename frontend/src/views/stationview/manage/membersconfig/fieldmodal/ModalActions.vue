@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 defineProps<{
   saving: boolean
@@ -22,10 +23,10 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <div class="flex justify-end gap-3">
+  <ButtonRow pair align="end">
     <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
     <PrimaryButton data-testid="field-save" :disabled="saving || disabled" @click="emit('submit')">
       {{ saving ? t('common.loading') : t('common.save') }}
     </PrimaryButton>
-  </div>
+  </ButtonRow>
 </template>

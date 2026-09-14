@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -128,7 +129,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         <ErrorBadge v-else-if="partner.partner.status === 'SUSPENDED'">{{ t('federation.suspended') }}</ErrorBadge>
         <SecondaryBadge v-else>{{ t('federation.pending') }}</SecondaryBadge>
       </template>
-      <div class="flex gap-2 ml-auto">
+      <ButtonRow align="end" class="sm:ml-auto">
         <PrimaryButton v-if="partner?.partner.status === 'SUSPENDED'" class="!text-sm" @click="handleResume">
           {{ t('federation.resume') }}
         </PrimaryButton>
@@ -136,7 +137,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           {{ t('federation.suspend') }}
         </SecondaryButton>
         <DeleteButton :label="t('federation.end')" @click="handleEnd" />
-      </div>
+      </ButtonRow>
     </div>
 
     <Spinner v-if="loading" />
