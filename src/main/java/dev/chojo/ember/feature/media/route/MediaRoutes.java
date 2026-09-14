@@ -101,10 +101,18 @@ public class MediaRoutes implements Routes {
      * public page and wrong for an image inside an internal article: knowing the hash would be the
      * only barrier. This is the session-checked twin, and the renderer picks between the two by
      * where the content will be read.
+     *
+     * <p>A file that reaches a reader only through an event keeping it back from the room is
+     * answered as absent here too. Otherwise the event would leave it out of its list while the
+     * library handed it to anybody signed in who knew the hash of its bytes.
      */
     private void serveFile(Context ctx) {
         var session = UserSession.from(ctx);
         String hash = ctx.pathParam("hash");
+        if (!session.permissions().contains(StationPermission.EVENT_INTERNAL)
+                && media.keptBack(session.stationId(), hash)) {
+            throw new NotFoundResponse();
+        }
         Integer width = parseOptionalWidth(ctx.queryParam("w"));
         var fileData = media.readVariant(session.stationId(), hash, width, ctx.header("Accept"))
                 .orElseThrow(NotFoundResponse::new);
@@ -131,11 +139,12 @@ public class MediaRoutes implements Routes {
 
     private void listFiles(Context ctx) {
         var session = requireStation(UserSession.from(ctx));
+        boolean keptBackToo = session.permissions().contains(StationPermission.EVENT_INTERNAL);
         if (browsesWholeLibrary(session)) {
-            ctx.json(media.listLibrary(session.stationId()));
+            ctx.json(media.listLibrary(session.stationId(), keptBackToo));
             return;
         }
-        ctx.json(media.listOwnUploads(session.stationId(), requireMember(session)));
+        ctx.json(media.listOwnUploads(session.stationId(), requireMember(session), keptBackToo));
     }
 
     /**

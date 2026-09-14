@@ -17,6 +17,9 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.SafeContentDisposition;
+import dev.chojo.ember.util.SafeInlineMime;
+import io.javalin.http.BadGatewayResponse;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -24,9 +27,12 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,6 +46,8 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
  */
 @Singleton
 public class FederatedEventRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(FederatedEventRoutes.class);
+
     private final EventFederationService eventFederationService;
     private final EventFieldService eventFieldService;
     private final FederationRepository federationRepository;
@@ -71,6 +79,14 @@ public class FederatedEventRoutes implements Routes {
         routes.delete(
                 prefix + "/federated/{stationuid}/events/{id}/register",
                 this::federatedWithdraw,
+                StationPermission.USER);
+        routes.get(
+                prefix + "/federated/{stationuid}/events/{id}/attachments",
+                this::federatedListAttachments,
+                StationPermission.USER);
+        routes.get(
+                prefix + "/federated/{stationuid}/events/{id}/attachments/{attachmentId}/file",
+                this::federatedDownloadAttachment,
                 StationPermission.USER);
         routes.get(prefix + "/federated/my-registrations", this::federatedMyRegistrations, StationPermission.USER);
 
@@ -106,6 +122,43 @@ public class FederatedEventRoutes implements Routes {
                 .filter(EventField::isPublic)
                 .toList();
         ctx.json(new FederatedEventDetail(event, fields));
+    }
+
+    /** The files a partner's event hands over, as that partner is willing to hand them over. */
+    private void federatedListAttachments(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(eventFederationService.listFederatedAttachments(
+                session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id")));
+    }
+
+    /**
+     * One of those files, fetched from the station that owns it and handed to the reader here.
+     *
+     * <p>The bytes travel encoded between the two instances, because that is what the contract
+     * between them speaks, and are decoded here so a browser is handed an ordinary download.
+     */
+    private void federatedDownloadAttachment(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var content = eventFederationService.getFederatedAttachment(
+                session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id"), pathInt(ctx, "attachmentId"));
+        if (content == null || content.base64() == null) throw new NotFoundResponse();
+
+        byte[] data;
+        try {
+            data = Base64.getDecoder().decode(content.base64());
+        } catch (IllegalArgumentException e) {
+            log.warn("Partner station answered with a file this instance cannot read", e);
+            throw new BadGatewayResponse("The station holding this file answered with something unreadable");
+        }
+        ctx.contentType(SafeInlineMime.safeContentType(content.mimeType()));
+        ctx.header(
+                "Content-Disposition",
+                SafeContentDisposition.build(
+                        SafeInlineMime.isInlineSafe(content.mimeType())
+                                ? SafeContentDisposition.Disposition.INLINE
+                                : SafeContentDisposition.Disposition.ATTACHMENT,
+                        content.fileName()));
+        ctx.result(data);
     }
 
     private void federatedRegister(Context ctx) {

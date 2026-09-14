@@ -86,7 +86,12 @@ public class MediaReferenceRegistry {
             SELECT f.id, f.content_hash
             FROM station_page p
             JOIN station_file f ON f.id = p.og_image_id
-            WHERE p.station_id = :station_id;""");
+            WHERE p.station_id = :station_id;""", """
+            SELECT f.id, f.content_hash
+            FROM event_attachment a
+            JOIN station_file f ON f.id = a.file_id
+            JOIN station_event e ON e.id = a.event_id
+            WHERE e.station_id = :station_id;""");
 
     private final ContentContainerRepository containers;
 
@@ -148,16 +153,62 @@ public class MediaReferenceRegistry {
     }
 
     /**
-     * How many news entries hand this file out. An attachment is the one kind of reference that
-     * is stated rather than inferred, and the database refuses to let a delete break it, so this
-     * is what lets the delete say what it is about to break before it fails.
+     * How many news entries and events hand this file out. An attachment is the one kind of
+     * reference that is stated rather than inferred, and the database refuses to let a delete
+     * break it, so this is what lets the delete say what it is about to break before it fails.
      */
     public int handedOutBy(int fileId) {
-        return query("SELECT count(*) AS cnt FROM news_attachment WHERE file_id = :file_id;")
+        return query("""
+                        SELECT
+                            (SELECT count(*) FROM news_attachment WHERE file_id = :file_id)
+                            + (SELECT count(*) FROM event_attachment WHERE file_id = :file_id) AS cnt;""")
                 .single(call().bind("file_id", fileId))
                 .map(row -> row.getInt("cnt"))
                 .first()
                 .orElse(0);
+    }
+
+    /**
+     * The files of a station that are handed out only by events keeping them back from the room.
+     *
+     * <p>The library addresses a file by the hash of its bytes and hands it to anybody signed in,
+     * which is right for the picture on a page and wrong for the plan of an evening. A file that
+     * only ever reaches a reader through an internal attachment is kept behind the same question
+     * the event asks, so that the list a screen draws and the library door cannot disagree.
+     *
+     * <p>A file an event keeps back but somebody has also published elsewhere - hung on a news
+     * entry, or written into the body of a public page - is not kept back: it was handed out by
+     * that other act, and taking it off the library would break what still shows it.
+     */
+    public Set<Integer> keptBackFiles(int stationId) {
+        return new HashSet<>(query("""
+                SELECT f.id
+                FROM station_file f
+                WHERE f.station_id = :station_id
+                  AND EXISTS (SELECT 1 FROM event_attachment a WHERE a.file_id = f.id AND a.internal)
+                  AND NOT EXISTS (SELECT 1 FROM event_attachment a WHERE a.file_id = f.id AND NOT a.internal)
+                  AND NOT EXISTS (SELECT 1 FROM news_attachment n WHERE n.file_id = f.id);""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> row.getInt("id"))
+                .all());
+    }
+
+    /** Whether the file with these bytes is one of {@link #keptBackFiles(int)}. */
+    public boolean keptBack(Integer stationId, String contentHash) {
+        if (stationId == null || contentHash == null || contentHash.isBlank()) return false;
+        return query("""
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM station_file f
+                    WHERE f.station_id = :station_id
+                      AND f.content_hash = :content_hash
+                      AND EXISTS (SELECT 1 FROM event_attachment a WHERE a.file_id = f.id AND a.internal)
+                      AND NOT EXISTS (SELECT 1 FROM event_attachment a WHERE a.file_id = f.id AND NOT a.internal)
+                      AND NOT EXISTS (SELECT 1 FROM news_attachment n WHERE n.file_id = f.id)) AS kept;""")
+                .single(call().bind("station_id", stationId).bind("content_hash", contentHash))
+                .map(row -> row.getBoolean("kept"))
+                .first()
+                .orElse(false);
     }
 
     private void collectStated(int stationId, Set<String> out) {

@@ -881,3 +881,84 @@ export async function searchEvents(
     const res = await client.get<EventSearchResult[]>('/events/search', {params})
     return res.data
 }
+
+/**
+ * A file an event hands over.
+ *
+ * <p>It points at a file in the station's media library rather than holding bytes of its own, which
+ * is why it carries the library's name, type and size along with it.
+ */
+export interface EventAttachment {
+    id: number
+    eventId: number
+    fileId: number
+    label: string | null
+    /** Whether the file is kept back from the room, readable only with the right to internal data. */
+    internal: boolean
+    sortOrder: number
+    createdAt: string
+    fileName: string
+    mimeType: string
+    fileSize: number
+    contentHash: string
+}
+
+/** A file a partner station's event hands over, without its bytes. */
+export interface FederatedEventAttachment {
+    id: number
+    /** What the partner station shows it as, which is its label where somebody wrote one. */
+    name: string
+    fileName: string
+    mimeType: string
+    fileSize: number
+}
+
+/** The files of an event, as far as the caller may have them. */
+export async function listEventAttachments(eventId: number): Promise<EventAttachment[]> {
+    const res = await client.get<EventAttachment[]>(`/events/${eventId}/attachments`)
+    return res.data
+}
+
+export async function attachEventFile(
+    eventId: number,
+    fileId: number,
+    label: string | null,
+    internal: boolean,
+): Promise<EventAttachment> {
+    const res = await client.post<EventAttachment>(`/events/${eventId}/attachments`, {fileId, label, internal})
+    return res.data
+}
+
+export async function updateEventAttachment(
+    eventId: number,
+    attachmentId: number,
+    label: string | null,
+    internal: boolean,
+): Promise<void> {
+    await client.put(`/events/${eventId}/attachments/${attachmentId}`, {label, internal})
+}
+
+export async function reorderEventAttachments(eventId: number, attachmentIds: number[]): Promise<void> {
+    await client.put(`/events/${eventId}/attachments/order`, {attachmentIds})
+}
+
+export async function detachEventFile(eventId: number, attachmentId: number): Promise<void> {
+    await client.delete(`/events/${eventId}/attachments/${attachmentId}`)
+}
+
+/** Where the bytes of a file are fetched from, which is the event's own address rather than the library's. */
+export function eventAttachmentUrl(eventId: number, attachmentId: number): string {
+    return `/events/${eventId}/attachments/${attachmentId}/file`
+}
+
+export async function listFederatedEventAttachments(
+    stationUid: string,
+    eventId: number,
+): Promise<FederatedEventAttachment[]> {
+    const res = await client.get<FederatedEventAttachment[]>(`/federated/${stationUid}/events/${eventId}/attachments`)
+    return res.data
+}
+
+export function federatedEventAttachmentUrl(stationUid: string, eventId: number, attachmentId: number): string {
+    return `/federated/${stationUid}/events/${eventId}/attachments/${attachmentId}/file`
+}

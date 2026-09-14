@@ -20,6 +20,8 @@ import {useEventForm} from './eventeditview/useEventForm'
 import {useEventEditData} from './eventeditview/useEventEditData'
 import {useEventFieldDefaults} from './eventeditview/useEventFieldDefaults'
 import {useEventFederationShare} from './eventeditview/useEventFederationShare'
+import {useEventAttachments} from './eventeditview/useEventAttachments'
+import AttachmentsCard from './eventeditview/AttachmentsCard.vue'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useFlashMessage} from '@/composables/useFlashMessage'
@@ -28,13 +30,16 @@ const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const eventRoutes = useEventRoutes()
-const {loaded, hasPermission} = useSession()
+const {loaded, hasPermission, sessionInfo} = useSession()
 
 const canFederate = computed(() => hasPermission(StationPermission.EVENTS_FEDERATE))
 const eventId = computed(() => route.params.id ? Number(route.params.id) : null)
 const isEdit = computed(() => eventId.value !== null)
 
+const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
+
 const form = useEventForm()
+const attachments = useEventAttachments(() => eventId.value)
 const data = useEventEditData(
     () => form.state.templateId,
     () => form.state.fields.map(f => f.attendanceFieldId).filter((id): id is number => id != null),
@@ -80,6 +85,7 @@ async function loadData() {
         fieldDefaults.load(eventId.value!),
         federationShare.load(eventId.value!),
         loadRegistrationFields(eventId.value!),
+        attachments.load(),
       ])
     }
   } catch (e) {
@@ -180,6 +186,17 @@ const bodyHandlers = {
           v-model:registration-fields="registrationFields"
           v-bind="bodyProps"
           v-on="bodyHandlers"
+      />
+
+      <AttachmentsCard
+          v-if="!loading && isEdit"
+          v-model:attachments="attachments.attachments.value"
+          :station-uid="stationUid"
+          :failure="attachments.error.value"
+          @add="attachments.add"
+          @save="attachments.save"
+          @remove="attachments.remove"
+          @reorder="attachments.reorder"
       />
     </div>
   </ViewContent>

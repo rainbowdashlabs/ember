@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:efa6f1ec70730201620da547f1f74699b76a0489f71261b756067e5e7ffb68eb",
-  "generatedAt": "2026-09-14T14:42:47Z",
+  "schemaHash": "sha256:a8bbdc8424d69580ddac72db93ff6fbd04d937119894b15a58675d94bddeed1e",
+  "generatedAt": "2026-09-14T19:24:32Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6265,6 +6265,85 @@
         ]
       },
       "description": "Requests for procuring new equipment items for a member."
+    },
+    "event_attachment": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:f3148e4decdbf561d179cffaf0d305324c8515d5fa37963fd7be2e958a62f073",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "file_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What a reader sees instead of the file name, for the cases where the file name is not what should be read."
+        },
+        {
+          "name": "internal",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "True where the file is kept back from the room: readable only with the right to read what an event keeps internal, and never sent to a partner station. False, the default, is for everybody who may see the event."
+        },
+        {
+          "name": "sort_order",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The order the files are handed over in, which is the order whoever wrote the event put them in."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "file_id",
+          "refTable": "station_file",
+          "refColumn": "id",
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Belongs in station transfer alongside station_event and station_file; handler not yet implemented."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Names a file an event hands out, not a member."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Names a file an event hands out, not a member."
+      },
+      "description": "A file an event hands over, pointing at the station media library rather than holding bytes of its own."
     },
     "event_category": {
       "feature": "events",

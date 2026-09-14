@@ -24,6 +24,8 @@ const props = defineProps<{
   effectiveDate: string | null
   recurring: boolean
   canEdit: boolean
+  /** Whether the reader may ask for gear, which is a right over the gear and not over the evening. */
+  canBorrow: boolean
 }>()
 
 const {t} = useI18n()
@@ -115,7 +117,7 @@ async function submit() {
       />
     </div>
 
-    <SecondaryButton v-if="missingTotal > 0" data-testid="equipment-borrow" @click="borrow">
+    <SecondaryButton v-if="missingTotal > 0 && canBorrow" data-testid="equipment-borrow" @click="borrow">
       {{ t('eventEquipment.borrowMissing', {count: missingTotal}) }}
     </SecondaryButton>
 

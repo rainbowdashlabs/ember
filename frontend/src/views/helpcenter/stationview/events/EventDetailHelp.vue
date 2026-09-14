@@ -179,6 +179,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.eventDetail.nextOccurrenceText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventDetail.attachmentsTitle')">
+      <p>{{ t('helpCenter.eventDetail.attachmentsText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventDetail.commentsTitle')">
       <p>{{ t('helpCenter.eventDetail.commentsText') }}</p>
     </HelpSection>

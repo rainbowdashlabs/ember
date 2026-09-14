@@ -89,10 +89,10 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
         try {
             assertEquals(first.id(), second.id(), "identical bytes are stored once");
             assertTrue(
-                    media.listOwnUploads(station.id(), otherMember.id()).stream()
+                    media.listOwnUploads(station.id(), otherMember.id(), true).stream()
                             .anyMatch(l -> l.file().id() == first.id()),
                     "the second uploader must see the thing they just uploaded");
-            assertTrue(media.listOwnUploads(station.id(), member.id()).stream()
+            assertTrue(media.listOwnUploads(station.id(), member.id(), true).stream()
                     .anyMatch(l -> l.file().id() == first.id()));
         } finally {
             media.deleteFile(first.id());
@@ -104,11 +104,11 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
         var mine = media.upload(station.id(), null, member.id(), "mine.png", "image/png", bytes("mine"));
         var theirs = media.upload(station.id(), null, otherMember.id(), "theirs.png", "image/png", bytes("theirs"));
         try {
-            var own = media.listOwnUploads(station.id(), member.id());
+            var own = media.listOwnUploads(station.id(), member.id(), true);
             assertTrue(own.stream().anyMatch(l -> l.file().id() == mine.id()));
             assertFalse(own.stream().anyMatch(l -> l.file().id() == theirs.id()));
 
-            var whole = media.listLibrary(station.id());
+            var whole = media.listLibrary(station.id(), true);
             assertTrue(whole.stream().anyMatch(l -> l.file().id() == mine.id()));
             assertTrue(whole.stream().anyMatch(l -> l.file().id() == theirs.id()));
             assertEquals(

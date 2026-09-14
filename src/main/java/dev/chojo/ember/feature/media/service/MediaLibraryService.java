@@ -166,18 +166,39 @@ public class MediaLibraryService {
      * The whole library, for a member who holds one of the content permissions.
      *
      * @param stationId the station whose library to list, or null for the instance's own
+     * @param keptBackToo whether the files events keep back from the room belong in the answer
      */
-    public List<FileListing> listLibrary(Integer stationId) {
-        return decorate(stationId, fileRepository.findByStation(stationId));
+    public List<FileListing> listLibrary(Integer stationId, boolean keptBackToo) {
+        return decorate(stationId, withoutKeptBack(stationId, fileRepository.findByStation(stationId), keptBackToo));
     }
 
     /**
      * Only what this member uploaded, for everybody else. A flat list, because organising station
      * media stays with the people who hold a content permission - that is what makes this
      * ownership light.
+     *
+     * @param keptBackToo whether the files events keep back from the room belong in the answer
      */
-    public List<FileListing> listOwnUploads(int stationId, int memberId) {
-        return decorate(stationId, fileRepository.findByUploader(stationId, memberId));
+    public List<FileListing> listOwnUploads(int stationId, int memberId, boolean keptBackToo) {
+        return decorate(
+                stationId, withoutKeptBack(stationId, fileRepository.findByUploader(stationId, memberId), keptBackToo));
+    }
+
+    /**
+     * Whether these bytes may only be read by somebody who reads what an event keeps internal.
+     *
+     * <p>Asked at the library door as well as at the event, because a file the event leaves out of
+     * its list must not be reachable by knowing the hash of its bytes.
+     */
+    public boolean keptBack(Integer stationId, String contentHash) {
+        return references.keptBack(stationId, contentHash);
+    }
+
+    private List<StationFile> withoutKeptBack(Integer stationId, List<StationFile> files, boolean keptBackToo) {
+        if (keptBackToo || stationId == null) return files;
+        Set<Integer> keptBack = references.keptBackFiles(stationId);
+        if (keptBack.isEmpty()) return files;
+        return files.stream().filter(file -> !keptBack.contains(file.id())).toList();
     }
 
     private List<FileListing> decorate(Integer stationId, List<StationFile> files) {
@@ -213,8 +234,8 @@ public class MediaLibraryService {
         if (file == null) return false;
         int handedOut = references.handedOutBy(fileId);
         if (handedOut > 0) {
-            throw new BadRequestResponse(
-                    "This file is attached to " + handedOut + " news entry/entries. Detach it there first.");
+            throw new BadRequestResponse("This file is attached to " + handedOut
+                    + " news entry/entries or event(s). Detach it there first.");
         }
         boolean deleted = fileRepository.delete(fileId);
         if (deleted) {
