@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -62,14 +63,14 @@ const emit = defineEmits<{
 
     <AcknowledgementList :acknowledgements="change.acknowledgements" :format-date="formatDate"/>
 
-    <div v-if="!isAcknowledgedByMe" class="flex items-center gap-2 pt-1">
+    <ButtonRow v-if="!isAcknowledgedByMe" class="pt-1">
       <PrimaryButton :icon="['fas', 'check']" :disabled="acknowledging" @click="emit('acknowledge')">
         {{ t('memberDetail.acknowledge') }}
       </PrimaryButton>
       <SecondaryButton :icon="['fas', 'comment']" @click="emit('toggleComment')">
         {{ t('memberDetail.acknowledgeWithComment') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
 
     <div v-if="showComment" class="space-y-2 pt-1">
       <TextAreaInput

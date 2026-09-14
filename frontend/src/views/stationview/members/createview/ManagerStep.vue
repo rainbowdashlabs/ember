@@ -8,6 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -95,11 +96,11 @@ function submitCreate() {
       </div>
     </div>
 
-    <div class="flex justify-between">
+    <ButtonRow align="between">
       <SecondaryButton @click="emit('back')">{{ t('membersCreate.back') }}</SecondaryButton>
       <PrimaryButton :disabled="saving" @click="emit('next')">
         {{ saving ? t('common.loading') : t('membersCreate.create') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>

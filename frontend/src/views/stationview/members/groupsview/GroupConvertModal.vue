@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import type {MemberGroup} from '@/api/types'
 import {useModelProxy} from '@/composables/useModelProxy'
@@ -30,10 +31,10 @@ const open = useModelProxy(() => props.modelValue, emit, 'modelValue')
   <Modal v-model="open">
     <div class="space-y-4">
       <p>{{ t('memberGroups.convertToTagConfirm', {name: target?.name}) }}</p>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton @click="emit('confirm')">{{ t('memberGroups.convertToTag') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

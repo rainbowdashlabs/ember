@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -69,12 +70,12 @@ function onUpdate(value: boolean) {
         <p class="text-xs text-(--text-muted)">{{ t('waitingList.inviteArrivalHint') }}</p>
       </div>
 
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="props.running" data-testid="waitlist-invite-send" @click="emit('confirm')">
           {{ props.running ? t('common.loading') : t('waitingList.inviteSend') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ColorInput from '@/components/input/ColorInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -59,12 +60,12 @@ const capabilities = useGroupsCapabilities()
           <MutedText size="sm">{{ t('memberGroups.colorHint') }}</MutedText>
         </div>
       </div>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('memberGroups.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="saving || !nameModel" @click="emit('save')">
           {{ saving ? t('common.loading') : t('memberGroups.save') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 
@@ -23,9 +24,9 @@ const emit = defineEmits<{
     <font-awesome-icon :icon="['fas', 'circle-check']" class="text-4xl text-success"/>
     <SectionHeader>{{ t('membersCreate.done') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('membersCreate.doneHint') }}</p>
-    <div class="flex justify-center gap-3">
+    <ButtonRow align="center">
       <SecondaryButton @click="emit('createAnother')">{{ t('membersCreate.createAnother') }}</SecondaryButton>
       <PrimaryButton @click="emit('toList')">{{ t('membersCreate.toList') }}</PrimaryButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>

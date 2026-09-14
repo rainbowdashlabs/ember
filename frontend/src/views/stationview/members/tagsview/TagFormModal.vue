@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ColorInput from '@/components/input/ColorInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -63,12 +64,12 @@ const visibleModel = useModelProxy(() => props.visible, emit, 'visible')
         <ToggleInput v-model="visibleModel"/>
       </div>
       <MutedText size="sm">{{ t('userTags.visibleHint') }}</MutedText>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('userTags.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="saving || !nameModel" @click="emit('save')">
           {{ saving ? t('common.loading') : t('userTags.save') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>
