@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 defineProps<{
   step: number
@@ -24,7 +25,7 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <div class="flex items-center gap-2 shrink-0">
+  <ButtonRow class="shrink-0">
     <SecondaryButton :icon="['fas', 'chevron-left']" v-if="step > 0" class="text-xs" @click="emit('prev')">
       {{ t('tour.back') }}
     </SecondaryButton>
@@ -38,5 +39,5 @@ const {t} = useI18n()
         hover="text"
         @click="emit('skip')"
     />
-  </div>
+  </ButtonRow>
 </template>

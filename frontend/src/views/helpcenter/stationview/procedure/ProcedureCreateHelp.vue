@@ -10,6 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TemplateSelectorSection from '@/views/stationview/procedure/procedurecreateview/TemplateSelectorSection.vue'
 import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/BasicInfoSection.vue'
 import AssigneesSection from '@/views/stationview/procedure/procedurecreateview/AssigneesSection.vue'
@@ -80,10 +81,10 @@ const ITEMS: EditableItem[] = [
                           due-at="2026-06-12" :is-public="true"/>
         <AssigneesSection :assignee-ids="[1]" :members="MEMBERS"/>
         <ItemsSection :items="ITEMS"/>
-        <div class="flex justify-end gap-2">
+        <ButtonRow pair align="end">
           <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton>{{ t('procedures.createProcedure') }}</PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </HelpSection>
 

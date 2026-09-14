@@ -9,6 +9,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 defineProps<{
   modelValue: boolean
@@ -30,12 +31,12 @@ const { t } = useI18n()
       <p class="text-sm">
         {{ t('formerMembers.reactivateConfirm', { name: targetName }) }}
       </p>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="$emit('update:modelValue', false)">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton @click="$emit('confirm')">
           {{ t('formerMembers.reactivate') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
@@ -60,17 +61,19 @@ const emit = defineEmits<{
         <ErrorBadge>
           {{ summary.pendingCount }} {{ t('memberChanges.pending') }}
         </ErrorBadge>
-        <SuccessButton
-            :disabled="acknowledging"
-            class="text-xs"
-            @click.stop="emit('acknowledgeAll')"
-        >
-          <font-awesome-icon :icon="['fas', 'check-double']" class="mr-1"/>
-          {{ t('memberDetail.acknowledgeAll') }}
-        </SuccessButton>
-        <SecondaryButton :icon="['fas', 'user']" @click.stop="emit('goToDetail')">
-          {{ t('memberChanges.toProfile') }}
-        </SecondaryButton>
+        <ButtonRow>
+          <SuccessButton
+              :disabled="acknowledging"
+              class="text-xs"
+              @click.stop="emit('acknowledgeAll')"
+          >
+            <font-awesome-icon :icon="['fas', 'check-double']" class="mr-1"/>
+            {{ t('memberDetail.acknowledgeAll') }}
+          </SuccessButton>
+          <SecondaryButton :icon="['fas', 'user']" @click.stop="emit('goToDetail')">
+            {{ t('memberChanges.toProfile') }}
+          </SecondaryButton>
+        </ButtonRow>
       </div>
     </div>
 

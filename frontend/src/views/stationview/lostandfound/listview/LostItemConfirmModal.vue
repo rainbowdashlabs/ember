@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 
 const visible = defineModel<boolean>({required: true})
@@ -31,12 +32,12 @@ const {t} = useI18n()
     <div class="space-y-4 p-4">
       <SubHeader>{{ title }}</SubHeader>
       <p class="text-sm text-(--text-muted)">{{ message }}</p>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="visible = false">{{ t('common.cancel') }}</SecondaryButton>
         <SuccessButton :disabled="loading" @click="emit('confirm')">
           {{ loading ? t('common.loading') : confirmLabel }}
         </SuccessButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

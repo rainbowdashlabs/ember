@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -23,9 +24,9 @@ const {t} = useI18n()
       <FieldLabel>{{ t('adminApplications.denyReasonLabel') }}</FieldLabel>
       <TextInput :model-value="''" :placeholder="t('adminApplications.denyReasonPlaceholder')" />
     </div>
-    <div class="flex justify-end gap-3">
+    <ButtonRow pair align="end">
       <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
       <ErrorButton>{{ t('adminApplications.deny') }}</ErrorButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>

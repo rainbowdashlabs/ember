@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -42,12 +43,12 @@ const { t } = useI18n()
         <DateInput v-model="expiresAt" />
         <p class="text-xs text-(--text-muted)">{{ t('waitingList.expiresAtHint') }}</p>
       </div>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="creating" @click="emit('submit')">
           {{ creating ? t('common.loading') : t('waitingList.createInvite') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

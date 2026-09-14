@@ -13,6 +13,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SingleFieldModal from '@/components/feedback/SingleFieldModal.vue'
 import {clusterStations} from '@/api'
@@ -78,14 +79,14 @@ async function submitDeny() {
                 {{ t('clusterApplications.askedOn', {date: formatDate(application.requestedAt)}) }}
               </p>
             </div>
-            <div class="flex gap-2">
+            <ButtonRow pair>
               <PrimaryButton :disabled="busy" @click="approve(application)">
                 {{ t('clusterApplications.approve') }}
               </PrimaryButton>
               <SecondaryButton :disabled="busy" @click="openDeny(application)">
                 {{ t('clusterApplications.deny') }}
               </SecondaryButton>
-            </div>
+            </ButtonRow>
           </NeutralContainer>
         </div>
 

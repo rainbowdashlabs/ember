@@ -10,6 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {movements} from '@/api'
@@ -114,12 +115,12 @@ function confirm() {
           @choose="choose"
       />
 
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton data-cancel @click="asking = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!complete" data-confirm @click="confirm">
           {{ t('flows.restoreAction') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

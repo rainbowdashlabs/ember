@@ -17,6 +17,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -85,10 +86,10 @@ const activeView = ref('')
         </div>
       </template>
 
-      <div class="flex gap-3">
+      <ButtonRow pair>
         <PrimaryButton>{{ t('profile.absenceAdd') }}</PrimaryButton>
         <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
-      </div>
+      </ButtonRow>
     </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.absences.statusTitle')">

@@ -11,6 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {GuardianInput, WaitingListField} from '@/api/waitingList'
@@ -107,10 +108,10 @@ function goBack() {
           @update-field-value="setFieldValue"
         />
 
-        <div class="flex justify-end gap-2">
+        <ButtonRow align="end">
           <SecondaryButton @click="goBack">{{ t('common.cancel') }}</SecondaryButton>
           <SaveButton :disabled="!canSave" :action="save">{{ t('waitingList.addEntry') }}</SaveButton>
-        </div>
+        </ButtonRow>
       </template>
     </div>
   </ViewContent>

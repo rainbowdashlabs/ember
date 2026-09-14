@@ -13,6 +13,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import type {Mailbox} from '@/api/mailImport'
@@ -60,7 +61,7 @@ const state = computed(() => {
             : t('mailImport.neverChecked') }}
       </MutedText>
     </div>
-    <div class="flex shrink-0 flex-wrap items-center gap-2">
+    <ButtonRow align="end" class="shrink-0">
       <SecondaryButton :disabled="busy" data-testid="mailbox-test" @click="emit('test')">
         {{ t('mailImport.testConnection') }}
       </SecondaryButton>
@@ -72,6 +73,6 @@ const state = computed(() => {
       </SecondaryButton>
       <EditButton :label="t('common.edit')" @click="emit('edit')"/>
       <DeleteButton :label="t('common.delete')" @click="emit('remove')"/>
-    </div>
+    </ButtonRow>
   </div>
 </template>

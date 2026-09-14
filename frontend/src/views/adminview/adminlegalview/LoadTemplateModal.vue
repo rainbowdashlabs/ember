@@ -12,6 +12,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TemplateChoiceRow from './TemplateChoiceRow.vue'
 import {adminSettings} from '@/api'
 import type {LegalTemplate} from '@/api/adminSettings'
@@ -103,20 +104,20 @@ watch(show, open => {
       </MutedText>
 
       <div class="flex justify-between gap-2 flex-wrap">
-        <div class="flex gap-2">
+        <ButtonRow>
           <SecondaryButton v-if="templates.length > 0" @click="selectAll">
             {{ t('adminSettings.legal.selectAllTemplates') }}
           </SecondaryButton>
           <SecondaryButton v-if="selected.size > 0" @click="selected = new Set()">
             {{ t('adminSettings.legal.selectNoTemplates') }}
           </SecondaryButton>
-        </div>
-        <div class="flex gap-2">
+        </ButtonRow>
+        <ButtonRow align="end">
           <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton :disabled="selected.size === 0" @click="confirm">
             {{ t('adminSettings.legal.loadSelected') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </div>
   </Modal>

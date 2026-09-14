@@ -12,10 +12,12 @@ import SearchSelectInput from '@/components/input/select/SearchSelectInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 
 const name = defineModel<string>('name', {required: true})
 const timezone = defineModel<string>('timezone', {required: true})
 const locale = defineModel<string>('locale', {required: true})
+const pdfHidesInstanceUrl = defineModel<boolean>('pdfHidesInstanceUrl', {required: true})
 
 const props = defineProps<{
   timezoneOptions: { value: string; label: string }[]
@@ -43,6 +45,12 @@ const {t} = useI18n()
         <option v-for="opt in props.localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
       </SelectInput>
     </div>
+    <ToggleSetting
+        v-model="pdfHidesInstanceUrl"
+        :hint="t('stationManage.pdfHidesInstanceUrlHint')"
+        :label="t('stationManage.pdfHidesInstanceUrl')"
+        data-testid="pdf-instance-url-toggle"
+    />
     <SaveButton :disabled="!name" :action="props.saveName"/>
   </NeutralContainer>
 </template>

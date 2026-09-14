@@ -10,6 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DummyDateRangePanel from '@/views/helpcenter/stationview/inventory/lendingblockscreatehelp/DummyDateRangePanel.vue'
 import DummyScopePicker from '@/views/helpcenter/stationview/inventory/lendingblockscreatehelp/DummyScopePicker.vue'
 
@@ -40,10 +41,10 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.lendingBlocksCreate.actionsTitle')">
       <p>{{ t('helpCenter.lendingBlocksCreate.actionsText') }}</p>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton>{{ t('common.save') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.lendingBlocksCreate.tip') }}</HelpTip>

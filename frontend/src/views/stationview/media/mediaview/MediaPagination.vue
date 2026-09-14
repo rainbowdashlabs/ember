@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 
 defineProps<{
@@ -28,7 +29,7 @@ const {t} = useI18n()
                 <option v-for="opt in pageSizeOptions" :key="opt" :value="String(opt)">{{ opt }}</option>
             </SelectInput>
         </div>
-        <div class="flex items-center gap-2">
+        <ButtonRow pair align="end">
             <SecondaryButton :disabled="currentPage <= 1"
                              @click="currentPage = Math.max(1, currentPage - 1)">
                 <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1"/>
@@ -42,6 +43,6 @@ const {t} = useI18n()
                 {{ t('stationPages.editor.nextPage') }}
                 <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1"/>
             </SecondaryButton>
-        </div>
+        </ButtonRow>
     </div>
 </template>

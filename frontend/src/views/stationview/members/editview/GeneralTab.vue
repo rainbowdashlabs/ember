@@ -14,6 +14,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {StationUserType, type MemberGroup, type PermissionGrant, type StationMember, type UserTag} from '@/api/types'
@@ -211,12 +212,12 @@ const {running: markingFormer, error: formerError, run: confirmMarkFormer} = use
         <template v-if="canMarkFormer">
           <p class="text-sm">{{ t('memberDetail.markFormerConfirm', {name: member?.name || member?.email || ''}) }}</p>
           <p class="text-xs text-(--text-muted)">{{ t('memberDetail.markFormerHint') }}</p>
-          <div class="flex justify-end gap-2">
+          <ButtonRow pair align="end">
             <SecondaryButton @click="showFormerModal = false">{{ t('common.cancel') }}</SecondaryButton>
             <ErrorButton :disabled="markingFormer" @click="confirmMarkFormer">
               {{ markingFormer ? t('common.loading') : t('memberDetail.markFormer') }}
             </ErrorButton>
-          </div>
+          </ButtonRow>
         </template>
         <template v-else>
           <p class="text-sm">{{ t('memberDetail.formerBlocked') }}</p>

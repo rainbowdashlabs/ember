@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 
@@ -59,14 +60,14 @@ const {t} = useI18n()
           <p class="font-medium">15.06.2026</p>
         </NeutralContainer>
       </div>
-      <div class="flex flex-wrap gap-2">
+      <ButtonRow pair>
         <PrimaryButton :icon="['fas', 'check']">
           {{ t('helpCenter.inventoryLendingRequest.dummyMarkLent') }}
         </PrimaryButton>
         <SecondaryButton :icon="['fas', 'rotate-left']">
           {{ t('helpCenter.inventoryLendingRequest.dummyMarkReturned') }}
         </SecondaryButton>
-      </div>
+      </ButtonRow>
       <!-- Chat preview -->
       <NeutralContainer class="space-y-2">
         <p class="text-xs text-[var(--text-muted)] font-medium uppercase tracking-wide">{{ t('helpCenter.inventoryLendingRequest.chatTitle') }}</p>

@@ -11,6 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
@@ -121,11 +122,11 @@ function onClose() {
         <TextAreaInput v-model="description" :rows="3" />
       </label>
     </div>
-    <div class="flex justify-end gap-2 mt-4">
+    <ButtonRow pair align="end" class="mt-4">
       <SecondaryButton @click="onClose">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton :disabled="submitting" @click="submit">
         {{ submitting ? t('common.saving') : t('common.create') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </Modal>
 </template>

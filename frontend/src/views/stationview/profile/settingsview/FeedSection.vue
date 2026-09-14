@@ -13,6 +13,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
@@ -144,10 +145,10 @@ async function copyUrl(url: string) {
       <div class="space-y-4">
         <SubHeader>{{ t('userSettings.feedRegenerateConfirmTitle') }}</SubHeader>
         <p class="text-sm">{{ t('userSettings.feedRegenerateConfirmBody') }}</p>
-        <div class="flex justify-end gap-2">
+        <ButtonRow align="end">
           <SecondaryButton @click="regenerateConfirmOpen = false">{{ t('common.cancel') }}</SecondaryButton>
           <ErrorButton :icon="['fas', 'rotate']" @click="confirmRegenerate">{{ t('userSettings.feedRegenerate') }}</ErrorButton>
-        </div>
+        </ButtonRow>
       </div>
     </Modal>
 
@@ -155,10 +156,10 @@ async function copyUrl(url: string) {
       <div class="space-y-4">
         <SubHeader>{{ t('userSettings.feedRevokeConfirmTitle') }}</SubHeader>
         <p class="text-sm">{{ t('userSettings.feedRevokeConfirmBody') }}</p>
-        <div class="flex justify-end gap-2">
+        <ButtonRow align="end">
           <SecondaryButton @click="revokeConfirmOpen = false">{{ t('common.cancel') }}</SecondaryButton>
           <ErrorButton :icon="['fas', 'trash']" @click="confirmRevoke">{{ t('userSettings.feedRevokeConfirm') }}</ErrorButton>
-        </div>
+        </ButtonRow>
       </div>
     </Modal>
   </NeutralContainer>

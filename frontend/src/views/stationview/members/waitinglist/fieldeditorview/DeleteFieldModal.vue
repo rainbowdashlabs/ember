@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { WaitingListField } from '@/api/waitingList'
@@ -33,10 +34,10 @@ function close() {
     <div class="space-y-4">
       <SubHeader>{{ t('waitingList.deleteFieldTitle') }}</SubHeader>
       <p class="text-sm">{{ t('waitingList.deleteFieldConfirm', { name: target?.name }) }}</p>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="close">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton @click="emit('confirm')">{{ t('common.delete') }}</ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

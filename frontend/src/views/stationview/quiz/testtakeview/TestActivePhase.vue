@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import TestQuestionCard from './TestQuestionCard.vue'
 import type { QuizTestAttemptQuestion, QuizQuestion } from '@/api/quiz'
@@ -91,7 +92,7 @@ const { t } = useI18n()
     @reorder-items="(f, t2) => emit('reorderItems', f, t2)"
   />
 
-  <div class="flex items-center justify-between">
+  <ButtonRow align="between">
     <SecondaryButton :icon="['fas', 'chevron-left']" :disabled="props.isFirstQuestion" @click="emit('prev')">
       {{ t('quiz.attempt.prev') }}
     </SecondaryButton>
@@ -104,5 +105,5 @@ const { t } = useI18n()
       {{ t('quiz.attempt.next') }}
       <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1" />
     </SecondaryButton>
-  </div>
+  </ButtonRow>
 </template>

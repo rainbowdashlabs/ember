@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -51,10 +52,10 @@ defineEmits<{
         </div>
       </div>
       <SecondaryButton @click="$emit('add')">+ {{ t('memberImport.addRow') }}</SecondaryButton>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="$emit('close')">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton @click="$emit('save')">{{ t('common.save') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </div>
 </template>

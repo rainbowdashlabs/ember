@@ -444,6 +444,17 @@ public class StationService {
         log.info("Station {} turned its public waiting list {}", stationId, enabled ? "on" : "off");
     }
 
+    /**
+     * Says whether the address of this installation is printed at the foot of the station's exports.
+     *
+     * <p>What is hidden is the address and nothing else: a printed sheet still says who made it, when,
+     * and which page it is, and still carries the station's own name and logo.
+     */
+    public void updatePdfHidesInstanceUrl(int stationId, boolean hides) {
+        stationRepository.updatePdfHidesInstanceUrl(stationId, hides);
+        log.info("Station {} {} the instance address on its exports", stationId, hides ? "hid" : "shows");
+    }
+
     public void updatePublicBlogEnabled(int stationId, boolean enabled) {
         stationRepository.updatePublicBlogEnabled(stationId, enabled);
         log.info("Station {} turned its public blog {}", stationId, enabled ? "on" : "off");

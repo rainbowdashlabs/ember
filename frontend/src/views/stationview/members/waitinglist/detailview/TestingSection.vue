@@ -8,6 +8,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -75,14 +76,14 @@ function entryFullName(item: WaitingListEntryWithScore): string {
           <span>
             {{ t('waitingList.attendanceCount') }}: <span class="font-mono font-medium" :class="{ 'text-success': item.entry.attendanceCount >= attendanceThreshold }">{{ item.entry.attendanceCount }} / {{ attendanceThreshold }}</span>
           </span>
-          <div v-if="!readonly" class="flex items-center gap-1">
+          <ButtonRow v-if="!readonly" pair>
             <SuccessButton :icon="['fas', 'check']" @click.stop="emit('moveToJoined', item.entry.id)">
               {{ t('waitingList.join') }}
             </SuccessButton>
             <ErrorButton :icon="['fas', 'xmark']" @click.stop="emit('withdraw', item.entry.id)">
               {{ t('waitingList.withdraw') }}
             </ErrorButton>
-          </div>
+          </ButtonRow>
         </div>
       </NeutralContainer>
     </div>

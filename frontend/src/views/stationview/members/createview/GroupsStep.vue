@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -47,9 +48,9 @@ const emit = defineEmits<{
       </div>
     </div>
 
-    <div class="flex justify-between">
+    <ButtonRow align="between">
       <SecondaryButton @click="emit('back')">{{ t('membersCreate.back') }}</SecondaryButton>
       <PrimaryButton @click="emit('next')">{{ submitLabel }}</PrimaryButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>

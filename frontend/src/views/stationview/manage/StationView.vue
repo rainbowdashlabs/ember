@@ -52,6 +52,7 @@ const localeOptions = [
 const name = ref('')
 const timezone = ref('Europe/Berlin')
 const locale = ref('de-DE')
+const pdfHidesInstanceUrl = ref(false)
 const hasLogo = ref(false)
 const isOwner = ref(false)
 const stationId = ref('')
@@ -64,6 +65,7 @@ const {loading, error} = useAsyncLoader(async () => {
   name.value = info.name ?? ''
   timezone.value = info.timezone ?? 'Europe/Berlin'
   locale.value = info.locale ?? 'de-DE'
+  pdfHidesInstanceUrl.value = info.pdfHidesInstanceUrl ?? false
   hasLogo.value = info.hasLogo
   isOwner.value = info.isOwner
   stationId.value = info.id
@@ -83,9 +85,11 @@ async function saveName() {
     const info = await stationManage.updateStationName({
       name: name.value,
       timezone: timezone.value,
-      locale: locale.value
+      locale: locale.value,
+      pdfHidesInstanceUrl: pdfHidesInstanceUrl.value
     })
     name.value = info.name ?? ''
+    pdfHidesInstanceUrl.value = info.pdfHidesInstanceUrl ?? false
   } catch (e) {
     error.value = t('common.error')
     throw e
@@ -146,6 +150,7 @@ function handleSuccess(msg: string) {
           v-model:name="name"
           v-model:timezone="timezone"
           v-model:locale="locale"
+          v-model:pdf-hides-instance-url="pdfHidesInstanceUrl"
           :timezone-options="timezoneOptions"
           :locale-options="localeOptions"
           :save-name="saveName"

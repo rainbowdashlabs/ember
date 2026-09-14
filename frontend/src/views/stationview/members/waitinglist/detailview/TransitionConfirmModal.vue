@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { WaitingListEntryWithScore } from '@/api/waitingList'
@@ -56,12 +57,12 @@ const open = () => props.pending !== null
     <div v-if="pending" class="space-y-4">
       <SubHeader>{{ t('waitingList.transitionConfirmTitle') }}</SubHeader>
       <p class="text-sm">{{ t(transitionTextKey[pending.kind], { name: entryFullName(pending.entry) }) }}</p>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="running" @click="emit('confirm')">
           {{ running ? t('common.loading') : t('waitingList.transitionConfirmAction') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

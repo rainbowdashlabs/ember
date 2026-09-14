@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import type {UserTag} from '@/api/types'
 import {useModelProxy} from '@/composables/useModelProxy'
@@ -30,10 +31,10 @@ const open = useModelProxy(() => props.modelValue, emit, 'modelValue')
   <Modal v-model="open">
     <div class="space-y-4">
       <p>{{ t('userTags.deleteConfirmDetail', {name: target?.name}) }}</p>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('userTags.cancel') }}</SecondaryButton>
         <ErrorButton @click="emit('confirm')">{{ t('userTags.delete') }}</ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

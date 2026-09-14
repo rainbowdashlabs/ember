@@ -74,7 +74,35 @@ public class AttendanceExportService {
         this.apiConfig = apiConfig;
     }
 
+    /**
+     * What the sheet is printed as, beyond the attendance itself.
+     *
+     * @param signatureColumn whether every line ends in a box to sign, which turns the sheet into one
+     *                        that is filled in on paper rather than one that reports what was recorded
+     * @param title           the heading of the document, the session's own where this is null, and a
+     *                        ruled line to write on where it is empty
+     * @param blankRows       how many empty numbered lines follow the last person, for whoever turns
+     *                        up without being on the list
+     * @param showInstanceUrl whether the address of this installation is printed at the foot, which is
+     *                        what the station settled on where this is null
+     */
+    public record SheetOptions(boolean signatureColumn, String title, int blankRows, Boolean showInstanceUrl) {
+        /** The sheet as the product has always printed it. */
+        public static final SheetOptions PLAIN = new SheetOptions(false, null, 0, null);
+
+        /** At most as many blank lines as fit on a page beyond the people already on the sheet. */
+        public static final int MAX_BLANK_ROWS = 40;
+
+        public SheetOptions {
+            blankRows = Math.clamp(blankRows, 0, MAX_BLANK_ROWS);
+        }
+    }
+
     public Optional<byte[]> exportSessionPdf(int sessionId, String generatedBy) {
+        return exportSessionPdf(sessionId, generatedBy, SheetOptions.PLAIN);
+    }
+
+    public Optional<byte[]> exportSessionPdf(int sessionId, String generatedBy, SheetOptions options) {
         var session = attendanceRepository.findSessionById(sessionId);
         if (session.isEmpty()) return Optional.empty();
 
@@ -96,7 +124,17 @@ public class AttendanceExportService {
         data.put("generatedBy", generatedBy != null ? generatedBy : "");
         data.put("generatedAt", DATE_TIME_FMT.format(Instant.now().atZone(zone)));
         data.put("baseUrl", apiConfig.baseUrl());
+        data.put(
+                "showInstanceUrl",
+                options.showInstanceUrl() != null
+                        ? options.showInstanceUrl()
+                        : StationFormat.showsInstanceUrl(station));
         data.put("hasLogo", false);
+        data.put("signatureColumn", options.signatureColumn());
+        data.put("blankRows", options.blankRows());
+        if (options.title() != null) {
+            data.put("title", options.title());
+        }
 
         try {
             var logo = stationRepository.findLogo(stationId);

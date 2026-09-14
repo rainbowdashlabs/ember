@@ -10,6 +10,7 @@ import {useRouter} from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
@@ -81,10 +82,10 @@ const mailIncomplete = computed(
       <template v-else>
         <p>{{ t('setup.steps.finish.body') }}</p>
         <Alert v-if="mailIncomplete" variant="info">{{ t('setup.steps.finish.mailReminder') }}</Alert>
-        <div class="flex flex-wrap items-center gap-3 justify-center pt-4">
+        <ButtonRow align="center" class="pt-4">
           <PrimaryButton @click="takeTour">{{ t('setup.steps.finish.takeTour') }}</PrimaryButton>
           <SecondaryButton @click="goDashboard">{{ t('setup.steps.finish.goDashboard') }}</SecondaryButton>
-        </div>
+        </ButtonRow>
       </template>
     </div>
   </SetupLayout>

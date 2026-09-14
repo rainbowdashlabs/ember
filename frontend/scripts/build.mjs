@@ -29,6 +29,7 @@ const lintScripts = [
   'lint-markdown-render.mjs',
   'lint-stacked-text.mjs',
   'lint-standalone.mjs',
+  'lint-button-rows.mjs',
 ]
 
 for (const script of lintScripts) {

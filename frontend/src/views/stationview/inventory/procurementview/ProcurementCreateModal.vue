@@ -7,6 +7,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -125,7 +126,7 @@ watch(
             @inventory-selected="onInventorySelected"
         />
 
-        <div class="flex justify-end gap-3">
+        <ButtonRow pair align="end">
           <SecondaryButton @click="close">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton
               :disabled="createSaving || !canCreate"
@@ -134,7 +135,7 @@ watch(
           >
             {{ createSaving ? t('common.loading') : t('procurement.submit') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </template>
     </div>
   </Modal>

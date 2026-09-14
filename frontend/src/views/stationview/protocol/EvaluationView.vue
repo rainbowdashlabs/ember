@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -66,14 +67,14 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         <font-awesome-icon :icon="['fas', 'chevron-left']" />
       </SecondaryButton>
       <SectionHeader>{{ t('protocol.evaluation') }}</SectionHeader>
-      <div class="flex gap-2 ml-auto">
+      <ButtonRow align="end" class="sm:ml-auto">
         <PrimaryButton @click="exportTablePdf">
           <font-awesome-icon :icon="['fas', 'file-pdf']" class="mr-1" /> {{ t('protocol.exportTable') }}
         </PrimaryButton>
         <SecondaryButton @click="exportAllZip">
           <font-awesome-icon :icon="['fas', 'download']" class="mr-1" /> {{ t('protocol.exportAll') }}
         </SecondaryButton>
-      </div>
+      </ButtonRow>
     </div>
 
     <Spinner v-if="loading" />

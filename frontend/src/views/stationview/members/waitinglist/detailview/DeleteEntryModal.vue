@@ -8,6 +8,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { WaitingListEntryWithScore } from '@/api/waitingList'
@@ -40,10 +41,10 @@ function entryFullName(item: WaitingListEntryWithScore): string {
     <div class="space-y-4">
       <SubHeader>{{ t('waitingList.deleteEntryTitle') }}</SubHeader>
       <p class="text-sm">{{ t('waitingList.deleteEntryConfirm', { name: target ? entryFullName(target) : '' }) }}</p>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton @click="emit('confirm')">{{ t('common.delete') }}</ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

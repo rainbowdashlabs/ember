@@ -187,6 +187,11 @@ export interface SessionInfo {
     publicKbMode?: string
     /** ISO timestamp at which the station setup wizard was finished, or null while it still applies. */
     setupCompletedAt?: string | null
+    /**
+     * Whether this station's exported PDFs leave the address of the installation off the foot of the
+     * page. Every screen that exports something reads it here, since exporting is not managing.
+     */
+    pdfHidesInstanceUrl?: boolean
     /** The cluster this request is acting for, when the header named one. */
     clusterId?: string | null
     clusterUserType?: string | null

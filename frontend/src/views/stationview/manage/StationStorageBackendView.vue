@@ -13,6 +13,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -259,14 +260,14 @@ const {running: saving, error: applyError, run: runApply} = useAsyncAction(
             <div class="space-y-4">
                 <SubHeader>{{ t('stationStorageBackend.confirm.title') }}</SubHeader>
                 <MutedText tag="p" size="sm">{{ t('stationStorageBackend.confirm.body') }}</MutedText>
-                <div class="flex justify-end gap-3">
+                <ButtonRow pair align="end">
                     <SecondaryButton @click="confirmApply = false">
                         {{ t('stationStorageBackend.confirm.cancel') }}
                     </SecondaryButton>
                     <PrimaryButton :disabled="saving" @click="runApply">
                         {{ t('stationStorageBackend.confirm.confirm') }}
                     </PrimaryButton>
-                </div>
+                </ButtonRow>
             </div>
         </Modal>
     </ViewContent>

@@ -12,6 +12,7 @@ import {formatDate} from '@/util/format'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -129,10 +130,10 @@ async function confirmRename() {
             {{ t('twoFactor.webauthn.added') }}: {{ formatDate(key.createdAt) }}
           </MutedText>
         </div>
-        <div class="flex items-center gap-2">
+        <ButtonRow pair align="end">
           <SecondaryButton compact @click="openRename(key)">{{ t('common.rename') }}</SecondaryButton>
           <ErrorButton compact @click="handleRemove(key)">{{ t('common.remove') }}</ErrorButton>
-        </div>
+        </ButtonRow>
       </li>
     </ul>
     <FailureAlert :message="error"/>
@@ -144,14 +145,14 @@ async function confirmRename() {
       <MutedText tag="p" size="sm">{{ t('twoFactor.webauthn.labelHint') }}</MutedText>
       <TextInput v-model="newLabel" :placeholder="t('twoFactor.webauthn.labelPlaceholder')" :disabled="enrolling"/>
       <FailureAlert :message="error"/>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton :disabled="enrolling" @click="showLabelPrompt = false">
           {{ t('common.cancel') }}
         </SecondaryButton>
         <PrimaryButton :disabled="enrolling || !newLabel.trim()" @click="confirmEnrollment">
           {{ enrolling ? t('twoFactor.webauthn.waiting') : t('twoFactor.webauthn.continue') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 
@@ -159,12 +160,12 @@ async function confirmRename() {
     <div class="space-y-4 p-4">
       <SubHeader>{{ t('twoFactor.webauthn.renamePrompt') }}</SubHeader>
       <TextInput v-model="renameLabel" :placeholder="t('twoFactor.webauthn.labelPlaceholder')"/>
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="renameTarget = null">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!renameLabel.trim()" @click="confirmRename">
           {{ t('common.save') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

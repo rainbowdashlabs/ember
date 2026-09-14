@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -62,7 +63,7 @@ const { t } = useI18n()
         <span v-if="attemptStartedAt">{{ t('quiz.tests.startedAt') }}: {{ formatDateTime(attemptStartedAt) }}</span>
         <span v-if="attemptSubmittedAt">{{ t('quiz.tests.submittedAt') }}: {{ formatDateTime(attemptSubmittedAt) }}</span>
       </div>
-      <div class="flex items-center gap-2 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
+      <ButtonRow class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
         <PrimaryButton v-if="test.status === QuizTestStatus.ACTIVE && !canReadResults && !submitted" @click.stop="emit('take', test)">
           {{ t('quiz.tests.takeTest') }}
         </PrimaryButton>
@@ -70,7 +71,7 @@ const { t } = useI18n()
           <SecondaryButton @click.stop="emit('edit', test)">{{ t('common.edit') }}</SecondaryButton>
           <ErrorButton @click.stop="emit('remove', test)">{{ t('common.delete') }}</ErrorButton>
         </template>
-      </div>
+      </ButtonRow>
     </div>
 
     <div v-else class="flex items-center justify-between gap-4">
@@ -95,7 +96,7 @@ const { t } = useI18n()
           <div v-if="attemptStartedAt">{{ t('quiz.tests.startedAt') }}: {{ formatDateTime(attemptStartedAt) }}</div>
           <div v-if="attemptSubmittedAt">{{ t('quiz.tests.submittedAt') }}: {{ formatDateTime(attemptSubmittedAt) }}</div>
         </div>
-        <div class="flex items-center gap-2" @click.stop>
+        <ButtonRow @click.stop>
           <PrimaryButton v-if="test.status === QuizTestStatus.ACTIVE && !canReadResults && !submitted" @click="emit('take', test)">
             {{ t('quiz.tests.takeTest') }}
           </PrimaryButton>
@@ -103,7 +104,7 @@ const { t } = useI18n()
             <SecondaryButton @click="emit('edit', test)">{{ t('common.edit') }}</SecondaryButton>
             <ErrorButton @click="emit('remove', test)">{{ t('common.delete') }}</ErrorButton>
           </template>
-        </div>
+        </ButtonRow>
       </div>
     </div>
   </NeutralContainer>

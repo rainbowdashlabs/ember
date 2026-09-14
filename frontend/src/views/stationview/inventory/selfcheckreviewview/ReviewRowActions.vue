@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SuccessButton from '@/components/button/SuccessButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type {SelfCheckReviewRow} from '@/api/selfChecks'
@@ -36,7 +37,7 @@ const needsCorrection = computed(
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-1 shrink-0">
+  <ButtonRow class="shrink-0">
     <SuccessButton
         v-if="!needsCorrection"
         class="text-xs px-3 py-1.5"
@@ -63,5 +64,5 @@ const needsCorrection = computed(
     >
       {{ t('selfCheck.review.refuse') }}
     </ErrorButton>
-  </div>
+  </ButtonRow>
 </template>

@@ -10,6 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import KbFolderPicker from './KbFolderPicker.vue'
@@ -138,11 +139,11 @@ async function submit() {
 
         <Alert v-if="refusal" variant="error" class="mt-3">{{ refusal }}</Alert>
 
-        <div class="mt-4 flex justify-end gap-2">
+        <ButtonRow pair align="end" class="mt-4">
             <SecondaryButton data-cancel @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton :disabled="saving" data-testid="kb-move-confirm" @click="submit">
                 {{ t('kb.move') }}
             </PrimaryButton>
-        </div>
+        </ButtonRow>
     </Modal>
 </template>

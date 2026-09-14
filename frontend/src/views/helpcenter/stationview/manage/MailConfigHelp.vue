@@ -18,6 +18,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import {RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
 
 const {t} = useI18n()
@@ -197,12 +198,12 @@ const {t} = useI18n()
 
     <!-- Dummy: Save & Test buttons -->
     <NeutralContainer class="space-y-4">
-      <div class="flex items-center gap-2">
+      <ButtonRow pair>
         <PrimaryButton disabled>{{ t('stationManage.save') }}</PrimaryButton>
         <SuccessButton :icon="['fas', 'plug']" disabled>
           {{ t('stationManage.mailTest') }}
         </SuccessButton>
-      </div>
+      </ButtonRow>
     </NeutralContainer>
 
     <HelpTip>{{ t('helpCenter.mailConfig.tip') }}</HelpTip>

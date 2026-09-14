@@ -10,6 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SingleSelectDropdown from '@/components/input/select/SingleSelectDropdown.vue'
 import SetupMailChoice from '@/components/input/toggle/SetupMailChoice.vue'
@@ -110,14 +111,14 @@ function doCreate() {
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between">
       <SubHeader class="text-sm">{{ labels.title }}</SubHeader>
-      <div v-if="!readonly" class="flex items-center gap-2">
+      <ButtonRow v-if="!readonly" align="end">
         <SecondaryButton :icon="['fas', 'link']" @click="showLink = !showLink">
           {{ labels.link }}
         </SecondaryButton>
         <SecondaryButton v-if="allowCreate" :icon="['fas', 'plus']" @click="showCreate = !showCreate">
           {{ labels.create }}
         </SecondaryButton>
-      </div>
+      </ButtonRow>
     </div>
 
     <MutedText tag="div" size="sm" class="py-2" v-if="people.length === 0">

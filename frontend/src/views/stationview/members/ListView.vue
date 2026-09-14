@@ -11,6 +11,7 @@ import MemberListPanel from './listview/MemberListPanel.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {StationPermission, type StationMember} from '@/api/types'
 import { STATION_MEMBER_SOURCE } from './listview/useMemberData'
@@ -71,12 +72,12 @@ function openResendSetup(member: StationMember, event: Event) {
       <div class="space-y-4">
         <p>{{ t('membersList.resendConfirm', {name: resendTarget?.name ?? ''}) }}</p>
         <Alert v-if="resendError" variant="error">{{ resendError }}</Alert>
-        <div class="flex justify-end gap-3">
+        <ButtonRow align="end">
           <SecondaryButton :disabled="resending" @click="resendTarget = null">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton :icon="['fas', 'paper-plane']" :disabled="resending" @click="confirmResendSetup">
             {{ t('membersList.resendAction') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </Modal>
 

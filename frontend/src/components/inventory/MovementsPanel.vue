@@ -12,6 +12,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import {movements} from '@/api'
 import {MovementState, StepActor, type Movement} from '@/api/movements'
 import {apiErrorMessage} from '@/util/apiError'
@@ -127,7 +128,7 @@ onMounted(load)
         </MutedText>
         <span v-if="movement.currentStepLabel" class="text-(--text-muted)"> · {{ movement.currentStepLabel }}</span>
       </div>
-      <div class="flex items-center gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton
             v-if="movement.itemStillWithMember"
             :disabled="busy"
@@ -144,7 +145,7 @@ onMounted(load)
         >
           {{ t('movements.confirmReceipt') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </NeutralContainer>
 </template>

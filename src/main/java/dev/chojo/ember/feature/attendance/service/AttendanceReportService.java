@@ -311,6 +311,7 @@ public class AttendanceReportService {
         data.put("generatedBy", generatedBy != null ? generatedBy : "");
         data.put("generatedAt", DATE_FMT.format(Instant.now().atZone(zone)));
         data.put("baseUrl", apiConfig.baseUrl());
+        data.put("showInstanceUrl", StationFormat.showsInstanceUrl(station));
         data.put("hasLogo", false);
 
         try {

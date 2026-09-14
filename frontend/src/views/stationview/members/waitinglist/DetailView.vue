@@ -207,7 +207,6 @@ function showErrorMessage(msg: string) {
     <div class="space-y-6">
       <DetailHeader
         :can-manage="canManage"
-        :is-mobile="isMobile"
         @back="goBack"
         @manage-fields="navigateToFields"
         @delete-list="showDeleteModal = true"

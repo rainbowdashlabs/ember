@@ -11,6 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -283,7 +284,7 @@ const pageError = computed(() =>
           <MutedText v-if="followsEvent" tag="p" data-testid="checklist-follows">{{ followsLabel }}</MutedText>
           <MutedText v-else-if="frozenMemberSet" tag="p" data-testid="checklist-frozen">{{ t('checklist.frozenSetHint') }}</MutedText>
         </div>
-        <div class="flex flex-wrap gap-2 items-center">
+        <ButtonRow align="end">
           <template v-if="canManage">
             <EditButton @click="showEditMeta = true">
               {{ t('checklist.editChecklist') }}
@@ -304,7 +305,7 @@ const pageError = computed(() =>
           <DeleteButton v-if="canManage" @click="showDeleteConfirm = true">
             {{ t('checklist.deleteChecklist') }}
           </DeleteButton>
-        </div>
+        </ButtonRow>
       </div>
 
       <ChecklistFilterBar

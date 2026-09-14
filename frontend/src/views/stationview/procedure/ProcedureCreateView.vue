@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -88,12 +89,12 @@ watch(loaded, (v) => {
             @remove="form.removeItem"
         />
 
-        <div class="flex justify-end gap-2">
+        <ButtonRow pair align="end">
           <SecondaryButton @click="router.back()">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton :disabled="!name.trim() || saving" @click="handleSubmit">
             {{ isEditMode ? t('common.save') : t('procedures.createProcedure') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </template>
 

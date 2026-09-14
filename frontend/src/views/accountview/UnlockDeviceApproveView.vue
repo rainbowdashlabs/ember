@@ -16,6 +16,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {passkeys} from '@/api'
 import type {DeviceLookup} from '@/api/passkeys'
@@ -132,12 +133,12 @@ function reset() {
           </div>
 
           <Alert variant="error">{{ t('passkeys.approve.warning') }}</Alert>
-          <div class="flex justify-between gap-2">
+          <ButtonRow pair align="between">
             <SecondaryButton type="button" :disabled="busy" @click="reset">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton type="button" :disabled="busy" @click="approve">
               {{ t('passkeys.approve.approve') }}
             </PrimaryButton>
-          </div>
+          </ButtonRow>
         </template>
       </NeutralContainer>
     </div>

@@ -7,10 +7,10 @@
 import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 defineProps<{
   canManage: boolean
-  isMobile: boolean
 }>()
 
 const emit = defineEmits<{
@@ -23,17 +23,19 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center justify-between gap-2">
-    <SecondaryButton :icon="['fas', 'chevron-left']" @click="emit('back')">
-      {{ t('waitingList.back') }}
-    </SecondaryButton>
-    <div v-if="canManage" class="flex items-center gap-2 w-full sm:w-auto">
-      <SecondaryButton :icon="['fas', 'sliders']" :full-width="isMobile" class="flex-1 sm:flex-initial" @click="emit('manage-fields')">
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <ButtonRow>
+      <SecondaryButton :icon="['fas', 'chevron-left']" @click="emit('back')">
+        {{ t('waitingList.back') }}
+      </SecondaryButton>
+    </ButtonRow>
+    <ButtonRow v-if="canManage" align="end">
+      <SecondaryButton :icon="['fas', 'sliders']" @click="emit('manage-fields')">
         {{ t('waitingList.manageFields') }}
       </SecondaryButton>
-      <ErrorButton :icon="['fas', 'trash']" :full-width="isMobile" class="flex-1 sm:flex-initial" @click="emit('delete-list')">
+      <ErrorButton :icon="['fas', 'trash']" @click="emit('delete-list')">
         {{ t('waitingList.deleteList') }}
       </ErrorButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>

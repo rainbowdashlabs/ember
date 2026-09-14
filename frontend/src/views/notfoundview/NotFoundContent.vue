@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {emberLogoFaq} from '@/composables/useEmberLogo'
 import {useSignedIn} from '@/composables/useSignedIn'
@@ -46,7 +47,7 @@ function leaveTo(path: string) {
     <PageHeader class="text-6xl font-extrabold text-primary mb-2">{{ status }}</PageHeader>
     <p class="text-xl font-medium mb-2">{{ title }}</p>
     <p class="text-(--text-muted) mb-8 max-w-md">{{ text }}</p>
-    <div class="flex gap-3">
+    <ButtonRow align="center">
       <SecondaryButton data-testid="error-home" :icon="['fas', 'house']" @click="leaveTo('/?home')">
         {{ t('notFound.home') }}
       </SecondaryButton>
@@ -61,6 +62,6 @@ function leaveTo(path: string) {
       >
         {{ t('failure.report') }}
       </SecondaryButton>
-    </div>
+    </ButtonRow>
   </div>
 </template>
