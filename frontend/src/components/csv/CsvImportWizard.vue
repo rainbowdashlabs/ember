@@ -74,7 +74,7 @@ function advanceFromMapping() {
 
     <template v-else-if="step === CsvImportSteps.MAPPING">
       <slot name="mapping"/>
-      <ButtonRow align="between">
+      <ButtonRow pair align="between">
         <SecondaryButton @click="importer.goBack()">{{ t('common.back') }}</SecondaryButton>
         <PrimaryButton
             :disabled="loading"
@@ -88,7 +88,7 @@ function advanceFromMapping() {
 
     <template v-else-if="step === CsvImportSteps.PREVIEW">
       <slot name="preview"/>
-      <ButtonRow align="between">
+      <ButtonRow pair align="between">
         <SecondaryButton @click="importer.goBack()">{{ t('common.back') }}</SecondaryButton>
         <PrimaryButton :disabled="loading" :icon="['fas', 'file-import']" @click="importer.commit()">
           {{ loading ? t('common.loading') : t('csvImport.import') }}

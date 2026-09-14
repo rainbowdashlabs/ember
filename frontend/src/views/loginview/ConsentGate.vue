@@ -11,6 +11,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import StorageScopeChoice from '@/components/consent/StorageScopeChoice.vue'
 import type {StorageNecessityName} from '@/api/storage'
 
@@ -42,18 +43,18 @@ const {t} = useI18n()
 
     <StorageScopeChoice v-model="scopes"/>
 
-    <div class="flex gap-4">
+    <ButtonRow pair>
       <LinkButton @click="emit('showPrivacy')">{{ t('storageConsent.privacyPolicy') }}</LinkButton>
       <LinkButton @click="emit('showTos')">{{ t('storageConsent.tos') }}</LinkButton>
-    </div>
+    </ButtonRow>
 
-    <div class="flex gap-3">
-      <SuccessButton class="flex-1" @click="emit('accept')">
+    <ButtonRow pair>
+      <SuccessButton class="sm:flex-1" @click="emit('accept')">
         {{ t('storageConsent.accept') }}
       </SuccessButton>
-      <ErrorButton class="flex-1" @click="emit('deny')">
+      <ErrorButton class="sm:flex-1" @click="emit('deny')">
         {{ t('storageConsent.deny') }}
       </ErrorButton>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>

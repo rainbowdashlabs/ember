@@ -212,7 +212,7 @@ function close() {
           <div class="min-w-0 flex-1 space-y-2">
             <p class="text-sm font-semibold text-(--text-muted)">{{ taskTitle }}</p>
             <p class="text-base text-(--text)">{{ bubbleText }}</p>
-            <ButtonRow v-if="completed">
+            <ButtonRow v-if="completed" pair>
               <PrimaryButton class="text-sm" @click="goToList">{{ t('onboarding.guide.toList') }}</PrimaryButton>
               <SecondaryButton class="text-sm" @click="completed = null">
                 {{ t('onboarding.guide.stayHere') }}
@@ -226,7 +226,7 @@ function close() {
                 {{ t('onboarding.guide.takeMeThere') }}
               </PrimaryButton>
               <SecondaryButton class="text-sm" @click="skipTask">{{ t('onboarding.guide.skip') }}</SecondaryButton>
-              <span class="text-xs text-(--text-muted) sm:ml-auto">{{ progress }}</span>
+              <span class="text-xs text-(--text-muted) max-sm:text-center sm:ml-auto">{{ progress }}</span>
             </ButtonRow>
           </div>
           <MutedIconButton

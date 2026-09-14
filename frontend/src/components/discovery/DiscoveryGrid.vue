@@ -9,6 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type {DiscoveryEntry} from '@/api/discovery'
@@ -48,7 +49,7 @@ function logoUrl(station: DiscoveryEntry): string {
 
       <MutedText v-if="station.description" size="sm">{{ station.description }}</MutedText>
 
-      <div class="flex items-center gap-2 flex-wrap mt-auto pt-2">
+      <ButtonRow class="mt-auto pt-2">
         <PrimaryBadge v-if="station.isOwnStation">{{ t('discovery.ownStation') }}</PrimaryBadge>
         <SuccessBadge v-else-if="station.alreadyFederated">{{ t('discovery.alreadyConnected') }}</SuccessBadge>
         <PrimaryButton v-else-if="canConnect && !station.isOwnStation" compact @click="emit('connect', station)">
@@ -65,7 +66,7 @@ function logoUrl(station: DiscoveryEntry): string {
           <font-awesome-icon :icon="['fas', 'globe']"/>
           {{ t('discovery.viewStation') }}
         </router-link>
-      </div>
+      </ButtonRow>
     </NeutralContainer>
   </div>
 </template>

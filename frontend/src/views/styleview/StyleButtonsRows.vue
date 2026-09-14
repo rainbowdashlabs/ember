@@ -12,6 +12,7 @@ import InfoButton from '@/components/button/InfoButton.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
 import IdentityButton from '@/components/button/IdentityButton.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 
 /** Fake save that resolves after a short delay so the showcase button plays its pending state. */
 function demoSave(): Promise<void> {
@@ -20,15 +21,15 @@ function demoSave(): Promise<void> {
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-2 items-center"><PrimaryButton>Primary</PrimaryButton><SecondaryButton>Secondary</SecondaryButton><SuccessButton>Success</SuccessButton><ErrorButton>Error</ErrorButton><InfoButton>Info</InfoButton></div>
-  <div class="flex flex-wrap gap-2 items-center"><PrimaryButton :icon="['fas', 'plus']">With Icon</PrimaryButton><SecondaryButton :icon="['fas', 'download']">Download</SecondaryButton><SuccessButton :icon="['fas', 'check']">Confirm</SuccessButton><ErrorButton :icon="['fas', 'trash']">Delete</ErrorButton></div>
-  <div class="flex flex-wrap gap-2 items-center"><PrimaryButton compact>Compact</PrimaryButton><SecondaryButton compact>Compact</SecondaryButton><SuccessButton compact>Compact</SuccessButton></div>
+  <ButtonRow><PrimaryButton>Primary</PrimaryButton><SecondaryButton>Secondary</SecondaryButton><SuccessButton>Success</SuccessButton><ErrorButton>Error</ErrorButton><InfoButton>Info</InfoButton></ButtonRow>
+  <ButtonRow><PrimaryButton :icon="['fas', 'plus']">With Icon</PrimaryButton><SecondaryButton :icon="['fas', 'download']">Download</SecondaryButton><SuccessButton :icon="['fas', 'check']">Confirm</SuccessButton><ErrorButton :icon="['fas', 'trash']">Delete</ErrorButton></ButtonRow>
+  <ButtonRow><PrimaryButton compact>Compact</PrimaryButton><SecondaryButton compact>Compact</SecondaryButton><SuccessButton compact>Compact</SuccessButton></ButtonRow>
   <div class="flex flex-col gap-2 max-w-xs"><PrimaryButton full-width :icon="['fas', 'plus']">Full width</PrimaryButton><SecondaryButton full-width>Full width</SecondaryButton><InfoButton compact full-width>Full width compact</InfoButton></div>
-  <div class="flex flex-wrap gap-2 items-center"><SaveButton :action="demoSave"/><SaveButton :action="demoSave">Custom text</SaveButton></div>
-  <div class="flex flex-wrap gap-2 items-center"><PrimaryButton disabled>Disabled</PrimaryButton><SecondaryButton disabled>Disabled</SecondaryButton><SuccessButton disabled>Disabled</SuccessButton><ErrorButton disabled>Disabled</ErrorButton><InfoButton disabled>Disabled</InfoButton></div>
-  <div class="flex flex-wrap gap-2 items-center">
+  <ButtonRow pair><SaveButton :action="demoSave"/><SaveButton :action="demoSave">Custom text</SaveButton></ButtonRow>
+  <ButtonRow><PrimaryButton disabled>Disabled</PrimaryButton><SecondaryButton disabled>Disabled</SecondaryButton><SuccessButton disabled>Disabled</SuccessButton><ErrorButton disabled>Disabled</ErrorButton><InfoButton disabled>Disabled</InfoButton></ButtonRow>
+  <ButtonRow>
     <IdentityButton><font-awesome-icon :icon="['fas', 'user']" class="h-4 w-4"/>Identity</IdentityButton>
     <LinkButton>Link Button</LinkButton>
     <LinkButton disabled>Link (disabled)</LinkButton>
-  </div>
+  </ButtonRow>
 </template>

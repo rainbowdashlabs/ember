@@ -99,8 +99,8 @@ function move(fromIndex: number, toIndex: number) {
       </template>
     </DragList>
 
-    <div class="flex justify-between gap-2 flex-wrap border-t border-(--border) pt-4">
-      <ButtonRow>
+    <ButtonRow align="between" class="border-t border-(--border) pt-4">
+      <ButtonRow pair>
         <SecondaryButton data-onboarding="mailing.add-provider" :icon="['fas', 'plus']" :disabled="props.ready === false" @click="add">
           {{ t('mailChain.add') }}
         </SecondaryButton>
@@ -113,6 +113,6 @@ function move(fromIndex: number, toIndex: number) {
         </ErrorButton>
       </ButtonRow>
       <SaveButton data-testid="mail-providers-save" :disabled="props.ready === false" :action="props.save"/>
-    </div>
+    </ButtonRow>
   </NeutralContainer>
 </template>
