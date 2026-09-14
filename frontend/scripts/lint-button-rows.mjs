@@ -8,7 +8,9 @@
  *
  * A row is reported when a flex container holds two or more buttons that carry a label and says
  * nothing about what happens at a narrow width. A button holding only an icon is a toolbar rather
- * than an action row and has no label to break, so it does not count towards the two.
+ * than an action row and has no label to break, so it does not count towards the two. A row built by
+ * repeating one button is left alone altogether: a bar of tabs or of filters is a collection rather
+ * than a row of separate actions, and stacking it full width would be the wrong answer.
  *
  * Warns while the sweep is under way. Pass --error to fail the build on what is left.
  */
@@ -21,7 +23,8 @@ const CATEGORY = 'Hand written button row'
 
 const asError = process.argv.includes('--error')
 
-const BUTTON = /<((?:Primary|Secondary|Error|Success|Info|Save|Delete|Edit|Confirm|Download|Upload|Link)Button)\b[^>]*?(?:\/>|>([\s\S]*?)<\/\1>)/g
+const BUTTON = /<((?:Primary|Secondary|Error|Success|Info|Save|Delete|Edit|Confirm|Download|Upload|Link)Button)\b([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g
+const REPEATED = /\sv-for\b/
 const DIV = /<div\b([^>]*)>|<\/div>/g
 const MANAGED = /<ButtonRow\b[\s\S]*?<\/ButtonRow>/g
 const FLEX = /class="[^"]*\bflex\b/
@@ -44,7 +47,8 @@ function carriesLabel(inner) {
 function labelledButtonsIn(slice) {
     let count = 0
     for (const match of slice.replace(MANAGED, '').matchAll(BUTTON)) {
-        if (carriesLabel(match[2])) count++
+        if (REPEATED.test(match[2])) return 0
+        if (carriesLabel(match[3])) count++
     }
     return count
 }
