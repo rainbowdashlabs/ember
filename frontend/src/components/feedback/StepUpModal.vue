@@ -11,6 +11,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
@@ -182,14 +183,14 @@ function onCancel() {
             inputmode="numeric"
         />
         <FailureAlert :message="error"/>
-        <div class="flex justify-between gap-2">
+        <ButtonRow pair align="between">
           <SecondaryButton type="button" :disabled="loading" @click="onCancel">
             {{ t('twoFactor.stepUp.cancel') }}
           </SecondaryButton>
           <PrimaryButton :disabled="loading || !submitReady" type="submit">
             {{ loading ? t('common.loading') : t('twoFactor.stepUp.submit') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </form>
       <template v-else>
         <FailureAlert :message="error"/>

@@ -6,6 +6,7 @@
 <script lang="ts" setup generic="K extends string | number">
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -33,10 +34,10 @@ const emit = defineEmits<{
   <component :is="boxed ? NeutralContainer : 'div'" class="space-y-2">
     <div v-if="label || bulk" class="flex items-center justify-between gap-2">
       <FieldLabel v-if="label">{{ label }}</FieldLabel>
-      <div v-if="bulk" class="flex items-center gap-2">
+      <ButtonRow v-if="bulk" pair align="end">
         <SecondaryButton @click="emit('select', options.map(o => o.key))">{{ t('common.selectAll') }}</SecondaryButton>
         <SecondaryButton @click="emit('select', [])">{{ t('common.selectNone') }}</SecondaryButton>
-      </div>
+      </ButtonRow>
     </div>
 
     <MutedText v-if="options.length === 0" tag="p">{{ t('common.noOptions') }}</MutedText>
