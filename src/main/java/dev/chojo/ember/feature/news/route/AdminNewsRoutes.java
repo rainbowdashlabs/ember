@@ -233,7 +233,7 @@ public class AdminNewsRoutes implements Routes {
             tags = {"Admin"},
             responses = @OpenApiResponse(status = "200"))
     private void listInstanceFiles(Context ctx) {
-        ctx.json(media.listLibrary(null));
+        ctx.json(media.listLibrary(null, true));
     }
 
     @OpenApi(

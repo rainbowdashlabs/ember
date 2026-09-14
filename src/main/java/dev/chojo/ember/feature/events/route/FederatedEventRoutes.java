@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
+import io.javalin.http.BadGatewayResponse;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -26,6 +27,8 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -43,6 +46,8 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
  */
 @Singleton
 public class FederatedEventRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(FederatedEventRoutes.class);
+
     private final EventFederationService eventFederationService;
     private final EventFieldService eventFieldService;
     private final FederationRepository federationRepository;
@@ -136,9 +141,15 @@ public class FederatedEventRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var content = eventFederationService.getFederatedAttachment(
                 session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id"), pathInt(ctx, "attachmentId"));
-        if (content == null) throw new NotFoundResponse();
+        if (content == null || content.base64() == null) throw new NotFoundResponse();
 
-        byte[] data = Base64.getDecoder().decode(content.base64());
+        byte[] data;
+        try {
+            data = Base64.getDecoder().decode(content.base64());
+        } catch (IllegalArgumentException e) {
+            log.warn("Partner station answered with a file this instance cannot read", e);
+            throw new BadGatewayResponse("The station holding this file answered with something unreadable");
+        }
         ctx.contentType(SafeInlineMime.safeContentType(content.mimeType()));
         ctx.header(
                 "Content-Disposition",

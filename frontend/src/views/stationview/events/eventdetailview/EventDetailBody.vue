@@ -147,6 +147,13 @@ const canReadEquipment = computed(() =>
         || props.hasPermission(StationPermission.EVENT_INTERNAL)))
 
 /**
+ * Whether what is missing can be asked for, which is a right over the gear rather than over the
+ * evening. Somebody who only reads what an event keeps internal is shown what it needs and is not
+ * offered a button landing them on a page that refuses them.
+ */
+const canBorrowGear = computed(() => props.hasPermission(StationPermission.INVENTORY_LENDING_REQUEST))
+
+/**
  * What the second tab is called, which follows what the appointment asks of people.
  *
  * <p>Where it has to be signed up for, the tab holds the sign-ups. Where it does not, everybody is
@@ -269,6 +276,7 @@ function onCancelled() {
         :effective-date="effectiveDate"
         :recurring="isRecurringEvent(event.eventType)"
         :can-edit="canManageEvents"
+        :can-borrow="canBorrowGear"
     />
 
     <EventCancelModal

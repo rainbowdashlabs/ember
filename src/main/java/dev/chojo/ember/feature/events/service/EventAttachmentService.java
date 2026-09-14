@@ -51,6 +51,18 @@ public class EventAttachmentService {
     }
 
     /**
+     * Refuses a file too large to travel to a partner station, before its bytes are read.
+     *
+     * <p>The channel between two instances speaks JSON, so a file crossing it is held whole in
+     * memory several times over: the bytes, the text they are encoded as, and the body carrying
+     * that text. The size a station accepts as an upload is the size it is willing to hand on, and
+     * the question is asked of what the row says rather than of what has already been loaded.
+     */
+    public static void requireSizeToTravel(long fileSize, long limit) {
+        if (fileSize > limit) throw new BadRequestResponse("This file is too large to hand to a partner station");
+    }
+
+    /**
      * The files of an event as this reader may have them.
      *
      * @param permissions the reader's permissions, already expanded

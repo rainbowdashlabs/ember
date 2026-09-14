@@ -214,11 +214,9 @@ public class RemoteEventRoutes implements Routes {
                 .filter(found -> !found.internal())
                 .orElseThrow(NotFoundResponse::new);
 
+        EventAttachmentService.requireSizeToTravel(attachment.fileSize(), apiConfig.maxUploadSizeBytes());
         var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
         var file = media.read(event.stationId(), attachment.contentHash()).orElseThrow(NotFoundResponse::new);
-        if (file.data().length > apiConfig.maxUploadSizeBytes()) {
-            throw new BadRequestResponse("This file is too large to hand to a partner station");
-        }
         ctx.json(new RemoteAttachmentContent(
                 attachment.id(),
                 attachment.displayName(),

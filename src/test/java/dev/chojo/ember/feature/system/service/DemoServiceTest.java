@@ -296,7 +296,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationFanout,
                 federationEntityResolver,
                 new EventAttachmentService(new EventAttachmentRepository(), mock(MediaLibraryService.class)),
-                mock(MediaLibraryService.class));
+                mock(MediaLibraryService.class),
+                new Api());
         var newsFederationService = new NewsFederationService(
                 newsFederationRepo,
                 federationService,

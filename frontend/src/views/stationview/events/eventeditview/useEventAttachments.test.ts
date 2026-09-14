@@ -120,6 +120,59 @@ describe('useEventAttachments', () => {
         expect(reorderEventAttachments).not.toHaveBeenCalled()
     })
 
+    /**
+     * A switch the server refused must not keep standing. What it shows is a claim about who may
+     * read the file, and a screen saying "kept back" over a file that is still open to everyone,
+     * partner stations included, is worse than no screen at all.
+     */
+    it('takes a refused switch back off the screen and says so', async () => {
+        const files = useEventAttachments(() => 12)
+        listEventAttachments.mockImplementation(async () => [attachment(1)])
+        await files.load()
+        updateEventAttachment.mockRejectedValue(new Error('nope'))
+
+        const first = files.attachments.value[0]!
+        first.internal = true
+        await files.save(first)
+
+        expect(files.error.value).toBe('save')
+        expect(files.attachments.value[0]!.internal, 'the list is read back from the station').toBe(false)
+    })
+
+    it('puts the order back where the move could not be written', async () => {
+        const files = useEventAttachments(() => 12)
+        listEventAttachments.mockResolvedValue([attachment(1), attachment(2)])
+        await files.load()
+        reorderEventAttachments.mockRejectedValue(new Error('nope'))
+
+        await files.reorder(1, 0)
+
+        expect(files.attachments.value.map(a => a.id)).toEqual([1, 2])
+        expect(files.error.value).toBe('reorder')
+    })
+
+    it('says so where a picked file could not be hung on the event', async () => {
+        const files = useEventAttachments(() => 12)
+        attachEventFile.mockRejectedValue(new Error('nope'))
+
+        await files.add(pickedFile)
+
+        expect(files.attachments.value).toEqual([])
+        expect(files.error.value).toBe('add')
+    })
+
+    it('keeps the file where it could not be detached', async () => {
+        const files = useEventAttachments(() => 12)
+        listEventAttachments.mockResolvedValue([attachment(1)])
+        await files.load()
+        detachEventFile.mockRejectedValue(new Error('nope'))
+
+        await files.remove(0)
+
+        expect(files.attachments.value.map(a => a.id)).toEqual([1])
+        expect(files.error.value).toBe('remove')
+    })
+
     it('keeps the list it had where the files could not be asked for', async () => {
         const files = useEventAttachments(() => 12)
         listEventAttachments.mockRejectedValue(new Error('nope'))

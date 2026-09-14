@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
 import {formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
@@ -50,7 +51,12 @@ watch(() => props.eventId, load)
 </script>
 
 <template>
-  <NeutralContainer v-if="attachments.length > 0" class="space-y-3" data-testid="event-attachment-list">
+  <NeutralContainer v-if="failed" class="space-y-3" data-testid="event-attachment-failure">
+    <SubHeader>{{ t('events.attachments.title') }}</SubHeader>
+    <Alert variant="error">{{ t('events.attachments.loadFailed') }}</Alert>
+  </NeutralContainer>
+
+  <NeutralContainer v-else-if="attachments.length > 0" class="space-y-3" data-testid="event-attachment-list">
     <SubHeader>{{ t('events.attachments.title') }}</SubHeader>
     <div
         v-for="attachment in attachments"

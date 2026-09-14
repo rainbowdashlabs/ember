@@ -2584,6 +2584,8 @@ export default {
             internal: 'Intern',
             internalHint: 'Intern: nur für alle mit dem Recht, interne Termindaten zu sehen. Sonst für alle, die den Termin sehen, Partnerwachen eingeschlossen.',
             remove: 'Datei entfernen',
+            failed: 'Die letzte Änderung konnte nicht gespeichert werden. Die Liste zeigt wieder den Stand der Wache.',
+            loadFailed: 'Die Dateien zu diesem Termin konnten nicht geladen werden.',
         },
         register: 'Anmelden',
         answerFor: 'Für wen zusagen?',

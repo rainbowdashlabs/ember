@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -224,6 +225,19 @@ class EventAttachmentServiceTest extends RepositoryTestBase {
 
         var stored = service.find(attachment).orElseThrow();
         assertEquals("laufzettel.pdf", stored.displayName());
+    }
+
+    /**
+     * A file too large to cross to another instance is refused before its bytes are read.
+     *
+     * <p>The channel speaks JSON, so a file crossing it is held whole in memory several times over.
+     * The question is asked of the size the row states rather than of what has already been loaded,
+     * which is the difference between a refusal and a heap the loading exhausted.
+     */
+    @Test
+    void aFileTooLargeToTravelIsRefusedByWhatTheRowSays() {
+        assertThrows(BadRequestResponse.class, () -> EventAttachmentService.requireSizeToTravel(4096, 2048));
+        assertDoesNotThrow(() -> EventAttachmentService.requireSizeToTravel(2048, 2048));
     }
 
     /** Whoever may write an event may read what it keeps back, without being granted anything twice. */

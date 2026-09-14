@@ -192,6 +192,7 @@ const bodyHandlers = {
           v-if="!loading && isEdit"
           v-model:attachments="attachments.attachments.value"
           :station-uid="stationUid"
+          :failure="attachments.error.value"
           @add="attachments.add"
           @save="attachments.save"
           @remove="attachments.remove"

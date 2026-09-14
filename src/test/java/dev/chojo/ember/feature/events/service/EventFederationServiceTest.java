@@ -115,7 +115,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 new FederationFanout(),
                 new FederationEntityResolver(federationRepo, stationRepo, httpClient),
                 attachmentService,
-                media);
+                media,
+                new Api());
 
         stationA = stationRepo.create("EventFedSvcStationA");
         stationB = stationRepo.create("EventFedSvcStationB");

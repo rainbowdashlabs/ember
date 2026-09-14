@@ -41,6 +41,7 @@
 
 - **The manager step of member creation offered the whole station.** It promised existing managers and listed every member instead, as cards with no way to search them, which on a station of any size was unusable. It now opens on the guardians, with every other kind one filter away.
 - **A column of an inventory list showed the wrong thing under its heading.** The list of gear in an inventory had a heading for tags but no cell for them, so every value after it slid one column to the left and the person holding a piece appeared as its tag. The columns and the values line up again, and a tag added to a piece now shows without leaving the page.
+- **What an appointment is missing offered a button that refused the person pressing it.** Asking the association for the gear an evening lacks is now offered only to the people who may ask for gear at all; everybody else still sees what is missing.
 
 ## v26.15.2
 

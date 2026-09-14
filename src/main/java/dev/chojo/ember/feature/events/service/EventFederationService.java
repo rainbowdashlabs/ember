@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
@@ -66,6 +67,7 @@ public class EventFederationService {
     private final FederationEntityResolver entityResolver;
     private final EventAttachmentService attachmentService;
     private final MediaLibraryService media;
+    private final Api apiConfig;
 
     @Inject
     public EventFederationService(
@@ -81,7 +83,8 @@ public class EventFederationService {
             FederationFanout fanout,
             FederationEntityResolver entityResolver,
             EventAttachmentService attachmentService,
-            MediaLibraryService media) {
+            MediaLibraryService media,
+            Api apiConfig) {
         this.federationRepository = federationRepository;
         this.federationService = federationService;
         this.httpClient = httpClient;
@@ -95,6 +98,7 @@ public class EventFederationService {
         this.entityResolver = entityResolver;
         this.attachmentService = attachmentService;
         this.media = media;
+        this.apiConfig = apiConfig;
     }
 
     // -- Share management --
@@ -426,6 +430,7 @@ public class EventFederationService {
                 .filter(found -> found.eventId() == eventId)
                 .filter(found -> !found.internal())
                 .orElseThrow(() -> new BadRequestResponse("No such file on this event"));
+        EventAttachmentService.requireSizeToTravel(attachment.fileSize(), apiConfig.maxUploadSizeBytes());
         var event = crudService.findById(eventId).orElseThrow();
         var file = media.read(event.stationId(), attachment.contentHash())
                 .orElseThrow(() -> new BadRequestResponse("The file is gone"));

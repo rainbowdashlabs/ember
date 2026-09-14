@@ -113,11 +113,22 @@ describe('EventAttachmentsPanel', () => {
         expect(downloadAuthed).toHaveBeenCalledWith('/events/12/attachments/5/file', 'laufzettel.pdf')
     })
 
-    it('stays empty where the files could not be asked for', async () => {
+    /**
+     * A question that could not be asked is not an answer of "nothing". Told apart, because an
+     * event that hands over a form and a panel that failed to ask look the same otherwise.
+     */
+    it('says the files could not be asked for rather than that there are none', async () => {
         listEventAttachments.mockRejectedValue(new Error('nope'))
 
         const view = await settled(panel())
 
         expect(view.find('[data-testid="event-attachment-list"]').exists()).toBe(false)
+        expect(view.find('[data-testid="event-attachment-failure"]').exists()).toBe(true)
+    })
+
+    it('says nothing at all where the event hands nothing over', async () => {
+        const view = await settled(panel())
+
+        expect(view.find('[data-testid="event-attachment-failure"]').exists()).toBe(false)
     })
 })
