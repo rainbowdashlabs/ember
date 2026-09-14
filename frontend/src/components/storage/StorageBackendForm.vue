@@ -11,6 +11,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -100,7 +101,7 @@ const {t} = useI18n()
             </Alert>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
+        <ButtonRow>
             <SecondaryButton :disabled="props.probing || selectedType === 'LOCAL' || selectedType === 'CLUSTER'"
                              @click="emit('probe-config')">
                 {{
@@ -126,6 +127,6 @@ const {t} = useI18n()
                         : t(`${props.i18nPrefix}.actions.apply`)
                 }}
             </PrimaryButton>
-        </div>
+        </ButtonRow>
     </NeutralContainer>
 </template>

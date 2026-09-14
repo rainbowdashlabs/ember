@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
@@ -87,10 +88,10 @@ function close() {
       </template>
 
       <template v-else>
-        <div class="flex gap-2 text-xs">
+        <ButtonRow pair class="text-xs">
           <SecondaryButton @click="selectAll">{{ t('tableFilter.selectAll') }}</SecondaryButton>
           <SecondaryButton @click="selectNone">{{ t('tableFilter.selectNone') }}</SecondaryButton>
-        </div>
+        </ButtonRow>
 
         <div class="max-h-64 overflow-y-auto space-y-1 border rounded border-bg-light-accent dark:border-bg-dark-accent p-2">
           <FieldLabel inline class="cursor-pointer dark:hover:bg-bg-dark-accent/50 hover:bg-bg-light-accent/50 px-2 py-1 rounded">
@@ -114,10 +115,10 @@ function close() {
         </div>
       </template>
 
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="close">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton @click="apply">{{ t('tableFilter.apply') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>
