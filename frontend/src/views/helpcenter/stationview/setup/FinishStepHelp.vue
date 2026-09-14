@@ -11,6 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import WizardFrame from './setuphelp/WizardFrame.vue'
 
 const {t} = useI18n()
@@ -33,10 +34,10 @@ const {t} = useI18n()
         <div class="space-y-6 text-center">
           <p>{{ t('setup.steps.finish.body') }}</p>
           <Alert variant="info">{{ t('setup.steps.finish.mailReminder') }}</Alert>
-          <div class="flex flex-wrap items-center gap-3 justify-center pt-4">
+          <ButtonRow pair align="center" class="pt-4">
             <PrimaryButton>{{ t('setup.steps.finish.takeTour') }}</PrimaryButton>
             <SecondaryButton>{{ t('setup.steps.finish.goDashboard') }}</SecondaryButton>
-          </div>
+          </ButtonRow>
         </div>
       </WizardFrame>
     </HelpSection>

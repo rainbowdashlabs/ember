@@ -11,6 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ComparisonTable from './evaluationhelp/ComparisonTable.vue'
@@ -36,14 +37,14 @@ const { t } = useI18n()
           <font-awesome-icon :icon="['fas', 'chevron-left']" />
         </SecondaryButton>
         <SectionHeader>{{ t('protocol.evaluation') }}</SectionHeader>
-        <div class="flex gap-2 ml-auto">
+        <ButtonRow pair class="sm:ml-auto">
           <PrimaryButton disabled>
             <font-awesome-icon :icon="['fas', 'file-pdf']" class="mr-1" /> {{ t('protocol.exportTable') }}
           </PrimaryButton>
           <SecondaryButton disabled>
             <font-awesome-icon :icon="['fas', 'download']" class="mr-1" /> {{ t('protocol.exportAll') }}
           </SecondaryButton>
-        </div>
+        </ButtonRow>
       </div>
     </HelpSection>
 

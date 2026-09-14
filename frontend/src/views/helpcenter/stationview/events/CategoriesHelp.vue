@@ -11,6 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -100,10 +101,10 @@ const {t} = useI18n()
           <FieldLabel>{{ t('categoryManage.public') }}</FieldLabel>
           <ToggleInput :model-value="false"/>
         </div>
-        <div class="flex justify-end gap-3">
+        <ButtonRow pair align="end">
           <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton>{{ t('common.save') }}</PrimaryButton>
-        </div>
+        </ButtonRow>
       </NeutralContainer>
     </HelpSection>
 

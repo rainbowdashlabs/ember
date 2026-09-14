@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
@@ -37,10 +38,10 @@ const {t} = useI18n()
         <td class="p-2 text-center"><ErrorBadge>2</ErrorBadge></td>
         <td class="p-2 text-center text-xs text-(--text-muted)">2026-05-25</td>
         <td class="p-2">
-          <div class="flex items-center gap-1 justify-end">
+          <ButtonRow pair align="end">
             <PrimaryButton compact :icon="['fas', 'check']">{{ t('eventsRegistrations.accept') }}</PrimaryButton>
             <ErrorButton compact :icon="['fas', 'xmark']">{{ t('eventsRegistrations.deny') }}</ErrorButton>
-          </div>
+          </ButtonRow>
         </td>
       </tr>
       <tr class="border-b border-(--border)">
@@ -52,10 +53,10 @@ const {t} = useI18n()
         <td class="p-2 text-center">0</td>
         <td class="p-2 text-center text-xs text-(--text-muted)">2026-05-25</td>
         <td class="p-2">
-          <div class="flex items-center gap-1 justify-end">
+          <ButtonRow pair align="end">
             <PrimaryButton compact :icon="['fas', 'check']">{{ t('eventsRegistrations.accept') }}</PrimaryButton>
             <ErrorButton compact :icon="['fas', 'xmark']">{{ t('eventsRegistrations.deny') }}</ErrorButton>
-          </div>
+          </ButtonRow>
         </td>
       </tr>
     </tbody>

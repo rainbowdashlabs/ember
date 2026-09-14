@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import DummyChangeRow from './DummyChangeRow.vue'
@@ -28,10 +29,12 @@ const {t} = useI18n()
           </p>
         </div>
       </div>
-      <div class="flex items-center gap-2">
-        <ErrorBadge>2 {{ t('memberChanges.pending') }}</ErrorBadge>
-        <SuccessButton :icon="['fas', 'check-double']">{{ t('memberDetail.acknowledgeAll') }}</SuccessButton>
-        <SecondaryButton :icon="['fas', 'user']">{{ t('memberChanges.toProfile') }}</SecondaryButton>
+      <div class="flex items-center gap-2 max-sm:w-full max-sm:flex-col max-sm:items-stretch">
+        <ErrorBadge class="max-sm:self-start">2 {{ t('memberChanges.pending') }}</ErrorBadge>
+        <ButtonRow pair>
+          <SuccessButton :icon="['fas', 'check-double']">{{ t('memberDetail.acknowledgeAll') }}</SuccessButton>
+          <SecondaryButton :icon="['fas', 'user']">{{ t('memberChanges.toProfile') }}</SecondaryButton>
+        </ButtonRow>
       </div>
     </div>
     <div class="mt-4 space-y-3">

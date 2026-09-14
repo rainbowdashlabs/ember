@@ -13,6 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import ProcedureItemRow from '@/views/stationview/procedure/proceduredetailview/ProcedureItemRow.vue'
@@ -72,10 +73,10 @@ const LOCKED_ITEM: ProcedureItem = {
           </div>
           <p class="text-(--text-muted) text-sm">Alle Schritte bis zum ersten Übungsabend.</p>
         </div>
-        <div class="flex gap-2 shrink-0">
+        <ButtonRow pair class="shrink-0">
           <SecondaryButton :icon="['fas', 'pen']">{{ t('common.edit') }}</SecondaryButton>
           <SuccessButton :icon="['fas', 'check']">{{ t('procedures.resolve') }}</SuccessButton>
-        </div>
+        </ButtonRow>
       </div>
       <NeutralContainer class="mb-4">
         <div class="flex items-center gap-3">

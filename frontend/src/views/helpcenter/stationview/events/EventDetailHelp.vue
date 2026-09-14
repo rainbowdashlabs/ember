@@ -16,6 +16,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ActionsMenu from '@/components/button/ActionsMenu.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -58,7 +59,7 @@ const {t} = useI18n()
           <SectionHeader>Wettkampf Vorbereitung</SectionHeader>
           <SecondaryBadge>{{ t('events.typeOneTime') }}</SecondaryBadge>
         </div>
-        <div class="flex items-center gap-2">
+        <ButtonRow>
           <SecondaryButton><font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>{{ t('common.back') }}</SecondaryButton>
           <HelpPermissionGuard :permissions="[StationPermission.EVENT_EDIT]" :label="t('helpCenter.permissionLabel.eventEdit')">
             <PrimaryButton><font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/>{{ t('events.editEvent') }}</PrimaryButton>
@@ -67,7 +68,7 @@ const {t} = useI18n()
             <DropdownMenuItem :icon="['fas', 'bullhorn']">{{ t('events.announceAsNews') }}</DropdownMenuItem>
             <DropdownMenuItem :icon="['fas', 'ban']" destructive>{{ t('events.cancelEvent') }}</DropdownMenuItem>
           </ActionsMenu>
-        </div>
+        </ButtonRow>
       </div>
 
       <!-- Date/time/category info -->
@@ -101,14 +102,14 @@ const {t} = useI18n()
           <span class="text-sm font-medium">{{ t('helpCenter.eventDetail.yourStatus') }}:</span>
           <InfoBadge>{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
         </div>
-        <div class="flex gap-2 flex-wrap">
+        <ButtonRow pair>
           <PrimaryButton :icon="['fas', 'check']" disabled>
             {{ t('eventsUpcoming.register') }}
           </PrimaryButton>
           <ErrorButton :icon="['fas', 'xmark']" disabled>
             {{ t('eventsUpcoming.decline') }}
           </ErrorButton>
-        </div>
+        </ButtonRow>
       </NeutralContainer>
     </HelpSection>
 

@@ -10,6 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import {STEP_ORDER, type WizardStepId} from '@/views/stationview/setup/steps'
 
 /**
@@ -51,10 +52,10 @@ const progressPct = computed(() => Math.round((position.value / STEP_ORDER.lengt
          class="flex flex-wrap items-center gap-3 justify-between pt-4 border-t border-(--border)">
       <SecondaryButton v-if="position > 1">{{ t('setup.actions.back') }}</SecondaryButton>
       <span v-else/>
-      <div class="flex items-center gap-3">
+      <ButtonRow align="end" class="max-sm:w-full">
         <SecondaryButton v-if="skippable">{{ t('setup.actions.skip') }}</SecondaryButton>
         <PrimaryButton>{{ saveLabel ?? t('setup.actions.saveAndContinue') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </NeutralContainer>
 </template>
