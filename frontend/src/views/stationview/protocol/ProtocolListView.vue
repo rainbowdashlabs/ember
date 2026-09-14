@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -137,12 +138,11 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       :title="t('pages.protocol-list.title')"
       :subtitle="t('pages.protocol-list.subtitle')"
   >
-    <div class="flex items-center justify-between mb-4">
-      <div />
+    <ButtonRow align="end" class="mb-4">
       <PrimaryButton v-if="canConfigure" @click="showCreateModal = true">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('protocol.create') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
 
     <!-- Search -->
     <div class="mb-4">

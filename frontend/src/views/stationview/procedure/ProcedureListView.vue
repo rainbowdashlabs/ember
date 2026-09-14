@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -125,12 +126,11 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       :title="t('pages.procedure-list.title')"
       :subtitle="t('pages.procedure-list.subtitle')"
   >
-    <div class="flex items-center justify-between mb-4">
-      <div />
+    <ButtonRow align="end" class="mb-4">
       <PrimaryButton v-if="canEdit" @click="router.push({ name: 'procedure-create' })">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('procedures.createProcedure') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
 
     <div class="mb-4">
       <SearchInput v-model="searchQuery" :placeholder="t('procedures.search')" />
