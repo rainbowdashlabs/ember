@@ -1759,11 +1759,9 @@ export default {
         birthdayToday: 'Hat heute Geburtstag',
         birthdayYesterday: 'Hatte gestern Geburtstag',
         birthdayDaysAgo: 'Hatte vor {days} Tagen Geburtstag',
-        moveOn: 'Weiterbewegen',
-        handOver: 'Jetzt übergeben',
         replacementNotChosen: 'Ersatzteil ist noch nicht ausgewählt',
         foundItem: 'Fundsache abzuholen: {description}',
-        signOffFound: 'Übergabe quittieren',
+        signOffFound: 'Übergeben',
     },
     footer: {
         privacy: 'Datenschutz',

@@ -7,7 +7,7 @@
 import {mount} from '@vue/test-utils'
 import {describe, expect, it} from 'vitest'
 import MemberCheckNotes from './MemberCheckNotes.vue'
-import type {MemberNotes} from '@/api/attendance'
+import type {MemberNotes, SwapNote} from '@/api/attendance'
 
 /** The real translations are in play, so the stories read the German a person would see. */
 const i18n = {global: {stubs: {'font-awesome-icon': true}}}
@@ -44,121 +44,90 @@ describe('MemberCheckNotes', () => {
         expect(earlier.find('[data-testid="note-birthday"]').text()).toContain('vor 4 Tagen')
     })
 
+    /** A swap of the station's, standing on the step that hands the replacement over. */
+    function handOver(overrides: Partial<SwapNote> = {}): SwapNote {
+        return {
+            movementId: 7,
+            purpose: 'EXCHANGE',
+            stepId: 31,
+            stepLabel: 'Ersatz ausgegeben',
+            stepActor: 'STATION',
+            handOverNext: true,
+            replacementItemId: 42,
+            inventoryName: 'Einsatzjacke',
+            itemName: 'Einsatzjacke 04',
+            itemSize: '52',
+            ...overrides,
+        }
+    }
+
     /**
      * Being told a swap is waiting and being allowed to move it on are different rights. Without the
      * second the note still says what is happening, and offers no button.
      */
     it('shows a swap without a button to a reader who may not move it', () => {
-        const wrapper = mount(MemberCheckNotes, {
-            props: {
-                notes: notes({
-                    swaps: [{
-                        movementId: 7,
-                        purpose: 'EXCHANGE',
-                        stepId: 31,
-                        stepLabel: 'Ersatz ausgegeben',
-                        stepActor: 'STATION',
-                        handOverNext: true,
-                        replacementItemId: 42,
-                        inventoryName: 'Einsatzjacke',
-                    }],
-                }),
-            },
-            ...i18n,
-        })
+        const wrapper = mount(MemberCheckNotes, {props: {notes: notes({swaps: [handOver()]})}, ...i18n})
 
-        expect(wrapper.find('[data-testid="note-swap"]').text()).toContain('Einsatzjacke')
+        expect(wrapper.find('[data-testid="note-swap"]').text()).toContain('Einsatzjacke 04')
         expect(wrapper.find('[data-testid="note-swap"]').text()).toContain('Ersatz ausgegeben')
-        expect(wrapper.find('[data-testid="note-swap-hand-over"]').exists()).toBe(false)
+        expect(wrapper.find('[data-testid="note-swap-step"]').exists()).toBe(false)
     })
 
     /**
-     * Where the next move is the handover the button says so, because that is the one the reader is
-     * standing in front of the member to do.
+     * The button carries the name of the step it walks, the same words the queue gives it, so what is
+     * about to happen is read off the button rather than guessed from a generic word.
      */
-    it('offers a handover where that is the next move', async () => {
+    it('names the step on the button and sends the piece set aside with it', async () => {
         const wrapper = mount(MemberCheckNotes, {
-            props: {
-                canMoveSwap: true,
-                notes: notes({
-                    swaps: [{
-                        movementId: 7,
-                        purpose: 'EXCHANGE',
-                        stepId: 31,
-                        stepLabel: 'Ersatz ausgegeben',
-                        stepActor: 'STATION',
-                        handOverNext: true,
-                        replacementItemId: 42,
-                        inventoryName: 'Einsatzjacke',
-                    }],
-                }),
-            },
+            props: {canMoveSwap: true, notes: notes({swaps: [handOver()]})},
             ...i18n,
         })
 
-        await wrapper.find('[data-testid="note-swap-hand-over"]').trigger('click')
+        const button = wrapper.find('[data-testid="note-swap-step"]')
+        expect(button.text()).toBe('Ersatz ausgegeben')
+
+        await button.trigger('click')
         expect(
             wrapper.emitted('moveSwap'),
             'the piece set aside travels with the step, which refuses to run without it',
         ).toEqual([[7, 31, 42]])
     })
 
-    /**
-     * A swap that is waiting on something else can still be moved on, but it is not the handover and
-     * does not claim to be.
-     */
-    it('offers a plain move on where the next step is not the handover', async () => {
+    /** A piece that has a size is read off the shelf by it, so the note carries it beside the name. */
+    it('shows the size of the piece where it has one', () => {
+        const sized = mount(MemberCheckNotes, {props: {notes: notes({swaps: [handOver()]})}, ...i18n})
+        expect(sized.find('[data-testid="note-swap"]').text()).toContain('52')
+
+        const sizeless = mount(MemberCheckNotes, {
+            props: {notes: notes({swaps: [handOver({itemSize: null})]})},
+            ...i18n,
+        })
+        expect(sizeless.find('[data-testid="note-swap"]').text()).toContain('Einsatzjacke 04')
+    })
+
+    /** A handover whose replacement nobody has picked says so instead of offering a step that refuses. */
+    it('says so where the replacement has not been picked', () => {
         const wrapper = mount(MemberCheckNotes, {
-            props: {
-                canMoveSwap: true,
-                notes: notes({
-                    swaps: [{
-                        movementId: 9,
-                        purpose: 'EXCHANGE',
-                        stepId: 12,
-                        stepLabel: 'Tausch angefordert',
-                        stepActor: 'STATION',
-                        handOverNext: false,
-                        replacementItemId: null,
-                        inventoryName: 'Helm',
-                    }],
-                }),
-            },
+            props: {canMoveSwap: true, notes: notes({swaps: [handOver({replacementItemId: null})]})},
             ...i18n,
         })
 
-        expect(wrapper.find('[data-testid="note-swap-hand-over"]').exists()).toBe(false)
-        await wrapper.find('[data-testid="note-swap-move-on"]').trigger('click')
-        expect(wrapper.emitted('moveSwap')).toEqual([[9, 12, null]])
+        expect(wrapper.find('[data-testid="note-swap-needs-replacement"]').exists()).toBe(true)
+        expect(wrapper.find('[data-testid="note-swap-step"]').exists()).toBe(false)
     })
 
     /**
-     * A step that belongs to the member is theirs to answer. The sheet says where the swap stands and
-     * stops there, rather than offering whoever is ticking off names a button that answers for them.
+     * A reader who may see a swap but not move it reads where it stands and presses nothing. Which
+     * step it is stays on the row either way, since that is what says what is about to happen.
      */
-    it('offers nothing where the step belongs to the member', () => {
+    it('names the step without a button where the reader may not move it', () => {
         const wrapper = mount(MemberCheckNotes, {
-            props: {
-                canMoveSwap: true,
-                notes: notes({
-                    swaps: [{
-                        movementId: 11,
-                        purpose: 'EXCHANGE',
-                        stepId: 44,
-                        stepLabel: 'Erhalten',
-                        stepActor: 'MEMBER',
-                        handOverNext: false,
-                        replacementItemId: 42,
-                        inventoryName: 'Einsatzjacke',
-                    }],
-                }),
-            },
+            props: {notes: notes({swaps: [handOver({stepLabel: 'Altes Teil zurückgenommen'})]})},
             ...i18n,
         })
 
-        expect(wrapper.find('[data-testid="note-swap"]').text()).toContain('Erhalten')
-        expect(wrapper.find('[data-testid="note-swap-hand-over"]').exists()).toBe(false)
-        expect(wrapper.find('[data-testid="note-swap-move-on"]').exists()).toBe(false)
+        expect(wrapper.find('[data-testid="note-swap-step"]').exists()).toBe(false)
+        expect(wrapper.find('[data-testid="note-swap-waiting"]').text()).toBe('Altes Teil zurückgenommen')
     })
 
     it('names a found item and signs it off only where the reader may', async () => {

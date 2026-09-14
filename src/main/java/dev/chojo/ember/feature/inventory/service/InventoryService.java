@@ -118,6 +118,16 @@ public class InventoryService {
     }
 
     /**
+     * One size by its identifier, for the screens that hold a piece and want the size written on it.
+     *
+     * @param sizeId the size
+     * @return the size, or empty where the inventory keeps none or it has since been removed
+     */
+    public Optional<InventorySize> findSizeById(int sizeId) {
+        return inventoryRepository.findSizesByIds(List.of(sizeId)).stream().findFirst();
+    }
+
+    /**
      * Creates a new inventory with no picture chosen for it.
      *
      * @param stationId     the station ID

@@ -202,6 +202,56 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
         inventoryRepo.delete(inventory.id());
     }
 
+    /**
+     * The note names the piece the step is about and the size written on it, which is what somebody
+     * standing at a shelf reads off it. The inventory it came out of is not that: a station with four
+     * inventories of jackets says "Einsatzjacke" four times and names none of them.
+     */
+    @Test
+    void theNoteNamesThePieceAndTheSizeWrittenOnIt() {
+        var inventory = inventoryService.create(station.id(), "Einsatzjacke gross", InventoryType.INTERNAL, true, true);
+        inventoryRepo.createSize(inventory.id(), "52", 0, null);
+        int sizeId = inventoryRepo.findSizes(inventory.id()).getFirst().id();
+        var item = inventoryRepo.createItem(inventory.id(), "EJ-1", "Einsatzjacke 04", sizeId, null);
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
+        var exchange = swapOf(item.id(), inventory.id(), "Zu klein");
+
+        var swap = service.findForStation(station.id(), Set.of(StationPermission.INVENTORY_READ))
+                .get(member.id())
+                .swaps()
+                .getFirst();
+
+        assertEquals("Einsatzjacke 04", swap.itemName(), "the piece, not the drawer it came out of");
+        assertEquals("52", swap.itemSize());
+        assertFalse(swap.stepLabel().isBlank(), "and the words of the step the button will carry");
+
+        itemMovementService.abandon(exchange.id(), "Test vorbei");
+        inventoryRepo.delete(inventory.id());
+    }
+
+    /**
+     * A piece out of an inventory that keeps no sizes carries none, and the note says nothing rather
+     * than an empty badge.
+     */
+    @Test
+    void aPieceWithoutASizeCarriesNone() {
+        var inventory = inventoryService.create(station.id(), "Helm ohne Groesse", InventoryType.INTERNAL, false, true);
+        var item = inventoryRepo.createItem(inventory.id(), "HE-1", "Helm 02", null, null);
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
+        var exchange = swapOf(item.id(), inventory.id(), "Kaputt");
+
+        var swap = service.findForStation(station.id(), Set.of(StationPermission.INVENTORY_READ))
+                .get(member.id())
+                .swaps()
+                .getFirst();
+
+        assertNull(swap.itemSize());
+        assertEquals("Helm 02", swap.itemName());
+
+        itemMovementService.abandon(exchange.id(), "Test vorbei");
+        inventoryRepo.delete(inventory.id());
+    }
+
     /** Whether the sheet names this movement beside the member, read as somebody who may see them. */
     private boolean namesSwap(int movementId) {
         var notes = service.findForStation(station.id(), Set.of(StationPermission.INVENTORY_READ))

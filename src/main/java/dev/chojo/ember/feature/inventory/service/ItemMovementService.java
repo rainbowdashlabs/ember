@@ -815,6 +815,30 @@ public class ItemMovementService {
     }
 
     /**
+     * Whether the step a movement stands on is one that happens with the member in the room.
+     *
+     * <p>Two are: the station putting a piece into their hands, and the station taking back what is
+     * still on them. Everything else happens where the member is not, a piece moving between a shelf
+     * and the post or a chain waiting on the body that owns the gear, and naming that beside their
+     * name reads as work for somebody standing there when there is none to do.
+     *
+     * <p>A step of the member's own is left out for the same reason, though they are standing there:
+     * it is theirs to answer and nobody at the sheet may press it.
+     *
+     * <p>Read at the step rather than at the movement: a piece can sit on a member while the chain
+     * waits on somebody else entirely, and that wait is nothing to say to the member holding it.
+     *
+     * @param movement the movement
+     * @return whether whoever has the member in front of them has something to do about it
+     */
+    public boolean involvesMemberNext(ItemMovement movement) {
+        if (movement.memberId() == null) return false;
+        MovementFlowStep step = currentStep(movement);
+        if (step == null || step.actor() != StepActor.STATION) return false;
+        return step.custodyAfter() == ItemCustody.WITH_MEMBER || stillHeldBy(movement);
+    }
+
+    /**
      * Whether the member calling this off is the one the movement is for and still has the piece.
      *
      * <p>Read off the item rather than off the step: the member walked their own step when they asked
