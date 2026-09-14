@@ -137,9 +137,14 @@ const activeTab = ref<'info' | 'registrations' | 'equipment'>('info')
  * Whether what the appointment needs can be read at all. The gear lives in the inventory, so a
  * station that has switched it off has nothing to show, and somebody who may not read it is refused
  * by the server: either way the tab would only stand for an answer nobody can get.
+ *
+ * <p>Two rights open it, as they do at the server: keeping the inventory, and reading what an event
+ * keeps internal. Somebody who helps run the evenings but keeps no gear holds only the second.
  */
 const canReadEquipment = computed(() =>
-    isModuleEnabled(StationModules.INVENTORY) && props.hasPermission(StationPermission.INVENTORY_READ))
+    isModuleEnabled(StationModules.INVENTORY)
+    && (props.hasPermission(StationPermission.INVENTORY_READ)
+        || props.hasPermission(StationPermission.EVENT_INTERNAL)))
 
 /**
  * What the second tab is called, which follows what the appointment asks of people.

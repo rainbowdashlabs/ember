@@ -14,6 +14,7 @@
 - **A hand-out can be planned rather than done.** Every screen that assigns gear to a member now offers the same choice: hand the piece over now, or promise it. A promised piece stays on the shelf, is marked as spoken for so nobody else is given it, and the handing over is confirmed later.
 - **An order that arrives sets the hand-out going.** Marking a procurement as arrived no longer writes the piece straight onto the member. It records what turned up and starts the hand-out, so the piece stays on the shelf, spoken for, until somebody gives it to them and says so.
 - **A waiting list can be kept without any mail.** A switch in the list's settings stops everything it would send, so a public registration lands without a confirmation link and an invitation is passed on by hand. The reminders that ask whether somebody is still interested stop with it, and nobody is removed for leaving one unanswered.
+- **An event can hand over files.** The route sheet, the form to bring or the plan for the evening is picked or uploaded through the media library and appears on the event page, ready to download. Each file is either for everybody who may see the event, partner stations included, or kept back for the people who run it.
 
 ### Improvements
 
@@ -34,6 +35,7 @@
 - **The exchange page is gone and movements stand in its place.** Everything the exchange list did is on Inventory → Movements, for every kind of movement rather than swaps alone. The five statuses a swap used to carry are gone with it: where a movement stands is the step it is on, which is read off where the pieces actually are.
 - **The right to work on exchanges is now the right to work on movements.** Anyone who held the old right keeps the new one, and station and association rights are renamed in the same way, so nothing has to be granted again.
 - **The inventory menu is regrouped.** The daily work stands at the top, the checks sit together, the settings pages (inventories, flows, requirements) sit under one heading, and lending has its own. The pages themselves are unchanged.
+- **A new right for what an event keeps internal.** It opens the material an event needs and the files kept back from the room, without allowing anything to be changed. Whoever may edit events holds it already, so nothing has to be granted again; grant it to the people who help run evenings but keep no inventory.
 
 ### Fixes
 

@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -39,9 +40,11 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * Service providing business logic for federated event sharing and registrations.
@@ -61,6 +64,8 @@ public class EventFederationService {
     private final MemberNameResolver memberNameResolver;
     private final FederationFanout fanout;
     private final FederationEntityResolver entityResolver;
+    private final EventAttachmentService attachmentService;
+    private final MediaLibraryService media;
 
     @Inject
     public EventFederationService(
@@ -74,7 +79,9 @@ public class EventFederationService {
             EventCommentRepository commentRepository,
             MemberNameResolver memberNameResolver,
             FederationFanout fanout,
-            FederationEntityResolver entityResolver) {
+            FederationEntityResolver entityResolver,
+            EventAttachmentService attachmentService,
+            MediaLibraryService media) {
         this.federationRepository = federationRepository;
         this.federationService = federationService;
         this.httpClient = httpClient;
@@ -86,6 +93,8 @@ public class EventFederationService {
         this.memberNameResolver = memberNameResolver;
         this.fanout = fanout;
         this.entityResolver = entityResolver;
+        this.attachmentService = attachmentService;
+        this.media = media;
     }
 
     // -- Share management --
@@ -357,6 +366,75 @@ public class EventFederationService {
                     }
                     return crudService.findById(eventId).map(SharedEvent::of).orElseThrow();
                 });
+    }
+
+    /**
+     * The files a partner's event hands over, as that partner answers them.
+     *
+     * <p>What comes back is what the owning station is willing to hand out: the open files and
+     * nothing else. This instance does not filter again, because it is not the one that knows.
+     */
+    public List<RemoteEventRoutes.RemoteAttachment> listFederatedAttachments(
+            int localStationId, UUID partnerStationUid, int eventId) {
+        var answered = entityResolver.resolve(
+                localStationId,
+                partnerStationUid,
+                RemoteEventRoutes.LIST_ATTACHMENTS.at(eventId),
+                RemoteEventRoutes.RemoteAttachment[].class,
+                "event attachments",
+                partner ->
+                        requireSharedEventOfPartner(partner, eventId, () -> attachmentService.listOpen(eventId).stream()
+                                .map(RemoteEventRoutes.RemoteAttachment::of)
+                                .toArray(RemoteEventRoutes.RemoteAttachment[]::new)));
+        return answered == null ? List.of() : List.of(answered);
+    }
+
+    /**
+     * One such file, bytes and all, as the owning station hands it over.
+     */
+    public RemoteEventRoutes.RemoteAttachmentContent getFederatedAttachment(
+            int localStationId, UUID partnerStationUid, int eventId, int attachmentId) {
+        return entityResolver.resolve(
+                localStationId,
+                partnerStationUid,
+                RemoteEventRoutes.GET_ATTACHMENT_CONTENT.at(eventId, attachmentId),
+                RemoteEventRoutes.RemoteAttachmentContent.class,
+                "event attachment",
+                partner -> requireSharedEventOfPartner(
+                        partner, eventId, () -> localAttachmentContent(eventId, attachmentId)));
+    }
+
+    /**
+     * Runs a read against a partner that lives on this instance, once its event is known to be
+     * shared with the asking station. The same question the remote side asks of a request over the
+     * wire, asked here where there is no wire.
+     */
+    private <T> T requireSharedEventOfPartner(FederationPartner partner, int eventId, Supplier<T> reader) {
+        int partnerStationId = stationRepository
+                .findByUid(partner.partnerStationId())
+                .map(Station::id)
+                .orElseThrow();
+        if (!findSharedEventIds(partner.id(), partnerStationId).contains(eventId)) {
+            throw new BadRequestResponse("Event not shared with this partner");
+        }
+        return reader.get();
+    }
+
+    private RemoteEventRoutes.RemoteAttachmentContent localAttachmentContent(int eventId, int attachmentId) {
+        var attachment = attachmentService
+                .find(attachmentId)
+                .filter(found -> found.eventId() == eventId)
+                .filter(found -> !found.internal())
+                .orElseThrow(() -> new BadRequestResponse("No such file on this event"));
+        var event = crudService.findById(eventId).orElseThrow();
+        var file = media.read(event.stationId(), attachment.contentHash())
+                .orElseThrow(() -> new BadRequestResponse("The file is gone"));
+        return new RemoteEventRoutes.RemoteAttachmentContent(
+                attachment.id(),
+                attachment.displayName(),
+                attachment.fileName(),
+                file.contentType(),
+                Base64.getEncoder().encodeToString(file.data()));
     }
 
     /**

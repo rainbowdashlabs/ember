@@ -143,9 +143,19 @@ public enum StationPermission implements RouteRole {
     EVENT_MANAGE_CATEGORY,
 
     /**
+     * Allows reading the internal side of an event without being able to change anything: the
+     * material it needs and the files kept back from the room.
+     *
+     * <p>Whoever runs an evening needs to read what it takes to run it, and that is not the same as
+     * being allowed to write the evening or to keep the station's equipment. Granted by
+     * {@link #EVENT_EDIT}, because somebody who may write an event can obviously read it.
+     */
+    EVENT_INTERNAL,
+
+    /**
      * Allows creating and editing events
      */
-    EVENT_EDIT,
+    EVENT_EDIT(EVENT_INTERNAL),
 
     /**
      * Allows confirming and deny registrations.

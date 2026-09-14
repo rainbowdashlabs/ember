@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -25,6 +26,8 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.media.service.MediaStorageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -41,12 +44,15 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -74,9 +80,13 @@ class EventFederationServiceTest extends RepositoryTestBase {
     private static FederationPartner localPartner;
     private static MemberIdentity testMemberIdentity;
     private static EventCrudService crudService;
+    private static EventAttachmentService attachmentService;
+    private static MediaLibraryService media;
 
     @BeforeAll
     static void setup() {
+        media = mock(MediaLibraryService.class);
+        attachmentService = new EventAttachmentService(new EventAttachmentRepository(), media);
         federationRepo = new FederationRepository();
         EventFederationRepository eventFederationRepo = new EventFederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
@@ -103,7 +113,9 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         mock(MemberGroupService.class),
                         mock(UserTagService.class)),
                 new FederationFanout(),
-                new FederationEntityResolver(federationRepo, stationRepo, httpClient));
+                new FederationEntityResolver(federationRepo, stationRepo, httpClient),
+                attachmentService,
+                media);
 
         stationA = stationRepo.create("EventFedSvcStationA");
         stationB = stationRepo.create("EventFedSvcStationB");
@@ -1183,5 +1195,57 @@ class EventFederationServiceTest extends RepositoryTestBase {
 
         assertEquals(4, shared.repeatCount());
         assertNull(shared.repeatUntil());
+    }
+
+    /**
+     * A partner station is handed the open files of a shared event and never what it keeps back.
+     *
+     * <p>Internal means kept back from the room, and a partner is further out than the room. The
+     * list omits such a file, and asking for it by its own id is refused at the source rather than
+     * answered differently from the list.
+     */
+    @Test
+    @Order(99)
+    void aPartnerIsHandedTheOpenFilesAndNeverTheInternalOnes() {
+        var stationFile = mediaFileRepo.create(
+                null, stationA.id(), UUID.randomUUID().toString(), "laufzettel.pdf", "application/pdf", 12);
+        var kept = mediaFileRepo.create(
+                null, stationA.id(), UUID.randomUUID().toString(), "einsatzplan.pdf", "application/pdf", 12);
+        when(media.findFile(stationFile.id())).thenReturn(Optional.of(stationFile));
+        when(media.findFile(kept.id())).thenReturn(Optional.of(kept));
+        when(media.read(stationA.id(), stationFile.contentHash()))
+                .thenReturn(Optional.of(new MediaStorageService.FileData(
+                        "Laufzettel".getBytes(StandardCharsets.UTF_8), "application/pdf")));
+
+        var open = attachmentService.attach(eventId, stationA.id(), stationFile.id(), "Laufzettel", false);
+        var internal = attachmentService.attach(eventId, stationA.id(), kept.id(), "Einsatzplan", true);
+        service.setShare(eventId, ShareScope.ALL_PARTNERS, List.of());
+
+        try {
+            var listed = service.listFederatedAttachments(stationB.id(), stationA.uid(), eventId);
+            assertEquals(1, listed.size(), "the partner is handed one of the two");
+            assertEquals("Laufzettel", listed.getFirst().name());
+
+            var handed = service.getFederatedAttachment(stationB.id(), stationA.uid(), eventId, open.id());
+            assertEquals(open.id(), handed.attachmentId());
+            assertEquals(
+                    "Laufzettel",
+                    new String(Base64.getDecoder().decode(handed.base64()), StandardCharsets.UTF_8),
+                    "the bytes travel as the channel can carry them");
+
+            assertThrows(
+                    Exception.class,
+                    () -> service.getFederatedAttachment(stationB.id(), stationA.uid(), eventId, internal.id()),
+                    "what is kept back is refused even when its id is named");
+
+            service.removeShare(eventId);
+            assertThrows(
+                    Exception.class,
+                    () -> service.listFederatedAttachments(stationB.id(), stationA.uid(), eventId),
+                    "an event that is no longer shared hands over nothing");
+        } finally {
+            attachmentService.detach(open.id());
+            attachmentService.detach(internal.id());
+        }
     }
 }

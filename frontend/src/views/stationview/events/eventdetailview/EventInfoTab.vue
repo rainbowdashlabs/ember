@@ -12,6 +12,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import CommentSection from '@/components/comment/CommentSection.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import EventGeneralInfoPanel from './EventGeneralInfoPanel.vue'
+import EventAttachmentsPanel from './EventAttachmentsPanel.vue'
 import {isRecurringEvent, type AbsentMember, type EventField, type StationEvent} from '@/api/events'
 import {StationPermission, type StationMember} from '@/api/types'
 
@@ -60,6 +61,8 @@ const canEditEvent = computed(() => props.canManageEvents || props.hasPermission
         :can-edit-event="canEditEvent"
         @field-updated="(f) => emit('field-updated', f)"
     />
+
+    <EventAttachmentsPanel :event-id="eventId"/>
 
     <NeutralContainer v-if="isRecurringEvent(event.eventType) && (canManageEvents || canManageAttendance)" class="space-y-3">
       <SubHeader>{{ t('eventDetail.absentMembers') }}</SubHeader>

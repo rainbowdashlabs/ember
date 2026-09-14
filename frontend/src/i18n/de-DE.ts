@@ -2575,6 +2575,16 @@ export default {
         fields: 'Felder',
     },
     events: {
+        attachments: {
+            title: 'Dateien',
+            hint: 'Dateien aus der Mediathek, die zu diesem Termin gehören: Laufzettel, Formulare, Pläne.',
+            add: 'Datei anhängen',
+            empty: 'Noch keine Dateien angehängt.',
+            labelPlaceholder: 'Anzeigename (optional)',
+            internal: 'Intern',
+            internalHint: 'Intern: nur für alle mit dem Recht, interne Termindaten zu sehen. Sonst für alle, die den Termin sehen, Partnerwachen eingeschlossen.',
+            remove: 'Datei entfernen',
+        },
         register: 'Anmelden',
         answerFor: 'Für wen zusagen?',
         declineFor: 'Für wen abmelden?',
@@ -3050,6 +3060,10 @@ export default {
         EVENT_EDIT: {
             label: 'Termine erstellen',
             desc: 'Kann Termine erstellen und bearbeiten.',
+        },
+        EVENT_INTERNAL: {
+            label: 'Interne Termindaten',
+            desc: 'Kann das benötigte Material und die internen Dateien eines Termins lesen, aber nichts ändern.',
         },
         EVENT_REGISTRATION: {
             label: 'Anmeldungen verwalten',

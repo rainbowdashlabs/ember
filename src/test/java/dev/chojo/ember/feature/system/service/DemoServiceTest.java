@@ -31,9 +31,11 @@ import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
+import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
@@ -292,7 +294,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventCommentRepo,
                 memberNameResolver,
                 federationFanout,
-                federationEntityResolver);
+                federationEntityResolver,
+                new EventAttachmentService(new EventAttachmentRepository(), mock(MediaLibraryService.class)),
+                mock(MediaLibraryService.class));
         var newsFederationService = new NewsFederationService(
                 newsFederationRepo,
                 federationService,

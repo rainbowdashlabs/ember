@@ -179,4 +179,110 @@ test.describe('Two instances', () => {
             await inviting.dispose()
         }
     })
+
+    /**
+     * A file of an event travels from the instance that owns it to the instance that reads it.
+     *
+     * <p>This is the story a single instance cannot tell. Between two stations of one database the
+     * owning station's answer is a method call; here it crosses the wire, where the channel carries
+     * text and the bytes have to survive being written as text and read back. The reading side is
+     * handed exactly what the owning side decided: the open file with its bytes intact, and a
+     * refusal for the one kept back, asked for by the id it never saw.
+     */
+    test('a partner instance is handed the open file of a shared event', async ({
+        peerAdminApi,
+        homeManagerApi,
+    }) => {
+        const manager = await stationManagerOf(peerBaseUrl())
+        const created = await peerAdminApi.post('/api/v1/stations', {
+            data: {name: unique('E2E-Dateiwache'), managerEmail: manager.email},
+        })
+        expect(created.status()).toBe(201)
+        const {id: owningStation} = await created.json()
+
+        const owner = await instanceRequestAs(peerBaseUrl(), {email: manager.email, stationId: owningStation})
+        try {
+            await proveFreshly(owner)
+            const invited = await owner.post('/api/v1/federation/invite')
+            expect(invited.ok()).toBe(true)
+            const {inviteCode} = await invited.json()
+
+            await proveFreshly(homeManagerApi)
+            const accepted = await homeManagerApi.post('/api/v1/federation/accept', {data: {inviteCode}})
+            expect(accepted.status(), await accepted.text()).toBe(201)
+
+            const eventId = await eventSharedWithEveryPartner(owner)
+            const fileId = await uploadedFile(owner)
+            const openLabel = unique('Laufzettel')
+            const internalLabel = unique('Einsatzplan')
+            const open = await attachedFile(owner, eventId, fileId, openLabel, false)
+            const internal = await attachedFile(owner, eventId, fileId, internalLabel, true)
+
+            const listed = await homeManagerApi.get(
+                `/api/v1/federated/${owningStation}/events/${eventId}/attachments`)
+            expect(listed.ok(), await listed.text()).toBe(true)
+            const names = ((await listed.json()) as {name: string}[]).map(file => file.name)
+            expect(names).toEqual([openLabel])
+
+            const handed = await homeManagerApi.get(
+                `/api/v1/federated/${owningStation}/events/${eventId}/attachments/${open}/file`)
+            expect(handed.ok(), await handed.text()).toBe(true)
+            expect((await handed.body()).length, 'the bytes survived the crossing').toBe(PIXEL.length)
+
+            const refused = await homeManagerApi.get(
+                `/api/v1/federated/${owningStation}/events/${eventId}/attachments/${internal}/file`)
+            expect(refused.ok(), 'the owning instance refuses what its event keeps back').toBe(false)
+        } finally {
+            await owner.dispose()
+        }
+    })
 })
+
+/** The smallest thing the media library accepts: one transparent pixel. */
+const PIXEL = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    'base64',
+)
+
+/** A file in the station's own library, since a station made mid-story starts with none. */
+async function uploadedFile(api: APIRequestContext): Promise<number> {
+    const uploaded = await api.post('/api/v1/media/files', {
+        multipart: {file: {name: 'laufzettel.png', mimeType: 'image/png', buffer: PIXEL}},
+    })
+    expect(uploaded.status(), await uploaded.text()).toBe(201)
+    return (await uploaded.json()).id
+}
+
+/** An event of the station, shared with every partner it has. */
+async function eventSharedWithEveryPartner(api: APIRequestContext): Promise<number> {
+    const start = new Date(Date.now() + 86_400_000).toISOString()
+    const created = await api.post('/api/v1/events', {
+        data: {
+            name: unique('Geteilter Abend'),
+            description: '',
+            eventType: 'ONE_TIME',
+            startTime: start,
+            endTime: start,
+        },
+    })
+    expect(created.status(), await created.text()).toBe(201)
+    const eventId = (await created.json()).id
+
+    const shared = await api.put(`/api/v1/events/${eventId}/federation`, {
+        data: {scope: 'ALL_PARTNERS', partnerIds: []},
+    })
+    expect(shared.ok(), await shared.text()).toBe(true)
+    return eventId
+}
+
+async function attachedFile(
+    api: APIRequestContext,
+    eventId: number,
+    fileId: number,
+    label: string,
+    internal: boolean,
+): Promise<number> {
+    const attached = await api.post(`/api/v1/events/${eventId}/attachments`, {data: {fileId, label, internal}})
+    expect(attached.status(), await attached.text()).toBe(201)
+    return (await attached.json()).id
+}

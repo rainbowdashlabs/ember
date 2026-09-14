@@ -7,11 +7,14 @@ package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
+import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
@@ -19,15 +22,18 @@ import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
+import io.javalin.openapi.OpenApiName;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
+import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -81,9 +87,32 @@ public class RemoteEventRoutes implements Routes {
             RemoteCommentDeleteRequest.class,
             Void.class);
 
+    /**
+     * The files a shared event hands over, as the partner may have them.
+     *
+     * <p>Only the open ones travel. A file marked internal is kept back from the room, and a partner
+     * station is further out than the room rather than closer to it.
+     */
+    public static final FederationEndpoint LIST_ATTACHMENTS = FederationEndpoint.getList(
+            FederationSurface.EVENT_SHARE, "/remote/events/{eventId}/attachments", RemoteAttachment.class);
+
+    /**
+     * One such file, bytes and all.
+     *
+     * <p>The contract speaks JSON, so the bytes travel encoded in it. What may cross is what this
+     * instance would accept as an upload in the first place, which is the one size anybody has
+     * already configured.
+     */
+    public static final FederationEndpoint GET_ATTACHMENT_CONTENT = FederationEndpoint.get(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/{eventId}/attachments/{attachmentId}/content",
+            RemoteAttachmentContent.class);
+
     public static final List<FederationEndpoint> CONTRACT = List.of(
             LIST_EVENTS,
             GET_EVENT,
+            LIST_ATTACHMENTS,
+            GET_ATTACHMENT_CONTENT,
             REGISTER,
             WITHDRAW,
             LIST_REGISTRATIONS,
@@ -97,15 +126,24 @@ public class RemoteEventRoutes implements Routes {
     private final EventCrudService crudService;
     private final EventFieldService eventFieldService;
     private final EventFederationService eventFederationService;
+    private final EventAttachmentService attachmentService;
+    private final MediaLibraryService media;
+    private final Api apiConfig;
 
     @Inject
     public RemoteEventRoutes(
             EventCrudService crudService,
             EventFieldService eventFieldService,
-            EventFederationService eventFederationService) {
+            EventFederationService eventFederationService,
+            EventAttachmentService attachmentService,
+            MediaLibraryService media,
+            Api apiConfig) {
         this.crudService = crudService;
         this.eventFieldService = eventFieldService;
         this.eventFederationService = eventFederationService;
+        this.attachmentService = attachmentService;
+        this.media = media;
+        this.apiConfig = apiConfig;
     }
 
     @Override
@@ -113,6 +151,8 @@ public class RemoteEventRoutes implements Routes {
         FederationContractBinder.register(
                 routes, prefix, CONTRACT, binder -> binder.handle(LIST_EVENTS, this::remoteListEvents)
                         .handle(GET_EVENT, this::remoteGetEvent)
+                        .handle(LIST_ATTACHMENTS, this::remoteListAttachments)
+                        .handle(GET_ATTACHMENT_CONTENT, this::remoteGetAttachmentContent)
                         .handle(REGISTER, this::remoteRegister)
                         .handle(WITHDRAW, this::remoteWithdraw)
                         .handle(LIST_REGISTRATIONS, this::remoteListRegistrations)
@@ -144,6 +184,47 @@ public class RemoteEventRoutes implements Routes {
                 .filter(EventField::isPublic)
                 .toList();
         ctx.json(new RemoteEventDetail(SharedEvent.of(event), fields));
+    }
+
+    /** The open files of a shared event, named for a partner that may ask about it. */
+    private void remoteListAttachments(Context ctx) {
+        var partner = FederationSession.requirePartner(ctx);
+        int eventId = pathInt(ctx, "eventId");
+        requireSharedEvent(partner, eventId);
+        ctx.json(attachmentService.listOpen(eventId).stream()
+                .map(RemoteAttachment::of)
+                .toList());
+    }
+
+    /**
+     * One open file of a shared event, encoded into the answer.
+     *
+     * <p>The same two questions are asked here as at home: is this event shared with the partner
+     * asking, and is the file one the event hands out at all. A file kept back is answered as absent
+     * rather than refused, so asking for one by id says no more than asking for a file that is gone.
+     */
+    private void remoteGetAttachmentContent(Context ctx) {
+        var partner = FederationSession.requirePartner(ctx);
+        int eventId = pathInt(ctx, "eventId");
+        requireSharedEvent(partner, eventId);
+
+        var attachment = attachmentService
+                .find(pathInt(ctx, "attachmentId"))
+                .filter(found -> found.eventId() == eventId)
+                .filter(found -> !found.internal())
+                .orElseThrow(NotFoundResponse::new);
+
+        var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        var file = media.read(event.stationId(), attachment.contentHash()).orElseThrow(NotFoundResponse::new);
+        if (file.data().length > apiConfig.maxUploadSizeBytes()) {
+            throw new BadRequestResponse("This file is too large to hand to a partner station");
+        }
+        ctx.json(new RemoteAttachmentContent(
+                attachment.id(),
+                attachment.displayName(),
+                attachment.fileName(),
+                file.contentType(),
+                Base64.getEncoder().encodeToString(file.data())));
     }
 
     private void remoteRegister(Context ctx) {
@@ -270,6 +351,34 @@ public class RemoteEventRoutes implements Routes {
     }
 
     public record RemoteEventDetail(SharedEvent event, List<EventField> publicFields) {}
+
+    /**
+     * A file a shared event hands over, without its bytes: enough to list it and to ask for it.
+     *
+     * @param id       the attachment, which is what a request for the bytes names
+     * @param name     what the partner's reader sees, which is the label where one was written
+     * @param mimeType what kind of file it is
+     * @param fileSize how big it is, so a reader knows what they are asking for
+     */
+    @OpenApiName("RemoteEventAttachment")
+    public record RemoteAttachment(int id, String name, String fileName, String mimeType, long fileSize) {
+        public static RemoteAttachment of(EventAttachment attachment) {
+            return new RemoteAttachment(
+                    attachment.id(),
+                    attachment.displayName(),
+                    attachment.fileName(),
+                    attachment.mimeType(),
+                    attachment.fileSize());
+        }
+    }
+
+    /**
+     * One such file with its bytes, encoded because the contract between two instances speaks JSON.
+     * The name is what the partner shows, the file name what a reader saving it ends up with.
+     */
+    @OpenApiName("RemoteEventAttachmentContent")
+    public record RemoteAttachmentContent(
+            int attachmentId, String name, String fileName, String mimeType, String base64) {}
 
     public record RemoteMemberRegistration(
             int eventId, String remoteMemberId, String eventDate, RegistrationStatus status, int partnerId) {}
