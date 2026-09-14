@@ -118,6 +118,7 @@ public class EventExportService {
         data.put("generatedBy", generatedBy != null ? generatedBy : "");
         data.put("generatedAt", DATE_TIME_FMT.format(Instant.now().atZone(zone)));
         data.put("baseUrl", apiConfig.baseUrl());
+        data.put("showInstanceUrl", StationFormat.showsInstanceUrl(station));
         data.put("hasLogo", false);
         data.put("dateRange", DATE_FMT.format(from) + " – " + DATE_FMT.format(to));
         data.put("columns", columnHeaders);

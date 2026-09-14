@@ -53,6 +53,21 @@ public final class StationFormat {
     }
 
     /**
+     * Whether the address of this installation belongs at the foot of the station's exported PDFs.
+     *
+     * <p>A station that hands its sheets to people who have no account here, or one nobody outside can
+     * reach anyway, can leave it off. Everything else the footer carries stays: who made the document,
+     * when, and which page it is.
+     *
+     * @param station the station, or {@code null} when it could not be loaded, which prints the
+     *                address the way every export did before the setting existed
+     * @return whether the address is printed
+     */
+    public static boolean showsInstanceUrl(Station station) {
+        return station == null || !station.pdfHidesInstanceUrl();
+    }
+
+    /**
      * The locale a station's numbers and dates are formatted with, German when it has none or holds
      * one that will not parse.
      *

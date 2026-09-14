@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+// @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
 import {glyphFor} from './glyph'
 

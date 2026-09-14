@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import BulletList from '@/components/typography/BulletList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -148,6 +149,16 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.attendanceSession.syncExportTitle')">
       <p>{{ t('helpCenter.attendanceSession.sync') }}</p>
       <p>{{ t('helpCenter.attendanceSession.export') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.attendanceSession.signingTitle')">
+      <p>{{ t('helpCenter.attendanceSession.signingText') }}</p>
+      <BulletList>
+        <li>{{ t('helpCenter.attendanceSession.signingColumn') }}</li>
+        <li>{{ t('helpCenter.attendanceSession.signingTitleField') }}</li>
+        <li>{{ t('helpCenter.attendanceSession.signingBlankRows') }}</li>
+        <li>{{ t('helpCenter.attendanceSession.signingInstanceUrl') }}</li>
+      </BulletList>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.attendanceSession.tip') }}</HelpTip>

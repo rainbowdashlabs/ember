@@ -304,8 +304,30 @@ export async function lockSession(sessionId: number): Promise<AttendanceSession>
     return res.data
 }
 
-export async function exportPdf(sessionId: number): Promise<Blob> {
-    const res = await client.get(`/attendance/sessions/${sessionId}/export`, {responseType: 'blob'})
+/**
+ * How the sheet is printed, beyond the attendance itself.
+ *
+ * <p>Everything is optional and an export that asks for nothing is the one the product has always
+ * produced: the recorded attendance, with the address of the instance at the foot of the page.
+ */
+export interface SheetOptions {
+    /** Whether every line ends in a box to sign, which drops the recorded status from the sheet. */
+    signature?: boolean
+    /** The heading, the session's own where it is absent, and a line to write on where it is empty. */
+    title?: string
+    /** Empty numbered lines after the last person, for whoever turns up without being on the list. */
+    blankRows?: number
+    /** Whether the address of this installation is printed, the station's own setting where absent. */
+    instanceUrl?: boolean
+}
+
+export async function exportPdf(sessionId: number, options: SheetOptions = {}): Promise<Blob> {
+    const params: Record<string, string> = {}
+    if (options.signature) params.signature = 'true'
+    if (options.title !== undefined) params.title = options.title
+    if (options.blankRows) params.blankRows = String(options.blankRows)
+    if (options.instanceUrl !== undefined) params.instanceUrl = String(options.instanceUrl)
+    const res = await client.get(`/attendance/sessions/${sessionId}/export`, {params, responseType: 'blob'})
     return res.data as Blob
 }
 

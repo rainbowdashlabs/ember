@@ -99,6 +99,23 @@ export const getMember = members.get
 export const createMember = members.create
 export const deleteMember = members.remove
 
+/**
+ * The member of this station carrying that UUID, or {@code null} where nobody does.
+ *
+ * <p>The member menus name a person by their UUID while the screens below them work from the row id.
+ * A screen that already holds the member list can translate the one into the other itself; one whose
+ * list was loaded before the person existed cannot, and asking here costs a single row rather than
+ * the whole list again.
+ */
+export async function getMemberByUid(memberUid: string): Promise<StationMember | null> {
+    try {
+        const res = await client.get<StationMember>(`/station-members/by-uid/${memberUid}`)
+        return res.data
+    } catch {
+        return null
+    }
+}
+
 export async function getPermissions(memberId: number): Promise<PermissionGrant[]> {
     const res = await client.get<PermissionGrant[]>(`/station-members/${memberId}/permissions`)
     return res.data

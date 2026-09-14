@@ -160,7 +160,8 @@ public class SessionInfoService {
                         .map(Enum::name)
                         .sorted()
                         .toList(),
-                !mailChainService.forInstance().isEmpty());
+                !mailChainService.forInstance().isEmpty(),
+                currentStation != null && currentStation.pdfHidesInstanceUrl());
     }
 
     private ManagedMemberInfo toManagedMemberInfo(StationMember member) {
@@ -268,7 +269,8 @@ public class SessionInfoService {
             ClusterUserType clusterUserType,
             List<String> clusterPermissions,
             List<String> ownStationPermissions,
-            boolean canSendMail) {}
+            boolean canSendMail,
+            boolean pdfHidesInstanceUrl) {}
 
     public record ThemeInfo(
             String instanceDefaultTheme,

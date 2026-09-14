@@ -1092,6 +1092,7 @@ class DomainEventHandlerTest {
                 null,
                 StationKind.REGULAR,
                 null,
+                false,
                 false);
     }
 

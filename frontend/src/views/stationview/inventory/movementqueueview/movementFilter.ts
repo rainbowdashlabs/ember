@@ -125,24 +125,42 @@ export function inventoryChoices(movements: Movement[]): InventoryChoice[] {
         .sort((a, b) => a.name.localeCompare(b.name, 'de'))
 }
 
-export type MovementSortKey = 'turn' | 'member' | 'inventory' | 'purpose' | 'date'
+export type MovementSortKey = 'turn' | 'member' | 'inventory' | 'purpose' | 'created' | 'modified'
+
+const DATE_KEYS: MovementSortKey[] = ['created', 'modified']
+
+/** When the movement last moved, which for one that never has is the day it was raised. */
+export function lastMovedAt(movement: Movement): string {
+    return movement.updatedAt ?? movement.createdAt
+}
+
+/** Whether anything has happened to the movement since it was raised. */
+export function hasMoved(movement: Movement): boolean {
+    return lastMovedAt(movement) !== movement.createdAt
+}
 
 /**
  * How each sortable column compares two rows. The turn is the default and orders by whose move it is
  * rather than by any word, which is what a queue is read for.
+ *
+ * <p>The two dates answer different questions. When it was raised is what the queue was let sit for,
+ * and when it last moved is what says which rows have gone quiet, so a row raised in January and
+ * touched yesterday belongs at opposite ends of the two orders. A row that never moved falls back to
+ * the day it was raised, which is the last thing that happened to it.
  */
 export const movementComparators: Record<MovementSortKey, SortComparator<Movement>> = {
     turn: byValue(turnRank),
     member: byValue(memberNameOf),
     inventory: byValue(movement => movement.inventoryName ?? ''),
     purpose: byValue(movement => movement.purpose),
-    date: byDate(movement => movement.createdAt),
+    created: byDate(movement => movement.createdAt),
+    modified: byDate(lastMovedAt),
 }
 
 /**
- * Which way round a column reads when it is picked rather than toggled. The date answers "what is
+ * Which way round a column reads when it is picked rather than toggled. A date answers "what is
  * new" and starts at the newest; everything else starts at the top of its own order.
  */
 export function naturalDirection(key: MovementSortKey): 'asc' | 'desc' {
-    return key === 'date' ? 'desc' : 'asc'
+    return DATE_KEYS.includes(key) ? 'desc' : 'asc'
 }

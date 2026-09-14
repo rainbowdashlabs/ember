@@ -4,6 +4,7 @@
 
 ### New Features
 
+- **An attendance sheet can be printed to be signed by hand.** The export now asks how the sheet should look: with a column to sign in, with a heading of its own or a blank line to write one on, and with as many empty lines as the evening might need for people who are not on the list. A sheet meant for signing leaves the recorded status off, because what is written on the paper is what counts.
 - **Every kind of movement can be started, not only swaps.** A wizard asks what should happen, with whom, about which piece and why, and then draws the chain those answers lead to before anything is written. Handing gear out, taking it back, swapping it and asking the association above for a piece all start the same way, and a combination the station has no chain for says so instead of failing.
 - **One queue for everything under way.** Inventory → Movements lists every movement with the state it has reached, whose turn it is now, and since when. The button on the row carries the name of the next step, so pressing it says what has happened, and a manager can put a movement right when the gear is in reality somewhere else than the record says.
 - **Gear can be given a picture.** An inventory, and each kind inside a collection, can be given an icon and a colour. Wherever a piece is named after that, in a picker, a list or the queue, it carries that picture along with its size and the identifier written on it.
@@ -13,6 +14,7 @@
 
 ### Improvements
 
+- **Exported PDFs can leave the address of the installation off.** A switch in the station's settings drops it from the foot of every export, and the attendance export can differ from that for one document. Everything else the footer carries stays: the logo, the station's name, who made the document and which page it is.
 - **The inventory and item pickers are searched and walked with the keyboard.** Arrow keys walk the list, Enter takes the highlighted entry and Escape closes, so the usual case is a few letters and Enter. The picked entry is shown the same way as the list: picture, name, size and identifier.
 - **Every place that asks which member now asks the same way.** A member is chosen from one menu throughout the product: a face, the name in the colour their group gives it, and a search that is always there, in place of the dropdowns of several hundred lines that some screens still offered. Arrow keys walk the list, Enter takes the highlighted person and Escape closes, so the usual case is three letters and Enter.
 - **Choosing several members shows who is chosen.** Where a screen takes more than one person, each one appears as a removable chip above the search, folded away past five so a group of fifty stays a field rather than a wall.

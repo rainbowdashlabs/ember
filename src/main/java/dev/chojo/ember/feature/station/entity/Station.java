@@ -33,6 +33,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param stationKind          whether this is a station somebody joins or the shell a cluster owns
  * @param clusterId            the cluster this station belongs to, or {@code null} when it answers to nobody
  * @param lossNoteRequired     whether a member marking their own gear lost has to write a note about it
+ * @param pdfHidesInstanceUrl  whether exported PDFs leave the address of this installation off the
+ *                             foot of the page. An export may differ from it for one document
+ *                             without changing what the station settled on
  */
 public record Station(
         int id,
@@ -66,7 +69,8 @@ public record Station(
         Instant setupCompletedAt,
         StationKind stationKind,
         Integer clusterId,
-        boolean lossNoteRequired) {
+        boolean lossNoteRequired,
+        boolean pdfHidesInstanceUrl) {
     public static RowMapping<Station> map() {
         return row -> new Station(
                 row.getInt("id"),
@@ -100,6 +104,7 @@ public record Station(
                 row.get("setup_completed_at", INSTANT_TIMESTAMP),
                 row.getEnum("station_kind", StationKind.class),
                 row.getObject("cluster_id", Integer.class),
-                row.getBoolean("loss_note_required"));
+                row.getBoolean("loss_note_required"),
+                row.getBoolean("pdf_hides_instance_url"));
     }
 }

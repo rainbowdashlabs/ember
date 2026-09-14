@@ -2116,6 +2116,13 @@ volumes:
             syncExportTitle: 'Synchronisieren & Export',
             sync: 'Synchronisieren - Aktualisiert die Mitgliederliste aus dem Termin (z.B. nach neuen Anmeldungen). Der Punkt steht im Menü mit den drei Punkten.',
             export: 'PDF Export - Erstellt ein PDF der Anwesenheitsliste. Solange noch etwas zu prüfen ist, steht der Punkt im Menü mit den drei Punkten, danach als Button daneben.',
+            signingTitle: 'Liste zum Unterschreiben drucken',
+            signingText: 'Beim Export fragt Ember, wie das Blatt aussehen soll. Damit wird aus der Anwesenheitsliste ein Blatt, '
+                + 'das vor Ort unterschrieben wird:',
+            signingColumn: 'Zum Unterschreiben: Jede Zeile bekommt ein Feld für die Unterschrift. Der in Ember erfasste Status steht dann nicht auf dem Blatt.',
+            signingTitleField: 'Titel des Dokuments: frei überschreibbar. Lässt du ihn leer, wird eine Linie gedruckt, auf die der Titel von Hand geschrieben wird.',
+            signingBlankRows: 'Leerzeilen: zusätzliche nummerierte Zeilen für alle, die nicht auf der Liste stehen.',
+            signingInstanceUrl: 'Adresse der Instanz: nur für dieses Dokument ein- oder ausblenden. Die Voreinstellung steht in den Einstellungen der Wache.',
             toolbarTitle: 'Werkzeugleiste',
             toolbarText: 'Oben stehen der Weg zurück und die eine Aktion, für die du gekommen bist. Alles Weitere - Export, Synchronisieren und das Löschen der Erfassung - liegt im Menü mit den drei Punkten daneben.',
             headerTitle: 'Sitzungskopf bearbeiten',
@@ -4694,6 +4701,11 @@ volumes:
             whatIsText: 'Hier findest du alle Einstellungen, die deine Wache betreffen - vom Namen und Logo über den E-Mail-Versand bis hin zur Konfiguration von Anwesenheitsvorlagen und Profilfeldern. Nur Verwalter (Manager) haben Zugriff auf diesen Bereich.',
             pagesTitle: 'Was findest du hier?',
             pagesText: 'Die allgemeinen Wach-Einstellungen (Name, Logo, E-Mail, Module), die Konfiguration von Anwesenheitsvorlagen und die Konfiguration der Mitglieder-Profilfelder.',
+            pdfTitle: 'Adresse der Instanz auf PDFs',
+            pdfText: 'In der Fußzeile jedes exportierten PDFs steht die Adresse dieser Instanz. Wenn deine Wache Listen an '
+                + 'Leute weitergibt, die hier kein Konto haben, oder die Instanz von außen gar nicht erreichbar ist, kannst du '
+                + 'sie in den Wach-Einstellungen ausblenden. Alles andere bleibt: Logo, Wachname, wer das Dokument erstellt hat und die Seitenzahl.',
+            pdfPerDocument: 'Beim Export einer Anwesenheitsliste lässt sich davon für ein einzelnes Dokument abweichen.',
             overviewTip: 'Änderungen an den Einstellungen wirken sich sofort auf alle Mitglieder aus.',
         },
         membersOverview: {

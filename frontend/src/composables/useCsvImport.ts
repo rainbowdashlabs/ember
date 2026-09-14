@@ -6,6 +6,7 @@
 import {computed, ref, shallowRef, type ComputedRef, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {ParsedCsv} from '@/api/util'
+import {readCsvText} from '@/util/csvText'
 
 export const CsvImportSteps = {
     UPLOAD: 'upload',
@@ -158,7 +159,7 @@ export function useCsvImport<TMapping, TPreview = unknown, TResult = unknown>(
         }
         error.value = ''
         file.value = picked
-        text.value = await picked.text()
+        text.value = await readCsvText(picked)
         step.value = CsvImportSteps.UPLOAD
         clearParsed()
     }

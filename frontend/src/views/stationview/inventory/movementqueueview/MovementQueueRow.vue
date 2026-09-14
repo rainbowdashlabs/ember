@@ -41,7 +41,7 @@ const emit = defineEmits<{
 <template>
   <NeutralContainer
       :data-movement="props.movement.id"
-      class="grid grid-cols-[5rem_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.5fr)] gap-2"
+      class="grid grid-cols-[5rem_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.5fr)] items-center gap-2"
       data-testid="movement-row"
   >
     <MovementRow :movement="props.movement" :show-member="props.showMember"/>

@@ -8,7 +8,7 @@
     let page-total = counter(page).final().first()
     align(center)[
       #text(size: 7pt, fill: luma(150))[
-        Erstellt von #data.generatedBy am #data.generatedAt · Seite #page-num von #page-total · #link(data.baseUrl)[#data.baseUrl]
+        Erstellt von #data.generatedBy am #data.generatedAt · Seite #page-num von #page-total#if data.at("showInstanceUrl", default: true) [ · #link(data.baseUrl)[#data.baseUrl]]
       ]
     ]
   },
