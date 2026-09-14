@@ -18,6 +18,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FileInput from '@/components/input/FileInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {DocumentUpload} from '@/api/documents'
 import type {StationMember} from '@/api/types'
 
@@ -126,10 +127,10 @@ function submit() {
         <MutedText size="sm">{{ t('documents.hideHint') }}</MutedText>
       </template>
 
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!file || saving" @click="submit">{{ t('documents.upload') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

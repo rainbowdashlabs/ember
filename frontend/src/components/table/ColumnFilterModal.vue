@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
@@ -114,10 +115,10 @@ function close() {
         </div>
       </template>
 
-      <div class="flex justify-end gap-2">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="close">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton @click="apply">{{ t('tableFilter.apply') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

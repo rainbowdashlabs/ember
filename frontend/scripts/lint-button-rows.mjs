@@ -8,7 +8,9 @@
  *
  * A row is reported when a flex container holds two or more buttons that carry a label and says
  * nothing about what happens at a narrow width. A button holding only an icon is a toolbar rather
- * than an action row and has no label to break, so it does not count towards the two.
+ * than an action row and has no label to break, so it does not count towards the two. Neither does
+ * the alternative of a button already counted: where one stands in for the other, only ever one of
+ * them is on the line.
  *
  * Warns while the sweep is under way. Pass --error to fail the build on what is left.
  */
@@ -21,7 +23,8 @@ const CATEGORY = 'Hand written button row'
 
 const asError = process.argv.includes('--error')
 
-const BUTTON = /<((?:Primary|Secondary|Error|Success|Info|Save|Delete|Edit|Confirm|Download|Upload|Link)Button)\b[^>]*?(?:\/>|>([\s\S]*?)<\/\1>)/g
+const BUTTON = /<((?:Primary|Secondary|Error|Success|Info|Save|Delete|Edit|Confirm|Download|Upload|Link)Button)\b([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g
+const ALTERNATIVE = /\sv-else\b|\sv-else-if\b/
 const DIV = /<div\b([^>]*)>|<\/div>/g
 const MANAGED = /<ButtonRow\b[\s\S]*?<\/ButtonRow>/g
 const FLEX = /class="[^"]*\bflex\b/
@@ -44,7 +47,8 @@ function carriesLabel(inner) {
 function labelledButtonsIn(slice) {
     let count = 0
     for (const match of slice.replace(MANAGED, '').matchAll(BUTTON)) {
-        if (carriesLabel(match[2])) count++
+        if (ALTERNATIVE.test(match[2])) continue
+        if (carriesLabel(match[3])) count++
     }
     return count
 }
