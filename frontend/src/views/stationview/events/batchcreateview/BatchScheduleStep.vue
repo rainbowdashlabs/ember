@@ -17,6 +17,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {BatchRow, EventFieldEntry} from '@/api/events'
 import {events} from '@/api'
+import {readCsvText} from '@/util/csvText'
 
 const props = defineProps<{
   fieldDefs: EventFieldEntry[]
@@ -85,12 +86,10 @@ async function generateScheduleDates() {
   }
 }
 
-function handleCsvUpload(event: Event) {
+async function handleCsvUpload(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = () => parseCsv(reader.result as string)
-  reader.readAsText(file)
+  parseCsv(await readCsvText(file))
 }
 
 function parseCsv(text: string) {
