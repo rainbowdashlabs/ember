@@ -423,11 +423,20 @@ public class AuthRoutes implements Routes {
             throw new BadRequestResponse("currentPassword and newPassword are required");
         }
         String currentSessionToken = extractBearerToken(ctx);
-        if (!authService.changePassword(
-                session.accountId(), currentSessionToken, request.currentPassword(), request.newPassword())) {
-            throw new BadRequestResponse("Current password is incorrect");
+        var outcome = authService.changePassword(
+                session.accountId(), currentSessionToken, request.currentPassword(), request.newPassword());
+        // Each failure carries a stable i18n key rather than an English sentence, as set-password
+        // does. Translations live in src/i18n/<locale>.ts under the same key path.
+        switch (outcome) {
+            case OK -> ctx.json(new MessageResponse("Password changed"));
+            case NEW_PASSWORD_TOO_SHORT -> throw new BadRequestResponse("changePassword.newPasswordTooShort");
+            case NEW_PASSWORD_BREACHED -> throw new BadRequestResponse("changePassword.newPasswordBreached");
+            case NO_PASSWORD_SET -> throw new BadRequestResponse("changePassword.noPasswordSet");
+            case CURRENT_PASSWORD_WRONG -> throw new BadRequestResponse("changePassword.currentPasswordWrong");
+            // An outcome added later and not answered here would otherwise fall out of the switch
+            // with nothing written, and an empty 200 reads as a password that changed.
+            default -> throw new IllegalStateException("Unhandled change-password outcome: " + outcome);
         }
-        ctx.json(new MessageResponse("Password changed"));
     }
 
     @OpenApi(

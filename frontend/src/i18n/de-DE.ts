@@ -450,6 +450,13 @@ export default {
         sent: 'Falls es dazu ein Konto gibt, wurde ein Link zum Zurücksetzen gesendet.',
         backToLogin: 'Zurück zur Anmeldung',
     },
+    changePassword: {
+        newPasswordTooShort: 'Das neue Passwort muss mindestens 12 Zeichen lang sein.',
+        newPasswordBreached: 'Das neue Passwort wurde in bekannten Datenlecks gefunden. Bitte wähle ein anderes.',
+        noPasswordSet: 'Für dieses Konto ist kein Passwort hinterlegt. Melde dich mit deinem Passkey an, '
+            + 'oder setze über "Passwort vergessen" eines.',
+        currentPasswordWrong: 'Das aktuelle Passwort ist falsch.',
+    },
     setPassword: {
         title: 'Neues Passwort festlegen',
         newPassword: 'Neues Passwort',
@@ -1907,7 +1914,9 @@ export default {
         confirmPassword: 'Passwort bestätigen',
         changePassword: 'Passwort ändern',
         passwordMismatch: 'Die Passwörter stimmen nicht überein.',
-        passwordError: 'Aktuelles Passwort ist falsch.',
+        passwordTooShort: 'Das neue Passwort muss mindestens {count} Zeichen lang sein.',
+        passwordHint: 'Mindestens {count} Zeichen.',
+        passwordError: 'Das Passwort konnte nicht geändert werden.',
         title: 'Profilfelder',
         noFields: 'Keine Profilfelder konfiguriert.',
         incompleteTitle: 'Profil unvollständig',

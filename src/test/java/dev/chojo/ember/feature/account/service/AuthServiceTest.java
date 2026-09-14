@@ -492,7 +492,9 @@ class AuthServiceTest extends RepositoryTestBase {
         // Set a known password first
         var account2 = accountRepo.create("changepw@test.com", "CP", "User");
         accountRepo.createCredential(account2.id(), new PasswordHasher().hash("correct-password"));
-        assertFalse(service.changePassword(account2.id(), null, "wrong-password", "NewPassword123!"));
+        assertEquals(
+                AuthService.ChangePasswordOutcome.CURRENT_PASSWORD_WRONG,
+                service.changePassword(account2.id(), null, "wrong-password", "NewPassword123!"));
         accountRepo.delete(account2.id());
     }
 
@@ -501,7 +503,9 @@ class AuthServiceTest extends RepositoryTestBase {
     void changePasswordSuccess() {
         var account2 = accountRepo.create("changepw2@test.com", "CP2", "User");
         accountRepo.createCredential(account2.id(), new PasswordHasher().hash("OldPassword123!"));
-        assertTrue(service.changePassword(account2.id(), null, "OldPassword123!", "NewPassword456!"));
+        assertEquals(
+                AuthService.ChangePasswordOutcome.OK,
+                service.changePassword(account2.id(), null, "OldPassword123!", "NewPassword456!"));
         accountRepo.delete(account2.id());
     }
 
@@ -509,7 +513,9 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(27)
     void changePasswordNoCredential() {
         var account2 = accountRepo.create("changepw3@test.com", "CP3", "User");
-        assertFalse(service.changePassword(account2.id(), null, "OldPassword12", "NewPassword12"));
+        assertEquals(
+                AuthService.ChangePasswordOutcome.NO_PASSWORD_SET,
+                service.changePassword(account2.id(), null, "OldPassword12", "NewPassword12"));
         accountRepo.delete(account2.id());
     }
 
@@ -518,7 +524,25 @@ class AuthServiceTest extends RepositoryTestBase {
     void changePasswordRejectsShortNewPassword() {
         var account2 = accountRepo.create("changepwshort@test.com", "CP4", "User");
         accountRepo.createCredential(account2.id(), new PasswordHasher().hash("CurrentPassword123!"));
-        assertFalse(service.changePassword(account2.id(), null, "CurrentPassword123!", "tooshort"));
+        assertEquals(
+                AuthService.ChangePasswordOutcome.NEW_PASSWORD_TOO_SHORT,
+                service.changePassword(account2.id(), null, "CurrentPassword123!", "tooshort"));
+        accountRepo.delete(account2.id());
+    }
+
+    /**
+     * The short new password is turned down for being short, not for arriving with the wrong
+     * current password. Both used to answer the same way, which sent members to reset a password
+     * that was never wrong.
+     */
+    @Test
+    @Order(27)
+    void changePasswordNamesTheShortNewPasswordEvenWhenCurrentIsWrong() {
+        var account2 = accountRepo.create("changepwshort2@test.com", "CP5", "User");
+        accountRepo.createCredential(account2.id(), new PasswordHasher().hash("CurrentPassword123!"));
+        assertEquals(
+                AuthService.ChangePasswordOutcome.NEW_PASSWORD_TOO_SHORT,
+                service.changePassword(account2.id(), null, "not-the-current-one", "tiny"));
         accountRepo.delete(account2.id());
     }
 

@@ -430,6 +430,24 @@ public class AuthService {
         PASSWORDLESS_MODE
     }
 
+    /** How a rotation asked for from the account's own security page came out. */
+    public enum ChangePasswordOutcome {
+        /** The new password was accepted and the credential was rotated. */
+        OK,
+        /** The new password is shorter than {@link PasswordPolicy#MIN_LENGTH}. */
+        NEW_PASSWORD_TOO_SHORT,
+        /** The new password is on the Have-I-Been-Pwned breach corpus. */
+        NEW_PASSWORD_BREACHED,
+        /**
+         * The account holds no password to rotate, which is what a passkey-only account looks like.
+         * Kept apart from a wrong password because there is nothing here the member could type
+         * correctly.
+         */
+        NO_PASSWORD_SET,
+        /** The current password given alongside the new one does not match the stored hash. */
+        CURRENT_PASSWORD_WRONG
+    }
+
     /** What a link still in somebody's mailbox is worth, without spending it. */
     public enum TokenStanding {
         /** Good, and the form may be shown. */
@@ -1102,19 +1120,46 @@ public class AuthService {
                 && passwordHasher.verify(password, credOpt.get().passwordHash());
     }
 
-    public boolean changePassword(
+    /**
+     * Rotates an account's password, having checked the new one against the policy and the old one
+     * against the stored hash.
+     *
+     * <p>Each way this can fail is named, because the caller has to say which one happened. Telling
+     * somebody their current password is wrong when what the policy turned down was the password
+     * they were trying to move to sends them to reset a password that was never the problem.
+     *
+     * @param accountId           the account whose password is rotating
+     * @param currentSessionToken the bearer of the session asking, kept alive across the rotation
+     * @param currentPassword     the plaintext the account is signing the change with
+     * @param newPassword         the plaintext to move to
+     * @return which of the outcomes applies; {@link ChangePasswordOutcome#OK} when the password was
+     *         rotated
+     */
+    public ChangePasswordOutcome changePassword(
             int accountId, String currentSessionToken, String currentPassword, String newPassword) {
-        if (validateNewPassword(newPassword) != PasswordPolicy.Result.OK) {
-            return false;
+        var policy = validateNewPassword(newPassword);
+        if (policy == PasswordPolicy.Result.TOO_SHORT) {
+            log.info("[change-password] rejected for account {}: new password too short", accountId);
+            return ChangePasswordOutcome.NEW_PASSWORD_TOO_SHORT;
+        }
+        if (policy == PasswordPolicy.Result.BREACHED) {
+            log.info("[change-password] rejected for account {}: new password found in breach corpus", accountId);
+            return ChangePasswordOutcome.NEW_PASSWORD_BREACHED;
         }
         var credOpt = accountRepository.findCredential(accountId);
-        if (credOpt.isEmpty()) return false;
-        if (!passwordHasher.verify(currentPassword, credOpt.get().passwordHash())) return false;
+        if (credOpt.isEmpty()) {
+            log.info("[change-password] rejected for account {}: account holds no password", accountId);
+            return ChangePasswordOutcome.NO_PASSWORD_SET;
+        }
+        if (!passwordHasher.verify(currentPassword, credOpt.get().passwordHash())) {
+            log.info("[change-password] rejected for account {}: current password does not match", accountId);
+            return ChangePasswordOutcome.CURRENT_PASSWORD_WRONG;
+        }
         accountRepository.updateCredential(accountId, passwordHasher.hash(newPassword));
         invalidateAfterPasswordRotation(accountId, currentSessionToken);
         accountRepository.findById(accountId).ifPresent(this::notifyPasswordChanged);
         log.info("Password changed by account {}", accountId);
-        return true;
+        return ChangePasswordOutcome.OK;
     }
 
     // -- Login / Session --
