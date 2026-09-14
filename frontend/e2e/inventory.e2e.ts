@@ -6,7 +6,37 @@
 import {test, expect, apiHeaders, stationPeers} from './fixtures/auth'
 import {setMovementFilter} from './fixtures/movementFilter'
 import {pickMemberByName} from './fixtures/memberMenu'
+import {unique} from './fixtures/unique'
 import type {Locator, Page} from '@playwright/test'
+
+/**
+ * A piece of the station's own gear that belongs to this story alone, and answers with its code.
+ *
+ * <p>It gets an inventory of its own as well, so nothing that reads a whole inventory, counts it or
+ * walks its chains meets a piece another story is in the middle of moving.
+ */
+async function pieceOfItsOwn(page: Page, headers: Record<string, string>): Promise<string> {
+    const code = unique('ZU')
+    const inventory = await page.request.post('/api/v1/inventories', {
+        headers,
+        data: {name: `Zuweisung ${code}`, inventoryType: 'INTERNAL', hasSizes: false},
+    })
+    expect(inventory.ok(), `the station keeps an inventory for this story (${inventory.status()})`).toBeTruthy()
+
+    const piece = await page.request.post(`/api/v1/inventories/${(await inventory.json()).id}/items`, {
+        headers,
+        data: {
+            internalId: code,
+            name: `Helm ${code}`,
+            sizeId: null,
+            metadata: null,
+            ownerKind: 'STATION',
+            ownerClusterId: null,
+        },
+    })
+    expect(piece.ok(), `a piece of its own is recorded (${await piece.text()})`).toBeTruthy()
+    return code
+}
 
 /** Which of the two modes the page is painted in right now. */
 async function darkModeClass(page: Page): Promise<'dark' | 'light'> {
@@ -119,22 +149,29 @@ test.describe('Inventory', () => {
      * Equipment meeting a person is the point of the whole feature. Both halves are searchable
      * pickers rather than raw scanners, so the story types what a scanner would send: the member's
      * name and the item's code.
+     *
+     * <p>The piece is the story's own. Taking a seeded one by the prefix of its code meant two
+     * stories could pick the same piece, and the one that lost found it free again when it came
+     * back to hand it in: the same button then reads as assigning rather than taking back, so the
+     * story pressed it and waited for a word that was never going to appear.
      */
     test('an item is assigned to a member and handed back', async ({managerPage: page, request}) => {
+        const headers = await apiHeaders(page)
+        const code = await pieceOfItsOwn(page, headers)
         const {member} = await stationPeers(request)
+        const name = `${member.firstName} ${member.lastName}`
 
         await page.goto('/station/inventory/assign')
 
-        await pickMemberByName(page, `${member.firstName} ${member.lastName}`)
+        await pickMemberByName(page, name)
 
         const picker = page.getByPlaceholder('Item suchen oder Code scannen…')
-        await picker.fill('H-0')
+        await picker.fill(code)
 
         // The options of the picker are buttons, which is what separates them from the text a
         // search leaves behind in the field.
-        const option = page.getByRole('button').filter({hasText: /H-0\d\d/}).first()
+        const option = page.getByRole('button').filter({hasText: code}).first()
         await expect(option).toBeVisible()
-        const code = (await option.innerText()).match(/H-0\d\d/)?.[0] ?? ''
         await option.click()
 
         await expect(page.getByText(/zugewiesen/).first()).toBeVisible()
@@ -142,7 +179,7 @@ test.describe('Inventory', () => {
         // The counter is reopened before handing back, which is also what the picker needs: it
         // still believes the item is free until the page asks again.
         await page.reload()
-        await pickMemberByName(page, `${member.firstName} ${member.lastName}`)
+        await pickMemberByName(page, name)
 
         await page.getByPlaceholder('Item suchen oder Code scannen…').fill(code)
         const handBack = page.getByRole('button').filter({hasText: code}).first()

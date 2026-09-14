@@ -12,10 +12,12 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 
 const modelValue = defineModel<boolean>({required: true})
 const name = defineModel<string>('name', {required: true})
 const description = defineModel<string>('description', {required: true})
+const sendsMail = defineModel<boolean>('sendsMail', {required: true})
 
 defineProps<{
   creating: boolean
@@ -40,6 +42,12 @@ const { t } = useI18n()
         <FieldLabel>{{ t('waitingList.description') }}</FieldLabel>
         <TextAreaInput v-model="description" :placeholder="t('waitingList.descriptionPlaceholder')" />
       </div>
+      <ToggleSetting
+        v-model="sendsMail"
+        :hint="t('waitingList.sendsMailHint')"
+        :label="t('waitingList.sendsMail')"
+        data-testid="waitlist-mail-toggle"
+      />
       <div class="flex justify-end gap-2">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="creating || !name.trim()" @click="emit('submit')">

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:eac334b385be274833feed647038bb91440d04ecbb342a1bc64c87344b6247c5",
-  "generatedAt": "2026-09-13T21:48:43Z",
+  "schemaHash": "sha256:eedfe521934f9c4361759f217039ac16ccceeee3f96b2779e66d00c4171a081b",
+  "generatedAt": "2026-09-14T07:41:01Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -22812,7 +22812,7 @@
     "waiting_list": {
       "feature": "waitinglist",
       "scope": "STATION",
-      "tableHash": "sha256:8b1fa6cfa3aeafd75ee9f334726485334b8e5b5755b71c1f9e5dac823bbe12ee",
+      "tableHash": "sha256:1d9cb56a8644e17dae71c1d7d3ca9fc54b238727856d70b496c60e018ee3fb73",
       "columns": [
         {
           "name": "id",
@@ -22916,6 +22916,13 @@
           "nullable": true,
           "verified": true,
           "description": "How old somebody must be to join the station from the list. Entries below it are marked as waiting for their age rather than for their turn; null for no limit."
+        },
+        {
+          "name": "sends_mail",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "True where the list writes to the people on it, which is the state of every list existing before this column. False where it sends nothing at all: a public registration lands without a confirmation link, an invitation is passed on by hand, and the confirmation cycle with its reminders, its warning and its removal does not run."
         }
       ],
       "foreignKeys": [

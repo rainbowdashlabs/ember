@@ -59,7 +59,19 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
     void freshList() {
         reset(emailService);
         listId = waitingListRepo
-                .create(station.id(), "List " + UUID.randomUUID(), "", null, 180, null, null, 5, false, null, null)
+                .create(
+                        station.id(),
+                        "List " + UUID.randomUUID(),
+                        "",
+                        null,
+                        180,
+                        null,
+                        null,
+                        5,
+                        false,
+                        true,
+                        null,
+                        null)
                 .id();
     }
 

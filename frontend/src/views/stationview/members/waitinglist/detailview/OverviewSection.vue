@@ -41,6 +41,7 @@ const editTestingGroupId = ref<number | null>(null)
 const editJoinGroupId = ref<number | null>(null)
 const editAttendanceThreshold = ref(5)
 const editIsPublic = ref(false)
+const editSendsMail = ref(true)
 const editMinAgeRegister = ref<number | null>(null)
 const editMinAgeJoin = ref<number | null>(null)
 
@@ -55,6 +56,7 @@ function startEditing() {
   editJoinGroupId.value = props.list.joinGroupId ?? null
   editAttendanceThreshold.value = props.list.attendanceThreshold ?? 5
   editIsPublic.value = props.list.isPublic ?? false
+  editSendsMail.value = props.list.sendsMail ?? true
   editMinAgeRegister.value = props.list.minAgeRegister ?? null
   editMinAgeJoin.value = props.list.minAgeJoin ?? null
   editing.value = true
@@ -76,6 +78,7 @@ async function saveEditing() {
       joinGroupId: editJoinGroupId.value,
       attendanceThreshold: editAttendanceThreshold.value,
       isPublic: editIsPublic.value,
+      sendsMail: editSendsMail.value,
       minAgeRegister: editMinAgeRegister.value,
       minAgeJoin: editMinAgeJoin.value,
     })
@@ -136,6 +139,11 @@ function groupName(groupId: number | null | undefined): string {
           <span v-if="list.isPublic" class="ml-1 font-medium text-success">{{ t('common.yes') }}</span>
           <span v-else class="ml-1 font-medium text-(--text-muted)">{{ t('common.no') }}</span>
         </div>
+        <div class="text-sm">
+          <span class="text-(--text-muted)">{{ t('waitingList.sendsMail') }}:</span>
+          <span v-if="list.sendsMail" class="ml-1 font-medium text-success">{{ t('common.yes') }}</span>
+          <span v-else class="ml-1 font-medium text-(--text-muted)">{{ t('common.no') }}</span>
+        </div>
       </div>
     </template>
 
@@ -155,6 +163,7 @@ function groupName(groupId: number | null | undefined): string {
       />
       <OverviewEditActions
         v-model:is-public="editIsPublic"
+        v-model:sends-mail="editSendsMail"
         :can-save="canSave"
         :save="saveEditing"
         @cancel="cancelEditing"

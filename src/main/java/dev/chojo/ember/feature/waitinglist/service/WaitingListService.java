@@ -127,6 +127,7 @@ public class WaitingListService {
             Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic,
+            boolean sendsMail,
             Integer minAgeRegister,
             Integer minAgeJoin) {
         var list = repository.create(
@@ -139,6 +140,7 @@ public class WaitingListService {
                 joinGroupId,
                 attendanceThreshold,
                 isPublic,
+                sendsMail,
                 minAgeRegister,
                 minAgeJoin);
         log.info("Created waiting list {} on station {} (public {})", list.id(), stationId, isPublic);
@@ -155,6 +157,7 @@ public class WaitingListService {
             Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic,
+            boolean sendsMail,
             Integer minAgeRegister,
             Integer minAgeJoin) {
         var updated = repository.update(
@@ -167,6 +170,7 @@ public class WaitingListService {
                 joinGroupId,
                 attendanceThreshold,
                 isPublic,
+                sendsMail,
                 minAgeRegister,
                 minAgeJoin);
         if (updated.isPresent()) {
@@ -327,7 +331,8 @@ public class WaitingListService {
         var listForEmail = repository.findById(invite.listId()).orElse(null);
         String stationName = listForEmail != null ? resolveStationName(listForEmail.stationId()) : "";
         int stationId = stationIdForList(invite.listId());
-        if (guardians != null) {
+        boolean writesToThem = listForEmail == null || listForEmail.sendsMail();
+        if (guardians != null && writesToThem) {
             for (var g : guardians) {
                 if (g.email() != null && !g.email().isBlank()) {
                     emailService.sendWaitlistRegistrationEmail(
@@ -534,6 +539,9 @@ public class WaitingListService {
      * not joined anything, so putting them on the attendee list would make them part of a Tuesday
      * they never agreed to and would count them in the totals the station plans from.
      *
+     * <p>A list that writes to nobody records the invitation and sends nothing. The entry still
+     * moves to invited, because the station has invited them, by whatever means it uses instead.
+     *
      * @param invitation the evening they are asked to come to, or {@code null} to invite without
      *                   naming one
      */
@@ -552,7 +560,9 @@ public class WaitingListService {
         });
         log.info("Invited waiting-list entry {} on station {}", entryId, list.stationId());
 
-        invitationMessage.send(entry, repository.findGuardiansByEntry(entryId), station, invitation);
+        if (list.sendsMail()) {
+            invitationMessage.send(entry, repository.findGuardiansByEntry(entryId), station, invitation);
+        }
 
         return repository.findEntryById(entryId).orElseThrow();
     }
@@ -722,7 +732,7 @@ public class WaitingListService {
             stationMemberRepository.setUserType(entry.memberId(), StationUserType.MEMBER);
 
             // Create guardian accounts and link them to the member
-            createGuardianAccounts(entry, list.stationId());
+            createGuardianAccounts(entry, list);
         }
 
         repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.JOINED, "joined_at");
@@ -928,7 +938,15 @@ public class WaitingListService {
         return ScoreEvaluator.evaluate(processedFormula, variables);
     }
 
+    /**
+     * Asks the people on a list whether they are still interested, and drops those who never say so.
+     *
+     * <p>A list that writes to nobody is left alone entirely, removals included: the reminder and the
+     * warning are the whole of what a person is given before they are dropped, and dropping somebody
+     * who was never asked is losing them rather than tidying up.
+     */
     public void checkExpiredConfirmations(WaitingList list) {
+        if (!list.sendsMail()) return;
         String stationName = resolveStationName(list.stationId());
 
         // Send initial reminders for expired entries
@@ -991,6 +1009,14 @@ public class WaitingListService {
         return repository.hasPublicWaitlists(stationId);
     }
 
+    /**
+     * Takes what somebody filled in on the public form, which waits for their address to be
+     * confirmed before it becomes an entry.
+     *
+     * <p>A list that writes to nobody has nothing to confirm with and no way of asking, so the
+     * registration becomes an entry at once. It is still one waiting to be looked at: the mail was
+     * never what decided who gets onto the list, whoever manages it is.
+     */
     public void submitPublicRegistration(
             int listId,
             String firstname,
@@ -1003,6 +1029,16 @@ public class WaitingListService {
         var list = repository.findById(listId).orElseThrow(() -> new IllegalArgumentException("List not found"));
         if (!list.isPublic()) {
             throw new IllegalStateException("List is not public");
+        }
+
+        if (!list.sendsMail()) {
+            var entry = createPendingEntry(list, firstname, lastname, email, guardians, fieldValues, notes, consent);
+            log.info(
+                    "Public waiting-list registration accepted unconfirmed as entry {} on list {} (station {})",
+                    entry.id(),
+                    listId,
+                    list.stationId());
+            return;
         }
 
         String token = UUID.randomUUID().toString();
@@ -1033,43 +1069,63 @@ public class WaitingListService {
             return false;
         }
 
-        List<GuardianInput> guardians = verification.guardians();
-        Map<Integer, JsonNode> fieldValues = verification.fieldValues();
+        var list = repository.findById(verification.listId()).orElse(null);
+        if (list == null) {
+            repository.deleteVerificationToken(verification.id());
+            return false;
+        }
 
-        String parentName = primaryGuardianName(guardians);
-        String accessToken = UUID.randomUUID().toString();
-        var entry = repository.createEntryWithStatus(
-                verification.listId(),
+        var entry = createPendingEntry(
+                list,
                 verification.firstname(),
                 verification.lastname(),
-                parentName,
                 verification.email(),
-                accessToken,
+                verification.guardians(),
+                verification.fieldValues(),
                 verification.notes(),
-                WaitingListEntryStatus.PENDING,
                 verification.consent());
 
-        if (guardians != null) {
-            insertGuardians(entry.id(), guardians);
-        }
-        if (fieldValues != null) {
-            for (var e : fieldValues.entrySet()) {
-                repository.upsertEntryValue(entry.id(), e.getKey(), e.getValue());
-            }
-        }
-
         repository.deleteVerificationToken(verification.id());
-
-        repository
-                .findById(verification.listId())
-                .ifPresent(list -> eventBus.publish(
-                        new WaitlistPublicRegistration(list.stationId(), entry.fullName(), list.name())));
 
         log.info(
                 "Verified public waiting-list registration: created entry {} on list {}",
                 entry.id(),
                 verification.listId());
         return true;
+    }
+
+    /** Writes a public registration onto the list, where it waits for somebody to look at it. */
+    private WaitingListEntry createPendingEntry(
+            WaitingList list,
+            String firstname,
+            String lastname,
+            String email,
+            List<GuardianInput> guardians,
+            Map<Integer, JsonNode> fieldValues,
+            String notes,
+            ConsentProof consent) {
+        var entry = repository.createEntryWithStatus(
+                list.id(),
+                firstname,
+                lastname,
+                primaryGuardianName(guardians),
+                email,
+                UUID.randomUUID().toString(),
+                notes != null ? notes : "",
+                WaitingListEntryStatus.PENDING,
+                consent);
+
+        if (guardians != null) {
+            insertGuardians(entry.id(), guardians);
+        }
+        if (fieldValues != null) {
+            for (var value : fieldValues.entrySet()) {
+                repository.upsertEntryValue(entry.id(), value.getKey(), value.getValue());
+            }
+        }
+
+        eventBus.publish(new WaitlistPublicRegistration(list.stationId(), entry.fullName(), list.name()));
+        return entry;
     }
 
     // --- Public waitlist ---
@@ -1085,18 +1141,20 @@ public class WaitingListService {
 
         // Send registration confirmation email to guardians
         var list = repository.findById(entry.listId()).orElse(null);
-        String stationName = list != null ? resolveStationName(list.stationId()) : "";
-        int stationId = list != null ? list.stationId() : 0;
-        var guardians = repository.findGuardiansByEntry(entryId);
-        for (var g : guardians) {
-            if (g.email() != null && !g.email().isBlank()) {
-                emailService.sendWaitlistRegistrationEmail(
-                        g.email(), g.fullName(), entry.accessToken(), stationName, "de", stationId);
+        if (list == null || list.sendsMail()) {
+            String stationName = list != null ? resolveStationName(list.stationId()) : "";
+            int stationId = list != null ? list.stationId() : 0;
+            var guardians = repository.findGuardiansByEntry(entryId);
+            for (var g : guardians) {
+                if (g.email() != null && !g.email().isBlank()) {
+                    emailService.sendWaitlistRegistrationEmail(
+                            g.email(), g.fullName(), entry.accessToken(), stationName, "de", stationId);
+                }
             }
-        }
-        if (guardians.isEmpty() && entry.email() != null && !entry.email().isBlank()) {
-            emailService.sendWaitlistRegistrationEmail(
-                    entry.email(), entry.fullName(), entry.accessToken(), stationName, "de", stationId);
+            if (guardians.isEmpty() && entry.email() != null && !entry.email().isBlank()) {
+                emailService.sendWaitlistRegistrationEmail(
+                        entry.email(), entry.fullName(), entry.accessToken(), stationName, "de", stationId);
+            }
         }
 
         return repository.findEntryById(entryId).orElseThrow();
@@ -1159,7 +1217,16 @@ public class WaitingListService {
         }
     }
 
-    private void createGuardianAccounts(WaitingListEntry entry, int stationId) {
+    /**
+     * Gives every guardian on the entry an account at the station and puts them over the member.
+     *
+     * <p>On a list that writes to nobody the account is made without its setup mail. The account
+     * stands either way, and the link that claims it is minted by hand from the member list, at a
+     * moment somebody is there to pass it on.
+     */
+    private void createGuardianAccounts(WaitingListEntry entry, WaitingList list) {
+        int stationId = list.stationId();
+        var setupMail = list.sendsMail() ? SetupMail.SEND_NOW : SetupMail.LATER;
         var guardians = repository.findGuardiansByEntry(entry.id());
         if (guardians.isEmpty()) return;
 
@@ -1191,7 +1258,7 @@ public class WaitingListService {
                         ? accountInviteService.createWithoutAddress(
                                 stationId, guardian.firstname(), guardian.lastname())
                         : accountInviteService.resolveOrCreate(
-                                stationId, address, guardian.firstname(), guardian.lastname(), SetupMail.SEND_NOW);
+                                stationId, address, guardian.firstname(), guardian.lastname(), setupMail);
             } catch (AccountInviteService.EmailInUseException e) {
                 log.warn("Guardian of member {} was not taken on: {} is somebody else's", entry.memberId(), address);
                 continue;

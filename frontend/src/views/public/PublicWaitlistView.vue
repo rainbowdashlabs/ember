@@ -87,8 +87,9 @@ const privacyVersion = ref('')
 const tosVersion = ref('')
 
 const canSubmit = computed(() => {
-  if (!firstname.value.trim() || !email.value.trim()) return false
+  if (!firstname.value.trim()) return false
   if (!form.value) return false
+  if (form.value.sendsMail && !email.value.trim()) return false
   if (!consentAccepted.value) return false
   for (const f of form.value.fields) {
     if (f.required && !fieldValues.value[f.id]?.trim()) return false
@@ -128,7 +129,7 @@ const error = computed(() => loadError.value || submitError.value)
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :message="error"/>
 
-      <WaitlistSuccessPanel v-if="submitted"/>
+      <WaitlistSuccessPanel v-if="submitted" :confirmed-by-mail="form?.sendsMail ?? true"/>
 
       <template v-if="!loading && !submitted">
         <EmptyState v-if="lists.length === 0">{{ t('waitingList.publicRegistration.noLists') }}</EmptyState>

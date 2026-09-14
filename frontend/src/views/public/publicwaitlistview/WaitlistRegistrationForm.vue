@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -14,7 +15,7 @@ import WaitlistGuardiansSection from './WaitlistGuardiansSection.vue'
 import WaitlistCustomField from './WaitlistCustomField.vue'
 import type {GuardianInput, PublicWaitlistFormResponse, WaitingListField} from '@/api/waitingList'
 
-defineProps<{
+const props = defineProps<{
   form: PublicWaitlistFormResponse
   guardians: GuardianInput[]
   fieldValues: Record<number, string>
@@ -40,6 +41,12 @@ const tosVersion = defineModel<string>('tosVersion', {default: ''})
 
 const {t} = useI18n()
 
+/** An address is only asked for where one is written to, and only insisted on there. */
+const emailLabel = computed(() => {
+  const label = t('waitingList.publicRegistration.email')
+  return props.form.sendsMail ? `${label} *` : label
+})
+
 function fieldValue(field: WaitingListField, values: Record<number, string>): string {
   return values[field.id] ?? ''
 }
@@ -58,9 +65,11 @@ function fieldValue(field: WaitingListField, values: Record<number, string>): st
       </div>
     </div>
     <div class="space-y-1">
-      <FormLabel>{{ t('waitingList.publicRegistration.email') }} *</FormLabel>
+      <FormLabel>{{ emailLabel }}</FormLabel>
       <TextInput v-model="email" type="email"/>
-      <p class="text-xs text-(--text-muted)">{{ t('waitingList.publicRegistration.emailHint') }}</p>
+      <p v-if="form.sendsMail" class="text-xs text-(--text-muted)">
+        {{ t('waitingList.publicRegistration.emailHint') }}
+      </p>
     </div>
 
     <WaitlistGuardiansSection

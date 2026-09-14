@@ -45,6 +45,12 @@ export interface WaitingList {
     joinGroupId?: number | null
     attendanceThreshold: number
     isPublic: boolean
+    /**
+     * Whether the list writes to the people on it. A list that does not confirms no registration,
+     * sends no invitation and runs no confirmation cycle, which is what a station reachable only
+     * from inside its own network keeps.
+     */
+    sendsMail: boolean
     /** How old somebody must be to put themselves on the list; null for no limit. */
     minAgeRegister?: number | null
     /** How old they must be to join from it. Younger entries are marked rather than hidden. */
@@ -223,6 +229,8 @@ export interface PublicWaitlistSummary {
 export interface PublicWaitlistFormResponse {
     listName: string
     listDescription: string
+    /** Whether a confirmation link follows the registration, which is what asks for an address. */
+    sendsMail: boolean
     fields: WaitingListField[]
 }
 
@@ -235,6 +243,7 @@ interface WaitingListRequest {
     joinGroupId?: number | null
     attendanceThreshold?: number
     isPublic?: boolean
+    sendsMail?: boolean
     minAgeRegister?: number | null
     minAgeJoin?: number | null
 }

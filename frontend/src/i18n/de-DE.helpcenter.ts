@@ -2632,6 +2632,12 @@ volumes:
             ageField: 'Berechnetes Alter aus einem Datumsfeld (z.B. alter_Geburtstag)',
             confirmation: 'Bestätigung alle 6 Monate',
             confirmationText: 'Einträge müssen regelmäßig bestätigt werden (Standard: alle 180 Tage). Wenn eine Person nicht bestätigt, wird sie per E-Mail erinnert. Nach 30 weiteren Tagen ohne Bestätigung wird der Eintrag automatisch entfernt.',
+            noMailTitle: 'Warteliste ohne E-Mails',
+            noMailText: 'In den Einstellungen einer Warteliste kannst du „E-Mails senden" ausschalten. Dann verschickt diese Liste gar nichts mehr:',
+            noMailRegistration: 'Eine Anmeldung über das öffentliche Formular muss nicht mehr bestätigt werden und steht sofort bei den ausstehenden Anmeldungen. Eine E-Mail-Adresse ist dort dann keine Pflicht mehr.',
+            noMailInvitation: 'Einladungen werden nur noch vermerkt, verschickt werden sie nicht. Du lädst persönlich, telefonisch oder auf einem anderen Weg ein.',
+            noMailConfirmation: 'Erinnerungen und Warnungen entfallen, und niemand wird wegen einer fehlenden Bestätigung von der Liste genommen.',
+            noMailWhere: 'Gedacht ist das für Wachen, deren Ember-Installation von außen nicht erreichbar ist: Links in einer E-Mail liessen sich dort nicht öffnen. Der Schalter steht beim Anlegen der Liste und danach jederzeit in den Einstellungen zur Verfügung.',
             tip: 'Tipp: Nutze die Bewertungsformel, um die Warteliste automatisch nach Priorität zu sortieren. Die Formel wird bei jeder Ansicht neu berechnet.',
         },
         quiz: {

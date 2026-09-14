@@ -43,7 +43,7 @@ public class WaitingListRepository {
     private static final String WAITING_LIST_COLUMNS = """
             id, station_id, name, description, scoring_formula, confirm_interval_days, created_at, \
             visible_fields, testing_group_id, join_group_id, join_user_type, attendance_threshold, public, \
-            min_age_register, min_age_join""";
+            sends_mail, min_age_register, min_age_join""";
     private static final String WAITING_LIST_FIELD_COLUMNS =
             "id, list_id, name, field_type, config, position, required, public";
     private static final String WAITING_LIST_INVITE_COLUMNS =
@@ -122,6 +122,7 @@ public class WaitingListRepository {
             Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic,
+            boolean sendsMail,
             Integer minAgeRegister,
             Integer minAgeJoin) {
         return insertReturning(
@@ -130,11 +131,11 @@ public class WaitingListRepository {
                 INTO
                     waiting_list
                     (station_id, name, description, scoring_formula, confirm_interval_days,
-                     testing_group_id, join_group_id, attendance_threshold, public,
+                     testing_group_id, join_group_id, attendance_threshold, public, sends_mail,
                      min_age_register, min_age_join)
                 VALUES
                     (:station_id, :name, :description, :scoring_formula, :confirm_interval_days,
-                     :testing_group_id, :join_group_id, :attendance_threshold, :public,
+                     :testing_group_id, :join_group_id, :attendance_threshold, :public, :sends_mail,
                      :min_age_register, :min_age_join)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
@@ -146,6 +147,7 @@ public class WaitingListRepository {
                         .bind("join_group_id", joinGroupId)
                         .bind("attendance_threshold", attendanceThreshold)
                         .bind("public", isPublic)
+                        .bind("sends_mail", sendsMail)
                         .bind("min_age_register", minAgeRegister)
                         .bind("min_age_join", minAgeJoin),
                 WaitingList.map(),
@@ -162,6 +164,7 @@ public class WaitingListRepository {
             Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic,
+            boolean sendsMail,
             Integer minAgeRegister,
             Integer minAgeJoin) {
         return query("""
@@ -175,6 +178,7 @@ public class WaitingListRepository {
                     join_group_id         = :join_group_id,
                     attendance_threshold  = :attendance_threshold,
                     public                = :public,
+                    sends_mail            = :sends_mail,
                     min_age_register      = :min_age_register,
                     min_age_join          = :min_age_join
                 WHERE id = :id
@@ -188,6 +192,7 @@ public class WaitingListRepository {
                         .bind("join_group_id", joinGroupId)
                         .bind("attendance_threshold", attendanceThreshold)
                         .bind("public", isPublic)
+                        .bind("sends_mail", sendsMail)
                         .bind("min_age_register", minAgeRegister)
                         .bind("min_age_join", minAgeJoin))
                 .map(WaitingList.map())
