@@ -10,6 +10,7 @@ import { useConfirmAction } from '@/composables/useConfirmAction'
 import Modal from '@/components/feedback/Modal.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -107,10 +108,10 @@ async function updateCategory() {
       <SubHeader>{{ t('quiz.categories.create') }}</SubHeader>
       <TextInput v-model="newCategoryName" :placeholder="t('quiz.categories.name')" />
       <TextAreaInput v-model="newCategoryDescription" :placeholder="t('quiz.categories.description')" />
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="showCategoryModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!newCategoryName.trim()" @click="createCategory">{{ t('common.save') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 
@@ -119,10 +120,10 @@ async function updateCategory() {
       <SubHeader>{{ t('quiz.categories.edit') }}</SubHeader>
       <TextInput v-model="editCategoryName" :placeholder="t('quiz.categories.name')" />
       <TextAreaInput v-model="editCategoryDescription" :placeholder="t('quiz.categories.description')" />
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="showEditCategoryModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!editCategoryName.trim()" @click="updateCategory">{{ t('common.save') }}</PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 
@@ -130,10 +131,10 @@ async function updateCategory() {
     <div class="space-y-4">
       <SubHeader>{{ t('common.delete') }}</SubHeader>
       <p class="text-sm">{{ t('quiz.categories.deleteConfirm') }}</p>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="showDeleteCategoryModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton @click="deleteCategory">{{ t('common.delete') }}</ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import GenPreviewCard from './GenPreviewCard.vue'
 
@@ -70,14 +71,14 @@ const acceptedCount = computed(() => props.previews.filter(q => q.accepted).leng
           {{ t('common.back') }}
         </SecondaryButton>
       </div>
-      <div class="flex items-center gap-2">
+      <ButtonRow align="end">
         <span class="text-xs text-(--text-muted)">{{ acceptedCount }} / {{ props.previews.length }}</span>
         <PrimaryButton :disabled="props.generating || acceptedCount === 0" @click="emit('save')">
           <Spinner v-if="props.generating" size="sm" class="mr-1"/>
           <font-awesome-icon v-else :icon="['fas', 'check']" class="mr-1"/>
           {{ t('quiz.ai.acceptSelected') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </div>
 </template>

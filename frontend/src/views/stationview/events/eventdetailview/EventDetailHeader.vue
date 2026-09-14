@@ -12,6 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
@@ -91,7 +92,7 @@ function announce() {
       and calling it off are both occasional, and calling it off comes last and coloured because a
       full width row under a harmless one reads as harmless otherwise.
     -->
-    <div class="flex items-center gap-2">
+    <ButtonRow align="end">
       <SecondaryButton @click="goBack"><font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>{{ t('common.back') }}</SecondaryButton>
       <PrimaryButton v-if="canManageEvents" @click="goEdit"><font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/>{{ t('events.editEvent') }}</PrimaryButton>
       <ActionsMenu v-if="hasMenu" :label="t('common.actions')" test-id="event-actions">
@@ -104,6 +105,6 @@ function announce() {
           {{ t('events.cancelEvent') }}
         </DropdownMenuItem>
       </ActionsMenu>
-    </div>
+    </ButtonRow>
   </div>
 </template>

@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 
 const modelValue = defineModel<boolean>({required: true})
@@ -26,10 +27,10 @@ const { t } = useI18n()
   <Modal v-model="modelValue">
     <div class="space-y-4">
       <p class="text-sm">{{ message }}</p>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton @click="emit('confirm')">{{ t('common.confirm') }}</ErrorButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

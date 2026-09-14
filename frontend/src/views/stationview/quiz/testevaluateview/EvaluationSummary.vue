@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 
@@ -32,13 +33,13 @@ const {t} = useI18n()
       <div class="text-lg font-semibold">
         {{ t('quiz.evaluate.total') }}: {{ props.totalPoints }} / {{ props.maxPoints }} {{ t('quiz.points') }}
       </div>
-      <div class="flex gap-3">
+      <ButtonRow align="end">
         <SecondaryButton @click="emit('back')">{{ t('common.back') }}</SecondaryButton>
         <SuccessButton v-if="props.canReview" :disabled="props.grading || props.graded" @click="emit('finish')">
           <Spinner v-if="props.grading" size="sm" />
           <template v-else>{{ t('quiz.evaluate.finishGrading') }}</template>
         </SuccessButton>
-      </div>
+      </ButtonRow>
     </div>
   </NeutralContainer>
 </template>

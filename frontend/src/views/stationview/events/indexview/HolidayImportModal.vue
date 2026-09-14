@@ -8,6 +8,7 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -79,12 +80,12 @@ const {running: loading, error, run: importHolidays} = useAsyncAction(async () =
 
       <p v-if="error" class="text-sm text-error">{{ error }}</p>
 
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="loading" @click="importHolidays">
           {{ loading ? t('common.loading') : t('events.importHolidaysSubmit') }}
         </PrimaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>
