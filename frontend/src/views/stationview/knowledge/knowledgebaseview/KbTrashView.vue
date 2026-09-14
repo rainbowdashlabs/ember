@@ -201,7 +201,7 @@ async function empty() {
                 <DeleteButton :disabled="busy" data-testid="kb-trash-empty-confirm" @click="empty">
                     {{ t('kb.trashEmpty') }}
                 </DeleteButton>
-            </div>
+            </ButtonRow>
         </Modal>
     </div>
 </template>

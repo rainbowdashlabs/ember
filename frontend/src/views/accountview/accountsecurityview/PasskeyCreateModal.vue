@@ -79,7 +79,7 @@ function close() {
           <PrimaryButton type="button" :disabled="phase === 'trialRunning'" @click="runTrial">
             {{ t('passkeys.create.trialRun') }}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
       </template>
 
       <template v-else>

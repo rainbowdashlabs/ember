@@ -175,6 +175,6 @@ function confirm() {
       >
         {{ t('inventory.check.exchangeCreate') }}
       </PrimaryButton>
-    </div>
+    </ButtonRow>
   </Modal>
 </template>
