@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 
 const open = defineModel<boolean>({ required: true })
@@ -24,10 +25,10 @@ const { t } = useI18n()
     <div class="space-y-4">
       <SubHeader>{{ t('quiz.attempt.confirmSubmitTitle') }}</SubHeader>
       <p class="text-sm">{{ t('quiz.attempt.confirmSubmitMessage') }}</p>
-      <div class="flex justify-end gap-3">
+      <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <SuccessButton @click="emit('confirm')">{{ t('quiz.attempt.submit') }}</SuccessButton>
-      </div>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

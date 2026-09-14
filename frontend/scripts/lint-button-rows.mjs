@@ -24,17 +24,19 @@ const asError = process.argv.includes('--error')
 const BUTTON = /<((?:Primary|Secondary|Error|Success|Info|Save|Delete|Edit|Confirm|Download|Upload|Link)Button)\b[^>]*?(?:\/>|>([\s\S]*?)<\/\1>)/g
 const DIV = /<div\b([^>]*)>|<\/div>/g
 const MANAGED = /<ButtonRow\b[\s\S]*?<\/ButtonRow>/g
+const SCREEN_READER_ONLY = /<span[^>]*\bsr-only\b[\s\S]*?<\/span>/g
 const FLEX = /class="[^"]*\bflex\b/
 const RESPONSIVE = /\b(?:sm|md|lg|xl):|flex-col|\bgrid\b/
 
 /**
  * Whether the button says anything a reader could read. Its own tags do not count, so a button
  * holding nothing but an icon comes back false; a mustache does count, because that is where every
- * translated label sits.
+ * translated label sits. Words put there only for a screen reader do not count either: on the page
+ * that button is an icon, and an icon has nothing to break onto a second line.
  */
 function carriesLabel(inner) {
     if (inner === undefined) return false
-    return inner.replace(/<[^>]*>/g, '').trim() !== ''
+    return inner.replace(SCREEN_READER_ONLY, '').replace(/<[^>]*>/g, '').trim() !== ''
 }
 
 /**
