@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.HashSet;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -150,6 +152,113 @@ class MediaReferenceRegistryTest extends RepositoryTestBase {
     @Test
     void aFileNothingHandsOutIsNotHandedOut() {
         assertEquals(0, registry.handedOutBy(99999));
+    }
+
+    /**
+     * A file an event hands over is referenced, or a prune would take the bytes of it.
+     *
+     * <p>The prune deletes what it believes unused from storage before the row, and the row is what
+     * the database refuses to lose. Leaving an event out of the registry therefore does not end in
+     * a refusal: it ends with the bytes gone and the attachment pointing at nothing.
+     */
+    @Test
+    void aFileAnEventHandsOverIsNamedOutrightToo() {
+        var file = mediaFileRepo.create(null, station.id(), "2".repeat(64), "laufzettel.pdf", "application/pdf", 8);
+        var event = someEvent();
+        int attachment = attachTo(event, file.id(), false);
+        try {
+            var referenced = registry.collect(station.id());
+            assertTrue(referenced.contains(file.contentHash()));
+            assertTrue(referenced.contains(String.valueOf(file.id())));
+            assertEquals(1, registry.handedOutBy(file.id()));
+        } finally {
+            detach(attachment);
+            eventRepo.delete(event);
+            mediaFileRepo.delete(file.id());
+        }
+    }
+
+    /**
+     * What an event keeps back is kept back at the library door as well.
+     *
+     * <p>The library hands a file to anybody signed in who knows the hash of its bytes, which would
+     * make the event's own refusal a formality. A file somebody has published elsewhere is another
+     * matter: it was handed out by that act, and hiding it here would only break what shows it.
+     */
+    @Test
+    void aFileOnlyAnInternalAttachmentHandsOutIsKeptBack() {
+        var kept = mediaFileRepo.create(null, station.id(), "3".repeat(64), "einsatzplan.pdf", "application/pdf", 8);
+        var alsoOpen = mediaFileRepo.create(null, station.id(), "4".repeat(64), "beides.pdf", "application/pdf", 8);
+        var event = someEvent();
+        int internal = attachTo(event, kept.id(), true);
+        int bothWays = attachTo(event, alsoOpen.id(), true);
+        int openly = attachTo(event, alsoOpen.id(), false);
+        try {
+            assertTrue(registry.keptBack(station.id(), kept.contentHash()));
+            assertTrue(registry.keptBackFiles(station.id()).contains(kept.id()));
+
+            assertFalse(
+                    registry.keptBack(station.id(), alsoOpen.contentHash()),
+                    "the same file handed out openly by the same event is not kept back");
+            assertFalse(registry.keptBackFiles(station.id()).contains(alsoOpen.id()));
+        } finally {
+            detach(internal);
+            detach(bothWays);
+            detach(openly);
+            eventRepo.delete(event);
+            mediaFileRepo.delete(kept.id());
+            mediaFileRepo.delete(alsoOpen.id());
+        }
+    }
+
+    @Test
+    void aFileNoEventKeepsBackIsNotKeptBack() {
+        var file = mediaFileRepo.create(null, station.id(), "5".repeat(64), "frei.pdf", "application/pdf", 8);
+        try {
+            assertFalse(registry.keptBack(station.id(), file.contentHash()));
+            assertFalse(registry.keptBack(station.id(), null));
+            assertFalse(registry.keptBack(null, file.contentHash()));
+        } finally {
+            mediaFileRepo.delete(file.id());
+        }
+    }
+
+    private static int someEvent() {
+        return eventRepo
+                .create(
+                        station.id(),
+                        "Dateiabend",
+                        "",
+                        StationEvent.EventType.ONE_TIME,
+                        null,
+                        Instant.parse("2026-05-12T18:00:00Z"),
+                        Instant.parse("2026-05-12T20:00:00Z"),
+                        null,
+                        false,
+                        null,
+                        false,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null)
+                .id();
+    }
+
+    private static int attachTo(int eventId, int fileId, boolean internal) {
+        return query("""
+                        INSERT INTO event_attachment(event_id, file_id, internal)
+                        VALUES (:event_id, :file_id, :internal) RETURNING id;""")
+                .single(call().bind("event_id", eventId).bind("file_id", fileId).bind("internal", internal))
+                .map(row -> row.getInt("id"))
+                .first()
+                .orElseThrow();
+    }
+
+    private static void detach(int attachmentId) {
+        query("DELETE FROM event_attachment WHERE id = :id;")
+                .single(call().bind("id", attachmentId))
+                .delete();
     }
 
     @Test

@@ -148,6 +148,12 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.eventEdit.federationText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventEdit.attachmentsTitle')">
+      <p>{{ t('helpCenter.eventEdit.attachmentsText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.attachmentsInternalText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.attachmentsFilesText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventEdit.fieldDefaultsTitle')">
       <p>{{ t('helpCenter.eventEdit.fieldDefaultsText') }}</p>
     </HelpSection>

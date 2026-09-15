@@ -57,11 +57,29 @@ public class EquipmentNeedRoutes implements Routes {
         this.eventService = eventService;
     }
 
+    /**
+     * What an evening needs is read by whoever keeps the equipment and by whoever runs the evening.
+     * Until the second right existed, somebody who ran events without keeping the inventory could
+     * not read the material of their own evening at all. Writing it stays with whoever writes the
+     * event.
+     */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/events/{eventId}/equipment", this::list, StationPermission.INVENTORY_READ);
-        routes.get(prefix + "/events/{eventId}/equipment/coverage", this::coverage, StationPermission.INVENTORY_READ);
-        routes.get(prefix + "/events/{eventId}/equipment/handovers", this::handovers, StationPermission.INVENTORY_READ);
+        routes.get(
+                prefix + "/events/{eventId}/equipment",
+                this::list,
+                StationPermission.INVENTORY_READ,
+                StationPermission.EVENT_INTERNAL);
+        routes.get(
+                prefix + "/events/{eventId}/equipment/coverage",
+                this::coverage,
+                StationPermission.INVENTORY_READ,
+                StationPermission.EVENT_INTERNAL);
+        routes.get(
+                prefix + "/events/{eventId}/equipment/handovers",
+                this::handovers,
+                StationPermission.INVENTORY_READ,
+                StationPermission.EVENT_INTERNAL);
         routes.post(prefix + "/events/{eventId}/equipment", this::add, StationPermission.EVENT_EDIT);
         routes.put(prefix + "/events/{eventId}/equipment/order", this::reorder, StationPermission.EVENT_EDIT);
         routes.put(prefix + "/events/{eventId}/equipment/{needId}", this::update, StationPermission.EVENT_EDIT);

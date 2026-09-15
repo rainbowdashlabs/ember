@@ -115,6 +115,7 @@ import dev.chojo.ember.feature.discovery.service.FederationPartnerSeeder;
 import dev.chojo.ember.feature.documents.route.DocumentRoutes;
 import dev.chojo.ember.feature.equipment.route.EquipmentBrowseRoutes;
 import dev.chojo.ember.feature.equipment.route.EquipmentNeedRoutes;
+import dev.chojo.ember.feature.events.route.EventAttachmentRoutes;
 import dev.chojo.ember.feature.events.route.EventRegistrationRoutes;
 import dev.chojo.ember.feature.events.route.EventRoutes;
 import dev.chojo.ember.feature.events.route.EventSharingRoutes;
@@ -332,6 +333,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(EquipmentNeedRoutes.class);
         routesBinder.addBinding().to(EquipmentBrowseRoutes.class);
         routesBinder.addBinding().to(EventStructureRoutes.class);
+        routesBinder.addBinding().to(EventAttachmentRoutes.class);
         routesBinder.addBinding().to(EventRegistrationRoutes.class);
         routesBinder.addBinding().to(EventSharingRoutes.class);
         routesBinder.addBinding().to(EventRoutes.class);

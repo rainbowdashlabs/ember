@@ -18,6 +18,7 @@ import type {FederatedEventDetail, FederatedRegistration} from '@/api/events'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import AttachmentsCard from './federatedeventdetailview/AttachmentsCard.vue'
 import HeaderCard from './federatedeventdetailview/HeaderCard.vue'
 import RegistrationCard from './federatedeventdetailview/RegistrationCard.vue'
 import CommentsCard from './federatedeventdetailview/CommentsCard.vue'
@@ -166,6 +167,8 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
 
       <template v-if="eventData && !loading">
         <HeaderCard :event="eventData" :public-fields="publicFields"/>
+
+        <AttachmentsCard :station-uid="stationUid" :event-id="eventId"/>
 
         <RegistrationCard
             v-if="eventData.requiresRegistration"

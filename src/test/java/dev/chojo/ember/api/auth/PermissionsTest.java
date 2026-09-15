@@ -207,6 +207,22 @@ class PermissionsTest {
         assertTrue(granted.contains(StationPermission.INVENTORY_MANAGER), "and throw one away again");
     }
 
+    /**
+     * Writing the association's events at its own station carries reading what they keep internal.
+     *
+     * <p>What a cluster right comes to is named by the right that carries the others, so the answer
+     * is expanded before it is handed over. Unexpanded, somebody editing those events would be
+     * refused their material and shown an edit screen with the internal files missing from it.
+     */
+    @Test
+    void aClusterEventEditorReadsWhatThoseEventsKeepInternal() {
+        Set<StationPermission> granted = ClusterPermission.atOwnStation(
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_EVENT_EDIT)));
+
+        assertTrue(granted.contains(StationPermission.EVENT_EDIT), "may write the events there");
+        assertTrue(granted.contains(StationPermission.EVENT_INTERNAL), "which carries reading what they keep back");
+    }
+
     /** Running the whole association still does not mean running a station. */
     @Test
     void aClusterAdministratorIsNotAStationAdministrator() {

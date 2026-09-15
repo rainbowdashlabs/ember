@@ -132,6 +132,12 @@ test.describe('Attendance', () => {
      * Which session it lands in is not fixed, so it takes one the list says somebody was away
      * from: those are the members whose "present" button is still there to be pressed, and a
      * session nobody was ever entered in offers no buttons at all.
+     *
+     * A sheet closes on its own once it is older than the span the instance allows, and the seeded
+     * evenings with absences sit at that edge: which side of it they are on depends on the hour the
+     * suite happens to run. So the sheet is opened again where it has frozen, which is what a
+     * manager correcting an old evening does anyway, rather than the story passing before dinner
+     * and failing after it.
      */
     test('a member is marked present in a session', async ({managerPage: page}) => {
         const sessions = page.getByTestId('attendance-session')
@@ -143,6 +149,11 @@ test.describe('Attendance', () => {
         await expect(withAbsences).toBeVisible()
         await withAbsences.click()
         await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+
+        const reopen = page.getByTestId('unlock-session')
+        const marks = page.locator('button[aria-label="Anwesend"]')
+        await expect(reopen.or(marks.first()).first()).toBeVisible()
+        if (await reopen.count() > 0) await reopen.click()
 
         // Whoever is already present has that button switched off, so the story marks someone who
         // is not - and afterwards their button is the one switched off.

@@ -1,5 +1,19 @@
 # Changelog
 
+## v26.17.0
+
+### New Features
+
+- **An event can hand over files.** The route sheet, the form to bring or the plan for the evening is picked or uploaded through the media library and appears on the event page, ready to download. Each file is either for everybody who may see the event, partner stations included, or kept back for the people who run it.
+
+### Changes
+
+- **A new right for what an event keeps internal.** It opens the material an event needs and the files kept back from the room, without allowing anything to be changed. Whoever may edit events holds it already, so nothing has to be granted again; grant it to the people who help run evenings but keep no inventory.
+
+### Fixes
+
+- **What an appointment is missing offered a button that refused the person pressing it.** Asking the association for the gear an evening lacks is now offered only to the people who may ask for gear at all; everybody else still sees what is missing.
+
 ## v26.16.0
 
 ### New Features
