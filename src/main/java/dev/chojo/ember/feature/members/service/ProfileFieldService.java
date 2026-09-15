@@ -9,11 +9,13 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
+import dev.chojo.ember.feature.members.entity.AssignedProfileField;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.PagedChanges;
 import dev.chojo.ember.feature.members.entity.ProfileField;
+import dev.chojo.ember.feature.members.entity.ProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -40,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,6 +57,8 @@ import java.util.stream.Collectors;
 public class ProfileFieldService {
     private static final Logger log = LoggerFactory.getLogger(ProfileFieldService.class);
     private static final Duration MERGE_WINDOW = Duration.ofMinutes(5);
+    /** What an unnamed spacer is filed under, numbered until the name is free. */
+    private static final String SPACER_NAME = "Abstand %d";
 
     private final ProfileFieldRepository profileFieldRepository;
     private final ProfileFieldChangeRepository changeRepository;
@@ -94,13 +99,22 @@ public class ProfileFieldService {
      * manager who is marked incomplete over a question their own profile never showed them has been
      * asked something in secret.
      */
-    private static List<ProfileFieldScope> scopesForUserType(StationUserType userType) {
-        if (userType == null) return List.of(ProfileFieldScope.MEMBER);
+    /**
+     * The one role a kind of member is asked as.
+     *
+     * <p>This used to hand a manager two scopes and a trial member somebody else's, which is what put
+     * the same question on a manager's profile twice: two scopes were read, both held a field of that
+     * name, and the two were concatenated. Every kind of member now answers as itself, and a station
+     * that wants a manager asked the team's questions assigns them to both.
+     */
+    private static ProfileFieldScope roleOf(StationUserType userType) {
+        if (userType == null) return ProfileFieldScope.MEMBER;
         return switch (userType) {
-            case TRIAL, MEMBER -> List.of(ProfileFieldScope.MEMBER);
-            case GUARDIAN -> List.of(ProfileFieldScope.GUARDIAN);
-            case TEAM -> List.of(ProfileFieldScope.TEAM);
-            case MANAGER -> List.of(ProfileFieldScope.TEAM, ProfileFieldScope.MANAGER);
+            case TRIAL -> ProfileFieldScope.TRIAL;
+            case MEMBER -> ProfileFieldScope.MEMBER;
+            case GUARDIAN -> ProfileFieldScope.GUARDIAN;
+            case TEAM -> ProfileFieldScope.TEAM;
+            case MANAGER -> ProfileFieldScope.MANAGER;
         };
     }
 
@@ -108,8 +122,19 @@ public class ProfileFieldService {
         return profileFieldRepository.findByStation(stationId);
     }
 
-    public List<ProfileField> findByStationAndScope(int stationId, ProfileFieldScope scope) {
-        return profileFieldRepository.findByStationAndScope(stationId, scope);
+    /**
+     * The fields a reader holding these roles may see.
+     *
+     * @param stationId the station whose fields these are
+     * @param roles     the roles the reader may read
+     * @return the definitions any of those roles is asked
+     */
+    public List<ProfileField> findReadableBy(int stationId, Collection<ProfileFieldScope> roles) {
+        return profileFieldRepository.findReadableBy(stationId, roles);
+    }
+
+    public List<AssignedProfileField> findByStationAndScope(int stationId, ProfileFieldScope role) {
+        return profileFieldRepository.findByStationAndScope(stationId, role);
     }
 
     /**
@@ -127,11 +152,13 @@ public class ProfileFieldService {
     public List<MergedField> findApplicableFields(int memberId) {
         var member = stationMemberRepository.findById(memberId).orElse(null);
         if (member == null) return List.of();
-        List<MergedField> fields = new ArrayList<>();
-        for (ProfileFieldScope scope : scopesForUserType(member.userType())) {
-            fields.addAll(findMergedFields(member.stationId(), scope));
+        List<MergedField> fields = new ArrayList<>(findMergedFields(member.stationId(), roleOf(member.userType())));
+        var seen = fields.stream().map(MergedField::id).collect(Collectors.toSet());
+        // A field asked of a group is asked once however many of that member's groups it reaches, and
+        // once more is not a second question even where their role is asked it too.
+        for (MergedField field : fieldsOfTheirGroups(member.id(), member.stationId())) {
+            if (seen.add(field.id())) fields.add(field);
         }
-        fields.addAll(fieldsOfTheirGroups(member.id(), member.stationId()));
         return fields;
     }
 
@@ -143,54 +170,72 @@ public class ProfileFieldService {
     private List<MergedField> fieldsOfTheirGroups(int memberId, int stationId) {
         var groupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
                 .map(MemberGroup::id)
-                .collect(Collectors.toSet());
+                .toList();
         if (groupIds.isEmpty()) return List.of();
-        return findMergedFields(stationId, ProfileFieldScope.GROUP).stream()
-                .filter(field -> field.config() != null
-                        && groupIds.contains(field.config().groupId()))
+        return profileFieldRepository.findByStationAndGroups(stationId, groupIds).stream()
+                .map(field -> merged(field, FieldOrigin.STATION, false))
                 .toList();
     }
 
     /**
-     * The fields a station's profile shows in one scope: its own, and the ones its cluster asks for.
+     * The fields one kind of member is put on a station's profile: its own, and its cluster's.
      *
      * <p>Unioned rather than returned as two lists, so the profile lays out as one form. Each entry carries
      * where it came from, because that decides two things the reader has to see: whether the station may
      * write the answer, and who to blame for the question.
      *
      * @param stationId the station
-     * @param scope     which kind of member the fields apply to
+     * @param role      which kind of member the fields are put to
      * @return the station's own fields first, then the cluster's
      */
-    public List<MergedField> findMergedFields(int stationId, ProfileFieldScope scope) {
+    public List<MergedField> findMergedFields(int stationId, ProfileFieldScope role) {
         List<MergedField> merged = new ArrayList<>();
-        for (ProfileField field : findByStationAndScope(stationId, scope)) {
-            merged.add(new MergedField(
-                    field.id(),
-                    field.name(),
-                    field.fieldType(),
-                    field.config(),
-                    field.position(),
-                    field.scope(),
-                    FieldOrigin.STATION,
-                    false));
+        for (AssignedProfileField assigned : profileFieldRepository.findByStationAndScope(stationId, role)) {
+            merged.add(merged(assigned, FieldOrigin.STATION, false));
         }
-        for (var field : clusterFieldRepository.findForStation(stationId, scope)) {
+        for (var assigned : clusterFieldRepository.findForStation(stationId, role)) {
             merged.add(new MergedField(
-                    field.id(),
-                    field.name(),
-                    field.fieldType(),
-                    field.config(),
-                    field.position(),
-                    field.scope(),
+                    assigned.field().id(),
+                    assigned.field().name(),
+                    assigned.field().fieldType(),
+                    assigned.field().config(),
+                    assigned.required(),
+                    assigned.assignment().position(),
+                    assigned.width(),
+                    assigned.readonly(),
+                    role,
                     FieldOrigin.CLUSTER,
-                    field.stationReadonly()));
+                    assigned.field().stationReadonly()));
         }
         return merged;
     }
 
+    private static MergedField merged(AssignedProfileField assigned, FieldOrigin origin, boolean readonlyAtStation) {
+        var assignment = assigned.assignment();
+        return new MergedField(
+                assigned.field().id(),
+                assigned.field().name(),
+                assigned.field().fieldType(),
+                assigned.field().config(),
+                assigned.required(),
+                assignment.position(),
+                assigned.width(),
+                assigned.readonly(),
+                assignment.role(),
+                origin,
+                readonlyAtStation);
+    }
+
     /**
-     * @param origin          who asked
+     * One question as one audience meets it.
+     *
+     * @param required          whether this audience must answer, the definition's answer unless their
+     *                          assignment says otherwise
+     * @param position          where it sits on this audience's form
+     * @param width             how much of a row it takes, null meaning the whole row
+     * @param readonly          whether this audience may read the answer but not write it
+     * @param role              the kind of member this was read for, null where a group is asked
+     * @param origin            who asked
      * @param readonlyAtStation whether the people at the station may read the answer but not write it, which
      *                          only a cluster field can be
      */
@@ -199,8 +244,11 @@ public class ProfileFieldService {
             String name,
             ProfileFieldType fieldType,
             ProfileFieldConfig config,
+            boolean required,
             int position,
-            ProfileFieldScope scope,
+            String width,
+            boolean readonly,
+            ProfileFieldScope role,
             FieldOrigin origin,
             boolean readonlyAtStation) {}
 
@@ -213,18 +261,15 @@ public class ProfileFieldService {
             String name,
             ProfileFieldType fieldType,
             ProfileFieldConfig config,
-            int position,
-            ProfileFieldScope scope) {
-        requireSingleBirthDate(stationId, fieldType, scope, 0);
-        requireUsableDefault(name, fieldType, config);
-        var field = profileFieldRepository.create(stationId, name, fieldType, config, position, scope);
+            boolean required,
+            boolean readonly,
+            String width) {
+        requireSingleBirthDate(stationId, fieldType, 0);
+        String chosen = nameFor(stationId, fieldType, name);
+        requireUsableDefault(chosen, fieldType, config);
+        var field = profileFieldRepository.create(stationId, chosen, fieldType, config, required, readonly, width);
         log.info(
-                "Profile field created: id={}, station={}, name='{}', type={}, scope={}",
-                field.id(),
-                stationId,
-                name,
-                fieldType,
-                scope);
+                "Profile field created: id={}, station={}, name='{}', type={}", field.id(), stationId, name, fieldType);
         return field;
     }
 
@@ -233,7 +278,9 @@ public class ProfileFieldService {
             String name,
             ProfileFieldType fieldType,
             ProfileFieldConfig config,
-            int position,
+            boolean required,
+            boolean readonly,
+            String width,
             boolean keepOnArchive) {
         var existing = profileFieldRepository.findById(id);
         if (existing.isEmpty()) {
@@ -241,9 +288,8 @@ public class ProfileFieldService {
             return Optional.empty();
         }
         requireUsableDefault(name, fieldType, config);
-        requireSingleBirthDate(
-                existing.get().stationId(), fieldType, existing.get().scope(), id);
-        if (profileFieldRepository.update(id, name, fieldType, config, position, keepOnArchive)) {
+        requireSingleBirthDate(existing.get().stationId(), fieldType, id);
+        if (profileFieldRepository.update(id, name, fieldType, config, required, readonly, width, keepOnArchive)) {
             log.info("Profile field updated: id={}, name='{}', type={}", id, name, fieldType);
             return profileFieldRepository.findById(id);
         }
@@ -252,53 +298,131 @@ public class ProfileFieldService {
     }
 
     /**
+     * What to file a question under, which a spacer does not supply itself.
+     *
+     * <p>A spacer is a gap, and nobody wants to think of a name for a gap. The table still needs one
+     * to tell two of them apart and to file the answer nobody will ever give, so an unnamed one is
+     * numbered instead: the first free {@code Abstand N} in the station.
+     *
+     * @param stationId the station the name has to be free in
+     * @param fieldType what is being written down
+     * @param name      what the screen sent, which may be nothing for a spacer
+     * @return the name to file it under
+     */
+    private String nameFor(int stationId, ProfileFieldType fieldType, String name) {
+        if (fieldType != ProfileFieldType.SPACER || name != null && !name.isBlank()) return name;
+        var taken = profileFieldRepository.findByStation(stationId).stream()
+                .map(ProfileField::name)
+                .collect(Collectors.toSet());
+        int number = 1;
+        while (taken.contains(SPACER_NAME.formatted(number))) number++;
+        return SPACER_NAME.formatted(number);
+    }
+
+    /**
      * Rejects a second birth date field in the same station.
+     *
+     * <p>There used to be one of these per kind of member, and whether two collided depended on whom
+     * each was put to. A question is written once now and assigned to everybody who is asked it, so a
+     * station needs exactly one date of birth however many kinds of member it wants it from, and a
+     * second is a duplicate rather than a different question.
      *
      * @param stationId  the station the field belongs to
      * @param fieldType  the type the field is about to carry
-     * @param scope      who the field is put to
      * @param excludedId the field being updated, so it does not clash with itself; 0 when creating
-     * @throws BadRequestResponse if a date of birth already reaches the same members
+     * @throws BadRequestResponse if the station already has a date of birth
      */
-    private void requireSingleBirthDate(
-            int stationId, ProfileFieldType fieldType, ProfileFieldScope scope, int excludedId) {
+    private void requireSingleBirthDate(int stationId, ProfileFieldType fieldType, int excludedId) {
         if (fieldType != ProfileFieldType.BIRTH_DATE) return;
         for (ProfileField other :
                 profileFieldRepository.findAllByStationAndType(stationId, ProfileFieldType.BIRTH_DATE)) {
-            if (other.id() == excludedId || !birthDatesCollide(scope, other.scope())) continue;
-            throw new BadRequestResponse("A birth date field already reaches these members: " + other.name());
+            if (other.id() == excludedId) continue;
+            throw new BadRequestResponse("This station already asks for a date of birth: " + other.name()
+                    + ". Assign that one to whoever else should be asked.");
         }
     }
 
     /**
-     * Whether two dates of birth could be put to the same person.
+     * Puts one audience's form in the given order, in one write.
      *
-     * <p>A field aimed at a kind of member is met only by that kind, and nobody is two kinds at once, so
-     * asking the team and asking the guardians are two questions no single member can answer twice. That is
-     * what makes several of them safe, and a station that wants the date from some kinds and not others
-     * needs them.
+     * <p>Dragging one field moves every field after it, and sending that as one update per field made a
+     * screen with twenty of them do twenty round trips for a single drag. The order belongs to the
+     * audience rather than to the field, so reordering one form leaves every other alone.
      *
-     * <p>A group is the exception, and the reason the rule cannot simply be dropped: a member belongs to
-     * any number of groups and to a kind besides, so a date asked of a group can meet a member who is
-     * already being asked elsewhere. One of those blocks every other.
+     * @param stationId the station whose fields these are
+     * @param role      the audience whose form is being ordered
+     * @param fieldIds  the fields in the order they should stand
      */
-    private static boolean birthDatesCollide(ProfileFieldScope scope, ProfileFieldScope other) {
-        if (scope == ProfileFieldScope.GROUP || other == ProfileFieldScope.GROUP) return true;
-        return scope == other;
+    public void reorder(int stationId, ProfileFieldScope role, List<Integer> fieldIds) {
+        int moved = profileFieldRepository.applyOrder(stationId, role, fieldIds);
+        log.info("Profile fields reordered: station={}, role={}, fields={}", stationId, role, moved);
+    }
+
+    /** Every assignment of one station's fields, for the screen that configures them. */
+    public List<ProfileFieldAssignment> findAssignmentsByStation(int stationId) {
+        return profileFieldRepository.findAssignmentsByStation(stationId);
+    }
+
+    /** The assignments of one field. */
+    public List<ProfileFieldAssignment> findAssignments(int fieldId) {
+        return profileFieldRepository.findAssignments(fieldId);
     }
 
     /**
-     * Puts a station's fields in the given order, in one write.
+     * Puts this question to a kind of member, or changes how it is put to them.
      *
-     * <p>Dragging one field moves every field after it, and sending that as one update per field made a
-     * screen with twenty of them do twenty round trips for a single drag.
-     *
-     * @param stationId the station whose fields these are
-     * @param fieldIds  the fields in the order they should stand
+     * @param fieldId          the question
+     * @param role             who is to be asked
+     * @param position         where it sits on their form
+     * @param widthOverride    how much of a row it takes here, null to follow the definition
+     * @param readonlyOverride whether only the member management writes it here, null to follow the definition
+     * @param requiredOverride whether they must answer, null to follow the definition
      */
-    public void reorder(int stationId, List<Integer> fieldIds) {
-        int moved = profileFieldRepository.applyOrder(stationId, fieldIds);
-        log.info("Profile fields reordered: station={}, fields={}", stationId, moved);
+    public void assignToRole(
+            int fieldId,
+            ProfileFieldScope role,
+            int position,
+            String widthOverride,
+            Boolean readonlyOverride,
+            Boolean requiredOverride) {
+        profileFieldRepository.assignToRole(fieldId, role, position, widthOverride, readonlyOverride, requiredOverride);
+        log.info("Profile field {} is asked of {}", fieldId, role);
+    }
+
+    /**
+     * Puts this question to one group, or changes how it is put to them.
+     *
+     * @param fieldId          the question
+     * @param groupId          the group to be asked
+     * @param position         where it sits on their form
+     * @param widthOverride    how much of a row it takes here, null to follow the definition
+     * @param readonlyOverride whether only the member management writes it here, null to follow the definition
+     * @param requiredOverride whether they must answer, null to follow the definition
+     */
+    public void assignToGroup(
+            int fieldId,
+            int groupId,
+            int position,
+            String widthOverride,
+            Boolean readonlyOverride,
+            Boolean requiredOverride) {
+        profileFieldRepository.assignToGroup(
+                fieldId, groupId, position, widthOverride, readonlyOverride, requiredOverride);
+        log.info("Profile field {} is asked of group {}", fieldId, groupId);
+    }
+
+    /** Stops asking a kind of member this question. The definition and its answers stay. */
+    public boolean unassignRole(int fieldId, ProfileFieldScope role) {
+        boolean removed = profileFieldRepository.unassignRole(fieldId, role);
+        if (removed) log.info("Profile field {} is no longer asked of {}", fieldId, role);
+        return removed;
+    }
+
+    /** Stops asking a group this question. The definition and its answers stay. */
+    public boolean unassignGroup(int fieldId, int groupId) {
+        boolean removed = profileFieldRepository.unassignGroup(fieldId, groupId);
+        if (removed) log.info("Profile field {} is no longer asked of group {}", fieldId, groupId);
+        return removed;
     }
 
     public boolean delete(int id) {
@@ -338,9 +462,8 @@ public class ProfileFieldService {
 
         for (var field : findApplicableFields(memberId)) {
             if (!field.fieldType().holdsValue()) continue;
-            var config = field.config();
-            if (config == null || !config.required()) continue;
-            if (config.readonly() || field.readonlyAtStation()) continue;
+            if (!field.required()) continue;
+            if (field.readonly() || field.readonlyAtStation()) continue;
             if (isBlankAnswer(answers.get(answerKey(field.origin(), field.id())))) return false;
         }
         return true;
@@ -450,7 +573,7 @@ public class ProfileFieldService {
      * @throws BadRequestResponse naming the field and what is wrong with its starting value
      */
     private void requireUsableDefault(String name, ProfileFieldType fieldType, ProfileFieldConfig config) {
-        new ProfileField(0, 0, name, fieldType, config, 0, ProfileFieldScope.MEMBER, false)
+        new ProfileField(0, 0, name, fieldType, config, false, false, null, false)
                 .question()
                 .flatMap(QuestionCheck::defaultValue)
                 .ifPresent(problem -> {

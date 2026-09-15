@@ -21,7 +21,7 @@ const {t} = useI18n()
         {{ t('membersConfig.addField') }}
       </PrimaryButton>
     </div>
-    <p class="text-sm text-(--text-muted)">{{ t('membersConfig.memberHint') }}</p>
+    <p class="text-sm text-(--text-muted)">{{ t('membersConfig.questionsHint') }}</p>
     <DummyFieldsTable/>
   </NeutralContainer>
 </template>

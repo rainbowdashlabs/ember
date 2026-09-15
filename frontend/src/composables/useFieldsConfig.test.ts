@@ -8,31 +8,39 @@ import {mount} from '@vue/test-utils'
 import {defineComponent} from 'vue'
 import {describe, expect, it} from 'vitest'
 import {FieldTypes, type ProfileField} from '@/api/profileFields'
-import {useFieldsConfig, type FieldsPort} from './useFieldsConfig'
+import type {ProfileFieldAssignment} from '@/util/profileFields'
+import {STATION_ROLES, useFieldsConfig, type FieldsPort} from './useFieldsConfig'
 
-function field(id: number, scope: string, fieldType: string = FieldTypes.BIRTH_DATE): ProfileField {
-  return {id, stationId: '1', name: 'Geburtsdatum', fieldType, config: {}, position: 0, scope}
+function field(id: number, name: string, fieldType: string = FieldTypes.BIRTH_DATE): ProfileField {
+  return {id, stationId: '1', name, fieldType, config: {}, required: false, width: null}
 }
 
-function portOf(fields: ProfileField[]): FieldsPort {
+function askedOf(id: number, fieldId: number, role: string, position = 0): ProfileFieldAssignment {
+  return {id, fieldId, targetKind: 'ROLE', role: role as never, position}
+}
+
+function portOf(fields: ProfileField[], assignments: ProfileFieldAssignment[]): FieldsPort {
   return {
     list: async () => fields,
-    create: async () => undefined,
+    listAssignments: async () => assignments,
+    create: async () => field(0, 'Neu'),
     update: async () => undefined,
     remove: async () => undefined,
+    assign: async () => undefined,
+    unassign: async () => undefined,
     reorder: async () => undefined,
-    scopes: ['MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER', 'GROUP'],
+    roles: STATION_ROLES,
     types: Object.values(FieldTypes),
     stationReadonly: false,
   }
 }
 
 /** The composable reaches for the locale, so it is used from inside a component as the app does. */
-function configFor(fields: ProfileField[]) {
+function configFor(fields: ProfileField[], assignments: ProfileFieldAssignment[] = []) {
   let api: ReturnType<typeof useFieldsConfig> | null = null
   mount(defineComponent({
     setup() {
-      api = useFieldsConfig(portOf(fields))
+      api = useFieldsConfig(portOf(fields, assignments))
       return () => null
     },
   }))
@@ -41,36 +49,58 @@ function configFor(fields: ProfileField[]) {
 
 describe('useFieldsConfig', () => {
   /**
-   * The server allows one date of birth per kind of member, because nobody is two kinds at once.
-   * This screen took the first one anywhere, so a station that asked its members for a birth date
-   * was told its team could not have one, and opening the team's own offered every type but the
-   * one it already had, which left the type blank.
+   * A station has one date of birth, whoever is asked it.
+   *
+   * <p>There used to be one per kind of member, because a question belonged to the audience it was
+   * written for. A manager, who is asked the team's questions as well as their own, then met the
+   * same question twice and the two copies collected different answers.
    */
-  it('reads the date of birth of the kind of member the tab is about', async () => {
-    const config = configFor([field(1, 'MEMBER'), field(2, 'TEAM')])
+  it('finds the one date of birth of the station, whoever is asked it', async () => {
+    const config = configFor(
+        [field(1, 'Geburtsdatum')],
+        [askedOf(10, 1, 'MEMBER'), askedOf(11, 1, 'TEAM')])
     await config.reload()
 
-    expect(config.birthDateField.value?.id, 'the members tab sees the members one').toBe(1)
+    expect(config.questions.value).toHaveLength(1)
+    expect(config.birthDateField.value?.id).toBe(1)
+  })
 
-    config.activeTab.value = 'TEAM'
-    expect(config.birthDateField.value?.id, 'and the team tab sees the team one').toBe(2)
+  /** Selecting a question shows who it is put to, and offers the kinds it is not put to yet. */
+  it('names the audiences of the selected question and what is left to add', async () => {
+    const config = configFor(
+        [field(1, 'Geburtsdatum'), field(2, 'Telefon', FieldTypes.TEXT)],
+        [askedOf(10, 1, 'MEMBER'), askedOf(11, 1, 'TEAM'), askedOf(12, 2, 'MANAGER')])
+    await config.reload()
 
-    config.activeTab.value = 'GUARDIAN'
-    expect(config.birthDateField.value, 'a kind that has none is free to add one').toBeNull()
+    config.select(1)
+    expect(config.audiences.value.map(a => a.assignment.role)).toEqual(['MEMBER', 'TEAM'])
+    expect(config.unaskedRoles.value).toEqual(['TRIAL', 'GUARDIAN', 'MANAGER'])
   })
 
   /**
-   * A member belongs to any number of groups and to a kind besides, so a date asked of a group
-   * meets people who are already asked elsewhere. One of those blocks every other.
+   * A question put to nobody is written down and reaches no profile, which looks exactly like a
+   * question that works until somebody goes looking for it.
    */
-  it('treats a date of birth asked of a group as colliding with every kind', async () => {
-    const config = configFor([field(1, 'GROUP')])
+  it('points out a question nobody is asked', async () => {
+    const config = configFor(
+        [field(1, 'Geburtsdatum'), field(2, 'Telefon', FieldTypes.TEXT)],
+        [askedOf(10, 1, 'MEMBER')])
     await config.reload()
 
-    config.activeTab.value = 'MEMBER'
-    expect(config.birthDateField.value?.id).toBe(1)
+    expect(config.askedOfNobody.value.map(f => f.id)).toEqual([2])
+  })
 
-    config.activeTab.value = 'TEAM'
-    expect(config.birthDateField.value?.id).toBe(1)
+  /** One form holds what that audience is asked, in the order the assignment gives. */
+  it('builds one audience\'s form out of the assignments', async () => {
+    const config = configFor(
+        [field(1, 'Geburtsdatum'), field(2, 'Telefon', FieldTypes.TEXT)],
+        [askedOf(10, 1, 'MEMBER', 1), askedOf(11, 2, 'MEMBER', 0), askedOf(12, 1, 'TEAM', 0)])
+    await config.reload()
+
+    config.previewRole.value = 'MEMBER'
+    expect(config.previewFields.value.map(f => f.id)).toEqual([2, 1])
+
+    config.previewRole.value = 'TEAM'
+    expect(config.previewFields.value.map(f => f.id)).toEqual([1])
   })
 })

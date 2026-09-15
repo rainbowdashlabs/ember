@@ -9,6 +9,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.Multibinder;
+import de.chojo.sadu.core.updater.SqlVersion;
 import de.chojo.sadu.datasource.DataSourceCreator;
 import de.chojo.sadu.mapper.RowMapperRegistry;
 import de.chojo.sadu.postgresql.databases.PostgreSql;
@@ -37,6 +38,7 @@ import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.conf.file.elements.Updates;
 import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
+import dev.chojo.ember.db.ProfileFieldMergeBackup;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
 import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
@@ -716,6 +718,12 @@ public class EmberModule extends AbstractModule {
             SqlUpdater.builder(dataSource, PostgreSql.get())
                     .setReplacements(new QueryReplacement("ember_schema", database.schema()))
                     .setSchemas(database.schema())
+                    // 1.60 merges profile fields that ask the same question, which discards answers
+                    // and definitions. The copy goes to the data volume rather than to a table,
+                    // because a table beside the live ones travels with a station export.
+                    .preUpdateHook(
+                            new SqlVersion(1, 60),
+                            connection -> ProfileFieldMergeBackup.writeTo(connection, database.schema()))
                     .execute();
         }
 

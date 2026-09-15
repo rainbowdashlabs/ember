@@ -15,9 +15,13 @@ import {useFieldsCapabilities} from '@/composables/useFieldsConfig'
 import {FIELD_TYPE_ORDER, fieldTypeLabel} from '../fieldTypes'
 
 const props = defineProps<{
-  scope: string
   /** False once another field of the station already is the birth date. */
   birthDateAvailable: boolean
+  /**
+   * Whether this kind of entry is called anything. A spacer is a gap: nobody wants to think of a name
+   * for one, and it is numbered where it is written down instead.
+   */
+  named: boolean
 }>()
 
 const name = defineModel<string>('name', {required: true})
@@ -38,7 +42,6 @@ const availableOptions = computed(() => FIELD_TYPE_ORDER
       // What the field already is stays on the list whatever else rules it out. A select whose
       // value has no option shows nothing at all, which reads as a field with no type.
       if (type === fieldType.value) return true
-      if (type === FieldTypes.AGE) return props.scope === 'MEMBER'
       if (type === FieldTypes.BIRTH_DATE) return props.birthDateAvailable
       return true
     })
@@ -47,7 +50,7 @@ const availableOptions = computed(() => FIELD_TYPE_ORDER
 
 <template>
   <div class="space-y-4">
-    <div class="space-y-1">
+    <div v-if="props.named" class="space-y-1">
       <FieldLabel>{{ t('membersConfig.fieldName') }}</FieldLabel>
       <TextInput v-model="name" data-testid="field-name" :placeholder="t('membersConfig.fieldNamePlaceholder')"/>
     </div>
@@ -57,7 +60,7 @@ const availableOptions = computed(() => FIELD_TYPE_ORDER
         <option v-for="ft in availableOptions" :key="ft.value" :value="ft.value">{{ ft.label }}</option>
       </SelectInput>
     </div>
-    <div class="space-y-1">
+    <div v-if="props.named" class="space-y-1">
       <FieldLabel>{{ t('membersConfig.fieldDescription') }}</FieldLabel>
       <TextInput
           v-model="description"

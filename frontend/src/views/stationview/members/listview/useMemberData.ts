@@ -5,6 +5,7 @@
  */
 import { ref, computed } from 'vue'
 import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import type { ProfileFieldAssignment } from '@/util/profileFields'
 import type { StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
 import { profileFields, stationMembers } from '@/api'
 import type { RichMember } from '@/api/stationMembers'
@@ -44,7 +45,15 @@ export function getMemberLastName(m: StationMember): string {
  * not know which it is looking at.
  */
 export interface MemberDataSource {
-  load(): Promise<{members: RichMember[]; fields: ProfileField[]; roles: PermissionGrant[]}>
+  /**
+   * @return the people, the questions, who each question is put to, and the permissions in force
+   */
+  load(): Promise<{
+    members: RichMember[]
+    fields: ProfileField[]
+    assignments: ProfileFieldAssignment[]
+    roles: PermissionGrant[]
+  }>
   /** Who manages this person, fetched when a row is opened. Absent where nobody does. */
   loadManagers?(memberId: number): Promise<StationMember[]>
 }
@@ -52,12 +61,13 @@ export interface MemberDataSource {
 /** The station's own roll, which is what this screen has always shown. */
 export const STATION_MEMBER_SOURCE: MemberDataSource = {
   load: async () => {
-    const [members, fields, roles] = await Promise.all([
+    const [members, fields, assignments, roles] = await Promise.all([
       stationMembers.listRichMembers(),
       profileFields.listFields(),
+      profileFields.listAssignments(),
       stationMembers.listAllPermissions(),
     ])
-    return {members, fields, roles}
+    return {members, fields, assignments, roles}
   },
   loadManagers: (memberId) => stationMembers.getManagers(memberId),
 }
@@ -65,6 +75,7 @@ export const STATION_MEMBER_SOURCE: MemberDataSource = {
 export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) {
   const members = ref<StationMember[]>([])
   const fields = ref<ProfileField[]>([])
+  const assignments = ref<ProfileFieldAssignment[]>([])
   const allGroups = ref<MemberGroup[]>([])
   const allTags = ref<UserTag[]>([])
   const allRoles = ref<PermissionGrant[]>([])
@@ -126,8 +137,9 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
   }
 
   const {loading, error, reload} = useAsyncLoader(async () => {
-    const {members: richMembers, fields: allFields, roles} = await source.load()
+    const {members: richMembers, fields: allFields, assignments: allAssignments, roles} = await source.load()
     fields.value = allFields
+    assignments.value = allAssignments
     allRoles.value = roles
 
     const memberList: StationMember[] = []
@@ -200,6 +212,7 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
   return {
     members,
     fields,
+    assignments,
     allGroups,
     allTags,
     allRoles,

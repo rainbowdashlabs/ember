@@ -48,15 +48,27 @@ test.describe('Cluster station groups', () => {
         expect(filed.ok(), `the stations went into the group (${await filed.text()})`).toBeTruthy()
     }
 
-    /** Asks a question, of one group or of every station. */
+    /**
+     * Asks a question, of one group of stations or of every station.
+     *
+     * <p>Two writes: the question, and who is asked it. A question is written once and put to as many
+     * kinds of member as it is meant for, so naming one while writing it is no longer a thing to do.
+     */
     async function ask(page: Page, own: OwnCluster, name: string, stationGroupId: number | null) {
-        return page.request.post('/api/v1/cluster/fields', {
+        const made = await page.request.post('/api/v1/cluster/fields', {
             headers: own.headers,
             data: {
-                name, fieldType: 'BOOLEAN', config: {}, position: 0,
-                scope: 'MEMBER', stationReadonly: false, keepOnArchive: false, stationGroupId,
+                name, fieldType: 'BOOLEAN', config: {},
+                stationReadonly: false, keepOnArchive: false, stationGroupId,
             },
         })
+        if (made.ok()) {
+            await page.request.put(`/api/v1/cluster/fields/${(await made.json()).id}/assignments`, {
+                headers: own.headers,
+                data: {role: 'MEMBER', position: 0},
+            })
+        }
+        return made
     }
 
     /** Takes somebody on at one of the association's stations and returns the member id. */

@@ -16,8 +16,9 @@ test.describe('Cluster fields and groups', () => {
     /**
      * CLS-58 - The questions screen is the station's editor, not a list with a form on top.
      *
-     * Scopes as tabs, a table underneath, and a way to add. The old screen had none of the three, so
-     * seeing all three is what says the station's editor is really what is mounted here.
+     * The questions on one side, who the selected one is asked on the other, a form picker below, and
+     * a way to add. The old screen had none of them, so seeing them is what says the station's editor
+     * is really what is mounted here.
      */
     test('the association writes its questions in the station editor', async ({browser, request}) => {
         const account = await clusterAccountWith(request, 'CLUSTER_FIELD_MANAGER')
@@ -26,11 +27,13 @@ test.describe('Cluster fields and groups', () => {
         await page.goto('/cluster/members/fields')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        // The four scopes an association may ask of, as tabs. A station has a fifth for groups and an
-        // association has not, because a group belongs to one station.
-        const tabs = page.getByRole('button', {name: /Mitglied|Erziehungsberechtigte|Team|Wachleitung/})
+        await expect(page.getByTestId('audiences-panel')).toBeVisible()
+
+        // The four kinds an association may ask, as the forms it can look at. A station has a fifth
+        // for people who are only trying it out, and an association has none of those.
+        const tabs = page.getByRole('button', {name: /Mitglieder|Erziehungsberechtigte|Team|Leitung/})
         await expect(tabs.first()).toBeVisible()
-        await expect(page.getByRole('button', {name: /Gruppe/})).toHaveCount(0)
+        await expect(page.getByRole('button', {name: 'Schnupperer', exact: true})).toHaveCount(0)
 
         await expect(page.getByRole('button', {name: /Feld hinzufügen/i})).toBeVisible()
         await page.context().close()
@@ -141,7 +144,16 @@ test.describe('Cluster fields and groups', () => {
         await page.getByTestId('field-type').selectOption('SECTION')
         await page.getByTestId('field-save').click()
 
-        // It comes back as a heading in the preview, which is where a section either lays out or does not
+        // It comes back as a row of its own, and says it is asked of nobody: a question is written
+        // first and put to somebody afterwards, so a new one reaches no form yet.
+        const row = page.getByTestId(`field-row-${heading}`)
+        await expect(row).toBeVisible({timeout: 15000})
+        await expect(row.getByTestId('asked-of-nobody')).toBeVisible()
+
+        // Put to one kind of member, it lays out as a heading on that form, which is where a section
+        // either works or does not
+        await row.click()
+        await page.getByTestId('audiences-panel').getByTestId('audience-add').selectOption('ROLE:MEMBER')
         await expect(page.getByRole('heading', {name: heading})).toBeVisible({timeout: 15000})
 
         // Taken away again: an association's question reaches every station under it, and leaving one

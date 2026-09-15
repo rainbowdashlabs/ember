@@ -9,9 +9,10 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import { profileFields } from '@/api'
-import { decodeProfileValues, getFieldValue, setFieldValue } from '@/util/profileFields'
+import {
+  decodeProfileValues, getFieldValue, setFieldValue, type MergedProfileField,
+} from '@/util/profileFields'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -27,7 +28,7 @@ const { t } = useI18n()
 const { sessionInfo } = useSession()
 const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
-const fields = ref<ProfileField[]>([])
+const fields = ref<MergedProfileField[]>([])
 const values = ref<Map<number, string>>(new Map())
 
 const memberId = computed(() => sessionInfo.value?.member?.id ?? null)
@@ -57,8 +58,7 @@ const editableFields = computed(() => fields.value)
 
 const incompleteFields = computed(() => {
   return editableFields.value.filter(f => {
-    const cfg = parseFieldConfig(f.config)
-    if (!cfg.required || cfg.readonly) return false
+    if (!f.required || f.readonly) return false
     const val = getValue(f.id)
     return !val || val === '""' || val === '' || val === 'null'
   })
@@ -87,7 +87,7 @@ async function saveProfile() {
   error.value = ''
   try {
     const entries = valueFields(editableFields.value)
-      .filter(f => !parseFieldConfig(f.config).readonly)
+      .filter(f => !f.readonly)
       .map(f => ({ fieldId: f.id, value: JSON.stringify(getValue(f.id)) }))
     await profileFields.setValues(memberId.value, { values: entries })
     refreshSidebarCounts()

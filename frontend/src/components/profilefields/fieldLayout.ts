@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FieldTypes, parseFieldConfig} from '@/api/profileFields'
+import {FieldTypes} from '@/api/profileFields'
 
 /**
  * The little a layout decision needs to know about a field.
@@ -13,7 +13,8 @@ import {FieldTypes, parseFieldConfig} from '@/api/profileFields'
  */
 export interface LayoutField {
     fieldType?: string
-    config?: Record<string, unknown>
+    /** The width this reader was given, which is the audience's where they were given one. */
+    width?: string | null
 }
 
 /**
@@ -73,7 +74,7 @@ export function spanForWidth(width?: unknown): string {
 
 /** A field that says nothing about its width takes the whole row, which is how it always was. */
 export function widthOf(field: LayoutField): FieldWidthName {
-    const width = parseFieldConfig(field.config).width
+    const width = field.width
     return width === FieldWidths.HALF || width === FieldWidths.THIRD ? width : FieldWidths.FULL
 }
 
@@ -90,7 +91,23 @@ export function isSection(field: LayoutField): boolean {
     return field.fieldType === FieldTypes.SECTION
 }
 
+/** Whether the entry is a gap on a row: it keeps its width and shows nothing at all. */
+export function isSpacer(field: LayoutField): boolean {
+    return field.fieldType === FieldTypes.SPACER
+}
+
+/**
+ * Whether the entry asks anything.
+ *
+ * <p>Two of them do not, and they are not the same thing: a heading takes the whole row and says
+ * something, a spacer keeps its width and says nothing. Everything that saves, exports or asks about
+ * an answer wants this rather than either of them on its own.
+ */
+export function holdsAnswer(field: LayoutField): boolean {
+    return !isSection(field) && !isSpacer(field)
+}
+
 /** The entries that hold an answer, which are the only ones worth saving or asking about. */
 export function valueFields<T extends LayoutField>(fields: T[]): T[] {
-    return fields.filter(field => !isSection(field))
+    return fields.filter(holdsAnswer)
 }

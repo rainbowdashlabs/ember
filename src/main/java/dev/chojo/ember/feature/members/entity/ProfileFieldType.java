@@ -29,13 +29,19 @@ public enum ProfileFieldType {
      * and never leaves in an export: it exists so a long list of fields reads as the few groups of
      * things it actually is.
      */
-    SECTION;
+    SECTION,
+    /**
+     * A gap on a row rather than a field. Like a heading it holds no answer and is asked of nobody,
+     * and unlike one it keeps its width instead of taking the whole row: it is there to push what
+     * follows it along, so two questions can be made to line up under two others.
+     */
+    SPACER;
 
     /**
      * Whether this type holds an answer at all.
      */
     public boolean holdsValue() {
-        return this != SECTION;
+        return this != SECTION && this != SPACER;
     }
 
     /**
@@ -44,6 +50,8 @@ public enum ProfileFieldType {
      *
      * <p>A number reads as one that may carry a fraction, because nothing ever checked these and a
      * station with a shoe size of 42.5 on file is not told today that it may not have one.
+     *
+     * @return the kind, or nothing for the two that lay a form out rather than ask anything
      */
     public Optional<QuestionKind> kind() {
         return switch (this) {
@@ -52,7 +60,7 @@ public enum ProfileFieldType {
             case DATE, BIRTH_DATE -> Optional.of(QuestionKind.DATE);
             case BOOLEAN -> Optional.of(QuestionKind.BOOLEAN);
             case ENUM -> Optional.of(QuestionKind.CHOICE);
-            case SECTION -> Optional.empty();
+            case SECTION, SPACER -> Optional.empty();
         };
     }
 }

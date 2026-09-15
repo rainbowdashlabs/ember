@@ -102,8 +102,10 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
                 "Geburtstag",
                 ProfileFieldType.BIRTH_DATE,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MANAGER);
+                false,
+                false,
+                null);
+        profileFieldRepo.assignToRole(field.id(), ProfileFieldScope.MANAGER, 0, null, null, null);
         profileFieldRepo.setValue(
                 member.id(),
                 field.id(),

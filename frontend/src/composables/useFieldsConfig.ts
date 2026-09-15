@@ -9,48 +9,41 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {
     DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
+    type AssignmentRequest, type AssignmentTarget,
     type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
 } from '@/api/profileFields'
+import {asAsked, type ProfileFieldAssignment} from '@/util/profileFields'
 import type {StationGroup} from '@/api/clusterStationGroups'
 import type {MemberGroup} from '@/api/types'
 import {moveWithin} from '@/util/reorder'
 
-/** A field of group scope belongs to a group, and only a station has those. */
-export const GROUP_SCOPE = 'GROUP'
-
-/**
- * Whether two dates of birth could be put to the same person, which is the rule the server keeps
- * and this screen has to agree with or it offers what would be refused.
- *
- * <p>A field aimed at a kind of member is met only by that kind, and nobody is two kinds at once. A
- * group is the exception: a member belongs to any number of groups and to a kind besides, so one
- * asked of a group meets people who are asked elsewhere too.
- */
-function birthDatesCollide(scope: string, other: string | undefined): boolean {
-    if (scope === GROUP_SCOPE || other === GROUP_SCOPE) return true
-    return scope === other
-}
-
 /**
  * Where a set of profile fields lives, and which choices whoever owns them may make.
  *
- * <p>A station declares fields for its own members. An association declares fields that are asked of
+ * <p>A station declares questions asked of its own members. An association declares questions asked of
  * the members of all its stations, kept in its own table and merged into a station's profile when it is
  * read. The screens are the same screens, so the difference between the two is expressed here as data
  * rather than as a branch inside a panel.
  */
 export interface FieldsPort {
+    /** The questions themselves, without reference to who is asked them. */
     list(): Promise<ProfileField[]>
-    create(field: ProfileFieldRequest & {scope?: string}): Promise<unknown>
-    update(id: number, field: ProfileFieldRequest & {scope?: string}): Promise<unknown>
+    /** Who each question is asked of. Read separately because one question has many audiences. */
+    listAssignments(): Promise<ProfileFieldAssignment[]>
+    create(field: ProfileFieldRequest): Promise<ProfileField>
+    update(id: number, field: ProfileFieldRequest): Promise<unknown>
     remove(id: number): Promise<unknown>
-    /** Writes a whole order at once, because dragging one field moves every field below it. */
-    reorder(fieldIds: number[]): Promise<unknown>
-    /** Which scopes this owner may declare, in tab order. */
-    scopes: readonly string[]
+    /** Puts a question to an audience, or changes how it is put to them. */
+    assign(fieldId: number, assignment: AssignmentRequest): Promise<unknown>
+    /** Stops asking an audience. The question and its answers stay. */
+    unassign(fieldId: number, target: AssignmentTarget): Promise<unknown>
+    /** Writes a whole form's order at once, because dragging one question moves every one below it. */
+    reorder(role: string, fieldIds: number[]): Promise<unknown>
+    /** The kinds of member this owner may ask, in the order the forms are listed. */
+    roles: readonly string[]
     /** Which field types this owner may choose. A template naming any other does not offer itself. */
     types: readonly string[]
-    /** The groups a group-scoped field can name, when this owner has group scope at all. */
+    /** The groups a question can be pointed at. An association has none: a group belongs to one station. */
     listGroups?: () => Promise<MemberGroup[]>
     /** The station groups a question can be pointed at, when this owner files its stations at all. */
     listStationGroups?: () => Promise<StationGroup[]>
@@ -62,12 +55,22 @@ export interface FieldsPort {
 }
 
 /**
- * Who may change the answer to a field.
+ * The kinds of member a station asks, in the order their forms are listed.
  *
- * <p>Two flags already carry this between them: {@code config.readonly} stops the member, and
- * {@code stationReadonly} stops the station. Their combinations are a ladder with one rung that is
- * nonsense, where a member may write an answer their own station may not, and naming the rungs is what
- * makes that one unreachable.
+ * <p>A group is not one of these. It is a target of its own, because a station names its own groups and
+ * no two stations name the same ones.
+ */
+export const STATION_ROLES = ['TRIAL', 'MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER'] as const
+
+/**
+ * Who may change the answer to a question.
+ *
+ * <p>Two flags on the question carry this between them: {@code readonly} keeps it to the member
+ * management, and {@code stationReadonly} keeps it to the association that asked. Their combinations
+ * are a ladder with one rung that is nonsense, where a member may write an answer their own station
+ * may not, and naming the rungs is what makes that one unreachable.
+ *
+ * <p>Both are the question's, for everybody asked it, which is why this takes no assignment.
  */
 export const Writability = {
     /** Member, station and association alike. */
@@ -80,10 +83,9 @@ export const Writability = {
 
 export type WritabilityName = (typeof Writability)[keyof typeof Writability]
 
-/** Reads the pair of flags a field carries as the rung it sits on. */
+/** Reads the pair of flags as the rung it sits on. */
 export function writabilityOf(field: ProfileField): WritabilityName {
-    const readonly = !!parseFieldConfig(field.config).readonly
-    if (!readonly) return Writability.EVERYONE
+    if (!field.readonly) return Writability.EVERYONE
     return field.stationReadonly ? Writability.OWNER_ONLY : Writability.NOT_MEMBER
 }
 
@@ -93,6 +95,28 @@ export function writabilityFlags(level: WritabilityName): {readonly: boolean; st
         readonly: level !== Writability.EVERYONE,
         stationReadonly: level === Writability.OWNER_ONLY,
     }
+}
+
+/**
+ * One audience a question is put to, as the panel beside it draws one.
+ *
+ * @param label what to call this audience on screen
+ */
+export interface Audience {
+    target: AssignmentTarget
+    assignment: ProfileFieldAssignment
+    label: string
+}
+
+/**
+ * A question together with how it is put to the audience whose form is being shown.
+ *
+ * <p>Used by the preview and by anything that lays a form out, where position, width and readonly are
+ * the audience's answer rather than the question's.
+ */
+export interface FormEntry {
+    field: ProfileField
+    assignment: ProfileFieldAssignment
 }
 
 /**
@@ -106,6 +130,8 @@ export interface FieldsCapabilities {
     writability: boolean
     /** The types this owner may choose. A template naming any other does not offer itself. */
     types: readonly string[]
+    /** Whether a question here can be put to a group of members, which only a station's can. */
+    groups: boolean
 }
 
 const FIELDS_CAPABILITIES: InjectionKey<FieldsCapabilities> = Symbol('fieldsCapabilities')
@@ -114,6 +140,7 @@ const FIELDS_CAPABILITIES: InjectionKey<FieldsCapabilities> = Symbol('fieldsCapa
 const STATION_CAPABILITIES: FieldsCapabilities = {
     writability: false,
     types: Object.values(FieldTypes),
+    groups: true,
 }
 
 export function useFieldsCapabilities(): FieldsCapabilities {
@@ -123,93 +150,173 @@ export function useFieldsCapabilities(): FieldsCapabilities {
 /**
  * The profile field editor, without its markup.
  *
- * <p>Everything the members configuration screen does that is not drawing: loading, the active scope,
- * which fields belong to it, adding, editing, deleting, reordering, the toggles written straight from
- * a row, and applying a template. The station screen and the association screen pass different ports
- * and render the same panels.
+ * <p>The screen it drives has two halves, and they are the two halves of the model. On one side the
+ * questions a station asks, each written once. On the other, for whichever question is selected, the
+ * audiences it is put to and how it is put to each of them.
  *
- * @param port where the fields live and what may be chosen
+ * <p>It used to have one half, a tab per kind of member, and a question belonged to the tab it was
+ * created in. Asking two kinds the same thing meant writing it twice, which is what put the same
+ * question on a manager's profile twice and let the two copies collect different answers.
+ *
+ * @param port where the questions live and what may be chosen
  */
 export function useFieldsConfig(port: FieldsPort) {
     const {t} = useI18n()
 
-    provide(FIELDS_CAPABILITIES, {writability: port.stationReadonly, types: port.types})
+    provide(FIELDS_CAPABILITIES, {
+        writability: port.stationReadonly,
+        types: port.types,
+        groups: !!port.listGroups,
+    })
 
     const allFields = ref<ProfileField[]>([])
+    const allAssignments = ref<ProfileFieldAssignment[]>([])
     const availableGroups = ref<MemberGroup[]>([])
     const availableStationGroups = ref<StationGroup[]>([])
-    const activeTab = ref(port.scopes[0] ?? 'MEMBER')
-    const selectedGroupId = ref('')
+
+    /** The question whose audiences the right hand panel is showing. */
+    const selectedFieldId = ref<number | null>(null)
+    /** Whose form the preview draws, which is one of the roles rather than a group. */
+    const previewRole = ref(port.roles[0] ?? 'MEMBER')
     /**
      * Which station group's questions the screen is showing, {@code null} for the ones asked of every
-     * station. Never confuse it with {@code selectedGroupId}, which is a station's member group and the
-     * axis of the GROUP scope: two kinds of group on one screen.
+     * station. An association's axis, and nothing to do with a station's member groups.
      */
     const selectedStationGroupId = ref<number | null>(null)
 
     const showFieldModal = ref(false)
     const editingField = ref<ProfileField | null>(null)
 
-    const {loading, error, reload} = useAsyncLoader(async () => {
-        const [fields, groups, stationGroups] = await Promise.all([
+    async function fetchAll() {
+        const [fields, assignments, groups, stationGroups] = await Promise.all([
             port.list(),
+            port.listAssignments(),
             port.listGroups ? port.listGroups() : Promise.resolve([] as MemberGroup[]),
             port.listStationGroups ? port.listStationGroups() : Promise.resolve([] as StationGroup[]),
         ])
         allFields.value = fields
+        allAssignments.value = assignments
         availableGroups.value = groups
         availableStationGroups.value = stationGroups
-    })
-
-    const currentFields = computed(() => {
-        if (activeTab.value !== GROUP_SCOPE) {
-            return allFields.value.filter(f => f.scope === activeTab.value
-                && (f.stationGroupId ?? null) === selectedStationGroupId.value)
+        if (selectedFieldId.value !== null && !fields.some(f => f.id === selectedFieldId.value)) {
+            selectedFieldId.value = null
         }
-        if (!selectedGroupId.value) return []
-        return allFields.value.filter(f => {
-            if (f.scope !== GROUP_SCOPE) return false
-            return parseFieldConfig(f.config).groupId === Number(selectedGroupId.value)
-        })
+    }
+
+    const {loading, error, reload} = useAsyncLoader(fetchAll)
+
+    /**
+     * Reads everything back without putting the screen through its loading state.
+     *
+     * <p>For the writes made from the panels themselves. {@link reload} unmounts both of them while it
+     * runs, which drops the reader at the top of the page; on a long form that means finding your
+     * place again after every switch you flick. The modal's writes still use the loud one, because
+     * there the screen is behind a dialog and the list genuinely changes underneath.
+     */
+    async function refresh() {
+        try {
+            await fetchAll()
+        } catch {
+            error.value = t('common.error')
+        }
+    }
+
+    /** The questions this screen is about, by name. An association's are filed by group of stations. */
+    const questions = computed(() => {
+        const list = port.listStationGroups
+            ? allFields.value.filter(f => (f.stationGroupId ?? null) === selectedStationGroupId.value)
+            : allFields.value
+        return [...list].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
+    })
+
+    const selectedField = computed(() =>
+        allFields.value.find(f => f.id === selectedFieldId.value) ?? null)
+
+    function assignmentsOf(fieldId: number): ProfileFieldAssignment[] {
+        return allAssignments.value.filter(a => a.fieldId === fieldId)
+    }
+
+    function labelOf(assignment: ProfileFieldAssignment): string {
+        if (assignment.targetKind === 'GROUP') {
+            const group = availableGroups.value.find(g => g.id === assignment.groupId)
+            return group?.name ?? t('membersConfig.audiences.unknownGroup')
+        }
+        return t(`membersConfig.roles.${assignment.role}`)
+    }
+
+    function targetOf(assignment: ProfileFieldAssignment): AssignmentTarget {
+        return assignment.targetKind === 'GROUP'
+            ? {groupId: assignment.groupId ?? null}
+            : {role: assignment.role ?? null}
+    }
+
+    /** Who the selected question is put to, roles first and then groups, each named for the screen. */
+    const audiences = computed<Audience[]>(() => {
+        if (selectedFieldId.value === null) return []
+        return assignmentsOf(selectedFieldId.value)
+            .map(assignment => ({target: targetOf(assignment), assignment, label: labelOf(assignment)}))
+            .sort((a, b) => a.assignment.targetKind.localeCompare(b.assignment.targetKind)
+                || a.label.localeCompare(b.label))
+    })
+
+    /** The roles the selected question is not yet put to, which is what the add control offers. */
+    const unaskedRoles = computed(() => {
+        if (selectedFieldId.value === null) return []
+        const asked = new Set(assignmentsOf(selectedFieldId.value)
+            .filter(a => a.targetKind === 'ROLE')
+            .map(a => a.role))
+        return port.roles.filter(role => !asked.has(role as never))
+    })
+
+    /** The groups the selected question is not yet put to. */
+    const unaskedGroups = computed(() => {
+        if (selectedFieldId.value === null) return []
+        const asked = new Set(assignmentsOf(selectedFieldId.value)
+            .filter(a => a.targetKind === 'GROUP')
+            .map(a => a.groupId))
+        return availableGroups.value.filter(group => !asked.has(group.id))
     })
 
     /**
-     * What a person of the active kind at a station in the active group is actually shown: the questions
-     * asked of every station plus the ones asked of this one, in position order. The table above lists
-     * only the tab's own questions, because that is the set a click can act on.
+     * A question nobody is asked. Legal and sometimes wanted while one is being written, but it reaches
+     * no profile until an audience is named, so the screen says so rather than leaving it to be noticed.
      */
-    const previewFields = computed(() => {
-        if (activeTab.value === GROUP_SCOPE || selectedStationGroupId.value === null) return currentFields.value
-        return allFields.value
-            .filter(f => f.scope === activeTab.value
-                && ((f.stationGroupId ?? null) === null || f.stationGroupId === selectedStationGroupId.value))
-            .sort((a, b) => a.position - b.position)
-    })
+    const askedOfNobody = computed(() =>
+        questions.value.filter(f => assignmentsOf(f.id).length === 0))
 
-    /**
-     * Group fields that name no group. A field of this scope is only ever shown at its group, so one
-     * without belongs nowhere and would stay out of reach. Opening it and saving puts it in the group
-     * chosen above.
-     */
-    const unassignedGroupFields = computed(() => allFields.value.filter(
-        f => f.scope === GROUP_SCOPE && !parseFieldConfig(f.config).groupId))
+    /** One audience's form, in the order that audience sees it. */
+    function formFor(role: string): FormEntry[] {
+        return allAssignments.value
+            .filter(a => a.targetKind === 'ROLE' && a.role === role)
+            .map(a => ({field: allFields.value.find(f => f.id === a.fieldId), assignment: a}))
+            .filter((entry): entry is FormEntry => entry.field !== undefined)
+            .filter(entry => !port.listStationGroups
+                || (entry.field.stationGroupId ?? null) === selectedStationGroupId.value)
+            .sort((a, b) => a.assignment.position - b.assignment.position)
+    }
+
+    const previewForm = computed(() => formFor(previewRole.value))
+
+    /** The same form with every override resolved, which is what the preview and the order list draw. */
+    const previewFields = computed(() =>
+        previewForm.value.map(entry => asAsked(entry.field, entry.assignment)))
 
     const dateFields = computed(() =>
-        currentFields.value.filter(f => DATE_FIELD_TYPES.includes(f.fieldType ?? '')))
+        questions.value.filter(f => DATE_FIELD_TYPES.includes(f.fieldType ?? '')))
 
     /**
-     * The date of birth already asked of the members this tab is about, which is what decides
-     * whether another may be added.
+     * The station's date of birth, which decides whether another may be added.
      *
-     * <p>One per kind of member rather than one per owner, which is the rule the server keeps:
-     * nobody is two kinds at once, so asking the team and asking the guardians are two questions no
-     * single member answers twice. Taking the first one anywhere told the tabs that a station with
-     * a date of birth for its members could have none for its team, and worse, opening the team's
-     * own one for editing offered every type except the one it already had, leaving the type
-     * blank.
+     * <p>One per station now, whoever is asked it. There used to be one per kind of member and a rule
+     * about which could coexist; a question written once and assigned to everybody who is asked it needs
+     * no such rule, and a second is a duplicate rather than a different question.
      */
-    const birthDateField = computed(() => allFields.value.find(
-        f => f.fieldType === FieldTypes.BIRTH_DATE && birthDatesCollide(activeTab.value, f.scope)) ?? null)
+    const birthDateField = computed(() =>
+        allFields.value.find(f => f.fieldType === FieldTypes.BIRTH_DATE) ?? null)
+
+    function select(fieldId: number | null) {
+        selectedFieldId.value = fieldId
+    }
 
     function openAddField() {
         editingField.value = null
@@ -230,13 +337,20 @@ export function useFieldsConfig(port: FieldsPort) {
         return {...data, stationGroupId: selectedStationGroupId.value}
     }
 
-    async function saveField(data: ProfileFieldRequest & {scope?: string}) {
+    /**
+     * Writes a question, and selects it where it is new.
+     *
+     * <p>A new one is put to nobody yet: naming the audiences is the next thing the screen asks for, and
+     * guessing one here is how a question ends up on a form nobody meant it to be on.
+     */
+    async function saveField(data: ProfileFieldRequest) {
         error.value = ''
         try {
             if (editingField.value) {
                 await port.update(editingField.value.id, withTarget(data))
             } else {
-                await port.create(withTarget({...data, position: currentFields.value.length}))
+                const created = await port.create(withTarget(data))
+                selectedFieldId.value = created?.id ?? null
             }
             showFieldModal.value = false
             await reload()
@@ -245,17 +359,35 @@ export function useFieldsConfig(port: FieldsPort) {
         }
     }
 
-    function updateFieldLocally(fieldId: number, patch: Partial<ProfileField>) {
-        allFields.value = allFields.value.map(f => f.id === fieldId ? {...f, ...patch} : f)
+    async function toggleKeepOnArchive(field: ProfileField, value: boolean) {
+        await writeField(field, {keepOnArchive: value})
     }
 
-    /** The whole field as the API wants it back, with one part replaced. */
-    function requestFor(field: ProfileField, patch: Partial<ProfileFieldRequest> = {}) {
+    async function toggleRequired(field: ProfileField, value: boolean) {
+        await writeField(field, {required: value})
+    }
+
+    /** Whether only the member management may write the answer, which holds for everybody asked it. */
+    async function toggleReadonly(field: ProfileField, value: boolean) {
+        await writeField(field, {readonly: value})
+    }
+
+    async function toggleFieldConfig(field: ProfileField, key: string, value: boolean) {
+        const config = {...parseFieldConfig(field.config)}
+        if (value) config[key] = true
+        else delete config[key]
+        await writeField(field, {config})
+    }
+
+    /** The whole question as the API wants it back, with one part replaced. */
+    function requestFor(field: ProfileField, patch: Partial<ProfileFieldRequest> = {}): ProfileFieldRequest {
         return {
             name: field.name ?? '',
             fieldType: field.fieldType ?? '',
             config: parseFieldConfig(field.config),
-            position: field.position,
+            required: field.required ?? false,
+            readonly: field.readonly ?? false,
+            width: field.width ?? null,
             keepOnArchive: field.keepOnArchive,
             stationReadonly: field.stationReadonly,
             ...(port.listStationGroups ? {stationGroupId: field.stationGroupId ?? null} : {}),
@@ -263,7 +395,8 @@ export function useFieldsConfig(port: FieldsPort) {
         }
     }
 
-    async function writeBack(field: ProfileField, patch: Partial<ProfileFieldRequest>) {
+    async function writeField(field: ProfileField, patch: Partial<ProfileFieldRequest>) {
+        allFields.value = allFields.value.map(f => f.id === field.id ? {...f, ...patch} : f)
         try {
             await port.update(field.id, requestFor(field, patch))
         } catch {
@@ -272,30 +405,60 @@ export function useFieldsConfig(port: FieldsPort) {
         }
     }
 
-    async function toggleFieldConfig(field: ProfileField, key: string, value: boolean) {
-        const config = {...parseFieldConfig(field.config)}
-        if (value) config[key] = true
-        else delete config[key]
-        updateFieldLocally(field.id, {config})
-        await writeBack(field, {config})
+    /** Puts the selected question to one more audience, at the end of that audience's form. */
+    async function addAudience(target: AssignmentTarget) {
+        if (selectedFieldId.value === null) return
+        const role = target.role
+        const position = role ? formFor(role).length : audiences.value.length
+        await writeAssignment(selectedFieldId.value, {...target, position})
     }
 
-    async function toggleKeepOnArchive(field: ProfileField, value: boolean) {
-        updateFieldLocally(field.id, {keepOnArchive: value})
-        await writeBack(field, {keepOnArchive: value})
+    /** Stops asking one audience. The question stays, and so do the answers already given. */
+    async function removeAudience(target: AssignmentTarget) {
+        if (selectedFieldId.value === null) return
+        error.value = ''
+        try {
+            await port.unassign(selectedFieldId.value, target)
+            await refresh()
+        } catch {
+            error.value = t('common.error')
+        }
+    }
+
+    /** Changes how the selected question is put to one audience. */
+    async function setAudience(audience: Audience, patch: Partial<AssignmentRequest>) {
+        if (selectedFieldId.value === null) return
+        await writeAssignment(selectedFieldId.value, {
+            ...audience.target,
+            position: audience.assignment.position,
+            widthOverride: audience.assignment.widthOverride,
+            readonlyOverride: audience.assignment.readonlyOverride,
+            requiredOverride: audience.assignment.requiredOverride,
+            ...patch,
+        })
     }
 
     /**
-     * Moves a field to a rung of the writability ladder, which is two flags at once. Only offered where
-     * the port says there is somebody above the station to lock out.
+     * Moves one question to a rung of the writability ladder.
+     *
+     * <p>Both halves are the question's, so this is one write. An association sets the second half as
+     * well; a station has nobody below it and leaves it alone.
      */
     async function setWritability(field: ProfileField, level: WritabilityName) {
         const flags = writabilityFlags(level)
-        const config = {...parseFieldConfig(field.config)}
-        if (flags.readonly) config.readonly = true
-        else delete config.readonly
-        updateFieldLocally(field.id, {config, stationReadonly: flags.stationReadonly})
-        await writeBack(field, {config, stationReadonly: flags.stationReadonly})
+        await writeField(field, port.stationReadonly
+            ? {readonly: flags.readonly, stationReadonly: flags.stationReadonly}
+            : {readonly: flags.readonly})
+    }
+
+    async function writeAssignment(fieldId: number, assignment: AssignmentRequest) {
+        error.value = ''
+        try {
+            await port.assign(fieldId, assignment)
+            await refresh()
+        } catch {
+            error.value = t('common.error')
+        }
     }
 
     const {
@@ -309,37 +472,123 @@ export function useFieldsConfig(port: FieldsPort) {
         error,
     })
 
-    async function onReorder(fromIndex: number, toIndex: number) {
-        const arr = moveWithin(currentFields.value, fromIndex, toIndex)
+    /**
+     * Reorders one audience's form, which leaves every other form where it was.
+     *
+     * <p>The new order is written into the list held here before the request goes, and nothing is
+     * loaded again when it succeeds. Reloading put the whole screen back through its loading state,
+     * which unmounts the panels and drops the reader at the top of the page: one drag near the
+     * bottom of a long form and they had to find their place again. The server is told the same
+     * order it is being shown, so there is nothing to fetch back; a refusal puts the old order back
+     * and says so.
+     */
+    async function onReorder(role: string, fromIndex: number, toIndex: number) {
+        const ordered = moveWithin(formFor(role), fromIndex, toIndex).map(entry => entry.field.id)
+        const before = allAssignments.value
+        allAssignments.value = allAssignments.value.map(assignment =>
+            assignment.targetKind === 'ROLE' && assignment.role === role && ordered.includes(assignment.fieldId)
+                ? {...assignment, position: ordered.indexOf(assignment.fieldId) + 1}
+                : assignment)
         try {
-            await port.reorder(arr.map(field => field.id))
-            await reload()
+            await port.reorder(role, ordered)
         } catch {
+            allAssignments.value = before
             error.value = t('common.error')
         }
     }
 
     /**
-     * A field of group scope belongs to the group being configured. A template carries settings that
-     * hold for every scope and cannot know which group that is, so it is told here.
+     * The questions ticked for putting to somebody all at once.
+     *
+     * <p>Apart from the one selected question, which is a different act: that one says whose panel is
+     * being shown, these say what the next assignment is about. A station writing down fifteen
+     * questions and putting the same twelve to three kinds of member should not have to do that
+     * thirty-six times.
      */
-    function withSelectedGroup(config: ProfileFieldConfig): ProfileFieldConfig {
-        if (activeTab.value !== GROUP_SCOPE || !selectedGroupId.value) return config
-        return {...config, groupId: Number(selectedGroupId.value)}
+    const checkedIds = ref<Set<number>>(new Set())
+
+    function toggleChecked(fieldId: number) {
+        const next = new Set(checkedIds.value)
+        if (!next.delete(fieldId)) next.add(fieldId)
+        checkedIds.value = next
     }
 
-    async function applyTemplate(template: {fields: Array<{name: string; fieldType: string; config: ProfileFieldConfig}>}) {
+    function clearChecked() {
+        checkedIds.value = new Set()
+    }
+
+    /** Ticks every question the panel is currently showing, or unticks them when they all are. */
+    function toggleAllChecked() {
+        const shown = questions.value.map(field => field.id)
+        checkedIds.value = shown.every(id => checkedIds.value.has(id)) ? new Set() : new Set(shown)
+    }
+
+    /**
+     * Puts every ticked question to one audience, each at the end of that audience's form.
+     *
+     * <p>One request per question, because putting a question to somebody is what the server offers
+     * and a handful of them is not worth an endpoint of its own. The list is read back once at the
+     * end rather than after each, so the screen settles once.
+     */
+    async function assignCheckedTo(target: AssignmentTarget) {
+        if (checkedIds.value.size === 0) return
+        error.value = ''
+        const role = target.role
+        let position = role ? formFor(role).length : 0
+        try {
+            for (const fieldId of checkedIds.value) {
+                position += 1
+                await port.assign(fieldId, {...target, position})
+            }
+            clearChecked()
+            await refresh()
+        } catch {
+            error.value = t('common.error')
+            await refresh()
+        }
+    }
+
+    /**
+     * Makes one question wider or narrower on the form being arranged.
+     *
+     * <p>The form is one audience's, so this is that audience's override and no other form moves. The
+     * width the question carries is its default, set where the question itself is written.
+     */
+    async function setPreviewWidth(field: ProfileField, width: string) {
+        const assignment = allAssignments.value.find(a =>
+            a.fieldId === field.id && a.targetKind === 'ROLE' && a.role === previewRole.value)
+        if (!assignment) return
+        await writeAssignment(field.id, {
+            role: previewRole.value,
+            position: assignment.position,
+            widthOverride: width,
+            readonlyOverride: assignment.readonlyOverride,
+            requiredOverride: assignment.requiredOverride,
+        })
+    }
+
+    /**
+     * Writes a template's questions and puts them all to one audience.
+     *
+     * <p>A template is a set of questions somebody already decided belong together, so it names the
+     * audience once rather than leaving a dozen new questions asked of nobody.
+     */
+    async function applyTemplate(
+        template: {fields: Array<{name: string; fieldType: string; config: ProfileFieldConfig}>},
+        role: string,
+    ) {
         error.value = ''
         try {
-            const startPosition = currentFields.value.length
+            const startPosition = formFor(role).length
             for (const [i, f] of template.fields.entries()) {
-                await port.create(withTarget({
+                const created = await port.create(withTarget({
                     name: f.name,
                     fieldType: f.fieldType,
-                    config: withSelectedGroup(f.config),
-                    position: startPosition + i,
-                    scope: activeTab.value,
+                    config: f.config,
                 }))
+                if (created?.id) {
+                    await port.assign(created.id, {role, position: startPosition + i})
+                }
             }
             await reload()
         } catch {
@@ -349,14 +598,21 @@ export function useFieldsConfig(port: FieldsPort) {
 
     return {
         allFields: allFields as Ref<ProfileField[]>,
+        allAssignments: allAssignments as Ref<ProfileFieldAssignment[]>,
         availableGroups,
         availableStationGroups,
-        activeTab,
-        selectedGroupId,
         selectedStationGroupId,
-        currentFields,
+        questions,
+        selectedFieldId,
+        selectedField,
+        audiences,
+        unaskedRoles,
+        unaskedGroups,
+        askedOfNobody,
+        previewRole,
+        previewForm,
         previewFields,
-        unassignedGroupFields,
+        formFor,
         dateFields,
         birthDateField,
         showFieldModal,
@@ -364,17 +620,29 @@ export function useFieldsConfig(port: FieldsPort) {
         loading,
         error,
         reload,
+        select,
         openAddField,
         openEditField,
         saveField,
         toggleFieldConfig,
         toggleKeepOnArchive,
+        toggleRequired,
+        toggleReadonly,
+        addAudience,
+        removeAudience,
+        setAudience,
         setWritability,
         showDeleteModal,
         deleteTarget,
         requestDelete,
         confirmDelete,
         onReorder,
+        setPreviewWidth,
+        checkedIds,
+        toggleChecked,
+        toggleAllChecked,
+        clearChecked,
+        assignCheckedTo,
         applyTemplate,
     }
 }

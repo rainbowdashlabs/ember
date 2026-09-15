@@ -11,14 +11,17 @@ import dev.chojo.ember.feature.question.QuestionSettings;
 import java.util.List;
 
 /**
- * Configuration options for a profile field, parsed from JSON.
+ * What a profile field's question is made of, parsed from JSON.
  *
- * @param required       whether the field must be filled
+ * <p>Only the meaning lives here. How the question is put to one audience, which is its place on the
+ * form, its width, whether that audience may write it and whether that audience must answer, belongs
+ * to the assignment instead: the same question is asked of several, and they do not have to agree
+ * about any of those.
+ *
  * @param description    a sentence saying what the question is after, shown under its label. A
  *                       field name has to be short enough for a table column, which leaves no room
  *                       to say what counts as an answer, and the person filling it in is the one
  *                       who needs that said.
- * @param readonly       whether the field is read-only for non-managers
  * @param notifyOnChange whether changes to this field require manager acknowledgement
  * @param overview       whether the field is shown in the member overview table
  * @param options        the list of allowed values for ENUM fields
@@ -26,29 +29,18 @@ import java.util.List;
  * @param computed       whether this field is computed from another field
  * @param sourceField    the source field name for computed fields
  * @param ageMode        the age calculation mode (e.g. for AGE-type fields)
- * @param groupId        the group a field of GROUP scope belongs to, null for every other scope.
- *                       A field of that scope is only ever shown at its group, so without this it
- *                       belongs nowhere and appears nowhere.
- * @param width          how much of a row the field takes: {@code full}, {@code half} or
- *                       {@code third}. Null is the same as full. Fields narrower than a row stand
- *                       beside each other, which is what turns a column of thirty boxes into
- *                       something that can be read.
  */
 public record ProfileFieldConfig(
-        boolean required,
         String description,
-        boolean readonly,
         boolean notifyOnChange,
         boolean overview,
         List<String> options,
         Object defaultValue,
         boolean computed,
         String sourceField,
-        String ageMode,
-        Integer groupId,
-        String width) {
+        String ageMode) {
     private static final ProfileFieldConfig EMPTY =
-            new ProfileFieldConfig(false, null, false, false, false, null, null, false, null, null, null, null);
+            new ProfileFieldConfig(null, false, false, null, null, false, null, null);
 
     /**
      * The settings of a field that names none.
@@ -71,8 +63,12 @@ public record ProfileFieldConfig(
         return QuestionConfigs.toJson(this);
     }
 
-    /** What this field says about the question it asks, as everything that measures one reads it. */
-    public QuestionSettings settings() {
+    /**
+     * What this field says about the question it asks, as everything that measures one reads it.
+     *
+     * @param required whether an answer is expected, which the field carries rather than its config
+     */
+    public QuestionSettings settings(boolean required) {
         return QuestionSettings.required(required).withDefault(defaultValue).withOptions(options);
     }
 }

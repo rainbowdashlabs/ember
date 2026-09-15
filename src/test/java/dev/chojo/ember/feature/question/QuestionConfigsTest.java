@@ -31,19 +31,36 @@ class QuestionConfigsTest {
     @Test
     void aProfileFieldReadsAndWritesWhatIsStored() {
         String stored = """
-                {"required":true,"description":"Wozu","readonly":false,"notifyOnChange":true,"overview":true,\
-                "options":["S","M"],"defaultValue":"M","computed":false,"sourceField":null,"ageMode":null,\
-                "groupId":7,"width":"half"}""";
+                {"description":"Wozu","notifyOnChange":true,"overview":true,\
+                "options":["S","M"],"defaultValue":"M","computed":false,"sourceField":null,"ageMode":null}""";
         var config = ProfileFieldConfig.parse(stored);
 
-        assertTrue(config.required());
         assertEquals("Wozu", config.description());
+        assertTrue(config.notifyOnChange());
         assertEquals(List.of("S", "M"), config.options());
         assertEquals("M", config.defaultValue());
-        assertEquals(7, config.groupId());
-        assertEquals("half", config.width());
 
         assertEquals(config, ProfileFieldConfig.parse(config.toJson()), "what is written reads back the same");
+    }
+
+    /**
+     * A config written before required, readonly, width and groupId moved out of it still reads.
+     *
+     * <p>The upgrade strips those keys, but a row read between the patch and a restart still carries
+     * them, and a reader that fell over on one would take the whole profile screen with it.
+     */
+    @Test
+    void aProfileFieldIgnoresTheKeysThatMovedToTheAssignment() {
+        String stored = """
+                {"required":true,"description":"Wozu","readonly":true,"notifyOnChange":true,"overview":true,\
+                "options":["S"],"defaultValue":"S","groupId":7,"width":"half"}""";
+
+        var config = ProfileFieldConfig.parse(stored);
+
+        assertEquals("Wozu", config.description());
+        assertEquals(List.of("S"), config.options());
+        assertEquals("S", config.defaultValue());
+        assertTrue(config.overview());
     }
 
     @Test
@@ -119,8 +136,8 @@ class QuestionConfigsTest {
      */
     @Test
     void theFiveHandOverTheSameSettings() {
-        var choice = ProfileFieldConfig.parse("{\"required\":true,\"options\":[\"S\"],\"defaultValue\":\"S\"}")
-                .settings();
+        var choice = ProfileFieldConfig.parse("{\"options\":[\"S\"],\"defaultValue\":\"S\"}")
+                .settings(true);
         assertTrue(choice.required());
         assertEquals(List.of("S"), choice.options());
         assertEquals("S", choice.defaultValue());

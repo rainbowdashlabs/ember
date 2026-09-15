@@ -1402,16 +1402,27 @@ volumes:
             whatIs: 'Was sind Profilfelder?',
             whatIsText: 'Profilfelder sind die Informationen, die im Profil jedes Mitglieds angezeigt werden - zum Beispiel Telefonnummer, Geburtstag, Kleidergröße oder Notfallkontakt.',
             whatIsText2: 'Du bestimmst hier, welche Felder es gibt und wie sie sich verhalten.',
-            byRoleTitle: 'Felder nach Rolle',
-            byRoleText: 'Du kannst Felder für verschiedene Rollen anlegen:',
-            roleMember: 'Mitglieder - Felder, die alle Mitglieder in ihrem Profil sehen.',
-            roleGuardian: 'Erziehungsberechtigter - Felder, die nur für Erziehungsberechtigte angezeigt werden.',
-            roleTeam: 'Team - Felder, die nur für Teammitglieder angezeigt werden.',
-            roleStationManager: 'Leitung - Felder, die nur für Leitungsmitglieder angezeigt werden.',
-            roleGroup: 'Gruppenspezifisch - Felder, die nur für Mitglieder einer bestimmten Gruppe gelten.',
+            byRoleTitle: 'Eine Frage, viele Zielgruppen',
+            byRoleText: 'Links stehen die Fragen, jede einmal beschrieben. Rechts steht, wem die '
+                + 'gewählte Frage gestellt wird. Dieselbe Frage kann mehreren Zielgruppen gestellt '
+                + 'werden, ohne zweimal zu existieren; so sammelt sie auch nur eine Antwort.',
+            roleTrial: 'Schnupperer - wer erst hereinschnuppert und noch kein Mitglied ist.',
+            roleMember: 'Mitglieder - alle Mitglieder der Wache.',
+            roleGuardian: 'Erziehungsberechtigte - wer andere Mitglieder verwaltet.',
+            roleTeam: 'Team - Teammitglieder.',
+            roleStationManager: 'Leitung - Leitungsmitglieder.',
+            roleGroup: 'Gruppen - zusätzlich kann eine Frage einer Gruppe gestellt werden.',
+            audiencesTitle: 'Was je Zielgruppe gilt',
+            audiencesText: 'Breite, Pflicht und Änderbarkeit gehören zur Zielgruppe, nicht zur Frage. '
+                + 'Solange nichts davon gesetzt ist, gilt, was bei der Frage selbst steht. So liest '
+                + 'die Leitung ein Datum, das das Team schreibt, ohne dass es zwei Fragen braucht.',
+            nobodyTitle: 'Fragen ohne Zielgruppe',
+            nobodyText: 'Eine neu angelegte Frage wird zunächst niemandem gestellt und steht in keinem '
+                + 'Profil. Die Liste sagt das an der Zeile, damit es nicht erst auffällt, wenn jemand '
+                + 'die Frage sucht.',
             optionsTitle: 'Feld-Optionen',
-            optRequired: 'Pflichtfeld - Das Mitglied muss dieses Feld ausfüllen.',
-            optReadonly: 'Nur lesbar - Nur Verwalter können dieses Feld ändern. Das Mitglied sieht den Wert, kann ihn aber nicht bearbeiten.',
+            optRequired: 'Pflichtfeld - Das Mitglied muss dieses Feld ausfüllen. Einzelne Zielgruppen können es anders halten.',
+            optReadonly: 'Änderbar von - je Zielgruppe. Wer nur lesen darf, sieht den Wert, kann ihn aber nicht bearbeiten.',
             optNotify: 'Bei Änderung benachrichtigen - Verwalter werden informiert, wenn ein Mitglied dieses Feld ändert.',
             optOverview: 'In Übersicht anzeigen - Das Feld erscheint als Spalte in der Mitgliederliste.',
             optKeep: 'Bei Archivierung behalten - Das Feld bleibt erhalten, wenn ein Mitglied als ehemalig markiert wird.',
@@ -1430,11 +1441,14 @@ volumes:
                 + 'stehen nebeneinander, solange eine Zeile sie fasst, sonst rutschen sie in die '
                 + 'nächste. Auf schmalen Bildschirmen steht ohnehin jedes Feld für sich. Zusammen '
                 + 'mit Überschriften wird aus einer langen Liste eine gegliederte Maske.',
-            layoutPreview: 'Unter der Feldliste siehst du eine Vorschau, wie die Felder beim '
-                + 'Ausfüllen aussehen. Die Reihenfolge änderst du weiterhin über die Liste.',
+            layoutPreview: 'Unter der Feldliste wählst du eine Zielgruppe und ordnest deren Formular '
+                + 'direkt an: Felder ziehst du an ihren Platz und an der rechten Kante breiter oder '
+                + 'schmaler. Beides gilt nur für dieses Formular, dieselbe Frage kann anderswo anders '
+                + 'stehen.',
             templatesTitle: 'Feld-Vorlagen',
             templatesText: 'Wenn du noch keine Felder angelegt hast, kannst du aus 11 vordefinierten Vorlagen wählen. Jede Vorlage erstellt ein oder mehrere Felder mit sinnvollen Voreinstellungen - zum Beispiel Adresse, Geburtsdatum, Notfallkontakt oder Jugendflamme.',
-            tip: 'Überlege dir vorher gut, welche Felder du brauchst. Die Reihenfolge änderst du mit den Pfeilen an jeder Zeile, am Rechner zusätzlich durch Ziehen am Griff daneben.',
+            tip: 'Überlege dir vorher gut, welche Fragen du brauchst. Angeordnet wird unten je '
+                + 'Zielgruppe, direkt am Formular.',
         },
         membersCreate: {
             title: 'Mitglied anlegen',

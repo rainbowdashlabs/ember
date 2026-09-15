@@ -10,7 +10,6 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -54,12 +53,7 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
 
         // Add profile field value
         var field = profileFieldRepo.create(
-                station.id(),
-                "Phone",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                0,
-                ProfileFieldScope.MEMBER);
+                station.id(), "Phone", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.setValue(member.id(), field.id(), StringNode.valueOf("0123456789"));
 
         // Add to a group

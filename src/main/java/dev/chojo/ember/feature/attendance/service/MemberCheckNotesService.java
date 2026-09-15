@@ -202,8 +202,8 @@ public class MemberCheckNotesService {
      * comparing within one year would make it three hundred and sixty.
      */
     private Map<Integer, Integer> birthdays(int stationId, Set<ProfileFieldScope> readableScopes) {
-        var field = profileFieldRepository.findAllByStationAndType(stationId, ProfileFieldType.BIRTH_DATE).stream()
-                .filter(candidate -> candidate.scope() != null && readableScopes.contains(candidate.scope()))
+        var field = profileFieldRepository.findReadableBy(stationId, readableScopes).stream()
+                .filter(candidate -> candidate.fieldType() == ProfileFieldType.BIRTH_DATE)
                 .findFirst()
                 .orElse(null);
         if (field == null) return Map.of();

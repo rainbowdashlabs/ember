@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.cluster.repository;
 
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
@@ -93,8 +92,9 @@ class ClusterStationGroupRepositoryTest extends RepositoryTestBase {
                 "Atemschutztauglich",
                 ProfileFieldType.BOOLEAN,
                 ProfileFieldConfig.parse("{}"),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 group.id());

@@ -6,13 +6,20 @@
 import { computed, ref, type Ref } from 'vue'
 import type { ProfileField } from '@/api/profileFields'
 import { StationUserType } from '@/api/types'
+import { useFieldAudiences } from '@/composables/useFieldAudiences'
 
-function getScopeForUserType(ut: string): string {
-  if (ut === StationUserType.MEMBER || ut === StationUserType.TRIAL) return 'MEMBER'
-  if (ut === StationUserType.GUARDIAN) return 'GUARDIAN'
-  if (ut === StationUserType.TEAM) return 'TEAM'
-  if (ut === StationUserType.MANAGER) return 'MANAGER'
-  return 'MEMBER'
+/**
+ * A trial member is a kind of their own now, so a station can ask them less than it asks a member.
+ * Everybody else stands for themselves.
+ */
+function roleOfUserType(userType: string): string {
+  switch (userType) {
+    case StationUserType.TRIAL: return 'TRIAL'
+    case StationUserType.GUARDIAN: return 'GUARDIAN'
+    case StationUserType.TEAM: return 'TEAM'
+    case StationUserType.MANAGER: return 'MANAGER'
+    default: return 'MEMBER'
+  }
 }
 
 /**
@@ -22,10 +29,10 @@ function getScopeForUserType(ut: string): string {
 export function useMemberProfileFields(memberUserType: Ref<string>) {
   const fields = ref<ProfileField[]>([])
   const values = ref<Map<number, string>>(new Map())
+  const audiences = useFieldAudiences()
 
   function fieldsForUserType(userType: string): ProfileField[] {
-    const scope = getScopeForUserType(userType)
-    return fields.value.filter(f => f.scope === scope)
+    return audiences.fieldsFor(fields.value, roleOfUserType(userType))
   }
 
   const applicableFields = computed(() => fieldsForUserType(memberUserType.value))
@@ -48,5 +55,6 @@ export function useMemberProfileFields(memberUserType: Ref<string>) {
     fieldsForUserType,
     getFieldValue,
     setValues,
+    loadAudiences: audiences.load,
   }
 }

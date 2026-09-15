@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -112,145 +113,122 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var groupAnfaenger = memberGroupRepository.create(stationId, "Anfänger");
         var groupFortgeschritten = memberGroupRepository.create(stationId, "Fortgeschritten");
 
-        // -- Profile fields: TEAM scope (Betreuer) --
-        var fieldJuleica = profileFieldRepository.create(
-                stationId,
-                "Juleica",
-                ProfileFieldType.BOOLEAN,
-                ProfileFieldConfig.parse("{}"),
-                0,
-                ProfileFieldScope.TEAM);
-        var fieldJuleicaAblauf = profileFieldRepository.create(
-                stationId,
-                "Juleica Ablaufdatum",
-                ProfileFieldType.DATE,
-                ProfileFieldConfig.parse("{}"),
-                1,
-                ProfileFieldScope.TEAM);
-        var fieldFuehrerschein = profileFieldRepository.create(
-                stationId,
-                "Führerschein",
-                ProfileFieldType.BOOLEAN,
-                ProfileFieldConfig.parse("{}"),
-                2,
-                ProfileFieldScope.TEAM);
-        var fieldFuehrerscheinAblauf = profileFieldRepository.create(
-                stationId,
-                "Führerschein Ablaufdatum",
-                ProfileFieldType.DATE,
-                ProfileFieldConfig.parse("{}"),
-                3,
-                ProfileFieldScope.TEAM);
+        // -- Profile fields put to the team (Betreuer) --
+        var fieldJuleica = askOf(stationId, "Juleica", ProfileFieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 0);
+        var fieldJuleicaAblauf =
+                askOf(stationId, "Juleica Ablaufdatum", ProfileFieldType.DATE, "{}", ProfileFieldScope.TEAM, 1);
+        var fieldFuehrerschein =
+                askOf(stationId, "Führerschein", ProfileFieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 2);
+        var fieldFuehrerscheinAblauf =
+                askOf(stationId, "Führerschein Ablaufdatum", ProfileFieldType.DATE, "{}", ProfileFieldScope.TEAM, 3);
 
-        // -- Profile fields: GUARDIAN scope (Eltern) --
-        var fieldTelefon = profileFieldRepository.create(
+        // -- Profile fields put to the guardians (Eltern) --
+        var fieldTelefon = askOf(
                 stationId,
                 "Mobilnummer",
                 ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"overview\":true,\"required\":true}"),
+                "{\"overview\":true}",
+                true,
+                ProfileFieldScope.GUARDIAN,
                 0,
-                ProfileFieldScope.GUARDIAN);
-        var fieldFestnetz = profileFieldRepository.create(
-                stationId,
-                "Festnetz",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                1,
-                ProfileFieldScope.GUARDIAN);
-        var fieldNewsletter = profileFieldRepository.create(
+                false);
+        var fieldFestnetz = askOf(stationId, "Festnetz", ProfileFieldType.TEXT, "{}", ProfileFieldScope.GUARDIAN, 1);
+        var fieldNewsletter = askOf(
                 stationId,
                 "Newsletter per Mail",
                 ProfileFieldType.BOOLEAN,
-                ProfileFieldConfig.parse("{\"defaultValue\":true}"),
-                2,
-                ProfileFieldScope.GUARDIAN);
+                "{\"defaultValue\":true}",
+                ProfileFieldScope.GUARDIAN,
+                2);
 
-        // -- Profile fields: MEMBER scope (kids) --
-        var fieldPersonalnummer = profileFieldRepository.create(
+        // -- Profile fields put to the kids --
+        var fieldPersonalnummer = askOf(
                 stationId,
                 "Personalnummer",
                 ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"readonly\":true,\"overview\":true}"),
+                "{\"overview\":true}",
+                false,
+                ProfileFieldScope.MEMBER,
                 0,
-                ProfileFieldScope.MEMBER);
-        var fieldGeschlecht = profileFieldRepository.create(
+                true);
+        var fieldGeschlecht = askOf(
                 stationId,
                 "Geschlecht",
                 ProfileFieldType.ENUM,
-                ProfileFieldConfig.parse(
-                        "{\"readonly\":true,\"overview\":true,\"options\":[\"männlich\",\"weiblich\",\"divers\"]}"),
+                "{\"overview\":true,\"options\":[\"männlich\",\"weiblich\",\"divers\"]}",
+                false,
+                ProfileFieldScope.MEMBER,
                 1,
-                ProfileFieldScope.MEMBER);
-        var fieldGeburtstag = profileFieldRepository.create(
+                true);
+
+        // One question, four audiences. The date of birth is asked of every kind of member here, and
+        // is one definition with one answer rather than one copy per kind. The question says only the
+        // member management writes it, and the two audiences that may are told so on their own row:
+        // the default and the exception, which is what the two halves of the model are for.
+        var fieldGeburtstag = askOf(
                 stationId,
                 "Geburtstag",
                 ProfileFieldType.DATE,
-                ProfileFieldConfig.parse("{\"required\":true,\"overview\":true}"),
+                "{\"overview\":true}",
+                true,
+                ProfileFieldScope.MEMBER,
                 2,
-                ProfileFieldScope.MEMBER);
-        var fieldAllergien = profileFieldRepository.create(
+                true);
+        profileFieldRepository.assignToRole(fieldGeburtstag.id(), ProfileFieldScope.TRIAL, 2, null, null, null);
+        profileFieldRepository.assignToRole(fieldGeburtstag.id(), ProfileFieldScope.TEAM, 4, null, false, null);
+        profileFieldRepository.assignToRole(fieldGeburtstag.id(), ProfileFieldScope.MANAGER, 4, null, false, null);
+
+        var fieldAllergien = askOf(
                 stationId,
                 "Allergien",
                 ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"overview\":true,\"notifyOnChange\":true}"),
-                3,
-                ProfileFieldScope.MEMBER);
-        var fieldLeistungsspange = profileFieldRepository.create(
-                stationId,
-                "Leistungsspange",
-                ProfileFieldType.BOOLEAN,
-                ProfileFieldConfig.parse("{\"readonly\":true}"),
-                4,
-                ProfileFieldScope.MEMBER);
-        var fieldLeistungsspangeDatum = profileFieldRepository.create(
+                "{\"overview\":true,\"notifyOnChange\":true}",
+                ProfileFieldScope.MEMBER,
+                3);
+        var fieldLeistungsspange = askOf(
+                stationId, "Leistungsspange", ProfileFieldType.BOOLEAN, "{}", false, ProfileFieldScope.MEMBER, 4, true);
+        var fieldLeistungsspangeDatum = askOf(
                 stationId,
                 "Leistungsspange Datum",
                 ProfileFieldType.DATE,
-                ProfileFieldConfig.parse("{\"readonly\":true}"),
+                "{}",
+                false,
+                ProfileFieldScope.MEMBER,
                 5,
-                ProfileFieldScope.MEMBER);
-        var fieldJF1 = profileFieldRepository.create(
-                stationId,
-                "Jugendflamme 1",
-                ProfileFieldType.BOOLEAN,
-                ProfileFieldConfig.parse("{\"readonly\":true}"),
-                6,
-                ProfileFieldScope.MEMBER);
-        var fieldJF1Datum = profileFieldRepository.create(
+                true);
+        var fieldJF1 = askOf(
+                stationId, "Jugendflamme 1", ProfileFieldType.BOOLEAN, "{}", false, ProfileFieldScope.MEMBER, 6, true);
+        var fieldJF1Datum = askOf(
                 stationId,
                 "Jugendflamme 1 Datum",
                 ProfileFieldType.DATE,
-                ProfileFieldConfig.parse("{\"readonly\":true}"),
+                "{}",
+                false,
+                ProfileFieldScope.MEMBER,
                 7,
-                ProfileFieldScope.MEMBER);
-        var fieldJF2 = profileFieldRepository.create(
-                stationId,
-                "Jugendflamme 2",
-                ProfileFieldType.BOOLEAN,
-                ProfileFieldConfig.parse("{\"readonly\":true}"),
-                8,
-                ProfileFieldScope.MEMBER);
-        var fieldJF2Datum = profileFieldRepository.create(
+                true);
+        var fieldJF2 = askOf(
+                stationId, "Jugendflamme 2", ProfileFieldType.BOOLEAN, "{}", false, ProfileFieldScope.MEMBER, 8, true);
+        var fieldJF2Datum = askOf(
                 stationId,
                 "Jugendflamme 2 Datum",
                 ProfileFieldType.DATE,
-                ProfileFieldConfig.parse("{\"readonly\":true}"),
+                "{}",
+                false,
+                ProfileFieldScope.MEMBER,
                 9,
-                ProfileFieldScope.MEMBER);
-        var fieldJF3 = profileFieldRepository.create(
-                stationId,
-                "Jugendflamme 3",
-                ProfileFieldType.BOOLEAN,
-                ProfileFieldConfig.parse("{\"readonly\":true}"),
-                10,
-                ProfileFieldScope.MEMBER);
-        var fieldJF3Datum = profileFieldRepository.create(
+                true);
+        var fieldJF3 = askOf(
+                stationId, "Jugendflamme 3", ProfileFieldType.BOOLEAN, "{}", false, ProfileFieldScope.MEMBER, 10, true);
+        var fieldJF3Datum = askOf(
                 stationId,
                 "Jugendflamme 3 Datum",
                 ProfileFieldType.DATE,
-                ProfileFieldConfig.parse("{\"readonly\":true}"),
+                "{}",
+                false,
+                ProfileFieldScope.MEMBER,
                 11,
-                ProfileFieldScope.MEMBER);
+                true);
 
         // -- Users --
         // Betreuer (team role, in Betreuer group)
@@ -716,4 +694,41 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             MemberGroup groupFortgeschritten,
             UserTag tagWettkampf,
             UserTag tagErsthelfer) {}
+
+    /**
+     * Writes a question down and puts it to one kind of member, which is the ordinary case.
+     *
+     * @param stationId the station asking
+     * @param name      what the question is called
+     * @param type      what kind of answer it takes
+     * @param config    the rest of what the question is, as JSON
+     * @param role      who is asked
+     * @param position  where it sits on their form
+     * @return the definition, so a caller can assign it to somebody else as well
+     */
+    private ProfileField askOf(
+            int stationId, String name, ProfileFieldType type, String config, ProfileFieldScope role, int position) {
+        return askOf(stationId, name, type, config, false, role, position, false);
+    }
+
+    /**
+     * The same, where an answer is expected or only the member management may write it.
+     *
+     * @param required whether an answer is expected of everybody asked
+     * @param readonly whether only the member management may write the answer
+     */
+    private ProfileField askOf(
+            int stationId,
+            String name,
+            ProfileFieldType type,
+            String config,
+            boolean required,
+            ProfileFieldScope role,
+            int position,
+            boolean readonly) {
+        var field = profileFieldRepository.create(
+                stationId, name, type, ProfileFieldConfig.parse(config), required, readonly, null);
+        profileFieldRepository.assignToRole(field.id(), role, position, null, null, null);
+        return field;
+    }
 }

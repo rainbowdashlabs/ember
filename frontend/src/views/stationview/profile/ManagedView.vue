@@ -125,7 +125,7 @@ async function saveProfile() {
           <div v-for="field in editableFields" :key="field.id" class="space-y-1">
             <FieldLabel>
               {{ field.name }}
-              <span v-if="parseFieldConfig(field.config).required" class="text-error">*</span>
+              <span v-if="field.required" class="text-error">*</span>
               <MutedText class="ml-1" v-if="isReadonly(field)">({{ t('profile.readonlyHint') }})</MutedText>
             </FieldLabel>
 

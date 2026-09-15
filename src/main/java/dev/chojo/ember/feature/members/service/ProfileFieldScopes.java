@@ -34,13 +34,13 @@ public final class ProfileFieldScopes {
     private ProfileFieldScopes() {}
 
     /**
-     * The scopes a reader holding these permissions may read.
+     * The kinds of member a reader holding these permissions may read the questions of.
      *
-     * <p>{@link ProfileFieldScope#GROUP} is never among them: a field scoped to a group is answered
-     * by who is in that group and not by what anybody may do, so it is decided elsewhere.
+     * <p>A group is never among them: a question put to a group is answered by who is in that group
+     * and not by what anybody may do, so it is decided elsewhere.
      *
      * @param permissions the reader's permissions, already expanded
-     * @return the scopes they may read
+     * @return the kinds of member whose questions they may read
      */
     public static Set<ProfileFieldScope> readableBy(Set<StationPermission> permissions) {
         var scopes = new HashSet<ProfileFieldScope>();

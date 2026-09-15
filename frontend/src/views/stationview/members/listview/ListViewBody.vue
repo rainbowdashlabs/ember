@@ -48,6 +48,8 @@ defineProps<{
   allMembers: StationMember[]
   overviewFields: ProfileField[]
   getFieldValue: (memberId: number, fieldId: number) => unknown
+  /** Whether one question is put to a kind of member, which decides what a row may carry. */
+  isAskedOf: (fieldId: number, role: string) => boolean
   showExportModal: boolean
 }>()
 
@@ -110,6 +112,7 @@ defineEmits<{
     :all-members="allMembers"
     :overview-fields="overviewFields"
     :get-field-value="getFieldValue"
+    :is-asked-of="isAskedOf"
     :selected-ids="selectedIds"
     :can-edit="canEdit"
     @update:active-tab="$emit('update:activeTab', $event)"

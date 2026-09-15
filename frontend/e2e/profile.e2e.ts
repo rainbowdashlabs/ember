@@ -37,10 +37,15 @@ test.describe('Profile', () => {
         const question = `Nachweis ${stamp}`
         const made = await page.request.post('/api/v1/profile-fields', {
             headers,
-            data: {name: question, fieldType: 'TEXT', config: {groupId: group.id}, position: 90, scope: 'GROUP'},
+            data: {name: question, fieldType: 'TEXT', config: {}},
         })
         expect(made.ok(), 'the question was written down').toBeTruthy()
         const fieldId = (await made.json()).id
+        const asked = await page.request.put(`/api/v1/profile-fields/${fieldId}/assignments`, {
+            headers,
+            data: {groupId: group.id, position: 90},
+        })
+        expect(asked.ok(), 'and put to the group').toBeTruthy()
 
         try {
             await page.goto('/station/profile')
@@ -66,9 +71,14 @@ test.describe('Profile', () => {
         const question = `Fremd ${stamp}`
         const made = await page.request.post('/api/v1/profile-fields', {
             headers,
-            data: {name: question, fieldType: 'TEXT', config: {groupId: outside!.id}, position: 91, scope: 'GROUP'},
+            data: {name: question, fieldType: 'TEXT', config: {}},
         })
+        expect(made.ok(), 'the question was written down').toBeTruthy()
         const fieldId = (await made.json()).id
+        await page.request.put(`/api/v1/profile-fields/${fieldId}/assignments`, {
+            headers,
+            data: {groupId: outside!.id, position: 91},
+        })
 
         try {
             await memberPage.goto('/station/profile')

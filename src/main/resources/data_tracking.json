@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:a8bbdc8424d69580ddac72db93ff6fbd04d937119894b15a58675d94bddeed1e",
-  "generatedAt": "2026-09-14T19:24:32Z",
+  "schemaHash": "sha256:7170fb4f7d5514027899358efbefc07a343baa6adb1b3a820fd3e28abaa274d8",
+  "generatedAt": "2026-09-15T10:05:31Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -4689,7 +4689,7 @@
     "cluster_profile_field": {
       "feature": "cluster",
       "scope": "CLUSTER",
-      "tableHash": "sha256:bb11069c47610d136d36d9a63ab5d39d00b3efb0de87f148101e5ea830f52da4",
+      "tableHash": "sha256:6002842873440fc08900f31e50b5f2c0a8ead1ec75faa731b52aa741dcd9dc1a",
       "columns": [
         {
           "name": "id",
@@ -4727,20 +4727,6 @@
           "description": "The same settings a station field carries: required, read-only, notify on change and the rest."
         },
         {
-          "name": "position",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Where it sits among the cluster's own fields."
-        },
-        {
-          "name": "scope",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "Which kind of member it applies to. Group scope is refused: a group is a station's own and a cluster cannot see it."
-        },
-        {
           "name": "station_readonly",
           "type": "bool",
           "nullable": false,
@@ -4760,6 +4746,27 @@
           "nullable": true,
           "verified": true,
           "description": "The group of stations this question is asked of. NULL asks it of every station under the association."
+        },
+        {
+          "name": "required",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether an answer is expected. An assignment may say otherwise for its own audience."
+        },
+        {
+          "name": "readonly",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether only the member management may write the answer. The question's own, for everybody asked it. station_readonly is the other half: whether the station may write it at all."
+        },
+        {
+          "name": "width",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "How much of a row the question takes: full, half or third. NULL is the whole row. An assignment may say otherwise for its own audience."
         }
       ],
       "foreignKeys": [
@@ -4788,7 +4795,84 @@
         "status": "IGNORED",
         "reason": "Names no person, so an account leaving has nothing to remove here"
       },
-      "description": "A question a cluster asks of the members at its stations, shaped like a station's own profile field."
+      "description": "A question a cluster asks about a member, defined once. Which kinds of member are asked is in cluster_profile_field_assignment; which stations it reaches is station_group_id."
+    },
+    "cluster_profile_field_assignment": {
+      "feature": "cluster",
+      "scope": "CLUSTER",
+      "tableHash": "sha256:537819669e66b49aac2f1afe2a03e63567b2699c089150c1b1758c37de85a5a4",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Surrogate key. The pair that names an assignment is the field and the role, which the unique constraint holds."
+        },
+        {
+          "name": "field_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The question being asked. Deleting the definition takes every assignment of it."
+        },
+        {
+          "name": "role",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The kind of member asked. A cluster names no member groups, so a role is the only audience it can name."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the question sits on this audience's form. Belongs to the form: two forms holding different questions cannot share one ordering."
+        },
+        {
+          "name": "width_override",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "How much of a row the question takes for this audience, where that differs from the definition. NULL means the definition decides."
+        },
+        {
+          "name": "readonly_override",
+          "type": "bool",
+          "nullable": true,
+          "verified": true,
+          "description": "Whether only the member management may write the answer for this audience, where that differs from the definition. NULL means the definition decides, which is the normal case."
+        },
+        {
+          "name": "required_override",
+          "type": "bool",
+          "nullable": true,
+          "verified": true,
+          "description": "Whether this audience must answer, where that differs from the definition. NULL means the definition decides, which is the normal case."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "field_id",
+          "refTable": "cluster_profile_field",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Cluster-level, like the definition it points at. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Names no person: who is asked a question, not anybody's answer to it"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description": "Which kinds of member a cluster question is asked of. The stations it reaches stay on the definition, because that is a different axis."
     },
     "cluster_profile_field_value": {
       "feature": "cluster",
@@ -17824,7 +17908,7 @@
     "profile_field": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:19fc1674e3c9283420ddfd176c2e977d7bbe2760b23cd5052e3d0fc1bc04592d",
+      "tableHash": "sha256:396215edb0cf3abcd6ea3a12db8a7eb5a22862e1b3caa3aa7eb41f7bdca9f606",
       "columns": [
         {
           "name": "id",
@@ -17862,25 +17946,32 @@
           "description": "Type-specific configuration as JSONB (e.g. enum options)."
         },
         {
-          "name": "position",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Display order position."
-        },
-        {
-          "name": "scope",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "Field scope: member or guardian."
-        },
-        {
           "name": "keep_on_archive",
           "type": "bool",
           "nullable": false,
           "verified": true,
           "description": "Whether to retain the field value when a member is archived."
+        },
+        {
+          "name": "required",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether an answer is expected. An assignment may say otherwise for its own audience."
+        },
+        {
+          "name": "readonly",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether only the member management may write the answer. An assignment may say otherwise for its own audience."
+        },
+        {
+          "name": "width",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "How much of a row the question takes: full, half or third. NULL is the whole row. An assignment may say otherwise for its own audience."
         }
       ],
       "foreignKeys": [
@@ -17905,7 +17996,103 @@
         "status": "IGNORED",
         "reason": "Profile field definition, not per-member value"
       },
-      "description": "Configurable profile fields per station (e.g. phone, address, custom fields)."
+      "description": "A question a station asks about a member, defined once. Who is asked it is in profile_field_assignment."
+    },
+    "profile_field_assignment": {
+      "feature": "members",
+      "scope": "STATION",
+      "tableHash": "sha256:1743d93a4186fb574c811db0f10e0d5deb80ccfdbbf32b4dc72a4df555325744",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Surrogate key. The pair that names an assignment is the field and its audience, which the two partial unique indexes hold."
+        },
+        {
+          "name": "field_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The question being asked. Deleting the definition takes every assignment of it."
+        },
+        {
+          "name": "target_kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "ROLE where the field is asked of a kind of member, GROUP where it is asked of one group. Exactly one of role and group_id is set accordingly."
+        },
+        {
+          "name": "role",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The kind of member asked, set where target_kind is ROLE and NULL otherwise."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member group asked, set where target_kind is GROUP and NULL otherwise."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the question sits on this audience's form. Belongs to the form: two forms holding different questions cannot share one ordering."
+        },
+        {
+          "name": "width_override",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "How much of a row the question takes for this audience, where that differs from the definition. NULL means the definition decides. Position is not an override: where a question sits is the form's own business and every form orders itself."
+        },
+        {
+          "name": "readonly_override",
+          "type": "bool",
+          "nullable": true,
+          "verified": true,
+          "description": "Whether only the member management may write the answer for this audience, where that differs from the definition. NULL means the definition decides, which is the normal case."
+        },
+        {
+          "name": "required_override",
+          "type": "bool",
+          "nullable": true,
+          "verified": true,
+          "description": "Whether this audience must answer, where that differs from the definition. NULL means the definition decides, which is the normal case."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "field_id",
+          "refTable": "profile_field",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Names no person: who is asked a question, not anybody's answer to it"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description": "Who a profile field is asked of, and how it is put to them. One definition may be assigned to many roles and many groups without being written twice."
     },
     "profile_field_change": {
       "feature": "members",

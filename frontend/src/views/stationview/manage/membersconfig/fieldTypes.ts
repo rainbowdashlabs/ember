@@ -20,6 +20,7 @@ export const FIELD_TYPE_ORDER: FieldTypeName[] = [
     FieldTypes.ENUM,
     FieldTypes.AGE,
     FieldTypes.SECTION,
+    FieldTypes.SPACER,
 ]
 
 type Translate = (key: string) => string
