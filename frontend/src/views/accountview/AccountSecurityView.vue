@@ -13,11 +13,14 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import { auth } from '@/api'
+import { apiErrorMessage } from '@/util/apiError'
+import { PASSWORD_MIN_LENGTH } from '@/util/passwordPolicy'
 import TwoFactorSection from '@/views/stationview/profile/settingsview/TwoFactorSection.vue'
 import PasskeySection from '@/views/accountview/accountsecurityview/PasskeySection.vue'
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 
 const error = ref('')
 const currentPassword = ref('')
@@ -29,6 +32,10 @@ async function changePassword() {
     error.value = t('profile.passwordMismatch')
     throw new Error('mismatch')
   }
+  if (newPassword.value.length < PASSWORD_MIN_LENGTH) {
+    error.value = t('profile.passwordTooShort', {count: PASSWORD_MIN_LENGTH})
+    throw new Error('too short')
+  }
   error.value = ''
   try {
     await auth.changePassword({
@@ -39,9 +46,20 @@ async function changePassword() {
     newPassword.value = ''
     confirmPassword.value = ''
   } catch (e) {
-    error.value = t('profile.passwordError')
+    error.value = failureText(e)
     throw e
   }
+}
+
+/**
+ * What to show for a rejected change. The endpoint answers with an i18n key naming the actual
+ * cause, so the reason the member reads is the reason the server had, rather than the guess this
+ * form used to print over every failure alike.
+ */
+function failureText(e: unknown): string {
+  const raw = apiErrorMessage(e)
+  if (!raw) return t('profile.passwordError')
+  return te(raw) ? t(raw) : raw
 }
 </script>
 
@@ -60,6 +78,7 @@ async function changePassword() {
           <div class="space-y-1">
             <FieldLabel>{{ t('profile.newPassword') }}</FieldLabel>
             <PasswordInput v-model="newPassword" :placeholder="t('profile.newPassword')" autocomplete="new-password"/>
+            <MutedText tag="p" size="sm">{{ t('profile.passwordHint', {count: PASSWORD_MIN_LENGTH}) }}</MutedText>
           </div>
           <div class="space-y-1">
             <FieldLabel>{{ t('profile.confirmPassword') }}</FieldLabel>
