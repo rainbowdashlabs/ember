@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.system.service.ApplicationLogWriter;
+import dev.chojo.ember.feature.system.service.ChangelogAnnouncer;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
@@ -217,6 +218,11 @@ public class Bootstrapper {
 
         // After the schema is certain: in demo mode the migration runs in DemoService, not above.
         injector.getInstance(ApplicationLogWriter.class).start();
+
+        // Whether this start is an update is a question only the previous start can answer, and the
+        // answer is kept in the database, so it is asked where the schema is certain and before the
+        // API is up and anybody could be looking at the news.
+        injector.getInstance(ChangelogAnnouncer.class).announce();
 
         var apiServer = injector.getInstance(ApiServer.class);
         apiServer.start();

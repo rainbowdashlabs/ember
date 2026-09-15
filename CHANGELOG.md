@@ -5,6 +5,8 @@
 ### New Features
 
 - **An event can hand over files.** The route sheet, the form to bring or the plan for the evening is picked or uploaded through the media library and appears on the event page, ready to download. Each file is either for everybody who may see the event, partner stations included, or kept back for the people who run it.
+- **The changelog reads German and arrives with the instance.** The page no longer fetches its entries from GitHub out of the reader's browser; it reads them from the instance itself. It stays readable on an installation with no way out, and nobody has to leave an address at GitHub to read it.
+- **After an update the news say what changed.** Where an instance has been lifted to a new version, Ember writes one entry for the managers with the changes of exactly that version and a link to the full changelog.
 
 ### Changes
 

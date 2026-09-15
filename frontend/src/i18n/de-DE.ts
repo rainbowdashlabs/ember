@@ -1803,7 +1803,7 @@ export default {
         title: 'Versionshinweise',
         fetchError: 'Versionshinweise konnten nicht geladen werden.',
         noReleases: 'Keine Versionshinweise verfügbar.',
-        viewOnGithub: 'Auf GitHub ansehen',
+        installed: 'Installiert',
     },
     adminStations: {
         create: 'Neue Wache',

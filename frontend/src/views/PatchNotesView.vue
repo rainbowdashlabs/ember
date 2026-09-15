@@ -4,45 +4,51 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
+import {onMounted, ref} from 'vue'
+import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import MutedText from '@/components/typography/MutedText.vue'
-import { formatDateLong } from '@/util/format'
-import { renderMarkdown } from '@/util/markdown'
+import {renderMarkdown} from '@/util/markdown'
+import client from '@/api/client'
+import {getChangelog, type ChangelogEntry} from '@/api/system'
 
-const { t } = useI18n()
+/**
+ * What every version of this instance brought.
+ *
+ * <p>Read from the instance, not from GitHub out of the reader's browser: an installation with no
+ * way out can still say what it changed, and nobody has to leave an address somewhere else to read
+ * what their own instance does. The version being run is marked, because the question behind the
+ * page is usually "what changed for us", not "what has been released".
+ */
+const {t} = useI18n()
 
-interface GithubRelease {
-  id: number
-  tag_name: string
-  name: string
-  body: string
-  published_at: string
-  prerelease: boolean
-  html_url: string
-}
-
-const releases = ref<GithubRelease[]>([])
+const entries = ref<ChangelogEntry[]>([])
+const currentVersion = ref('')
 const loading = ref(true)
 const error = ref('')
 
+/** The numbers alone, which is what a version heading carries; a build off a branch says more. */
+function versionNumber(version: string): string {
+    return version.trim().split(' ')[0]?.replace(/^v/, '') ?? ''
+}
+
 onMounted(async () => {
-  try {
-    const res = await fetch('https://api.github.com/repos/rainbowdashlabs/ember/releases?per_page=20')
-    if (!res.ok) throw new Error(`GitHub API error: ${res.status}`)
-    releases.value = await res.json()
-  } catch (e) {
-    error.value = t('patchNotes.fetchError')
-  } finally {
-    loading.value = false
-  }
+    try {
+        const [changelog, config] = await Promise.all([
+            getChangelog(),
+            client.get<{version?: string}>('/public/config').then(res => res.data).catch(() => ({version: ''})),
+        ])
+        entries.value = changelog
+        currentVersion.value = versionNumber(config.version ?? '')
+    } catch {
+        error.value = t('patchNotes.fetchError')
+    } finally {
+        loading.value = false
+    }
 })
 </script>
 
@@ -53,27 +59,28 @@ onMounted(async () => {
       <router-link to="/?home" class="text-sm text-[var(--link)] hover:underline">{{ t('common.back') }}</router-link>
     </div>
 
-    <Spinner v-if="loading" size="lg" />
+    <Spinner v-if="loading" size="lg"/>
     <FailureAlert :message="error"/>
 
-    <p v-if="!loading && releases.length === 0 && !error" class="text-[var(--text-muted)] text-center py-8">
+    <p v-if="!loading && entries.length === 0 && !error" class="text-[var(--text-muted)] text-center py-8">
       {{ t('patchNotes.noReleases') }}
     </p>
 
-    <NeutralContainer v-for="release in releases" :key="release.id" class="space-y-3">
+    <NeutralContainer
+        v-for="entry in entries"
+        :key="entry.version"
+        :data-version="entry.version"
+        class="space-y-3"
+        data-testid="changelog-version"
+    >
       <div class="flex flex-wrap items-center gap-2">
-        <SectionHeader class="text-lg font-bold">{{ release.name || release.tag_name }}</SectionHeader>
-        <PrimaryBadge>{{ release.tag_name }}</PrimaryBadge>
-        <SecondaryBadge v-if="release.prerelease">Pre-release</SecondaryBadge>
-        <MutedText class="ml-auto">{{ formatDateLong(release.published_at) }}</MutedText>
+        <SectionHeader class="text-lg font-bold">{{ entry.version }}</SectionHeader>
+        <PrimaryBadge v-if="entry.version === currentVersion" data-testid="changelog-current">
+          {{ t('patchNotes.installed') }}
+        </PrimaryBadge>
       </div>
 
-      <div v-if="release.body" class="markdown-content text-sm" v-html="renderMarkdown(release.body)" />
-
-      <a :href="release.html_url" target="_blank" rel="noopener noreferrer" class="text-xs text-[var(--link)] hover:underline inline-flex items-center gap-1">
-        <font-awesome-icon :icon="['fab', 'github']" class="w-3 h-3" />
-        {{ t('patchNotes.viewOnGithub') }}
-      </a>
+      <div class="markdown-content text-sm" v-html="renderMarkdown(entry.body)"/>
     </NeutralContainer>
   </div>
 </template>
