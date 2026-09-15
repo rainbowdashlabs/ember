@@ -8953,6 +8953,7 @@ export default {
         sendOne: 'An Beacon senden',
         sendSelected: 'Ausgewählte senden ({count})',
         queued: '{count} an den Beacon übergeben.',
+        notQueued: 'Konnte nicht übergeben werden: die Warteschlange der Instanz ist voll. Versuche es in ein paar Minuten erneut.',
         day: 'Tag',
         subject: 'Art',
         instancesAffected: '{count} Instanzen',
@@ -9416,6 +9417,7 @@ export default {
     },
     problemReport: {
         button: 'Fehler in Ember melden',
+        forward: 'An das Beacon weitergeben',
         title: 'Fehler in Ember melden',
         notTheStation: 'Das geht an die Betreiber von Ember, nicht an deine Wache.',
         notTheStationDetail: 'Diese Meldung ist für Fehlverhalten der Anwendung selbst: etwas lässt sich nicht speichern, eine Seite zeigt Unsinn an, ein Knopf tut nichts. Niemand in deiner Wache sieht sie. Wenn es um fehlende Rechte, Ausrüstung, Termine oder eine Frage an die Wachleitung geht, sprich die zuständigen Personen in deiner Wache direkt an: hier kann dir dabei niemand helfen.',

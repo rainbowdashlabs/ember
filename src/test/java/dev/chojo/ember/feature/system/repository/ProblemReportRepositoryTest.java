@@ -67,6 +67,20 @@ class ProblemReportRepositoryTest extends RepositoryTestBase {
         assertTrue(reports.stream().anyMatch(r -> r.id() == reportId));
     }
 
+    /**
+     * One report on its own, which is what the screens that act on a single one ask for: passing it
+     * to a beacon is about the report in front of somebody, not about the list.
+     */
+    @Test
+    @Order(2)
+    void findById() {
+        var found = problemReportRepo.findById(reportId).orElseThrow();
+
+        assertEquals(reportId, found.id());
+        assertEquals("Something is broken", found.message());
+        assertTrue(problemReportRepo.findById(999999).isEmpty(), "a report that is not there is absent");
+    }
+
     @Test
     @Order(3)
     void acknowledge() {

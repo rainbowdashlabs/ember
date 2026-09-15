@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.system.entity.ProblemReport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
+import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -57,6 +58,14 @@ public class ProblemReportRepository {
                 .single(call().bind("include_acknowledged", includeAcknowledged))
                 .map(ProblemReport.map())
                 .all();
+    }
+
+    /** One report, for the screens that act on a single one rather than on the list. */
+    public Optional<ProblemReport> findById(int id) {
+        return query("SELECT %s FROM problem_report WHERE id = :id;", PROBLEM_REPORT_COLUMNS)
+                .single(call().bind("id", id))
+                .map(ProblemReport.map())
+                .first();
     }
 
     /**

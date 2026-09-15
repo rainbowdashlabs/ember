@@ -4,13 +4,16 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import BeaconPreviewModal from '@/components/log/BeaconPreviewModal.vue'
 import ReportCard from './adminproblemreportsview/ReportCard.vue'
+import {beacon} from '@/api'
 import {acknowledgeAllReports, acknowledgeReport, deleteReport, listReports, type ProblemReport} from '@/api/problemReports'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
@@ -18,6 +21,31 @@ const {t} = useI18n()
 
 const includeAcknowledged = ref(false)
 const expandedId = ref<number | null>(null)
+
+/**
+ * Passing a report on is offered where this instance reports anywhere at all.
+ *
+ * <p>Asked of the instance rather than assumed, because the button leads to a dialog that shows what
+ * would leave and then sends it, and neither is worth offering where nothing can go anywhere.
+ */
+const reportsToABeacon = ref(false)
+const showPreview = ref(false)
+const forwardId = ref<number | null>(null)
+const forwarded = ref('')
+
+function forward(id: number) {
+  forwardId.value = id
+  forwarded.value = ''
+  showPreview.value = true
+}
+
+onMounted(async () => {
+  try {
+    reportsToABeacon.value = (await beacon.getStatus()).enabled
+  } catch {
+    reportsToABeacon.value = false
+  }
+})
 
 const {config: reports, loading, reload: loadData} = useConfigPanel<ProblemReport[]>({
   initial: [],
@@ -78,11 +106,21 @@ function toggle(id: number) {
           :key="r.id"
           :report="r"
           :expanded="expandedId === r.id"
+          :can-forward="reportsToABeacon"
           @toggle="toggle"
           @ack="ack"
           @remove="remove"
+          @forward="forward"
         />
       </AsyncSection>
+
+      <BeaconPreviewModal
+        v-model:open="showPreview"
+        kind="report"
+        :entry-id="forwardId"
+        @sent="forwarded = t('beacon.queued', {count: 1})"
+      />
+      <Alert v-if="forwarded" variant="success">{{ forwarded }}</Alert>
     </div>
   </ViewContent>
 </template>

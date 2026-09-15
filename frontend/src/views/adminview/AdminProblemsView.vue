@@ -15,7 +15,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import ProblemEntryCard from './adminproblemsview/ProblemEntryCard.vue'
 import {beacon, problems} from '@/api'
-import BeaconPreviewModal from './adminproblemsview/BeaconPreviewModal.vue'
+import BeaconPreviewModal from '@/components/log/BeaconPreviewModal.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import type {BeaconStatus} from '@/api/beacon'
 import type {ProblemEntry} from '@/api/problems'
@@ -166,6 +166,6 @@ async function sendSelected() {
             </div>
         </div>
 
-        <BeaconPreviewModal v-model:open="showPreview" :problem-id="previewId" @sent="sendResult = t('beacon.queued', {count: 1})"/>
+        <BeaconPreviewModal v-model:open="showPreview" kind="problem" :entry-id="previewId" @sent="sendResult = t('beacon.queued', {count: 1})"/>
     </ViewContent>
 </template>

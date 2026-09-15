@@ -18,6 +18,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Optional;
 
 /**
  * HTTP client for discovery-protocol traffic.
@@ -122,6 +123,58 @@ public class DiscoveryHttpClient {
         } catch (Exception e) {
             log.debug("Discovery POST {} on {} failed: {}", path, baseUrl, e.getMessage(), e);
             return false;
+        }
+    }
+
+    /**
+     * A signed POST to a beacon, carrying the key its signature is to be checked against.
+     *
+     * <p>Separate from {@link #signedPost} because the two are addressed to different sorts of
+     * reader. A discovery peer has met this instance and holds its key already; a beacon is reported
+     * to by instances it has never heard of, so the key travels with the delivery. Without it every
+     * delivery is refused as unsigned, which is what this method exists to stop happening again.
+     *
+     * <p>Answers what the beacon said rather than whether it was happy, because a refusal is worth
+     * naming in a log: a boolean that is false for a closed port, a wrong address and a rejected
+     * signature alike is what made this invisible in the first place. The answer it gives back
+     * carries the beacon's own words, since a beacon refuses with 403 for three different reasons
+     * and the number alone does not tell them apart.
+     *
+     * @return what the beacon answered, or empty where it could not be reached
+     */
+    public Optional<Answer> beaconPost(String baseUrl, String path, Object body) {
+        try {
+            String url = joinUrl(baseUrl, path);
+            if (!urlValidator.isAllowed(url)) {
+                log.warn("Beacon POST rejected by RemoteUrlValidator: {}", url);
+                return Optional.empty();
+            }
+            String json = mapper.writeValueAsString(body);
+            var request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(REQUEST_TIMEOUT)
+                    .header("Content-Type", "application/json")
+                    .header(DiscoverySigningService.SIGNATURE_HEADER, signingService.sign(json))
+                    .header(DiscoverySigningService.BEACON_KEY_HEADER, signingService.publicKeyBase64())
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return Optional.of(new Answer(response.statusCode(), response.body()));
+        } catch (Exception e) {
+            log.debug("Beacon POST {} on {} failed: {}", path, baseUrl, e.getMessage(), e);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * What a beacon answered a delivery with.
+     *
+     * @param status what it answered
+     * @param body   what it said, which is how one 403 is told from another
+     */
+    public record Answer(int status, String body) {
+        public boolean accepted() {
+            return status >= 200 && status < 300;
         }
     }
 }

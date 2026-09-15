@@ -1,5 +1,12 @@
 # Changelog
 
+## v26.17.1
+
+### Fixes
+
+- **Nothing reported to a beacon ever arrived.** Every fault and every report was refused as unsigned before it could be stored, because a delivery did not carry the key its signature is checked against. The refusal reached no log either, so an operator saw a beacon holding figures and nothing else, even on an instance reporting to itself. Deliveries now carry that key, and a beacon that turns one away or cannot be reached is said so in the log.
+- **A problem report could not be passed on by hand.** Reports reached a beacon only as they were written, so anything written before the switch was turned on stayed where it was, with no way to send it. The list now offers what the error log has always offered: see exactly what would leave, then send it.
+
 ## v26.17.0
 
 ### New Features

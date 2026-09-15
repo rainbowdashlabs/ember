@@ -74,8 +74,8 @@ const REPORTS: ProblemReport[] = [
             {{ t('problemReport.acknowledgeAll') }}
           </SecondaryButton>
         </div>
-        <ReportCard :report="REPORTS[0]!" :expanded="true"/>
-        <ReportCard :report="REPORTS[1]!" :expanded="false"/>
+        <ReportCard :report="REPORTS[0]!" :expanded="true" :can-forward="true"/>
+        <ReportCard :report="REPORTS[1]!" :expanded="false" :can-forward="true"/>
       </div>
     </HelpSection>
 

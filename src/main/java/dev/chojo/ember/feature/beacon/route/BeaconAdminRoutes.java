@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
 import dev.chojo.ember.feature.beacon.service.BeaconMetricsService;
 import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.beacon.service.BeaconSettings;
+import dev.chojo.ember.feature.system.entity.ProblemReport;
+import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import io.javalin.http.BadRequestResponse;
@@ -38,6 +40,7 @@ public class BeaconAdminRoutes implements Routes {
     private final BeaconMetricsService metrics;
     private final UpdateCheckService updates;
     private final BeaconReadRepository collected;
+    private final ProblemReportRepository problemReports;
 
     @Inject
     public BeaconAdminRoutes(
@@ -45,12 +48,14 @@ public class BeaconAdminRoutes implements Routes {
             BeaconReportService reports,
             BeaconMetricsService metrics,
             UpdateCheckService updates,
-            BeaconReadRepository collected) {
+            BeaconReadRepository collected,
+            ProblemReportRepository problemReports) {
         this.config = config;
         this.reports = reports;
         this.metrics = metrics;
         this.updates = updates;
         this.collected = collected;
+        this.problemReports = problemReports;
     }
 
     @Override
@@ -61,6 +66,8 @@ public class BeaconAdminRoutes implements Routes {
         routes.get(base + "/problems/{id}/preview", this::previewProblem, InstancePermission.ADMINISTRATOR);
         routes.post(base + "/problems/{id}/send", this::sendProblem, InstancePermission.ADMINISTRATOR);
         routes.post(base + "/problems/send", this::sendProblems, InstancePermission.ADMINISTRATOR);
+        routes.get(base + "/reports/{id}/preview", this::previewReport, InstancePermission.ADMINISTRATOR);
+        routes.post(base + "/reports/{id}/send", this::sendReport, InstancePermission.ADMINISTRATOR);
         routes.get(base + "/figures/preview", this::previewMetrics, InstancePermission.ADMINISTRATOR);
 
         routes.get(base + "/collected/faults", this::faults, InstancePermission.ADMINISTRATOR);
@@ -223,6 +230,37 @@ public class BeaconAdminRoutes implements Routes {
                 .map(ProblemLogAppender.ProblemEntry::snapshot)
                 .toList();
         ctx.json(new SendResult(reports.sendAll(chosen, updates.currentVersion())));
+    }
+
+    /**
+     * What one report would be sent as.
+     *
+     * <p>A report is a person talking, so the bytes matter more here than anywhere else: the message
+     * is theirs, and the only honest way to ask an operator to pass it on is to show what goes.
+     */
+    private void previewReport(Context ctx) {
+        var report = report(ctx);
+        ctx.json(reports.reportPayloadFor(
+                report.message(), report.pageUrl(), report.createdAt(), updates.currentVersion()));
+    }
+
+    /**
+     * Passes one report on now, whatever the automatic switch says.
+     *
+     * <p>The switch governs what leaves on its own; a button is an operator deciding about this one
+     * report in front of them. That is also the only way a report written before the switch was
+     * turned on can ever reach a beacon.
+     */
+    private void sendReport(Context ctx) {
+        requireEnabled();
+        var report = report(ctx);
+        boolean queued =
+                reports.sendReportNow(report.message(), report.pageUrl(), report.createdAt(), updates.currentVersion());
+        ctx.json(new SendResult(queued ? 1 : 0));
+    }
+
+    private ProblemReport report(Context ctx) {
+        return problemReports.findById(pathId(ctx)).orElseThrow(NotFoundResponse::new);
     }
 
     /** The day's numbers as they would go, so an operator can see what "how much" means. */
