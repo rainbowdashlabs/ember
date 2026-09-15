@@ -14,6 +14,8 @@
 
 - **What an appointment is missing offered a button that refused the person pressing it.** Asking the association for the gear an evening lacks is now offered only to the people who may ask for gear at all; everybody else still sees what is missing.
 - **A sheet filled in later carried the wrong date among the past ones.** An evening written down days or weeks afterwards was listed under the date somebody typed it in rather than the date it happened, and sorted among that week's sheets, so an evening in July sat at the top showing September. Past sheets now carry their own date and run newest evening first.
+- **Problem reports were never passed on to a beacon.** Switching on "Meldungen weiterleiten" stored the choice and changed nothing: a report somebody wrote was filed on the instance and went no further, so a beacon collected faults and figures but never a word anybody had written. Reports are now passed on as they are written, and the query string of the page is left behind.
+- **A beacon turned away everything reported to it.** Unless the instance happened to report to itself, every signed delivery was refused as addressed to another beacon, so operators saw an empty beacon with nothing to say why. A beacon now weighs a delivery against its own address, which is the one in `api.baseUrl`.
 
 ## v26.16.0
 

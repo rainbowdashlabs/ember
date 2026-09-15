@@ -158,23 +158,58 @@ public class BeaconReportService {
     /**
      * Queues one problem report, stripped of everything that names the person who wrote it.
      *
-     * @param message   what they wrote
-     * @param page      the address they were on, query string already removed
+     * <p>Asks {@link BeaconSettings#forwardReports()} itself rather than trusting the caller to,
+     * the same way the problem listener does. A stacktrace is the machine talking and a report is a
+     * person, so the two are agreed to separately, and a switch that only the caller checks is one
+     * the next caller forgets.
+     *
+     * @param message    what they wrote
+     * @param page       the address they were on
      * @param reportedAt when they wrote it
-     * @param version   this instance's version
+     * @param version    this instance's version
      * @return whether it was queued
      */
     public boolean sendReport(String message, String page, Instant reportedAt, String version) {
-        if (!config.enabled()) return false;
-        var payload = new BeaconPayloads.ReportPayload(
+        if (!config.forwardReports()) return false;
+        var payload = reportPayloadFor(message, page, reportedAt, version);
+        return queue.offer(() -> httpClient.signedPost(config.url(), "/api/v1/beacon/reports", payload));
+    }
+
+    /**
+     * The payload one report would be sent as, without sending it.
+     *
+     * <p>The counterpart of {@link #payloadFor}, and for the same reason: what leaves the instance is
+     * decided here, so here is where it can be read.
+     *
+     * @param message    what they wrote
+     * @param page       the address they were on
+     * @param reportedAt when they wrote it
+     * @param version    this instance's version
+     * @return the payload, ready to be shown or sent
+     */
+    public BeaconPayloads.ReportPayload reportPayloadFor(
+            String message, String page, Instant reportedAt, String version) {
+        return new BeaconPayloads.ReportPayload(
                 envelope(),
                 version,
                 blankToNull(config.contactName()),
                 blankToNull(config.contactMail()),
                 message,
-                page,
+                withoutQuery(page),
                 reportedAt);
-        return queue.offer(() -> httpClient.signedPost(config.url(), "/api/v1/beacon/reports", payload));
+    }
+
+    /**
+     * The address without its query string.
+     *
+     * <p>A query carries what somebody searched for and sometimes who they looked at, none of which
+     * a beacon needs to know which page went wrong. The screen already sends the path alone; this is
+     * the guarantee rather than the hope, because what leaves the instance is decided here.
+     */
+    private static String withoutQuery(String page) {
+        if (page == null) return null;
+        int query = page.indexOf('?');
+        return query < 0 ? page : page.substring(0, query);
     }
 
     /**
