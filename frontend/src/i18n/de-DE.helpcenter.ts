@@ -4695,6 +4695,8 @@ volumes:
             whatIsText: 'Neuigkeiten sind Beiträge, mit denen du alle Mitglieder deiner Wache informieren kannst - zum Beispiel über Änderungen im Dienstplan, Berichte von Veranstaltungen oder allgemeine Ankündigungen. Mitglieder können Beiträge lesen und kommentieren.',
             pagesTitle: 'Was findest du hier?',
             pagesText: 'In der Neuigkeiten-Liste siehst du alle veröffentlichten Beiträge. Du kannst neue Beiträge erstellen, bestehende bearbeiten und die Sichtbarkeit auf bestimmte Gruppen einschränken.',
+            updateEntryTitle: 'Der Eintrag nach einer Aktualisierung',
+            updateEntryText: 'Wurde die Instanz auf eine neue Version gehoben, schreibt Ember einmalig einen Eintrag mit den Änderungen genau dieser Version. Als Absender steht Ember daneben, gelesen wird er nur von der Verwaltung, und der Link darin führt auf das vollständige Änderungsprotokoll. Ein Neustart ohne neue Version schreibt nichts; wer das gar nicht möchte, schaltet es in der Konfiguration der Instanz ab.',
             overviewTip: 'Mitglieder mit aktivierten E-Mail-Benachrichtigungen werden automatisch über neue Beiträge informiert.',
         },
         profileOverview: {

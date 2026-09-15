@@ -22,6 +22,7 @@ import dev.chojo.ember.conf.file.File;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.conf.file.elements.Auth;
+import dev.chojo.ember.conf.file.elements.Changelog;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
@@ -227,6 +228,7 @@ import dev.chojo.ember.feature.storage.transfer.StationTransferAssetRoutes;
 import dev.chojo.ember.feature.system.route.AdminMonitoringCountRoutes;
 import dev.chojo.ember.feature.system.route.AdminSettingsRoutes;
 import dev.chojo.ember.feature.system.route.ApiStatusRoutes;
+import dev.chojo.ember.feature.system.route.ChangelogRoutes;
 import dev.chojo.ember.feature.system.route.DataRoutes;
 import dev.chojo.ember.feature.system.route.DataTrackingRoutes;
 import dev.chojo.ember.feature.system.route.InstallRoutes;
@@ -385,6 +387,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(ProblemReportRoutes.class);
         routesBinder.addBinding().to(ApiStatusRoutes.class);
         routesBinder.addBinding().to(UpdateRoutes.class);
+        routesBinder.addBinding().to(ChangelogRoutes.class);
         routesBinder.addBinding().to(WaitingListRoutes.class);
         routesBinder.addBinding().to(QuizCatalogRoutes.class);
         routesBinder.addBinding().to(QuizQuestionRoutes.class);
@@ -667,6 +670,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Updates updates(File config) {
         return config.updates();
+    }
+
+    @Provides
+    @Singleton
+    Changelog changelog(File config) {
+        return config.changelog();
     }
 
     @Provides
