@@ -71,7 +71,7 @@ watch(loaded, (isLoaded) => {
             <div class="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <span class="font-semibold text-sm">{{ s.title || t('attendancePast.untitled') }}</span>
-                <MutedText size="sm" class="ml-3">{{ formatDate(s.createdAt) }}</MutedText>
+                <MutedText size="sm" class="ml-3">{{ formatDate(s.startTime) }}</MutedText>
                 <MutedText class="ml-2">{{ formatTime(s.startTime) }} – {{
                     formatTime(s.endTime)
                   }}</MutedText>

@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
+import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -158,6 +159,45 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         var summaries = attendanceRepo.findSessionSummariesByStation(station.id());
         assertNotNull(summaries);
         assertTrue(summaries.stream().anyMatch(s -> s.id() == sessionId));
+    }
+
+    /**
+     * A sheet filled in weeks after the evening it records is an ordinary thing, and it is the only
+     * case where when the evening was and when somebody wrote it down disagree. Ordering by the
+     * writing put such a sheet among this week's while it showed a date from July.
+     *
+     * <p>The old evening is written down last here, and that order is the whole test: created the
+     * other way round the two orderings agree and this would pass against the very bug it is for.
+     */
+    @Test
+    @Order(24)
+    void theSummariesReadNewestEveningFirstEvenWhenOneWasWrittenDownLate() {
+        Instant recent = Instant.now().minus(1, ChronoUnit.DAYS);
+        int yesterday = attendanceRepo
+                .createSession(templateId, recent, recent.plus(2, ChronoUnit.HOURS), null, "Yesterday", null)
+                .id();
+        Instant longAgo = Instant.now().minus(60, ChronoUnit.DAYS);
+        int backDated = attendanceRepo
+                .createSession(templateId, longAgo, longAgo.plus(2, ChronoUnit.HOURS), null, "Back-dated", null)
+                .id();
+
+        var summaries = attendanceRepo.findSessionSummariesByStation(station.id());
+        var ids = summaries.stream().map(SessionSummary::id).toList();
+
+        assertTrue(
+                ids.indexOf(yesterday) < ids.indexOf(backDated),
+                "the evening from yesterday comes before the one from two months ago, "
+                        + "however recently either was written down");
+
+        var stored =
+                summaries.stream().filter(s -> s.id() == backDated).findFirst().orElseThrow();
+        assertEquals(
+                longAgo.truncatedTo(ChronoUnit.SECONDS),
+                stored.startTime().truncatedTo(ChronoUnit.SECONDS),
+                "and it carries the evening's own date, which is what the list shows");
+        assertTrue(
+                stored.createdAt().isAfter(stored.startTime()),
+                "the two really do disagree here, or this test would prove nothing");
     }
 
     @Test

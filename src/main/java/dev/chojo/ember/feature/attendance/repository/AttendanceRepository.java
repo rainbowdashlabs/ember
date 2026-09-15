@@ -250,6 +250,10 @@ public class AttendanceRepository {
     /**
      * Finds session summaries with attendance counts for all sessions in a station.
      *
+     * <p>Newest evening first, by when the evening was rather than by when somebody wrote it down.
+     * A sheet filled in weeks later is an ordinary thing, and ordering by the writing put it among
+     * this week's while showing a date from July.
+     *
      * @param stationId the station ID
      * @return list of session summaries with present/absent/declined/unconfirmed counts
      */
@@ -265,7 +269,7 @@ public class AttendanceRepository {
                 LEFT JOIN attendance_entry e ON e.session_id = s.id
                 WHERE t.station_id = :station_id
                 GROUP BY s.id
-                ORDER BY s.created_at DESC;""", SqlSupport.alias("s", ATTENDANCE_SESSION_COLUMNS))
+                ORDER BY s.start_time DESC;""", SqlSupport.alias("s", ATTENDANCE_SESSION_COLUMNS))
                 .single(call().bind("station_id", stationId))
                 .map(row -> new SessionSummary(
                         row.getInt("id"),

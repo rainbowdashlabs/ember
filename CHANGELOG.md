@@ -13,6 +13,7 @@
 ### Fixes
 
 - **What an appointment is missing offered a button that refused the person pressing it.** Asking the association for the gear an evening lacks is now offered only to the people who may ask for gear at all; everybody else still sees what is missing.
+- **A sheet filled in later carried the wrong date among the past ones.** An evening written down days or weeks afterwards was listed under the date somebody typed it in rather than the date it happened, and sorted among that week's sheets, so an evening in July sat at the top showing September. Past sheets now carry their own date and run newest evening first.
 
 ## v26.16.0
 
