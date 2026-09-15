@@ -37,6 +37,16 @@ export interface ProblemPayload {
     lastOccurrence: string
 }
 
+/** What a problem report travels as: what somebody wrote, without anything naming them. */
+export interface ReportPayload {
+    version: string
+    contactName: string | null
+    contactMail: string | null
+    message: string
+    page: string | null
+    reportedAt: string
+}
+
 /** One subject's bucketed counts, as they would travel. */
 export interface MetricsSubject {
     metricsUid: string
@@ -115,6 +125,21 @@ export async function sendProblem(id: number): Promise<number> {
 
 export async function sendProblems(ids: number[]): Promise<number> {
     return (await client.post<{queued: number}>('/admin/beacon/problems/send', {ids})).data.queued
+}
+
+/** What one problem report would travel as. A report is a person talking, so the bytes are shown. */
+export async function previewReportPayload(id: number): Promise<ReportPayload> {
+    return (await client.get<ReportPayload>(`/admin/beacon/reports/${id}/preview`)).data
+}
+
+/**
+ * Passes one problem report on now.
+ *
+ * <p>Whatever the automatic switch says: the switch governs what leaves on its own, and this is an
+ * operator deciding about the report in front of them.
+ */
+export async function sendReportToBeacon(id: number): Promise<number> {
+    return (await client.post<{queued: number}>(`/admin/beacon/reports/${id}/send`)).data.queued
 }
 
 /** The day's numbers as they would go, so an operator can see what leaves. */

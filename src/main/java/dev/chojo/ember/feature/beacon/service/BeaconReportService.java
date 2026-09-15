@@ -136,8 +136,7 @@ public class BeaconReportService {
      */
     public boolean send(ProblemLogAppender.Snapshot entry, String version) {
         if (!config.enabled()) return false;
-        return queue.offer(
-                () -> httpClient.signedPost(config.url(), "/api/v1/beacon/problems", payloadFor(entry, version)));
+        return queue.offer(() -> deliver("/api/v1/beacon/problems", payloadFor(entry, version)));
     }
 
     /**
@@ -171,8 +170,45 @@ public class BeaconReportService {
      */
     public boolean sendReport(String message, String page, Instant reportedAt, String version) {
         if (!config.forwardReports()) return false;
+        return sendReportNow(message, page, reportedAt, version);
+    }
+
+    /**
+     * Queues one report because somebody asked for this one, rather than because the switch is on.
+     *
+     * <p>The switch governs what leaves on its own. An operator pressing a button has decided about
+     * the report in front of them, and it is the only way one written before the switch was turned on
+     * ever reaches a beacon.
+     *
+     * @return whether it was queued, false when the queue is full
+     */
+    public boolean sendReportNow(String message, String page, Instant reportedAt, String version) {
         var payload = reportPayloadFor(message, page, reportedAt, version);
-        return queue.offer(() -> httpClient.signedPost(config.url(), "/api/v1/beacon/reports", payload));
+        return queue.offer(() -> deliver("/api/v1/beacon/reports", payload));
+    }
+
+    /**
+     * Hands one payload to the beacon and says so where it was turned away.
+     *
+     * <p>A refusal used to be a {@code false} nobody read: a closed port, a wrong address and a
+     * rejected signature all looked alike and none of them reached a log. An operator who had
+     * switched forwarding on then had nothing to go on but an empty beacon, which is exactly how a
+     * missing header went unnoticed through several releases.
+     */
+    private void deliver(String path, Object payload) {
+        var answer = httpClient.beaconPost(config.url(), path, payload);
+        if (answer.isEmpty()) {
+            log.warn("The beacon at {} could not be reached for {}", config.url(), path);
+            return;
+        }
+        if (!answer.get().accepted()) {
+            log.warn(
+                    "The beacon at {} answered {} for {}: {}",
+                    config.url(),
+                    answer.get().status(),
+                    path,
+                    answer.get().body());
+        }
     }
 
     /**

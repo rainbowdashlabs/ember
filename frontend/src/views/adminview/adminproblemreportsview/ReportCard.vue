@@ -18,12 +18,15 @@ import type {RequestHistoryEntry} from '@/api/client'
 const props = defineProps<{
   report: ProblemReport
   expanded: boolean
+  /** Whether this instance reports to a beacon at all, which is what makes passing one on possible. */
+  canForward: boolean
 }>()
 
 const emit = defineEmits<{
   toggle: [id: number]
   ack: [id: number]
   remove: [id: number]
+  forward: [id: number]
 }>()
 
 const {t} = useI18n()
@@ -50,6 +53,8 @@ const recentRequests = computed<RequestHistoryEntry[]>(() => {
         @click="emit('toggle', report.id)"
     >
       <template #actions>
+        <IconButton v-if="canForward" :icon="['fas', 'tower-broadcast']" :label="t('problemReport.forward')"
+                    data-testid="problem-report-forward" @click.stop="emit('forward', report.id)"/>
         <IconButton v-if="!report.acknowledged" :icon="['fas', 'check']" :label="t('problemReport.acknowledge')"
                     class="text-success hover:bg-success/15" @click.stop="emit('ack', report.id)"/>
         <DeleteButton @click.stop="emit('remove', report.id)"/>

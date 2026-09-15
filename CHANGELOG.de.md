@@ -1,5 +1,12 @@
 # Änderungsprotokoll
 
+## v26.17.1
+
+### Fehlerbehebungen
+
+- **An ein Beacon gemeldet kam nie etwas an.** Jeder Fehler und jede Meldung wurde vor dem Speichern als unsigniert abgewiesen, weil eine Zustellung den Schlüssel nicht mitbrachte, an dem ihre Signatur geprüft wird. Die Abweisung stand auch in keinem Log, sodass Betreiber ein Beacon mit Zahlen darauf und sonst nichts sahen, selbst auf einer Instanz, die an sich selbst meldet. Zustellungen bringen den Schlüssel jetzt mit, und ein Beacon, das eine abweist oder nicht erreichbar ist, steht im Log.
+- **Eine Meldung ließ sich nicht von Hand weitergeben.** Meldungen erreichten ein Beacon nur beim Schreiben, alles vor dem Einschalten des Schalters blieb also liegen, ohne Möglichkeit es zu senden. Die Liste bietet jetzt, was das Fehlerprotokoll schon immer bietet: erst sehen, was genau hinausgeht, dann senden.
+
 ## v26.17.0
 
 ### Neue Funktionen

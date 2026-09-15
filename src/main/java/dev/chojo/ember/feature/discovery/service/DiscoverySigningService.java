@@ -27,6 +27,15 @@ import java.util.Base64;
 @Singleton
 public class DiscoverySigningService {
     public static final String SIGNATURE_HEADER = "X-Ember-Discovery-Signature";
+
+    /**
+     * Where a delivery to a beacon carries the key its signature is to be checked against.
+     *
+     * <p>Beside the signature header because the two only mean anything together, and both sides of
+     * a delivery read them from here rather than spelling the names out twice.
+     */
+    public static final String BEACON_KEY_HEADER = "X-Beacon-Key";
+
     private static final Logger log = LoggerFactory.getLogger(DiscoverySigningService.class);
     private static final String ALGO = "Ed25519";
     private final DiscoveryKeyService keyService;
@@ -34,6 +43,17 @@ public class DiscoverySigningService {
     @Inject
     public DiscoverySigningService(DiscoveryKeyService keyService) {
         this.keyService = keyService;
+    }
+
+    /**
+     * The public half of the key this instance signs with, base64 as it travels.
+     *
+     * <p>A peer that already knows this instance looks the key up by the partner it belongs to. A
+     * beacon cannot: anybody may report to one without being known to it beforehand, so a delivery
+     * has to carry the key its signature is to be checked against.
+     */
+    public String publicKeyBase64() {
+        return keyService.publicKeyBase64();
     }
 
     /**

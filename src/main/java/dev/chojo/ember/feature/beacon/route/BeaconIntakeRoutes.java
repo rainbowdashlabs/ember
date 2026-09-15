@@ -116,7 +116,7 @@ public class BeaconIntakeRoutes implements Routes {
      * be itself.
      */
     private Sender senderOf(Context ctx, String body, BeaconPayloads.Envelope envelope) {
-        String key = ctx.header("X-Beacon-Key");
+        String key = ctx.header(DiscoverySigningService.BEACON_KEY_HEADER);
         String signature = ctx.header(DiscoverySigningService.SIGNATURE_HEADER);
         if (key == null || signature == null) {
             throw new ForbiddenResponse("A report has to be signed");

@@ -54,6 +54,20 @@ class BeaconReportServiceTest {
     }
 
     /**
+     * A button is not the switch.
+     *
+     * <p>The switch governs what leaves on its own; pressing send is an operator deciding about the
+     * one report in front of them. Without this, a report written before the switch was turned on
+     * could never be passed on at all, which is the state every report was in until now.
+     */
+    @Test
+    void aReportSentByHandGoesWhateverTheSwitchSays() {
+        assertTrue(
+                serviceThatForwards(false).sendReportNow("Das ging schief", "/station/members", Instant.now(), "1.0.0"),
+                "the operator asked for this one");
+    }
+
+    /**
      * The query string is dropped before anything leaves.
      *
      * <p>A query carries what somebody searched for and sometimes who they looked at, none of which
