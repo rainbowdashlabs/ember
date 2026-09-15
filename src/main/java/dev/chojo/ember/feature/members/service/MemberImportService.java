@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileField;
-import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -281,9 +280,10 @@ public class MemberImportService {
 
                         if (!contact.phone().isBlank()) {
                             int mgrId = manager.id();
+                            // A question is written once now, so the guardians' mobile number is the
+                            // station's mobile number: there is no second copy to tell it apart from.
                             profileFields.stream()
-                                    .filter(f ->
-                                            f.name().equals("Mobilnummer") && f.scope() == ProfileFieldScope.GUARDIAN)
+                                    .filter(f -> f.name().equals("Mobilnummer"))
                                     .findFirst()
                                     .ifPresent(f -> storeAnswer(mgrId, f, contact.phone()));
                         }

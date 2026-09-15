@@ -27,7 +27,7 @@ const allMembers = ref<StationMember[]>([...props.allMembers])
 const error = ref('')
 
 const userType = toRef(props, 'userType')
-const { fields, fieldsForUserType, setValues } = useMemberProfileFields(userType)
+const { fields, fieldsForUserType, setValues, loadAudiences } = useMemberProfileFields(userType)
 
 const {
   managers,
@@ -54,6 +54,7 @@ const { loading } = useAsyncLoader(async () => {
     stationMembers.getManagers(memberId.value),
     stationMembers.getManaged(memberId.value),
     profileFields.getMergedValues(memberId.value),
+    loadAudiences(),
   ])
   fields.value = allFields
   managers.value = mgrs

@@ -50,7 +50,9 @@ const modalsRef = ref<InstanceType<typeof DetailModals> | null>(null)
 
 const { loading, error } = useAsyncLoader(loadDetail)
 
-const { fields, applicableFields, fieldsForUserType, getFieldValue, setValues } = useMemberProfileFields(memberUserType)
+const {
+  fields, applicableFields, fieldsForUserType, getFieldValue, setValues, loadAudiences,
+} = useMemberProfileFields(memberUserType)
 
 const {
   managers,
@@ -140,6 +142,7 @@ async function loadDetail() {
     stationMembers.getPermissions(memberId.value),
     memberGroups.getMemberGroups(memberId.value),
     userTags.getMemberTags(memberId.value),
+    loadAudiences(),
   ])
   fields.value = allFields
   allMembers.value = allMems

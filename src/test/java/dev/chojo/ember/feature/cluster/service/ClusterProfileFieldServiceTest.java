@@ -55,8 +55,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "Erste",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
@@ -65,22 +66,81 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "Zweite",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                1,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
+        clusterProfileFieldService.assignToRole(clusterId, first.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        clusterProfileFieldService.assignToRole(clusterId, second.id(), ProfileFieldScope.MEMBER, 1, null, null, null);
 
-        clusterProfileFieldService.reorder(clusterId, List.of(second.id(), first.id()));
+        clusterProfileFieldService.reorder(clusterId, ProfileFieldScope.MEMBER, List.of(second.id(), first.id()));
 
-        var ordered = clusterProfileFieldService.findByCluster(clusterId);
-        assertEquals(second.id(), ordered.getFirst().id(), "the order given is the order stored");
+        // The order is the audience's, so it is read from the assignment rather than from the
+        // question: the list of questions itself is by name and says nothing about any one form.
+        assertEquals(
+                1,
+                clusterProfileFieldService
+                        .findAssignments(second.id())
+                        .getFirst()
+                        .position(),
+                "the order given is the order stored");
+        assertEquals(
+                2,
+                clusterProfileFieldService
+                        .findAssignments(first.id())
+                        .getFirst()
+                        .position());
 
         // Nothing to move is not an error, and writes nothing
-        clusterProfileFieldService.reorder(clusterId, List.of());
+        clusterProfileFieldService.reorder(clusterId, ProfileFieldScope.MEMBER, List.of());
         assertEquals(
-                second.id(),
-                clusterProfileFieldService.findByCluster(clusterId).getFirst().id());
+                1,
+                clusterProfileFieldService
+                        .findAssignments(second.id())
+                        .getFirst()
+                        .position());
+    }
+
+    /**
+     * Every assignment of a cluster's questions, which is what the editor builds each form from, and
+     * dropping one audience, which leaves the question and every other audience alone.
+     */
+    @Test
+    void theAudiencesOfAClustersQuestionsAreListedAndDroppedOneAtATime() {
+        int clusterId = freshCluster();
+        var field = clusterProfileFieldService.create(
+                clusterId,
+                "Funkrufname",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null,
+                true,
+                false,
+                null);
+        clusterProfileFieldService.assignToRole(clusterId, field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        clusterProfileFieldService.assignToRole(clusterId, field.id(), ProfileFieldScope.TEAM, 1, null, null, null);
+
+        assertEquals(
+                2,
+                clusterProfileFieldService.findAssignmentsByCluster(clusterId).size());
+        assertTrue(
+                clusterProfileFieldService
+                        .findAssignmentsByCluster(freshCluster())
+                        .isEmpty(),
+                "and another association sees none of them");
+
+        clusterProfileFieldService.unassignRole(clusterId, field.id(), ProfileFieldScope.TEAM);
+
+        assertEquals(
+                List.of(ProfileFieldScope.MEMBER),
+                clusterProfileFieldService.findAssignmentsByCluster(clusterId).stream()
+                        .map(a -> a.role())
+                        .toList(),
+                "the question stays, asked of whoever is left");
     }
 
     @Test
@@ -88,21 +148,23 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
         var station = stationOf(clusterId);
 
-        clusterProfileFieldService.create(
+        var licence = clusterProfileFieldService.create(
                 clusterId,
                 "Führerscheinklasse",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
+        clusterProfileFieldService.assignToRole(clusterId, licence.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
 
         var reaching = clusterProfileFieldService.findForStation(station.id(), ProfileFieldScope.MEMBER);
         assertEquals(1, reaching.size());
-        assertEquals("Führerscheinklasse", reaching.getFirst().name());
-        assertTrue(reaching.getFirst().stationReadonly());
+        assertEquals("Führerscheinklasse", reaching.getFirst().field().name());
+        assertTrue(reaching.getFirst().field().stationReadonly());
 
         // And they appear in the station's own profile beside its own fields, marked as somebody else's
         var merged = profileFieldService.findMergedFields(station.id(), ProfileFieldScope.MEMBER);
@@ -124,24 +186,8 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
-    @Test
-    void aClusterCannotAskAGroupScopedQuestion() {
-        int clusterId = freshCluster();
-
-        var refused = assertThrows(
-                BadRequestResponse.class,
-                () -> clusterProfileFieldService.create(
-                        clusterId,
-                        "Gruppenfrage",
-                        ProfileFieldType.TEXT,
-                        ProfileFieldConfig.empty(),
-                        0,
-                        ProfileFieldScope.GROUP,
-                        true,
-                        false,
-                        null));
-        assertTrue(refused.getMessage().contains("cannot see"));
-    }
+    // A cluster asking a group-scoped question used to be refused at runtime. A group is no longer a
+    // kind of member, so there is no such value to pass and nothing left to refuse.
 
     /**
      * A question pointed at a group reaches the stations filed under it and nobody else, which is the whole
@@ -155,16 +201,18 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var group = clusterStationGroupService.create(clusterId, "Atemschutz " + NAMES.incrementAndGet());
         clusterStationGroupService.setStations(clusterId, group.id(), List.of(inside.uid()));
 
-        clusterProfileFieldService.create(
+        var fit = clusterProfileFieldService.create(
                 clusterId,
                 "Atemschutztauglich",
                 ProfileFieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 group.id());
+        clusterProfileFieldService.assignToRole(clusterId, fit.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
 
         assertEquals(
                 1,
@@ -215,8 +263,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "Funkrufname",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
@@ -228,8 +277,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         "Funkrufname",
                         ProfileFieldType.TEXT,
                         ProfileFieldConfig.empty(),
-                        1,
-                        ProfileFieldScope.MEMBER,
+                        false,
+                        false,
+                        null,
                         true,
                         false,
                         reaching.id()));
@@ -240,8 +290,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "Funkrufname",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                1,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 empty.id());
@@ -262,8 +313,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         "Geburtstag",
                         ProfileFieldType.BIRTH_DATE,
                         ProfileFieldConfig.empty(),
-                        0,
-                        ProfileFieldScope.MEMBER,
+                        false,
+                        false,
+                        null,
                         true,
                         false,
                         null));
@@ -281,8 +333,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         "  ",
                         ProfileFieldType.TEXT,
                         ProfileFieldConfig.empty(),
-                        0,
-                        ProfileFieldScope.MEMBER,
+                        false,
+                        false,
+                        null,
                         true,
                         false,
                         null));
@@ -298,8 +351,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "Atemschutz",
                 ProfileFieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
@@ -330,8 +384,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "Atemschutztauglich",
                 ProfileFieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 group.id());
@@ -369,8 +424,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "Atemschutz",
                 ProfileFieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
@@ -407,11 +463,13 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "Vorläufig",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
+        clusterProfileFieldService.assignToRole(clusterId, field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
 
         clusterProfileFieldService.update(
                 clusterId,
@@ -419,16 +477,22 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "Endgültig",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                1,
-                ProfileFieldScope.TEAM,
+                true,
+                false,
+                null,
                 false,
                 true,
                 null);
+        clusterProfileFieldService.assignToRole(clusterId, field.id(), ProfileFieldScope.TEAM, 1, null, null, null);
 
         var updated = clusterProfileFieldService.findByCluster(clusterId).getFirst();
         assertEquals("Endgültig", updated.name());
-        assertEquals(ProfileFieldScope.TEAM, updated.scope());
+        assertTrue(updated.required());
         assertFalse(updated.stationReadonly());
+        assertEquals(
+                2,
+                clusterProfileFieldService.findAssignments(field.id()).size(),
+                "the team was added to the audiences the question already had");
 
         clusterProfileFieldService.delete(clusterId, field.id());
         assertTrue(clusterProfileFieldService.findByCluster(clusterId).isEmpty());
@@ -443,8 +507,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "Fremd",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
@@ -462,8 +527,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "Einzeln",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
@@ -485,8 +551,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "Nachschlagen",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
@@ -507,8 +574,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 "Unverändert",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);

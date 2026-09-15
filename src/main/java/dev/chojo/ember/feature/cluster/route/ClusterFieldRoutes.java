@@ -11,6 +11,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
+import dev.chojo.ember.feature.cluster.entity.ClusterProfileFieldAssignment;
 import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -57,8 +58,16 @@ public class ClusterFieldRoutes implements Routes {
         routes.get(prefix + "/cluster/fields", this::list, ClusterPermission.CLUSTER_MEMBER_READ);
         routes.post(prefix + "/cluster/fields", this::create, ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.put(prefix + "/cluster/fields/order", this::reorder, ClusterPermission.CLUSTER_FIELD_EDIT);
+        routes.get(
+                prefix + "/cluster/fields/assignments", this::listAssignments, ClusterPermission.CLUSTER_MEMBER_READ);
         routes.put(prefix + "/cluster/fields/{fieldId}", this::update, ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.delete(prefix + "/cluster/fields/{fieldId}", this::delete, ClusterPermission.CLUSTER_FIELD_EDIT);
+
+        // Who a field is asked of, which is what makes one definition serve several audiences.
+        routes.put(
+                prefix + "/cluster/fields/{fieldId}/assignments", this::assign, ClusterPermission.CLUSTER_FIELD_EDIT);
+        routes.delete(
+                prefix + "/cluster/fields/{fieldId}/assignments", this::unassign, ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.get(
                 prefix + "/cluster/fields/member/{memberId}",
                 this::getValues,
@@ -101,8 +110,9 @@ public class ClusterFieldRoutes implements Routes {
                 request.name(),
                 parseType(request.fieldType()),
                 request.config() != null ? request.config() : ProfileFieldConfig.empty(),
-                request.position(),
-                parseScope(request.scope()),
+                request.required() != null && request.required(),
+                request.readonly() != null && request.readonly(),
+                request.width(),
                 request.stationReadonly(),
                 request.keepOnArchive(),
                 request.stationGroupId());
@@ -126,8 +136,9 @@ public class ClusterFieldRoutes implements Routes {
                 request.name(),
                 parseType(request.fieldType()),
                 request.config() != null ? request.config() : ProfileFieldConfig.empty(),
-                request.position(),
-                parseScope(request.scope()),
+                request.required() != null && request.required(),
+                request.readonly() != null && request.readonly(),
+                request.width(),
                 request.stationReadonly(),
                 request.keepOnArchive(),
                 request.stationGroupId());
@@ -158,12 +169,81 @@ public class ClusterFieldRoutes implements Routes {
     private void reorder(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var req = ctx.bodyAsClass(ClusterFieldOrderRequest.class);
-        fieldService.reorder(cluster.id(), req.fieldIds() != null ? req.fieldIds() : List.of());
+        if (req.scope() == null) {
+            throw new BadRequestResponse("scope is required: an order belongs to one audience");
+        }
+        fieldService.reorder(
+                cluster.id(), parseScope(req.scope()), req.fieldIds() != null ? req.fieldIds() : List.of());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    /** The questions in the order they should stand. */
-    public record ClusterFieldOrderRequest(List<Integer> fieldIds) {}
+    /** The questions of one audience in the order they should stand. */
+    public record ClusterFieldOrderRequest(String scope, List<Integer> fieldIds) {}
+
+    @OpenApi(
+            path = "/api/v1/cluster/fields/assignments",
+            methods = HttpMethod.GET,
+            summary = "Who each of this cluster's questions is asked of",
+            tags = {"Cluster"},
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = ClusterProfileFieldAssignment[].class)))
+    private void listAssignments(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        ctx.json(fieldService.findAssignmentsByCluster(cluster.id()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/fields/{fieldId}/assignments",
+            methods = HttpMethod.PUT,
+            summary = "Ask a kind of member this question",
+            description = "Adds the assignment or updates how the question is put to that audience.",
+            tags = {"Cluster"},
+            pathParams = @OpenApiParam(name = "fieldId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ClusterAssignmentRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void assign(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var request = ctx.bodyAsClass(ClusterAssignmentRequest.class);
+        fieldService.assignToRole(
+                cluster.id(),
+                pathInt(ctx, "fieldId"),
+                parseScope(request.role()),
+                request.position(),
+                request.widthOverride(),
+                request.readonlyOverride(),
+                request.requiredOverride());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/fields/{fieldId}/assignments",
+            methods = HttpMethod.DELETE,
+            summary = "Stop asking a kind of member this question",
+            description = "The definition stays; only this audience stops being asked.",
+            tags = {"Cluster"},
+            pathParams = @OpenApiParam(name = "fieldId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ClusterAssignmentRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void unassign(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var request = ctx.bodyAsClass(ClusterAssignmentRequest.class);
+        fieldService.unassignRole(cluster.id(), pathInt(ctx, "fieldId"), parseScope(request.role()));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * How a cluster question is put to one kind of member.
+     *
+     * <p>No group here, unlike a station's: a member group belongs to one station, so a cluster has no
+     * way to name one.
+     */
+    public record ClusterAssignmentRequest(
+            String role, int position, String widthOverride, Boolean readonlyOverride, Boolean requiredOverride) {}
 
     @OpenApi(
             path = "/api/v1/cluster/fields/member/{memberId}",
@@ -231,22 +311,27 @@ public class ClusterFieldRoutes implements Routes {
                 field.name(),
                 field.fieldType().name(),
                 field.config(),
-                field.position(),
-                field.scope().name(),
+                field.required(),
+                field.readonly(),
+                field.width(),
                 field.stationReadonly(),
                 field.keepOnArchive(),
                 field.stationGroupId());
     }
 
     /**
+     * A question a cluster asks, without reference to who is asked it.
+     *
      * @param stationReadonly whether the people at the station may read the answer but not write it
+     * @param width           how much of a row it takes unless an audience overrides that
      */
     public record ClusterFieldRequest(
             String name,
             String fieldType,
             ProfileFieldConfig config,
-            int position,
-            String scope,
+            Boolean required,
+            Boolean readonly,
+            String width,
             boolean stationReadonly,
             boolean keepOnArchive,
             Integer stationGroupId) {}
@@ -256,8 +341,9 @@ public class ClusterFieldRoutes implements Routes {
             String name,
             String fieldType,
             ProfileFieldConfig config,
-            int position,
-            String scope,
+            boolean required,
+            boolean readonly,
+            String width,
             boolean stationReadonly,
             boolean keepOnArchive,
             Integer stationGroupId) {}

@@ -579,21 +579,25 @@ public class DemoClusterSeeder implements DemoSeeder {
                 "Führerscheinklasse",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
+        fieldService.assignToRole(cluster.id(), licence.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         var breathing = fieldService.create(
                 cluster.id(),
                 "Atemschutztauglich",
                 ProfileFieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
-                1,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 false,
                 true,
                 breathingGroupId);
+        fieldService.assignToRole(cluster.id(), breathing.id(), ProfileFieldScope.MEMBER, 1, null, null, null);
 
         var head = member.members().head();
         if (head != null) {

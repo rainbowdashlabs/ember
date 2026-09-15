@@ -168,9 +168,10 @@ class MemberImportServiceTest extends RepositoryTestBase {
     /** A question of this station, named apart from every other test's so the station can hold them all. */
     private int field(String name, ProfileFieldType type) {
         String unique = name + " " + NAMES.incrementAndGet();
-        return profileFieldRepo
-                .create(station.id(), unique, type, ProfileFieldConfig.empty(), 99, ProfileFieldScope.MEMBER)
-                .id();
+        var created =
+                profileFieldRepo.create(station.id(), unique, type, ProfileFieldConfig.empty(), false, false, null);
+        profileFieldRepo.assignToRole(created.id(), ProfileFieldScope.MEMBER, 99, null, null, null);
+        return created.id();
     }
 
     private String storedValue(int memberId, int fieldId) {
@@ -338,15 +339,10 @@ class MemberImportServiceTest extends RepositoryTestBase {
      */
     @Test
     void theTelephoneNumberOfAParentSurvivesToo() {
-        int phone = profileFieldRepo
-                .create(
-                        station.id(),
-                        "Mobilnummer",
-                        ProfileFieldType.TEXT,
-                        ProfileFieldConfig.empty(),
-                        99,
-                        ProfileFieldScope.GUARDIAN)
-                .id();
+        var phoneField = profileFieldRepo.create(
+                station.id(), "Mobilnummer", ProfileFieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        profileFieldRepo.assignToRole(phoneField.id(), ProfileFieldScope.GUARDIAN, 99, null, null, null);
+        int phone = phoneField.id();
         String csv = "Vorname;Name;Kontakt;Telefon;Kontakt Email\n"
                 + "Lena;Sommer;Rita Sommer;01700000000;rita@example.com\n";
 

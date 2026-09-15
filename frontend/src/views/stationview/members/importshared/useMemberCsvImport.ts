@@ -12,6 +12,7 @@ import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import type {MemberGroup} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useCsvImport} from '@/composables/useCsvImport'
+import {useFieldAudiences} from '@/composables/useFieldAudiences'
 import {fieldTypeLabel} from '@/views/stationview/manage/membersconfig/fieldTypes'
 import {createColumnMapping, SKIP_TARGET, type ColumnMapping, type PreviewResult} from './memberImport'
 
@@ -26,7 +27,7 @@ export interface MemberCsvImportOptions {
     previewPath: string
     /** Backend route the mapped CSV is imported through. */
     importPath: string
-    /** Scope profile fields fall back to when the backend does not provide one. */
+    /** The kind of member this import writes, which is whose questions are offered first. */
     defaultScope: string
     /** Label of the option group holding the core fields of the imported entity. */
     primaryGroup: () => string
@@ -47,6 +48,7 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
     const fields = ref<ProfileField[]>([])
     const groups = ref<MemberGroup[]>([])
     const managerCount = options.managerCount ?? ref(0)
+    const audiences = useFieldAudiences()
 
     /**
      * The rows struck out in the preview, by where they came from in the file.
@@ -76,6 +78,7 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
             const [parsed, loadedFields] = await Promise.all([
                 client.post<ParsedCsv>('/members/import/parse', {csv: text, separator}),
                 profileFieldsApi.listFields(),
+                audiences.load(),
             ])
             fields.value = loadedFields
             return parsed.data
@@ -98,16 +101,17 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
         },
     })
 
-    const scopeLabels = computed<Record<string, string>>(() => ({
-        MEMBER: t('memberImport.scopeMember'),
-        GUARDIAN: t('memberImport.scopeMemberManager'),
-        TEAM: t('memberImport.scopeTeam'),
-        GROUP: t('memberImport.scopeGroup'),
-    }))
-
+    /**
+     * Which heading a question is offered under.
+     *
+     * <p>A question is put to as many audiences as the station meant it for, so it no longer belongs to
+     * one heading of its own. What a reader of this screen wants is which questions the people in this
+     * list will actually be asked, and everything else below that.
+     */
     function scopeLabel(field: ProfileField): string {
-        const scope = field.scope ?? options.defaultScope
-        return scopeLabels.value[scope] ?? scope
+        return audiences.isAskedOf(field.id, options.defaultScope)
+            ? t('memberImport.scopeAsked')
+            : t('memberImport.scopeOther')
     }
 
     const targetOptions = computed(() => {

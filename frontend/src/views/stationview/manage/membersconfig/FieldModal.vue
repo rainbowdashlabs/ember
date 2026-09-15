@@ -13,23 +13,25 @@ import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
 import AgeFields from './fieldmodal/AgeFields.vue'
 import FieldDefaultValueSection from '@/components/input/FieldDefaultValueSection.vue'
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
-import PositionField from './fieldmodal/PositionField.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
 import WidthField from '@/components/profilefields/WidthField.vue'
 import {
     DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
     type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
 } from '@/api/profileFields'
-import {FieldWidths, widthOf} from '@/components/profilefields/fieldLayout'
+import {FieldWidths} from '@/components/profilefields/fieldLayout'
 
+/**
+ * The question itself. Who is asked it is not here: a question is written once and put to as many
+ * audiences as it is meant for, and naming one while writing it is what used to make the same
+ * question be written twice.
+ */
 const {t} = useI18n()
 
 const modelValue = defineModel<boolean>({required: true})
 
 const props = defineProps<{
   field: ProfileField | null
-  scope: string
-  groupId?: string
   dateFields: ProfileField[]
   /** The field that already is the station's birth date, if any. */
   birthDateField: ProfileField | null
@@ -43,11 +45,17 @@ function isDateType(type: string | undefined): boolean {
 const birthDateAvailable = computed(() =>
     !props.birthDateField || props.birthDateField.id === props.field?.id)
 
-/** A heading holds no answer, so everything that describes an answer is beside the point for it. */
-const holdsValue = computed(() => fieldType.value !== FieldTypes.SECTION)
+/**
+ * A heading and a spacer hold no answer, so everything that describes an answer is beside the point
+ * for them. A spacer keeps its width all the same, which is the only thing it is for.
+ */
+const holdsValue = computed(() =>
+    fieldType.value !== FieldTypes.SECTION && fieldType.value !== FieldTypes.SPACER)
+
+const isSpacer = computed(() => fieldType.value === FieldTypes.SPACER)
 
 const emit = defineEmits<{
-  save: [data: ProfileFieldRequest & { scope: string }]
+  save: [data: ProfileFieldRequest]
 }>()
 
 const fieldName = ref('')
@@ -65,7 +73,6 @@ const fieldDefaultValue = ref('')
 const fieldDefaultBool = ref(false)
 const fieldDefaultToday = ref(false)
 const fieldDefaultNumber = ref<number>(0)
-const fieldPosition = ref(0)
 const fieldKeepOnArchive = ref(false)
 const fieldWidth = ref<string>(FieldWidths.FULL)
 const saving = ref(false)
@@ -78,8 +85,8 @@ watch(modelValue, (open) => {
     fieldType.value = f.fieldType ?? FieldTypes.TEXT
     const cfg = parseFieldConfig(f.config)
     fieldDescription.value = typeof cfg.description === 'string' ? cfg.description : ''
-    fieldRequired.value = !!cfg.required
-    fieldReadonly.value = !!cfg.readonly
+    fieldRequired.value = !!f.required
+    fieldReadonly.value = !!f.readonly
     fieldNotifyOnChange.value = !!cfg.notifyOnChange
     fieldOverview.value = !!cfg.overview
     fieldEnumOptions.value = [...((cfg.options as string[]) ?? [])]
@@ -95,9 +102,8 @@ watch(modelValue, (open) => {
     } else {
       fieldDefaultValue.value = typeof cfg.defaultValue === 'string' ? cfg.defaultValue : ''
     }
-    fieldPosition.value = f.position
     fieldKeepOnArchive.value = f.keepOnArchive ?? false
-    fieldWidth.value = widthOf(f)
+    fieldWidth.value = f.width ?? FieldWidths.FULL
   } else {
     fieldName.value = ''
     fieldType.value = FieldTypes.TEXT
@@ -116,15 +122,12 @@ watch(modelValue, (open) => {
     fieldKeepOnArchive.value = false
     fieldWidth.value = FieldWidths.FULL
     fieldDefaultNumber.value = 0
-    fieldPosition.value = 0
   }
 })
 
 function buildConfig(): ProfileFieldConfig {
   const cfg: ProfileFieldConfig = {}
   if (fieldDescription.value.trim()) cfg.description = fieldDescription.value.trim()
-  if (fieldRequired.value) cfg.required = true
-  if (fieldReadonly.value) cfg.readonly = true
   if (fieldNotifyOnChange.value) cfg.notifyOnChange = true
   if (fieldOverview.value) cfg.overview = true
   if (fieldType.value === FieldTypes.ENUM && fieldEnumOptions.value.length > 0) {
@@ -145,10 +148,6 @@ function buildConfig(): ProfileFieldConfig {
       cfg.defaultValue = fieldDefaultValue.value.trim()
     }
   }
-  if (fieldWidth.value !== FieldWidths.FULL) cfg.width = fieldWidth.value
-  if (props.scope === 'GROUP' && props.groupId) {
-    cfg.groupId = Number(props.groupId)
-  }
   return cfg
 }
 
@@ -158,8 +157,9 @@ function submit() {
     name: fieldName.value,
     fieldType: fieldType.value,
     config: buildConfig(),
-    position: fieldPosition.value,
-    scope: props.scope,
+    required: fieldRequired.value,
+    readonly: fieldReadonly.value,
+    width: fieldWidth.value === FieldWidths.FULL ? null : fieldWidth.value,
     keepOnArchive: fieldKeepOnArchive.value,
   })
   saving.value = false
@@ -171,7 +171,8 @@ function submit() {
     <div class="space-y-4">
       <SubHeader>{{ field ? t('membersConfig.editField') : t('membersConfig.addField') }}</SubHeader>
       <BasicFields v-model:name="fieldName" v-model:field-type="fieldType"
-                   v-model:description="fieldDescription" :scope="scope"
+                   v-model:description="fieldDescription"
+                   :named="!isSpacer"
                    :birth-date-available="birthDateAvailable"/>
       <template v-if="holdsValue">
         <QuestionOptionsEditor
@@ -202,8 +203,12 @@ function submit() {
         />
         <WidthField v-model="fieldWidth"/>
       </template>
-      <PositionField v-model="fieldPosition"/>
-      <ModalActions :saving="saving" :disabled="!fieldName" @cancel="modelValue = false" @submit="submit"/>
+      <WidthField v-if="isSpacer" v-model="fieldWidth"/>
+      <ModalActions
+          :saving="saving"
+          :disabled="!fieldName && !isSpacer"
+          @cancel="modelValue = false"
+          @submit="submit"/>
     </div>
   </Modal>
 </template>

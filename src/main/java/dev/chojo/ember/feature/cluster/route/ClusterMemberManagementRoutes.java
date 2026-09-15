@@ -229,8 +229,11 @@ public class ClusterMemberManagementRoutes implements Routes {
                                 field.name(),
                                 field.fieldType().name(),
                                 field.config(),
+                                field.required(),
                                 field.position(),
-                                field.scope().name(),
+                                field.width(),
+                                field.readonly(),
+                                field.role() == null ? null : field.role().name(),
                                 field.origin().name(),
                                 field.readonlyAtStation()))
                         .toList(),
@@ -547,13 +550,22 @@ public class ClusterMemberManagementRoutes implements Routes {
      * @param readonlyAtStation whether the station may read the answer without writing it, which only a
      *                          cluster's own question can be
      */
+    /**
+     * @param required whether this audience must answer
+     * @param width    how much of a row the question takes, null meaning the whole row
+     * @param readonly whether this audience may read the answer but not write it
+     * @param role     the kind of member this form was built for, null where a group is asked
+     */
     public record MemberProfileFieldResponse(
             int id,
             String name,
             String fieldType,
             ProfileFieldConfig config,
+            boolean required,
             int position,
-            String scope,
+            String width,
+            boolean readonly,
+            String role,
             String origin,
             boolean readonlyAtStation) {}
 

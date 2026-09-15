@@ -6,7 +6,9 @@
 package dev.chojo.ember.feature.members.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.members.entity.AssignedProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileField;
+import dev.chojo.ember.feature.members.entity.ProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -16,6 +18,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,7 +32,19 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class ProfileFieldRepository {
 
     private static final String PROFILE_FIELD_COLUMNS =
-            "id, station_id, name, field_type, config, position, scope, keep_on_archive";
+            "id, station_id, name, field_type, config, required, readonly, width, keep_on_archive";
+
+    private static final String FIELD_COLUMNS_F =
+            "f.id, f.station_id, f.name, f.field_type, f.config, f.required, f.readonly, f.width,"
+                    + " f.keep_on_archive";
+
+    private static final String ASSIGNMENT_COLUMNS =
+            "id, field_id, target_kind, role, group_id, position, width_override, readonly_override,"
+                    + " required_override";
+
+    private static final String ASSIGNMENT_COLUMNS_A =
+            "a.id, a.field_id, a.target_kind, a.role, a.group_id, a.position, a.width_override,"
+                    + " a.readonly_override, a.required_override";
 
     /**
      * Finds a profile field definition by its identifier.
@@ -39,32 +54,204 @@ public class ProfileFieldRepository {
     }
 
     /**
-     * Finds all profile field definitions for a station, ordered by scope and position.
+     * Finds all profile field definitions for a station, by name.
+     *
+     * <p>There is no order to inherit any more. A definition sits wherever each audience puts it, so
+     * the order belongs to the assignment and this is the list of questions rather than a form.
      */
     public List<ProfileField> findByStation(int stationId) {
         return query("""
                 SELECT %s
                 FROM profile_field
                 WHERE station_id = :station_id
-                ORDER BY scope, position;""", PROFILE_FIELD_COLUMNS)
+                ORDER BY name;""", PROFILE_FIELD_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(ProfileField.map())
                 .all();
     }
 
     /**
-     * Finds profile field definitions for a station filtered by scope, ordered by position.
+     * The fields one kind of member is asked, in the order that audience sees them.
+     *
+     * @param stationId the station asking
+     * @param role      the kind of member being asked
+     * @return the definitions assigned to that role
      */
-    public List<ProfileField> findByStationAndScope(int stationId, ProfileFieldScope scope) {
+    public List<AssignedProfileField> findByStationAndScope(int stationId, ProfileFieldScope role) {
         return query("""
                 SELECT %s
-                FROM profile_field
-                WHERE station_id = :station_id
-                  AND scope = :scope
-                ORDER BY position;""", PROFILE_FIELD_COLUMNS)
-                .single(call().bind("station_id", stationId).bind("scope", scope))
+                FROM profile_field f
+                         JOIN profile_field_assignment a ON a.field_id = f.id
+                WHERE f.station_id = :station_id
+                  AND a.target_kind = 'ROLE'
+                  AND a.role = :role
+                ORDER BY a.position, f.name;""", AssignedProfileField.COLUMNS)
+                .single(call().bind("station_id", stationId).bind("role", role))
+                .map(AssignedProfileField.map())
+                .all();
+    }
+
+    /**
+     * The fields asked of anyone in one of these groups.
+     *
+     * @param stationId the station asking
+     * @param groupIds  the groups the member is in
+     * @return the definitions assigned to any of them, each once however many groups reach it
+     */
+    public List<AssignedProfileField> findByStationAndGroups(int stationId, List<Integer> groupIds) {
+        if (groupIds.isEmpty()) return List.of();
+        // A member in two groups that are both asked the same question is asked it once. DISTINCT ON
+        // keeps the assignment with the lowest position, which is where the field sits on their form.
+        return query("""
+                SELECT DISTINCT ON (f.id) %s
+                FROM profile_field f
+                         JOIN profile_field_assignment a ON a.field_id = f.id
+                WHERE f.station_id = :station_id
+                  AND a.target_kind = 'GROUP'
+                  AND a.group_id = ANY (CAST(:group_ids AS INTEGER[]))
+                ORDER BY f.id, a.position;""", AssignedProfileField.COLUMNS)
+                .single(call().bind("station_id", stationId).bind("group_ids", groupIds, PostgreSqlTypes.INTEGER))
+                .map(AssignedProfileField.map())
+                .all();
+    }
+
+    /**
+     * The fields a reader holding these roles may see.
+     *
+     * <p>Scope used to answer two questions at once: who is asked, and who may read the answer. Now
+     * that a field is assigned rather than scoped, the second is read from the assignments it carries:
+     * a field is readable where any role it is put to is one the reader may read. Every field stays
+     * visible to exactly who saw it before, because each assignment replaced one scope.
+     *
+     * @param stationId the station whose fields these are
+     * @param roles     the roles the reader may read, from {@code ProfileFieldScopes.readableBy}
+     * @return the definitions, each once however many of their roles the reader may read
+     */
+    public List<ProfileField> findReadableBy(int stationId, Collection<ProfileFieldScope> roles) {
+        if (roles.isEmpty()) return List.of();
+        var names = roles.stream().map(Enum::name).toList();
+        return query("""
+                SELECT DISTINCT %s
+                FROM profile_field f
+                         JOIN profile_field_assignment a ON a.field_id = f.id
+                WHERE f.station_id = :station_id
+                  AND a.target_kind = 'ROLE'
+                  AND a.role = ANY (CAST(:roles AS TEXT[]))
+                ORDER BY f.name;""", FIELD_COLUMNS_F)
+                .single(call().bind("station_id", stationId).bind("roles", names, PostgreSqlTypes.TEXT))
                 .map(ProfileField.map())
                 .all();
+    }
+
+    /**
+     * Every assignment of one station's fields, for the screen that configures them.
+     */
+    public List<ProfileFieldAssignment> findAssignmentsByStation(int stationId) {
+        return query("""
+                SELECT %s
+                FROM profile_field_assignment a
+                         JOIN profile_field f ON f.id = a.field_id
+                WHERE f.station_id = :station_id
+                ORDER BY a.field_id, a.position;""", ASSIGNMENT_COLUMNS_A)
+                .single(call().bind("station_id", stationId))
+                .map(ProfileFieldAssignment.map())
+                .all();
+    }
+
+    /**
+     * The assignments of one field.
+     */
+    public List<ProfileFieldAssignment> findAssignments(int fieldId) {
+        return query("""
+                SELECT %s
+                FROM profile_field_assignment
+                WHERE field_id = :field_id
+                ORDER BY position;""", ASSIGNMENT_COLUMNS)
+                .single(call().bind("field_id", fieldId))
+                .map(ProfileFieldAssignment.map())
+                .all();
+    }
+
+    /**
+     * Assigns a field to a kind of member, or updates how it is put to them.
+     */
+    public void assignToRole(
+            int fieldId,
+            ProfileFieldScope role,
+            int position,
+            @Nullable String widthOverride,
+            @Nullable Boolean readonlyOverride,
+            @Nullable Boolean requiredOverride) {
+        query("""
+                INSERT INTO profile_field_assignment
+                    (field_id, target_kind, role, position, width_override, readonly_override, required_override)
+                VALUES (:field_id, 'ROLE', :role, :position, :width_override, :readonly_override,
+                        :required_override)
+                ON CONFLICT (field_id, role) WHERE target_kind = 'ROLE' DO UPDATE SET
+                    position          = excluded.position,
+                    width_override    = excluded.width_override,
+                    readonly_override = excluded.readonly_override,
+                    required_override = excluded.required_override;""")
+                .single(call().bind("field_id", fieldId)
+                        .bind("role", role)
+                        .bind("position", position)
+                        .bind("width_override", widthOverride)
+                        .bind("readonly_override", readonlyOverride)
+                        .bind("required_override", requiredOverride))
+                .insert();
+    }
+
+    /**
+     * Assigns a field to a group, or updates how it is put to them.
+     */
+    public void assignToGroup(
+            int fieldId,
+            int groupId,
+            int position,
+            @Nullable String widthOverride,
+            @Nullable Boolean readonlyOverride,
+            @Nullable Boolean requiredOverride) {
+        query("""
+                INSERT INTO profile_field_assignment
+                    (field_id, target_kind, group_id, position, width_override, readonly_override, required_override)
+                VALUES (:field_id, 'GROUP', :group_id, :position, :width_override, :readonly_override,
+                        :required_override)
+                ON CONFLICT (field_id, group_id) WHERE target_kind = 'GROUP' DO UPDATE SET
+                    position          = excluded.position,
+                    width_override    = excluded.width_override,
+                    readonly_override = excluded.readonly_override,
+                    required_override = excluded.required_override;""")
+                .single(call().bind("field_id", fieldId)
+                        .bind("group_id", groupId)
+                        .bind("position", position)
+                        .bind("width_override", widthOverride)
+                        .bind("readonly_override", readonlyOverride)
+                        .bind("required_override", requiredOverride))
+                .insert();
+    }
+
+    /**
+     * Stops asking a kind of member this question. The definition stays.
+     */
+    public boolean unassignRole(int fieldId, ProfileFieldScope role) {
+        return query("""
+                DELETE FROM profile_field_assignment
+                WHERE field_id = :field_id AND target_kind = 'ROLE' AND role = :role;""")
+                .single(call().bind("field_id", fieldId).bind("role", role))
+                .delete()
+                .changed();
+    }
+
+    /**
+     * Stops asking a group this question. The definition stays.
+     */
+    public boolean unassignGroup(int fieldId, int groupId) {
+        return query("""
+                DELETE FROM profile_field_assignment
+                WHERE field_id = :field_id AND target_kind = 'GROUP' AND group_id = :group_id;""")
+                .single(call().bind("field_id", fieldId).bind("group_id", groupId))
+                .delete()
+                .changed();
     }
 
     /**
@@ -77,15 +264,21 @@ public class ProfileFieldRepository {
      * @param fieldIds  the fields in the order they should stand
      * @return how many were moved
      */
-    public int applyOrder(int stationId, List<Integer> fieldIds) {
+    public int applyOrder(int stationId, ProfileFieldScope role, List<Integer> fieldIds) {
         if (fieldIds.isEmpty()) return 0;
         return query("""
-                UPDATE profile_field AS f
+                UPDATE profile_field_assignment AS a
                 SET position = ordered.position
-                FROM unnest(CAST(:ids AS INTEGER[])) WITH ORDINALITY AS ordered(id, position)
-                WHERE f.id = ordered.id
-                  AND f.station_id = :station_id;""")
-                .single(call().bind("ids", fieldIds, PostgreSqlTypes.INTEGER).bind("station_id", stationId))
+                FROM unnest(CAST(:ids AS INTEGER[])) WITH ORDINALITY AS ordered(id, position),
+                     profile_field f
+                WHERE a.field_id = ordered.id
+                  AND f.id = a.field_id
+                  AND f.station_id = :station_id
+                  AND a.target_kind = 'ROLE'
+                  AND a.role = :role;""")
+                .single(call().bind("ids", fieldIds, PostgreSqlTypes.INTEGER)
+                        .bind("station_id", stationId)
+                        .bind("role", role))
                 .update()
                 .rows();
     }
@@ -120,19 +313,21 @@ public class ProfileFieldRepository {
             String name,
             ProfileFieldType fieldType,
             ProfileFieldConfig config,
-            int position,
-            ProfileFieldScope scope) {
+            boolean required,
+            boolean readonly,
+            @Nullable String width) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO profile_field(station_id, name, field_type, config, position, scope)
-                VALUES (:station_id, :name, :field_type, :config::JSONB, :position, :scope)
+                INSERT INTO profile_field(station_id, name, field_type, config, required, readonly, width)
+                VALUES (:station_id, :name, :field_type, :config::JSONB, :required, :readonly, :width)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
-                        .bind("position", position)
-                        .bind("scope", scope),
+                        .bind("required", required)
+                        .bind("readonly", readonly)
+                        .bind("width", width),
                 ProfileField.map(),
                 PROFILE_FIELD_COLUMNS);
     }
@@ -145,7 +340,9 @@ public class ProfileFieldRepository {
             String name,
             ProfileFieldType fieldType,
             ProfileFieldConfig config,
-            int position,
+            boolean required,
+            boolean readonly,
+            @Nullable String width,
             boolean keepOnArchive) {
         return query("""
                 UPDATE profile_field
@@ -153,13 +350,17 @@ public class ProfileFieldRepository {
                     name             = :name,
                     field_type       = :field_type,
                     config           = :config::JSONB,
-                    position         = :position,
+                    required         = :required,
+                    readonly         = :readonly,
+                    width            = :width,
                     keep_on_archive  = :keep_on_archive
                 WHERE id = :id;""")
                 .single(call().bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
-                        .bind("position", position)
+                        .bind("required", required)
+                        .bind("readonly", readonly)
+                        .bind("width", width)
                         .bind("keep_on_archive", keepOnArchive)
                         .bind("id", id))
                 .update()

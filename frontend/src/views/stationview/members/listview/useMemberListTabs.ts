@@ -7,6 +7,8 @@ import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { StationUserType } from '@/api/types'
 import { parseFieldConfig, type ProfileField } from '@/api/profileFields'
+import { fieldAudiences } from '@/composables/useFieldAudiences'
+import type { ProfileFieldAssignment } from '@/util/profileFields'
 import { emptyTabState, type MemberSortKey, type TabFilterState } from './useSavedFilters'
 import type { SortDirection } from '@/composables/useSortable'
 
@@ -21,10 +23,12 @@ const TAB_KEYS = ['ALL', StationUserType.TRIAL, StationUserType.MEMBER, StationU
  * meaningless on the manager tab. Switching tabs therefore restores what that tab last looked
  * like instead of carrying the previous tab's narrowing across.
  *
- * @param fields every profile field, filtered here down to the ones the active tab can show
+ * @param fields      every profile field, filtered here down to the ones the active tab can show
+ * @param assignments who each of those fields is put to, which is what "can show" now means
  */
-export function useMemberListTabs(fields: Ref<ProfileField[]>) {
+export function useMemberListTabs(fields: Ref<ProfileField[]>, assignments: Ref<ProfileFieldAssignment[]>) {
   const { t } = useI18n()
+  const audiences = fieldAudiences(assignments)
 
   const activeTab = ref<string>('ALL')
 
@@ -67,16 +71,16 @@ export function useMemberListTabs(fields: Ref<ProfileField[]>) {
   const hiddenColumnIds = ref<Set<number>>(new Set())
 
   /**
-   * The fields the active tab may show. The "all" tab spans every member type; a type tab is
-   * limited to its own. Group-scoped fields never appear - they belong to a group, not a member.
+   * The fields the active tab may show. The "all" tab spans every kind of member; a tab of one kind
+   * is limited to what that kind is asked. A question put only to a group never appears, because it
+   * belongs to a group rather than to a kind of member.
    */
   const tabScopedFields = computed(() => {
-    const scopes: string[] = activeTab.value === 'ALL'
+    const roles: string[] = activeTab.value === 'ALL'
       ? [StationUserType.TRIAL, StationUserType.MEMBER, StationUserType.GUARDIAN,
         StationUserType.TEAM, StationUserType.MANAGER]
       : [activeTab.value]
-    return fields.value.filter(f =>
-      f.scope !== 'GROUP' && scopes.includes(f.scope ?? StationUserType.MEMBER))
+    return fields.value.filter(f => audiences.isAskedOfAny(f.id, roles))
   })
 
   const tabOverviewFields = computed(() =>
@@ -141,5 +145,6 @@ export function useMemberListTabs(fields: Ref<ProfileField[]>) {
     visibleColumns,
     toggleColumn,
     applyColumnFilter,
+    isAskedOf: audiences.isAskedOf,
   }
 }

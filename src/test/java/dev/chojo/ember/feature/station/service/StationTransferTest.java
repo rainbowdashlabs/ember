@@ -188,26 +188,20 @@ class StationTransferTest extends RepositoryTestBase {
 
         // --- Profile fields ---
         var fieldTelefon = profileFieldRepo.create(
-                sourceStationId,
-                "Telefon",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                0,
-                ProfileFieldScope.MEMBER);
+                sourceStationId, "Telefon", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+        profileFieldRepo.assignToRole(fieldTelefon.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         var fieldGeburtstag = profileFieldRepo.create(
                 sourceStationId,
                 "Geburtstag",
                 ProfileFieldType.DATE,
                 ProfileFieldConfig.parse("{}"),
-                1,
-                ProfileFieldScope.MEMBER);
+                false,
+                false,
+                null);
+        profileFieldRepo.assignToRole(fieldGeburtstag.id(), ProfileFieldScope.MEMBER, 1, null, null, null);
         var fieldNotizen = profileFieldRepo.create(
-                sourceStationId,
-                "Notizen",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                0,
-                ProfileFieldScope.TEAM);
+                sourceStationId, "Notizen", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+        profileFieldRepo.assignToRole(fieldNotizen.id(), ProfileFieldScope.TEAM, 0, null, null, null);
         profileFieldRepo.setValue(manager.id(), fieldTelefon.id(), StringNode.valueOf("0151-11111"));
         profileFieldRepo.setValue(trainer.id(), fieldTelefon.id(), StringNode.valueOf("0151-22222"));
         profileFieldRepo.setValue(child.id(), fieldGeburtstag.id(), StringNode.valueOf("2012-05-15"));

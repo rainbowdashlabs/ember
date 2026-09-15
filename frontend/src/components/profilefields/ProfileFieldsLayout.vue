@@ -13,7 +13,7 @@ import {questionKindOf} from '@/util/questions'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import type {FieldOrigin} from '@/util/profileFields'
-import {isSection, spanClass} from './fieldLayout'
+import {isSection, isSpacer, spanClass} from './fieldLayout'
 
 /**
  * The fields of a member, laid out the way the station arranged them: headings between them, and
@@ -30,6 +30,11 @@ import {isSection, spanClass} from './fieldLayout'
 export type LaidOutField = Omit<ProfileField, 'stationId'> & {
   stationId?: string
   origin?: FieldOrigin
+  /**
+   * Whether this reader may read the answer but not write it. Theirs rather than the question's: a
+   * manager may write a date the member they are looking at only reads.
+   */
+  readonly?: boolean
   /** Set on a cluster field the cluster keeps to itself, which nobody at the station may write. */
   readonlyAtStation?: boolean
 }
@@ -56,7 +61,7 @@ const {t} = useI18n()
  */
 function locked(field: LaidOutField): boolean {
   if (field.readonlyAtStation) return true
-  return !props.canEditReadonly && !!parseFieldConfig(field.config).readonly
+  return !props.canEditReadonly && !!field.readonly
 }
 
 /** The sentence the station wrote to say what the question is after, empty when it wrote none. */
@@ -72,10 +77,11 @@ function descriptionOf(field: LaidOutField): string {
       <div v-if="isSection(field)" :class="spanClass(field)" class="pt-2 first:pt-0">
         <SubHeader class="text-sm">{{ field.name }}</SubHeader>
       </div>
+      <div v-else-if="isSpacer(field)" :class="spanClass(field)" aria-hidden="true"></div>
       <div v-else :data-field="field.name" :class="spanClass(field)" class="space-y-1">
         <FieldLabel>
           {{ field.name }}
-          <span v-if="parseFieldConfig(field.config).required" class="text-error">*</span>
+          <span v-if="field.required" class="text-error">*</span>
           <SecondaryBadge v-if="field.origin === 'CLUSTER'" class="ml-1">
             {{ t('memberEdit.fieldFromCluster') }}
           </SecondaryBadge>
@@ -87,7 +93,7 @@ function descriptionOf(field: LaidOutField): string {
             :model-value="props.getValue(field)"
             :options="(parseFieldConfig(field.config).options as string[]) ?? []"
             :disabled="locked(field)"
-            :required="!!parseFieldConfig(field.config).required"
+            :required="!!field.required"
             @update:model-value="emit('update', field, $event)"
         />
       </div>

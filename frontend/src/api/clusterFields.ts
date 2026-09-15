@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {ProfileField, ProfileFieldRequest} from './profileFields'
+import type {AssignmentRequest, AssignmentTarget, ProfileField, ProfileFieldRequest} from './profileFields'
+import type {ProfileFieldAssignment} from '@/util/profileFields'
 
 /**
  * A question an association asks, which is a station's question kept in another table.
@@ -27,8 +28,13 @@ export type ClusterFieldRequest = ProfileFieldRequest
 export const CLUSTER_FIELD_TYPES
     = ['TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'ENUM', 'AGE', 'SECTION'] as const
 
-/** Group scope is missing on purpose: a group belongs to one station and a cluster cannot see it. */
-export const CLUSTER_FIELD_SCOPES = ['MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER'] as const
+/**
+ * The kinds of member an association may ask.
+ *
+ * <p>A trial member is missing on purpose, because they belong to one station and are the station's own
+ * business, and so is a group, because a group belongs to one station and an association cannot see it.
+ */
+export const CLUSTER_FIELD_ROLES = ['MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER'] as const
 
 export async function listFields(): Promise<ClusterField[]> {
     const res = await client.get<ClusterField[]>('/cluster/fields')
@@ -62,7 +68,29 @@ export async function setMemberValues(memberId: number, values: Record<number, s
     await client.put(`/cluster/fields/member/${memberId}`, {values})
 }
 
-/** Puts the questions in a given order in one request. */
-export async function reorderFields(fieldIds: number[]): Promise<void> {
-    await client.put('/cluster/fields/order', {fieldIds})
+/** Puts one audience's questions in a given order in one request. */
+export async function reorderFields(role: string, fieldIds: number[]): Promise<void> {
+    await client.put('/cluster/fields/order', {scope: role, fieldIds})
+}
+
+/**
+ * Every assignment of this cluster's questions, which is what each audience's form is built from.
+ *
+ * <p>An association can only ever name a kind of member, so its rows carry no kind of target. The one
+ * they would carry is filled in here, because everything that reads an assignment reads a station's
+ * and an association's through the same code and has no business knowing which it got.
+ */
+export async function listAssignments(): Promise<ProfileFieldAssignment[]> {
+    const res = await client.get<Omit<ProfileFieldAssignment, 'targetKind'>[]>('/cluster/fields/assignments')
+    return res.data.map(assignment => ({...assignment, targetKind: 'ROLE'}))
+}
+
+/** Asks a kind of member this question, or changes how it is put to them. */
+export async function assignField(fieldId: number, assignment: AssignmentRequest): Promise<void> {
+    await client.put(`/cluster/fields/${fieldId}/assignments`, assignment)
+}
+
+/** Stops asking a kind of member this question. The definition and its answers stay. */
+export async function unassignField(fieldId: number, target: AssignmentTarget): Promise<void> {
+    await client.delete(`/cluster/fields/${fieldId}/assignments`, {data: target})
 }

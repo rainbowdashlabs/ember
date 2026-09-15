@@ -33,7 +33,7 @@ function richMember(id: number, name: string, mailReaches: RichMember['mailReach
 }
 
 function sourceOf(members: RichMember[]): MemberDataSource {
-  return {load: async () => ({members, fields: [], roles: []})}
+  return {load: async () => ({members, fields: [], assignments: [], roles: []})}
 }
 
 /** The composable reaches for the locale, so it is used from inside a component as the app does. */

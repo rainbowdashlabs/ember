@@ -19,6 +19,7 @@ import {setFieldValue as writeFieldValue} from '@/util/profileFields'
 import {todayIsoDate} from '@/util/format'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useFieldAudiences} from '@/composables/useFieldAudiences'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -44,13 +45,17 @@ const createdManagers = ref<Array<{
   email: string
 }>>([])
 
-const scopeFields = computed(() => allFields.value.filter(f => f.scope === selectedUserType.value))
+const audiences = useFieldAudiences()
+
+/** The questions this kind of member is asked, on the form they will be asked them. */
+const scopeFields = computed(() => audiences.fieldsFor(allFields.value, selectedUserType.value))
 
 const {loading, error} = useAsyncLoader(async () => {
   const [fields, groups, mems] = await Promise.all([
     profileFields.listFields(),
     memberGroups.listGroups(),
     stationMembers.listMembers(),
+    audiences.load(),
   ])
   allFields.value = fields
   allGroups.value = groups

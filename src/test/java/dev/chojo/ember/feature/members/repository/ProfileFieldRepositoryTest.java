@@ -46,43 +46,32 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
     }
 
     /**
-     * The order of a whole level is written in one statement, and only for the station that owns it.
+     * The order of one audience's form is written in one statement, and only for the station that
+     * owns it. The order belongs to the assignment, so ordering the managers' form leaves every
+     * other form alone.
      */
     @Test
     @Order(0)
     void anOrderIsWrittenInOneStatementAndStaysWithinTheStation() {
         var other = stationRepo.create("Profile Station Nebenan");
-        var first = profileFieldRepo.create(
-                station.id(),
-                "Erst",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                0,
-                ProfileFieldScope.MANAGER);
-        var second = profileFieldRepo.create(
-                station.id(),
-                "Zweit",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                1,
-                ProfileFieldScope.MANAGER);
-        var elsewhere = profileFieldRepo.create(
-                other.id(),
-                "Fremd",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                0,
-                ProfileFieldScope.MANAGER);
+        var first = askOf(station.id(), "Erst", ProfileFieldScope.MANAGER, 0);
+        var second = askOf(station.id(), "Zweit", ProfileFieldScope.MANAGER, 1);
+        var elsewhere = askOf(other.id(), "Fremd", ProfileFieldScope.MANAGER, 0);
 
-        assertEquals(0, profileFieldRepo.applyOrder(station.id(), List.of()), "nothing to move moves nothing");
+        assertEquals(
+                0,
+                profileFieldRepo.applyOrder(station.id(), ProfileFieldScope.MANAGER, List.of()),
+                "nothing to move moves nothing");
 
-        int moved = profileFieldRepo.applyOrder(station.id(), List.of(second.id(), first.id(), elsewhere.id()));
+        int moved = profileFieldRepo.applyOrder(
+                station.id(), ProfileFieldScope.MANAGER, List.of(second.id(), first.id(), elsewhere.id()));
         assertEquals(2, moved, "a station cannot reorder another station's fields");
 
         var ordered = profileFieldRepo.findByStationAndScope(station.id(), ProfileFieldScope.MANAGER);
-        assertEquals(second.id(), ordered.getFirst().id());
-        assertEquals(first.id(), ordered.get(1).id());
-        assertEquals(0, profileFieldRepo.findById(elsewhere.id()).orElseThrow().position());
+        assertEquals(second.id(), ordered.getFirst().field().id());
+        assertEquals(first.id(), ordered.get(1).field().id());
+        assertEquals(
+                0, profileFieldRepo.findAssignments(elsewhere.id()).getFirst().position());
 
         profileFieldRepo.delete(first.id());
         profileFieldRepo.delete(second.id());
@@ -90,45 +79,138 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
         stationRepo.delete(other.id());
     }
 
-    /** Several dates of birth are legitimate now, so the lookup answers with all of them. */
+    /**
+     * A question put to two audiences is one definition, so the lookup by type answers with one.
+     *
+     * <p>This used to answer with several, because the date of birth was written once per kind of
+     * member. That is what made a manager, who is asked the team's questions as well as their own,
+     * meet it twice.
+     */
     @Test
     @Order(0)
-    void everyFieldOfATypeIsFound() {
-        var forTeam = profileFieldRepo.create(
+    void aQuestionAskedOfTwoAudiencesIsStillOneField() {
+        var birthDate = profileFieldRepo.create(
                 station.id(),
-                "Geb Team",
+                "Geburtstag",
                 ProfileFieldType.BIRTH_DATE,
                 ProfileFieldConfig.parse("{}"),
-                0,
-                ProfileFieldScope.TEAM);
-        var forGuardians = profileFieldRepo.create(
-                station.id(),
-                "Geb Eltern",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.parse("{}"),
-                0,
-                ProfileFieldScope.GUARDIAN);
+                false,
+                false,
+                null);
+        profileFieldRepo.assignToRole(birthDate.id(), ProfileFieldScope.TEAM, 0, null, null, null);
+        profileFieldRepo.assignToRole(birthDate.id(), ProfileFieldScope.GUARDIAN, 0, null, null, null);
 
         var found = profileFieldRepo.findAllByStationAndType(station.id(), ProfileFieldType.BIRTH_DATE);
-        assertEquals(2, found.size());
+        assertEquals(1, found.size(), "one question, however many audiences are asked it");
+        assertEquals(2, profileFieldRepo.findAssignments(birthDate.id()).size());
 
-        profileFieldRepo.delete(forTeam.id());
-        profileFieldRepo.delete(forGuardians.id());
+        profileFieldRepo.delete(birthDate.id());
+    }
+
+    /** Dropping an audience leaves the question and every other audience alone. */
+    @Test
+    @Order(0)
+    void unassigningOneAudienceKeepsTheQuestion() {
+        var field = askOf(station.id(), "Schuhgröße", ProfileFieldScope.MEMBER, 0);
+        profileFieldRepo.assignToRole(field.id(), ProfileFieldScope.TEAM, 1, null, null, null);
+
+        assertTrue(profileFieldRepo.unassignRole(field.id(), ProfileFieldScope.TEAM));
+
+        assertTrue(profileFieldRepo.findById(field.id()).isPresent(), "the question stays");
+        assertEquals(1, profileFieldRepo.findAssignments(field.id()).size());
+        assertTrue(profileFieldRepo
+                .findByStationAndScope(station.id(), ProfileFieldScope.TEAM)
+                .isEmpty());
+
+        profileFieldRepo.delete(field.id());
+    }
+
+    /**
+     * A group is an audience of its own, and dropping it leaves the question where it stands.
+     *
+     * <p>The group used to live inside the question's settings, so a question that lost it belonged
+     * nowhere and was shown nowhere. It is a row beside the roles now, removed the same way.
+     */
+    @Test
+    @Order(0)
+    void aGroupIsAnAudienceOfItsOwnAndCanBeDropped() {
+        var group = memberGroupRepo.create(station.id(), "Fahrer " + station.id());
+        var field = askOf(station.id(), "Führerscheinklasse", ProfileFieldScope.MEMBER, 0);
+        profileFieldRepo.assignToGroup(field.id(), group.id(), 1, null, null, null);
+
+        assertEquals(
+                1,
+                profileFieldRepo
+                        .findByStationAndGroups(station.id(), List.of(group.id()))
+                        .size());
+
+        assertTrue(profileFieldRepo.unassignGroup(field.id(), group.id()));
+        assertFalse(
+                profileFieldRepo.unassignGroup(field.id(), group.id()),
+                "a group that is no longer asked is not dropped twice");
+
+        assertTrue(profileFieldRepo.findById(field.id()).isPresent(), "the question stays");
+        assertTrue(profileFieldRepo
+                .findByStationAndGroups(station.id(), List.of(group.id()))
+                .isEmpty());
+
+        profileFieldRepo.delete(field.id());
+        memberGroupRepo.delete(group.id());
+    }
+
+    /**
+     * Every assignment of a station's questions, which is what the editor builds each form from, and
+     * which stops at the station that owns them.
+     */
+    @Test
+    @Order(0)
+    void theAssignmentsOfAStationAreItsOwn() {
+        var other = stationRepo.create("Profile Station Daneben");
+        var mine = askOf(station.id(), "Konfektionsgröße", ProfileFieldScope.MEMBER, 0);
+        profileFieldRepo.assignToRole(mine.id(), ProfileFieldScope.TEAM, 1, null, null, null);
+        var elsewhere = askOf(other.id(), "Fremd", ProfileFieldScope.MEMBER, 0);
+
+        var assignments = profileFieldRepo.findAssignmentsByStation(station.id());
+
+        assertEquals(2, assignments.size(), "both audiences of the one question");
+        assertTrue(assignments.stream().allMatch(a -> a.fieldId() == mine.id()), "and nothing of another station's");
+
+        profileFieldRepo.delete(mine.id());
+        profileFieldRepo.delete(elsewhere.id());
+        stationRepo.delete(other.id());
+    }
+
+    /** An assignment may demand an answer the definition does not, and only of its own audience. */
+    @Test
+    @Order(0)
+    void anAssignmentMayOverrideWhetherAnAnswerIsExpected() {
+        var field = profileFieldRepo.create(
+                station.id(), "Allergien", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+        profileFieldRepo.assignToRole(field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        profileFieldRepo.assignToRole(field.id(), ProfileFieldScope.GUARDIAN, 0, null, null, true);
+
+        var forMembers = profileFieldRepo
+                .findByStationAndScope(station.id(), ProfileFieldScope.MEMBER)
+                .getFirst();
+        var forGuardians = profileFieldRepo
+                .findByStationAndScope(station.id(), ProfileFieldScope.GUARDIAN)
+                .getFirst();
+
+        assertFalse(forMembers.required(), "the definition does not expect one");
+        assertTrue(forGuardians.required(), "and this audience does");
+
+        profileFieldRepo.delete(field.id());
     }
 
     @Test
     @Order(1)
     void create() {
         ProfileField field = profileFieldRepo.create(
-                station.id(),
-                "Phone",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                1,
-                ProfileFieldScope.MEMBER);
+                station.id(), "Phone", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+        profileFieldRepo.assignToRole(field.id(), ProfileFieldScope.MEMBER, 1, null, null, null);
         assertNotNull(field);
         assertEquals("Phone", field.name());
-        assertEquals(1, field.position());
+        assertFalse(field.required());
         fieldId = field.id();
     }
 
@@ -161,10 +243,17 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
     @Order(5)
     void update() {
         assertTrue(profileFieldRepo.update(
-                fieldId, "Email", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), 2, false));
+                fieldId, "Email", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), true, false, null, false));
         ProfileField updated = profileFieldRepo.findById(fieldId).orElseThrow();
         assertEquals("Email", updated.name());
-        assertEquals(2, updated.position());
+        assertTrue(updated.required());
+    }
+
+    private static ProfileField askOf(int stationId, String name, ProfileFieldScope role, int position) {
+        var field = profileFieldRepo.create(
+                stationId, name, ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+        profileFieldRepo.assignToRole(field.id(), role, position, null, null, null);
+        return field;
     }
 
     // -- Values --

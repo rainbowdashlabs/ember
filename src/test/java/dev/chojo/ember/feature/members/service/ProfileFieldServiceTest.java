@@ -10,9 +10,11 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldTarget;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
@@ -61,19 +63,44 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
+    /**
+     * Writes a question down and puts it to one audience, which is what every test here wants.
+     *
+     * @return the definition, so a test can put it to somebody else as well
+     */
+    private static ProfileField ask(String name, ProfileFieldType type, String config, ProfileFieldScope role, int at) {
+        return ask(name, type, config, role, at, false, false);
+    }
+
+    /**
+     * The same, where an answer is expected or the audience may only read it.
+     *
+     * @param required whether the question expects an answer of everybody asked
+     * @param readonly whether this audience may read the answer but not write it
+     */
+    private static ProfileField ask(
+            String name,
+            ProfileFieldType type,
+            String config,
+            ProfileFieldScope role,
+            int at,
+            boolean required,
+            boolean readonly) {
+        var field =
+                service.create(station.id(), name, type, ProfileFieldConfig.parse(config), required, readonly, null);
+        service.assignToRole(field.id(), role, at, null, null, null);
+        return field;
+    }
+
     @Test
     @Order(1)
     void create() {
-        var field = service.create(
-                station.id(),
-                "Phone",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                1,
-                ProfileFieldScope.MEMBER);
+        var field = ask("Phone", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 1);
         assertNotNull(field);
         assertEquals("Phone", field.name());
-        assertEquals(ProfileFieldScope.MEMBER, field.scope());
+        assertEquals(
+                ProfileFieldScope.MEMBER,
+                service.findAssignments(field.id()).getFirst().role());
         fieldId = field.id();
     }
 
@@ -101,20 +128,25 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         assertTrue(teamFields.isEmpty());
     }
 
+    /**
+     * Stays optional on purpose: this field outlives the test, and a required one nobody answers
+     * would make every later profile incomplete.
+     */
     @Test
     @Order(5)
     void update() {
-        var updated =
-                service.update(fieldId, "Mobile", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), 2, false);
+        var updated = service.update(
+                fieldId, "Mobile", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null, false);
         assertTrue(updated.isPresent());
         assertEquals("Mobile", updated.get().name());
-        assertEquals(2, updated.get().position());
+        assertFalse(updated.get().required());
     }
 
     @Test
     @Order(6)
     void updateNonExistent() {
-        var result = service.update(99999, "X", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), 1, false);
+        var result = service.update(
+                99999, "X", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null, false);
         assertTrue(result.isEmpty());
     }
 
@@ -212,13 +244,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(22)
     void isProfileCompleteRequiredFieldMissing() {
         // Create a required field with no value for a new member
-        var reqField = service.create(
-                station.id(),
-                "Required Field",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"required\":true}"),
-                10,
-                ProfileFieldScope.MEMBER);
+        var reqField = ask("Required Field", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 10, true, false);
         var account2 = accountRepo.create("pfield-empty@test.com", "Empty", "Member");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
 
@@ -239,13 +265,14 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(22)
     void aSelectionLeftEmptyIsNotAnAnswer() {
-        var chooser = service.create(
-                station.id(),
+        var chooser = ask(
                 "Chosen thing",
                 ProfileFieldType.ENUM,
-                ProfileFieldConfig.parse("{\"required\":true,\"options\":[\"A\",\"B\"]}"),
+                "{\"options\":[\"A\",\"B\"]}",
+                ProfileFieldScope.MEMBER,
                 11,
-                ProfileFieldScope.MEMBER);
+                true,
+                false);
         var account3 = accountRepo.create("pfield-blank@test.com", "Blank", "Chooser");
         var member3 = stationMemberRepo.create(station.id(), account3.id());
 
@@ -292,16 +319,14 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 station.id(),
                 "Führerscheinklasse",
                 ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"groupId\": " + drivers.id() + "}"),
-                30,
-                ProfileFieldScope.GROUP);
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null);
+        service.assignToGroup(forDrivers.id(), drivers.id(), 30, null, null, null);
         var forOthers = service.create(
-                station.id(),
-                "Etwas anderes",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"groupId\": " + others.id() + "}"),
-                31,
-                ProfileFieldScope.GROUP);
+                station.id(), "Etwas anderes", ProfileFieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        service.assignToGroup(forOthers.id(), others.id(), 31, null, null, null);
 
         assertTrue(
                 service.findApplicableFields(member.id()).stream().noneMatch(f -> f.id() == forDrivers.id()),
@@ -324,13 +349,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(23)
     void findApplicableFieldsForGuardian() {
         stationMemberRepo.setUserType(member.id(), StationUserType.GUARDIAN);
-        var guardianField = service.create(
-                station.id(),
-                "GuardianField",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                20,
-                ProfileFieldScope.GUARDIAN);
+        var guardianField = ask("GuardianField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.GUARDIAN, 20);
         var fields = service.findApplicableFields(member.id());
         assertTrue(fields.stream().anyMatch(f -> f.id() == guardianField.id()));
         service.delete(guardianField.id());
@@ -341,57 +360,89 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(23)
     void findApplicableFieldsForTeam() {
         stationMemberRepo.setUserType(member.id(), StationUserType.TEAM);
-        var teamField = service.create(
-                station.id(),
-                "TeamField",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                20,
-                ProfileFieldScope.TEAM);
+        var teamField = ask("TeamField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.TEAM, 20);
         var fields = service.findApplicableFields(member.id());
         assertTrue(fields.stream().anyMatch(f -> f.id() == teamField.id()));
         service.delete(teamField.id());
         stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
     }
 
+    /**
+     * A manager is asked what a manager is assigned, and a team question only where it says so.
+     *
+     * <p>Managers used to be handed the team's scope as well as their own, which is how the same
+     * question reached them twice. A station that wants both now says so on the question itself.
+     */
     @Test
     @Order(23)
     void findApplicableFieldsForManager() {
         stationMemberRepo.setUserType(member.id(), StationUserType.MANAGER);
-        var mgrField = service.create(
-                station.id(),
-                "ManagerField",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                20,
-                ProfileFieldScope.MANAGER);
-        var teamField = service.create(
-                station.id(),
-                "TeamFieldForManager",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                21,
-                ProfileFieldScope.TEAM);
+        var mgrField = ask("ManagerField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MANAGER, 20);
+        var teamOnly = ask("TeamOnlyField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.TEAM, 21);
+        var both = ask("AskedOfBoth", ProfileFieldType.TEXT, "{}", ProfileFieldScope.TEAM, 22);
+        service.assignToRole(both.id(), ProfileFieldScope.MANAGER, 22, null, null, null);
 
         var fields = service.findApplicableFields(member.id());
 
         assertTrue(fields.stream().anyMatch(f -> f.id() == mgrField.id()));
         assertTrue(
-                fields.stream().anyMatch(f -> f.id() == teamField.id()),
-                "a manager is staff first, so the team's questions are put to them too");
+                fields.stream().noneMatch(f -> f.id() == teamOnly.id()),
+                "a question put to the team alone is not put to a manager behind the station's back");
+        assertEquals(
+                1,
+                fields.stream().filter(f -> f.id() == both.id()).count(),
+                "a question put to both is asked once, not once per audience");
 
         service.delete(mgrField.id());
-        service.delete(teamField.id());
+        service.delete(teamOnly.id());
+        service.delete(both.id());
         stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
     }
 
+    /** A trial member is asked what trials are assigned, which is its own decision to make. */
     @Test
     @Order(23)
     void findApplicableFieldsForTrial() {
         stationMemberRepo.setUserType(member.id(), StationUserType.TRIAL);
+        var forTrials = ask("TrialField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.TRIAL, 24);
+        var forMembers = ask("MemberOnlyField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 25);
+
         var fields = service.findApplicableFields(member.id());
-        assertNotNull(fields);
+
+        assertTrue(fields.stream().anyMatch(f -> f.id() == forTrials.id()));
+        assertTrue(
+                fields.stream().noneMatch(f -> f.id() == forMembers.id()),
+                "a trial member is no longer quietly shown the member's form");
+
+        service.delete(forTrials.id());
+        service.delete(forMembers.id());
         stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
+    }
+
+    /**
+     * A question put to a member's role and to one of their groups is still one question.
+     *
+     * <p>The two reads are separate, so without a check the member would be asked it twice on the
+     * same form, which is the shape of the bug this model exists to remove.
+     */
+    @Test
+    @Order(23)
+    void aQuestionReachingBothARoleAndAGroupIsAskedOnce() {
+        stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
+        var crew = memberGroupRepo.create(station.id(), "Besatzung " + member.id());
+        memberGroupRepo.addMember(crew.id(), member.id());
+        var field = ask("Schuhgröße", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 26);
+        service.assignToGroup(field.id(), crew.id(), 26, null, null, null);
+
+        var fields = service.findApplicableFields(member.id());
+
+        assertEquals(
+                1,
+                fields.stream().filter(f -> f.id() == field.id()).count(),
+                "reached by role and by group, asked once");
+
+        service.delete(field.id());
+        memberGroupRepo.delete(crew.id());
     }
 
     @Test
@@ -407,13 +458,8 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(24)
     void isProfileCompleteReadonlyRequired() {
         // Readonly + required fields should be skipped
-        var readonlyReqField = service.create(
-                station.id(),
-                "ReadonlyReq",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"required\":true,\"readonly\":true}"),
-                30,
-                ProfileFieldScope.MEMBER);
+        var readonlyReqField =
+                ask("ReadonlyReq", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 30, true, true);
         var account3 = accountRepo.create("pfield-readonly@test.com", "Readonly", "Test");
         var member3 = stationMemberRepo.create(station.id(), account3.id());
         // Should be complete - readonly required fields are skipped
@@ -427,13 +473,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(24)
     void isProfileCompleteWithEmptyValue() {
         // Empty string and "\"\"" should count as missing
-        var reqField = service.create(
-                station.id(),
-                "EmptyValField",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"required\":true}"),
-                31,
-                ProfileFieldScope.MEMBER);
+        var reqField = ask("EmptyValField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 31, true, false);
         var account4 = accountRepo.create("pfield-emptyval@test.com", "Empty", "Val");
         var member4 = stationMemberRepo.create(station.id(), account4.id());
         // Set empty quoted value
@@ -456,12 +496,8 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     void aGroupsQuestionIsRequiredOfItsMembers() {
         var group = memberGroupRepo.create(station.id(), "Ausbilder " + java.util.UUID.randomUUID());
         var groupField = service.create(
-                station.id(),
-                "GroupField",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"required\":true,\"groupId\":" + group.id() + "}"),
-                32,
-                ProfileFieldScope.GROUP);
+                station.id(), "GroupField", ProfileFieldType.TEXT, ProfileFieldConfig.empty(), true, false, null);
+        service.assignToGroup(groupField.id(), group.id(), 32, null, null, null);
         var account5 = accountRepo.create("pfield-group@test.com", "Group", "Member");
         var member5 = stationMemberRepo.create(station.id(), account5.id());
 
@@ -480,24 +516,26 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A field of group scope is only ever shown at its group, so the group it names has to survive
-     * being stored. Dropping it silently leaves a field that belongs nowhere and is shown nowhere.
+     * The group a question is asked of is an assignment, so it survives as a row of its own.
+     *
+     * <p>It used to live inside the field's config, where a field that lost it belonged nowhere and
+     * was shown nowhere. A group that is deleted now takes its assignment with it and leaves the
+     * question standing.
      */
     @Test
     @Order(24)
     void groupFieldKeepsTheGroupItNames() {
+        var group = memberGroupRepo.create(station.id(), "Namensgruppe " + java.util.UUID.randomUUID());
         var groupField = service.create(
-                station.id(),
-                "GroupOwned",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"groupId\":7}"),
-                33,
-                ProfileFieldScope.GROUP);
+                station.id(), "GroupOwned", ProfileFieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        service.assignToGroup(groupField.id(), group.id(), 33, null, null, null);
 
-        assertEquals(7, groupField.config().groupId(), "the group survives being written");
-        assertEquals(7, service.findById(groupField.id()).orElseThrow().config().groupId(), "and reading it back");
+        var assignment = service.findAssignments(groupField.id()).getFirst();
+        assertEquals(ProfileFieldTarget.GROUP, assignment.targetKind());
+        assertEquals(group.id(), assignment.groupId(), "the group survives being written and read back");
 
         service.delete(groupField.id());
+        memberGroupRepo.delete(group.id());
     }
 
     // -- acknowledgeAll with changes --
@@ -506,13 +544,8 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(24)
     void acknowledgeAllWithPendingChanges() {
         // Create a new field change by setting a value
-        var tmpField = service.create(
-                station.id(),
-                "AckAllField",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"notifyOnChange\":true}"),
-                40,
-                ProfileFieldScope.MEMBER);
+        var tmpField =
+                ask("AckAllField", ProfileFieldType.TEXT, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 40);
         service.setValues(member.id(), List.of(new FieldValueEntry(tmpField.id(), "\"initial\"")), member.id());
         service.setValues(member.id(), List.of(new FieldValueEntry(tmpField.id(), "\"changed\"")), member.id());
 
@@ -537,13 +570,8 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(24)
     void whatAManagerChangesNeedsNoAcknowledgement() {
-        var watched = service.create(
-                station.id(),
-                "SelbstGeaendert",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"notifyOnChange\":true}"),
-                41,
-                ProfileFieldScope.MEMBER);
+        var watched = ask(
+                "SelbstGeaendert", ProfileFieldType.TEXT, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 41);
         var changesRole = stationMemberRepo
                 .findPermissionByName(StationPermission.MEMBER_CHANGES)
                 .orElseThrow();
@@ -582,105 +610,53 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
      * guardians for one are two questions no single person can answer twice. A group is the exception:
      * a member belongs to any number of them and to a kind besides, so one of those blocks every other.
      */
+    /**
+     * A station asks for a date of birth once, and assigns it to everybody it wants it from.
+     *
+     * <p>There used to be one per kind of member, with a rule about which of them could coexist.
+     * That rule is what a manager fell through: asked as team and as manager, they met two dates and
+     * answered both. One definition cannot disagree with itself, so the rule is now simply one.
+     */
     @Test
     @Order(29)
-    void aDateOfBirthPerKindOfMemberIsFineAndAGroupOneIsNot() {
-        var forTeam = service.create(
-                station.id(),
-                "Geburtstag Team",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.parse("{}"),
-                60,
-                ProfileFieldScope.TEAM);
+    void aStationAsksForADateOfBirthOnce() {
+        var birthDate = ask("Geburtstag", ProfileFieldType.BIRTH_DATE, "{}", ProfileFieldScope.TEAM, 60);
 
-        var forGuardians = service.create(
-                station.id(),
-                "Geburtstag Eltern",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.parse("{}"),
-                61,
-                ProfileFieldScope.GUARDIAN);
-        assertNotNull(forGuardians, "a second kind of member may be asked as well");
+        service.assignToRole(birthDate.id(), ProfileFieldScope.GUARDIAN, 61, null, null, null);
+        service.assignToRole(birthDate.id(), ProfileFieldScope.MANAGER, 62, null, null, null);
+        assertEquals(3, service.findAssignments(birthDate.id()).size(), "one question, three audiences");
 
-        assertThrows(
+        var refused = assertThrows(
                 BadRequestResponse.class,
                 () -> service.create(
                         station.id(),
-                        "Noch einer",
+                        "Noch ein Geburtstag",
                         ProfileFieldType.BIRTH_DATE,
                         ProfileFieldConfig.parse("{}"),
-                        62,
-                        ProfileFieldScope.TEAM),
-                "asking the same kind twice would give one member two dates");
+                        false,
+                        false,
+                        null),
+                "a second date of birth is a duplicate, not a different question");
+        assertTrue(refused.getMessage().contains("already asks"));
 
-        assertThrows(
-                BadRequestResponse.class,
-                () -> service.create(
-                        station.id(),
-                        "Gruppengeburtstag",
-                        ProfileFieldType.BIRTH_DATE,
-                        ProfileFieldConfig.parse("{}"),
-                        63,
-                        ProfileFieldScope.GROUP),
-                "a group reaches members who are already asked by their kind");
-
-        profileFieldRepo.delete(forTeam.id());
-        profileFieldRepo.delete(forGuardians.id());
+        profileFieldRepo.delete(birthDate.id());
     }
 
-    /** With one asked of a group, no other date of birth may be added at all. */
-    @Test
-    @Order(29)
-    void aGroupDateOfBirthBlocksEveryOther() {
-        var forGroup = service.create(
-                station.id(),
-                "Geburtstag Gruppe",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.parse("{}"),
-                70,
-                ProfileFieldScope.GROUP);
-
-        assertThrows(
-                BadRequestResponse.class,
-                () -> service.create(
-                        station.id(),
-                        "Geburtstag Team",
-                        ProfileFieldType.BIRTH_DATE,
-                        ProfileFieldConfig.parse("{}"),
-                        71,
-                        ProfileFieldScope.TEAM),
-                "the group one can meet a team member as well");
-
-        profileFieldRepo.delete(forGroup.id());
-    }
-
-    /** Twenty fields moved by one drag is one request, not twenty. */
+    /** Twenty fields moved by one drag is one request, not twenty, and moves only that form. */
     @Test
     @Order(29)
     void anOrderIsWrittenInOneGo() {
-        var first = service.create(
-                station.id(),
-                "Erstes",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                80,
-                ProfileFieldScope.MANAGER);
-        var second = service.create(
-                station.id(),
-                "Zweites",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                81,
-                ProfileFieldScope.MANAGER);
+        var first = ask("Erstes", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MANAGER, 80);
+        var second = ask("Zweites", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MANAGER, 81);
 
-        service.reorder(station.id(), List.of(second.id(), first.id()));
+        service.reorder(station.id(), ProfileFieldScope.MANAGER, List.of(second.id(), first.id()));
 
         // Nothing to move is not an error, and writes nothing
-        service.reorder(station.id(), List.of());
+        service.reorder(station.id(), ProfileFieldScope.MANAGER, List.of());
 
         var ordered = service.findByStationAndScope(station.id(), ProfileFieldScope.MANAGER);
-        assertEquals(second.id(), ordered.getFirst().id(), "the order given is the order stored");
-        assertEquals(first.id(), ordered.get(1).id());
+        assertEquals(second.id(), ordered.getFirst().field().id(), "the order given is the order stored");
+        assertEquals(first.id(), ordered.get(1).field().id());
 
         profileFieldRepo.delete(first.id());
         profileFieldRepo.delete(second.id());
@@ -689,13 +665,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void onlyOneBirthDateFieldPerStation() {
-        var birthDate = service.create(
-                station.id(),
-                "Geburtsdatum",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.parse("{}"),
-                50,
-                ProfileFieldScope.MEMBER);
+        var birthDate = ask("Geburtsdatum", ProfileFieldType.BIRTH_DATE, "{}", ProfileFieldScope.MEMBER, 50);
 
         assertThrows(
                 BadRequestResponse.class,
@@ -704,17 +674,12 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                         "Zweites Geburtsdatum",
                         ProfileFieldType.BIRTH_DATE,
                         ProfileFieldConfig.parse("{}"),
-                        51,
-                        ProfileFieldScope.MEMBER),
+                        false,
+                        false,
+                        null),
                 "a station may declare one birth date field");
 
-        var plain = service.create(
-                station.id(),
-                "Eintrittsdatum",
-                ProfileFieldType.DATE,
-                ProfileFieldConfig.parse("{}"),
-                52,
-                ProfileFieldScope.MEMBER);
+        var plain = ask("Eintrittsdatum", ProfileFieldType.DATE, "{}", ProfileFieldScope.MEMBER, 52);
         assertThrows(
                 BadRequestResponse.class,
                 () -> service.update(
@@ -722,7 +687,9 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                         plain.name(),
                         ProfileFieldType.BIRTH_DATE,
                         ProfileFieldConfig.parse("{}"),
-                        plain.position(),
+                        false,
+                        false,
+                        null,
                         false),
                 "turning a second field into the birth date is the same clash");
 
@@ -732,7 +699,9 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                                 "Geburtstag",
                                 ProfileFieldType.BIRTH_DATE,
                                 ProfileFieldConfig.parse("{}"),
-                                birthDate.position(),
+                                false,
+                                false,
+                                null,
                                 false)
                         .isPresent(),
                 "the field that already is the birth date does not clash with itself");
@@ -744,22 +713,10 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void aBirthDateFieldCanBeReplacedAfterTheFirstIsGone() {
-        var first = service.create(
-                station.id(),
-                "Geburtsdatum",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.parse("{}"),
-                60,
-                ProfileFieldScope.MEMBER);
+        var first = ask("Geburtsdatum", ProfileFieldType.BIRTH_DATE, "{}", ProfileFieldScope.MEMBER, 60);
         service.delete(first.id());
 
-        var second = service.create(
-                station.id(),
-                "Geburtsdatum neu",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.parse("{}"),
-                61,
-                ProfileFieldScope.GUARDIAN);
+        var second = ask("Geburtsdatum neu", ProfileFieldType.BIRTH_DATE, "{}", ProfileFieldScope.GUARDIAN, 61);
         assertEquals(ProfileFieldType.BIRTH_DATE, second.fieldType());
         service.delete(second.id());
     }
@@ -781,21 +738,25 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 "Führerscheinklasse",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.parse("{}"),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
+        clusterProfileFieldRepo.assignToRole(kept.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         var open = clusterProfileFieldRepo.create(
                 cluster.id(),
                 "Funkrufname",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.parse("{}"),
-                1,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 false,
                 false,
                 null);
+        clusterProfileFieldRepo.assignToRole(open.id(), ProfileFieldScope.MEMBER, 1, null, null, null);
 
         var fields = service.findApplicableFields(member.id());
         assertTrue(

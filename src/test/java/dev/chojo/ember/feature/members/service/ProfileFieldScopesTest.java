@@ -62,10 +62,18 @@ class ProfileFieldScopesTest {
      * A group scope is answered by who is in the group rather than by what anybody may do, so it is
      * never handed out here.
      */
+    /**
+     * A group is no longer a kind of member, so permissions decide nothing about one.
+     *
+     * <p>What a group is asked is decided by who is in it, which is why the readable roles never
+     * mention one.
+     */
     @Test
-    void theGroupScopeIsNeverDecidedByPermissions() {
-        assertFalse(ProfileFieldScopes.readableBy(Set.of(StationPermission.STATION_ADMINISTRATOR))
-                .contains(ProfileFieldScope.GROUP));
+    void permissionsDecideRolesAndNeverGroups() {
+        assertEquals(
+                Set.of(ProfileFieldScope.TEAM, ProfileFieldScope.MANAGER),
+                ProfileFieldScopes.readableBy(Set.of(StationPermission.STATION_ADMINISTRATOR)),
+                "an administrator reads the team's questions and the manager's, and nothing about groups");
     }
 
     @Test

@@ -237,23 +237,27 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
         var peopled = stationWithMember(clusterId);
 
-        profileFieldService.create(
+        var own = profileFieldService.create(
                 peopled.station().id(),
                 "Spindnummer",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER);
-        clusterProfileFieldService.create(
+                false,
+                false,
+                null);
+        profileFieldService.assignToRole(own.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        var shared = clusterProfileFieldService.create(
                 clusterId,
                 "Mitgliedsnummer",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
+        clusterProfileFieldService.assignToRole(clusterId, shared.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
 
         var profile = service.getMemberProfile(clusterId, peopled.member().id());
 
@@ -279,11 +283,13 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 "Mitgliedsnummer",
                 ProfileFieldType.TEXT,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 null);
+        clusterProfileFieldService.assignToRole(clusterId, field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
 
         service.updateMemberProfile(
                 clusterId,

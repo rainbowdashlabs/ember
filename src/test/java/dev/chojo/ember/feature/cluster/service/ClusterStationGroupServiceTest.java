@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.cluster.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -121,8 +120,9 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
                 "Atemschutztauglich",
                 ProfileFieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
-                0,
-                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null,
                 true,
                 false,
                 group.id());

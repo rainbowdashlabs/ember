@@ -47,7 +47,7 @@ export function useMemberListConfig(port: MemberListPort) {
     const router = useRouter()
 
     const {
-        members, fields, allGroups, allTags,
+        members, fields, assignments, allGroups, allTags,
         memberRolesMap, memberGroupsMap, memberTagsMap, memberManagers,
         loading, error, expandedId, overviewFields,
         getFieldValue, getFieldValueAsString, getMemberType, getMemberGroups, getColumnValues,
@@ -59,8 +59,8 @@ export function useMemberListConfig(port: MemberListPort) {
         filterText, columnMultiFilters, columnEmptyFilters, sortKey, sortDirection,
         extraColumnIds, hiddenColumnIds,
         tabScopedFields, tabOverviewFields, tabNonOverviewFields, visibleColumns, toggleColumn,
-        applyColumnFilter,
-    } = useMemberListTabs(fields)
+        applyColumnFilter, isAskedOf,
+    } = useMemberListTabs(fields, assignments)
 
     const {savedFilters, loadSavedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters} =
         useSavedFilters(tabStates, activeTab)
@@ -176,6 +176,7 @@ export function useMemberListConfig(port: MemberListPort) {
         activeTab, tabs, filterText, columnMultiFilters, columnEmptyFilters,
         sortKey, sortDirection, extraColumnIds, hiddenColumnIds,
         tabOverviewFields, tabNonOverviewFields, visibleColumns, toggleColumn, applyColumnFilter,
+        isAskedOf,
         savedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters,
         onMemberFilter, sortedMembers, toggleSort,
         exportMode, selectedIds, showExportModal, selectedColumns, columnOptions,

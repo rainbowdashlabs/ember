@@ -7,8 +7,10 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterFieldValueChanged;
+import dev.chojo.ember.feature.cluster.entity.AssignedClusterProfileField;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
+import dev.chojo.ember.feature.cluster.entity.ClusterProfileFieldAssignment;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
@@ -34,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * The questions a cluster asks of the people at its stations.
@@ -83,42 +84,89 @@ public class ClusterProfileFieldService {
     }
 
     /**
-     * The cluster's questions that reach one station, in one scope.
+     * The cluster's questions that reach one station, as put to one kind of member.
      *
      * @param stationId the station
-     * @param scope     which kind of member they apply to
+     * @param role      which kind of member they are put to
      * @return the fields, empty when the station answers to no cluster
      */
-    public List<ClusterProfileField> findForStation(int stationId, ProfileFieldScope scope) {
-        return fieldRepository.findForStation(stationId, scope);
+    public List<AssignedClusterProfileField> findForStation(int stationId, ProfileFieldScope role) {
+        return fieldRepository.findForStation(stationId, role);
     }
 
+    /**
+     * Writes a question down. Who is asked it is a separate act, as it is for a station's own.
+     *
+     * <p>A question nobody has been put to reaches nobody until an audience is named, which the screen
+     * says out loud rather than guessing at one.
+     */
     public ClusterProfileField create(
             int clusterId,
             String name,
             ProfileFieldType fieldType,
             ProfileFieldConfig config,
-            int position,
-            ProfileFieldScope scope,
+            boolean required,
+            boolean readonly,
+            String width,
             boolean stationReadonly,
             boolean keepOnArchive,
             Integer stationGroupId) {
         requireCluster(clusterId);
-        requireUsable(name, fieldType, scope, config);
+        requireUsable(name, fieldType, config);
         requireOwnGroup(clusterId, stationGroupId);
-        requireReachesNobodyTwice(clusterId, null, name.trim(), scope, stationGroupId);
+        requireReachesNobodyTwice(clusterId, null, name.trim(), stationGroupId);
         ClusterProfileField field = fieldRepository.create(
                 clusterId,
                 name.trim(),
                 fieldType,
                 config,
-                position,
-                scope,
+                required,
+                readonly,
+                width,
                 stationReadonly,
                 keepOnArchive,
                 stationGroupId);
         log.info("Cluster {} added field '{}'", clusterId, field.name());
         return field;
+    }
+
+    /** Which kinds of member one of the cluster's questions is asked of. */
+    public List<ClusterProfileFieldAssignment> findAssignments(int fieldId) {
+        return fieldRepository.findAssignments(fieldId);
+    }
+
+    /** Which kinds of member every one of the cluster's questions is asked of. */
+    public List<ClusterProfileFieldAssignment> findAssignmentsByCluster(int clusterId) {
+        return fieldRepository.findAssignmentsByCluster(clusterId);
+    }
+
+    /**
+     * Asks another kind of member one of the cluster's existing questions, or changes how it is asked.
+     *
+     * @param role             who is to be asked
+     * @param position         where it sits on their form
+     * @param widthOverride    how much of a row it takes here, null to follow the definition
+     * @param readonlyOverride whether only the member management writes it here, null to follow the definition
+     * @param requiredOverride whether they must answer, null to follow the definition
+     */
+    public void assignToRole(
+            int clusterId,
+            int fieldId,
+            ProfileFieldScope role,
+            int position,
+            String widthOverride,
+            Boolean readonlyOverride,
+            Boolean requiredOverride) {
+        requireField(clusterId, fieldId);
+        fieldRepository.assignToRole(fieldId, role, position, widthOverride, readonlyOverride, requiredOverride);
+        log.info("Cluster {} asks {} field {}", clusterId, role, fieldId);
+    }
+
+    /** Stops asking a kind of member one of the cluster's questions. */
+    public void unassignRole(int clusterId, int fieldId, ProfileFieldScope role) {
+        requireField(clusterId, fieldId);
+        fieldRepository.unassignRole(fieldId, role);
+        log.info("Cluster {} no longer asks {} field {}", clusterId, role, fieldId);
     }
 
     public void update(
@@ -127,26 +175,28 @@ public class ClusterProfileFieldService {
             String name,
             ProfileFieldType fieldType,
             ProfileFieldConfig config,
-            int position,
-            ProfileFieldScope scope,
+            boolean required,
+            boolean readonly,
+            String width,
             boolean stationReadonly,
             boolean keepOnArchive,
             Integer stationGroupId) {
         requireField(clusterId, fieldId);
-        requireUsable(name, fieldType, scope, config);
+        requireUsable(name, fieldType, config);
         requireOwnGroup(clusterId, stationGroupId);
-        requireReachesNobodyTwice(clusterId, fieldId, name.trim(), scope, stationGroupId);
+        requireReachesNobodyTwice(clusterId, fieldId, name.trim(), stationGroupId);
         fieldRepository.update(
                 fieldId,
                 name.trim(),
                 fieldType,
                 config,
-                position,
-                scope,
+                required,
+                readonly,
+                width,
                 stationReadonly,
                 keepOnArchive,
                 stationGroupId);
-        log.info("Cluster {} changed field {} to '{}' ({}, {})", clusterId, fieldId, name.trim(), fieldType, scope);
+        log.info("Cluster {} changed field {} to '{}' ({})", clusterId, fieldId, name.trim(), fieldType);
     }
 
     public void delete(int clusterId, int fieldId) {
@@ -196,12 +246,9 @@ public class ClusterProfileFieldService {
         int stationId = stationOf(memberId);
         Map<ProfileFieldScope, Set<Integer>> reaching = new HashMap<>();
 
+        Set<Integer> reachingHere = fieldRepository.findIdsReachingStation(stationId);
         for (var entry : values.entrySet()) {
             ClusterProfileField field = requireField(clusterId, entry.getKey());
-            Set<Integer> reachingHere = reaching.computeIfAbsent(
-                    field.scope(), scope -> fieldRepository.findForStation(stationId, scope).stream()
-                            .map(ClusterProfileField::id)
-                            .collect(Collectors.toSet()));
             if (!reachingHere.contains(field.id())) {
                 throw new BadRequestResponse("That question is not asked of this member's station");
             }
@@ -268,14 +315,15 @@ public class ClusterProfileFieldService {
      * @param scope     which kind of member it applies to
      * @param groupId   the group it is pointed at, or {@code null} for every station
      */
-    private void requireReachesNobodyTwice(
-            int clusterId, Integer fieldId, String name, ProfileFieldScope scope, Integer groupId) {
+    private void requireReachesNobodyTwice(int clusterId, Integer fieldId, String name, Integer groupId) {
         Set<Integer> reached = new HashSet<>(stationGroupRepository.findStationIdsReachedBy(clusterId, groupId));
         if (reached.isEmpty()) return;
 
         for (ClusterProfileField other : fieldRepository.findByCluster(clusterId)) {
             if (fieldId != null && other.id() == fieldId) continue;
-            if (other.scope() != scope || !other.name().equalsIgnoreCase(name)) continue;
+            // A question is written once, so two of the same name reaching one station collide
+            // whoever each is put to: they are the same question asked twice.
+            if (!other.name().equalsIgnoreCase(name)) continue;
 
             for (int stationId : stationGroupRepository.findStationIdsReachedBy(clusterId, other.stationGroupId())) {
                 if (reached.contains(stationId)) {
@@ -288,30 +336,23 @@ public class ClusterProfileFieldService {
     }
 
     /**
-     * Puts a cluster's questions in the given order, in one write.
+     * Puts one audience's form in the given order, in one write.
      *
      * @param clusterId the cluster whose questions these are
+     * @param role      the audience whose form is being ordered
      * @param fieldIds  the questions in the order they should stand
      */
-    public void reorder(int clusterId, List<Integer> fieldIds) {
+    public void reorder(int clusterId, ProfileFieldScope role, List<Integer> fieldIds) {
         requireCluster(clusterId);
-        int moved = fieldRepository.applyOrder(clusterId, fieldIds);
-        log.info("Cluster questions reordered: cluster={}, fields={}", clusterId, moved);
+        int moved = fieldRepository.applyOrder(clusterId, role, fieldIds);
+        log.info("Cluster questions reordered: cluster={}, role={}, fields={}", clusterId, role, moved);
     }
 
-    private static void requireUsable(
-            String name, ProfileFieldType fieldType, ProfileFieldScope scope, ProfileFieldConfig config) {
+    private static void requireUsable(String name, ProfileFieldType fieldType, ProfileFieldConfig config) {
         if (name == null || name.isBlank()) throw new BadRequestResponse("A field needs a name");
-        if (scope == ProfileFieldScope.GROUP) {
-            throw new BadRequestResponse(
-                    "A group-scoped field names a group of one station, which a cluster cannot see");
-        }
         if (fieldType == ProfileFieldType.BIRTH_DATE) {
             throw new BadRequestResponse(
                     "A station declares its own date of birth field, and a second one would collide with it");
-        }
-        if (config != null && config.groupId() != null) {
-            throw new BadRequestResponse("A cluster field cannot name a station's group");
         }
     }
 

@@ -161,11 +161,7 @@ public class ManagedMemberRoutes implements Routes {
     }
 
     private List<ProfileField> applicableFields(int stationId, int memberId) {
-        var scopes = applicableScopes(memberId);
-        return profileFieldService.findByStation(stationId).stream()
-                .filter(f -> f.scope() != null && scopes.contains(f.scope()))
-                .filter(f -> f.scope() != ProfileFieldScope.GROUP)
-                .toList();
+        return profileFieldService.findReadableBy(stationId, applicableScopes(memberId));
     }
 
     @OpenApi(

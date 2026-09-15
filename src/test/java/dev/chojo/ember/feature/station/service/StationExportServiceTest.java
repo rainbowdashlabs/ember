@@ -49,13 +49,9 @@ class StationExportServiceTest extends RepositoryTestBase {
         var group = memberGroupRepo.create(stationId, "Anfänger");
         memberGroupRepo.addMember(group.id(), member.id());
 
-        profileFieldRepo.create(
-                stationId,
-                "Telefon",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                0,
-                ProfileFieldScope.MEMBER);
+        var telefon = profileFieldRepo.create(
+                stationId, "Telefon", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+        profileFieldRepo.assignToRole(telefon.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
     }
 
     @Test

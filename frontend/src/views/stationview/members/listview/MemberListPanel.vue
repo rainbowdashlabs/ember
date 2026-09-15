@@ -63,6 +63,7 @@ const c = props.config
     :all-members="c.members.value"
     :overview-fields="c.overviewFields.value"
     :get-field-value="c.getFieldValue"
+    :is-asked-of="c.isAskedOf"
     @clear-filters="c.clearFilters"
     @apply-filter="c.applyFilter"
     @delete-filter="c.deleteFilter"

@@ -71,11 +71,80 @@ export interface MergedProfileField {
     name?: string
     fieldType?: string
     config?: Record<string, unknown>
+    /** Whether this audience must answer, which their assignment may decide against the definition. */
+    required: boolean
+    /** Where the question sits on this audience's form. */
     position: number
-    scope?: string
+    /** How much of a row it takes for this audience. Null or absent is the whole row. */
+    width?: string | null
+    /** Whether this audience may read the answer but not write it. */
+    readonly: boolean
+    /** The kind of member this form was built for. Absent where a group is asked. */
+    role?: string
     origin: FieldOrigin
     /** Whether the people at the station may read the answer but not write it. Only a cluster field can be. */
     readonlyAtStation: boolean
+}
+
+/** Which kind of member a question is put to. A group is a target of its own, not one of these. */
+export type ProfileFieldRole = 'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM' | 'MANAGER'
+
+/** What an assignment names: a kind of member, or one group of them. */
+export type ProfileFieldTarget = 'ROLE' | 'GROUP'
+
+/**
+ * Who a field is asked of, and how it is put to them.
+ *
+ * The definition beside this says what the question is. The same question can stand in two forms
+ * without being two questions: a manager may read a date the team writes.
+ */
+export interface ProfileFieldAssignment {
+    id: number
+    fieldId: number
+    targetKind: ProfileFieldTarget
+    /** Set where this names a kind of member. */
+    role?: ProfileFieldRole | null
+    /** Set where this names a group. */
+    groupId?: number | null
+    position: number
+    /** Null means the definition's width stands, which is the ordinary case. */
+    widthOverride?: string | null
+    /** Null means the definition decides who may write the answer, which is the ordinary case. */
+    readonlyOverride?: boolean | null
+    /** Null means the definition decides, which is the ordinary case. */
+    requiredOverride?: boolean | null
+}
+
+/** A station's question, defined once, whoever is asked it. */
+export interface ProfileFieldDefinition {
+    id: number
+    stationId: number
+    name: string
+    fieldType: string
+    config?: Record<string, unknown>
+    required: boolean
+    /** How much of a row it takes unless an audience says otherwise. Null is the whole row. */
+    width?: string | null
+    keepOnArchive: boolean
+}
+
+/**
+ * The question as one audience meets it: the definition, with whatever their assignment says instead.
+ *
+ * <p>Width and whether an answer is expected are the definition's until an audience overrides them, so
+ * the override standing at null is what keeps the definition's answer free to change underneath.
+ */
+export function asAsked<T extends {required?: boolean; readonly?: boolean; width?: string | null}>(
+    field: T,
+    assignment: ProfileFieldAssignment,
+): T & {required: boolean; width: string | null; readonly: boolean; position: number} {
+    return {
+        ...field,
+        required: assignment.requiredOverride ?? field.required ?? false,
+        width: assignment.widthOverride ?? field.width ?? null,
+        readonly: assignment.readonlyOverride ?? field.readonly ?? false,
+        position: assignment.position,
+    }
 }
 
 /** The key an answer is held under on the profile, which is the pair and not the id. */

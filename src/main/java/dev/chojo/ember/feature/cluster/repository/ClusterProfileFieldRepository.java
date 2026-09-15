@@ -6,7 +6,9 @@
 package dev.chojo.ember.feature.cluster.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.cluster.entity.AssignedClusterProfileField;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
+import dev.chojo.ember.feature.cluster.entity.ClusterProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -17,6 +19,7 @@ import tools.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -28,14 +31,14 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class ClusterProfileFieldRepository {
 
     private static final String FIELD_COLUMNS =
-            "id, cluster_id, name, field_type, config, position, scope, station_readonly, keep_on_archive, "
-                    + "station_group_id";
+            "id, cluster_id, name, field_type, config, required, readonly, width, station_readonly, "
+                    + "keep_on_archive, station_group_id";
 
     public List<ClusterProfileField> findByCluster(int clusterId) {
         return query("""
                 SELECT %s FROM cluster_profile_field
                 WHERE cluster_id = :cluster_id
-                ORDER BY scope, position, name;""", FIELD_COLUMNS)
+                ORDER BY name;""", FIELD_COLUMNS)
                 .single(call().bind("cluster_id", clusterId))
                 .map(ClusterProfileField.map())
                 .all();
@@ -55,23 +58,24 @@ public class ClusterProfileFieldRepository {
      * reaches a station at all, so the targeting is written here and nowhere else.
      *
      * @param stationId the station
-     * @param scope     which kind of member the fields apply to
+     * @param role      which kind of member the fields are put to
      * @return the fields, empty when the station answers to no cluster
      */
-    public List<ClusterProfileField> findForStation(int stationId, ProfileFieldScope scope) {
+    public List<AssignedClusterProfileField> findForStation(int stationId, ProfileFieldScope role) {
         return query("""
                 SELECT %s FROM cluster_profile_field cpf
+                JOIN cluster_profile_field_assignment a ON a.field_id = cpf.id
                 JOIN station s ON s.cluster_id = cpf.cluster_id
                 WHERE s.id = :station_id
-                  AND cpf.scope = :scope
+                  AND a.role = :role
                   AND (cpf.station_group_id IS NULL
                        OR EXISTS (SELECT 1
                                   FROM cluster_station_group_membership m
                                   WHERE m.group_id = cpf.station_group_id
                                     AND m.station_id = s.id))
-                ORDER BY cpf.position, cpf.name;""", SqlSupport.alias("cpf", FIELD_COLUMNS))
-                .single(call().bind("station_id", stationId).bind("scope", scope))
-                .map(ClusterProfileField.map())
+                ORDER BY a.position, cpf.name;""", AssignedClusterProfileField.COLUMNS)
+                .single(call().bind("station_id", stationId).bind("role", role))
+                .map(AssignedClusterProfileField.map())
                 .all();
     }
 
@@ -82,17 +86,112 @@ public class ClusterProfileFieldRepository {
      * @param fieldIds  the questions in the order they should stand
      * @return how many were moved
      */
-    public int applyOrder(int clusterId, List<Integer> fieldIds) {
+    public int applyOrder(int clusterId, ProfileFieldScope role, List<Integer> fieldIds) {
         if (fieldIds.isEmpty()) return 0;
         return query("""
-                UPDATE cluster_profile_field AS f
+                UPDATE cluster_profile_field_assignment AS a
                 SET position = ordered.position
-                FROM unnest(CAST(:ids AS INTEGER[])) WITH ORDINALITY AS ordered(id, position)
-                WHERE f.id = ordered.id
-                  AND f.cluster_id = :cluster_id;""")
-                .single(call().bind("ids", fieldIds, PostgreSqlTypes.INTEGER).bind("cluster_id", clusterId))
+                FROM unnest(CAST(:ids AS INTEGER[])) WITH ORDINALITY AS ordered(id, position),
+                     cluster_profile_field f
+                WHERE a.field_id = ordered.id
+                  AND f.id = a.field_id
+                  AND f.cluster_id = :cluster_id
+                  AND a.role = :role;""")
+                .single(call().bind("ids", fieldIds, PostgreSqlTypes.INTEGER)
+                        .bind("cluster_id", clusterId)
+                        .bind("role", role))
                 .update()
                 .rows();
+    }
+
+    /**
+     * Asks a kind of member this question, or changes how it is put to them.
+     */
+    public void assignToRole(
+            int fieldId,
+            ProfileFieldScope role,
+            int position,
+            String widthOverride,
+            Boolean readonlyOverride,
+            Boolean requiredOverride) {
+        query("""
+                INSERT INTO cluster_profile_field_assignment
+                    (field_id, role, position, width_override, readonly_override, required_override)
+                VALUES (:field_id, :role, :position, :width_override, :readonly_override, :required_override)
+                ON CONFLICT (field_id, role) DO UPDATE SET
+                    position          = excluded.position,
+                    width_override    = excluded.width_override,
+                    readonly_override = excluded.readonly_override,
+                    required_override = excluded.required_override;""")
+                .single(call().bind("field_id", fieldId)
+                        .bind("role", role)
+                        .bind("position", position)
+                        .bind("width_override", widthOverride)
+                        .bind("readonly_override", readonlyOverride)
+                        .bind("required_override", requiredOverride))
+                .insert();
+    }
+
+    /**
+     * Stops asking a kind of member this question. The definition stays.
+     */
+    public boolean unassignRole(int fieldId, ProfileFieldScope role) {
+        return query("DELETE FROM cluster_profile_field_assignment WHERE field_id = :field_id AND role = :role;")
+                .single(call().bind("field_id", fieldId).bind("role", role))
+                .delete()
+                .changed();
+    }
+
+    /**
+     * Every assignment of this cluster's questions, which is what each audience's form is built from.
+     */
+    public List<ClusterProfileFieldAssignment> findAssignmentsByCluster(int clusterId) {
+        return query("""
+                SELECT a.id, a.field_id, a.role, a.position, a.width_override, a.readonly_override,
+                       a.required_override
+                FROM cluster_profile_field_assignment a
+                         JOIN cluster_profile_field f ON f.id = a.field_id
+                WHERE f.cluster_id = :cluster_id
+                ORDER BY a.field_id, a.position;""")
+                .single(call().bind("cluster_id", clusterId))
+                .map(ClusterProfileFieldAssignment.map())
+                .all();
+    }
+
+    /**
+     * The assignments of one cluster question.
+     */
+    public List<ClusterProfileFieldAssignment> findAssignments(int fieldId) {
+        return query("""
+                SELECT id, field_id, role, position, width_override, readonly_override, required_override
+                FROM cluster_profile_field_assignment
+                WHERE field_id = :field_id
+                ORDER BY position;""")
+                .single(call().bind("field_id", fieldId))
+                .map(ClusterProfileFieldAssignment.map())
+                .all();
+    }
+
+    /**
+     * The ids of the cluster questions that reach one station, whoever they are put to.
+     *
+     * <p>Used to refuse an answer to a question this station is not asked. Which kinds of member are
+     * asked is a separate matter and is checked where the form is built.
+     */
+    public Set<Integer> findIdsReachingStation(int stationId) {
+        return Set.copyOf(query("""
+                SELECT cpf.id
+                FROM cluster_profile_field cpf
+                         JOIN station s ON s.cluster_id = cpf.cluster_id
+                WHERE s.id = :station_id
+                  AND (cpf.station_group_id IS NULL
+                       OR EXISTS (SELECT 1
+                                  FROM cluster_station_group_membership m
+                                  WHERE m.group_id = cpf.station_group_id
+                                    AND m.station_id = s.id));""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> row.getInt("id"))
+                .all());
     }
 
     public ClusterProfileField create(
@@ -100,8 +199,9 @@ public class ClusterProfileFieldRepository {
             String name,
             ProfileFieldType fieldType,
             ProfileFieldConfig config,
-            int position,
-            ProfileFieldScope scope,
+            boolean required,
+            boolean readonly,
+            String width,
             boolean stationReadonly,
             boolean keepOnArchive,
             Integer stationGroupId) {
@@ -109,18 +209,19 @@ public class ClusterProfileFieldRepository {
                 """
                 INSERT
                 INTO
-                    cluster_profile_field(cluster_id, name, field_type, config, position, scope,
+                    cluster_profile_field(cluster_id, name, field_type, config, required, readonly, width,
                                           station_readonly, keep_on_archive, station_group_id)
                 VALUES
-                    (:cluster_id, :name, :field_type, :config::JSONB, :position, :scope,
+                    (:cluster_id, :name, :field_type, :config::JSONB, :required, :readonly, :width,
                      :station_readonly, :keep_on_archive, :station_group_id)
                 RETURNING %s;""",
                 call().bind("cluster_id", clusterId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
-                        .bind("position", position)
-                        .bind("scope", scope)
+                        .bind("required", required)
+                        .bind("readonly", readonly)
+                        .bind("width", width)
                         .bind("station_readonly", stationReadonly)
                         .bind("keep_on_archive", keepOnArchive)
                         .bind("station_group_id", stationGroupId),
@@ -133,8 +234,9 @@ public class ClusterProfileFieldRepository {
             String name,
             ProfileFieldType fieldType,
             ProfileFieldConfig config,
-            int position,
-            ProfileFieldScope scope,
+            boolean required,
+            boolean readonly,
+            String width,
             boolean stationReadonly,
             boolean keepOnArchive,
             Integer stationGroupId) {
@@ -143,8 +245,9 @@ public class ClusterProfileFieldRepository {
                 SET name             = :name,
                     field_type       = :field_type,
                     config           = :config::JSONB,
-                    position         = :position,
-                    scope            = :scope,
+                    required         = :required,
+                    readonly         = :readonly,
+                    width            = :width,
                     station_readonly = :station_readonly,
                     keep_on_archive  = :keep_on_archive,
                     station_group_id = :station_group_id
@@ -153,8 +256,9 @@ public class ClusterProfileFieldRepository {
                         .bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
-                        .bind("position", position)
-                        .bind("scope", scope)
+                        .bind("required", required)
+                        .bind("readonly", readonly)
+                        .bind("width", width)
                         .bind("station_readonly", stationReadonly)
                         .bind("keep_on_archive", keepOnArchive)
                         .bind("station_group_id", stationGroupId))

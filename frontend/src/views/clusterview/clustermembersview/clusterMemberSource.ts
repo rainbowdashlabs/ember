@@ -89,7 +89,7 @@ export function useClusterMemberSource(includeFormer: () => boolean) {
             // No profile questions travel with the search, so none can be offered as a column. The
             // association's own questions are asked of these people and belong here; the search would
             // have to carry their answers first.
-            return {members: collected.map(toRich), fields: [], roles: []}
+            return {members: collected.map(toRich), fields: [], assignments: [], roles: []}
         },
     }
 

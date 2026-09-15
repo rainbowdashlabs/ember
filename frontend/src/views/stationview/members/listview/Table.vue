@@ -34,6 +34,8 @@ const props = defineProps<{
   allMembers: StationMember[]
   overviewFields: ProfileField[]
   getFieldValue: (memberId: number, fieldId: number) => unknown
+  /** Whether one question is put to a kind of member, which decides what a row may carry. */
+  isAskedOf: (fieldId: number, role: string) => boolean
   exportMode?: boolean
   selectedIds?: Set<number>
   canEdit?: boolean
@@ -126,22 +128,23 @@ function getMemberTags(memberId: number): string[] {
   return props.memberTagsMap.get(memberId) ?? []
 }
 
-function getScopeForUserType(roles: string[]): string {
+/** The kind a member counts as when one question is put to several of them. */
+function roleOf(memberId: number): string {
+  const roles = props.memberRolesMap.get(memberId) ?? []
   if (roles.includes(StationUserType.MANAGER)) return 'MANAGER'
   if (roles.includes(StationUserType.TEAM)) return 'TEAM'
   if (roles.includes(StationUserType.GUARDIAN)) return 'GUARDIAN'
+  if (roles.includes(StationUserType.TRIAL)) return 'TRIAL'
   return 'MEMBER'
 }
 
 function isFieldApplicable(memberId: number, field: ProfileField): boolean {
-  const roles = props.memberRolesMap.get(memberId) ?? []
-  return getScopeForUserType(roles) === field.scope
+  return props.isAskedOf(field.id, roleOf(memberId))
 }
 
 function getApplicableOverviewFields(memberId: number): ProfileField[] {
-  const roles = props.memberRolesMap.get(memberId) ?? []
-  const scope = getScopeForUserType(roles)
-  return props.overviewFields.filter(f => f.scope === scope)
+  const role = roleOf(memberId)
+  return props.overviewFields.filter(f => props.isAskedOf(f.id, role))
 }
 
 function getManagers(memberId: number): StationMember[] {

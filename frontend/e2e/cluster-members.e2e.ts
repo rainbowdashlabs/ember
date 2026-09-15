@@ -114,12 +114,16 @@ test.describe('Cluster members and fields', () => {
             headers,
             data: {
                 name: `Funkrufname ${test.info().workerIndex}-${Date.now()}`,
-                fieldType: 'TEXT', config: null, position: 0, scope: 'MEMBER',
+                fieldType: 'TEXT', config: null,
                 stationReadonly: false, keepOnArchive: false,
             },
         })
         expect(field.ok()).toBeTruthy()
         const {id: fieldId} = await field.json()
+        await page.request.put(`/api/v1/cluster/fields/${fieldId}/assignments`, {
+            headers,
+            data: {role: 'MEMBER', position: 0},
+        })
 
         const {members} = await page.request
             .get('/api/v1/cluster/members/manage/search?size=50', {headers})
@@ -166,20 +170,26 @@ test.describe('Cluster members and fields', () => {
             const kept = await page.request.post('/api/v1/cluster/fields', {
                 headers,
                 data: {
-                    name: `Führerschein ${stamp}`, fieldType: 'TEXT', config: null, position: 0,
-                    scope: 'MEMBER', stationReadonly: true, keepOnArchive: false,
+                    name: `Führerschein ${stamp}`, fieldType: 'TEXT', config: null,
+                    stationReadonly: true, keepOnArchive: false,
                 },
             })
             const open = await page.request.post('/api/v1/cluster/fields', {
                 headers,
                 data: {
-                    name: `Spind ${stamp}`, fieldType: 'TEXT', config: null, position: 1,
-                    scope: 'MEMBER', stationReadonly: false, keepOnArchive: false,
+                    name: `Spind ${stamp}`, fieldType: 'TEXT', config: null,
+                    stationReadonly: false, keepOnArchive: false,
                 },
             })
             expect(kept.ok() && open.ok()).toBeTruthy()
             const keptId = (await kept.json()).id
             const openId = (await open.json()).id
+            for (const [position, id] of [keptId, openId].entries()) {
+                await page.request.put(`/api/v1/cluster/fields/${id}/assignments`, {
+                    headers,
+                    data: {role: 'MEMBER', position},
+                })
+            }
 
             const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
             const stationHeaders = await apiHeaders(station)
@@ -235,12 +245,16 @@ test.describe('Cluster members and fields', () => {
         const field = await page.request.post('/api/v1/cluster/fields', {
             headers,
             data: {
-                name: `Atemschutz ${stamp}`, fieldType: 'TEXT', config: null, position: 0,
-                scope: 'MEMBER', stationReadonly: false, keepOnArchive: false,
+                name: `Atemschutz ${stamp}`, fieldType: 'TEXT', config: null,
+                stationReadonly: false, keepOnArchive: false,
             },
         })
         expect(field.ok()).toBeTruthy()
         const fieldId = (await field.json()).id
+        await page.request.put(`/api/v1/cluster/fields/${fieldId}/assignments`, {
+            headers,
+            data: {role: 'MEMBER', position: 0},
+        })
 
         // Answered for somebody at the station that will read the history. A station's history is its
         // own people, so answering for whoever came first across all the stations reads back as nothing
@@ -270,26 +284,20 @@ test.describe('Cluster members and fields', () => {
     })
 
     /**
-     * CLS-30 - A cluster field cannot be group-scoped or a birth date.
+     * CLS-30 - A cluster field cannot be a birth date.
      *
-     * A group belongs to one station and a birth date belongs to the station that has to act on it, so
-     * neither is a question a cluster may ask.
+     * A birth date belongs to the station that has to act on it, so it is not a question a cluster may
+     * ask. A member group is no longer refusable at all: a group is a target an assignment names, and a
+     * cluster's assignments name a kind of member and nothing else, so there is nothing to refuse.
      */
-    test('a cluster field cannot be group-scoped or a birth date', async ({adminPage: page}) => {
+    test('a cluster field cannot be a birth date', async ({adminPage: page}) => {
         const cluster = await enterCluster(page)
         const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
 
-        const grouped = await page.request.post('/api/v1/cluster/fields', {
-            headers,
-            data: {name: 'Gruppenfrage', fieldType: 'TEXT', config: null, position: 0,
-                scope: 'GROUP', stationReadonly: true, keepOnArchive: false},
-        })
-        expect(grouped.ok()).toBeFalsy()
-
         const born = await page.request.post('/api/v1/cluster/fields', {
             headers,
-            data: {name: 'Geburtstag', fieldType: 'BIRTH_DATE', config: null, position: 0,
-                scope: 'GLOBAL', stationReadonly: true, keepOnArchive: false},
+            data: {name: 'Geburtstag', fieldType: 'BIRTH_DATE', config: null,
+                stationReadonly: true, keepOnArchive: false},
         })
         expect(born.ok()).toBeFalsy()
     })

@@ -8,6 +8,21 @@ import {test, expect, accountWithout, pageAsThrowaway} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 import {createMember} from './fixtures/member'
 import {pickMemberByName} from './fixtures/memberMenu'
+import type {Page} from '@playwright/test'
+
+/**
+ * Puts a question already written down to the station's ordinary members.
+ *
+ * <p>A question and who is asked it are two things now, so writing one down no longer puts it on
+ * anybody's form. The stories below want it on the members' one, and this is the walk that gets it
+ * there.
+ */
+async function askOfMembers(page: Page, field: string) {
+    await page.getByTestId(`field-row-${field}`).click()
+    const panel = page.getByTestId('audiences-panel')
+    await panel.getByTestId('audience-add').selectOption('ROLE:MEMBER')
+    await expect(panel.getByTestId('audience-Mitglieder')).toBeVisible({timeout: 15000})
+}
 
 test.describe('Members', () => {
     test('a member is created through the wizard', async ({managerPage: page}) => {
@@ -204,7 +219,8 @@ test.describe('Members', () => {
         await page.getByPlaceholder('Name des Feldes').fill(field)
         await page.getByRole('button', {name: 'Speichern'}).click()
 
-        await expect(page.getByText(field).first()).toBeVisible()
+        await expect(page.getByTestId(`field-row-${field}`)).toBeVisible()
+        await askOfMembers(page, field)
 
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(created)
@@ -239,7 +255,8 @@ test.describe('Members', () => {
         await dialog.getByTestId('question-option-1').fill('Nein')
         await dialog.getByRole('button', {name: 'Speichern'}).click()
 
-        await expect(page.getByText(field).first()).toBeVisible()
+        await expect(page.getByTestId(`field-row-${field}`)).toBeVisible()
+        await askOfMembers(page, field)
 
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(created)
@@ -293,13 +310,16 @@ test.describe('Members', () => {
         await sectionDialog.getByPlaceholder('Name des Feldes').fill(heading)
         await sectionDialog.getByRole('combobox').first().selectOption('SECTION')
         await sectionDialog.getByRole('button', {name: 'Speichern'}).click()
+        await expect(page.getByTestId(`field-row-${heading}`)).toBeVisible()
+        await askOfMembers(page, heading)
 
         await page.getByRole('button', {name: 'Feld hinzufügen'}).first().click()
         const dateDialog = page.getByRole('dialog')
         await dateDialog.getByPlaceholder('Name des Feldes').fill(dateField)
         await dateDialog.getByRole('combobox').first().selectOption('DATE')
         await dateDialog.getByRole('button', {name: 'Speichern'}).click()
-        await expect(page.getByText(dateField).first()).toBeVisible()
+        await expect(page.getByTestId(`field-row-${dateField}`)).toBeVisible()
+        await askOfMembers(page, dateField)
 
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(created)
@@ -323,26 +343,33 @@ test.describe('Members', () => {
     })
 
     /**
-     * A field of group scope is listed at its group and nowhere else, so the group it was made for
-     * has to survive being saved. It travels as one opaque lump of configuration, which no type on
-     * either side describes, so only walking both ends says whether it arrived.
+     * A group is one of the audiences a question can be put to, and the assignment that says so is a
+     * row of its own.
+     *
+     * <p>It used to live inside the question's configuration, as one opaque lump that no type on
+     * either side described, and a question that lost its group belonged nowhere and was shown
+     * nowhere. Only walking both ends says whether it survived being saved.
      */
-    test('a field made for a group is still at that group afterwards', async ({managerPage: page}) => {
+    test('a question put to a group is still at that group afterwards', async ({managerPage: page}) => {
         const field = unique('Gruppenfeld')
 
         await page.goto('/station/members/config')
-        await page.getByRole('button', {name: 'Gruppenspezifisch'}).click()
-        await page.getByRole('combobox').first().selectOption({index: 1})
         await page.getByRole('button', {name: 'Feld hinzufügen'}).first().click()
         await page.getByPlaceholder('Name des Feldes').fill(field)
         await page.getByRole('button', {name: 'Speichern'}).click()
+        await expect(page.getByTestId(`field-row-${field}`)).toBeVisible()
 
-        await expect(page.getByText(field).first()).toBeVisible()
+        await page.getByTestId(`field-row-${field}`).click()
+        const panel = page.getByTestId('audiences-panel')
+        const add = panel.getByTestId('audience-add')
+        const group = (await add.locator('option').last().textContent())?.trim() ?? ''
+        await add.selectOption({index: (await add.locator('option').count()) - 1})
+        await expect(panel.getByTestId(`audience-${group}`)).toBeVisible({timeout: 15000})
 
         await page.reload()
-        await page.getByRole('button', {name: 'Gruppenspezifisch'}).click()
-        await page.getByRole('combobox').first().selectOption({index: 1})
-        await expect(page.getByText(field).first()).toBeVisible()
+        await page.getByTestId(`field-row-${field}`).click()
+        await expect(page.getByTestId('audiences-panel').getByTestId(`audience-${group}`))
+            .toBeVisible({timeout: 15000})
     })
 
     /**

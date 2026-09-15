@@ -7,6 +7,10 @@
 import {useI18n} from 'vue-i18n'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 
+/**
+ * What the question says of itself, which holds for everybody asked it. Who may write the answer is
+ * one of them: it is the question's own and not something one audience is told and another is not.
+ */
 const required = defineModel<boolean>('required', {required: true})
 const readonly = defineModel<boolean>('readonly', {required: true})
 const notifyOnChange = defineModel<boolean>('notifyOnChange', {required: true})
@@ -14,22 +18,21 @@ const overview = defineModel<boolean>('overview', {required: true})
 const keepOnArchive = defineModel<boolean>('keepOnArchive', {required: true})
 
 const {t} = useI18n()
-
-function onReadonlyChange(v: boolean) {
-  if (v) required.value = false
-}
 </script>
 
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between">
-      <label class="text-sm font-medium" :class="{ 'opacity-50': readonly }">{{ t('membersConfig.fieldRequired') }}</label>
-      <ToggleInput v-model="required" :disabled="readonly"/>
+    <div class="space-y-1">
+      <div class="flex items-center justify-between">
+        <label class="text-sm font-medium">{{ t('membersConfig.fieldRequired') }}</label>
+        <ToggleInput v-model="required"/>
+      </div>
+      <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldRequiredHint') }}</p>
     </div>
     <div class="space-y-1">
       <div class="flex items-center justify-between">
         <label class="text-sm font-medium">{{ t('membersConfig.fieldReadonly') }}</label>
-        <ToggleInput v-model="readonly" @update:model-value="onReadonlyChange"/>
+        <ToggleInput v-model="readonly"/>
       </div>
       <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldReadonlyHint') }}</p>
     </div>
