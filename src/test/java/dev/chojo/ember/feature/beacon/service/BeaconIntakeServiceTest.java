@@ -71,6 +71,30 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
         assertThrows(ForbiddenResponse.class, () -> service.accept(key(), old, OWN_URL));
     }
 
+    /**
+     * The address a delivery is weighed against is the beacon's own, not the beacon it reports to.
+     *
+     * <p>Those are opposite directions and a beacon that reports nowhere has only the first. The route
+     * handed over the second, so every signed delivery was turned away as "addressed to another
+     * beacon" unless the instance happened to report to itself. This test is the pair told apart.
+     */
+    @Test
+    void theAudienceIsTheBeaconsOwnAddressAndNotTheOneItReportsTo() {
+        String ownAddress = "https://beacon.test";
+        String theBeaconItReportsTo = "https://somebody-else.test";
+        var addressedHere = envelope(Instant.now(), ownAddress);
+
+        assertEquals(
+                DiscoveryKeyService.computeInstanceId(key()).length(),
+                service.accept(key(), addressedHere, ownAddress).length(),
+                "a delivery addressed to this beacon is taken");
+
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.accept(key(), envelope(Instant.now(), ownAddress), theBeaconItReportsTo),
+                "and weighing it against the wrong address turns it away");
+    }
+
     /** A report captured by one beacon cannot be handed to another. */
     @Test
     void aReportMeantForAnotherBeaconIsRefused() {

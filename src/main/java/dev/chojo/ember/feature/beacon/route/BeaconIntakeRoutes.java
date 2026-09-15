@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.beacon.route;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.beacon.service.BeaconIntakeService;
@@ -52,6 +53,7 @@ public class BeaconIntakeRoutes implements Routes {
     private static final int PER_MINUTE = 10;
 
     private final BeaconSettings config;
+    private final Api api;
     private final Network network;
     private final BeaconIntakeService intake;
     private final DiscoverySigningService signing;
@@ -59,8 +61,13 @@ public class BeaconIntakeRoutes implements Routes {
 
     @Inject
     public BeaconIntakeRoutes(
-            BeaconSettings config, Network network, BeaconIntakeService intake, DiscoverySigningService signing) {
+            BeaconSettings config,
+            Api api,
+            Network network,
+            BeaconIntakeService intake,
+            DiscoverySigningService signing) {
         this.config = config;
+        this.api = api;
         this.network = network;
         this.intake = intake;
         this.signing = signing;
@@ -101,6 +108,12 @@ public class BeaconIntakeRoutes implements Routes {
      *
      * <p>The key travels in a header and the identifier is computed from it. Nothing in the body is
      * consulted for identity, so no sender can claim to be another.
+     *
+     * <p>The audience is checked against this instance's own address, not against the beacon it
+     * reports to itself. Those are opposite directions, and a beacon that does not report anywhere
+     * has no second address at all: comparing against the outbound setting turned every signed
+     * delivery away with "addressed to another beacon" on any instance whose beacon happened not to
+     * be itself.
      */
     private Sender senderOf(Context ctx, String body, BeaconPayloads.Envelope envelope) {
         String key = ctx.header("X-Beacon-Key");
@@ -117,7 +130,7 @@ public class BeaconIntakeRoutes implements Routes {
         } catch (IllegalArgumentException e) {
             throw new ForbiddenResponse("That is not a key");
         }
-        return new Sender(intake.accept(raw, envelope, config.url()), key);
+        return new Sender(intake.accept(raw, envelope, api.baseUrl()), key);
     }
 
     private void takeProblem(Context ctx) {

@@ -10,8 +10,10 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
+import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -28,10 +30,15 @@ import jakarta.inject.Singleton;
 @Singleton
 public class ProblemReportRoutes implements Routes {
     private final ProblemReportRepository repository;
+    private final BeaconReportService beacon;
+    private final UpdateCheckService updates;
 
     @Inject
-    public ProblemReportRoutes(ProblemReportRepository repository) {
+    public ProblemReportRoutes(
+            ProblemReportRepository repository, BeaconReportService beacon, UpdateCheckService updates) {
         this.repository = repository;
+        this.beacon = beacon;
+        this.updates = updates;
     }
 
     @Override
@@ -75,6 +82,10 @@ public class ProblemReportRoutes implements Routes {
                 request.recentRequests(),
                 request.browserInfo(),
                 request.screenSize());
+        // Forwarded on the way out rather than swept up later, so a report reaches the beacon while
+        // whoever wrote it is still at the screen they wrote it about. The service decides whether the
+        // operator agreed to that and queues without blocking this response.
+        beacon.sendReport(report.message(), report.pageUrl(), report.createdAt(), updates.currentVersion());
         ctx.status(HttpStatus.CREATED).json(report);
     }
 
