@@ -18,3 +18,22 @@ export async function getUpdateStatus(): Promise<UpdateStatus> {
     const res = await client.get<UpdateStatus>('/system/update')
     return res.data
 }
+
+/** What one version of this instance brought. */
+export interface ChangelogEntry {
+    /** The version it belongs to, as the numbers alone. */
+    version: string
+    /** What it brought, as markdown. */
+    body: string
+}
+
+/**
+ * What every version brought, newest first, as the instance itself holds it.
+ *
+ * <p>Read from the instance rather than from GitHub, so an installation with no way out can still
+ * say what it changed and nobody has to leave an address elsewhere to find out.
+ */
+export async function getChangelog(lang = 'de'): Promise<ChangelogEntry[]> {
+    const res = await client.get<ChangelogEntry[]>('/public/changelog', {params: {lang}})
+    return res.data
+}

@@ -143,6 +143,17 @@ tasks {
             }
             duplicatesStrategy = DuplicatesStrategy.INCLUDE
         }
+        // The changelog is read by the instance rather than fetched from GitHub by whoever is
+        // looking at it, so it travels in the jar beside the version it belongs to. One file per
+        // language, named by the locale that asks for it.
+        from(layout.projectDirectory.file("CHANGELOG.md")) {
+            into("changelog")
+            rename { "en.md" }
+        }
+        from(layout.projectDirectory.file("CHANGELOG.de.md")) {
+            into("changelog")
+            rename { "de.md" }
+        }
     }
 
     test {

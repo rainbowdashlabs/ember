@@ -8,6 +8,7 @@ package dev.chojo.ember.conf.file;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.conf.file.elements.Auth;
+import dev.chojo.ember.conf.file.elements.Changelog;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
@@ -42,10 +43,15 @@ public class File {
     private KnowledgeBase knowledgeBase = new KnowledgeBase();
     private Attendance attendance = new Attendance();
     private Updates updates = new Updates();
+    private Changelog changelog = new Changelog();
     private MailImport mailImport = new MailImport();
 
     public MailImport mailImport() {
         return mailImport;
+    }
+
+    public Changelog changelog() {
+        return changelog;
     }
 
     public Attendance attendance() {

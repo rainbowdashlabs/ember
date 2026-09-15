@@ -37,3 +37,50 @@ test.describe('Update check', () => {
         expect(typeof status.updateAvailable).toBe('boolean')
     })
 })
+
+/**
+ * What the instance changed, read from the instance.
+ *
+ * <p>This is the half that does not depend on GitHub at all, which is the point of it: the notes
+ * travel in the jar, so they are here to be asked for whether or not anything outside can be
+ * reached.
+ */
+test.describe('Changelog', () => {
+    /** Public, like the version the footer already shows beside the link to this page. */
+    test('the changelog is served by the instance to anybody who asks', async ({page}) => {
+        const response = await page.request.get('/api/v1/public/changelog')
+        expect(response.ok(), await response.text()).toBe(true)
+
+        const entries = await response.json()
+        expect(entries.length, 'the changelog travels with the instance').toBeGreaterThan(0)
+        expect(entries[0].version).toMatch(/^\d+(\.\d+)*$/)
+        expect(entries[0].body.length).toBeGreaterThan(0)
+    })
+
+    /** German is what the product speaks, and the newest version is the one that has to be in it. */
+    test('the newest version reads German', async ({page}) => {
+        const response = await page.request.get('/api/v1/public/changelog?lang=de')
+        const [newest] = await response.json()
+
+        expect(newest.body).toMatch(/Neue Funktionen|Änderungen|Fehlerbehebungen|Verbesserungen/)
+    })
+
+    /**
+     * The page draws what the instance served and asks nobody else for it. A story that only looked
+     * at the text would pass just as well against the GitHub call this replaced.
+     */
+    test('the page draws the changelog without calling out to GitHub', async ({page}) => {
+        const outward: string[] = []
+        await page.route('https://api.github.com/**', async route => {
+            outward.push(route.request().url())
+            await route.abort()
+        })
+
+        await page.goto('/patch-notes')
+        const versions = page.getByTestId('changelog-version')
+        await expect(versions.first()).toBeVisible()
+
+        expect(outward, 'nothing is asked of GitHub').toEqual([])
+        await expect(page.getByTestId('changelog-current')).toBeVisible()
+    })
+})

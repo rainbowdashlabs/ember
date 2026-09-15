@@ -450,6 +450,51 @@ jobs:
           echo "When the change is the point, put [modify patch] in a commit message on this branch."
           exit 1
 
+  # The changelog is shipped in two languages and read in the one the product speaks. A version
+  # translated on one side only is the failure that design is open to, so it is the one thing CI
+  # holds: the same versions, in the same order, in both files.
+  verify-changelog-languages:
+    runs-on: ubuntu-latest
+    name: Verify Changelog Languages
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check that both changelogs name the same versions
+        run: |
+          versions() { grep -E '^## v?[0-9]+(\.[0-9]+)*[[:space:]]*$' "$1" | sed -E 's/^##[[:space:]]*//; s/[[:space:]]*$//'; }
+          german=$(versions CHANGELOG.de.md)
+          english=$(versions CHANGELOG.md)
+
+          # The German file begins where it was introduced, so it carries a tail of the English one
+          # rather than all of it. What it must not do is name a version the English file does not,
+          # or put the ones it shares in another order.
+          missing=$(comm -23 <(printf '%s\n' "$german" | sort) <(printf '%s\n' "$english" | sort) || true)
+          if [ -n "$missing" ]; then
+            echo "CHANGELOG.de.md names versions CHANGELOG.md does not:"
+            printf '  %s\n' $missing
+            exit 1
+          fi
+
+          shared=$(printf '%s\n' "$english" | grep -Fx -f <(printf '%s\n' "$german") || true)
+          if [ "$shared" != "$german" ]; then
+            echo "The two changelogs disagree about the order of the versions they share."
+            echo "English, restricted to what German carries:"
+            printf '  %s\n' $shared
+            echo "German:"
+            printf '  %s\n' $german
+            exit 1
+          fi
+
+          newest_english=$(printf '%s\n' "$english" | head -1)
+          newest_german=$(printf '%s\n' "$german" | head -1)
+          if [ "$newest_english" != "$newest_german" ]; then
+            echo "The newest version is $newest_english in English but $newest_german in German."
+            echo "Write the German entries for $newest_english in CHANGELOG.de.md; the screen reads"
+            echo "German, and a release translated on one side only shows the other language."
+            exit 1
+          fi
+
+          echo "Both changelogs agree on $(printf '%s\n' "$german" | grep -c .) shared version(s)."
+
   # A patch that has not reached main has not reached any database either, so several of them on one
   # branch carry no history worth keeping apart and are free to become one file.
   verify-one-migration-per-change:
