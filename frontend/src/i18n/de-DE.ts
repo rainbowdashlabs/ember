@@ -1924,6 +1924,7 @@ export default {
         incompleteHint: 'Bitte fülle die folgenden Pflichtfelder aus:',
         save: 'Speichern',
         readonlyHint: 'nur lesbar',
+        calculatedHint: 'berechnet',
         chooseOne: 'Bitte auswählen',
         absenceEmpty: 'Keine Abwesenheiten eingetragen.',
         absenceAdd: 'Abwesenheit eintragen',

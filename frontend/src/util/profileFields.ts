@@ -4,6 +4,33 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {type Ref} from 'vue'
+import {ageSourceOf, FieldTypes, parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import {computeAge} from '@/util/age'
+
+/**
+ * The answer to a question that is worked out rather than given, or null where this question is
+ * not one of those.
+ *
+ * <p>Every screen that shows such an answer has to work it out, because none is stored: the field
+ * can hold one, and a question that was a number before it became a calculated age still carries
+ * whatever was written back then. A screen that read the stored answer showed that old number and
+ * went on showing it, beside a list that had already worked out the real one.
+ *
+ * @param field      the question being shown
+ * @param fields     the questions it may count from, which are the ones of its own owner
+ * @param rawValueOf reads the answer to another question of the same member
+ */
+export function calculatedAnswer(
+    field: Pick<ProfileField, 'fieldType' | 'config'>,
+    fields: readonly ProfileField[],
+    rawValueOf: (fieldId: number) => unknown,
+): string | null {
+    if (field.fieldType !== FieldTypes.AGE) return null
+    const config = parseFieldConfig(field.config)
+    const source = ageSourceOf(config, fields)
+    if (!source) return ''
+    return computeAge(String(rawValueOf(source.id) ?? ''), (config.ageMode as string) ?? 'now')
+}
 
 /**
  * Reads a profile field value from a {@link Map}-backed {@link Ref}, returning
