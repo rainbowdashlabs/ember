@@ -5225,8 +5225,12 @@ volumes:
             exampleText: 'Oben der Schalter und die Sammel-Schaltfläche, darunter eine Karte pro Meldung.',
             detailsTitle: 'Was steckt in den Details?',
             detailsText: 'Aufgeklappt siehst du, auf welcher Seite die Person war, welche Rechte sie hat, welchen Browser und welche Bildschirmgröße sie nutzt. Darunter stehen ihre letzten Aufrufe mit Zeitpunkt und Ergebnis.',
+            pictureTitle: 'Bilder in Meldungen',
+            pictureText: 'Wer eine Meldung schreibt, kann ein Bild der Seite mitschicken. Es ist freiwillig, wird nie von allein aufgenommen, und was darauf niemand sehen soll, wird vor dem Absenden übermalt. Aufgeklappt steht das Bild unter den Angaben zur Meldung.',
+            pictureForwardText: 'Meldest du an einen Beacon weiter, wartet eine Meldung mit Bild, bis du sie weitergibst. Im Fenster „Was gesendet wird" kannst du weitere Stellen übermalen oder das Bild aus der Sendung nehmen. Ein weggelassenes Bild wird nie nachgereicht, und ein Schalter in den Beacon-Einstellungen schickt Meldungen mit Bild stattdessen sofort raus.',
             ackTitle: 'Erledigt und gelöscht',
             ackText: 'Erledigte Meldungen verschwinden aus der Liste, bleiben aber gespeichert. Gelöschte Meldungen sind endgültig weg. „Alle bestätigen" erledigt in einem Schritt alles Offene.',
+            retentionText: 'Dreißig Tage nachdem eine Meldung als erledigt markiert wurde, wird sie samt Bild gelöscht. Eine Meldung, die niemand als erledigt markiert, bleibt liegen.',
             tip: 'Schau erst in die Details, bevor du eine Meldung erledigst - die letzten Aufrufe zeigen oft schon, woran es lag.',
         },
         adminLog: {

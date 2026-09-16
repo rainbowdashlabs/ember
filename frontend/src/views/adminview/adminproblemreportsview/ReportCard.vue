@@ -12,6 +12,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import ReportCardHeader from '@/components/problem/ReportCardHeader.vue'
 import ReportMetadata from './ReportMetadata.vue'
 import RecentRequestsTable from '@/components/problem/RecentRequestsTable.vue'
+import AuthImage from '@/components/display/AuthImage.vue'
 import type {ProblemReport} from '@/api/problemReports'
 import type {RequestHistoryEntry} from '@/api/client'
 
@@ -63,6 +64,12 @@ const recentRequests = computed<RequestHistoryEntry[]>(() => {
 
     <template v-if="expanded">
       <ReportMetadata :report="report"/>
+      <AuthImage
+          v-if="report.screenshotFileId"
+          :src="`/admin/problem-reports/${report.id}/screenshot`"
+          class="w-full rounded-theme border border-bg-light-accent dark:border-bg-dark-accent"
+          data-testid="report-screenshot"
+      />
       <RecentRequestsTable v-if="recentRequests.length > 0" :requests="recentRequests"/>
     </template>
   </NeutralContainer>

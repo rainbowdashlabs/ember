@@ -4,6 +4,7 @@
 
 ### Neue Funktionen
 
+- **Eine Problemmeldung kann ein Bild der Seite mitbringen.** Auf Knopfdruck fragt der Browser, welches Fenster geteilt werden soll, oder du wählst ein Bild, das du selbst gemacht hast; zieh über alles, was niemand sehen soll, und es wird übermalt, bevor die Meldung rausgeht. Von allein wird nie etwas aufgenommen, Passwortfelder sind abgedeckt, bevor das Bild überhaupt erscheint, und eine Meldung ohne Bild ist wie bisher.
 - **Ein Mitglied kann so genannt werden, wie es alle tatsächlich nennen.** Wer im Register Maximilian heißt und in der ganzen Wache Max gerufen wird, hinterlegt einen Spitznamen im Profil, und von da an steht auf dem Brett, in den Kommentaren, bei den Anmeldungen, in den Benachrichtigungen und in den Mails Max. In Mitgliederlisten steht `Maximilian "Max" Hoffmann`, damit niemand raten muss, wer gemeint ist. Das Mitglied setzt seinen eigenen, und wer sich um es kümmert, darf einen für es setzen; sonst niemand, egal mit welchen Rechten, und wer ihn geschrieben hat, wird festgehalten. Eine Wache, die lieber durchgehend Registernamen führt, schaltet das Ganze ab, und jeder hinterlegte Spitzname bleibt erhalten.
 - **Auf einem Dokument steht weiterhin der Name aus dem Register.** Anwesenheitsliste, Prüfprotokoll, Bestands- und Bewegungsexporte und die Datenauskunft nennen Maximilian Hoffmann, was immer die Bildschirme sagen. Wer die Wache verlässt, behält in den alten Einträgen den Namen, unter dem die Wache ihn kannte.
 
@@ -12,6 +13,8 @@
 - **Das Änderungsprotokoll sagt, wann eine Version erschienen ist.** Jeder Eintrag trägt jetzt den Tag seines Erscheinens, mit der genauen Uhrzeit unter dem Mauszeiger, und endet mit einem Link, der seine Änderungen gegenüber der vorherigen Veröffentlichung auf GitHub öffnet.
 - **Ein Geburtsdatum kann ohne das Alter dahinter stehen.** Das Feld hat jetzt einen Schalter dafür, eingeschaltet wie bisher, damit eine Wache, die das Alter zusätzlich als eigene Frage stellt, es nicht zweimal in einer Zeile stehen hat.
 - **Ein berechnetes Feld bietet nur noch die Einstellungen an, die es erreichen.** Seine Antwort schreibt niemand, also fragt es nicht mehr, ob eine Antwort erwartet wird, ob sie geschrieben werden darf, ob eine Änderung gemeldet werden soll oder womit sie beginnen soll.
+- **Das Bild einer Meldung kann an einen Beacon weitergehen, nachdem jemand hier es angesehen hat.** Eine Meldung mit Bild wartet in der Verwaltungsliste, bis sie weitergegeben wird; dort lässt sich vorher mehr übermalen oder das Bild aus der Sendung nehmen. Ein Schalter in den Beacon-Einstellungen schickt sie stattdessen sofort raus, und ein weggelassenes Bild wird einer Meldung nie nachgereicht.
+- **Problemmeldungen werden aufgeräumt.** Dreißig Tage nachdem eine Meldung als erledigt markiert wurde, wird sie mit ihrem Bild gelöscht. Bisher blieben sie für immer liegen.
 
 ### Fehlerbehebungen
 

@@ -16,6 +16,8 @@ export interface BeaconStatus {
     url: string
     forwardProblems: boolean
     forwardReports: boolean
+    /** Whether a report carrying a picture waits for somebody here before it is passed on. */
+    reviewReportPictures: boolean
     metricsEnabled: boolean
     receiving: boolean
     contactName: string
@@ -151,8 +153,22 @@ export async function previewReportPayload(id: number): Promise<ReportPayload> {
  * <p>Whatever the automatic switch says: the switch governs what leaves on its own, and this is an
  * operator deciding about the report in front of them.
  */
-export async function sendReportToBeacon(id: number): Promise<number> {
-    return (await client.post<{queued: number}>(`/admin/beacon/reports/${id}/send`)).data.queued
+export async function sendReportToBeacon(id: number, picture?: ReportPictureDecision): Promise<number> {
+    const answer = await client.post<{queued: number}>(`/admin/beacon/reports/${id}/send`, picture ?? {})
+    return answer.data.queued
+}
+
+/**
+ * What an operator decided about the picture of the report they are passing on.
+ *
+ * <p>A report and its picture travel together or the picture does not travel: there is no sending it
+ * afterwards, which is why this is decided here and only here.
+ */
+export interface ReportPictureDecision {
+    /** A further covered copy to send in place of the reporter's, or null to send theirs as it is. */
+    screenshot?: string | null
+    /** Whether it goes without a picture at all. */
+    dropScreenshot?: boolean
 }
 
 /** The day's numbers as they would go, so an operator can see what leaves. */

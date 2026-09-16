@@ -4,6 +4,7 @@
 
 ### New Features
 
+- **A problem report can carry a picture of the page.** Press for one and the browser asks which window to share, or attach one you took yourself; drag over anything that should not be seen and it is painted out before the report is sent. Nothing is ever captured on its own, password fields are covered before the picture is shown at all, and a report without a picture is as it always was.
 - **A member can be called by the name everybody actually uses.** Somebody entered in the register as Maximilian and known to the whole station as Max sets a nickname on their profile, and from then on the board, the comments, who is coming on Friday, the notifications and the mails all say Max. A member list says `Maximilian "Max" Hoffmann`, so nobody has to guess who that is. A member sets their own, and whoever looks after them may set one for them; nobody else may, however senior, and who wrote it is recorded. A station that would rather keep register names throughout can switch the whole thing off, and every nickname is kept rather than deleted.
 - **A document still carries the name in the register.** The attendance sheet, the test protocol, the inventory and movement exports and the data handed over under a data request read Maximilian Hoffmann, whatever the screens say. A member who leaves keeps the name the station knew them by in the old entries that name them.
 
@@ -12,6 +13,8 @@
 - **The changelog says when each version was released.** Every entry now carries the day it came out, with the exact time under the pointer, and ends with a link that opens its changes against the release before it on GitHub.
 - **A birth date can be shown without the age behind it.** The field now carries a switch for it, on as before, so a station that also asks the age as a question of its own no longer states it twice on one row.
 - **A calculated field only offers the settings that reach it.** Nobody writes the answer to one, so it no longer asks whether an answer is expected, whether it may be written, whether a change should be reported, or what it should start out as.
+- **A report's picture can be passed on to a beacon, after somebody here has looked at it.** A report carrying one waits in the admin list until it is sent, where more of the picture can be painted out first or the picture dropped from the delivery; a switch in the beacon settings sends them straight out instead. A picture left out of a report is never sent after it.
+- **Problem reports are cleaned up.** Thirty days after a report is marked dealt with, it is deleted with its picture. Until now they were kept for good.
 
 ### Fixes
 

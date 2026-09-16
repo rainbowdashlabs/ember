@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.beacon.service.BeaconSettings;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
+import dev.chojo.ember.feature.system.service.ProblemReportScreenshotService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -41,6 +42,7 @@ public class BeaconAdminRoutes implements Routes {
     private final UpdateCheckService updates;
     private final BeaconReadRepository collected;
     private final ProblemReportRepository problemReports;
+    private final ProblemReportScreenshotService pictures;
 
     @Inject
     public BeaconAdminRoutes(
@@ -49,13 +51,15 @@ public class BeaconAdminRoutes implements Routes {
             BeaconMetricsService metrics,
             UpdateCheckService updates,
             BeaconReadRepository collected,
-            ProblemReportRepository problemReports) {
+            ProblemReportRepository problemReports,
+            ProblemReportScreenshotService pictures) {
         this.config = config;
         this.reports = reports;
         this.metrics = metrics;
         this.updates = updates;
         this.collected = collected;
         this.problemReports = problemReports;
+        this.pictures = pictures;
     }
 
     @Override
@@ -142,6 +146,7 @@ public class BeaconAdminRoutes implements Routes {
             String url,
             boolean forwardProblems,
             boolean forwardReports,
+            boolean reviewReportPictures,
             boolean metricsEnabled,
             boolean receiving,
             String contactName,
@@ -153,6 +158,7 @@ public class BeaconAdminRoutes implements Routes {
                 config.url(),
                 config.forwardProblems(),
                 config.forwardReports(),
+                config.reviewReportPictures(),
                 config.metricsEnabled(),
                 config.receiving(),
                 config.contactName(),
@@ -172,6 +178,7 @@ public class BeaconAdminRoutes implements Routes {
                 request.url(),
                 request.forwardProblems(),
                 request.forwardReports(),
+                request.reviewReportPictures(),
                 request.metricsEnabled(),
                 request.receiving(),
                 request.contactName(),
@@ -179,12 +186,18 @@ public class BeaconAdminRoutes implements Routes {
         status(ctx);
     }
 
-    /** The switches and the contact, as the screen sends them back. */
+    /**
+     * The switches and the contact, as the screen sends them back.
+     *
+     * @param reviewReportPictures whether a report carrying a picture waits for somebody here before
+     *     it is passed on. On unless an operator says otherwise
+     */
     public record SettingsRequest(
             boolean enabled,
             String url,
             boolean forwardProblems,
             boolean forwardReports,
+            boolean reviewReportPictures,
             boolean metricsEnabled,
             boolean receiving,
             String contactName,
@@ -251,9 +264,49 @@ public class BeaconAdminRoutes implements Routes {
      */
     private void sendReport(Context ctx) {
         requireEnabled();
-        boolean queued = reports.sendReportNow(report(ctx), updates.currentVersion());
+        var report = report(ctx);
+        var decision =
+                ctx.body().isBlank() ? new SendReportRequest(null, false) : ctx.bodyAsClass(SendReportRequest.class);
+
+        Integer pictureId = report.screenshotFileId();
+        boolean temporary = false;
+        if (decision.dropScreenshot()) {
+            pictureId = null;
+        } else if (decision.screenshot() != null && !decision.screenshot().isBlank()) {
+            var covered = pictures.store(decision.screenshot(), null);
+            if (covered.isPresent()) {
+                pictureId = covered.get();
+                temporary = true;
+            }
+        }
+
+        byte[] bytes = null;
+        String type = null;
+        if (pictureId != null) {
+            var picture = pictures.read(pictureId);
+            if (picture.isPresent()) {
+                bytes = picture.get().data();
+                type = picture.get().contentType();
+            }
+        }
+        boolean queued = reports.sendReportNow(report, updates.currentVersion(), bytes, type);
+        if (queued) problemReports.markForwarded(report.id());
+        if (temporary) pictures.forget(pictureId);
         ctx.json(new SendResult(queued ? 1 : 0));
     }
+
+    /**
+     * What an operator decided about the picture of the report they are passing on.
+     *
+     * <p>Absent altogether where they simply pressed send, which is the case this had before pictures
+     * existed and still the common one.
+     *
+     * @param screenshot     a further covered copy to send in place of the one the reporter covered,
+     *                       or null to send theirs as it stands
+     * @param dropScreenshot whether the report goes without any picture, which is final: a picture
+     *                       left out of a report is never sent after it
+     */
+    public record SendReportRequest(String screenshot, boolean dropScreenshot) {}
 
     private ProblemReport report(Context ctx) {
         return problemReports.findById(pathId(ctx)).orElseThrow(NotFoundResponse::new);

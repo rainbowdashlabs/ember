@@ -90,7 +90,8 @@ class BeaconDeliveryTest {
                 "1920x1080",
                 "LOGIN, USER",
                 "[{\"url\":\"/api/v1/events\",\"status\":500}]",
-                Instant.now());
+                Instant.now(),
+                null);
     }
 
     /**

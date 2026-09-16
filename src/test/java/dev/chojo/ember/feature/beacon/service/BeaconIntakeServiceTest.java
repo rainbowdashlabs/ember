@@ -193,7 +193,8 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                Instant.now());
+                Instant.now(),
+                null);
         assertThrows(BadRequestResponse.class, () -> service.storeReport(id, "k", payload));
     }
 
@@ -256,7 +257,8 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
                         "1920x1080",
                         "LOGIN, USER",
                         "[{\"url\":\"/api/v1/events\",\"status\":500}]",
-                        Instant.now()));
+                        Instant.now(),
+                        null));
 
         var stored = read.reports(true).stream()
                 .filter(r -> r.message().equals(message))

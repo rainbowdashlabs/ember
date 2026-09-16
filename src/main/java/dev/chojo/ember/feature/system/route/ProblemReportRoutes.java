@@ -14,10 +14,12 @@ import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
+import dev.chojo.ember.feature.system.service.ProblemReportScreenshotService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -33,13 +35,18 @@ public class ProblemReportRoutes implements Routes {
     private final ProblemReportRepository repository;
     private final BeaconReportService beacon;
     private final UpdateCheckService updates;
+    private final ProblemReportScreenshotService screenshots;
 
     @Inject
     public ProblemReportRoutes(
-            ProblemReportRepository repository, BeaconReportService beacon, UpdateCheckService updates) {
+            ProblemReportRepository repository,
+            BeaconReportService beacon,
+            UpdateCheckService updates,
+            ProblemReportScreenshotService screenshots) {
         this.repository = repository;
         this.beacon = beacon;
         this.updates = updates;
+        this.screenshots = screenshots;
     }
 
     @Override
@@ -54,6 +61,8 @@ public class ProblemReportRoutes implements Routes {
                 prefix + "/admin/problem-reports/acknowledge-all",
                 this::acknowledgeAll,
                 InstancePermission.ADMINISTRATOR);
+        routes.get(
+                prefix + "/admin/problem-reports/{id}/screenshot", this::screenshot, InstancePermission.ADMINISTRATOR);
         routes.delete(prefix + "/admin/problem-reports/{id}", this::delete, InstancePermission.ADMINISTRATOR);
     }
 
@@ -73,21 +82,50 @@ public class ProblemReportRoutes implements Routes {
         if (request.message() == null || request.message().isBlank()) {
             throw new BadRequestResponse("message is required");
         }
+        Integer memberId = session.member() != null ? session.member().id() : null;
+        // Kept before the report is written, so a picture that cannot be stored fails the whole
+        // report rather than leaving one that claims a picture nobody can fetch.
+        var picture = screenshots.store(request.screenshot(), memberId);
         var report = repository.create(
                 session.stationId(),
-                session.member() != null ? session.member().id() : null,
+                memberId,
                 NameParts.of(session.account()).called(),
                 request.message(),
                 request.pageUrl(),
                 request.userRoles(),
                 request.recentRequests(),
                 request.browserInfo(),
-                request.screenSize());
-        // Forwarded on the way out rather than swept up later, so a report reaches the beacon while
-        // whoever wrote it is still at the screen they wrote it about. The service decides whether the
-        // operator agreed to that and queues without blocking this response.
-        beacon.sendReport(report, updates.currentVersion());
+                request.screenSize(),
+                picture.orElse(null));
+        if (beacon.goesByItself(report)) forward(report, report.screenshotFileId(), false);
         ctx.status(HttpStatus.CREATED).json(report);
+    }
+
+    /**
+     * Passes a report to a beacon, with the picture it is to go with.
+     *
+     * <p>The picture goes first and the report second, which is the service's business; what is
+     * decided here is which picture, because whoever reviewed it may have covered more of it and may
+     * have decided it should not go at all. A report and its picture go together or the picture does
+     * not go: nothing adds one to a report that has already left.
+     *
+     * @param pictureFileId the picture to send with it, or null to send the report on its own
+     * @param temporary     whether that picture was made for this delivery alone and is to be let go
+     *                      of once it has gone, which is what a covered copy is
+     */
+    private void forward(ProblemReport report, Integer pictureFileId, boolean temporary) {
+        byte[] bytes = null;
+        String type = null;
+        if (pictureFileId != null) {
+            var picture = screenshots.read(pictureFileId);
+            if (picture.isPresent()) {
+                bytes = picture.get().data();
+                type = picture.get().contentType();
+            }
+        }
+        beacon.sendReportNow(report, updates.currentVersion(), bytes, type);
+        repository.markForwarded(report.id());
+        if (temporary) screenshots.forget(pictureFileId);
     }
 
     @OpenApi(
@@ -128,6 +166,26 @@ public class ProblemReportRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/admin/problem-reports/{id}/screenshot",
+            methods = HttpMethod.GET,
+            summary = "The picture the report was written with",
+            tags = {"Problem Reports"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/png")),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void screenshot(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var report = repository.findById(id).orElseThrow(NotFoundResponse::new);
+        if (!report.hasScreenshot()) throw new NotFoundResponse();
+        var picture = screenshots.read(report.screenshotFileId()).orElseThrow(NotFoundResponse::new);
+        ctx.contentType(picture.contentType()).result(picture.data());
+    }
+
+    /**
+     * /** Deletes the report and the picture with it, because the picture has nowhere else to belong. */
+    @OpenApi(
             path = "/api/v1/admin/problem-reports/{id}",
             methods = HttpMethod.DELETE,
             summary = "Delete a problem report",
@@ -136,17 +194,26 @@ public class ProblemReportRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var report = repository.findById(id).orElse(null);
         repository.delete(id);
+        if (report != null) screenshots.forget(report.screenshotFileId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    /**
+     * A report as the dialog sends it.
+     *
+     * @param screenshot the picture of the page as base64, already covered where the reporter covered
+     *     it, or null where they attached none. Never taken without being asked for.
+     */
     public record CreateReportRequest(
             String message,
             String pageUrl,
             String userRoles,
             String recentRequests,
             String browserInfo,
-            String screenSize) {}
+            String screenSize,
+            String screenshot) {}
 
     public record AcknowledgeAllResponse(int acknowledged) {}
 }

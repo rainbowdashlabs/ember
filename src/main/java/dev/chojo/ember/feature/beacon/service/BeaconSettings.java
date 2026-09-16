@@ -27,6 +27,7 @@ public class BeaconSettings {
     public static final String URL = "beacon_url";
     public static final String FORWARD_PROBLEMS = "beacon_forward_problems";
     public static final String FORWARD_REPORTS = "beacon_forward_reports";
+    public static final String REVIEW_REPORT_PICTURES = "beacon_review_report_pictures";
     public static final String METRICS_ENABLED = "beacon_metrics_enabled";
     public static final String RECEIVING = "beacon_receiving";
     public static final String CONTACT_NAME = "beacon_contact_name";
@@ -70,6 +71,20 @@ public class BeaconSettings {
         return enabled() && settings.getBoolean(FORWARD_REPORTS, false);
     }
 
+    /**
+     * Whether a report carrying a picture waits for somebody here before it is passed on.
+     *
+     * <p>On unless an operator says otherwise, because a picture of a page of this product is a page
+     * of somebody's data and the safe direction is the one that costs a click. Switched off, a report
+     * and its picture go together the moment they are written, which is what an operator who is also
+     * the one debugging wants.
+     *
+     * <p>Reports without a picture are unaffected: there is nothing to look at, so nothing waits.
+     */
+    public boolean reviewReportPictures() {
+        return settings.getBoolean(REVIEW_REPORT_PICTURES, true);
+    }
+
     public boolean metricsEnabled() {
         return enabled() && settings.getBoolean(METRICS_ENABLED, false);
     }
@@ -100,6 +115,7 @@ public class BeaconSettings {
             String url,
             boolean forwardProblems,
             boolean forwardReports,
+            boolean reviewReportPictures,
             boolean metricsEnabled,
             boolean receiving,
             String contactName,
@@ -108,6 +124,7 @@ public class BeaconSettings {
         settings.set(URL, url == null || url.isBlank() ? DEFAULT_URL : url.strip());
         settings.setBoolean(FORWARD_PROBLEMS, forwardProblems);
         settings.setBoolean(FORWARD_REPORTS, forwardReports);
+        settings.setBoolean(REVIEW_REPORT_PICTURES, reviewReportPictures);
         settings.setBoolean(METRICS_ENABLED, metricsEnabled);
         settings.setBoolean(RECEIVING, receiving);
         settings.set(CONTACT_NAME, contactName == null ? "" : contactName.strip());

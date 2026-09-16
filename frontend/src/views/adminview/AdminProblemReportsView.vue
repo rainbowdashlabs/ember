@@ -118,6 +118,7 @@ function toggle(id: number) {
         v-model:open="showPreview"
         kind="report"
         :entry-id="forwardId"
+        :has-picture="reports.some(r => r.id === forwardId && !!r.screenshotFileId)"
         @sent="forwarded = t('beacon.queued', {count: 1})"
       />
       <Alert v-if="forwarded" variant="success">{{ forwarded }}</Alert>

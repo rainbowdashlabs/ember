@@ -13,10 +13,13 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
+import java.util.Base64;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -39,6 +42,9 @@ public class BeaconReportService {
 
     /** The logger whose own output is never forwarded, so a failing beacon cannot feed itself. */
     public static final String OWN_LOGGER = BeaconReportService.class.getName();
+
+    /** Reads what a beacon answers a picture with, which is the number the report then names. */
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private static final Logger log = LoggerFactory.getLogger(BeaconReportService.class);
     private static final int QUEUE_CAPACITY = 200;
@@ -213,7 +219,23 @@ public class BeaconReportService {
      */
     public boolean sendReport(ProblemReport report, String version) {
         if (!config.forwardReports()) return false;
+        if (report.hasScreenshot() && config.reviewReportPictures()) return false;
         return sendReportNow(report, version);
+    }
+
+    /**
+     * Whether this report is waiting for somebody here to look at its picture before it goes.
+     *
+     * <p>Only a report with a picture ever waits, and only where the operator asked for that. A
+     * report waiting is not a report refused: it goes when somebody sends it, complete.
+     */
+    public boolean waitsForReview(ProblemReport report) {
+        return config.forwardReports() && report.hasScreenshot() && config.reviewReportPictures();
+    }
+
+    /** Whether this report goes of its own accord, rather than waiting or not going at all. */
+    public boolean goesByItself(ProblemReport report) {
+        return config.forwardReports() && !waitsForReview(report);
     }
 
     /**
@@ -226,8 +248,55 @@ public class BeaconReportService {
      * @return whether it was queued, false when the queue is full
      */
     public boolean sendReportNow(ProblemReport report, String version) {
-        var payload = reportPayloadFor(report, version);
-        return queue.offer(() -> deliver("/api/v1/beacon/reports", payload));
+        return sendReportNow(report, version, null, null);
+    }
+
+    /**
+     * Sends one report and the picture it was written with, in that order and only together.
+     *
+     * <p>The picture goes first and the report second, naming what the beacon numbered it. A picture
+     * that does not arrive stops the report going at all, so a beacon never holds a report claiming a
+     * picture it has not got: the other way round it would, and a half report is the one thing this
+     * is arranged to avoid.
+     *
+     * @param picture     the picture as it is to leave, already covered, or null to send the report alone
+     * @param contentType what those bytes are
+     * @return whether the work was queued, false when the queue is full
+     */
+    public boolean sendReportNow(ProblemReport report, String version, byte[] picture, String contentType) {
+        if (picture == null || picture.length == 0) {
+            return queue.offer(() -> deliver("/api/v1/beacon/reports", reportPayloadFor(report, version, null)));
+        }
+        var image = new BeaconPayloads.ReportImagePayload(
+                envelope(), contentType, Base64.getEncoder().encodeToString(picture));
+        return queue.offer(() -> {
+            var numbered = deliverPicture(image);
+            if (numbered.isEmpty()) {
+                log.warn("The picture of a report was not taken, so the report was not sent either");
+                return;
+            }
+            deliver("/api/v1/beacon/reports", reportPayloadFor(report, version, numbered.get()));
+        });
+    }
+
+    /**
+     * Hands over the picture and reads back the number the beacon gave it.
+     *
+     * @return the number, or empty where the beacon could not be reached or turned the picture away
+     */
+    private Optional<Integer> deliverPicture(BeaconPayloads.ReportImagePayload image) {
+        var answer = httpClient.beaconPost(config.url(), "/api/v1/beacon/report-images", image);
+        if (answer.isEmpty() || !answer.get().accepted()) {
+            log.warn("The beacon at {} did not take the picture of a report", config.url());
+            return Optional.empty();
+        }
+        try {
+            var taken = JSON.readValue(answer.get().body(), BeaconPayloads.ReportImageAccepted.class);
+            return Optional.of(taken.imageId());
+        } catch (RuntimeException e) {
+            log.warn("The beacon at {} took the picture but did not say what it numbered it", config.url());
+            return Optional.empty();
+        }
     }
 
     /**
@@ -270,6 +339,15 @@ public class BeaconReportService {
      * @return the payload, ready to be shown or sent
      */
     public BeaconPayloads.ReportPayload reportPayloadFor(ProblemReport report, String version) {
+        return reportPayloadFor(report, version, null);
+    }
+
+    /**
+     * The same payload, naming the picture a beacon has just taken.
+     *
+     * @param imageId what the beacon numbered the picture, or null where the report carries none
+     */
+    public BeaconPayloads.ReportPayload reportPayloadFor(ProblemReport report, String version, Integer imageId) {
         return new BeaconPayloads.ReportPayload(
                 envelope(),
                 version,
@@ -281,7 +359,8 @@ public class BeaconReportService {
                 blankToNull(report.screenSize()),
                 blankToNull(report.userRoles()),
                 requestsWithoutQueries(report.recentRequests()),
-                report.createdAt());
+                report.createdAt(),
+                imageId);
     }
 
     /**

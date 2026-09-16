@@ -17,7 +17,13 @@ export interface ProblemReport {
     recentRequests?: string | null
     browserInfo?: string | null
     screenSize?: string | null
+    /** The picture of the page, or absent where the reporter attached none. */
+    screenshotFileId?: number | null
     acknowledged: boolean
+    /** When it was marked dealt with, which is when its thirty days begin. */
+    acknowledgedAt?: string | null
+    /** When it was passed on to a beacon, or absent where it has not been. */
+    forwardedAt?: string | null
     createdAt: string
 }
 
@@ -48,6 +54,7 @@ export async function submitReport(
     description: string,
     sessionInfo: ReportSessionContext | null | undefined,
     about?: ReportAbout,
+    screenshot?: string | null,
 ): Promise<ProblemReport> {
     const roles = [sessionInfo?.userType, ...(sessionInfo?.permissions ?? [])].filter(Boolean).join(', ')
     const res = await client.post<ProblemReport>('/problem-reports', {
@@ -57,6 +64,7 @@ export async function submitReport(
         recentRequests: JSON.stringify(getRequestHistory()),
         browserInfo: navigator.userAgent,
         screenSize: `${window.innerWidth}x${window.innerHeight}`,
+        screenshot: screenshot ?? null,
     })
     return res.data
 }
