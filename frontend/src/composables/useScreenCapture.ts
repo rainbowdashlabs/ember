@@ -52,6 +52,24 @@ const FRAME_WAIT = 2000
 const SETTLE = 700
 
 /**
+ * What is asked for, which is this tab before anything else.
+ *
+ * <p>Both of these are hints and a browser may ignore either, but where they are read they take the
+ * desktop out of the question. Sharing a window or a screen is the operating system's business, and
+ * on Linux that means its own dialog on top of the browser's, which is a great deal of asking for
+ * one picture of one page. Sharing a tab is the browser's business alone, and the tab wanted is
+ * almost always the one the report is being written on.
+ *
+ * <p>Nothing is narrowed by this. Whoever is asked can still pick any window or screen they like:
+ * the prompt is the browser's and says what is being shared, which is what keeps this honest.
+ */
+const WHAT_TO_SHARE: DisplayMediaStreamOptions = {
+    video: {displaySurface: 'browser'},
+    audio: false,
+    preferCurrentTab: true,
+} as DisplayMediaStreamOptions
+
+/**
  * Takes one picture of whatever the person chooses to share, and stops sharing at once.
  *
  * <p>The browser asks them which window or tab, and that prompt is what makes this honest: the
@@ -69,7 +87,7 @@ export async function captureScreen(): Promise<Capture> {
     if (!canCaptureScreen()) return {picture: null, refused: false}
     let stream: MediaStream | null = null
     try {
-        stream = await navigator.mediaDevices.getDisplayMedia({video: true, audio: false})
+        stream = await navigator.mediaDevices.getDisplayMedia(WHAT_TO_SHARE)
     } catch (e) {
         return {picture: null, refused: isRefusal(e)}
     }
