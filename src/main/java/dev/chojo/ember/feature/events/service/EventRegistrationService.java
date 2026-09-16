@@ -338,12 +338,7 @@ public class EventRegistrationService {
         eventRepository
                 .findById(eventId)
                 .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
-                        event.stationId(),
-                        event.id(),
-                        event.name(),
-                        memberId,
-                        nameResolver.resolveLocal(memberId),
-                        status)));
+                        event.stationId(), event.id(), event.name(), memberId, nameResolver.called(memberId), status)));
     }
 
     /**

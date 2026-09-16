@@ -1,27 +1,32 @@
-ALTER TABLE ember_schema.problem_report
-    ADD COLUMN screenshot_file_id INTEGER     NULL REFERENCES ember_schema.station_file (id) ON DELETE SET NULL,
-    ADD COLUMN acknowledged_at    TIMESTAMPTZ NULL,
-    ADD COLUMN forwarded_at       TIMESTAMPTZ NULL;
+-- Somebody entered in the register as Maximilian is called Max by everybody at the station.
+--
+-- The name they are called by belongs to the membership rather than to the account: the same person
+-- may be Max at one station and Maximilian at another, and the register name stays where it is,
+-- untouched, on the account.
+--
+-- Who wrote it is kept beside it. A member may set their own and a manager may set one for somebody
+-- they look after, so a nickname nobody chose for themselves has to be traceable to whoever did.
 
-COMMENT ON COLUMN ember_schema.problem_report.screenshot_file_id IS
-    'The picture of the page the report was written about, or NULL where none was given. A picture of a page can hold the data of people other than the reporter, which is why it is theirs to attach and never taken without being asked for.';
+ALTER TABLE ember_schema.station_member
+    ADD COLUMN IF NOT EXISTS nickname            TEXT,
+    ADD COLUMN IF NOT EXISTS nickname_set_by     INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    ADD COLUMN IF NOT EXISTS nickname_set_at     TIMESTAMP;
 
-COMMENT ON COLUMN ember_schema.problem_report.acknowledged_at IS
-    'When the report was marked dealt with, which is when its thirty days begin. NULL while nobody has.';
+COMMENT ON COLUMN ember_schema.station_member.nickname
+    IS 'The name this member is called by at this station, replacing their first name on screen. Null where they have none.';
+COMMENT ON COLUMN ember_schema.station_member.nickname_set_by
+    IS 'The member who last wrote the nickname, which is the member themselves or one of their managers.';
+COMMENT ON COLUMN ember_schema.station_member.nickname_set_at
+    IS 'When it was last written.';
 
-COMMENT ON COLUMN ember_schema.problem_report.forwarded_at IS
-    'When the report was passed on to a beacon, or NULL where it has not been. A report waiting for somebody to look at its picture first is one with a picture and no such date.';
+-- The comment this column carried described a feature nobody had built. What it actually holds is
+-- the name of somebody who has left, frozen at the moment they left, because the account it was
+-- read from is detached then and there is nothing left to read afterwards.
+COMMENT ON COLUMN ember_schema.station_member.display_name
+    IS 'The name of a former member, frozen when they left and no longer readable from any account. Empty for everybody else.';
 
-ALTER TABLE ember_schema.beacon_report
-    ADD COLUMN screenshot_file_id INTEGER NULL REFERENCES ember_schema.station_file (id) ON DELETE SET NULL;
+ALTER TABLE ember_schema.station
+    ADD COLUMN IF NOT EXISTS nicknames_enabled BOOLEAN NOT NULL DEFAULT TRUE;
 
-COMMENT ON COLUMN ember_schema.beacon_report.screenshot_file_id IS
-    'The picture that arrived just before this report, or NULL where it came without one. It was covered on the instance it came from before it was sent, and there is nothing here to uncover it with.';
-
--- Reports already marked dealt with carry no date to count from. Stamping them now gives them their
--- thirty days from the update rather than deleting them the moment it lands, which is a deletion
--- nobody asked for arriving as a surprise.
-UPDATE ember_schema.problem_report
-SET acknowledged_at = now()
-WHERE acknowledged = TRUE
-  AND acknowledged_at IS NULL;
+COMMENT ON COLUMN ember_schema.station.nicknames_enabled
+    IS 'Whether this station reads the names its members are called by. Switched off, every nickname is kept but none is read.';

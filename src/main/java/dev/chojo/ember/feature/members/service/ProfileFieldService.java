@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.entity.AssignedProfileField;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.PagedChanges;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldAssignment;
@@ -729,7 +730,7 @@ public class ProfileFieldService {
                     String memberName = stationMemberRepository
                             .findById(c.memberId())
                             .flatMap(m -> accountRepository.findById(m.accountId()))
-                            .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                            .map(a -> NameParts.of(a).called())
                             .orElse("");
                     return new ProfileFieldChange(
                             c.id(),
@@ -777,7 +778,7 @@ public class ProfileFieldService {
         if (member == null) return;
 
         var account = accountRepository.findById(member.accountId()).orElse(null);
-        String memberName = account != null ? account.fullName() : "?";
+        String memberName = account != null ? NameParts.of(account).called() : "?";
         String fieldList = String.join(", ", fieldNames);
 
         var data = NotificationData.of(

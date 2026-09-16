@@ -65,7 +65,16 @@ export function useSession() {
         sessionClusterId.value = null
     }
 
+    /**
+     * The name to put on screen for whoever is signed in.
+     *
+     * The station resolves it, because what somebody is called belongs to their membership there
+     * and not to their account. Where there is no membership, as on an instance-wide screen, the
+     * register name is all there is.
+     */
     function fullName(): string {
+        const called = sessionInfo.value?.member?.calledName
+        if (called) return called
         const account = sessionInfo.value?.account
         if (!account) return ''
         return [account.firstName, account.lastName].filter(Boolean).join(' ')

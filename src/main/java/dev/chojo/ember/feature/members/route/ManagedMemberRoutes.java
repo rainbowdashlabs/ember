@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
@@ -336,7 +337,7 @@ public class ManagedMemberRoutes implements Routes {
 
     private ManagedMember toMemberWithName(StationMember m) {
         Account account = accountRepository.findById(m.accountId()).orElse(null);
-        String name = account != null ? account.fullName() : "";
+        String name = account != null ? NameParts.of(account).called() : "";
         String email = account != null ? account.email() : "";
         return new ManagedMember(m.id(), m.stationId(), m.accountId(), name, email);
     }

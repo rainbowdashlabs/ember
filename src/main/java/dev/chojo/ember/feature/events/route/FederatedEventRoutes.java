@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -267,7 +268,7 @@ public class FederatedEventRoutes implements Routes {
                 partnerUid,
                 eventId,
                 session.member().uid(),
-                session.account().fullName().trim(),
+                NameParts.of(session.account()).called(),
                 req.parentId(),
                 req.content(),
                 req.eventDate());

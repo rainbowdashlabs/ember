@@ -18,6 +18,7 @@ const name = defineModel<string>('name', {required: true})
 const timezone = defineModel<string>('timezone', {required: true})
 const locale = defineModel<string>('locale', {required: true})
 const pdfHidesInstanceUrl = defineModel<boolean>('pdfHidesInstanceUrl', {required: true})
+const nicknamesEnabled = defineModel<boolean>('nicknamesEnabled', {required: true})
 
 const props = defineProps<{
   timezoneOptions: { value: string; label: string }[]
@@ -50,6 +51,12 @@ const {t} = useI18n()
         :hint="t('stationManage.pdfHidesInstanceUrlHint')"
         :label="t('stationManage.pdfHidesInstanceUrl')"
         data-testid="pdf-instance-url-toggle"
+    />
+    <ToggleSetting
+        v-model="nicknamesEnabled"
+        :hint="t('stationManage.nicknamesEnabledHint')"
+        :label="t('stationManage.nicknamesEnabled')"
+        data-testid="nicknames-toggle"
     />
     <SaveButton :disabled="!name" :action="props.saveName"/>
   </NeutralContainer>

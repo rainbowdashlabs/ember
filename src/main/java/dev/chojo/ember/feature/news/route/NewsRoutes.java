@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
@@ -497,7 +498,7 @@ public class NewsRoutes implements Routes {
                 newsId,
                 request.parentId(),
                 authorIdentity,
-                session.account().fullName().trim(),
+                NameParts.of(session.account()).called(),
                 request.content());
 
         ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));

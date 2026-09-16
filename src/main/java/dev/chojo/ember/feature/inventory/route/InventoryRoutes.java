@@ -37,6 +37,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.InventorySwitchRefusedException;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -366,7 +367,7 @@ public class InventoryRoutes implements Routes {
                 .orElseThrow(() -> new NotFoundResponse("Inventory not found"));
         RouteSupport.requireSameStation(session, inventory.stationId());
         requireMayCreate(session, ownerOf(inventory));
-        String actor = session.account().firstName() + " " + session.account().lastName();
+        String actor = NameParts.of(session.account()).called();
         var item = inventoryService.createAndHandOut(request.inventoryId(), request.sizeId(), memberId, actor);
         ctx.status(HttpStatus.CREATED).json(item);
     }
@@ -1318,7 +1319,7 @@ public class InventoryRoutes implements Routes {
         var session = UserSession.from(ctx);
         var body = ctx.bodyAsClass(MemberExportRequest.class);
         var account = session.account();
-        String generatedBy = (account.firstName() + " " + account.lastName()).trim();
+        String generatedBy = NameParts.of(account).official();
         var pdf = inventoryExportService.exportPdf(
                 session.stationId(),
                 body.memberIds(),

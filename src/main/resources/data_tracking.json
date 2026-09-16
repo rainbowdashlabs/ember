@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:66dd46a492ed9dcd9132982fedf47a9e2a5fa8c5d34652a395d6c6d0da4201c4",
-  "generatedAt": "2026-09-16T15:24:48Z",
+  "schemaHash": "sha256:37c3726413275786832cd6befd69353ebe977e88873ef027a7e5998e7fbe6d9e",
+  "generatedAt": "2026-09-16T19:05:14Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -19793,7 +19793,7 @@
     "station": {
       "feature": "station",
       "scope": "STATION",
-      "tableHash": "sha256:90254df98d5a37056701f5d9d7d668454f4fa8b1d8d16712b41e4261646027b4",
+      "tableHash": "sha256:5450bb24cc018b3311147a697618efde2dd3f293f70e22225511a85f356b8647",
       "columns": [
         {
           "name": "id",
@@ -20115,6 +20115,13 @@
           "nullable": false,
           "verified": true,
           "description": "True where exported PDFs leave the address of this installation off the foot of the page. False, the state of every station before this column, prints it as a link the way it always was. An export can differ from this for one document without changing it."
+        },
+        {
+          "name": "nicknames_enabled",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this station reads the names its members are called by. Switched off, every nickname is kept but none is read."
         }
       ],
       "foreignKeys": [
@@ -21184,7 +21191,7 @@
     "station_member": {
       "feature": "station",
       "scope": "STATION",
-      "tableHash": "sha256:339347be2d3167b34895a75a4f3d4a995d9a4cfae168cac38489a1ea0688b386",
+      "tableHash": "sha256:6bd9dcadb2a3e644985f121a80a4894d810aa19ee43521670b017ebd4d25d19e",
       "columns": [
         {
           "name": "id",
@@ -21212,7 +21219,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Display name override. Empty string means use account name."
+          "description": "The name of a former member, frozen when they left and no longer readable from any account. Empty for everybody else."
         },
         {
           "name": "former",
@@ -21246,6 +21253,27 @@
           "nullable": false,
           "verified": true,
           "description": "When the member joined the station. Editable; defaults to today on insert."
+        },
+        {
+          "name": "nickname",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The name this member is called by at this station, replacing their first name on screen. Null where they have none."
+        },
+        {
+          "name": "nickname_set_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who last wrote the nickname, which is the member themselves or one of their managers."
+        },
+        {
+          "name": "nickname_set_at",
+          "type": "timestamp",
+          "nullable": true,
+          "verified": true,
+          "description": "When it was last written."
         }
       ],
       "foreignKeys": [
@@ -21254,6 +21282,12 @@
           "refTable": "account",
           "refColumn": "id",
           "onDelete": "CASCADE"
+        },
+        {
+          "column": "nickname_set_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
         },
         {
           "column": "station_id",

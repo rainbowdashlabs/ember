@@ -26,8 +26,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class UserTagRepository {
     private static final String USER_TAG_COLUMNS = "id, station_id, name, color, visible, position";
-    private static final String STATION_MEMBER_COLUMNS =
-            "id, station_id, uid, account_id, former, former_at, display_name, user_type, join_date";
+    private static final String STATION_MEMBER_COLUMNS = StationMember.COLUMNS;
 
     /**
      * Creates a new tag for a station.

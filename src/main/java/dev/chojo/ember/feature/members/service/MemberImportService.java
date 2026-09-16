@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -572,7 +573,8 @@ public class MemberImportService {
         }
         return stationMemberRepository
                 .findByStationAndName(stationId, mapped.firstName(), mapped.lastName())
-                .map(member -> (mapped.firstName() + " " + mapped.lastName()).trim());
+                .map(member ->
+                        NameParts.of(mapped.firstName(), mapped.lastName()).official());
     }
 
     /**

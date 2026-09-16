@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -56,7 +57,7 @@ public class MailRecipientService {
         Account account = accountRepository.findById(accountId).orElse(null);
         if (account == null) return List.of();
         if (account.hasRealEmail()) {
-            return List.of(new Recipient(account.email(), account.firstName(), false));
+            return List.of(new Recipient(account.email(), NameParts.of(account).greeting(), false));
         }
         return guardiansOf(account);
     }
@@ -78,7 +79,8 @@ public class MailRecipientService {
                         .filter(Account::hasRealEmail)
                         .ifPresent(guardian -> byAddress.putIfAbsent(
                                 guardian.email().toLowerCase(Locale.ROOT),
-                                new Recipient(guardian.email(), account.firstName(), true)));
+                                new Recipient(
+                                        guardian.email(), NameParts.of(account).greeting(), true)));
             }
         }
         return new ArrayList<>(byAddress.values());

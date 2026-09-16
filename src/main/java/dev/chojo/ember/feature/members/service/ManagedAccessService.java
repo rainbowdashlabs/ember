@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.LoginNameService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
@@ -302,7 +303,7 @@ public class ManagedAccessService {
     private static String nameOf(StationMember managed, Account account) {
         String display = managed.displayName();
         if (display != null && !display.isBlank()) return display;
-        return account.fullName();
+        return NameParts.of(account).called();
     }
 
     /** Somebody a guardian may hand a session to, as the approval screen names them. */

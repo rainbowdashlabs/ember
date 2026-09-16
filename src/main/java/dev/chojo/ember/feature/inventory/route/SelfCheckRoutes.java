@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheckRaisedKind;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRow;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckState;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -206,7 +207,7 @@ public class SelfCheckRoutes implements Routes {
                 .findById(task.memberId())
                 .flatMap(member ->
                         member.accountId() == null ? Optional.empty() : accountRepository.findById(member.accountId()))
-                .map(account -> account.fullName().strip())
+                .map(account -> NameParts.of(account).called())
                 .orElse("");
         return new SelfCheckSummary(
                 task.id(),

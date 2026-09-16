@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.FormerMemberService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.NicknameService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionType;
@@ -71,6 +72,7 @@ public class StationMemberRoutes implements Routes {
     private final AvatarService avatarService;
     private final AuthService authService;
     private final MailRecipientService mailRecipientService;
+    private final NicknameService nicknameService;
 
     @Inject
     public StationMemberRoutes(
@@ -84,7 +86,9 @@ public class StationMemberRoutes implements Routes {
             RestrictionService restrictionService,
             AvatarService avatarService,
             AuthService authService,
-            MailRecipientService mailRecipientService) {
+            MailRecipientService mailRecipientService,
+            NicknameService nicknameService) {
+        this.nicknameService = nicknameService;
         this.memberService = memberService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -164,6 +168,7 @@ public class StationMemberRoutes implements Routes {
                 this::get,
                 StationPermission.MEMBER_READ,
                 StationPermission.TEST_RESULT_READ);
+        routes.put(prefix + "/station-members/{id}/nickname", this::setNickname, StationPermission.LOGIN);
         routes.post(prefix + "/station-members", this::create, StationPermission.MEMBER_EDIT);
         routes.delete(prefix + "/station-members/{id}", this::delete, StationPermission.MEMBER_EDIT);
         routes.get(prefix + "/station-members/{id}/permissions", this::getPermissions, StationPermission.MEMBER_READ);
@@ -413,6 +418,30 @@ public class StationMemberRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedMember(ctx, id);
         gdprDeletionService.anonymizeMember(id);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Sets the name a member is called by.
+     *
+     * <p>Behind {@code LOGIN} rather than behind a right over members, because what somebody is
+     * called is theirs to decide: the service allows the member themselves and whoever looks after
+     * them, and refuses everybody else however senior.
+     */
+    @OpenApi(
+            path = "/api/v1/station-members/{id}/nickname",
+            methods = HttpMethod.PUT,
+            summary = "Set the name a member is called by",
+            tags = {"Station Members"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NicknameRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void setNickname(Context ctx) {
+        int id = pathInt(ctx, "id");
+        UserSession session = UserSession.from(ctx);
+        requireOwnedMember(ctx, id);
+        var request = ctx.bodyAsClass(NicknameRequest.class);
+        nicknameService.set(id, request.nickname(), session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -734,4 +763,9 @@ public class StationMemberRoutes implements Routes {
     public record SetJoinDateRequest(LocalDate joinDate) {}
 
     public record SetUserTypePermissionsRequest(List<Integer> permissionIds) {}
+
+    /**
+     * @param nickname the name to be called by, or null and blank alike to go back to the register
+     */
+    public record NicknameRequest(String nickname) {}
 }

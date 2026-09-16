@@ -77,7 +77,7 @@ public class ChecklistExportService {
         sb.append('\n');
 
         for (var entry : entries) {
-            String name = memberNameResolver.resolveLocal(entry.memberId());
+            String name = memberNameResolver.official(entry.memberId());
             sb.append(csvField(name != null ? name : "#" + entry.memberId()));
             var latestUpdate = latestUpdateForEntry(cells, entry.id(), zone);
             sb.append(',').append(csvField(latestUpdate));
@@ -106,7 +106,7 @@ public class ChecklistExportService {
 
         var rows = new ArrayList<Map<String, Object>>();
         for (var entry : entries) {
-            String name = memberNameResolver.resolveLocal(entry.memberId());
+            String name = memberNameResolver.official(entry.memberId());
             var rowCells = new ArrayList<Map<String, Object>>();
             for (var column : columns) {
                 var cell = cells.get(cellKey(entry.id(), column.id()));

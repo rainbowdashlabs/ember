@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.protocol.service;
 
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRunCheck;
@@ -440,7 +441,7 @@ public class TestProtocolPdfService {
                     if (m.accountId() != null) {
                         return accountRepository
                                 .findById(m.accountId())
-                                .map(a -> a.firstName() + " " + a.lastName())
+                                .map(a -> NameParts.of(a).official())
                                 .orElse("Unbekannt");
                     }
                     return "Unbekannt";

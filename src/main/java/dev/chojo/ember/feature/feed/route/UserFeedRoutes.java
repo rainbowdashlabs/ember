@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
@@ -99,6 +100,7 @@ public class UserFeedRoutes implements Routes {
     private final NotificationFeedRenderer notificationRenderer;
     private final FeedRateLimiter rateLimiter;
     private final FeedMetricsService metricsService;
+    private final MemberNameResolver memberNameResolver;
 
     @Inject
     public UserFeedRoutes(
@@ -116,7 +118,8 @@ public class UserFeedRoutes implements Routes {
             LostAndFoundImageService imageService,
             NotificationFeedRenderer notificationRenderer,
             FeedRateLimiter rateLimiter,
-            FeedMetricsService metricsService) {
+            FeedMetricsService metricsService,
+            MemberNameResolver memberNameResolver) {
         this.tokenService = tokenService;
         this.crudService = crudService;
         this.categoryService = categoryService;
@@ -132,6 +135,7 @@ public class UserFeedRoutes implements Routes {
         this.notificationRenderer = notificationRenderer;
         this.rateLimiter = rateLimiter;
         this.metricsService = metricsService;
+        this.memberNameResolver = memberNameResolver;
     }
 
     /**
@@ -352,18 +356,8 @@ public class UserFeedRoutes implements Routes {
     }
 
     private String resolveMemberDisplayName(StationMember member) {
-        if (member.displayName() != null && !member.displayName().isBlank()) {
-            return member.displayName();
-        }
-        if (member.accountId() != null) {
-            var account = accountRepository.findById(member.accountId()).orElse(null);
-            if (account != null
-                    && account.fullName() != null
-                    && !account.fullName().isBlank()) {
-                return account.fullName();
-            }
-        }
-        return "Member #" + member.id();
+        String name = memberNameResolver.called(member.id());
+        return name == null || name.isBlank() ? "Member #" + member.id() : name;
     }
 
     // -- RSS --

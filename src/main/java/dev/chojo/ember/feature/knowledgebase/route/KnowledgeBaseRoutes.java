@@ -34,6 +34,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
 import dev.chojo.ember.feature.knowledgebase.service.KbTrashService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.PandocConverter;
@@ -794,8 +795,8 @@ public class KnowledgeBaseRoutes implements Routes {
         }
         var session = UserSession.from(ctx);
         try {
-            byte[] pdf =
-                    pdfExportService.render(file, session.account().fullName().trim());
+            byte[] pdf = pdfExportService.render(
+                    file, NameParts.of(session.account()).official());
             ctx.contentType("application/pdf");
             ctx.header(
                     "Content-Disposition",

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
@@ -35,8 +36,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class StationMemberRepository {
-    private static final String STATION_MEMBER_COLUMNS =
-            "id, station_id, uid, account_id, former, former_at, display_name, user_type, join_date";
+    private static final String STATION_MEMBER_COLUMNS = StationMember.COLUMNS;
 
     private static final String PRIMARY_TAG_NAME_SUBQUERY = """
             (SELECT ut.name FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id
@@ -50,16 +50,19 @@ public class StationMemberRepository {
             (SELECT mg.color FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id
              WHERE mge.member_id = sm.id AND mg.color IS NOT NULL AND mg.color <> ''
              ORDER BY mg.position DESC LIMIT 1)""";
-    private static final String PICKER_MEMBER_COLUMNS =
-            """
+    private static final String PICKER_MEMBER_COLUMNS = """
             sm.uid AS member_uid,
             a.uid AS account_uid,
-            coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
+            %s AS display_name,
             sm.user_type,
             %s AS name_color,
             %s AS display_tag,
             %s AS display_tag_color,
-            sm.join_date AS join_date""".formatted(PRIMARY_GROUP_COLOR_SUBQUERY, PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
+            sm.join_date AS join_date""".formatted(
+                    MemberNameSql.ofMember("sm", "a"),
+                    PRIMARY_GROUP_COLOR_SUBQUERY,
+                    PRIMARY_TAG_NAME_SUBQUERY,
+                    PRIMARY_TAG_COLOR_SUBQUERY);
 
     /**
      * Reads the UUID of an internal member ID.
@@ -199,7 +202,7 @@ public class StationMemberRepository {
     public List<RichMember> findRichMembers(int stationId, boolean includeFormer) {
         return query("""
                 SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former, sm.user_type, sm.join_date,
-                       coalesce(a.full_name, sm.display_name, '') AS name,
+                       %s AS name,
                        coalesce(a.first_name, sm.display_name, '') AS first_name,
                        coalesce(a.last_name, '') AS last_name,
                        coalesce(a.email, '') AS email,
@@ -209,7 +212,7 @@ public class StationMemberRepository {
                                               AND ac.force_password_change = FALSE)) AS account_setup_pending,
                        (SELECT max(at.expires_at) FROM account_token at WHERE at.account_id = a.id AND at.token_type = 'SET_PASSWORD') AS setup_mail_expires_at,
                        CASE
-                           WHEN a.email IS NOT NULL AND a.email <> '' AND lower(a.email) NOT LIKE '%.local'
+                           WHEN a.email IS NOT NULL AND a.email <> '' AND lower(a.email) NOT LIKE '%%.local'
                                THEN 'SELF'
                            WHEN EXISTS (SELECT 1
                                         FROM member_manager mm
@@ -217,7 +220,7 @@ public class StationMemberRepository {
                                         JOIN account ma ON ma.id = mgr.account_id
                                         WHERE mm.managed_id = sm.id
                                           AND ma.email IS NOT NULL AND ma.email <> ''
-                                          AND lower(ma.email) NOT LIKE '%.local')
+                                          AND lower(ma.email) NOT LIKE '%%.local')
                                THEN 'GUARDIANS'
                            ELSE 'NOBODY'
                        END AS mail_reaches,
@@ -228,7 +231,7 @@ public class StationMemberRepository {
                 FROM station_member sm
                 LEFT JOIN account a ON a.id = sm.account_id
                 WHERE sm.station_id = :station_id AND (sm.former = FALSE OR :include_former)
-                ORDER BY a.last_name, a.first_name, sm.display_name;""")
+                ORDER BY %s;""".formatted(MemberNameSql.identifiedOfMember("sm", "a"), MemberNameSql.order("sm", "a")))
                 .single(call().bind("station_id", stationId).bind("include_former", includeFormer))
                 .map(RichMember.map())
                 .all();
@@ -260,7 +263,7 @@ public class StationMemberRepository {
         return query("""
                 SELECT sm.id, sm.uid, sm.station_id, s.uid AS station_uid, s.name AS station_name,
                        sm.former, sm.user_type, sm.join_date,
-                       coalesce(a.full_name, sm.display_name, '') AS name,
+                       %s AS name,
                        coalesce(a.first_name, sm.display_name, '') AS first_name,
                        coalesce(a.last_name, '') AS last_name,
                        coalesce(a.email, '') AS email,
@@ -282,10 +285,11 @@ public class StationMemberRepository {
                   AND (:user_type::text IS NULL OR sm.user_type = :user_type)
                   AND (sm.former = FALSE OR :include_former)
                   AND (:search::text IS NULL
-                       OR coalesce(a.full_name, sm.display_name, '') ILIKE '%' || :search || '%'
-                       OR coalesce(a.email, '') ILIKE '%' || :search || '%')
+                       OR %s ILIKE '%%' || :search || '%%'
+                       OR coalesce(a.email, '') ILIKE '%%' || :search || '%%')
                 ORDER BY s.name, name
-                LIMIT :limit OFFSET :offset;""")
+                LIMIT :limit OFFSET :offset;""".formatted(
+                                MemberNameSql.identifiedOfMember("sm", "a"), MemberNameSql.ofMemberOrBlank("sm", "a")))
                 .single(call().bind("cluster_id", clusterId)
                         .bind("kind", StationKind.REGULAR)
                         .bind("station_id", stationId)
@@ -315,8 +319,8 @@ public class StationMemberRepository {
                   AND (:user_type::text IS NULL OR sm.user_type = :user_type)
                   AND (sm.former = FALSE OR :include_former)
                   AND (:search::text IS NULL
-                       OR coalesce(a.full_name, sm.display_name, '') ILIKE '%' || :search || '%'
-                       OR coalesce(a.email, '') ILIKE '%' || :search || '%');""",
+                       OR %s ILIKE '%%' || :search || '%%'
+                       OR coalesce(a.email, '') ILIKE '%%' || :search || '%%');""".formatted(MemberNameSql.ofMemberOrBlank("sm", "a")),
                 call().bind("cluster_id", clusterId)
                         .bind("kind", StationKind.REGULAR)
                         .bind("station_id", stationId)
@@ -371,8 +375,12 @@ public class StationMemberRepository {
      * @return list of member completion entries
      */
     public List<MemberCompletion> findCompletions(int stationId, UUID stationUid) {
-        return query(
-                        "SELECT sm.id, sm.uid, coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name FROM station_member sm LEFT JOIN account a ON sm.account_id = a.id WHERE sm.station_id = :station_id AND sm.former = FALSE ORDER BY display_name;")
+        return query("""
+                        SELECT sm.id, sm.uid, %s AS display_name
+                        FROM station_member sm
+                        LEFT JOIN account a ON sm.account_id = a.id
+                        WHERE sm.station_id = :station_id AND sm.former = FALSE
+                        ORDER BY display_name;""".formatted(MemberNameSql.ofMember("sm", "a")))
                 .single(call().bind("station_id", stationId))
                 .map(row -> new MemberCompletion(
                         row.getInt("id"),
@@ -488,10 +496,10 @@ public class StationMemberRepository {
     public Map<Integer, String> findDisplayNames(List<Integer> memberIds) {
         if (memberIds == null || memberIds.isEmpty()) return Map.of();
         var rows = query("""
-                SELECT sm.id, coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name
+                SELECT sm.id, %s AS display_name
                 FROM station_member sm
                 LEFT JOIN account a ON sm.account_id = a.id
-                WHERE sm.id = ANY(:ids);""")
+                WHERE sm.id = ANY(:ids);""".formatted(MemberNameSql.ofMember("sm", "a")))
                 .single(call().bind("ids", memberIds, PostgreSqlTypes.INTEGER))
                 .map(row -> Map.entry(row.getInt("id"), row.getString("display_name")))
                 .all();
@@ -572,6 +580,26 @@ public class StationMemberRepository {
     public void setDisplayNameAndClearAccount(int id, String displayName) {
         query("UPDATE station_member SET display_name = :display_name, account_id = NULL WHERE id = :id;")
                 .single(call().bind("id", id).bind("display_name", displayName))
+                .update();
+    }
+
+    /**
+     * Writes the name a member is called by, and who wrote it.
+     *
+     * <p>Whoever wrote it is kept because a member may set their own and a manager may set one for
+     * somebody they look after: a name nobody chose for themselves has to be traceable to the person
+     * who chose it.
+     *
+     * @param id the member
+     * @param nickname the name, or null to give them their register name back
+     * @param setBy the member who wrote it
+     */
+    public void setNickname(int id, String nickname, int setBy) {
+        query("""
+                UPDATE station_member
+                SET nickname = :nickname, nickname_set_by = :set_by, nickname_set_at = now()
+                WHERE id = :id;""")
+                .single(call().bind("id", id).bind("nickname", nickname).bind("set_by", setBy))
                 .update();
     }
 

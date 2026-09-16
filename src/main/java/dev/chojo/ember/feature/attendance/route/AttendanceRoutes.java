@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceReportService.Report
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.attendance.service.MemberCheckNotesService;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
@@ -276,7 +277,7 @@ public class AttendanceRoutes implements Routes {
         return stationMemberRepository
                 .findById(createdBy)
                 .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .map(a -> NameParts.of(a).called())
                 .orElse(null);
     }
 
@@ -914,8 +915,7 @@ public class AttendanceRoutes implements Routes {
         int sessionId = pathInt(ctx, "sessionId");
         UserSession session = UserSession.from(ctx);
         verifySessionOwnership(sessionId, session);
-        String generatedBy =
-                (session.account().firstName() + " " + session.account().lastName()).trim();
+        String generatedBy = NameParts.of(session.account()).official();
         var pdf = exportService.exportSessionPdf(sessionId, generatedBy, sheetOptions(ctx));
         if (pdf.isEmpty()) {
             throw new NotFoundResponse();
@@ -1010,8 +1010,7 @@ public class AttendanceRoutes implements Routes {
     private void reportExport(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var query = parseReportQuery(ctx);
-        String generatedBy =
-                (session.account().firstName() + " " + session.account().lastName()).trim();
+        String generatedBy = NameParts.of(session.account()).official();
         String period = ctx.queryParamAsClass("period", String.class).getOrDefault("month");
         var pdf = reportService.exportReportPdf(
                 session.stationId(),

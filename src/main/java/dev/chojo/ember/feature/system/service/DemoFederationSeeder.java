@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
@@ -537,7 +538,7 @@ public class DemoFederationSeeder implements DemoSeeder {
             var primaryAdmin = stationMemberRepository.findById(createdBy).orElseThrow();
             String primaryAdminName = accountRepository
                     .findById(primaryAdmin.accountId())
-                    .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                    .map(a -> NameParts.of(a).called())
                     .orElse("Admin");
             var pnc1 = newsFederationService.createRemoteComment(
                     partnerStation.id(),
@@ -584,7 +585,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         var primaryAdmin = stationMemberRepository.findById(createdBy).orElseThrow();
         String primaryAdminName = accountRepository
                 .findById(primaryAdmin.accountId())
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .map(a -> NameParts.of(a).called())
                 .orElse("Admin");
 
         // Find reverse partner (partner station's view of primary station)
