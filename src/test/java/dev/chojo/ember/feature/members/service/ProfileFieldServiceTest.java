@@ -788,6 +788,46 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         stationRepo.delete(home.id());
     }
 
+    /**
+     * Opening a form and saving it is not a change to every question on it.
+     *
+     * <p>A question nobody has answered is stored as absent, and one answered with an empty box as
+     * an empty string. They are different strings and the same thing, so saying nothing twice was
+     * recorded as a change and put in front of somebody to confirm.
+     */
+    @Test
+    @Order(60)
+    void sayingNothingTwiceIsNotAChange() {
+        var field =
+                ask("Nothing said", ProfileFieldType.TEXT, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 60);
+
+        service.setValues(member.id(), List.of(new FieldValueEntry(field.id(), "\"\"")), member.id());
+
+        assertTrue(
+                profileFieldChangeRepo.findByMember(member.id()).stream()
+                        .noneMatch(c -> c.fieldId() != null && c.fieldId() == field.id()),
+                "nothing was said before and nothing was said now");
+    }
+
+    /**
+     * An age counts itself, so nobody has changed one.
+     *
+     * <p>It was recorded as a change like any other and somebody was asked to confirm a number that
+     * the passing of time had produced.
+     */
+    @Test
+    @Order(61)
+    void anAgeCountingItselfIsNotAChangeAnybodyMade() {
+        var field = ask("Alter", ProfileFieldType.AGE, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 61);
+
+        service.setValues(member.id(), List.of(new FieldValueEntry(field.id(), "15")), member.id());
+
+        assertTrue(
+                profileFieldChangeRepo.findByMember(member.id()).stream()
+                        .noneMatch(c -> c.fieldId() != null && c.fieldId() == field.id()),
+                "a number nobody wrote is not a change anybody made");
+    }
+
     @Test
     @Order(99)
     void delete() {

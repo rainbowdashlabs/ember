@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
@@ -13,6 +14,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Set;
 
 /**
  * Setting the name a member is called by.
@@ -54,13 +57,15 @@ public class NicknameService {
      * @param memberId the member the name belongs to
      * @param nickname the name, or null or blank to give them their register name back
      * @param actorId the member doing the writing
-     * @throws ForbiddenResponse where the actor is neither the member nor one of their managers
+     * @param permissions what the actor may do at this station
+     * @throws ForbiddenResponse where the actor is neither the member, nor one of their managers,
+     *     nor somebody who keeps the station's members
      * @throws BadRequestResponse where the name is longer than {@link #MAX_LENGTH} or carries a line
      *     break
      */
-    public void set(int memberId, String nickname, int actorId) {
+    public void set(int memberId, String nickname, int actorId, Set<StationPermission> permissions) {
         var member = memberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
-        requireMayWrite(memberId, actorId);
+        requireMayWrite(memberId, actorId, permissions);
 
         String cleaned = clean(nickname);
         memberRepository.setNickname(memberId, cleaned, actorId);
@@ -76,17 +81,24 @@ public class NicknameService {
     /**
      * Whether this member may write that member's nickname.
      *
-     * <p>Their own, or one belonging to somebody they look after. Being able to edit members in
-     * general is deliberately not enough: what somebody is called is theirs to decide.
+     * <p>Their own, one belonging to somebody they look after, or anybody's where they keep the
+     * station's members: a wrong or unwanted name has to be correctable by the people who run the
+     * place, and somebody who can already change a member's name in the register is not held back
+     * by being refused the shorter one.
+     *
+     * <p>That this can be used to put a name on somebody who did not choose it is the reason
+     * {@code nickname_set_by} exists. What was written and who wrote it is on the row.
      */
-    public boolean mayWrite(int memberId, int actorId) {
+    public boolean mayWrite(int memberId, int actorId, Set<StationPermission> permissions) {
         if (memberId == actorId) return true;
+        if (permissions.contains(StationPermission.MEMBER_EDIT)) return true;
         return memberService.findManaged(actorId).stream().anyMatch(managed -> managed.id() == memberId);
     }
 
-    private void requireMayWrite(int memberId, int actorId) {
-        if (!mayWrite(memberId, actorId)) {
-            throw new ForbiddenResponse("Only a member or whoever looks after them may set the name they go by");
+    private void requireMayWrite(int memberId, int actorId, Set<StationPermission> permissions) {
+        if (!mayWrite(memberId, actorId, permissions)) {
+            throw new ForbiddenResponse("Only a member, whoever looks after them, or whoever keeps the station's "
+                    + "members may set the name they go by");
         }
     }
 

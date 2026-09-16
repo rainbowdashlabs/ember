@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -36,6 +38,12 @@ class NicknameServiceTest {
     private static final int MEMBER = 10;
     private static final int GUARDIAN = 11;
     private static final int STRANGER = 12;
+
+    /** Somebody holding nothing at this station. */
+    private static final Set<StationPermission> NONE = Set.of();
+
+    /** Somebody who keeps the station's members. */
+    private static final Set<StationPermission> KEEPS_MEMBERS = Set.of(StationPermission.MEMBER_EDIT);
 
     private StationMemberRepository memberRepository;
     private StationMemberService memberService;
@@ -61,7 +69,7 @@ class NicknameServiceTest {
     /** A member decides what they are called. */
     @Test
     void aMemberMaySetTheirOwn() {
-        service.set(MEMBER, "Max", MEMBER);
+        service.set(MEMBER, "Max", MEMBER, NONE);
 
         verify(memberRepository).setNickname(MEMBER, "Max", MEMBER);
         verify(nameResolver).forget(MEMBER);
@@ -70,7 +78,7 @@ class NicknameServiceTest {
     /** So does whoever looks after them, which is how a child's guardian keeps their profile. */
     @Test
     void whoeverLooksAfterThemMayToo() {
-        service.set(MEMBER, "Max", GUARDIAN);
+        service.set(MEMBER, "Max", GUARDIAN, NONE);
 
         verify(memberRepository).setNickname(MEMBER, "Max", GUARDIAN);
     }
@@ -83,16 +91,31 @@ class NicknameServiceTest {
      */
     @Test
     void nobodyElseMay() {
-        assertThrows(ForbiddenResponse.class, () -> service.set(MEMBER, "Kleiner", STRANGER));
+        assertThrows(ForbiddenResponse.class, () -> service.set(MEMBER, "Kleiner", STRANGER, NONE));
         verify(memberRepository, never()).setNickname(anyInt(), org.mockito.ArgumentMatchers.any(), anyInt());
-        assertFalse(service.mayWrite(MEMBER, STRANGER));
-        assertTrue(service.mayWrite(MEMBER, GUARDIAN));
+        assertFalse(service.mayWrite(MEMBER, STRANGER, NONE));
+        assertTrue(service.mayWrite(MEMBER, GUARDIAN, NONE));
+    }
+
+    /**
+     * Whoever keeps the station's members may put one right.
+     *
+     * <p>A name that is wrong, or that somebody is unhappy to be given, has to be correctable by the
+     * people who run the place. That the same right can be used to impose one is why the row records
+     * who wrote it.
+     */
+    @Test
+    void whoeverKeepsTheMembersMayOverwriteOne() {
+        service.set(MEMBER, "Fuchs", STRANGER, KEEPS_MEMBERS);
+
+        verify(memberRepository).setNickname(MEMBER, "Fuchs", STRANGER);
+        assertTrue(service.mayWrite(MEMBER, STRANGER, KEEPS_MEMBERS));
     }
 
     /** Clearing it gives somebody their register name back. */
     @Test
     void aBlankNameClearsIt() {
-        service.set(MEMBER, "   ", MEMBER);
+        service.set(MEMBER, "   ", MEMBER, NONE);
 
         verify(memberRepository).setNickname(eq(MEMBER), isNull(), eq(MEMBER));
     }
@@ -100,7 +123,7 @@ class NicknameServiceTest {
     /** A name is a name, not a paragraph and not two lines. */
     @Test
     void aNameIsBoundedAndIsOneLine() {
-        assertThrows(BadRequestResponse.class, () -> service.set(MEMBER, "x".repeat(61), MEMBER));
-        assertThrows(BadRequestResponse.class, () -> service.set(MEMBER, "Max\nMustermann", MEMBER));
+        assertThrows(BadRequestResponse.class, () -> service.set(MEMBER, "x".repeat(61), MEMBER, NONE));
+        assertThrows(BadRequestResponse.class, () -> service.set(MEMBER, "Max\nMustermann", MEMBER, NONE));
     }
 }

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -45,6 +46,7 @@ public class UserTagRoutes implements Routes {
     private final UserTagService tagService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final MemberNameResolver memberNameResolver;
     private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
@@ -52,11 +54,13 @@ public class UserTagRoutes implements Routes {
             UserTagService tagService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            MemberNameResolver memberNameResolver) {
         this.tagService = tagService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.memberNameResolver = memberNameResolver;
     }
 
     private static boolean isBlank(String s) {
@@ -93,7 +97,7 @@ public class UserTagRoutes implements Routes {
     // -- Tags --
 
     private MemberWithName toMemberWithName(StationMember m) {
-        return MemberWithName.from(m, accountRepository, memberIdentityFactory);
+        return MemberWithName.from(m, accountRepository, memberIdentityFactory, memberNameResolver);
     }
 
     @OpenApi(
