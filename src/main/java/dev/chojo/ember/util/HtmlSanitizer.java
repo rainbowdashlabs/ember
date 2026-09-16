@@ -34,12 +34,27 @@ import java.util.regex.Pattern;
  * <p>Both policies forbid {@code javascript:} / {@code data:} URLs, strip
  * the {@code style} attribute on every element except {@code <span>} (and
  * even there only allow {@code color} / {@code background-color}), restrict
- * {@code <a href>} to {@code http} / {@code https} / {@code mailto}, and
+ * {@code <a href>} to {@code http} / {@code https} / {@code mailto} and to
+ * paths inside this instance, and
  * limit {@code <img src>} / {@code <iframe src>} to a tiny allow-list of
  * known-safe sources (relative knowledge-base, media and page paths for
  * images, YouTube embed URLs for iframes).
  */
 public final class HtmlSanitizer {
+
+    /**
+     * A link to somewhere else in this instance: one leading slash and something after it.
+     *
+     * <p>Most of what anybody writes here links inside the product, and those are written as paths.
+     * A path has no protocol, so the protocol allow-list threw every one of them away and left
+     * underlined words nobody could follow.
+     *
+     * <p>Two leading slashes are refused on purpose. {@code //elsewhere.test/x} reads as a path and
+     * is an address: allowing it would turn a link somebody wrote inside the product into a way out
+     * of it. A backslash is refused for the same reason, since browsers have been known to read it
+     * as a slash.
+     */
+    private static final Pattern INTERNAL_PATH = Pattern.compile("^/(?![/\\\\])[^\\s]*$");
 
     private static final Pattern KB_IMAGE_PATH = Pattern.compile("^/(api/v1/)?(public/)?kb/images/.+");
     private static final Pattern KB_PUBLIC_IMAGE = Pattern.compile("^/api/v1/public/kb/[^/]+/images/.+");
@@ -207,6 +222,11 @@ public final class HtmlSanitizer {
             }
             if (tagName.equals("iframe") && name.equals("src")) {
                 return YOUTUBE_EMBED.matcher(value).matches();
+            }
+            if (tagName.equals("a")
+                    && name.equals("href")
+                    && INTERNAL_PATH.matcher(value).matches()) {
+                return true;
             }
             return super.isSafeAttribute(tagName, el, attr);
         }

@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.17.2
+
+### Fixes
+
+- **A link to another screen of this instance was not a link.** Anything written as a path, which is how everything inside Ember is written, lost its address on the way to the screen and arrived as underlined words nobody could follow. The link in the entry Ember writes after an update was one of them. Links to other sites were never affected.
+- **A system entry offered a station three buttons that could not work.** Editing it, deleting it and asking who has read it are a station's rights over its own entries, and an entry the instance wrote belongs to no station, so each of them answered "not found". They are no longer offered, and such an entry now carries the Ember logo rather than initials of a name nobody has.
+- **A notification wrote the date the way a database writes it.** A reminder for an appointment said it fell on 2026-09-19 rather than on 19.09.2026, as did every other notification carrying a day: new appointments, an answer still wanted, a check to hand back.
+
 ## v26.17.1
 
 ### Fixes

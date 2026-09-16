@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.17.2
+
+### Fehlerbehebungen
+
+- **Ein Link auf eine andere Seite dieser Instanz war kein Link.** Alles, was als Pfad geschrieben ist, und so ist alles innerhalb von Ember geschrieben, verlor auf dem Weg zur Anzeige seine Adresse und kam als unterstrichener Text an, dem niemand folgen konnte. Der Link in dem Eintrag, den Ember nach einer Aktualisierung schreibt, war einer davon. Links auf andere Seiten waren nie betroffen.
+- **Ein Systemeintrag bot einer Wache drei Schaltflächen, die nicht funktionieren konnten.** Bearbeiten, löschen und nachsehen, wer ihn gelesen hat, sind Rechte einer Wache an ihren eigenen Einträgen, und ein Eintrag der Instanz gehört zu keiner Wache, also antwortete jede davon mit „nicht gefunden". Sie werden nicht mehr angeboten, und ein solcher Eintrag trägt jetzt das Ember-Logo statt der Initialen eines Namens, den niemand hat.
+- **Eine Benachrichtigung schrieb das Datum so, wie eine Datenbank es schreibt.** Die Erinnerung an einen Termin nannte als Tag 2026-09-19 statt 19.09.2026, ebenso jede andere Benachrichtigung mit einem Tag darin: neue Termine, eine noch fehlende Antwort, ein zurückzugebender Selbstcheck.
+
 ## v26.17.1
 
 ### Fehlerbehebungen
