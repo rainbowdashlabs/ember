@@ -61,6 +61,8 @@ export interface RichMember {
     /** The two halves of the name as they are stored, rather than guessed out of the whole. */
     firstName: string
     lastName: string
+    /** The name this station calls them by, absent where they have none. */
+    nickname?: string | null
     email: string
     accountSetupPending: boolean
     setupMailExpiresAt: string | null
