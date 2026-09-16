@@ -289,6 +289,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
@@ -299,6 +302,13 @@ import javax.sql.DataSource;
  */
 public class EmberModule extends AbstractModule {
     private static final Logger log = LoggerFactory.getLogger(EmberModule.class);
+
+    /** How long a start waits for a database that is not answering before giving up on it. */
+    private static final Duration DATABASE_WAIT = Duration.ofMinutes(2);
+
+    /** The longest pause between two attempts, so a wait of minutes is not one long sleep. */
+    private static final Duration MAX_DATABASE_PAUSE = Duration.ofSeconds(10);
+
     private final Conf conf;
 
     /**
@@ -695,14 +705,54 @@ public class EmberModule extends AbstractModule {
     @Provides
     @Singleton
     DataSource dataSource(Database database) {
-        return DataSourceCreator.create(PostgreSql.get())
+        return openPool(() -> DataSourceCreator.create(PostgreSql.get())
                 .configure(config -> config.withConfig(database)
                         .currentSchema(database.schema())
                         .applicationName("Ember"))
                 .create()
                 .withMaximumPoolSize(database.poolSize())
                 .withMinimumIdle(1)
-                .build();
+                .build());
+    }
+
+    /**
+     * Opens the pool, waiting for a database that is not answering yet.
+     *
+     * <p>The pool takes its first connection as it is built and dies where that is refused, which
+     * is the whole start gone. A database is not always there when this one is: it is started
+     * beside this and comes up in its own time, it is restarted under this while it runs, and it is
+     * a machine on a network that has bad minutes. Each of those is over in seconds and none of
+     * them is a reason to lose the process.
+     *
+     * <p>Bounded, because the other thing that refuses a connection is an address or a password
+     * that is simply wrong, and an instance that hung on that forever would say less than one that
+     * stops and shows the refusal. Every attempt is logged, so a wait is visible while it lasts.
+     */
+    private static DataSource openPool(Supplier<DataSource> open) {
+        var giveUpAt = Instant.now().plus(DATABASE_WAIT);
+        var pause = Duration.ofSeconds(1);
+        while (true) {
+            try {
+                return open.get();
+            } catch (RuntimeException e) {
+                if (!Instant.now().plus(pause).isBefore(giveUpAt)) throw e;
+                log.warn(
+                        "The database is not answering yet, trying again in {}s: {}",
+                        pause.toSeconds(),
+                        e.getMessage());
+                try {
+                    Thread.sleep(pause);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
+                pause = min(pause.multipliedBy(2), MAX_DATABASE_PAUSE);
+            }
+        }
+    }
+
+    private static Duration min(Duration left, Duration right) {
+        return left.compareTo(right) <= 0 ? left : right;
     }
 
     @Provides
