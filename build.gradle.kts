@@ -448,6 +448,11 @@ tasks {
                     "*.KbIconService*",
                     "*.KbImageService*",
                     "*.LogoFragmentService*",
+                    // Keeps, reads and lets go of a report's picture through the media library. What
+                    // it decides on its own - what is accepted as a picture and what is refused - is
+                    // covered by ProblemReportScreenshotServiceTest; the rest is calls into the
+                    // storage layer with nothing of its own between them.
+                    "*.ProblemReportScreenshotService*",
                     // External binary dependent services
                     "*.LegalDocumentService*",
                     // Daemon/scheduler threads

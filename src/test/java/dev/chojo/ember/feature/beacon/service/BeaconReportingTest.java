@@ -94,6 +94,21 @@ class BeaconReportingTest extends RepositoryTestBase {
         assertFalse(config.metricsEnabled());
     }
 
+    /**
+     * A picture of a page of this product is a page of somebody's data, so the safe direction is the
+     * one that costs a click: a report carrying one waits until an operator says otherwise.
+     */
+    @Test
+    void picturesAreLookedAtBeforeTheyLeaveUnlessAnOperatorSaysOtherwise() {
+        assertTrue(config.reviewReportPictures(), "nobody has said otherwise yet");
+
+        config.update(true, "https://beacon.test", false, true, false, false, false, "", "");
+        assertFalse(config.reviewReportPictures());
+
+        config.update(true, "https://beacon.test", false, true, true, false, false, "", "");
+        assertTrue(config.reviewReportPictures());
+    }
+
     /** Clearing the address falls back to the default beacon rather than to nowhere. */
     @Test
     void anEmptyAddressFallsBackToTheDefault() {

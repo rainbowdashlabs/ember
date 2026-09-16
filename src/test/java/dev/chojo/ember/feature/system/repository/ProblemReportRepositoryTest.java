@@ -16,6 +16,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.Instant;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -102,8 +104,46 @@ class ProblemReportRepositoryTest extends RepositoryTestBase {
         assertTrue(problemReportRepo.findAll(false).isEmpty());
     }
 
+    /** Marking one dealt with is what starts its thirty days, so the date goes down with the flag. */
     @Test
     @Order(5)
+    void acknowledgingStampsTheMomentItHappened() {
+        var acknowledged = problemReportRepo.findById(reportId).orElseThrow();
+
+        assertTrue(acknowledged.acknowledged());
+        assertNotNull(acknowledged.acknowledgedAt(), "the clock has to start somewhere");
+    }
+
+    /**
+     * A report is passed on once and not again: a beacon holding one report twice is worse than a
+     * beacon holding it once, which is what the date is there to prevent.
+     */
+    @Test
+    @Order(6)
+    void aReportIsMarkedPassedOnOnlyOnce() {
+        assertNull(problemReportRepo.findById(reportId).orElseThrow().forwardedAt());
+
+        assertTrue(problemReportRepo.markForwarded(reportId));
+        assertFalse(problemReportRepo.markForwarded(reportId), "it has already gone");
+        assertNotNull(problemReportRepo.findById(reportId).orElseThrow().forwardedAt());
+    }
+
+    /** What the sweep asks for: dealt with, and dealt with long enough ago. */
+    @Test
+    @Order(7)
+    void onlyWhatWasDealtWithBeforeTheMomentIsOffered() {
+        assertTrue(
+                problemReportRepo.findAcknowledgedBefore(Instant.now().plusSeconds(60)).stream()
+                        .anyMatch(r -> r.id() == reportId),
+                "it was dealt with before then");
+        assertTrue(
+                problemReportRepo.findAcknowledgedBefore(Instant.now().minusSeconds(3600)).stream()
+                        .noneMatch(r -> r.id() == reportId),
+                "it was not dealt with an hour ago");
+    }
+
+    @Test
+    @Order(8)
     void delete() {
         assertTrue(problemReportRepo.delete(reportId));
         assertFalse(problemReportRepo.delete(reportId));
