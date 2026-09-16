@@ -5,12 +5,11 @@
  */
 import { ref, computed } from 'vue'
 import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
-import type { ProfileFieldAssignment } from '@/util/profileFields'
+import {calculatedAnswer, type ProfileFieldAssignment} from '@/util/profileFields'
 import type { StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
 import { profileFields, stationMembers } from '@/api'
 import type { RichMember } from '@/api/stationMembers'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { computeAge } from '@/util/age'
 
 /**
  * What to call somebody in a list. Takes the little of a person this needs rather than a station
@@ -97,16 +96,8 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
 
   function getFieldValue(memberId: number, fieldId: number): unknown {
     const field = fields.value.find(f => f.id === fieldId)
-    if (field?.fieldType === 'AGE') {
-      const cfg = parseFieldConfig(field.config)
-      const sourceField = fields.value.find(f => f.name === cfg.sourceField)
-      if (sourceField) {
-        const dateVal = String(getRawFieldValue(memberId, sourceField.id))
-        return computeAge(dateVal, (cfg.ageMode as string) ?? 'now')
-      }
-      return ''
-    }
-    return getRawFieldValue(memberId, fieldId)
+    const calculated = field && calculatedAnswer(field, fields.value, id => getRawFieldValue(memberId, id))
+    return calculated ?? getRawFieldValue(memberId, fieldId)
   }
 
   function getFieldValueAsString(memberId: number, fieldId: number): string {

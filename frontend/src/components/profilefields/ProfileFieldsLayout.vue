@@ -12,7 +12,7 @@ import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import {questionKindOf} from '@/util/questions'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
-import type {FieldOrigin} from '@/util/profileFields'
+import {calculatedAnswer, type FieldOrigin} from '@/util/profileFields'
 import {isSection, isSpacer, spanClass} from './fieldLayout'
 
 /**
@@ -61,7 +61,35 @@ const {t} = useI18n()
  */
 function locked(field: LaidOutField): boolean {
   if (field.readonlyAtStation) return true
+  if (worksItselfOut(field)) return true
   return !props.canEditReadonly && !!field.readonly
+}
+
+/**
+ * The answer where it is worked out from another one, and null where it is given like any other.
+ *
+ * <p>Worked out here rather than by whoever draws this, so every form showing such a question shows
+ * the same number, and the one thing the member profile did differently, showing what was once
+ * typed into the question before it began working itself out, cannot happen again.
+ *
+ * <p>Only questions of the same owner are counted from: a station's and its cluster's are two sets
+ * of questions with two sets of identifiers, and a number means one thing in each.
+ */
+function computedAnswer(field: LaidOutField): string | null {
+  const owned = props.fields.filter(f => (f.origin ?? 'STATION') === (field.origin ?? 'STATION'))
+  return calculatedAnswer(field, owned, id => {
+    const source = owned.find(f => f.id === id)
+    return source ? props.getValue(source) : ''
+  })
+}
+
+function worksItselfOut(field: LaidOutField): boolean {
+  return computedAnswer(field) !== null
+}
+
+/** What the input shows: the worked out answer where there is one, otherwise what was given. */
+function valueOf(field: LaidOutField): string {
+  return computedAnswer(field) ?? props.getValue(field)
 }
 
 /** The sentence the station wrote to say what the question is after, empty when it wrote none. */
@@ -85,12 +113,13 @@ function descriptionOf(field: LaidOutField): string {
           <SecondaryBadge v-if="field.origin === 'CLUSTER'" class="ml-1">
             {{ t('memberEdit.fieldFromCluster') }}
           </SecondaryBadge>
-          <MutedText v-if="locked(field)" class="ml-1">({{ t('profile.readonlyHint') }})</MutedText>
+          <MutedText v-if="worksItselfOut(field)" class="ml-1">({{ t('profile.calculatedHint') }})</MutedText>
+          <MutedText v-else-if="locked(field)" class="ml-1">({{ t('profile.readonlyHint') }})</MutedText>
         </FieldLabel>
         <MutedText v-if="descriptionOf(field)" class="block text-xs">{{ descriptionOf(field) }}</MutedText>
         <QuestionValueInput
             :kind="questionKindOf(field.fieldType) ?? 'TEXT'"
-            :model-value="props.getValue(field)"
+            :model-value="valueOf(field)"
             :options="(parseFieldConfig(field.config).options as string[]) ?? []"
             :disabled="locked(field)"
             :required="!!field.required"

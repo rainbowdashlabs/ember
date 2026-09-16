@@ -12,11 +12,12 @@ import BasicFields from './fieldmodal/BasicFields.vue'
 import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
 import AgeFields from './fieldmodal/AgeFields.vue'
 import FieldDefaultValueSection from '@/components/input/FieldDefaultValueSection.vue'
+import BirthDateFields from './fieldmodal/BirthDateFields.vue'
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
 import WidthField from '@/components/profilefields/WidthField.vue'
 import {
-    DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
+    ageSourceOf, DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
     type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
 } from '@/api/profileFields'
 import {FieldWidths} from '@/components/profilefields/fieldLayout'
@@ -66,7 +67,7 @@ const fieldReadonly = ref(false)
 const fieldNotifyOnChange = ref(false)
 const fieldOverview = ref(false)
 const fieldEnumOptions = ref<string[]>([])
-const fieldAgeSource = ref('')
+const fieldAgeSourceId = ref<number | null>(null)
 const fieldAgeMode = ref('now')
 const fieldHasDefault = ref(false)
 const fieldDefaultValue = ref('')
@@ -74,8 +75,17 @@ const fieldDefaultBool = ref(false)
 const fieldDefaultToday = ref(false)
 const fieldDefaultNumber = ref<number>(0)
 const fieldKeepOnArchive = ref(false)
+const fieldShowAge = ref(true)
 const fieldWidth = ref<string>(FieldWidths.FULL)
 const saving = ref(false)
+
+/**
+ * Whether the answer is worked out from another one rather than given.
+ *
+ * <p>Nobody writes it, so everything about writing it, expecting it, locking it, reporting a change
+ * to it or starting it off with a value, is a setting with nothing to act on.
+ */
+const isCalculated = computed(() => fieldType.value === FieldTypes.AGE)
 
 watch(modelValue, (open) => {
   if (!open) return
@@ -90,7 +100,7 @@ watch(modelValue, (open) => {
     fieldNotifyOnChange.value = !!cfg.notifyOnChange
     fieldOverview.value = !!cfg.overview
     fieldEnumOptions.value = [...((cfg.options as string[]) ?? [])]
-    fieldAgeSource.value = (cfg.sourceField as string) ?? ''
+    fieldAgeSourceId.value = ageSourceOf(cfg, props.dateFields)?.id ?? null
     fieldAgeMode.value = (cfg.ageMode as string) ?? 'now'
     fieldHasDefault.value = cfg.defaultValue !== undefined
     if (f.fieldType === FieldTypes.BOOLEAN) {
@@ -103,6 +113,7 @@ watch(modelValue, (open) => {
       fieldDefaultValue.value = typeof cfg.defaultValue === 'string' ? cfg.defaultValue : ''
     }
     fieldKeepOnArchive.value = f.keepOnArchive ?? false
+    fieldShowAge.value = cfg.showAge !== false
     fieldWidth.value = f.width ?? FieldWidths.FULL
   } else {
     fieldName.value = ''
@@ -113,18 +124,25 @@ watch(modelValue, (open) => {
     fieldNotifyOnChange.value = false
     fieldOverview.value = false
     fieldEnumOptions.value = []
-    fieldAgeSource.value = ''
+    fieldAgeSourceId.value = null
     fieldAgeMode.value = 'now'
     fieldHasDefault.value = false
     fieldDefaultValue.value = ''
     fieldDefaultBool.value = false
     fieldDefaultToday.value = false
     fieldKeepOnArchive.value = false
+    fieldShowAge.value = true
     fieldWidth.value = FieldWidths.FULL
     fieldDefaultNumber.value = 0
   }
 })
 
+/**
+ * The settings as they are written down, which is only the ones that were chosen.
+ *
+ * <p>A birth date's age is the exception in reverse: it is recorded only where it was switched off,
+ * so every birth date written before there was a switch keeps showing the age it always showed.
+ */
 function buildConfig(): ProfileFieldConfig {
   const cfg: ProfileFieldConfig = {}
   if (fieldDescription.value.trim()) cfg.description = fieldDescription.value.trim()
@@ -134,9 +152,14 @@ function buildConfig(): ProfileFieldConfig {
     cfg.options = [...fieldEnumOptions.value]
   }
   if (fieldType.value === FieldTypes.AGE) {
-    if (fieldAgeSource.value) cfg.sourceField = fieldAgeSource.value
+    const source = props.dateFields.find(f => f.id === fieldAgeSourceId.value)
+    if (source) {
+      cfg.sourceFieldId = source.id
+      cfg.sourceField = source.name
+    }
     cfg.ageMode = fieldAgeMode.value
   }
+  if (fieldType.value === FieldTypes.BIRTH_DATE && !fieldShowAge.value) cfg.showAge = false
   if (fieldHasDefault.value) {
     if (fieldType.value === FieldTypes.BOOLEAN) {
       cfg.defaultValue = fieldDefaultBool.value
@@ -180,9 +203,10 @@ function submit() {
             v-model="fieldEnumOptions"
             :label="t('membersConfig.fieldEnumOptions')"
         />
-        <AgeFields v-if="fieldType === 'AGE'" v-model:source="fieldAgeSource" v-model:mode="fieldAgeMode"
+        <AgeFields v-if="fieldType === 'AGE'" v-model:source-id="fieldAgeSourceId" v-model:mode="fieldAgeMode"
                    :date-fields="dateFields"/>
         <FieldDefaultValueSection
+          v-if="!isCalculated"
           v-model:has-default="fieldHasDefault"
           v-model:default-value="fieldDefaultValue"
           v-model:default-bool="fieldDefaultBool"
@@ -194,12 +218,14 @@ function submit() {
           :field-type="fieldType"
           :enum-options="fieldEnumOptions"
         />
+        <BirthDateFields v-if="fieldType === 'BIRTH_DATE'" v-model:show-age="fieldShowAge"/>
         <BehaviorToggles
           v-model:required="fieldRequired"
           v-model:readonly="fieldReadonly"
           v-model:notify-on-change="fieldNotifyOnChange"
           v-model:overview="fieldOverview"
           v-model:keep-on-archive="fieldKeepOnArchive"
+          :calculated="isCalculated"
         />
         <WidthField v-model="fieldWidth"/>
       </template>

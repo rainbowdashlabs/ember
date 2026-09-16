@@ -5,6 +5,14 @@
 ### Verbesserungen
 
 - **Das Änderungsprotokoll sagt, wann eine Version erschienen ist.** Jeder Eintrag trägt jetzt den Tag seines Erscheinens, mit der genauen Uhrzeit unter dem Mauszeiger, und endet mit einem Link, der seine Änderungen gegenüber der vorherigen Veröffentlichung auf GitHub öffnet.
+- **Ein Geburtsdatum kann ohne das Alter dahinter stehen.** Das Feld hat jetzt einen Schalter dafür, eingeschaltet wie bisher, damit eine Wache, die das Alter zusätzlich als eigene Frage stellt, es nicht zweimal in einer Zeile stehen hat.
+- **Ein berechnetes Feld bietet nur noch die Einstellungen an, die es erreichen.** Seine Antwort schreibt niemand, also fragt es nicht mehr, ob eine Antwort erwartet wird, ob sie geschrieben werden darf, ob eine Änderung gemeldet werden soll oder womit sie beginnen soll.
+
+### Fehlerbehebungen
+
+- **Jemand konnte einen Tag vor dem Geburtstag ein Jahr älter werden.** Auf einem Gerät mit einer Zeitzone hinter UTC lagen das Alter hinter dem Geburtsdatum und das Alter in einer eigenen Spalte beide einen Tag vor sich selbst. Ein Geburtsdatum wird jetzt als der Tag gelesen, den es nennt, egal wo der Lesende sitzt.
+- **Ein aus einem Datum berechnetes Alter konnte eine alte Zahl zeigen.** Das Profil eines Mitglieds und das Formular, auf dem seine Antworten gegeben werden, zeigten, was einmal in das Feld geschrieben worden war, statt der Zahl, die sich ergibt, und das änderte sich nie wieder. Es wird jetzt überall berechnet, wo es steht, und angezeigt, ohne zum Überschreiben angeboten zu werden.
+- **Das Umbenennen eines Datums leerte jedes daraus berechnete Alter.** Ein Altersfeld hielt sich am Namen der Frage fest, aus der es zählt, sodass eine Umbenennung die Spalte leer zurückließ, ohne zu sagen warum. Es hält sich jetzt an der Frage selbst fest, und bestehende Altersfelder werden übernommen, wie sie sind.
 
 ## v26.17.3
 

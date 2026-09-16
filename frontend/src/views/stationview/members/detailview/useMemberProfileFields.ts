@@ -6,6 +6,7 @@
 import { computed, ref, type Ref } from 'vue'
 import type { ProfileField } from '@/api/profileFields'
 import { StationUserType } from '@/api/types'
+import { calculatedAnswer } from '@/util/profileFields'
 import { useFieldAudiences } from '@/composables/useFieldAudiences'
 
 /**
@@ -37,9 +38,15 @@ export function useMemberProfileFields(memberUserType: Ref<string>) {
 
   const applicableFields = computed(() => fieldsForUserType(memberUserType.value))
 
-  function getFieldValue(fieldId: number): unknown {
+  function rawValue(fieldId: number): unknown {
     const raw = values.value.get(fieldId) ?? ''
     try { return JSON.parse(raw) } catch { return raw }
+  }
+
+  function getFieldValue(fieldId: number): unknown {
+    const field = fields.value.find(f => f.id === fieldId)
+    const calculated = field && calculatedAnswer(field, fields.value, rawValue)
+    return calculated ?? rawValue(fieldId)
   }
 
   function setValues(entries: { fieldId: number; value?: string | null }[]) {

@@ -78,7 +78,9 @@ const blockedReason = computed(() => extras.blockedReason(props.member.id))
       <template v-for="field in visibleColumns" :key="field.id">
         <div v-if="isFieldApplicable(field) && getFieldValue(field.id)" class="text-xs">
           <div class="text-(--text-muted)">{{ field.name }}</div>
-          <div><FieldValueDisplay :value="getFieldValue(field.id)" :field-type="field.fieldType"/></div>
+          <div>
+            <FieldValueDisplay :value="getFieldValue(field.id)" :field-type="field.fieldType" :config="field.config"/>
+          </div>
         </div>
       </template>
     </div>

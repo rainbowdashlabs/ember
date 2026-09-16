@@ -17,32 +17,43 @@ const notifyOnChange = defineModel<boolean>('notifyOnChange', {required: true})
 const overview = defineModel<boolean>('overview', {required: true})
 const keepOnArchive = defineModel<boolean>('keepOnArchive', {required: true})
 
+/**
+ * Whether the answer is worked out rather than given.
+ *
+ * <p>A worked out answer is nobody's to write, so expecting one, locking one and reporting a change
+ * to one are all questions about something that cannot happen. They are left out rather than shown
+ * switched off, because a switch that does nothing still reads as a choice.
+ */
+const props = withDefaults(defineProps<{calculated?: boolean}>(), {calculated: false})
+
 const {t} = useI18n()
 </script>
 
 <template>
   <div class="space-y-4">
-    <div class="space-y-1">
-      <div class="flex items-center justify-between">
-        <label class="text-sm font-medium">{{ t('membersConfig.fieldRequired') }}</label>
-        <ToggleInput v-model="required"/>
+    <template v-if="!props.calculated">
+      <div class="space-y-1">
+        <div class="flex items-center justify-between">
+          <label class="text-sm font-medium">{{ t('membersConfig.fieldRequired') }}</label>
+          <ToggleInput v-model="required"/>
+        </div>
+        <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldRequiredHint') }}</p>
       </div>
-      <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldRequiredHint') }}</p>
-    </div>
-    <div class="space-y-1">
-      <div class="flex items-center justify-between">
-        <label class="text-sm font-medium">{{ t('membersConfig.fieldReadonly') }}</label>
-        <ToggleInput v-model="readonly"/>
+      <div class="space-y-1">
+        <div class="flex items-center justify-between">
+          <label class="text-sm font-medium">{{ t('membersConfig.fieldReadonly') }}</label>
+          <ToggleInput v-model="readonly"/>
+        </div>
+        <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldReadonlyHint') }}</p>
       </div>
-      <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldReadonlyHint') }}</p>
-    </div>
-    <div class="space-y-1">
-      <div class="flex items-center justify-between">
-        <label class="text-sm font-medium">{{ t('membersConfig.fieldNotifyOnChange') }}</label>
-        <ToggleInput v-model="notifyOnChange"/>
+      <div class="space-y-1">
+        <div class="flex items-center justify-between">
+          <label class="text-sm font-medium">{{ t('membersConfig.fieldNotifyOnChange') }}</label>
+          <ToggleInput v-model="notifyOnChange"/>
+        </div>
+        <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldNotifyOnChangeHint') }}</p>
       </div>
-      <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldNotifyOnChangeHint') }}</p>
-    </div>
+    </template>
     <div class="flex items-center justify-between">
       <label class="text-sm font-medium">{{ t('membersConfig.fieldOverview') }}</label>
       <ToggleInput v-model="overview"/>

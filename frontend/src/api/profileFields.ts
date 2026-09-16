@@ -61,6 +61,25 @@ export interface ProfileField {
     stationGroupId?: number | null
 }
 
+/**
+ * The question a calculated age is worked out from, as this build records it.
+ *
+ * <p>The identifier is what a field points at, because a name is what somebody changes their mind
+ * about and a renamed birth date used to empty every age that read it. A field configured before
+ * the identifier was recorded still names its source, so that is read where no identifier stands.
+ *
+ * @param config the age field's settings
+ * @param fields the fields it may point at, which are the ones of its own owner
+ */
+export function ageSourceOf<T extends ProfileField>(
+    config: ProfileFieldConfig, fields: readonly T[],
+): T | undefined {
+    const id = config.sourceFieldId
+    if (typeof id === 'number') return fields.find(f => f.id === id)
+    const name = config.sourceField
+    return typeof name === 'string' ? fields.find(f => f.name === name) : undefined
+}
+
 /** The settings of a field that names none, so a reader never has to check for their absence. */
 export function parseFieldConfig(config: ProfileFieldConfig | undefined | null): ProfileFieldConfig {
     return config ?? {}
