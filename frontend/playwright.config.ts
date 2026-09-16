@@ -88,7 +88,11 @@ export default defineConfig({
                 // server that died, and the containers it started in the background go unnoticed -
                 // the stack is still building the backend at that point. Staying attached also means
                 // the stack goes down with the run that brought it up.
-                command: 'docker compose -f ../docker/compose.dev.yaml --profile e2e up',
+                //
+                // The pull goes first and retries, because `up` fetches as its first act and dies
+                // with the fetch: one reset connection to the registry failed an entire shard and
+                // read like a broken test.
+                command: 'bash ../docker/e2e-pull.sh && docker compose -f ../docker/compose.dev.yaml --profile e2e up',
                 url: `${backendUrl}/api/v1/public/config`,
                 reuseExistingServer: true,
                 // The backend is built inside its container from the sources beside it. On a machine
