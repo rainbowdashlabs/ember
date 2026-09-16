@@ -2000,6 +2000,10 @@ export default {
         },
     },
     memberEdit: {
+        nickname: 'Spitzname',
+        nicknameHint: 'Der Name, mit dem die Wache dieses Mitglied anspricht. Er ersetzt den Vornamen auf den '
+            + 'Bildschirmen, in Benachrichtigungen und in Mails; auf Anwesenheitslisten, Ausdrucken und Exporten '
+            + 'steht weiterhin der Name aus dem Register. Leer lassen, um wieder den Vornamen zu verwenden.',
         back: 'Zurück',
         tabProfile: 'Profil',
         tabPermissions: 'Berechtigungen',

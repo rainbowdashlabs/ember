@@ -11,7 +11,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AvatarSection from './accountavatarview/AvatarSection.vue'
 import AccountDetailsSection from './accountavatarview/AccountDetailsSection.vue'
-import NicknameSection from './accountavatarview/NicknameSection.vue'
+import NicknameSection from '@/components/member/NicknameSection.vue'
 import { members } from '@/api'
 import { useSession } from '@/composables/useSession'
 

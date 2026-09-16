@@ -272,6 +272,8 @@ export interface StationMember {
      */
     firstName?: string
     lastName?: string
+    /** The name this station calls them by, absent where they have none. */
+    nickname?: string | null
     email?: string
     /** The name this member signs in with, absent when their address is the only way in. */
     username?: string | null

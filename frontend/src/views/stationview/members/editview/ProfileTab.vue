@@ -15,6 +15,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
+import NicknameSection from '@/components/member/NicknameSection.vue'
 import {valueFields} from '@/components/profilefields/fieldLayout'
 import {profileKey, type MergedProfileField} from '@/util/profileFields'
 import type {StationMember} from '@/api/types'
@@ -36,6 +37,15 @@ const editLastName = ref(props.member.lastName ?? '')
 const editEmail = ref(props.member.email ?? '')
 const editUsername = ref(props.member.username ?? '')
 const editValues = ref(new Map(props.initialValues))
+
+/**
+ * The name this station calls the member by, which whoever keeps the members may put right.
+ *
+ * <p>Theirs to choose in the ordinary case, and set on their own profile. This is the other way in:
+ * a name that is wrong, or that somebody is unhappy to have been given, has to be correctable by the
+ * people who run the place. Who wrote it is recorded either way.
+ */
+const editNickname = ref(props.member.nickname ?? '')
 const editJoinDate = ref(props.member.joinDate ?? '')
 const error = ref('')
 const notice = ref('')
@@ -46,6 +56,15 @@ const notice = ref('')
  */
 function ownAccount(): boolean {
   return sessionInfo.value?.account?.id === props.member.accountId
+}
+
+async function saveNickname() {
+  error.value = ''
+  try {
+    await members.setNickname(props.memberId, editNickname.value.trim() || null)
+  } catch {
+    error.value = t('common.error')
+  }
 }
 
 async function onJoinDateChange(value: string | undefined) {
@@ -126,6 +145,14 @@ async function save() {
         <p class="text-xs text-(--text-muted)">{{ t('memberEdit.usernameHint') }}</p>
       </div>
     </NeutralContainer>
+
+    <NicknameSection
+        v-model="editNickname"
+        :action="saveNickname"
+        :first-name="member.firstName ?? ''"
+        :hint="t('memberEdit.nicknameHint')"
+        :last-name="member.lastName ?? ''"
+    />
 
     <!-- Join date -->
     <NeutralContainer class="space-y-3">
