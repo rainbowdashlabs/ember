@@ -184,4 +184,94 @@ class MemberNameResolverTest {
     void resolve_allNull_returnsNull() {
         assertNull(resolver.resolve(null, null, null));
     }
+
+    private void memberWithAccount(int memberId, int accountId, String firstName, String lastName) {
+        var member = new StationMember(
+                memberId, 1, UUID.randomUUID(), accountId, false, null, null, StationUserType.MEMBER, null);
+        var account = new Account(
+                accountId,
+                UUID.randomUUID(),
+                "test@test.com",
+                null,
+                firstName,
+                lastName,
+                true,
+                InstanceUserType.USER,
+                (firstName + " " + lastName).trim(),
+                null,
+                null);
+        when(memberService.findById(memberId)).thenReturn(Optional.of(member));
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+    }
+
+    /**
+     * The four ways of writing one person, which are the same name until there is a second one to
+     * put beside it.
+     */
+    @Test
+    void aMemberIsWrittenFourWays() {
+        memberWithAccount(40, 400, "Maximilian", "Hoffmann");
+
+        assertEquals("Maximilian Hoffmann", resolver.called(40), "what the station reads");
+        assertEquals("Maximilian Hoffmann", resolver.identified(40), "what a list of people reads");
+        assertEquals("Maximilian Hoffmann", resolver.official(40), "what a document carries");
+        assertEquals("Maximilian", resolver.greeting(40), "what a mail says hello to");
+    }
+
+    /**
+     * Somebody who has left has one frozen name and no account behind it, so there are no halves to
+     * take apart and every form gives that name back whole.
+     */
+    @Test
+    void aFormerMemberIsWrittenTheSameWayFourTimes() {
+        var former = new StationMember(
+                41, 1, UUID.randomUUID(), null, true, null, "Maximilian Hoffmann", StationUserType.MEMBER, null);
+        when(memberService.findById(41)).thenReturn(Optional.of(former));
+
+        assertEquals("Maximilian Hoffmann", resolver.called(41));
+        assertEquals("Maximilian Hoffmann", resolver.identified(41));
+        assertEquals("Maximilian Hoffmann", resolver.official(41));
+        assertEquals("Maximilian Hoffmann", resolver.greeting(41), "there is no first name left to greet");
+    }
+
+    /** A member nothing is known about is written as nothing rather than as a broken name. */
+    @Test
+    void aMemberNobodyKnowsIsWrittenAsNothing() {
+        when(memberService.findById(42)).thenReturn(Optional.empty());
+
+        assertNull(resolver.called(42));
+        assertNull(resolver.identified(42));
+        assertNull(resolver.official(42));
+        assertNull(resolver.greeting(42));
+    }
+
+    /**
+     * A name changed is a name read.
+     *
+     * <p>What is kept is kept until somebody says it is stale. The cache it replaced expired five
+     * minutes after the last read rather than after the write, so a member whose name was read
+     * every few minutes, which is anybody at a station people are working in, would have kept an
+     * old name for as long as people kept looking at it.
+     */
+    @Test
+    void aNameIsReadAgainOnceItIsForgotten() {
+        memberWithAccount(43, 430, "Maximilian", "Hoffmann");
+        assertEquals("Maximilian Hoffmann", resolver.called(43));
+
+        memberWithAccount(43, 430, "Max", "Hoffmann");
+        assertEquals("Maximilian Hoffmann", resolver.called(43), "what was read is kept");
+
+        resolver.forget(43);
+        assertEquals("Max Hoffmann", resolver.called(43), "and read again once it is dropped");
+    }
+
+    /** Nothing is kept about a member nobody knows, so naming them later works. */
+    @Test
+    void aMemberNobodyKnowsIsNotKept() {
+        when(memberService.findById(44)).thenReturn(Optional.empty());
+        assertNull(resolver.called(44));
+
+        memberWithAccount(44, 440, "Maximilian", "Hoffmann");
+        assertEquals("Maximilian Hoffmann", resolver.called(44));
+    }
 }

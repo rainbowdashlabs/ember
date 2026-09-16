@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
@@ -50,16 +51,16 @@ public class StationMemberRepository {
             (SELECT mg.color FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id
              WHERE mge.member_id = sm.id AND mg.color IS NOT NULL AND mg.color <> ''
              ORDER BY mg.position DESC LIMIT 1)""";
-    private static final String PICKER_MEMBER_COLUMNS =
-            """
+    private static final String PICKER_MEMBER_COLUMNS = """
             sm.uid AS member_uid,
             a.uid AS account_uid,
-            coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name,
+            %s AS display_name,
             sm.user_type,
             %s AS name_color,
             %s AS display_tag,
             %s AS display_tag_color,
-            sm.join_date AS join_date""".formatted(PRIMARY_GROUP_COLOR_SUBQUERY, PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
+            sm.join_date AS join_date""".formatted(
+            MemberNameSql.CALLED, PRIMARY_GROUP_COLOR_SUBQUERY, PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
 
     /**
      * Reads the UUID of an internal member ID.
@@ -371,8 +372,12 @@ public class StationMemberRepository {
      * @return list of member completion entries
      */
     public List<MemberCompletion> findCompletions(int stationId, UUID stationUid) {
-        return query(
-                        "SELECT sm.id, sm.uid, coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name FROM station_member sm LEFT JOIN account a ON sm.account_id = a.id WHERE sm.station_id = :station_id AND sm.former = FALSE ORDER BY display_name;")
+        return query("""
+                        SELECT sm.id, sm.uid, %s AS display_name
+                        FROM station_member sm
+                        LEFT JOIN account a ON sm.account_id = a.id
+                        WHERE sm.station_id = :station_id AND sm.former = FALSE
+                        ORDER BY display_name;""".formatted(MemberNameSql.CALLED))
                 .single(call().bind("station_id", stationId))
                 .map(row -> new MemberCompletion(
                         row.getInt("id"),
@@ -488,10 +493,10 @@ public class StationMemberRepository {
     public Map<Integer, String> findDisplayNames(List<Integer> memberIds) {
         if (memberIds == null || memberIds.isEmpty()) return Map.of();
         var rows = query("""
-                SELECT sm.id, coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name
+                SELECT sm.id, %s AS display_name
                 FROM station_member sm
                 LEFT JOIN account a ON sm.account_id = a.id
-                WHERE sm.id = ANY(:ids);""")
+                WHERE sm.id = ANY(:ids);""".formatted(MemberNameSql.CALLED))
                 .single(call().bind("ids", memberIds, PostgreSqlTypes.INTEGER))
                 .map(row -> Map.entry(row.getInt("id"), row.getString("display_name")))
                 .all();
