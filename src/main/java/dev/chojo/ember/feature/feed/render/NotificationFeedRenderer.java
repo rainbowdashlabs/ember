@@ -33,6 +33,8 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
+import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageUsage;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.util.SizeParser;
@@ -43,6 +45,7 @@ import java.net.URISyntaxException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
@@ -72,6 +75,7 @@ public class NotificationFeedRenderer {
     private final InventoryService inventoryService;
     private final BoardTicketService boardTicketService;
     private final ProcedureService procedureService;
+    private final StationRepository stationRepository;
 
     @Inject
     public NotificationFeedRenderer(
@@ -83,7 +87,8 @@ public class NotificationFeedRenderer {
             StorageQuotaService storageQuotaService,
             InventoryService inventoryService,
             BoardTicketService boardTicketService,
-            ProcedureService procedureService) {
+            ProcedureService procedureService,
+            StationRepository stationRepository) {
         this.notificationService = notificationService;
         this.crudService = crudService;
         this.eventFieldService = eventFieldService;
@@ -93,6 +98,19 @@ public class NotificationFeedRenderer {
         this.inventoryService = inventoryService;
         this.boardTicketService = boardTicketService;
         this.procedureService = procedureService;
+        this.stationRepository = stationRepository;
+    }
+
+    /**
+     * The clock one station's times are written in, UTC where the station is unknown.
+     *
+     * <p>A personal feed carries entries from every station somebody belongs to, so the zone is a
+     * question per entry rather than per feed: two stations in two countries read correctly in one
+     * reader this way.
+     */
+    private ZoneId zoneOf(Integer stationId) {
+        if (stationId == null) return ZoneOffset.UTC;
+        return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
     }
 
     private static Integer extractLinkParam(Notification notification, String key) {
@@ -124,13 +142,11 @@ public class NotificationFeedRenderer {
         return formatLocalDate(from, locale) + " – " + formatLocalDate(to, locale);
     }
 
-    private static boolean sameLocalDate(Instant a, Instant b) {
-        var zone = ZoneId.systemDefault();
+    private static boolean sameLocalDate(Instant a, Instant b, ZoneId zone) {
         return a.atZone(zone).toLocalDate().equals(b.atZone(zone).toLocalDate());
     }
 
-    private static String formatRangeSameDay(Instant start, Instant end, String locale) {
-        var zone = ZoneId.systemDefault();
+    private static String formatRangeSameDay(Instant start, Instant end, String locale, ZoneId zone) {
         var loc = Locale.forLanguageTag(locale);
         var dateFmt = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
                 .withLocale(loc)
@@ -141,10 +157,18 @@ public class NotificationFeedRenderer {
         return dateFmt.format(start) + ", " + timeFmt.format(start) + " – " + timeFmt.format(end);
     }
 
-    private static String formatInstant(Instant instant, String locale) {
+    /**
+     * One moment, written in the clock of the station it belongs to.
+     *
+     * <p>Never the machine's: a feed is rendered on a server that is almost always in UTC, so an
+     * evening from 09:00 to 16:00 in Berlin was read by the people who go to it as 07:00 to 14:00.
+     * The reader's own clock is not knowable here either, and would be the wrong answer anyway,
+     * since an evening happens at the station rather than wherever somebody reads about it.
+     */
+    private static String formatInstant(Instant instant, String locale, ZoneId zone) {
         var fmt = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
                 .withLocale(Locale.forLanguageTag(locale))
-                .withZone(ZoneId.systemDefault());
+                .withZone(zone);
         return fmt.format(instant);
     }
 
@@ -672,14 +696,15 @@ public class NotificationFeedRenderer {
             // Range-merge: a same-day event collapses to a single "When: 15 Sep 17:00 – 19:00"
             // row so users read one fact, not two. Cross-day events keep separate rows to
             // preserve the absolute date on each side.
-            if (start != null && end != null && sameLocalDate(start, end)) {
-                details.put(label(ctx, "when", "When"), formatRangeSameDay(start, end, ctx.locale()));
+            var zone = zoneOf(event.stationId());
+            if (start != null && end != null && sameLocalDate(start, end, zone)) {
+                details.put(label(ctx, "when", "When"), formatRangeSameDay(start, end, ctx.locale(), zone));
             } else {
                 if (start != null) {
-                    details.put(label(ctx, "start", "Start"), formatInstant(start, ctx.locale()));
+                    details.put(label(ctx, "start", "Start"), formatInstant(start, ctx.locale(), zone));
                 }
                 if (end != null) {
-                    details.put(label(ctx, "end", "End"), formatInstant(end, ctx.locale()));
+                    details.put(label(ctx, "end", "End"), formatInstant(end, ctx.locale(), zone));
                 }
             }
             // Recurrence label so the user knows it's "weekly" / "monthly" / etc. at a glance.
@@ -694,7 +719,8 @@ public class NotificationFeedRenderer {
             // alone without round-tripping to the detail view.
             if (event.requiresRegistration() && event.registrationDeadline() != null) {
                 details.put(
-                        label(ctx, "deadline", "Deadline"), formatInstant(event.registrationDeadline(), ctx.locale()));
+                        label(ctx, "deadline", "Deadline"),
+                        formatInstant(event.registrationDeadline(), ctx.locale(), zoneOf(event.stationId())));
             }
             if (event.registrationLimit() != null) {
                 details.put(label(ctx, "limit", "Limit"), String.valueOf(event.registrationLimit()));
@@ -729,7 +755,9 @@ public class NotificationFeedRenderer {
                 details.put(label(ctx, "foundOn", "Found on"), formatLocalDate(item.foundAt(), ctx.locale()));
             }
             if (includeClaim && item.claimedAt() != null) {
-                details.put(label(ctx, "claimedOn", "Claimed on"), formatInstant(item.claimedAt(), ctx.locale()));
+                details.put(
+                        label(ctx, "claimedOn", "Claimed on"),
+                        formatInstant(item.claimedAt(), ctx.locale(), zoneOf(item.stationId())));
             }
         } catch (Exception ignored) {
             // Telemetry-grade enrichment: never block a feed render on a side-effect failure.

@@ -282,7 +282,7 @@ class DomainEventHandlerTest {
 
     @Test
     void eventsBatchCreatedEmitsSingleAggregateNotification() {
-        var handler = new EventsBatchCreatedHandler(notificationService);
+        var handler = new EventsBatchCreatedHandler(notificationService, mock(StationRepository.class));
         assertEquals(EventsBatchCreated.class, handler.eventType());
 
         var events = List.of(
@@ -309,7 +309,7 @@ class DomainEventHandlerTest {
 
     @Test
     void eventsBatchCreatedDoesNothingForEmptyBatch() {
-        var handler = new EventsBatchCreatedHandler(notificationService);
+        var handler = new EventsBatchCreatedHandler(notificationService, mock(StationRepository.class));
 
         handler.handle(new EventsBatchCreated(STATION_ID, List.of()));
 

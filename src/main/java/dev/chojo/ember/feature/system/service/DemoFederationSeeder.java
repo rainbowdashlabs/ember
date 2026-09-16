@@ -36,6 +36,7 @@ import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -132,16 +133,16 @@ public class DemoFederationSeeder implements DemoSeeder {
      * fall back to the event's anchor start time so the demo data still gets a sensible
      * date attached to the comment.
      */
-    private static LocalDate nextOccurrenceOf(StationEvent event) {
-        var today = LocalDate.now();
+    private LocalDate nextOccurrenceOf(StationEvent event) {
+        ZoneId zone = StationFormat.timezoneOf(
+                stationRepository.findById(event.stationId()).orElse(null));
+        var today = LocalDate.now(zone);
         if (event.eventType() == StationEvent.EventType.RECURRING && event.dayOfWeek() != null) {
             DayOfWeek target = DayOfWeek.of(event.dayOfWeek());
             int delta = (target.getValue() - today.getDayOfWeek().getValue() + 7) % 7;
             return today.plusDays(delta == 0 ? 7 : delta);
         }
-        return event.startTime() != null
-                ? event.startTime().atZone(ZoneId.systemDefault()).toLocalDate()
-                : today;
+        return event.startTime() != null ? event.startTime().atZone(zone).toLocalDate() : today;
     }
 
     @Override
