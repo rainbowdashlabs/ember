@@ -188,4 +188,30 @@ class HtmlSanitizerTest {
         assertTrue(out.contains("<p>see <a"));
         assertTrue(out.contains("href=\"https://example.com\""));
     }
+
+    /**
+     * A link to another screen of this instance stays a link.
+     *
+     * <p>Most of what anybody writing here links to is inside the product: an appointment, the
+     * changelog, a page of the wiki. Those are written as paths rather than as addresses, and a path
+     * that loses its href leaves underlined text nobody can follow, which is what every such link did.
+     */
+    @Test
+    void aPathInsideThisInstanceStaysALink() {
+        String out = HtmlSanitizer.sanitize(
+                "<p>see <a href=\"/patch-notes\">the changelog</a></p>", HtmlSanitizer.Policy.STRICT);
+
+        assertTrue(out.contains("href=\"/patch-notes\""), "the path survives: " + out);
+    }
+
+    /** What a path must not become is a way out of the product or a way to run something. */
+    @Test
+    void anAddressThatIsNotAPathIsStillRefused() {
+        String out = HtmlSanitizer.sanitize(
+                "<p><a href=\"javascript:alert(1)\">x</a> <a href=\"//evil.test/x\">y</a></p>",
+                HtmlSanitizer.Policy.STRICT);
+
+        assertFalse(out.contains("javascript"), out);
+        assertFalse(out.contains("//evil.test"), out);
+    }
 }

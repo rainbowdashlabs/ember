@@ -18,7 +18,7 @@ import {notifications} from '@/api'
 import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import type {NotificationEntry} from '@/api/notifications'
-import {formatDateTime} from '@/util/format'
+import {formatDate, formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -75,6 +75,25 @@ const typeIcons: Record<string, string> = {
   SELF_CHECK_ROW_REFUSED: 'rotate-left',
 }
 
+/** A day as the database writes one, which is not how anybody here reads one. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * The days in a notification's parameters, written the way the rest of the product writes them.
+ *
+ * <p>A date reaches the screen as the plain day it is stored as, and four kinds of notification
+ * carry one: an appointment coming up, a batch of new appointments, an answer still wanted, a check
+ * to hand back. Every one of them read "2026-09-19" in the middle of a German sentence. Done here
+ * rather than at each of the four, because the next notification to carry a date would otherwise
+ * read that way too until somebody noticed.
+ */
+function withReadableDates(params: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+      Object.entries(params).map(([key, value]) =>
+          [key, typeof value === 'string' && ISO_DATE.test(value) ? formatDate(value) : value]),
+  )
+}
+
 /**
  * The sentence for one notification.
  *
@@ -84,7 +103,7 @@ const typeIcons: Record<string, string> = {
  * half the reader cannot guess.
  */
 function renderMessage(n: NotificationEntry): string {
-  const params = {...n.params}
+  const params = withReadableDates(n.params)
   // Status fields arrive as raw enum names from the backend (PENDING, DONE, …);
   // route each one through its locale namespace so the message reads in German.
   if (n.type === 'EVENT_REGISTRATION_STATUS' && params.status) {
