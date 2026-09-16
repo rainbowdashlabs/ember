@@ -84,6 +84,30 @@ public final class MemberNameSql {
         return "coalesce(%s, %s)".formatted(calledName(member, account), frozen(member));
     }
 
+    /**
+     * The name that says who somebody is and what they are called at once, for a list of people.
+     * <p>
+     * {@code Max "Maxe" Mustermann}, and the register name alone where there is nothing to put
+     * beside it, so that nobody is written with empty quotes. A member who has left carries one
+     * frozen string, which already holds both halves.
+     */
+    public static String identifiedOfMember(String member, String account) {
+        String m = prefix(member);
+        String a = prefix(account);
+        return """
+                coalesce(
+                    CASE
+                        WHEN nullif(%snickname, '') IS NULL
+                            OR lower(%snickname) = lower(coalesce(%sfirst_name, ''))
+                        THEN %s
+                        ELSE nullif(trim(BOTH ' ' FROM
+                            coalesce(%sfirst_name || ' ', '') || '"' || %snickname || '"'
+                            || coalesce(' ' || %slast_name, '')), '')
+                    END,
+                    %s,
+                    'Mitglied ' || %sid)""".formatted(m, m, a, ofAccount(account), a, m, a, frozen(member), m);
+    }
+
     private static String frozen(String member) {
         return "nullif(%sdisplay_name, '')".formatted(prefix(member));
     }

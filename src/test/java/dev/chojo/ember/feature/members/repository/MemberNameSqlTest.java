@@ -145,6 +145,43 @@ class MemberNameSqlTest extends RepositoryTestBase {
     }
 
     /**
+     * A list of people says who somebody is and what they are called at once.
+     *
+     * <p>Asserted against the roster the member screen actually reads rather than against the
+     * fragment, because every form can be built correctly and the list still ask for the wrong one.
+     * That is what happened: the list asked for the called name and read {@code Maxe Mustermann},
+     * where a member list is the one place both halves belong.
+     */
+    @Test
+    void theMemberListNamesThePersonAndWhatTheyAreCalled() {
+        var known = accountRepo.create("known@test.com", "Maximilian", "Hoffmann");
+        int id = stationMemberRepo.create(station.id(), known.id()).id();
+        stationMemberRepo.setNickname(id, "Max", id);
+
+        var listed = stationMemberRepo.findRichMembers(station.id(), false).stream()
+                .filter(m -> m.id() == id)
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals("Maximilian \"Max\" Hoffmann", listed.name());
+        assertEquals("Maximilian", listed.firstName(), "the halves are still the register's");
+        assertEquals("Hoffmann", listed.lastName());
+
+        accountRepo.delete(known.id());
+    }
+
+    /** Somebody with no nickname is listed without empty quotes around nothing. */
+    @Test
+    void aMemberListLeavesOutTheQuotesWhereThereIsNothingToQuote() {
+        var listed = stationMemberRepo.findRichMembers(station.id(), false).stream()
+                .filter(m -> m.id() == memberId)
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals("Maximilian Hoffmann", listed.name());
+    }
+
+    /**
      * A list sorts by surname first.
      *
      * <p>Asserted against the database rather than against the string, because an order that names

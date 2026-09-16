@@ -231,7 +231,7 @@ public class StationMemberRepository {
                 FROM station_member sm
                 LEFT JOIN account a ON a.id = sm.account_id
                 WHERE sm.station_id = :station_id AND (sm.former = FALSE OR :include_former)
-                ORDER BY %s;""".formatted(MemberNameSql.ofMemberOrBlank("sm", "a"), MemberNameSql.order("sm", "a")))
+                ORDER BY %s;""".formatted(MemberNameSql.identifiedOfMember("sm", "a"), MemberNameSql.order("sm", "a")))
                 .single(call().bind("station_id", stationId).bind("include_former", includeFormer))
                 .map(RichMember.map())
                 .all();
@@ -288,7 +288,8 @@ public class StationMemberRepository {
                        OR %s ILIKE '%%' || :search || '%%'
                        OR coalesce(a.email, '') ILIKE '%%' || :search || '%%')
                 ORDER BY s.name, name
-                LIMIT :limit OFFSET :offset;""".formatted(MemberNameSql.ofMemberOrBlank("sm", "a"), MemberNameSql.ofMemberOrBlank("sm", "a")))
+                LIMIT :limit OFFSET :offset;""".formatted(
+                                MemberNameSql.identifiedOfMember("sm", "a"), MemberNameSql.ofMemberOrBlank("sm", "a")))
                 .single(call().bind("cluster_id", clusterId)
                         .bind("kind", StationKind.REGULAR)
                         .bind("station_id", stationId)
