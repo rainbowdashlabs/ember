@@ -79,7 +79,8 @@ public class MailRecipientService {
                         .filter(Account::hasRealEmail)
                         .ifPresent(guardian -> byAddress.putIfAbsent(
                                 guardian.email().toLowerCase(Locale.ROOT),
-                                new Recipient(guardian.email(), account.firstName(), true)));
+                                new Recipient(
+                                        guardian.email(), NameParts.of(account).greeting(), true)));
             }
         }
         return new ArrayList<>(byAddress.values());

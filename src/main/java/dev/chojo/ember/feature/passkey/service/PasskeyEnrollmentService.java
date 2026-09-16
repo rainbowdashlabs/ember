@@ -147,7 +147,8 @@ public class PasskeyEnrollmentService {
             try {
                 String locale = mailLocaleService.forAccount(targetAccountId);
                 for (var recipient : mailRecipientService.forAccount(targetAccountId)) {
-                    emailService.sendPasskeyCodeIssuedNotice(recipient.email(), target.firstName(), locale);
+                    emailService.sendPasskeyCodeIssuedNotice(
+                            recipient.email(), NameParts.of(target).greeting(), locale);
                 }
             } catch (Exception e) {
                 log.warn("Failed to enqueue the passkey-code notice for account {}", targetAccountId, e);

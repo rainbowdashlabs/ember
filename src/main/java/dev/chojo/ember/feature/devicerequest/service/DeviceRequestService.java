@@ -247,7 +247,7 @@ public class DeviceRequestService {
             try {
                 emailService.sendPasskeyDeviceApprovedNotice(
                         account.email(),
-                        account.firstName(),
+                        NameParts.of(account).greeting(),
                         request.requestedUserAgent(),
                         request.requestedCountry(),
                         mailLocaleService.forAccount(account.id()));
@@ -393,7 +393,7 @@ public class DeviceRequestService {
                     try {
                         emailService.sendDeviceSignedInNotice(
                                 account.email(),
-                                account.firstName(),
+                                NameParts.of(account).greeting(),
                                 request.requestedUserAgent(),
                                 request.requestedCountry(),
                                 mailLocaleService.forAccount(account.id()));
