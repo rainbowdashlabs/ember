@@ -1,5 +1,11 @@
 # Änderungsprotokoll
 
+## v26.17.4
+
+### Verbesserungen
+
+- **Das Änderungsprotokoll sagt, wann eine Version erschienen ist.** Jeder Eintrag trägt jetzt den Tag seines Erscheinens, mit der genauen Uhrzeit unter dem Mauszeiger, und endet mit einem Link, der seine Änderungen gegenüber der vorherigen Veröffentlichung auf GitHub öffnet.
+
 ## v26.17.3
 
 ### Fehlerbehebungen

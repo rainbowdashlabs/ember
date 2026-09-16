@@ -13,6 +13,7 @@ import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import {renderMarkdown} from '@/util/markdown'
+import {formatDateLong, formatDateTime} from '@/util/format'
 import client from '@/api/client'
 import {getChangelog, type ChangelogEntry} from '@/api/system'
 
@@ -78,9 +79,27 @@ onMounted(async () => {
         <PrimaryBadge v-if="entry.version === currentVersion" data-testid="changelog-current">
           {{ t('patchNotes.installed') }}
         </PrimaryBadge>
+        <span
+            v-if="entry.releasedAt"
+            :title="formatDateTime(entry.releasedAt)"
+            class="text-xs text-(--text-muted)"
+            data-testid="changelog-released"
+        >{{ formatDateLong(entry.releasedAt) }}</span>
       </div>
 
       <div class="markdown-content text-sm" v-html="renderMarkdown(entry.body)"/>
+
+      <a
+          v-if="entry.compareUrl"
+          :href="entry.compareUrl"
+          class="inline-flex items-center gap-1 text-xs text-(--link) hover:underline"
+          data-testid="changelog-compare"
+          rel="noopener noreferrer"
+          target="_blank"
+      >
+        <font-awesome-icon :icon="['fas', 'code-compare']"/>
+        {{ t('patchNotes.compare') }}
+      </a>
     </NeutralContainer>
   </div>
 </template>

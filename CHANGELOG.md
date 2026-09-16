@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.17.4
+
+### Improvements
+
+- **The changelog says when each version was released.** Every entry now carries the day it came out, with the exact time under the pointer, and ends with a link that opens its changes against the release before it on GitHub.
+
 ## v26.17.3
 
 ### Fixes

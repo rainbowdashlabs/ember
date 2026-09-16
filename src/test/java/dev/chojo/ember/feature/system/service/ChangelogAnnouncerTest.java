@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Changelog;
+import dev.chojo.ember.conf.file.elements.Updates;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
@@ -57,7 +58,7 @@ class ChangelogAnnouncerTest extends RepositoryTestBase {
                 stationMemberRepo,
                 memberLookupService,
                 accountRepo);
-        changelog = new ChangelogService();
+        changelog = new ChangelogService(new Updates());
         knownVersion = changelog.all("de").getFirst().version();
 
         station = stationRepo.create("ChangelogStation");

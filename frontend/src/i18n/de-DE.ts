@@ -1804,6 +1804,7 @@ export default {
         fetchError: 'Versionshinweise konnten nicht geladen werden.',
         noReleases: 'Keine Versionshinweise verfügbar.',
         installed: 'Installiert',
+        compare: 'Änderungen auf GitHub ansehen',
     },
     adminStations: {
         create: 'Neue Wache',

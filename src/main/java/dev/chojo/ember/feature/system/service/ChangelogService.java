@@ -5,13 +5,17 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.conf.file.elements.Updates;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,16 +39,36 @@ public class ChangelogService {
     private static final Logger log = LoggerFactory.getLogger(ChangelogService.class);
     private static final String DEFAULT_LOCALE = "de";
     private static final String FALLBACK_LOCALE = "en";
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     /** A version heading, as {@code ## v26.17.0}. The {@code v} is part of how they are written. */
     private static final Pattern VERSION_HEADING = Pattern.compile("^##\\s+v?(\\d+(?:\\.\\d+)*)\\s*$");
 
     private final Map<String, Map<String, String>> byLocale = new LinkedHashMap<>();
+    private final Map<String, Release> releases;
+    private final String repository;
 
-    public ChangelogService() {
+    @Inject
+    public ChangelogService(Updates updates) {
+        this(updates, readResource("changelog/releases.json"));
+    }
+
+    /**
+     * Lets a test say which versions were released and when.
+     *
+     * <p>The shipped record is written by the build out of the tags of whatever checkout it ran in,
+     * so a test that read it would assert something different on a machine with the tags than on one
+     * without them, and nothing at all in a shallow clone.
+     *
+     * @param updates     the operator's settings, which name the repository the links point at
+     * @param releasesJson the record of tags, as the build writes it; null where none was shipped
+     */
+    ChangelogService(Updates updates, String releasesJson) {
         for (String locale : List.of(DEFAULT_LOCALE, FALLBACK_LOCALE)) {
             byLocale.put(locale, read(locale));
         }
+        releases = readReleases(releasesJson);
+        repository = updates.repository();
     }
 
     /**
@@ -57,13 +81,13 @@ public class ChangelogService {
         var fallback = byLocale.getOrDefault(FALLBACK_LOCALE, Map.of());
         List<ChangelogEntry> out = new ArrayList<>();
         for (var entry : versions.entrySet()) {
-            out.add(new ChangelogEntry(entry.getKey(), entry.getValue()));
+            out.add(entryOf(entry.getKey(), entry.getValue()));
         }
         // A version the German file has not reached yet is still worth reading, so the English text
         // stands in for it rather than the list stopping where the translation stops.
         for (var entry : fallback.entrySet()) {
             if (!versions.containsKey(entry.getKey())) {
-                out.add(new ChangelogEntry(entry.getKey(), entry.getValue()));
+                out.add(entryOf(entry.getKey(), entry.getValue()));
             }
         }
         out.sort((left, right) -> compareVersions(right.version(), left.version()));
@@ -84,7 +108,7 @@ public class ChangelogService {
         String body = sectionsFor(locale).get(wanted);
         if (body == null)
             body = byLocale.getOrDefault(FALLBACK_LOCALE, Map.of()).get(wanted);
-        return Optional.ofNullable(body).map(text -> new ChangelogEntry(wanted, text));
+        return Optional.ofNullable(body).map(text -> entryOf(wanted, text));
     }
 
     /**
@@ -129,6 +153,78 @@ public class ChangelogService {
         }
     }
 
+    /**
+     * One version, with when it was released and where its changes can be read.
+     *
+     * <p>Both are absent for a version this build knows no tag of, which is what a checkout without
+     * its history and a version never tagged both look like from here.
+     */
+    private ChangelogEntry entryOf(String version, String body) {
+        var release = releases.get(version);
+        if (release == null) return new ChangelogEntry(version, body, null, null);
+        return new ChangelogEntry(version, body, release.releasedAt(), compareUrl(version, release.tag()));
+    }
+
+    /**
+     * Where the changes of one version can be read, against the release before it.
+     *
+     * <p>The tag before this one rather than the entry above it in the changelog: a version can be
+     * released without an entry of its own, and a comparison that skipped it would claim its changes
+     * for its neighbour.
+     */
+    private String compareUrl(String version, String tag) {
+        String previous = null;
+        String previousTag = null;
+        for (var candidate : releases.entrySet()) {
+            if (compareVersions(candidate.getKey(), version) >= 0) continue;
+            if (previous == null || compareVersions(candidate.getKey(), previous) > 0) {
+                previous = candidate.getKey();
+                previousTag = candidate.getValue().tag();
+            }
+        }
+        if (previousTag == null) return null;
+        return "https://github.com/" + repository + "/compare/" + previousTag + "..." + tag;
+    }
+
+    /**
+     * When each version was tagged, as the build wrote it down.
+     *
+     * <p>Recorded while the sources still had their history beside them, because the image is built
+     * from a context that does not carry it. A build that found no tags ships an empty record and
+     * the page then shows its entries without dates, which is what a fork's own build does until it
+     * tags anything.
+     */
+    private static Map<String, Release> readReleases(String json) {
+        Map<String, Release> found = new LinkedHashMap<>();
+        if (json == null || json.isBlank()) {
+            log.warn("No release dates shipped with the changelog");
+            return found;
+        }
+        try {
+            var tree = JSON.readTree(json);
+            for (var name : tree.propertyNames()) {
+                var node = tree.get(name);
+                var tag = node.get("tag");
+                var releasedAt = node.get("releasedAt");
+                if (tag == null || releasedAt == null) continue;
+                found.put(name, new Release(tag.asString(), Instant.parse(releasedAt.asString())));
+            }
+        } catch (RuntimeException e) {
+            log.warn("Could not read when the versions were released", e);
+        }
+        return found;
+    }
+
+    /** Reads a resource that travels in the jar, or null where this build shipped none. */
+    private static String readResource(String path) {
+        try (InputStream is = ChangelogService.class.getClassLoader().getResourceAsStream(path)) {
+            return is == null ? null : new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.warn("Could not read {}", path, e);
+            return null;
+        }
+    }
+
     private Map<String, String> sectionsFor(String locale) {
         var sections = byLocale.get(locale == null ? DEFAULT_LOCALE : locale.toLowerCase());
         return sections != null ? sections : byLocale.getOrDefault(DEFAULT_LOCALE, Map.of());
@@ -169,8 +265,19 @@ public class ChangelogService {
     /**
      * One version of the changelog.
      *
-     * @param version the version it belongs to, as the numbers alone
-     * @param body    what it brought, as the markdown somebody wrote
+     * @param version    the version it belongs to, as the numbers alone
+     * @param body       what it brought, as the markdown somebody wrote
+     * @param releasedAt when it was tagged, or null where this build knows no tag of it
+     * @param compareUrl where its changes can be read against the release before it, or null where
+     *     there is no such pair of tags
      */
-    public record ChangelogEntry(String version, String body) {}
+    public record ChangelogEntry(String version, String body, Instant releasedAt, String compareUrl) {}
+
+    /**
+     * A tag as the build found it.
+     *
+     * @param tag        the tag itself, which carries the {@code v} a version number does not
+     * @param releasedAt when it was made
+     */
+    private record Release(String tag, Instant releasedAt) {}
 }

@@ -11,6 +11,10 @@ ARG GITHUB_SHA=$GITHUB_SHA
 
 WORKDIR /home/gradle
 
+# The build reads the tags to record when each version was released, and git refuses a checkout it
+# does not own. The sources arrive here as root and the build runs as gradle.
+RUN apk add --no-cache git && git config --global --add safe.directory /home/gradle
+
 COPY . .
 
 RUN gradle clean installDist --no-daemon -x test -x javadocJar -x sourcesJar
