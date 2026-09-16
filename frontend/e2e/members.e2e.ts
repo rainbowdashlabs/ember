@@ -141,9 +141,7 @@ test.describe('Members', () => {
         const id = page.url().match(/detail\/(\d+)/)?.[1]
 
         await page.goto(`/station/members/edit/${id}`)
-        // First name, surname and address, in that order: the labels above them are text rather than
-        // labels an input is tied to.
-        await page.getByRole('textbox').nth(1).fill(surname)
+        await page.getByTestId('member-last-name').fill(surname)
         await page.getByRole('button', {name: 'Speichern'}).first().click()
 
         await page.goto(`/station/members/detail/${id}`)
@@ -165,16 +163,14 @@ test.describe('Members', () => {
         const id = page.url().match(/detail\/(\d+)/)?.[1]
 
         await page.goto(`/station/members/edit/${id}`)
-        // First name, surname and address, in that order: the labels above them are text rather than
-        // labels an input is tied to.
-        await page.getByRole('textbox').nth(2).fill(address)
+        await page.getByTestId('member-email').fill(address)
         await page.getByRole('button', {name: 'Speichern'}).first().click()
         // Moving somebody's address takes a fresh proof, so the save is only done once the button
         // says so; navigating before that would cancel the retried request mid-dialog.
         await expect(page.getByRole('button', {name: 'Gespeichert'})).toBeVisible({timeout: 15_000})
 
         await page.goto(`/station/members/edit/${id}`)
-        await expect(page.getByRole('textbox').nth(2), 'the new address is the one on the account')
+        await expect(page.getByTestId('member-email'), 'the new address is the one on the account')
             .toHaveValue(address)
     })
 

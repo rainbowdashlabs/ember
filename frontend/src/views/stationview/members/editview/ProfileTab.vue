@@ -127,15 +127,15 @@ async function save() {
       <div class="grid gap-4 sm:grid-cols-3">
         <div class="space-y-1">
           <FieldLabel hint>{{ t('memberEdit.firstName') }}</FieldLabel>
-          <TextInput v-model="editFirstName"/>
+          <TextInput v-model="editFirstName" data-testid="member-first-name"/>
         </div>
         <div class="space-y-1">
           <FieldLabel hint>{{ t('memberEdit.lastName') }}</FieldLabel>
-          <TextInput v-model="editLastName"/>
+          <TextInput v-model="editLastName" data-testid="member-last-name"/>
         </div>
         <div class="space-y-1">
           <FieldLabel hint>{{ t('memberEdit.email') }}</FieldLabel>
-          <TextInput v-model="editEmail"/>
+          <TextInput v-model="editEmail" data-testid="member-email"/>
           <p v-if="!ownAccount()" class="text-xs text-(--text-muted)">{{ t('memberEdit.emailHint') }}</p>
         </div>
       </div>
