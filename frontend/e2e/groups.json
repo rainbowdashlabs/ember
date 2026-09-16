@@ -73,6 +73,7 @@
   "instance": [
     "admin",
     "admin-log",
+    "beacon-report-picture",
     "discovery",
     "federation",
     "first-start",

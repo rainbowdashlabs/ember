@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {expect, homeManagerApi as _unused, peerAdminApi as _alsoUnused, peerInternalUrl, test} from './fixtures/peer'
+import {expect, peerInternalUrl, test} from './fixtures/peer'
 import type {APIRequestContext} from '@playwright/test'
 
 /**
@@ -24,11 +24,28 @@ const PICTURE = 'iVBORw0KGgoAAAANSUhEUgAAAPAAAAB4CAIAAABD1OhwAAABW0lEQVR4nO3SQQk
     + 'iqFJMTQphibF0KQYmhRDk2JoUgxNiqFJMTQphibF0KQYmhRDk2JoUgxNiqFJMTQphibF0KQYmhRDk2JoUgxNiqFJMTQphibF0'
     + 'KQYmhRDk2JoUgxNiqFJMTQphibF0KQYmhRDk3IBEKuoNezOBt0AAAAASUVORK5CYII='
 
-/** Points an instance at a beacon, or makes it one, and gives back what it now says about itself. */
+/**
+ * Points an instance at a beacon, or makes it one.
+ *
+ * <p>Every switch is written, none merged over what happens to be stored: these settings are one
+ * row for the whole instance, and a story that wrote only the switches it cared about would carry
+ * the rest from whenever it happened to read them.
+ */
 async function beaconSettings(api: APIRequestContext, settings: Record<string, unknown>) {
-    const current = await api.get('/api/v1/admin/beacon')
-    expect(current.ok(), 'the beacon settings answered').toBeTruthy()
-    const written = await api.put('/api/v1/admin/beacon', {data: {...(await current.json()), ...settings}})
+    const written = await api.put('/api/v1/admin/beacon', {
+        data: {
+            enabled: false,
+            url: '',
+            forwardProblems: false,
+            forwardReports: false,
+            reviewReportPictures: true,
+            metricsEnabled: false,
+            receiving: false,
+            contactName: '',
+            contactMail: '',
+            ...settings,
+        },
+    })
     expect(written.ok(), 'the beacon settings were written').toBeTruthy()
     return written.json()
 }
@@ -40,7 +57,17 @@ async function collectedReports(api: APIRequestContext) {
     return answer.json() as Promise<{id: number; message: string; screenshotFileId?: number | null}[]>
 }
 
+/**
+ * Both stories write the one row of beacon settings an instance has, so they take their turn rather
+ * than overwriting each other's answer to whether pictures are looked at before they go.
+ */
 test.describe('A report with a picture reaches a beacon', () => {
+    test.describe.configure({mode: 'serial'})
+
+    /**
+     * Sent as it is written rather than held for somebody to look at, which is the path a report
+     * with a picture takes where an operator has said they would rather not be asked each time.
+     */
     test('the picture travels with the report and the beacon keeps it', async ({
         homeManagerApi,
         homeAdminApi,
@@ -51,8 +78,6 @@ test.describe('A report with a picture reaches a beacon', () => {
             enabled: true,
             url: peerInternalUrl(),
             forwardReports: true,
-            // Sent as it is written rather than held for somebody to look at, which is the path a
-            // report with a picture takes when an operator has said they would rather not be asked.
             reviewReportPictures: false,
         })
 
