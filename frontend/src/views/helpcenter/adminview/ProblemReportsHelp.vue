@@ -83,8 +83,14 @@ const REPORTS: ProblemReport[] = [
       <p>{{ t('helpCenter.adminProblemReports.detailsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.adminProblemReports.pictureTitle')">
+      <p>{{ t('helpCenter.adminProblemReports.pictureText') }}</p>
+      <p>{{ t('helpCenter.adminProblemReports.pictureForwardText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.adminProblemReports.ackTitle')">
       <p>{{ t('helpCenter.adminProblemReports.ackText') }}</p>
+      <p>{{ t('helpCenter.adminProblemReports.retentionText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.adminProblemReports.tip') }}</HelpTip>
