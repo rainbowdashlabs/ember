@@ -15,6 +15,7 @@
 
 ### Fixes
 
+- **A guardian could not read the documents of the member they answer for.** The consent, the medical note and everything else a station holds for a child were refused to the person who signs them, and no screen offered them either. They now stand under the guardian's own documents on their profile, to read rather than to add to, and a document hidden from the member is hidden from them too.
 - **Somebody could turn a year older the day before their birthday.** On a device set to a timezone behind UTC, the age behind a birth date and the age in a column of its own were both a day ahead of themselves. A birth date is now read as the day it names, wherever the reader sits.
 - **An age worked out from a date could show an old number.** A member's profile and the form their answers are given on showed whatever had once been written into the field rather than the number it comes to, and that never changed again. It is now worked out wherever it is shown, and shown without being offered to be typed over.
 - **Renaming a date emptied every age worked out from it.** An age field held on to the name of the question it counts from, so renaming that question left the column blank with nothing to say why. It now holds on to the question itself, and existing age fields are picked up as they are.

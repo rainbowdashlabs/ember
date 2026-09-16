@@ -27,6 +27,8 @@ import type {StationMember} from '@/api/types'
  */
 const props = defineProps<{
   memberId: number
+  /** Whose paperwork this is, where it is not the reader's own. Their own needs no name on it. */
+  title?: string
   /** Whether the reader may put documents on this profile. */
   canUpload?: boolean
   /** Whether the reader may bind, tag and remove, which follows from the right to edit members. */
@@ -111,7 +113,7 @@ async function act(action: Promise<unknown>) {
 <template>
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between gap-2 flex-wrap">
-      <SectionHeader>{{ t('documents.title') }}</SectionHeader>
+      <SectionHeader>{{ props.title ?? t('documents.title') }}</SectionHeader>
       <div class="flex items-center gap-2">
         <TextInput
             v-if="documents.length > 0"

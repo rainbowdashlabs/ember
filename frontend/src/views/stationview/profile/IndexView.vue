@@ -9,7 +9,8 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import { profileFields } from '@/api'
+import { managedMembers as managedMembersApi, profileFields } from '@/api'
+import type { ManagedMember } from '@/api/managedMembers'
 import {
   decodeProfileValues, getFieldValue, setFieldValue, type MergedProfileField,
 } from '@/util/profileFields'
@@ -34,9 +35,22 @@ const values = ref<Map<number, string>>(new Map())
 const memberId = computed(() => sessionInfo.value?.member?.id ?? null)
 
 /** Reading one's own documents needs nothing; adding to them is a right a station grants. */
-const {hasPermission} = usePermissions()
+const {hasPermission, isGuardian} = usePermissions()
 
 const canUploadOwn = computed(() => hasPermission(StationPermission.MEMBER_SELF_UPLOAD))
+
+/**
+ * The people this reader answers for, whose paperwork is shown under their own.
+ *
+ * <p>The forms a station holds for a child are the forms the person answering for that child needs,
+ * and until now there was nowhere to read them: the panel existed and was only ever drawn with the
+ * reader's own member. Adding is still the member's own to do, so these panels only read.
+ */
+const managed = ref<ManagedMember[]>([])
+
+watch(() => sessionInfo.value?.member?.id, async id => {
+  managed.value = id && isGuardian() ? await managedMembersApi.listManaged() : []
+}, {immediate: true})
 
 const fullName = computed(() => {
   const account = sessionInfo.value?.account
@@ -128,6 +142,14 @@ watch(memberId, (newId) => {
         />
 
         <MemberDocumentsPanel :member-id="memberId" :can-upload="canUploadOwn"/>
+
+        <MemberDocumentsPanel
+            v-for="child in managed"
+            :key="child.id"
+            :can-upload="false"
+            :member-id="child.id"
+            :title="t('profile.documentsOf', {name: child.name})"
+        />
       </template>
     </div>
   </ViewContent>

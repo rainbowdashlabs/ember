@@ -15,6 +15,7 @@
 
 ### Fehlerbehebungen
 
+- **Wer für ein Mitglied verantwortlich ist, kam nicht an dessen Dokumente.** Die Einverständniserklärung, der ärztliche Vermerk und alles andere, was die Wache für ein Kind aufbewahrt, wurde genau der Person verweigert, die es unterschreibt, und es gab auch keinen Bildschirm dafür. Sie stehen jetzt im Profil unter den eigenen Dokumenten, zum Lesen und nicht zum Hinzufügen, und was vor dem Mitglied verborgen ist, ist auch vor ihnen verborgen.
 - **Jemand konnte einen Tag vor dem Geburtstag ein Jahr älter werden.** Auf einem Gerät mit einer Zeitzone hinter UTC lagen das Alter hinter dem Geburtsdatum und das Alter in einer eigenen Spalte beide einen Tag vor sich selbst. Ein Geburtsdatum wird jetzt als der Tag gelesen, den es nennt, egal wo der Lesende sitzt.
 - **Ein aus einem Datum berechnetes Alter konnte eine alte Zahl zeigen.** Das Profil eines Mitglieds und das Formular, auf dem seine Antworten gegeben werden, zeigten, was einmal in das Feld geschrieben worden war, statt der Zahl, die sich ergibt, und das änderte sich nie wieder. Es wird jetzt überall berechnet, wo es steht, und angezeigt, ohne zum Überschreiben angeboten zu werden.
 - **Das Umbenennen eines Datums leerte jedes daraus berechnete Alter.** Ein Altersfeld hielt sich am Namen der Frage fest, aus der es zählt, sodass eine Umbenennung die Spalte leer zurückließ, ohne zu sagen warum. Es hält sich jetzt an der Frage selbst fest, und bestehende Altersfelder werden übernommen, wie sie sind.
