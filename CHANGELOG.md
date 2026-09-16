@@ -1,6 +1,6 @@
 # Changelog
 
-## v26.17.4
+## v26.18.0
 
 ### Improvements
 
