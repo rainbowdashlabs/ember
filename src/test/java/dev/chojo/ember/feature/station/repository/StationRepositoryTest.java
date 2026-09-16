@@ -116,6 +116,24 @@ class StationRepositoryTest extends RepositoryTestBase {
         stationRepo.delete(withUid.id());
     }
 
+    /**
+     * A station decides whether it reads the names its members are called by, and reads them by
+     * default: a feature nobody has to switch on is one everybody finds.
+     */
+    @Test
+    @Order(16)
+    void nicknamesAreReadUntilAStationSaysOtherwise() {
+        assertTrue(
+                stationRepo.findById(stationId).orElseThrow().nicknamesEnabled(),
+                "a new station reads them without being asked");
+
+        assertTrue(stationRepo.updateNicknamesEnabled(stationId, false));
+        assertFalse(stationRepo.findById(stationId).orElseThrow().nicknamesEnabled());
+
+        assertTrue(stationRepo.updateNicknamesEnabled(stationId, true));
+        assertTrue(stationRepo.findById(stationId).orElseThrow().nicknamesEnabled());
+    }
+
     // -- Discovery settings --
 
     @Test

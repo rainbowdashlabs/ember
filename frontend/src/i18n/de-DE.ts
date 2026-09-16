@@ -1907,6 +1907,13 @@ export default {
             + 'funktionieren. Erlaubt sind 3 bis 32 Zeichen aus Buchstaben, Ziffern, Punkt, Bindestrich '
             + 'und Unterstrich.',
         saveAccount: 'Kontodaten speichern',
+        nicknameTitle: 'Spitzname',
+        nickname: 'Spitzname',
+        nicknameHint: 'Der Name, mit dem dich deine Wache anspricht. Er ersetzt deinen Vornamen auf den '
+            + 'Bildschirmen, in Benachrichtigungen und in Mails. Auf Anwesenheitslisten, Ausdrucken und '
+            + 'Exporten steht weiterhin dein Name aus dem Register. Leer lassen, um wieder beim Vornamen '
+            + 'genannt zu werden.',
+        nicknamePreview: 'So stehst du in Mitgliederlisten',
         emailChangePending:
             'Eine Bestätigungs-E-Mail wurde an die neue Adresse gesendet. Die E-Mail-Adresse ändert sich erst nach der Bestätigung.',
         passwordTitle: 'Passwort ändern',
@@ -4357,6 +4364,12 @@ export default {
             'In der Fußzeile jedes exportierten PDFs steht die Adresse dieser Instanz. '
             + 'Ausgeblendet bleibt alles andere erhalten: Logo, Wachname, wer das Dokument erstellt '
             + 'hat und die Seitenzahl. Beim Export lässt sich das für ein einzelnes Dokument abweichend wählen.',
+        nicknamesEnabled: 'Spitznamen verwenden',
+        nicknamesEnabledHint:
+            'Mitglieder können einen Spitznamen hinterlegen, der auf den Bildschirmen, in '
+            + 'Benachrichtigungen und in Mails an die Stelle ihres Vornamens tritt. Auf '
+            + 'Anwesenheitslisten, Ausdrucken und Exporten steht weiterhin der Name aus dem Register. '
+            + 'Ausgeschaltet bleibt jeder hinterlegte Spitzname erhalten, wird aber nirgends gelesen.',
         save: 'Speichern',
         saved: 'Gespeichert',
         logoTitle: 'Logo',

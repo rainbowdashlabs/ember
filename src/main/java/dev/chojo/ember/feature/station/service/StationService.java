@@ -455,6 +455,17 @@ public class StationService {
         log.info("Station {} {} the instance address on its exports", stationId, hides ? "hid" : "shows");
     }
 
+    /**
+     * Switches whether this station reads the names its members are called by.
+     *
+     * <p>Nothing is deleted either way, so a station that turns them off and changes its mind gets
+     * every name back.
+     */
+    public void updateNicknamesEnabled(int stationId, boolean enabled) {
+        stationRepository.updateNicknamesEnabled(stationId, enabled);
+        log.info("Station {} {} the names its members are called by", stationId, enabled ? "reads" : "no longer reads");
+    }
+
     public void updatePublicBlogEnabled(int stationId, boolean enabled) {
         stationRepository.updatePublicBlogEnabled(stationId, enabled);
         log.info("Station {} turned its public blog {}", stationId, enabled ? "on" : "off");

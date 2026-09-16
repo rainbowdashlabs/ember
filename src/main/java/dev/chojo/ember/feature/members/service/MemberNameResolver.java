@@ -14,7 +14,9 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -126,10 +128,26 @@ public class MemberNameResolver {
         if (member.accountId() != null) {
             var account = accountRepository.findById(member.accountId()).orElse(null);
             if (account != null) {
-                return NameParts.of(account.firstName(), account.lastName());
+                return NameParts.of(account.firstName(), account.lastName(), nicknameAt(member));
             }
         }
         return NameParts.frozen(member.displayName());
+    }
+
+    /**
+     * The name a member is called by, where their station reads such names at all.
+     *
+     * <p>A station that has switched them off keeps every nickname and reads none, so turning the
+     * setting back on gives everybody their name back rather than asking them to type it again.
+     */
+    private String nicknameAt(StationMember member) {
+        if (member.nickname() == null || member.nickname().isBlank()) return null;
+        return stationRepository
+                        .findById(member.stationId())
+                        .map(Station::nicknamesEnabled)
+                        .orElse(false)
+                ? member.nickname()
+                : null;
     }
 
     /**

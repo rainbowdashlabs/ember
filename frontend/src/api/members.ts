@@ -51,6 +51,18 @@ export async function updateAccount(accountId: number, data: {
     return res.data
 }
 
+/**
+ * Sets the name a member is called by at their station.
+ *
+ * A member may set their own and whoever looks after them may set theirs. Anybody else is refused,
+ * however senior: what somebody is called is theirs to decide.
+ *
+ * @param nickname the name, or null and empty alike to go back to the register name
+ */
+export async function setNickname(memberId: number, nickname: string | null): Promise<void> {
+    await client.put(`/station-members/${memberId}/nickname`, {nickname})
+}
+
 export async function resetPassword(data: ResetPasswordRequest): Promise<MessageResponse> {
     const res = await client.post<MessageResponse>('/members/reset-password', data)
     return res.data

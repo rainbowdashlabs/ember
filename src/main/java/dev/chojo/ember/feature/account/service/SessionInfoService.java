@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -54,6 +55,7 @@ public class SessionInfoService {
     private final UserSettingsRepository userSettingsRepository;
     private final UserTagRepository userTagRepository;
     private final MailChainService mailChainService;
+    private final MemberNameResolver nameResolver;
     private final File config;
 
     @Inject
@@ -67,7 +69,9 @@ public class SessionInfoService {
             UserSettingsRepository userSettingsRepository,
             UserTagRepository userTagRepository,
             MailChainService mailChainService,
+            MemberNameResolver nameResolver,
             File config) {
+        this.nameResolver = nameResolver;
         this.stationService = stationService;
         this.memberService = memberService;
         this.groupService = groupService;
@@ -108,7 +112,9 @@ public class SessionInfoService {
                     session.member().id(),
                     session.stationUid() != null ? session.stationUid().toString() : null,
                     session.member().accountId(),
-                    session.member().uid());
+                    session.member().uid(),
+                    nameResolver.called(session.member().id()),
+                    session.member().nickname());
         }
 
         var roleNames = session.permissions().stream().map(Enum::name).sorted().toList();
@@ -317,5 +323,9 @@ public class SessionInfoService {
      * @param stationId the station identifier
      * @param accountId the account identifier
      */
-    public record MemberInfo(int id, String stationId, int accountId, UUID uid) {}
+    /**
+     * @param calledName what this station calls the member, which is what the screen shows
+     * @param nickname the name they set for themselves, so the field they edit can be filled
+     */
+    public record MemberInfo(int id, String stationId, int accountId, UUID uid, String calledName, String nickname) {}
 }

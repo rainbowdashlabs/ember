@@ -50,7 +50,25 @@ public final class MemberNameSql {
      * @param account the account table's alias
      */
     public static String ofMember(String member, String account) {
-        return "coalesce(%s, %s, 'Mitglied ' || %sid)".formatted(ofAccount(account), frozen(member), prefix(member));
+        return "coalesce(%s, %s, 'Mitglied ' || %sid)"
+                .formatted(calledName(member, account), frozen(member), prefix(member));
+    }
+
+    /**
+     * The register name with the name the station calls them by in place of the first half.
+     *
+     * <p>The station's switch is not consulted here. A statement that reads a roster has one station
+     * in hand already and would pay for a join to ask again per row, so the caller that turns the
+     * setting off asks for {@link #ofAccount(String)} instead. Every such caller goes through
+     * {@code MemberNameResolver}, which does consult it.
+     */
+    private static String calledName(String member, String account) {
+        String m = prefix(member);
+        String a = prefix(account);
+        return """
+                coalesce(
+                    nullif(trim(BOTH ' ' FROM coalesce(nullif(%snickname, ''), %sfirst_name) || ' ' || %slast_name), ''),
+                    %s)""".formatted(m, a, a, ofAccount(account));
     }
 
     /**
@@ -58,12 +76,12 @@ public final class MemberNameSql {
      * what a payload carries when the reader can tell an empty name from a made-up one.
      */
     public static String ofMemberOrBlank(String member, String account) {
-        return "coalesce(%s, %s, '')".formatted(ofAccount(account), frozen(member));
+        return "coalesce(%s, %s, '')".formatted(calledName(member, account), frozen(member));
     }
 
     /** The same name where the column is allowed to be empty, such as a history of who did what. */
     public static String ofMemberOrNull(String member, String account) {
-        return "coalesce(%s, %s)".formatted(ofAccount(account), frozen(member));
+        return "coalesce(%s, %s)".formatted(calledName(member, account), frozen(member));
     }
 
     private static String frozen(String member) {
@@ -78,7 +96,8 @@ public final class MemberNameSql {
      * who has left has no halves and sorts last, under whatever it holds.
      */
     public static String order(String member, String account) {
-        return "%slast_name, %sfirst_name, %sdisplay_name".formatted(prefix(account), prefix(account), prefix(member));
+        return "%slast_name, coalesce(nullif(%snickname, ''), %sfirst_name), %sdisplay_name"
+                .formatted(prefix(account), prefix(member), prefix(account), prefix(member));
     }
 
     private static String prefix(String alias) {

@@ -300,6 +300,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             if (u.lastName().equals("Mustermann")) {
                 stationMemberRepository.setUserType(m.id(), StationUserType.MANAGER);
                 stationMemberRepository.grantPermission(m.id(), stationAdminRole.id());
+                stationMemberRepository.setNickname(m.id(), "Maxe", m.id());
             } else if (u.lastName().equals("Wagner")) {
                 // One helper who may look at the members but not at what is written about them:
                 // reading and notes are separate rights, and an instance where every Betreuer holds

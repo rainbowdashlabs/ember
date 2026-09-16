@@ -27,8 +27,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class MemberGroupRepository {
     private static final String MEMBER_GROUP_COLUMNS = "id, station_id, name, color, position";
-    private static final String STATION_MEMBER_COLUMNS =
-            "id, station_id, uid, account_id, former, former_at, display_name, user_type, join_date";
+    private static final String STATION_MEMBER_COLUMNS = StationMember.COLUMNS;
 
     /**
      * Finds a member group by its identifier.

@@ -11,6 +11,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AvatarSection from './accountavatarview/AvatarSection.vue'
 import AccountDetailsSection from './accountavatarview/AccountDetailsSection.vue'
+import NicknameSection from './accountavatarview/NicknameSection.vue'
 import { members } from '@/api'
 import { useSession } from '@/composables/useSession'
 
@@ -24,6 +25,10 @@ const editFirstName = ref('')
 const editLastName = ref('')
 const editEmail = ref('')
 const editUsername = ref('')
+const editNickname = ref('')
+
+/** A nickname belongs to a membership, so there is nothing to set without one. */
+const hasMembership = computed(() => sessionInfo.value?.member != null)
 
 const displayName = computed(() => (editFirstName.value + ' ' + editLastName.value).trim())
 
@@ -53,6 +58,19 @@ async function saveAccount() {
   }
 }
 
+async function saveNickname() {
+  error.value = ''
+  const member = sessionInfo.value?.member
+  if (!member) return
+  try {
+    await members.setNickname(member.id, editNickname.value.trim() || null)
+    await load()
+  } catch (e) {
+    error.value = t('common.error')
+    throw e
+  }
+}
+
 function applyAccount() {
   const account = sessionInfo.value?.account
   if (!account) return
@@ -60,6 +78,7 @@ function applyAccount() {
   editLastName.value = account.lastName ?? ''
   editEmail.value = account.email ?? ''
   editUsername.value = account.username ?? ''
+  editNickname.value = sessionInfo.value?.member?.nickname ?? ''
   loading.value = false
 }
 
@@ -92,6 +111,14 @@ onMounted(() => {
             v-model:username="editUsername"
             :email-change-pending="emailChangePending"
             :action="saveAccount"
+        />
+
+        <NicknameSection
+            v-if="hasMembership"
+            v-model="editNickname"
+            :first-name="editFirstName"
+            :last-name="editLastName"
+            :action="saveNickname"
         />
       </template>
     </div>

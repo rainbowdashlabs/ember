@@ -9,11 +9,15 @@ import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -273,5 +277,112 @@ class MemberNameResolverTest {
 
         memberWithAccount(44, 440, "Maximilian", "Hoffmann");
         assertEquals("Maximilian Hoffmann", resolver.called(44));
+    }
+
+    /**
+     * With a name to be called by, the four forms stop being the same name.
+     *
+     * <p>This is the whole feature in one test: the board says Max, a member list says who that is,
+     * the attendance sheet says Maximilian, and a mail greets him as Max.
+     */
+    @Test
+    void aNicknameSeparatesTheFourForms() {
+        memberWithNickname(50, 500, "Maximilian", "Hoffmann", "Max");
+
+        assertEquals("Max Hoffmann", resolver.called(50), "what the station reads");
+        assertEquals("Maximilian \"Max\" Hoffmann", resolver.identified(50), "who that is");
+        assertEquals("Maximilian Hoffmann", resolver.official(50), "what the sheet says");
+        assertEquals("Max", resolver.greeting(50), "what a mail says hello to");
+    }
+
+    /** A station that does not read such names reads the register, without anything being deleted. */
+    @Test
+    void aStationThatDoesNotReadNicknamesReadsTheRegister() {
+        memberWithNickname(51, 510, "Maximilian", "Hoffmann", "Max");
+        when(stationRepository.findById(1)).thenReturn(Optional.of(station(false)));
+
+        assertEquals("Maximilian Hoffmann", resolver.called(51));
+        assertEquals("Maximilian Hoffmann", resolver.identified(51), "and no empty quotes either");
+        assertEquals("Maximilian", resolver.greeting(51));
+    }
+
+    /**
+     * A nickname that only repeats the first name is no nickname at all.
+     *
+     * <p>Otherwise somebody typing what they are already called turns every list into
+     * {@code Maximilian "Maximilian" Hoffmann}.
+     */
+    @Test
+    void aNicknameThatRepeatsTheFirstNameIsNotOne() {
+        memberWithNickname(52, 520, "Max", "Hoffmann", "max");
+
+        assertEquals("Max Hoffmann", resolver.identified(52), "written once, not twice");
+    }
+
+    /** Somebody with a nickname and no surname is still introduced properly. */
+    @Test
+    void aNicknameWithoutASurnameStillReads() {
+        memberWithNickname(53, 530, "Maximilian", null, "Max");
+
+        assertEquals("Max", resolver.called(53));
+        assertEquals("Maximilian \"Max\"", resolver.identified(53));
+    }
+
+    private void memberWithNickname(int memberId, int accountId, String first, String last, String nickname) {
+        var member = new StationMember(
+                memberId, 1, UUID.randomUUID(), accountId, false, null, null, StationUserType.MEMBER, null, nickname);
+        var account = new Account(
+                accountId,
+                UUID.randomUUID(),
+                "test@test.com",
+                null,
+                first,
+                last,
+                true,
+                InstanceUserType.USER,
+                ((first == null ? "" : first) + " " + (last == null ? "" : last)).trim(),
+                null,
+                null);
+        when(memberService.findById(memberId)).thenReturn(Optional.of(member));
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+        when(stationRepository.findById(1)).thenReturn(Optional.of(station(true)));
+    }
+
+    private static Station station(boolean nicknamesEnabled) {
+        return new Station(
+                1,
+                null,
+                "Test",
+                "Europe/Berlin",
+                "de-DE",
+                null,
+                null,
+                false,
+                null,
+                ThemeFeel.ROUNDED,
+                false,
+                PublicKbMode.OFF,
+                null,
+                DiscoveryVisibility.NONE,
+                null,
+                false,
+                false,
+                null,
+                false,
+                null,
+                false,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                StationKind.REGULAR,
+                null,
+                false,
+                false,
+                nicknamesEnabled);
     }
 }

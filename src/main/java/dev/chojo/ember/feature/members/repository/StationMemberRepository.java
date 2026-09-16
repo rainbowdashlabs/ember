@@ -36,8 +36,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class StationMemberRepository {
-    private static final String STATION_MEMBER_COLUMNS =
-            "id, station_id, uid, account_id, former, former_at, display_name, user_type, join_date";
+    private static final String STATION_MEMBER_COLUMNS = StationMember.COLUMNS;
 
     private static final String PRIMARY_TAG_NAME_SUBQUERY = """
             (SELECT ut.name FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id
@@ -580,6 +579,26 @@ public class StationMemberRepository {
     public void setDisplayNameAndClearAccount(int id, String displayName) {
         query("UPDATE station_member SET display_name = :display_name, account_id = NULL WHERE id = :id;")
                 .single(call().bind("id", id).bind("display_name", displayName))
+                .update();
+    }
+
+    /**
+     * Writes the name a member is called by, and who wrote it.
+     *
+     * <p>Whoever wrote it is kept because a member may set their own and a manager may set one for
+     * somebody they look after: a name nobody chose for themselves has to be traceable to the person
+     * who chose it.
+     *
+     * @param id the member
+     * @param nickname the name, or null to give them their register name back
+     * @param setBy the member who wrote it
+     */
+    public void setNickname(int id, String nickname, int setBy) {
+        query("""
+                UPDATE station_member
+                SET nickname = :nickname, nickname_set_by = :set_by, nickname_set_at = now()
+                WHERE id = :id;""")
+                .single(call().bind("id", id).bind("nickname", nickname).bind("set_by", setBy))
                 .update();
     }
 

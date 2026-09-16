@@ -118,6 +118,33 @@ class MemberNameSqlTest extends RepositoryTestBase {
     }
 
     /**
+     * A member with a name to be called by is spelled that way by the database too.
+     *
+     * <p>This is the pair that matters: a picker resolving one member in Java and a roster resolving
+     * five hundred in SQL have to produce the same string, or the same person reads differently
+     * depending on which screen is open.
+     */
+    @Test
+    void theDatabaseAndTheServiceAgreeOnSomebodyWithANicknameToo() {
+        var called = accountRepo.create("called@test.com", "Maximilian", "Hoffmann");
+        int id = stationMemberRepo.create(station.id(), called.id()).id();
+        stationMemberRepo.setNickname(id, "Max", id);
+
+        var parts = NameParts.of(called.firstName(), called.lastName(), "Max");
+
+        assertEquals("Max Hoffmann", parts.called(), "the rule itself");
+        assertEquals(parts.called(), spelledInSql(MemberNameSql.ofMember("sm", "a"), id));
+        assertEquals(parts.called(), spelledInSql(MemberNameSql.ofMemberOrBlank("sm", "a"), id));
+        assertEquals(parts.called(), spelledInSql(MemberNameSql.ofMemberOrNull("sm", "a"), id));
+        assertEquals(
+                parts.official(),
+                spelledInSql(MemberNameSql.ofAccount("a"), id),
+                "and the register is still the register");
+
+        accountRepo.delete(called.id());
+    }
+
+    /**
      * A list sorts by surname first.
      *
      * <p>Asserted against the database rather than against the string, because an order that names

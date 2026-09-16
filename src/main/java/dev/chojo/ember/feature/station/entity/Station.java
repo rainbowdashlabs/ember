@@ -70,7 +70,86 @@ public record Station(
         StationKind stationKind,
         Integer clusterId,
         boolean lossNoteRequired,
-        boolean pdfHidesInstanceUrl) {
+        boolean pdfHidesInstanceUrl,
+        boolean nicknamesEnabled) {
+
+    /**
+     * A station as it is read where the question of nicknames does not arise.
+     *
+     * <p>Reading them is the ordinary case, so the places that build a station row by hand do not
+     * have to say so.
+     */
+    public Station(
+            int id,
+            UUID uid,
+            String name,
+            String timezone,
+            String locale,
+            Integer ownerMemberId,
+            String defaultTheme,
+            boolean allowUserTheme,
+            String customThemeColors,
+            ThemeFeel defaultFeel,
+            boolean allowUserFeel,
+            PublicKbMode publicKbMode,
+            String federationPrivateKey,
+            DiscoveryVisibility discoveryVisibility,
+            String discoveryDescription,
+            boolean discoveryShowKb,
+            boolean publicCalendarEnabled,
+            Integer landingPageId,
+            boolean publicPagesEnabled,
+            String publicSlug,
+            boolean publicWaitlistEnabled,
+            boolean publicBlogEnabled,
+            String addressLine,
+            String postalCode,
+            String city,
+            String country,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            Instant setupCompletedAt,
+            StationKind stationKind,
+            Integer clusterId,
+            boolean lossNoteRequired,
+            boolean pdfHidesInstanceUrl) {
+        this(
+                id,
+                uid,
+                name,
+                timezone,
+                locale,
+                ownerMemberId,
+                defaultTheme,
+                allowUserTheme,
+                customThemeColors,
+                defaultFeel,
+                allowUserFeel,
+                publicKbMode,
+                federationPrivateKey,
+                discoveryVisibility,
+                discoveryDescription,
+                discoveryShowKb,
+                publicCalendarEnabled,
+                landingPageId,
+                publicPagesEnabled,
+                publicSlug,
+                publicWaitlistEnabled,
+                publicBlogEnabled,
+                addressLine,
+                postalCode,
+                city,
+                country,
+                latitude,
+                longitude,
+                setupCompletedAt,
+                stationKind,
+                clusterId,
+                lossNoteRequired,
+                pdfHidesInstanceUrl,
+                true);
+    }
+
     public static RowMapping<Station> map() {
         return row -> new Station(
                 row.getInt("id"),
@@ -105,6 +184,7 @@ public record Station(
                 row.getEnum("station_kind", StationKind.class),
                 row.getObject("cluster_id", Integer.class),
                 row.getBoolean("loss_note_required"),
-                row.getBoolean("pdf_hides_instance_url"));
+                row.getBoolean("pdf_hides_instance_url"),
+                row.getBoolean("nicknames_enabled"));
     }
 }
