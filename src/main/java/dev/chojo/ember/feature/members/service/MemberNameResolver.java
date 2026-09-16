@@ -162,6 +162,18 @@ public class MemberNameResolver {
     }
 
     /**
+     * Forgets every membership of one account, for when the register name itself is rewritten.
+     *
+     * <p>The name is kept against the member and read from the account, so correcting a surname
+     * changes what every one of that person's memberships is called without touching any of them.
+     * Without this the old name is served until the cache lets go of it, and whoever has just
+     * corrected it is looking at the mistake they came to fix.
+     */
+    public void forgetAccount(int accountId) {
+        memberService.findByAccount(accountId).forEach(member -> forget(member.id()));
+    }
+
+    /**
      * Resolves a federated member's display name.
      * Tries: name cache, then partner station name fallback, then null.
      */

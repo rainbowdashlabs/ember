@@ -58,15 +58,6 @@ function ownAccount(): boolean {
   return sessionInfo.value?.account?.id === props.member.accountId
 }
 
-async function saveNickname() {
-  error.value = ''
-  try {
-    await members.setNickname(props.memberId, editNickname.value.trim() || null)
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
 async function onJoinDateChange(value: string | undefined) {
   if (!value) return
   error.value = ''
@@ -108,6 +99,7 @@ async function save() {
           origin: (f as MergedProfileField).origin,
         }))
     await profileFields.setValues(props.memberId, {values: entries})
+    await members.setNickname(props.memberId, editNickname.value.trim() || null)
     if (addressChanged && ownAccount()) notice.value = t('memberEdit.emailConfirmationPending')
   } catch (e) {
     error.value = t('common.error')
@@ -148,7 +140,6 @@ async function save() {
 
     <NicknameSection
         v-model="editNickname"
-        :action="saveNickname"
         :first-name="member.firstName ?? ''"
         :hint="t('memberEdit.nicknameHint')"
         :last-name="member.lastName ?? ''"
