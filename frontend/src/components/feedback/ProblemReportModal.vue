@@ -13,9 +13,11 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import ReportPictureSection from '@/components/problem/ReportPictureSection.vue'
 import {submitReport} from '@/api/problemReports'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {flatten} from '@/composables/useScreenCapture'
 import {closeProblemReport, problemReportAbout, problemReportOpen} from '@/util/problemReportState'
 
 /**
@@ -39,14 +41,22 @@ const about = problemReportAbout()
 
 const description = ref('')
 const sent = ref(false)
+const picture = ref<HTMLCanvasElement | null>(null)
+const pictureSection = ref<InstanceType<typeof ReportPictureSection>>()
 
 const enoughSaid = computed(() => description.value.trim().length >= 10)
 
 const {running: sending, error, run: send, clearError} = useAsyncAction(async () => {
   if (!enoughSaid.value) return
-  await submitReport(description.value.trim(), sessionInfo.value, about.value ?? undefined)
+  // Flattened here rather than as it was covered: the covers become pixels at the moment of sending,
+  // and what leaves has no layer to take off again.
+  const covered = picture.value
+      ? await flatten(picture.value, pictureSection.value?.covers ?? [])
+      : null
+  await submitReport(description.value.trim(), sessionInfo.value, about.value ?? undefined, covered)
   sent.value = true
   description.value = ''
+  picture.value = null
 })
 
 /** A fresh form every time it opens, so yesterday's half-written report is not sent by accident. */
@@ -54,6 +64,7 @@ watch(open, (showing) => {
   if (!showing) return
   sent.value = false
   description.value = ''
+  picture.value = null
   clearError()
 })
 
@@ -106,6 +117,8 @@ function close() {
             {{ t('problemReport.tooShort') }}
           </MutedText>
         </div>
+
+        <ReportPictureSection ref="pictureSection" v-model="picture"/>
 
         <MutedText size="sm" tag="p">{{ t('problemReport.autoCapture') }}</MutedText>
 

@@ -50,7 +50,8 @@ class ProblemReportRepositoryTest extends RepositoryTestBase {
                 "LOGIN, USER",
                 "[{\"method\":\"GET\",\"url\":\"/events\",\"status\":200}]",
                 "Mozilla/5.0",
-                "1920x1080");
+                "1920x1080",
+                null);
         assertNotNull(report);
         assertTrue(report.id() > 0);
         assertEquals("Something is broken", report.message());
@@ -95,7 +96,7 @@ class ProblemReportRepositoryTest extends RepositoryTestBase {
     @Order(4)
     void acknowledgeAll() {
         // Create another report
-        problemReportRepo.create(station.id(), null, "Anon", "Another issue", null, null, null, null, null);
+        problemReportRepo.create(station.id(), null, "Anon", "Another issue", null, null, null, null, null, null);
         int count = problemReportRepo.acknowledgeAll();
         assertTrue(count >= 1);
         assertTrue(problemReportRepo.findAll(false).isEmpty());

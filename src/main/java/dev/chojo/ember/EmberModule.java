@@ -272,6 +272,7 @@ import dev.chojo.ember.feature.system.service.DemoStationSeeder;
 import dev.chojo.ember.feature.system.service.DemoTwoFactorSeeder;
 import dev.chojo.ember.feature.system.service.DemoVideoSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
+import dev.chojo.ember.feature.system.service.ProblemReportSweeper;
 import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
 import dev.chojo.ember.feature.twofactor.route.StepUpRoutes;
@@ -560,6 +561,7 @@ public class EmberModule extends AbstractModule {
         bind(StorageReconciliationService.class).asEagerSingleton();
         bind(ManagedLoginNoticeSweeper.class).asEagerSingleton();
         bind(AuthCleanupSweeper.class).asEagerSingleton();
+        bind(ProblemReportSweeper.class).asEagerSingleton();
         bind(KbTrashPurger.class).asEagerSingleton();
         bind(FederationVersionBroadcaster.class).asEagerSingleton();
         bind(FeedMetricsService.class).asEagerSingleton();

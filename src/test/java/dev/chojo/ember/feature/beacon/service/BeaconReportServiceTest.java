@@ -175,7 +175,10 @@ class BeaconReportServiceTest {
                 "[{\"url\":\"/api/v1/events\",\"status\":500},{\"url\":\"/api/v1/members?q=Nora\",\"status\":200}]",
                 "Firefox/141.0",
                 "1920x1080",
+                null,
                 false,
+                null,
+                null,
                 Instant.now());
     }
 }
