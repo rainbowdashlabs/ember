@@ -81,6 +81,13 @@ async function save() {
         <ToggleInput v-model="form.forwardReports" :disabled="!form.enabled"/>
         {{ t('beacon.forwardReports') }}
       </label>
+      <div class="space-y-1 pl-6">
+        <label class="flex items-center gap-2 text-sm">
+          <ToggleInput v-model="form.reviewReportPictures" :disabled="!form.enabled || !form.forwardReports"/>
+          {{ t('beacon.reviewReportPictures') }}
+        </label>
+        <MutedText class="block text-xs">{{ t('beacon.reviewReportPicturesHint') }}</MutedText>
+      </div>
       <label class="flex items-center gap-2 text-sm">
         <ToggleInput v-model="form.metricsEnabled" :disabled="!form.enabled"/>
         {{ t('beacon.metricsEnabled') }}

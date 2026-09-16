@@ -14,7 +14,10 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import CoverablePicture from '@/components/problem/CoverablePicture.vue'
 import {beacon} from '@/api'
+import client from '@/api/client'
+import {flatten, pictureFrom, useCovers} from '@/composables/useScreenCapture'
 import type {ProblemPayload, ReportPayload} from '@/api/beacon'
 
 /**
@@ -32,6 +35,8 @@ const props = defineProps<{
   /** Whether the entry is a fault out of the log or a report somebody wrote. */
   kind: 'problem' | 'report'
   entryId: number | null
+  /** Whether this report carries a picture, which is the one part not shown as bytes. */
+  hasPicture?: boolean
 }>()
 
 const emit = defineEmits<{sent: []}>()
@@ -41,12 +46,29 @@ const payload = ref<ProblemPayload | ReportPayload | null>(null)
 const loading = ref(false)
 const error = ref('')
 const sending = ref(false)
+const picture = ref<HTMLCanvasElement | null>(null)
+const {covers, add, removeAt, clear} = useCovers()
+
+/** The stored picture as pixels, so more of it can be covered before it leaves the instance. */
+async function pictureOfReport(id: number): Promise<HTMLCanvasElement | null> {
+  try {
+    const answer = await client.get(`/admin/problem-reports/${id}/screenshot`, {responseType: 'blob'})
+    return await pictureFrom(answer.data as Blob)
+  } catch {
+    return null
+  }
+}
 
 watch(open, async value => {
   if (!value || props.entryId == null) return
   loading.value = true
   error.value = ''
   payload.value = null
+  picture.value = null
+  clear()
+  if (props.kind === 'report' && props.hasPicture) {
+    picture.value = await pictureOfReport(props.entryId)
+  }
   try {
     payload.value = props.kind === 'problem'
         ? await beacon.previewProblem(props.entryId)
@@ -65,13 +87,25 @@ watch(open, async value => {
  * dialog that closed on "sent" either way would tell an operator their report had gone when it had
  * been dropped on the floor.
  */
-async function send() {
+/**
+ * Sends it with the picture, further covered where the reader covered more of it.
+ *
+ * <p>The covers become pixels here, at the moment of sending, and the copy that carries them is let
+ * go of on the instance once it has gone: what the reporter covered is what the report keeps.
+ */
+async function send(withPicture = true) {
   if (props.entryId == null) return
   sending.value = true
   try {
+    const covered = withPicture && picture.value && covers.value.length > 0
+        ? await flatten(picture.value, covers.value)
+        : null
     const queued = props.kind === 'problem'
         ? await beacon.sendProblem(props.entryId)
-        : await beacon.sendReportToBeacon(props.entryId)
+        : await beacon.sendReportToBeacon(props.entryId, {
+          screenshot: covered,
+          dropScreenshot: !withPicture,
+        })
     if (queued < 1) {
       error.value = t('beacon.notQueued')
       return
@@ -97,9 +131,22 @@ async function send() {
 
       <pre v-if="payload" class="max-h-96 overflow-auto rounded-lg bg-bg-light-accent/40 dark:bg-bg-dark-accent/40 p-4 text-xs whitespace-pre-wrap break-words">{{ JSON.stringify(payload, null, 2) }}</pre>
 
-      <ButtonRow pair align="end">
+      <div v-if="picture" class="space-y-2">
+        <MutedText size="sm" tag="p">{{ t('beacon.pictureGoesWithIt') }}</MutedText>
+        <CoverablePicture :covers="covers" :picture="picture" @add="add" @remove="removeAt"/>
+      </div>
+
+      <ButtonRow align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="!payload || sending" :icon="['fas', 'tower-broadcast']" @click="send">
+        <SecondaryButton
+            v-if="picture"
+            :disabled="sending"
+            data-testid="beacon-send-without-picture"
+            @click="send(false)"
+        >
+          {{ t('beacon.sendWithoutPicture') }}
+        </SecondaryButton>
+        <PrimaryButton :disabled="!payload || sending" :icon="['fas', 'tower-broadcast']" @click="send(true)">
           {{ sending ? t('common.loading') : t('beacon.send') }}
         </PrimaryButton>
       </ButtonRow>

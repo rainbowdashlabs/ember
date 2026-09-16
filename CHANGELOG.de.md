@@ -2,11 +2,17 @@
 
 ## v26.18.0
 
+### Neue Funktionen
+
+- **Eine Problemmeldung kann ein Bild der Seite mitbringen.** Auf Knopfdruck fragt der Browser, welches Fenster geteilt werden soll, oder du wählst ein Bild, das du selbst gemacht hast; zieh über alles, was niemand sehen soll, und es wird übermalt, bevor die Meldung rausgeht. Von allein wird nie etwas aufgenommen, Passwortfelder sind abgedeckt, bevor das Bild überhaupt erscheint, und eine Meldung ohne Bild ist wie bisher.
+
 ### Verbesserungen
 
 - **Das Änderungsprotokoll sagt, wann eine Version erschienen ist.** Jeder Eintrag trägt jetzt den Tag seines Erscheinens, mit der genauen Uhrzeit unter dem Mauszeiger, und endet mit einem Link, der seine Änderungen gegenüber der vorherigen Veröffentlichung auf GitHub öffnet.
 - **Ein Geburtsdatum kann ohne das Alter dahinter stehen.** Das Feld hat jetzt einen Schalter dafür, eingeschaltet wie bisher, damit eine Wache, die das Alter zusätzlich als eigene Frage stellt, es nicht zweimal in einer Zeile stehen hat.
 - **Ein berechnetes Feld bietet nur noch die Einstellungen an, die es erreichen.** Seine Antwort schreibt niemand, also fragt es nicht mehr, ob eine Antwort erwartet wird, ob sie geschrieben werden darf, ob eine Änderung gemeldet werden soll oder womit sie beginnen soll.
+- **Das Bild einer Meldung kann an einen Beacon weitergehen, nachdem jemand hier es angesehen hat.** Eine Meldung mit Bild wartet in der Verwaltungsliste, bis sie weitergegeben wird; dort lässt sich vorher mehr übermalen oder das Bild aus der Sendung nehmen. Ein Schalter in den Beacon-Einstellungen schickt sie stattdessen sofort raus, und ein weggelassenes Bild wird einer Meldung nie nachgereicht.
+- **Problemmeldungen werden aufgeräumt.** Dreißig Tage nachdem eine Meldung als erledigt markiert wurde, wird sie mit ihrem Bild gelöscht. Bisher blieben sie für immer liegen.
 
 ### Fehlerbehebungen
 

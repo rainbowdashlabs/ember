@@ -69,7 +69,17 @@ export async function captureScreen(): Promise<HTMLCanvasElement | null> {
 /** Reads a picture somebody attached themselves, which is the way where sharing is refused. */
 export async function readPictureFile(file: File): Promise<HTMLCanvasElement | null> {
     if (!file.type.startsWith('image/')) return null
-    const url = URL.createObjectURL(file)
+    return pictureFrom(file)
+}
+
+/**
+ * Draws a picture that arrived as bytes onto a canvas, which is what covering it needs.
+ *
+ * <p>The same path a stored picture comes back through when somebody looks at it again before it is
+ * passed on: covering works on pixels, and a blob is not pixels until something has drawn it.
+ */
+export async function pictureFrom(blob: Blob): Promise<HTMLCanvasElement | null> {
+    const url = URL.createObjectURL(blob)
     try {
         const image = new Image()
         image.src = url

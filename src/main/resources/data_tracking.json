@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:390de50d51bb5d30389ebd95cfc869d1797eb1301a37e8bae9dcabf89079a22c",
-  "generatedAt": "2026-09-16T01:16:01Z",
+  "schemaHash": "sha256:66dd46a492ed9dcd9132982fedf47a9e2a5fa8c5d34652a395d6c6d0da4201c4",
+  "generatedAt": "2026-09-16T15:24:48Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -2014,7 +2014,7 @@
     "beacon_report": {
       "feature": "beacon",
       "scope": "INSTANCE",
-      "tableHash": "sha256:c8a1a48bc21e540df24934e6675e7ea08e8f11ac8fc10c1add5b480469af1574",
+      "tableHash": "sha256:7dfd5035581fd6ff2f978d990d5807b2ed2c915d872b904aa8a99d9f15bc912e",
       "columns": [
         {
           "name": "id",
@@ -2091,6 +2091,13 @@
           "nullable": true,
           "verified": true,
           "description": "The calls the screen made before the report was written, each with its query string removed."
+        },
+        {
+          "name": "screenshot_file_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The picture that arrived just before this report, or NULL where it came without one. It was covered on the instance it came from before it was sent, and there is nothing here to uncover it with."
         }
       ],
       "foreignKeys": [
@@ -2099,6 +2106,12 @@
           "refTable": "beacon_instance",
           "refColumn": "instance_id",
           "onDelete": "CASCADE"
+        },
+        {
+          "column": "screenshot_file_id",
+          "refTable": "station_file",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
         }
       ],
       "stationTransfer": {
@@ -17312,7 +17325,7 @@
     "problem_report": {
       "feature": "system",
       "scope": "INSTANCE",
-      "tableHash": "sha256:8233c89c589d20be6a72298f7a5429f9010d5d621213328bfd97be98fd05c48b",
+      "tableHash": "sha256:57f0e3e7778240122e53ea10e47603313e9f188a15ce6c70285e03630381e776",
       "columns": [
         {
           "name": "id",
@@ -17397,12 +17410,39 @@
           "nullable": false,
           "verified": true,
           "description": "When the report was submitted."
+        },
+        {
+          "name": "screenshot_file_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The picture of the page the report was written about, or NULL where none was given. A picture of a page can hold the data of people other than the reporter, which is why it is theirs to attach and never taken without being asked for."
+        },
+        {
+          "name": "acknowledged_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the report was marked dealt with, which is when its thirty days begin. NULL while nobody has."
+        },
+        {
+          "name": "forwarded_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the report was passed on to a beacon, or NULL where it has not been. A report waiting for somebody to look at its picture first is one with a picture and no such date."
         }
       ],
       "foreignKeys": [
         {
           "column": "member_id",
           "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "screenshot_file_id",
+          "refTable": "station_file",
           "refColumn": "id",
           "onDelete": "SET NULL"
         },

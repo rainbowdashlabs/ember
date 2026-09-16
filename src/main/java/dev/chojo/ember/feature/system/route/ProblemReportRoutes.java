@@ -62,7 +62,6 @@ public class ProblemReportRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR);
         routes.get(
                 prefix + "/admin/problem-reports/{id}/screenshot", this::screenshot, InstancePermission.ADMINISTRATOR);
-        routes.post(prefix + "/admin/problem-reports/{id}/forward", this::forwardNow, InstancePermission.ADMINISTRATOR);
         routes.delete(prefix + "/admin/problem-reports/{id}", this::delete, InstancePermission.ADMINISTRATOR);
     }
 
@@ -184,42 +183,7 @@ public class ProblemReportRoutes implements Routes {
     }
 
     /**
-     * Passes a held report on, once somebody has looked at what its picture shows.
-     *
-     * <p>Three answers are possible and all of them are final. It goes as it stands; it goes with a
-     * further covered copy of the picture, which is what {@code screenshot} carries; or it goes
-     * without the picture at all. A report already passed on is not passed again, because a beacon
-     * holding one report twice is worse than a beacon holding it once.
-     */
-    @OpenApi(
-            path = "/api/v1/admin/problem-reports/{id}/forward",
-            methods = HttpMethod.POST,
-            summary = "Pass a held report on to the beacon",
-            tags = {"Problem Reports"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ForwardRequest.class)),
-            responses = {
-                @OpenApiResponse(status = "204"),
-                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
-            })
-    private void forwardNow(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var report = repository.findById(id).orElseThrow(NotFoundResponse::new);
-        if (report.forwardedAt() != null) throw new BadRequestResponse("that report has already been passed on");
-        var request = ctx.bodyAsClass(ForwardRequest.class);
-
-        if (request.dropScreenshot()) {
-            forward(report, null, false);
-        } else if (request.screenshot() != null && !request.screenshot().isBlank()) {
-            var covered = screenshots.store(request.screenshot(), null);
-            forward(report, covered.orElse(report.screenshotFileId()), covered.isPresent());
-        } else {
-            forward(report, report.screenshotFileId(), false);
-        }
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    /** Deletes the report and the picture with it, because the picture has nowhere else to belong. */
+     * /** Deletes the report and the picture with it, because the picture has nowhere else to belong. */
     @OpenApi(
             path = "/api/v1/admin/problem-reports/{id}",
             methods = HttpMethod.DELETE,
@@ -249,16 +213,6 @@ public class ProblemReportRoutes implements Routes {
             String browserInfo,
             String screenSize,
             String screenshot) {}
-
-    /**
-     * What an administrator decided about a held report's picture.
-     *
-     * @param screenshot     a further covered copy of the picture to send in its place, or null to
-     *                       send the one the reporter covered
-     * @param dropScreenshot whether to pass the report on without any picture, which is final: a
-     *                       picture left out is never sent afterwards
-     */
-    public record ForwardRequest(String screenshot, boolean dropScreenshot) {}
 
     public record AcknowledgeAllResponse(int acknowledged) {}
 }
