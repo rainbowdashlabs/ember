@@ -9456,6 +9456,8 @@ export default {
         pictureAttach: 'Bild auswählen',
         pictureDiscard: 'Bild verwerfen',
         pictureRefused: 'Es wurde kein Bild aufgenommen. Du kannst stattdessen eines auswählen, das du selbst gemacht hast.',
+        pictureFailed: 'Das Bild konnte nicht aufgenommen werden. Wähle stattdessen eines aus, das du selbst gemacht '
+            + 'hast, zum Beispiel mit der Bildschirmfoto-Taste.',
         coverHint: 'Ziehe über alles, was abgedeckt werden soll. Ein Klick auf eine Fläche nimmt sie wieder weg.',
         coverRemove: 'Abdeckung entfernen',
         coverPersonalData: 'Namen und Daten abdecken',

@@ -19,6 +19,10 @@ import type {Cover} from '@/composables/useScreenCapture'
  * <p>Pointer events rather than mouse events, because a phone is where somebody reports a problem
  * about a phone. Listeners go on the window rather than the element: a drag that leaves the picture
  * still ends where the finger lifts, and a drag that ends outside would otherwise never end at all.
+ *
+ * <p>The picture is shown as large as it fits and no larger, and the frame shrinks to it rather than
+ * the other way round. A cover is placed as a share of the frame, so a frame wider than the picture
+ * inside it would put every cover beside the thing it was drawn over.
  */
 const props = defineProps<{
   picture: HTMLCanvasElement
@@ -109,11 +113,17 @@ onBeforeUnmount(stopListening)
   <div class="space-y-1">
     <div
         ref="frame"
-        class="relative overflow-hidden rounded-theme border border-bg-light-accent dark:border-bg-dark-accent touch-none select-none"
+        class="relative mx-auto w-fit max-w-full overflow-hidden rounded-theme border border-bg-light-accent dark:border-bg-dark-accent touch-none select-none"
         data-testid="coverable-picture"
         @pointerdown="startDrag"
     >
-      <img ref="preview" :src="source" alt="" class="block w-full" draggable="false"/>
+      <img
+          ref="preview"
+          :src="source"
+          alt=""
+          class="block h-auto max-h-[70vh] w-auto max-w-full"
+          draggable="false"
+      />
 
       <button
           v-for="(cover, index) in props.covers"

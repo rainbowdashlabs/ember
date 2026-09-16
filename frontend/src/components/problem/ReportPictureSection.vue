@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {nextTick, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
@@ -28,21 +28,33 @@ const {covers, add, removeAt, clear} = useCovers()
 
 const working = ref(false)
 const refused = ref(false)
+const failed = ref(false)
 const fileInput = ref<HTMLInputElement>()
+
+const emit = defineEmits<{(e: 'capturing', value: boolean): void}>()
 
 defineExpose({covers})
 
+/**
+ * Asks for a picture, with this dialog out of the way while it is taken.
+ *
+ * <p>The dialog is over the thing being reported, so a picture taken with it open is a picture of
+ * the dialog. It is hidden before the prompt opens and brought back with the picture in it, which
+ * also means what the person picks in the prompt is what they were looking at.
+ */
 async function takePicture() {
   working.value = true
   refused.value = false
+  failed.value = false
+  emit('capturing', true)
   try {
-    const taken = await captureScreen()
-    if (!taken) {
-      refused.value = true
-      return
-    }
-    setPicture(taken)
+    await nextTick()
+    const {picture: taken, refused: declined} = await captureScreen()
+    refused.value = declined
+    failed.value = !taken && !declined
+    if (taken) setPicture(taken)
   } finally {
+    emit('capturing', false)
     working.value = false
   }
 }
@@ -85,6 +97,10 @@ function coverPersonalData() {
 
     <Alert v-if="refused" variant="info">
       <p>{{ t('problemReport.pictureRefused') }}</p>
+    </Alert>
+
+    <Alert v-if="failed" variant="info">
+      <p>{{ t('problemReport.pictureFailed') }}</p>
     </Alert>
 
     <template v-if="picture">
