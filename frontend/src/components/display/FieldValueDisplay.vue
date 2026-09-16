@@ -5,14 +5,25 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
-import {FieldTypes} from '@/api/profileFields'
+import {FieldTypes, parseFieldConfig, type ProfileFieldConfig} from '@/api/profileFields'
 import {computeAge} from '@/util/age'
 import {formatDate} from '@/util/format'
 
 const props = defineProps<{
   value: unknown
   fieldType?: string
+  /** The field's own settings, which say whether a birth date carries its age behind it. */
+  config?: ProfileFieldConfig | null
 }>()
+
+/**
+ * Whether a birth date is written with the age behind it.
+ *
+ * <p>On unless the field says otherwise, because every birth date carried it before there was a
+ * choice. A station that also asks the age as a question of its own switches it off here, so one
+ * screen does not state an age twice and risk stating it two ways.
+ */
+const showsAge = computed(() => parseFieldConfig(props.config).showAge !== false)
 
 const isBoolean = computed(() => props.fieldType === FieldTypes.BOOLEAN)
 const booleanValue = computed(() => props.value === true)
@@ -32,7 +43,7 @@ const displayValue = computed(() => {
   const text = String(props.value)
   if (!isDate.value) return text
   const formatted = formatDate(text) || text
-  if (props.fieldType === FieldTypes.BIRTH_DATE) {
+  if (props.fieldType === FieldTypes.BIRTH_DATE && showsAge.value) {
     const age = computeAge(text, 'now')
     if (age) return `${formatted} (${age})`
   }

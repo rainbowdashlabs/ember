@@ -99,7 +99,7 @@ const blockedReason = computed(() => extras.blockedReason(props.member.id))
         :class="isFieldApplicable(field) ? 'text-(--text-muted)' : 'bg-bg-light-accent/40 dark:bg-bg-dark-accent/40'"
     >
       <template v-if="isFieldApplicable(field)">
-        <FieldValueDisplay :value="getFieldValue(field.id)" :field-type="field.fieldType"/>
+        <FieldValueDisplay :value="getFieldValue(field.id)" :field-type="field.fieldType" :config="field.config"/>
       </template>
     </Td>
   </TRow>

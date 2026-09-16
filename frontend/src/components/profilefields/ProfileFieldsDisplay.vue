@@ -35,7 +35,7 @@ defineProps<{
       <div v-else data-testid="field-entry" :data-field="field.name" :class="spanClass(field)" class="text-sm">
         <MutedText>{{ field.name }}:</MutedText>
         <span class="ml-1 font-medium">
-          <FieldValueDisplay :value="getValue(field)" :field-type="field.fieldType"/>
+          <FieldValueDisplay :value="getValue(field)" :field-type="field.fieldType" :config="field.config"/>
         </span>
       </div>
     </template>

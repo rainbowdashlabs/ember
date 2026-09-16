@@ -2946,6 +2946,9 @@ export default {
         },
         fieldNotifyOnChange: 'Bei Änderung benachrichtigen',
         fieldNotifyOnChangeHint: 'Mitgliederverwalter werden benachrichtigt, wenn dieses Feld geändert wird.',
+        fieldShowAge: 'Alter hinter dem Datum anzeigen',
+        fieldShowAgeHint: 'Das Geburtsdatum steht mit dem heutigen Alter dahinter, etwa 03.11.2019 (6). '
+            + 'Schalte es aus, wenn das Alter bereits als eigenes Feld gefragt wird.',
         fieldOverview: 'In Übersicht anzeigen',
         fieldKeepOnArchive: 'Bei Archivierung behalten',
         fieldKeepOnArchiveHint: 'Dieses Feld bleibt bei ehemaligen Mitgliedern erhalten.',

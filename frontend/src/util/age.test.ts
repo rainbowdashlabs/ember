@@ -22,6 +22,41 @@ describe('ageOn', () => {
         expect(ageOn('', new Date())).toBeNull()
         expect(ageOn('soon', new Date())).toBeNull()
     })
+
+    /**
+     * A birth date is a day and not a moment, and it has to be read as the same day wherever the
+     * reader sits. Written as a plain date it is parsed as midnight UTC, so a browser west of UTC
+     * used to read the day before and called somebody a year older the day before their birthday.
+     */
+    it.each([
+        'Europe/Berlin',
+        'UTC',
+        'America/New_York',
+        'Pacific/Honolulu',
+        'Pacific/Auckland',
+    ])('turns a year older on the birthday and not before, in %s', zone => {
+        const previous = process.env.TZ
+        process.env.TZ = zone
+        try {
+            expect(ageOn('2010-05-14', new Date(2026, 4, 13, 12))).toBe(15)
+            expect(ageOn('2010-05-14', new Date(2026, 4, 14, 12))).toBe(16)
+            expect(ageOn('2010-05-14', new Date(2026, 4, 15, 12))).toBe(16)
+        } finally {
+            process.env.TZ = previous
+        }
+    })
+
+    /** A date somebody typed in another shape is still worth reading where the browser can. */
+    it('reads a date that is not written the usual way', () => {
+        expect(ageOn('May 14, 2010', new Date(2026, 4, 13, 12))).toBe(15)
+        expect(ageOn('May 14, 2010', new Date(2026, 4, 14, 12))).toBe(16)
+    })
+
+    /** A birth date carrying a time is the day it names, whatever hour is written after it. */
+    it('reads the day out of a full timestamp', () => {
+        expect(ageOn('2010-05-14T23:30:00Z', new Date(2026, 4, 13, 12))).toBe(15)
+        expect(ageOn('2010-05-14T23:30:00Z', new Date(2026, 4, 14, 12))).toBe(16)
+    })
 })
 
 describe('endOfYear', () => {
