@@ -9445,6 +9445,8 @@ export default {
     problemReport: {
         button: 'Fehler in Ember melden',
         forward: 'An das Beacon weitergeben',
+        heldForReview: 'Wartet auf dich',
+        forwarded: 'Weitergegeben',
         title: 'Fehler in Ember melden',
         notTheStation: 'Das geht an die Betreiber von Ember, nicht an deine Wache.',
         notTheStationDetail: 'Diese Meldung ist für Fehlverhalten der Anwendung selbst: etwas lässt sich nicht speichern, eine Seite zeigt Unsinn an, ein Knopf tut nichts. Niemand in deiner Wache sieht sie. Wenn es um fehlende Rechte, Ausrüstung, Termine oder eine Frage an die Wachleitung geht, sprich die zuständigen Personen in deiner Wache direkt an: hier kann dir dabei niemand helfen.',
