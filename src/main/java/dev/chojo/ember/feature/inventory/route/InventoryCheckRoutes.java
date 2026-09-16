@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.Mem
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
@@ -311,8 +312,7 @@ public class InventoryCheckRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         var request = ctx.bodyAsClass(AssignItemRequest.class);
-        String memberName =
-                session.account().firstName() + " " + session.account().lastName();
+        String memberName = NameParts.of(session.account()).called();
         // Unassign old item if swapping
         if (request.oldItemId() != null && request.oldItemId() > 0) {
             inventoryService.assignItem(request.oldItemId(), null, null);
@@ -354,8 +354,7 @@ public class InventoryCheckRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         var request = ctx.bodyAsClass(CreateAndAssignRequest.class);
-        String memberName =
-                session.account().firstName() + " " + session.account().lastName();
+        String memberName = NameParts.of(session.account()).called();
 
         if (request.oldItemId() != null && request.oldItemId() > 0) {
             inventoryService.assignItem(request.oldItemId(), null, null);

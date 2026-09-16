@@ -181,6 +181,7 @@ public class GdprExportService {
         data.put("memberId", mid);
         data.put("stationId", member.stationId());
         data.put("former", member.former());
+        if (member.nickname() != null) data.put("nickname", member.nickname());
         lookupStationName(member.stationId()).ifPresent(s -> data.put("stationName", s));
 
         // Tables matching by integer member_id (most of the per-member data).

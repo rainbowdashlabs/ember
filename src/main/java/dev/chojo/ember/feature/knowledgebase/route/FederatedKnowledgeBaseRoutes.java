@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseCommentRoutes.Cr
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseCommentRoutes.UpdateKbCommentRequest;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.FileContentResponse;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -121,7 +122,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
                     session.stationId(),
                     pathUuid(ctx, "stationuid"),
                     pathInt(ctx, "id"),
-                    session.account().fullName().trim());
+                    NameParts.of(session.account()).called());
             ctx.contentType("application/pdf");
             ctx.header(
                     "Content-Disposition",
@@ -156,7 +157,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
                 pathUuid(ctx, "stationuid"),
                 pathInt(ctx, "fileId"),
                 session.member().uid(),
-                session.account().fullName().trim(),
+                NameParts.of(session.account()).called(),
                 req.parentId(),
                 requireContent(req.content()));
         ctx.status(HttpStatus.CREATED).json(created);

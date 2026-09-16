@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.twofactor.entity.BackupCode;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
@@ -165,7 +166,7 @@ public class TwoFactorService {
         String actorLabel = actorAccountId == null
                 ? null
                 : accountRepository.findById(actorAccountId).map(Account::email).orElse(null);
-        String displayName = (account.firstName() + " " + account.lastName()).trim();
+        String displayName = NameParts.of(account).official();
         try {
             emailService.sendTwoFactorResetNotice(
                     account.email(),

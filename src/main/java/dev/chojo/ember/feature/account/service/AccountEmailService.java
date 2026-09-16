@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
@@ -127,8 +128,10 @@ public class AccountEmailService {
         accountRepository.deleteSessionsByAccount(accountId);
         if (Account.isRealEmail(previous)) {
             String mailLocale = mailLocaleService.forAccount(accountId);
-            emailService.sendEmailChangedNotice(previous, account.firstName(), previous, normalised, mailLocale);
-            emailService.sendEmailChangedNotice(normalised, account.firstName(), previous, normalised, mailLocale);
+            emailService.sendEmailChangedNotice(
+                    previous, NameParts.of(account).greeting(), previous, normalised, mailLocale);
+            emailService.sendEmailChangedNotice(
+                    normalised, NameParts.of(account).greeting(), previous, normalised, mailLocale);
         }
         log.info("Address of account {} set to a new one on its holder's behalf", accountId);
         return true;

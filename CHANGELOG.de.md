@@ -2,6 +2,11 @@
 
 ## v26.18.0
 
+### Neue Funktionen
+
+- **Ein Mitglied kann so genannt werden, wie es alle tatsächlich nennen.** Wer im Register Maximilian heißt und in der ganzen Wache Max gerufen wird, hinterlegt einen Spitznamen im Profil, und von da an steht auf dem Brett, in den Kommentaren, bei den Anmeldungen, in den Benachrichtigungen und in den Mails Max. In Mitgliederlisten steht `Maximilian "Max" Hoffmann`, damit niemand raten muss, wer gemeint ist. Das Mitglied setzt seinen eigenen, und wer sich um es kümmert, darf einen für es setzen; sonst niemand, egal mit welchen Rechten, und wer ihn geschrieben hat, wird festgehalten. Eine Wache, die lieber durchgehend Registernamen führt, schaltet das Ganze ab, und jeder hinterlegte Spitzname bleibt erhalten.
+- **Auf einem Dokument steht weiterhin der Name aus dem Register.** Anwesenheitsliste, Prüfprotokoll, Bestands- und Bewegungsexporte und die Datenauskunft nennen Maximilian Hoffmann, was immer die Bildschirme sagen. Wer die Wache verlässt, behält in den alten Einträgen den Namen, unter dem die Wache ihn kannte.
+
 ### Verbesserungen
 
 - **Das Änderungsprotokoll sagt, wann eine Version erschienen ist.** Jeder Eintrag trägt jetzt den Tag seines Erscheinens, mit der genauen Uhrzeit unter dem Mauszeiger, und endet mit einem Link, der seine Änderungen gegenüber der vorherigen Veröffentlichung auf GitHub öffnet.
@@ -13,6 +18,10 @@
 - **Jemand konnte einen Tag vor dem Geburtstag ein Jahr älter werden.** Auf einem Gerät mit einer Zeitzone hinter UTC lagen das Alter hinter dem Geburtsdatum und das Alter in einer eigenen Spalte beide einen Tag vor sich selbst. Ein Geburtsdatum wird jetzt als der Tag gelesen, den es nennt, egal wo der Lesende sitzt.
 - **Ein aus einem Datum berechnetes Alter konnte eine alte Zahl zeigen.** Das Profil eines Mitglieds und das Formular, auf dem seine Antworten gegeben werden, zeigten, was einmal in das Feld geschrieben worden war, statt der Zahl, die sich ergibt, und das änderte sich nie wieder. Es wird jetzt überall berechnet, wo es steht, und angezeigt, ohne zum Überschreiben angeboten zu werden.
 - **Das Umbenennen eines Datums leerte jedes daraus berechnete Alter.** Ein Altersfeld hielt sich am Namen der Frage fest, aus der es zählt, sodass eine Umbenennung die Spalte leer zurückließ, ohne zu sagen warum. Es hält sich jetzt an der Frage selbst fest, und bestehende Altersfelder werden übernommen, wie sie sind.
+
+### Änderungen
+
+- **Eine Person wird auf eine Art geschrieben.** Ember hat an etwa hundertsechzig Stellen selbst entschieden, wie ein Name zu schreiben ist, weshalb eine Liste und eine Auswahl sich über dasselbe Mitglied uneinig sein konnten. Jetzt gibt es eine Stelle, die die Frage beantwortet, und eine Art zu fragen, in Java wie in der Datenbank, und einen Test, der beide auf dieselbe Antwort festnagelt.
 
 ## v26.17.3
 

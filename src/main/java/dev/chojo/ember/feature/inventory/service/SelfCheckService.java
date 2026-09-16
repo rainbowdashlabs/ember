@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheckRaisedState;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRow;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.SelfCheckRepository;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
@@ -159,7 +160,7 @@ public class SelfCheckService {
         return stationMemberRepository
                 .findById(memberId)
                 .flatMap(m -> m.accountId() == null ? Optional.empty() : accountRepository.findById(m.accountId()))
-                .map(account -> account.fullName().strip())
+                .map(account -> NameParts.of(account).called())
                 .orElse("");
     }
 

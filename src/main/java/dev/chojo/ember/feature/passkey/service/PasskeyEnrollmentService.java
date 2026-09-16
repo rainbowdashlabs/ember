@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.passkey.repository.PasskeyRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
@@ -146,7 +147,8 @@ public class PasskeyEnrollmentService {
             try {
                 String locale = mailLocaleService.forAccount(targetAccountId);
                 for (var recipient : mailRecipientService.forAccount(targetAccountId)) {
-                    emailService.sendPasskeyCodeIssuedNotice(recipient.email(), target.firstName(), locale);
+                    emailService.sendPasskeyCodeIssuedNotice(
+                            recipient.email(), NameParts.of(target).greeting(), locale);
                 }
             } catch (Exception e) {
                 log.warn("Failed to enqueue the passkey-code notice for account {}", targetAccountId, e);
@@ -180,7 +182,7 @@ public class PasskeyEnrollmentService {
         return findDoor(rawToken)
                 .flatMap(door -> accountRepository.findById(door.token().accountId()))
                 .map(account -> {
-                    String displayName = (account.firstName() + " " + account.lastName()).trim();
+                    String displayName = NameParts.of(account).official();
                     return passkeyService.startDeviceEnrollment(
                             account.id(), account.email(), displayName.isBlank() ? account.email() : displayName);
                 });

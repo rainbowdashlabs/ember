@@ -130,7 +130,7 @@ public class RegistrationAnswerReminder {
                         new NotificationParams.RegistrationAnswerMissing(
                                 event.name(),
                                 registration.eventDate(),
-                                memberNameResolver.resolveLocal(registration.memberId())),
+                                memberNameResolver.called(registration.memberId())),
                         NotificationLinks.eventDate(event.id(), registration.eventDate())),
                 -1);
     }

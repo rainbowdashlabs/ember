@@ -2,6 +2,11 @@
 
 ## v26.18.0
 
+### New Features
+
+- **A member can be called by the name everybody actually uses.** Somebody entered in the register as Maximilian and known to the whole station as Max sets a nickname on their profile, and from then on the board, the comments, who is coming on Friday, the notifications and the mails all say Max. A member list says `Maximilian "Max" Hoffmann`, so nobody has to guess who that is. A member sets their own, and whoever looks after them may set one for them; nobody else may, however senior, and who wrote it is recorded. A station that would rather keep register names throughout can switch the whole thing off, and every nickname is kept rather than deleted.
+- **A document still carries the name in the register.** The attendance sheet, the test protocol, the inventory and movement exports and the data handed over under a data request read Maximilian Hoffmann, whatever the screens say. A member who leaves keeps the name the station knew them by in the old entries that name them.
+
 ### Improvements
 
 - **The changelog says when each version was released.** Every entry now carries the day it came out, with the exact time under the pointer, and ends with a link that opens its changes against the release before it on GitHub.
@@ -13,6 +18,10 @@
 - **Somebody could turn a year older the day before their birthday.** On a device set to a timezone behind UTC, the age behind a birth date and the age in a column of its own were both a day ahead of themselves. A birth date is now read as the day it names, wherever the reader sits.
 - **An age worked out from a date could show an old number.** A member's profile and the form their answers are given on showed whatever had once been written into the field rather than the number it comes to, and that never changed again. It is now worked out wherever it is shown, and shown without being offered to be typed over.
 - **Renaming a date emptied every age worked out from it.** An age field held on to the name of the question it counts from, so renaming that question left the column blank with nothing to say why. It now holds on to the question itself, and existing age fields are picked up as they are.
+
+### Changes
+
+- **A person is spelled one way.** Ember worked out how to write somebody's name in about a hundred and sixty places, each deciding for itself, which is why a list and a picker could disagree about the same member. There is now one place that answers the question and one way to ask it, in Java and in the database alike, and a test that holds the two to the same answer.
 
 ## v26.17.3
 

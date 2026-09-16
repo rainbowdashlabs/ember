@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.question.QuestionValues;
@@ -255,7 +256,7 @@ public class AttendanceExportService {
         var account = accountRepository.findById(member.get().accountId());
         if (account.isEmpty()) return "#" + memberId;
         Account acc = account.get();
-        String name = (acc.firstName() + " " + acc.lastName()).trim();
+        String name = NameParts.of(acc).official();
         return name.isEmpty() ? acc.email() : name;
     }
 

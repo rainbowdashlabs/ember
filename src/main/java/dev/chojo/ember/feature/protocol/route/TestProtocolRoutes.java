@@ -10,6 +10,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -499,7 +500,7 @@ public class TestProtocolRoutes implements Routes {
                         if (m.accountId() != null) {
                             name = accountRepository
                                     .findById(m.accountId())
-                                    .map(a -> a.firstName() + " " + a.lastName())
+                                    .map(a -> NameParts.of(a).official())
                                     .orElse("Member_" + memberId);
                         } else {
                             name = "Member_" + memberId;

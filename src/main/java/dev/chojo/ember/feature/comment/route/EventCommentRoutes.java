@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.BadRequestResponse;
@@ -133,7 +134,7 @@ public class EventCommentRoutes implements Routes {
                 eventId,
                 request.parentId(),
                 author,
-                session.account().fullName().trim(),
+                NameParts.of(session.account()).called(),
                 request.content(),
                 eventName,
                 request.eventDate());

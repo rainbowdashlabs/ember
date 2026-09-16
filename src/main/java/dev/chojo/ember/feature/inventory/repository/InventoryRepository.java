@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlockerKind;
+import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -330,12 +331,12 @@ public class InventoryRepository {
     public List<SwitchBlocker> findOpenProcurementBlockers(int inventoryId) {
         return query("""
                 SELECT p.id,
-                       trim(coalesce(a.first_name, '') || ' ' || coalesce(a.last_name, '')) AS label
+                       %s AS label
                 FROM equipment_procurement p
                 LEFT JOIN station_member sm ON sm.id = p.member_id
                 LEFT JOIN account a ON a.id = sm.account_id
                 WHERE p.inventory_id = :inventory_id AND p.fulfilled_at IS NULL
-                ORDER BY p.requested_at;""")
+                ORDER BY p.requested_at;""".formatted(MemberNameSql.ofMemberOrBlank("sm", "a")))
                 .single(call().bind("inventory_id", inventoryId))
                 .map(row -> new SwitchBlocker(SwitchBlockerKind.PROCUREMENT, row.getInt("id"), row.getString("label")))
                 .all();
@@ -353,12 +354,12 @@ public class InventoryRepository {
     public List<SwitchBlocker> findOpenExchangeBlockers(int inventoryId) {
         return query("""
                 SELECT m.id,
-                       trim(coalesce(a.first_name, '') || ' ' || coalesce(a.last_name, '')) AS label
+                       %s AS label
                 FROM item_movement m
                 LEFT JOIN station_member sm ON sm.id = m.member_id
                 LEFT JOIN account a ON a.id = sm.account_id
                 WHERE m.inventory_id = :inventory_id AND m.purpose = 'EXCHANGE' AND m.state = 'OPEN'
-                ORDER BY m.created_at;""")
+                ORDER BY m.created_at;""".formatted(MemberNameSql.ofMemberOrBlank("sm", "a")))
                 .single(call().bind("inventory_id", inventoryId))
                 .map(row -> new SwitchBlocker(SwitchBlockerKind.EXCHANGE, row.getInt("id"), row.getString("label")))
                 .all();

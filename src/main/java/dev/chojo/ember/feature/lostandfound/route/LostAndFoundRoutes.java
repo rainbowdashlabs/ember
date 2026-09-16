@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
@@ -331,7 +332,7 @@ public class LostAndFoundRoutes implements Routes {
                     if (m.accountId() != null) {
                         return accountRepository
                                 .findById(m.accountId())
-                                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                                .map(a -> NameParts.of(a).called())
                                 .orElse(m.displayName());
                     }
                     return m.displayName();

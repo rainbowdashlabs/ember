@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -309,7 +310,7 @@ public class LendingRoutes implements Routes {
                         if (m.accountId() != null) {
                             return accountRepository
                                     .findById(m.accountId())
-                                    .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                                    .map(a -> NameParts.of(a).called())
                                     .orElse(null);
                         }
                         return null;
@@ -332,7 +333,7 @@ public class LendingRoutes implements Routes {
         if (body.message() == null || body.message().isBlank()) {
             throw new BadRequestResponse("message is required");
         }
-        String senderName = session.account().fullName().trim();
+        String senderName = NameParts.of(session.account()).called();
         var msg = service.sendMessage(id, session.stationId(), session.member().id(), senderName, body.message());
         ctx.status(HttpStatus.CREATED).json(msg);
     }

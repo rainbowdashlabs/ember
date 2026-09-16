@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.Context;
@@ -167,7 +168,7 @@ public class ProcurementRoutes implements Routes {
         String memberName = member != null
                 ? accountRepository
                         .findById(member.accountId())
-                        .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                        .map(a -> NameParts.of(a).called())
                         .orElse("")
                 : "";
         MemberIdentity memberIdentity =

@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -525,9 +526,8 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                 var prevOwner = allKids.get(rng.nextInt(allKids.size()));
                 var prevAccount =
                         accountRepository.findById(prevOwner.accountId()).orElse(null);
-                String prevName = prevAccount != null
-                        ? (prevAccount.firstName() + " " + prevAccount.lastName()).trim()
-                        : "#" + prevOwner.id();
+                String prevName =
+                        prevAccount != null ? NameParts.of(prevAccount).called() : "#" + prevOwner.id();
 
                 Instant givenOut = cursor;
                 cursor = cursor.plus(Duration.ofDays(30 + rng.nextInt(180)));
@@ -546,9 +546,8 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                             .map(StationMember::accountId)
                             .orElse(0))
                     .orElse(null);
-            String currentName = currentAccount != null
-                    ? (currentAccount.firstName() + " " + currentAccount.lastName()).trim()
-                    : "#" + item.assignedTo();
+            String currentName =
+                    currentAccount != null ? NameParts.of(currentAccount).called() : "#" + item.assignedTo();
             inventoryRepository.createHistoryWithDates(item.id(), item.assignedTo(), currentName, cursor, null);
             historyCount++;
         }

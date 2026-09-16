@@ -53,6 +53,7 @@ const name = ref('')
 const timezone = ref('Europe/Berlin')
 const locale = ref('de-DE')
 const pdfHidesInstanceUrl = ref(false)
+const nicknamesEnabled = ref(true)
 const hasLogo = ref(false)
 const isOwner = ref(false)
 const stationId = ref('')
@@ -66,6 +67,7 @@ const {loading, error} = useAsyncLoader(async () => {
   timezone.value = info.timezone ?? 'Europe/Berlin'
   locale.value = info.locale ?? 'de-DE'
   pdfHidesInstanceUrl.value = info.pdfHidesInstanceUrl ?? false
+  nicknamesEnabled.value = info.nicknamesEnabled ?? true
   hasLogo.value = info.hasLogo
   isOwner.value = info.isOwner
   stationId.value = info.id
@@ -86,10 +88,12 @@ async function saveName() {
       name: name.value,
       timezone: timezone.value,
       locale: locale.value,
-      pdfHidesInstanceUrl: pdfHidesInstanceUrl.value
+      pdfHidesInstanceUrl: pdfHidesInstanceUrl.value,
+      nicknamesEnabled: nicknamesEnabled.value
     })
     name.value = info.name ?? ''
     pdfHidesInstanceUrl.value = info.pdfHidesInstanceUrl ?? false
+    nicknamesEnabled.value = info.nicknamesEnabled ?? true
   } catch (e) {
     error.value = t('common.error')
     throw e
@@ -151,6 +155,7 @@ function handleSuccess(msg: string) {
           v-model:timezone="timezone"
           v-model:locale="locale"
           v-model:pdf-hides-instance-url="pdfHidesInstanceUrl"
+          v-model:nicknames-enabled="nicknamesEnabled"
           :timezone-options="timezoneOptions"
           :locale-options="localeOptions"
           :save-name="saveName"

@@ -39,6 +39,7 @@ import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.inventory.service.MovementExportService;
 import dev.chojo.ember.feature.inventory.service.MovementTargeting;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
@@ -393,7 +394,7 @@ public class MovementRoutes implements Routes {
         var generatedBy = stationMemberRepository
                 .findById(session.member().id())
                 .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> a.firstName() + " " + a.lastName())
+                .map(a -> NameParts.of(a).official())
                 .orElse("?");
         var pdf = exportService.exportPdf(
                 session.stationId(),
@@ -853,7 +854,7 @@ public class MovementRoutes implements Routes {
         return stationMemberRepository
                 .findById(memberId)
                 .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .map(a -> NameParts.of(a).called())
                 .orElse(null);
     }
 

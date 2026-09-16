@@ -159,6 +159,10 @@ export interface MemberInfo {
     stationId: string
     accountId: number
     uid: string
+    /** What this station calls the member, which is what a screen shows. */
+    calledName?: string | null
+    /** The name they set for themselves, so the field they edit can be filled. */
+    nickname?: string | null
 }
 
 export interface ManagedMemberSummary {

@@ -9,11 +9,15 @@ import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,7 +54,7 @@ class MemberNameResolverTest {
     }
 
     @Test
-    void resolveLocal_withAccount_returnsFullName() {
+    void called_withAccount_returnsFullName() {
         var member = new StationMember(1, 1, UUID.randomUUID(), 10, false, null, null, StationUserType.MEMBER, null);
         var account = new Account(
                 10,
@@ -67,27 +71,27 @@ class MemberNameResolverTest {
         when(memberService.findById(1)).thenReturn(Optional.of(member));
         when(accountRepository.findById(10)).thenReturn(Optional.of(account));
 
-        assertEquals("Max Meier", resolver.resolveLocal(1));
+        assertEquals("Max Meier", resolver.called(1));
     }
 
     @Test
-    void resolveLocal_withDisplayName_returnsDisplayName() {
+    void called_withDisplayName_returnsDisplayName() {
         var member = new StationMember(
                 2, 1, UUID.randomUUID(), null, false, null, "Firefighter Joe", StationUserType.MEMBER, null);
         when(memberService.findById(2)).thenReturn(Optional.of(member));
 
-        assertEquals("Firefighter Joe", resolver.resolveLocal(2));
+        assertEquals("Firefighter Joe", resolver.called(2));
     }
 
     @Test
-    void resolveLocal_notFound_returnsNull() {
+    void called_notFound_returnsNull() {
         when(memberService.findById(99)).thenReturn(Optional.empty());
 
-        assertNull(resolver.resolveLocal(99));
+        assertNull(resolver.called(99));
     }
 
     @Test
-    void resolveLocal_accountPreferred_overDisplayName() {
+    void called_accountPreferred_overDisplayName() {
         var member =
                 new StationMember(3, 1, UUID.randomUUID(), 20, false, null, "Old Name", StationUserType.MEMBER, null);
         var account = new Account(
@@ -105,7 +109,7 @@ class MemberNameResolverTest {
         when(memberService.findById(3)).thenReturn(Optional.of(member));
         when(accountRepository.findById(20)).thenReturn(Optional.of(account));
 
-        assertEquals("New Name", resolver.resolveLocal(3));
+        assertEquals("New Name", resolver.called(3));
     }
 
     @Test
@@ -183,5 +187,202 @@ class MemberNameResolverTest {
     @Test
     void resolve_allNull_returnsNull() {
         assertNull(resolver.resolve(null, null, null));
+    }
+
+    private void memberWithAccount(int memberId, int accountId, String firstName, String lastName) {
+        var member = new StationMember(
+                memberId, 1, UUID.randomUUID(), accountId, false, null, null, StationUserType.MEMBER, null);
+        var account = new Account(
+                accountId,
+                UUID.randomUUID(),
+                "test@test.com",
+                null,
+                firstName,
+                lastName,
+                true,
+                InstanceUserType.USER,
+                (firstName + " " + lastName).trim(),
+                null,
+                null);
+        when(memberService.findById(memberId)).thenReturn(Optional.of(member));
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+    }
+
+    /**
+     * The four ways of writing one person, which are the same name until there is a second one to
+     * put beside it.
+     */
+    @Test
+    void aMemberIsWrittenFourWays() {
+        memberWithAccount(40, 400, "Maximilian", "Hoffmann");
+
+        assertEquals("Maximilian Hoffmann", resolver.called(40), "what the station reads");
+        assertEquals("Maximilian Hoffmann", resolver.identified(40), "what a list of people reads");
+        assertEquals("Maximilian Hoffmann", resolver.official(40), "what a document carries");
+        assertEquals("Maximilian", resolver.greeting(40), "what a mail says hello to");
+    }
+
+    /**
+     * Somebody who has left has one frozen name and no account behind it, so there are no halves to
+     * take apart and every form gives that name back whole.
+     */
+    @Test
+    void aFormerMemberIsWrittenTheSameWayFourTimes() {
+        var former = new StationMember(
+                41, 1, UUID.randomUUID(), null, true, null, "Maximilian Hoffmann", StationUserType.MEMBER, null);
+        when(memberService.findById(41)).thenReturn(Optional.of(former));
+
+        assertEquals("Maximilian Hoffmann", resolver.called(41));
+        assertEquals("Maximilian Hoffmann", resolver.identified(41));
+        assertEquals("Maximilian Hoffmann", resolver.official(41));
+        assertEquals("Maximilian Hoffmann", resolver.greeting(41), "there is no first name left to greet");
+    }
+
+    /** A member nothing is known about is written as nothing rather than as a broken name. */
+    @Test
+    void aMemberNobodyKnowsIsWrittenAsNothing() {
+        when(memberService.findById(42)).thenReturn(Optional.empty());
+
+        assertNull(resolver.called(42));
+        assertNull(resolver.identified(42));
+        assertNull(resolver.official(42));
+        assertNull(resolver.greeting(42));
+    }
+
+    /**
+     * A name changed is a name read.
+     *
+     * <p>What is kept is kept until somebody says it is stale. The cache it replaced expired five
+     * minutes after the last read rather than after the write, so a member whose name was read
+     * every few minutes, which is anybody at a station people are working in, would have kept an
+     * old name for as long as people kept looking at it.
+     */
+    @Test
+    void aNameIsReadAgainOnceItIsForgotten() {
+        memberWithAccount(43, 430, "Maximilian", "Hoffmann");
+        assertEquals("Maximilian Hoffmann", resolver.called(43));
+
+        memberWithAccount(43, 430, "Max", "Hoffmann");
+        assertEquals("Maximilian Hoffmann", resolver.called(43), "what was read is kept");
+
+        resolver.forget(43);
+        assertEquals("Max Hoffmann", resolver.called(43), "and read again once it is dropped");
+    }
+
+    /** Nothing is kept about a member nobody knows, so naming them later works. */
+    @Test
+    void aMemberNobodyKnowsIsNotKept() {
+        when(memberService.findById(44)).thenReturn(Optional.empty());
+        assertNull(resolver.called(44));
+
+        memberWithAccount(44, 440, "Maximilian", "Hoffmann");
+        assertEquals("Maximilian Hoffmann", resolver.called(44));
+    }
+
+    /**
+     * With a name to be called by, the four forms stop being the same name.
+     *
+     * <p>This is the whole feature in one test: the board says Max, a member list says who that is,
+     * the attendance sheet says Maximilian, and a mail greets him as Max.
+     */
+    @Test
+    void aNicknameSeparatesTheFourForms() {
+        memberWithNickname(50, 500, "Maximilian", "Hoffmann", "Max");
+
+        assertEquals("Max Hoffmann", resolver.called(50), "what the station reads");
+        assertEquals("Maximilian \"Max\" Hoffmann", resolver.identified(50), "who that is");
+        assertEquals("Maximilian Hoffmann", resolver.official(50), "what the sheet says");
+        assertEquals("Max", resolver.greeting(50), "what a mail says hello to");
+    }
+
+    /** A station that does not read such names reads the register, without anything being deleted. */
+    @Test
+    void aStationThatDoesNotReadNicknamesReadsTheRegister() {
+        memberWithNickname(51, 510, "Maximilian", "Hoffmann", "Max");
+        when(stationRepository.findById(1)).thenReturn(Optional.of(station(false)));
+
+        assertEquals("Maximilian Hoffmann", resolver.called(51));
+        assertEquals("Maximilian Hoffmann", resolver.identified(51), "and no empty quotes either");
+        assertEquals("Maximilian", resolver.greeting(51));
+    }
+
+    /**
+     * A nickname that only repeats the first name is no nickname at all.
+     *
+     * <p>Otherwise somebody typing what they are already called turns every list into
+     * {@code Maximilian "Maximilian" Hoffmann}.
+     */
+    @Test
+    void aNicknameThatRepeatsTheFirstNameIsNotOne() {
+        memberWithNickname(52, 520, "Max", "Hoffmann", "max");
+
+        assertEquals("Max Hoffmann", resolver.identified(52), "written once, not twice");
+    }
+
+    /** Somebody with a nickname and no surname is still introduced properly. */
+    @Test
+    void aNicknameWithoutASurnameStillReads() {
+        memberWithNickname(53, 530, "Maximilian", null, "Max");
+
+        assertEquals("Max", resolver.called(53));
+        assertEquals("Maximilian \"Max\"", resolver.identified(53));
+    }
+
+    private void memberWithNickname(int memberId, int accountId, String first, String last, String nickname) {
+        var member = new StationMember(
+                memberId, 1, UUID.randomUUID(), accountId, false, null, null, StationUserType.MEMBER, null, nickname);
+        var account = new Account(
+                accountId,
+                UUID.randomUUID(),
+                "test@test.com",
+                null,
+                first,
+                last,
+                true,
+                InstanceUserType.USER,
+                ((first == null ? "" : first) + " " + (last == null ? "" : last)).trim(),
+                null,
+                null);
+        when(memberService.findById(memberId)).thenReturn(Optional.of(member));
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+        when(stationRepository.findById(1)).thenReturn(Optional.of(station(true)));
+    }
+
+    private static Station station(boolean nicknamesEnabled) {
+        return new Station(
+                1,
+                null,
+                "Test",
+                "Europe/Berlin",
+                "de-DE",
+                null,
+                null,
+                false,
+                null,
+                ThemeFeel.ROUNDED,
+                false,
+                PublicKbMode.OFF,
+                null,
+                DiscoveryVisibility.NONE,
+                null,
+                false,
+                false,
+                null,
+                false,
+                null,
+                false,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                StationKind.REGULAR,
+                null,
+                false,
+                false,
+                nicknamesEnabled);
     }
 }

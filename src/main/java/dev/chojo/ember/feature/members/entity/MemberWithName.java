@@ -69,7 +69,7 @@ public record MemberWithName(
                     identity);
         }
         var account = accountRepository.findById(m.accountId()).orElse(null);
-        String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
+        String name = account != null ? NameParts.of(account).called() : "";
         String email = account != null ? account.email() : "";
         String username = account != null ? account.username() : null;
         return new MemberWithName(

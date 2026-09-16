@@ -251,7 +251,7 @@ class RequirementsServiceTest {
         when(stationMemberService.findManaged(10)).thenReturn(List.of(charge));
         when(registrationService.findShortOfAnswer(List.of(10, 11)))
                 .thenReturn(List.of(new RegistrationShortOfAnswer(6, 3, "Training", LocalDate.of(2026, 10, 2), 11)));
-        when(memberNameResolver.resolveLocal(11)).thenReturn("Kim Muster");
+        when(memberNameResolver.called(11)).thenReturn("Kim Muster");
 
         var result = requirementsService.getRequirements(10, 1, List.of("USER", "MEMBER_GUARDIAN"));
 

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.news.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedCommentAuthor;
@@ -120,6 +121,6 @@ public class FederatedNewsRoutes implements Routes {
         return new FederatedCommentAuthor(
                 memberIdentityFactory.fromMemberId(session.member().id()),
                 session.member().uid(),
-                session.account().fullName().trim());
+                NameParts.of(session.account()).called());
     }
 }

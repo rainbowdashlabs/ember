@@ -246,7 +246,7 @@ class EventReminderCheckerTest {
         when(registrationRepository.findUnansweredMemberIds(7, STATION_ID)).thenReturn(List.of(10));
         when(stationMemberRepository.findById(10)).thenReturn(Optional.of(member(10)));
         when(stationMemberRepository.findManagers(10)).thenReturn(List.of(member(11)));
-        when(memberNameResolver.resolveLocal(10)).thenReturn("Kind");
+        when(memberNameResolver.called(10)).thenReturn("Kind");
 
         invokeCheck();
 

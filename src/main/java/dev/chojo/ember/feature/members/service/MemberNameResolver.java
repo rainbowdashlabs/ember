@@ -13,7 +13,10 @@ import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -37,6 +40,19 @@ public class MemberNameResolver {
             .maximumSize(10_000)
             .build();
 
+    /**
+     * The halves of a name, kept by member.
+     *
+     * <p>Expiry is on writing rather than on access: a name that is read every few minutes, which
+     * is any member of a station people are working in, would never fall out of a cache that
+     * expires on access, and a name changed today would be read for as long as anybody kept
+     * looking at the old one. {@link #forget(int)} takes one out the moment it is written.
+     */
+    private final Cache<Integer, NameParts> partsCache = Caffeine.newBuilder()
+            .expireAfterWrite(5, TimeUnit.MINUTES)
+            .maximumSize(10_000)
+            .build();
+
     @Inject
     public MemberNameResolver(
             StationMemberService memberService,
@@ -56,24 +72,93 @@ public class MemberNameResolver {
     }
 
     /**
-     * Resolves a local member's display name by member ID.
-     * Tries: account first+last name, then member displayName, then null.
+     * The name a station reads on its own screens.
+     *
+     * @return the name, or null where the member is not known
      */
-    public String resolveLocal(int memberId) {
+    public String called(int memberId) {
+        return partsOf(memberId).called();
+    }
+
+    /**
+     * The name that says who somebody is and what they are called at once, for a list of people.
+     *
+     * @return the name, or null where the member is not known
+     */
+    public String identified(int memberId) {
+        return partsOf(memberId).identified();
+    }
+
+    /**
+     * The register name, for a document.
+     *
+     * @return the name, or null where the member is not known
+     */
+    public String official(int memberId) {
+        return partsOf(memberId).official();
+    }
+
+    /**
+     * The first name a mail says hello to, standing on its own.
+     *
+     * @return the first name, or null where the member is not known
+     */
+    public String greeting(int memberId) {
+        return partsOf(memberId).greeting();
+    }
+
+    /**
+     * The halves a member's name is written from, read once and kept.
+     *
+     * <p>What is cached is the parts rather than a finished name, because the same member is
+     * written four ways and a cache of one string can only serve one of them.
+     */
+    private NameParts partsOf(int memberId) {
+        var cached = partsCache.getIfPresent(memberId);
+        if (cached != null) return cached;
+        var parts = readParts(memberId);
+        if (parts.known()) partsCache.put(memberId, parts);
+        return parts;
+    }
+
+    private NameParts readParts(int memberId) {
         var memberOpt = memberService.findById(memberId);
-        if (memberOpt.isEmpty()) return null;
+        if (memberOpt.isEmpty()) return NameParts.unknown();
         var member = memberOpt.get();
         if (member.accountId() != null) {
-            var name = accountRepository
-                    .findById(member.accountId())
-                    .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                    .orElse(null);
-            if (name != null && !name.isBlank()) return name;
+            var account = accountRepository.findById(member.accountId()).orElse(null);
+            if (account != null) {
+                return NameParts.of(account.firstName(), account.lastName(), nicknameAt(member));
+            }
         }
-        if (member.displayName() != null && !member.displayName().isBlank()) {
-            return member.displayName();
-        }
-        return null;
+        return NameParts.frozen(member.displayName());
+    }
+
+    /**
+     * The name a member is called by, where their station reads such names at all.
+     *
+     * <p>A station that has switched them off keeps every nickname and reads none, so turning the
+     * setting back on gives everybody their name back rather than asking them to type it again.
+     */
+    private String nicknameAt(StationMember member) {
+        if (member.nickname() == null || member.nickname().isBlank()) return null;
+        return stationRepository
+                        .findById(member.stationId())
+                        .map(Station::nicknamesEnabled)
+                        .orElse(false)
+                ? member.nickname()
+                : null;
+    }
+
+    /**
+     * Forgets what was read about one member, so that a name changed now is read now.
+     *
+     * <p>The cache expires on access rather than on writing, so a member whose name is read every
+     * few minutes would otherwise keep an old one for as long as people keep looking at it.
+     */
+    public void forget(int memberId) {
+        partsCache.invalidate(memberId);
+        memberService.findById(memberId).ifPresent(member -> displayCache.invalidate(member.uid()));
     }
 
     /**
@@ -99,7 +184,7 @@ public class MemberNameResolver {
      */
     public String resolve(Integer actorMemberId, Integer federatedPartnerId, UUID federatedMemberUid) {
         if (actorMemberId != null) {
-            var name = resolveLocal(actorMemberId);
+            var name = called(actorMemberId);
             if (name != null && !name.isBlank()) return name;
         }
         if (federatedPartnerId != null) {
@@ -120,7 +205,7 @@ public class MemberNameResolver {
         if (station != null) {
             var memberId = memberService.resolveId(station.id(), identity.memberUid());
             if (memberId.isPresent()) {
-                var name = resolveLocal(memberId.get());
+                var name = called(memberId.get());
                 if (name != null) return name;
             }
         }
@@ -171,7 +256,7 @@ public class MemberNameResolver {
         if (station != null) {
             var memberId = memberService.resolveId(station.id(), identity.memberUid());
             if (memberId.isPresent()) {
-                String name = resolveLocal(memberId.get());
+                String name = called(memberId.get());
                 return new DisplayData(
                         name, stationName, resolveNameColor(memberId.get()), resolveDisplayTag(memberId.get()));
             }

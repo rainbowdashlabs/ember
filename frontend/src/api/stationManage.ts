@@ -31,6 +31,8 @@ export interface StationManageInfo {
     publicSlug?: string | null
     /** Whether exported PDFs leave the address of this installation off the foot of the page. */
     pdfHidesInstanceUrl?: boolean
+    /** Whether this station reads the names its members are called by. */
+    nicknamesEnabled?: boolean
     /** What the cluster above the station has taken out of its hands, and who to name for it. */
     themeLocked?: boolean
     colorsLocked?: boolean
@@ -58,6 +60,7 @@ export interface UpdateStationNameRequest {
     publicBlogEnabled?: boolean
     publicSlug?: string | null
     pdfHidesInstanceUrl?: boolean
+    nicknamesEnabled?: boolean
 }
 
 export async function getStationInfo(): Promise<StationManageInfo> {

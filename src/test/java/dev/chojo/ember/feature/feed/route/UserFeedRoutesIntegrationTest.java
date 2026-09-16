@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
@@ -86,6 +87,8 @@ class UserFeedRoutesIntegrationTest {
         clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         FeedRateLimiter rateLimiter = new FeedRateLimiter(clock);
         FeedMetricsService metricsService = mock(FeedMetricsService.class);
+        MemberNameResolver memberNameResolver = mock(MemberNameResolver.class);
+        when(memberNameResolver.called(MEMBER_ID)).thenReturn("Max Mustermann");
 
         routes = new UserFeedRoutes(
                 tokenService,
@@ -102,7 +105,8 @@ class UserFeedRoutesIntegrationTest {
                 imageService,
                 notificationRenderer,
                 rateLimiter,
-                metricsService);
+                metricsService,
+                memberNameResolver);
 
         // Minimal fixture: real token, member, station for the rss/atom handlers to resolve.
         FeedToken token = new FeedToken(MEMBER_ID, TOKEN_VALUE, Instant.EPOCH, null, null);

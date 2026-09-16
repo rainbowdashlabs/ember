@@ -35,7 +35,34 @@ public record StationMember(
         Instant formerAt,
         String displayName,
         StationUserType userType,
-        LocalDate joinDate) {
+        LocalDate joinDate,
+        String nickname) {
+
+    /**
+     * A member as they are read where the name they are called by does not matter.
+     *
+     * <p>Kept so that the places building a member row by hand, chiefly tests and the seeders, do
+     * not each have to say "and no nickname" to mean an ordinary member.
+     */
+    public StationMember(
+            int id,
+            int stationId,
+            UUID uid,
+            Integer accountId,
+            boolean former,
+            Instant formerAt,
+            String displayName,
+            StationUserType userType,
+            LocalDate joinDate) {
+        this(id, stationId, uid, accountId, former, formerAt, displayName, userType, joinDate, null);
+    }
+    /**
+     * The columns {@link #map()} reads, so that a statement selecting a member and the mapping that
+     * reads one cannot drift apart.
+     */
+    public static final String COLUMNS =
+            "id, station_id, uid, account_id, former, former_at, display_name, user_type, join_date, nickname";
+
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -51,6 +78,7 @@ public record StationMember(
                         : null,
                 row.getString("display_name"),
                 row.getEnum("user_type", StationUserType.class),
-                row.getDate("join_date") != null ? row.getDate("join_date").toLocalDate() : null);
+                row.getDate("join_date") != null ? row.getDate("join_date").toLocalDate() : null,
+                row.getString("nickname"));
     }
 }

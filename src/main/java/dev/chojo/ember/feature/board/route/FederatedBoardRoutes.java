@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.board.service.FederatedTicketProxy;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -259,7 +260,7 @@ public class FederatedBoardRoutes implements Routes {
     private String resolveDisplayName(UserSession session) {
         String name = session.member().displayName();
         if (name == null || name.isBlank()) {
-            name = (session.account().firstName() + " " + session.account().lastName()).trim();
+            name = NameParts.of(session.account()).called();
         }
         return name;
     }
