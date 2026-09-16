@@ -59,7 +59,9 @@ public class BeaconReadRepository {
             String contactName,
             String contactMail,
             Instant reportedAt,
-            boolean acknowledged) {}
+            boolean acknowledged,
+            /** The picture that came with it, or null where the report arrived without one. */
+            Integer screenshotFileId) {}
 
     /** A day of one subject's bucketed counts. */
     public record MetricsRow(
@@ -108,7 +110,7 @@ public class BeaconReadRepository {
         return query("""
                         SELECT r.id, r.message, r.page, r.version, r.reported_at, r.acknowledged,
                                r.browser, r.screen_size, r.roles, r.recent_requests,
-                               i.contact_name, i.contact_mail
+                               r.screenshot_file_id, i.contact_name, i.contact_mail
                         FROM beacon_report r
                                  JOIN beacon_instance i ON i.instance_id = r.instance_id
                         WHERE ( :include_acknowledged OR r.acknowledged = FALSE )
@@ -127,7 +129,8 @@ public class BeaconReadRepository {
                         row.getString("contact_name"),
                         row.getString("contact_mail"),
                         row.get("reported_at", INSTANT_TIMESTAMP),
-                        row.getBoolean("acknowledged")))
+                        row.getBoolean("acknowledged"),
+                        row.getObject("screenshot_file_id", Integer.class)))
                 .all();
     }
 
