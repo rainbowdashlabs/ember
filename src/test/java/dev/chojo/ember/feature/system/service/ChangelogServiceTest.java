@@ -173,6 +173,43 @@ class ChangelogServiceTest {
                 "nothing is claimed about when they were released");
     }
 
+    /**
+     * A record this build cannot read costs the dates and nothing else.
+     *
+     * <p>What is written there is written by a git that could answer anything, and a changelog that
+     * refused to be read because a date in it was unreadable would be the worse of the two failures.
+     */
+    @Test
+    void aRecordThatCannotBeReadLeavesTheEntriesStanding() {
+        var service = withTags("this is not the json anybody meant");
+
+        var versions = service.all("de");
+
+        assertFalse(versions.isEmpty(), "the entries are still there");
+        assertTrue(versions.stream().allMatch(entry -> entry.releasedAt() == null));
+    }
+
+    /** A build ships what it shipped, and a resource it left out is absent rather than an error. */
+    @Test
+    void aResourceThisBuildDidNotShipIsAbsent() {
+        assertNull(ChangelogService.readResource("changelog/nothing-was-written-here.json"));
+        assertNotNull(ChangelogService.readResource("changelog/de.md"));
+    }
+
+    /** Half an entry says nothing about when a version was released, so it says nothing at all. */
+    @Test
+    void aTagWithNoDateIsPassedOver() {
+        var service = withTags("""
+                {
+                  "26.17.0": {"tag": "v26.17.0"},
+                  "26.16.0": {"tag": "v26.16.0", "releasedAt": "2026-09-14T15:03:30Z"}
+                }""");
+
+        assertNull(versionOf(service, "26.17.0").releasedAt());
+        assertNull(versionOf(service, "26.17.0").compareUrl(), "there is no pair of tags to compare");
+        assertNotNull(versionOf(service, "26.16.0").releasedAt());
+    }
+
     /** A version named in the changelog that was never tagged carries neither. */
     @Test
     void aVersionWithNoTagCarriesNeitherDateNorLink() {

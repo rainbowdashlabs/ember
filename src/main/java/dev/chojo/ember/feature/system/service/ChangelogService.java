@@ -216,7 +216,7 @@ public class ChangelogService {
     }
 
     /** Reads a resource that travels in the jar, or null where this build shipped none. */
-    private static String readResource(String path) {
+    static String readResource(String path) {
         try (InputStream is = ChangelogService.class.getClassLoader().getResourceAsStream(path)) {
             return is == null ? null : new String(is.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
