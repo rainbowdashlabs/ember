@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -105,6 +106,11 @@ public class FormerMemberService {
      * - Remove from all tags
      * - Delete absences
      * - Set former flag
+     *
+     * <p>Their name is frozen onto the member row as they were known, the register name and what
+     * the station called them together, because the account it was read from is detached here and
+     * nothing afterwards can take the two apart again. A history naming somebody who left should
+     * still read as the person the station remembers.
      */
     public void markFormer(int memberId) {
         String check = canMarkFormer(memberId);
@@ -147,12 +153,11 @@ public class FormerMemberService {
 
         documentService.releaseMember(memberId);
 
-        // Save display name from account and decouple
         var member = memberRepository.findById(memberId).orElseThrow();
         if (member.accountId() != null) {
             var account = accountRepository.findById(member.accountId()).orElse(null);
-            String displayName = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
-            memberRepository.setDisplayNameAndClearAccount(memberId, displayName);
+            String frozen = account != null ? NameParts.of(account).identified() : "";
+            memberRepository.setDisplayNameAndClearAccount(memberId, frozen == null ? "" : frozen);
         }
 
         // Set former flag

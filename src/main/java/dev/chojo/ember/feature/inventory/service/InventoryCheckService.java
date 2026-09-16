@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.Mem
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.SelfCheckRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -201,7 +202,7 @@ public class InventoryCheckService {
         var assigned = inventoryRepository.findItemsByMember(memberId);
         var lastCheck = checkRepository.latestCheckForMember(memberId).orElse(null);
         MemberIdentity identity = memberIdentityFactory.local(stationId, memberId);
-        return new MemberGear(account.fullName(), identity, required, assigned, lastCheck);
+        return new MemberGear(NameParts.of(account).called(), identity, required, assigned, lastCheck);
     }
 
     /**

@@ -221,7 +221,7 @@ public class EventReminderChecker {
                 NotificationType.REGISTRATION_CLOSING,
                 NotificationData.of(
                         new NotificationParams.RegistrationClosing(
-                                event.name(), daysBefore, memberNameResolver.resolveLocal(member.id())),
+                                event.name(), daysBefore, memberNameResolver.called(member.id())),
                         NotificationLinks.event(event.eventId())));
         return true;
     }

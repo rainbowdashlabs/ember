@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -156,7 +157,7 @@ public class EventRegistrationRoutes implements Routes {
         return stationMemberRepository
                 .findById(createdBy)
                 .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .map(a -> NameParts.of(a).called())
                 .orElse(null);
     }
 
@@ -166,7 +167,7 @@ public class EventRegistrationRoutes implements Routes {
     private MemberDisplay resolveMemberDisplay(int memberId) {
         var member = stationMemberRepository.findById(memberId);
         String name = member.flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .map(a -> NameParts.of(a).called())
                 .orElse("");
         MemberIdentity identity = member.map(m -> memberIdentityFactory.local(m.stationId(), memberId))
                 .orElse(null);
@@ -333,7 +334,7 @@ public class EventRegistrationRoutes implements Routes {
                             row.registrationDeadline(),
                             row.categoryId(),
                             new ArrayList<>()));
-            entry.members().add(new AwaitingMember(row.memberId(), memberNameResolver.resolveLocal(row.memberId())));
+            entry.members().add(new AwaitingMember(row.memberId(), memberNameResolver.called(row.memberId())));
         }
         ctx.json(List.copyOf(byEvent.values()));
     }

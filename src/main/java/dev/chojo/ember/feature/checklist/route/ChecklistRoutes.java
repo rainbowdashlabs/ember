@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.checklist.service.ChecklistService.OccurrenceSpec
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.restriction.Restriction;
@@ -459,7 +460,7 @@ public class ChecklistRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var checklist = loadOwned(ctx);
         var account = session.account();
-        String generatedBy = (account.firstName() + " " + account.lastName()).trim();
+        String generatedBy = NameParts.of(account).official();
         try {
             byte[] pdf = exportService.exportPdf(checklist.id(), generatedBy);
             ctx.contentType("application/pdf");
@@ -537,7 +538,7 @@ public class ChecklistRoutes implements Routes {
         var membership = checklistService.resolveMembership(checklist);
         var entryResponses = aliveEntries.stream()
                 .map(entry -> {
-                    String name = memberNameResolver.resolveLocal(entry.memberId());
+                    String name = memberNameResolver.called(entry.memberId());
                     // A list that follows nothing has nothing to measure its rows against, so it
                     // marks none of them rather than marking all of them.
                     boolean inFilter =
@@ -639,7 +640,7 @@ public class ChecklistRoutes implements Routes {
 
     private NoteHistoryEntryResponse toNoteHistoryResponse(ChecklistCellNoteHistory history) {
         Integer changedBy = history.changedBy();
-        String changedByName = changedBy != null ? memberNameResolver.resolveLocal(changedBy) : null;
+        String changedByName = changedBy != null ? memberNameResolver.called(changedBy) : null;
         return new NoteHistoryEntryResponse(
                 history.id(), history.oldNote(), history.newNote(), changedBy, changedByName, history.changedAt());
     }

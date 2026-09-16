@@ -11,6 +11,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.beacon.service.BeaconReportService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
@@ -75,7 +76,7 @@ public class ProblemReportRoutes implements Routes {
         var report = repository.create(
                 session.stationId(),
                 session.member() != null ? session.member().id() : null,
-                session.account().fullName().trim(),
+                NameParts.of(session.account()).called(),
                 request.message(),
                 request.pageUrl(),
                 request.userRoles(),

@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
@@ -396,7 +397,7 @@ public class TwoFactorRoutes implements Routes {
     private void beginWebAuthnRegistration(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var account = session.account();
-        String displayName = (account.firstName() + " " + account.lastName()).trim();
+        String displayName = NameParts.of(account).official();
         var start = webAuthnService.startRegistration(
                 session.accountId(), account.email(), displayName.isBlank() ? account.email() : displayName);
         ctx.json(new WebAuthnBeginResponse(start.challengeToken(), start.optionsJson()));

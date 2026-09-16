@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.members.entity;
 
+import dev.chojo.ember.feature.account.entity.Account;
+
 /**
  * The halves a member's name is written from, and the four ways of writing them.
  * <p>
@@ -28,6 +30,18 @@ public record NameParts(String firstName, String lastName, String frozen) {
     /** The halves of a member whose account can still be read. */
     public static NameParts of(String firstName, String lastName) {
         return new NameParts(blankToNull(firstName), blankToNull(lastName), null);
+    }
+
+    /**
+     * The halves of an account, for the places that hold one without knowing which membership it is
+     * being read for.
+     *
+     * <p>A nickname belongs to a member at a station rather than to an account, so a name written
+     * from an account alone is the register name. Where the station is known, ask the resolver for
+     * the member instead.
+     */
+    public static NameParts of(Account account) {
+        return account == null ? UNKNOWN : of(account.firstName(), account.lastName());
     }
 
     /** The single name a member keeps after leaving. */

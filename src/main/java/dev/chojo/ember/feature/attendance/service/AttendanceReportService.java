@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.StationFormat;
@@ -411,7 +412,7 @@ public class AttendanceReportService {
             var account = accountRepository.findById(member.get().accountId());
             if (account.isEmpty()) return "#" + id;
             Account acc = account.get();
-            String name = (acc.firstName() + " " + acc.lastName()).trim();
+            String name = NameParts.of(acc).official();
             return name.isEmpty() ? acc.email() : name;
         });
     }

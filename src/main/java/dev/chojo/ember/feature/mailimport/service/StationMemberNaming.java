@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.mailimport.service;
 
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -43,7 +44,7 @@ public class StationMemberNaming implements MailFilingService.MemberNaming {
         if (accountId == null) return "";
         return accountRepository
                 .findById(accountId)
-                .map(account -> (account.firstName() + " " + account.lastName()).trim())
+                .map(account -> NameParts.of(account).official())
                 .orElse("");
     }
 }

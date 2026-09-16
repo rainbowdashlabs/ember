@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.events.service.EventOccurrenceService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -610,7 +611,7 @@ public class EventRoutes implements Routes {
     private void exportPdf(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(EventExportRequest.class);
-        String generatedBy = session.account().fullName();
+        String generatedBy = NameParts.of(session.account()).official();
         var columns = req.columns() != null
                 ? req.columns().stream()
                         .map(c -> new EventExportService.ExportColumn(

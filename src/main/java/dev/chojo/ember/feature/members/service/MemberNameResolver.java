@@ -106,17 +106,6 @@ public class MemberNameResolver {
     }
 
     /**
-     * Resolves a local member's display name by member ID.
-     *
-     * @deprecated say which name is wanted: {@link #called(int)} on a screen,
-     *     {@link #identified(int)} in a list of people, {@link #official(int)} in a document.
-     */
-    @Deprecated
-    public String resolveLocal(int memberId) {
-        return called(memberId);
-    }
-
-    /**
      * The halves a member's name is written from, read once and kept.
      *
      * <p>What is cached is the parts rather than a finished name, because the same member is
@@ -177,7 +166,7 @@ public class MemberNameResolver {
      */
     public String resolve(Integer actorMemberId, Integer federatedPartnerId, UUID federatedMemberUid) {
         if (actorMemberId != null) {
-            var name = resolveLocal(actorMemberId);
+            var name = called(actorMemberId);
             if (name != null && !name.isBlank()) return name;
         }
         if (federatedPartnerId != null) {
@@ -198,7 +187,7 @@ public class MemberNameResolver {
         if (station != null) {
             var memberId = memberService.resolveId(station.id(), identity.memberUid());
             if (memberId.isPresent()) {
-                var name = resolveLocal(memberId.get());
+                var name = called(memberId.get());
                 if (name != null) return name;
             }
         }
@@ -249,7 +238,7 @@ public class MemberNameResolver {
         if (station != null) {
             var memberId = memberService.resolveId(station.id(), identity.memberUid());
             if (memberId.isPresent()) {
-                String name = resolveLocal(memberId.get());
+                String name = called(memberId.get());
                 return new DisplayData(
                         name, stationName, resolveNameColor(memberId.get()), resolveDisplayTag(memberId.get()));
             }

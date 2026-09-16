@@ -102,7 +102,7 @@ public class RequirementsService {
                         entry.eventName(),
                         entry.eventDate(),
                         entry.memberId(),
-                        entry.memberId() == memberId ? null : memberNameResolver.resolveLocal(entry.memberId())))
+                        entry.memberId() == memberId ? null : memberNameResolver.called(entry.memberId())))
                 .toList();
     }
 

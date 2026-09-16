@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.devicerequest.entity.DeviceRequest;
 import dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose;
 import dev.chojo.ember.feature.devicerequest.service.DeviceRequestService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.ManagedAccessService;
 import dev.chojo.ember.feature.passkey.service.PasskeyAccountService;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
@@ -562,7 +563,7 @@ public class PasskeyRoutes implements Routes {
         requirePasskeysOn();
         UserSession session = UserSession.from(ctx);
         var account = accountRepository.findById(session.accountId()).orElseThrow(NotFoundResponse::new);
-        String displayName = (account.firstName() + " " + account.lastName()).trim();
+        String displayName = NameParts.of(account).official();
         var start = passkeyService.startCreation(
                 session.accountId(), account.email(), displayName.isBlank() ? account.email() : displayName);
         ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));

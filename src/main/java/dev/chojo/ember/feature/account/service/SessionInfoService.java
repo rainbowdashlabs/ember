@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.mail.service.MailChainService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
@@ -169,7 +170,7 @@ public class SessionInfoService {
                 ? accountRepository.findById(member.accountId()).orElse(null)
                 : null;
         String name = account != null
-                ? (account.firstName() + " " + account.lastName()).trim()
+                ? NameParts.of(account).called()
                 : (member.displayName() != null ? member.displayName() : "");
         String email = account != null ? account.email() : "";
         var managedStation = stationService.findById(member.stationId()).orElse(null);

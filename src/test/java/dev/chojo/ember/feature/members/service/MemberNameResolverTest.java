@@ -50,7 +50,7 @@ class MemberNameResolverTest {
     }
 
     @Test
-    void resolveLocal_withAccount_returnsFullName() {
+    void called_withAccount_returnsFullName() {
         var member = new StationMember(1, 1, UUID.randomUUID(), 10, false, null, null, StationUserType.MEMBER, null);
         var account = new Account(
                 10,
@@ -67,27 +67,27 @@ class MemberNameResolverTest {
         when(memberService.findById(1)).thenReturn(Optional.of(member));
         when(accountRepository.findById(10)).thenReturn(Optional.of(account));
 
-        assertEquals("Max Meier", resolver.resolveLocal(1));
+        assertEquals("Max Meier", resolver.called(1));
     }
 
     @Test
-    void resolveLocal_withDisplayName_returnsDisplayName() {
+    void called_withDisplayName_returnsDisplayName() {
         var member = new StationMember(
                 2, 1, UUID.randomUUID(), null, false, null, "Firefighter Joe", StationUserType.MEMBER, null);
         when(memberService.findById(2)).thenReturn(Optional.of(member));
 
-        assertEquals("Firefighter Joe", resolver.resolveLocal(2));
+        assertEquals("Firefighter Joe", resolver.called(2));
     }
 
     @Test
-    void resolveLocal_notFound_returnsNull() {
+    void called_notFound_returnsNull() {
         when(memberService.findById(99)).thenReturn(Optional.empty());
 
-        assertNull(resolver.resolveLocal(99));
+        assertNull(resolver.called(99));
     }
 
     @Test
-    void resolveLocal_accountPreferred_overDisplayName() {
+    void called_accountPreferred_overDisplayName() {
         var member =
                 new StationMember(3, 1, UUID.randomUUID(), 20, false, null, "Old Name", StationUserType.MEMBER, null);
         var account = new Account(
@@ -105,7 +105,7 @@ class MemberNameResolverTest {
         when(memberService.findById(3)).thenReturn(Optional.of(member));
         when(accountRepository.findById(20)).thenReturn(Optional.of(account));
 
-        assertEquals("New Name", resolver.resolveLocal(3));
+        assertEquals("New Name", resolver.called(3));
     }
 
     @Test

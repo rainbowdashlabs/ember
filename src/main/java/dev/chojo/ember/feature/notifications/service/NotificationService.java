@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.notifications.entity.Notification;
@@ -917,8 +918,8 @@ public class NotificationService {
                 ? emailService.getBaseUrl() + "/api/v1/stations/" + stationId + "/logo"
                 : null;
 
-        String name = (account.firstName() + " " + account.lastName()).trim();
-        if (name.isEmpty()) name = account.loginName();
+        String name = NameParts.of(account).called();
+        if (name == null || name.isEmpty()) name = account.loginName();
 
         // Build notification items HTML
         String baseUrl = emailService.getBaseUrl();

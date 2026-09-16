@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
@@ -199,9 +200,7 @@ public class ProcurementService {
         return stationMemberRepository
                 .findById(memberId)
                 .flatMap(member -> accountRepository.findById(member.accountId()))
-                .map(account -> "%s %s"
-                        .formatted(account.firstName(), account.lastName())
-                        .trim())
+                .map(account -> NameParts.of(account).called())
                 .orElse("");
     }
 

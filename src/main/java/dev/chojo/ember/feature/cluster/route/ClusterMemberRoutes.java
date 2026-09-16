@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -317,7 +318,7 @@ public class ClusterMemberRoutes implements Routes {
         return new ClusterMemberResponse(
                 member.id(),
                 account.map(a -> a.uid()).map(UUID::toString).orElse(null),
-                account.map(a -> a.fullName()).orElse(null),
+                account.map(a -> NameParts.of(a).identified()).orElse(null),
                 account.map(a -> a.email()).orElse(null),
                 member.userType().name());
     }

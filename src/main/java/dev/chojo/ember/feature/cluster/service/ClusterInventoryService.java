@@ -412,7 +412,7 @@ public class ClusterInventoryService {
      */
     private String holderName(Integer memberId) {
         if (memberId == null) return null;
-        String name = nameResolver.resolveLocal(memberId);
+        String name = nameResolver.called(memberId);
         return name != null && !name.isBlank() ? name : null;
     }
 

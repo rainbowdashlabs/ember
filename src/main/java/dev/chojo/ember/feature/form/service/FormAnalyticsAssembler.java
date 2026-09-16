@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.NotFoundResponse;
@@ -132,7 +133,7 @@ public class FormAnalyticsAssembler {
         return stationMemberRepository
                 .findById(memberId)
                 .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .map(a -> NameParts.of(a).called())
                 .orElse(null);
     }
 

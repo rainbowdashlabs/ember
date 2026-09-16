@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose;
 import dev.chojo.ember.feature.devicerequest.repository.DeviceRequestRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.passkey.service.PasskeyService;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
@@ -216,7 +217,7 @@ public class DeviceRequestService {
         }
         Optional<Account> account = accountRepository.findById(request.subjectAccountId());
         if (account.isEmpty()) return Optional.empty();
-        String displayName = (account.get().firstName() + " " + account.get().lastName()).trim();
+        String displayName = NameParts.of(account.get()).official();
         return Optional.of(passkeyService.startDeviceEnrollment(
                 account.get().id(),
                 account.get().email(),

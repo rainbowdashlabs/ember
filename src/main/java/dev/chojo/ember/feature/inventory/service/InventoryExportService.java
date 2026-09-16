@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.StationFormat;
@@ -133,8 +134,8 @@ public class InventoryExportService {
                     : null;
             String firstName = account != null ? account.firstName() : "";
             String lastName = account != null ? account.lastName() : "";
-            String name = (firstName + " " + lastName).trim();
-            if (name.isEmpty()) name = "#" + memberId;
+            String name = account != null ? NameParts.of(account).official() : null;
+            if (name == null || name.isEmpty()) name = "#" + memberId;
 
             // Extra field values
             var extraFieldValues = new ArrayList<String>();
