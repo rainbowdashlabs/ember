@@ -60,7 +60,10 @@ public class StationMemberRepository {
             %s AS display_tag,
             %s AS display_tag_color,
             sm.join_date AS join_date""".formatted(
-            MemberNameSql.CALLED, PRIMARY_GROUP_COLOR_SUBQUERY, PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
+                    MemberNameSql.ofMember("sm", "a"),
+                    PRIMARY_GROUP_COLOR_SUBQUERY,
+                    PRIMARY_TAG_NAME_SUBQUERY,
+                    PRIMARY_TAG_COLOR_SUBQUERY);
 
     /**
      * Reads the UUID of an internal member ID.
@@ -200,7 +203,7 @@ public class StationMemberRepository {
     public List<RichMember> findRichMembers(int stationId, boolean includeFormer) {
         return query("""
                 SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former, sm.user_type, sm.join_date,
-                       coalesce(a.full_name, sm.display_name, '') AS name,
+                       %s AS name,
                        coalesce(a.first_name, sm.display_name, '') AS first_name,
                        coalesce(a.last_name, '') AS last_name,
                        coalesce(a.email, '') AS email,
@@ -210,7 +213,7 @@ public class StationMemberRepository {
                                               AND ac.force_password_change = FALSE)) AS account_setup_pending,
                        (SELECT max(at.expires_at) FROM account_token at WHERE at.account_id = a.id AND at.token_type = 'SET_PASSWORD') AS setup_mail_expires_at,
                        CASE
-                           WHEN a.email IS NOT NULL AND a.email <> '' AND lower(a.email) NOT LIKE '%.local'
+                           WHEN a.email IS NOT NULL AND a.email <> '' AND lower(a.email) NOT LIKE '%%.local'
                                THEN 'SELF'
                            WHEN EXISTS (SELECT 1
                                         FROM member_manager mm
@@ -218,7 +221,7 @@ public class StationMemberRepository {
                                         JOIN account ma ON ma.id = mgr.account_id
                                         WHERE mm.managed_id = sm.id
                                           AND ma.email IS NOT NULL AND ma.email <> ''
-                                          AND lower(ma.email) NOT LIKE '%.local')
+                                          AND lower(ma.email) NOT LIKE '%%.local')
                                THEN 'GUARDIANS'
                            ELSE 'NOBODY'
                        END AS mail_reaches,
@@ -229,7 +232,7 @@ public class StationMemberRepository {
                 FROM station_member sm
                 LEFT JOIN account a ON a.id = sm.account_id
                 WHERE sm.station_id = :station_id AND (sm.former = FALSE OR :include_former)
-                ORDER BY a.last_name, a.first_name, sm.display_name;""")
+                ORDER BY %s;""".formatted(MemberNameSql.ofMemberOrBlank("sm", "a"), MemberNameSql.order("sm", "a")))
                 .single(call().bind("station_id", stationId).bind("include_former", includeFormer))
                 .map(RichMember.map())
                 .all();
@@ -261,7 +264,7 @@ public class StationMemberRepository {
         return query("""
                 SELECT sm.id, sm.uid, sm.station_id, s.uid AS station_uid, s.name AS station_name,
                        sm.former, sm.user_type, sm.join_date,
-                       coalesce(a.full_name, sm.display_name, '') AS name,
+                       %s AS name,
                        coalesce(a.first_name, sm.display_name, '') AS first_name,
                        coalesce(a.last_name, '') AS last_name,
                        coalesce(a.email, '') AS email,
@@ -283,10 +286,10 @@ public class StationMemberRepository {
                   AND (:user_type::text IS NULL OR sm.user_type = :user_type)
                   AND (sm.former = FALSE OR :include_former)
                   AND (:search::text IS NULL
-                       OR coalesce(a.full_name, sm.display_name, '') ILIKE '%' || :search || '%'
-                       OR coalesce(a.email, '') ILIKE '%' || :search || '%')
+                       OR %s ILIKE '%%' || :search || '%%'
+                       OR coalesce(a.email, '') ILIKE '%%' || :search || '%%')
                 ORDER BY s.name, name
-                LIMIT :limit OFFSET :offset;""")
+                LIMIT :limit OFFSET :offset;""".formatted(MemberNameSql.ofMemberOrBlank("sm", "a"), MemberNameSql.ofMemberOrBlank("sm", "a")))
                 .single(call().bind("cluster_id", clusterId)
                         .bind("kind", StationKind.REGULAR)
                         .bind("station_id", stationId)
@@ -316,8 +319,8 @@ public class StationMemberRepository {
                   AND (:user_type::text IS NULL OR sm.user_type = :user_type)
                   AND (sm.former = FALSE OR :include_former)
                   AND (:search::text IS NULL
-                       OR coalesce(a.full_name, sm.display_name, '') ILIKE '%' || :search || '%'
-                       OR coalesce(a.email, '') ILIKE '%' || :search || '%');""",
+                       OR %s ILIKE '%%' || :search || '%%'
+                       OR coalesce(a.email, '') ILIKE '%%' || :search || '%%');""".formatted(MemberNameSql.ofMemberOrBlank("sm", "a")),
                 call().bind("cluster_id", clusterId)
                         .bind("kind", StationKind.REGULAR)
                         .bind("station_id", stationId)
@@ -377,7 +380,7 @@ public class StationMemberRepository {
                         FROM station_member sm
                         LEFT JOIN account a ON sm.account_id = a.id
                         WHERE sm.station_id = :station_id AND sm.former = FALSE
-                        ORDER BY display_name;""".formatted(MemberNameSql.CALLED))
+                        ORDER BY display_name;""".formatted(MemberNameSql.ofMember("sm", "a")))
                 .single(call().bind("station_id", stationId))
                 .map(row -> new MemberCompletion(
                         row.getInt("id"),
@@ -496,7 +499,7 @@ public class StationMemberRepository {
                 SELECT sm.id, %s AS display_name
                 FROM station_member sm
                 LEFT JOIN account a ON sm.account_id = a.id
-                WHERE sm.id = ANY(:ids);""".formatted(MemberNameSql.CALLED))
+                WHERE sm.id = ANY(:ids);""".formatted(MemberNameSql.ofMember("sm", "a")))
                 .single(call().bind("ids", memberIds, PostgreSqlTypes.INTEGER))
                 .map(row -> Map.entry(row.getInt("id"), row.getString("display_name")))
                 .all();

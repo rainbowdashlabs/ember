@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.repository;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
+import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -27,11 +28,11 @@ public class ProfileFieldChangeRepository {
     private static final String ENRICHED_CHANGE_COLUMNS = """
             c.id, c.field_id, c.cluster_field_id, c.member_id, c.old_value, c.new_value,
             c.changed_by, c.changed_at, c.requires_acknowledgement,
-            a.full_name AS changed_by_name,
-            coalesce(pf.name, cpf.name) AS field_name""";
+            %s AS changed_by_name,
+            coalesce(pf.name, cpf.name) AS field_name""".formatted(MemberNameSql.ofAccount("a"));
     private static final String ENRICHED_ACKNOWLEDGEMENT_COLUMNS = """
             ack.id, ack.change_id, ack.acknowledged_by, ack.acknowledged_at, ack.comment,
-            a.full_name AS acknowledged_by_name""";
+            %s AS acknowledged_by_name""".formatted(MemberNameSql.ofAccount("a"));
 
     /**
      * Find a recent change for the same field+member+changedBy within the merge window.
@@ -208,7 +209,7 @@ public class ProfileFieldChangeRepository {
     public List<MemberChangeSummary> findUnacknowledgedSummary(int stationId, int acknowledgedBy) {
         return query("""
                 SELECT c.member_id,
-                       ma.full_name AS member_name,
+                       %1$s AS member_name,
                        count(c.id) AS pending_count,
                        max(c.changed_at) AS latest_change
                 FROM profile_field_change c
@@ -220,8 +221,8 @@ public class ProfileFieldChangeRepository {
                       SELECT 1 FROM profile_field_change_acknowledgement ack
                       WHERE ack.change_id = c.id AND ack.acknowledged_by = :acknowledged_by
                   )
-                GROUP BY c.member_id, ma.full_name
-                ORDER BY latest_change DESC;""")
+                GROUP BY c.member_id, %1$s
+                ORDER BY latest_change DESC;""".formatted(MemberNameSql.ofAccount("ma")))
                 .single(call().bind("station_id", stationId).bind("acknowledged_by", acknowledgedBy))
                 .map(row -> new MemberChangeSummary(
                         row.getInt("member_id"),

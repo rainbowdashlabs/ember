@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
+import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -458,7 +459,7 @@ public class AttendanceRepository {
                 JOIN station_member sm ON sm.id = e.member_id
                 LEFT JOIN account a ON a.id = sm.account_id
                 WHERE e.session_id = :session_id
-                ORDER BY a.full_name;""", SqlSupport.alias("e", ATTENDANCE_ENTRY_COLUMNS))
+                ORDER BY %s;""", SqlSupport.alias("e", ATTENDANCE_ENTRY_COLUMNS), MemberNameSql.order("sm", "a"))
                 .single(call().bind("session_id", sessionId))
                 .map(AttendanceEntry.map())
                 .all();

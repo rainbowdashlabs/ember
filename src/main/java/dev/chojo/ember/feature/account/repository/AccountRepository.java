@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
+import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Inject;
@@ -174,21 +175,21 @@ public class AccountRepository {
         boolean hasSearch = search != null && !search.isBlank();
         String order = hasSearch ? "display_name" : "id DESC";
         var where = WhereBuilder.create().like("""
-                        WHERE LOWER(COALESCE(full_name, first_name || ' ' || last_name, '')) LIKE :q
+                        WHERE LOWER(%s) LIKE :q
                            OR LOWER(first_name) LIKE :q
                            OR LOWER(last_name) LIKE :q
-                           OR LOWER(email) LIKE :q""", "q", search);
+                           OR LOWER(email) LIKE :q""".formatted(MemberNameSql.ofAccount("")), "q", search);
         return query("""
                 SELECT id,
                        uid,
-                       coalesce(nullif(full_name, ''), trim(BOTH ' ' FROM first_name || ' ' || last_name)) AS display_name,
+                       %s AS display_name,
                        first_name,
                        last_name,
                        email
                 FROM account
                 %s
                 ORDER BY %s
-                LIMIT :limit;""", where.fragment(), order)
+                LIMIT :limit;""", MemberNameSql.ofAccount(""), where.fragment(), order)
                 .single(where.apply(call().bind("limit", limit)))
                 .map(PickerAccount.map())
                 .all();
@@ -205,12 +206,12 @@ public class AccountRepository {
         return query("""
                 SELECT id,
                        uid,
-                       coalesce(nullif(full_name, ''), trim(BOTH ' ' FROM first_name || ' ' || last_name)) AS display_name,
+                       %s AS display_name,
                        first_name,
                        last_name,
                        email
                 FROM account
-                WHERE uid = :uid::UUID;""")
+                WHERE uid = :uid::UUID;""", MemberNameSql.ofAccount(""))
                 .single(call().bind("uid", uid, UUID_STRING))
                 .map(PickerAccount.map())
                 .first();

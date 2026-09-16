@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemMovementLog;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
+import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -106,14 +107,14 @@ public class ItemMovementRepository {
         return query("""
                 SELECT m.id,
                        m.current_step_id,
-                       i.name                                 AS item_name,
-                       coalesce(a.full_name, sm.display_name) AS member_name
+                       i.name AS item_name,
+                       %s AS member_name
                 FROM item_movement m
                          LEFT JOIN inventory_item i ON i.id = coalesce(m.outgoing_item_id, m.incoming_item_id)
                          LEFT JOIN station_member sm ON sm.id = m.member_id
                          LEFT JOIN account a ON a.id = sm.account_id
                 WHERE m.flow_id = :flow_id AND m.state = :open
-                ORDER BY m.created_at, m.id;""")
+                ORDER BY m.created_at, m.id;""".formatted(MemberNameSql.ofMemberOrNull("sm", "a")))
                 .single(call().bind("flow_id", flowId).bind("open", MovementState.OPEN))
                 .map(row -> new OpenMovementOnFlow(
                         row.getInt("id"),

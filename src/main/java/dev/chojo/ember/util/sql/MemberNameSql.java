@@ -6,51 +6,84 @@
 package dev.chojo.ember.util.sql;
 
 /**
- * The one way a statement writes a member's name, so that a roster, a picker and a search all
- * spell the same person the same way.
+ * The one way a statement writes a member's name, so that a roster, a picker and a search all spell
+ * the same person the same way.
  * <p>
  * A name is assembled in SQL wherever resolving it in Java would cost a query per row: a roster of
  * five hundred people named one at a time is five hundred round trips. That puts the rule in two
  * places at once, here and in the service that answers for a single member, which is why both are
  * written from the same parts and held to each other by test.
  * <p>
- * Every fragment expects the member table aliased {@code sm} and the account table aliased
- * {@code a}, left joined, which is how the statements that splice them are already written.
+ * Each fragment takes the aliases its statement uses, because the queries that need a name do not
+ * agree on what to call the tables: a member list joins {@code sm} to {@code a}, a history of who
+ * changed a profile field joins the same account twice under two names, and a statistic reads the
+ * account table with no alias at all.
  */
 public final class MemberNameSql {
 
     /**
-     * The register name as the database holds it.
+     * The register name held on an account.
+     * <p>
+     * {@code full_name} is generated from the two halves, so it is what to read where it is
+     * filled, and the halves are the fallback for a row where it is not.
+     *
+     * @param account the account table's alias, or an empty string where it has none
+     */
+    public static String ofAccount(String account) {
+        String a = prefix(account);
+        return "coalesce(nullif(%sfull_name, ''), nullif(trim(BOTH ' ' FROM %sfirst_name || ' ' || %slast_name), ''))"
+                .formatted(a, a, a);
+    }
+
+    /**
+     * The name a station reads for one of its members.
      * <p>
      * A member who has left carries their name frozen on the member row and has no account left to
      * read from, so the frozen name stands in. A member with neither is named by their number
      * rather than by nothing, which keeps a list from showing a blank row.
+     *
+     * <p>The frozen name is read through {@code nullif} because the column is {@code NOT NULL
+     * DEFAULT ''}: every member who has not left carries an empty string there, and a plain
+     * {@code coalesce} would take that empty string for an answer and never reach the fallback.
+     *
+     * @param member the member table's alias
+     * @param account the account table's alias
      */
-    private static final String REGISTER = "coalesce(a.full_name, sm.display_name%s)";
-
-    /**
-     * The name a station reads on its own screens, with a member nothing is known about named by
-     * their number so that a list never shows a blank row.
-     */
-    public static final String CALLED = REGISTER.formatted(", 'Mitglied ' || sm.id");
+    public static String ofMember(String member, String account) {
+        return "coalesce(%s, %s, 'Mitglied ' || %sid)".formatted(ofAccount(account), frozen(member), prefix(member));
+    }
 
     /**
      * The same name where a blank reads better than a number: what a search matches against, and
      * what a payload carries when the reader can tell an empty name from a made-up one.
      */
-    public static final String CALLED_OR_BLANK = REGISTER.formatted(", ''");
+    public static String ofMemberOrBlank(String member, String account) {
+        return "coalesce(%s, %s, '')".formatted(ofAccount(account), frozen(member));
+    }
 
     /** The same name where the column is allowed to be empty, such as a history of who did what. */
-    public static final String CALLED_OR_NULL = REGISTER.formatted("");
+    public static String ofMemberOrNull(String member, String account) {
+        return "coalesce(%s, %s)".formatted(ofAccount(account), frozen(member));
+    }
 
-    /** The name a document carries. */
-    public static final String OFFICIAL = CALLED;
+    private static String frozen(String member) {
+        return "nullif(%sdisplay_name, '')".formatted(prefix(member));
+    }
 
     /**
-     * What a list sorts by: the surname first, because that is how a roster is looked through, and
-     * the first name after it, because that is the half a reader scans within one surname.
+     * What a list of members sorts by.
+     * <p>
+     * The surname first, because that is how a roster is looked through, and the first name after
+     * it, because that is the half a reader scans within one surname. The frozen name of somebody
+     * who has left has no halves and sorts last, under whatever it holds.
      */
-    public static final String ORDER = "a.last_name, a.first_name";
+    public static String order(String member, String account) {
+        return "%slast_name, %sfirst_name, %sdisplay_name".formatted(prefix(account), prefix(account), prefix(member));
+    }
+
+    private static String prefix(String alias) {
+        return alias == null || alias.isBlank() ? "" : alias + ".";
+    }
 
     private MemberNameSql() {}
 }
