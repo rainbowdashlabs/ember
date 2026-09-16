@@ -62,6 +62,7 @@ public class ProblemReportRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR);
         routes.get(
                 prefix + "/admin/problem-reports/{id}/screenshot", this::screenshot, InstancePermission.ADMINISTRATOR);
+        routes.post(prefix + "/admin/problem-reports/{id}/forward", this::forwardNow, InstancePermission.ADMINISTRATOR);
         routes.delete(prefix + "/admin/problem-reports/{id}", this::delete, InstancePermission.ADMINISTRATOR);
     }
 
@@ -96,11 +97,35 @@ public class ProblemReportRoutes implements Routes {
                 request.browserInfo(),
                 request.screenSize(),
                 picture.orElse(null));
-        // Forwarded on the way out rather than swept up later, so a report reaches the beacon while
-        // whoever wrote it is still at the screen they wrote it about. The service decides whether the
-        // operator agreed to that and queues without blocking this response.
-        beacon.sendReport(report, updates.currentVersion());
+        if (beacon.goesByItself(report)) forward(report, report.screenshotFileId(), false);
         ctx.status(HttpStatus.CREATED).json(report);
+    }
+
+    /**
+     * Passes a report to a beacon, with the picture it is to go with.
+     *
+     * <p>The picture goes first and the report second, which is the service's business; what is
+     * decided here is which picture, because whoever reviewed it may have covered more of it and may
+     * have decided it should not go at all. A report and its picture go together or the picture does
+     * not go: nothing adds one to a report that has already left.
+     *
+     * @param pictureFileId the picture to send with it, or null to send the report on its own
+     * @param temporary     whether that picture was made for this delivery alone and is to be let go
+     *                      of once it has gone, which is what a covered copy is
+     */
+    private void forward(ProblemReport report, Integer pictureFileId, boolean temporary) {
+        byte[] bytes = null;
+        String type = null;
+        if (pictureFileId != null) {
+            var picture = screenshots.read(pictureFileId);
+            if (picture.isPresent()) {
+                bytes = picture.get().data();
+                type = picture.get().contentType();
+            }
+        }
+        beacon.sendReportNow(report, updates.currentVersion(), bytes, type);
+        repository.markForwarded(report.id());
+        if (temporary) screenshots.forget(pictureFileId);
     }
 
     @OpenApi(
@@ -141,13 +166,6 @@ public class ProblemReportRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/admin/problem-reports/{id}",
-            methods = HttpMethod.DELETE,
-            summary = "Delete a problem report",
-            tags = {"Problem Reports"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "204"))
-    @OpenApi(
             path = "/api/v1/admin/problem-reports/{id}/screenshot",
             methods = HttpMethod.GET,
             summary = "The picture the report was written with",
@@ -165,7 +183,50 @@ public class ProblemReportRoutes implements Routes {
         ctx.contentType(picture.contentType()).result(picture.data());
     }
 
+    /**
+     * Passes a held report on, once somebody has looked at what its picture shows.
+     *
+     * <p>Three answers are possible and all of them are final. It goes as it stands; it goes with a
+     * further covered copy of the picture, which is what {@code screenshot} carries; or it goes
+     * without the picture at all. A report already passed on is not passed again, because a beacon
+     * holding one report twice is worse than a beacon holding it once.
+     */
+    @OpenApi(
+            path = "/api/v1/admin/problem-reports/{id}/forward",
+            methods = HttpMethod.POST,
+            summary = "Pass a held report on to the beacon",
+            tags = {"Problem Reports"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ForwardRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void forwardNow(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var report = repository.findById(id).orElseThrow(NotFoundResponse::new);
+        if (report.forwardedAt() != null) throw new BadRequestResponse("that report has already been passed on");
+        var request = ctx.bodyAsClass(ForwardRequest.class);
+
+        if (request.dropScreenshot()) {
+            forward(report, null, false);
+        } else if (request.screenshot() != null && !request.screenshot().isBlank()) {
+            var covered = screenshots.store(request.screenshot(), null);
+            forward(report, covered.orElse(report.screenshotFileId()), covered.isPresent());
+        } else {
+            forward(report, report.screenshotFileId(), false);
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
     /** Deletes the report and the picture with it, because the picture has nowhere else to belong. */
+    @OpenApi(
+            path = "/api/v1/admin/problem-reports/{id}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a problem report",
+            tags = {"Problem Reports"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
     private void delete(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var report = repository.findById(id).orElse(null);
@@ -188,6 +249,16 @@ public class ProblemReportRoutes implements Routes {
             String browserInfo,
             String screenSize,
             String screenshot) {}
+
+    /**
+     * What an administrator decided about a held report's picture.
+     *
+     * @param screenshot     a further covered copy of the picture to send in its place, or null to
+     *                       send the one the reporter covered
+     * @param dropScreenshot whether to pass the report on without any picture, which is final: a
+     *                       picture left out is never sent afterwards
+     */
+    public record ForwardRequest(String screenshot, boolean dropScreenshot) {}
 
     public record AcknowledgeAllResponse(int acknowledged) {}
 }

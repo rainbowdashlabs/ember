@@ -137,6 +137,17 @@ public class BeaconIntakeService {
     }
 
     /**
+     * Notes that an instance has just sent the picture belonging to a report it is about to send.
+     *
+     * <p>The bytes themselves are kept where every other picture of this installation is kept, by
+     * whoever took the delivery. What belongs here is only that this sender was heard from, which is
+     * what the report arriving a moment later is checked against.
+     */
+    public void noteReportImage(String instanceId, String publicKey) {
+        repository.touchInstance(instanceId, publicKey, null, null, null);
+    }
+
+    /**
      * Stores a day of numbers.
      *
      * <p>Unsigned and unattributed on purpose, so this writes what it is given. Last write for a day

@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.beacon.service.BeaconIntakeService;
 import dev.chojo.ember.feature.beacon.service.BeaconSettings;
 import dev.chojo.ember.feature.discovery.service.DiscoverySigningService;
+import dev.chojo.ember.feature.system.service.ProblemReportScreenshotService;
 import dev.chojo.ember.util.ClientIp;
 import dev.chojo.ember.util.LeakyBucket;
 import io.javalin.http.BadRequestResponse;
@@ -49,6 +50,15 @@ public class BeaconIntakeRoutes implements Routes {
     /** The largest report a beacon reads. A stacktrace is small; nothing honest here is large. */
     private static final int MAX_BODY_BYTES = 64 * 1024;
 
+    /**
+     * The largest picture a beacon reads, which is its own limit and not the one above.
+     *
+     * <p>A picture is thousands of times a sentence, and lifting the report's cap to fit one would
+     * let every other delivery grow with it. Base64 in JSON, so the room is the picture's own ceiling
+     * on the sending side with the third that encoding adds, and a little over.
+     */
+    private static final int MAX_IMAGE_BODY_BYTES = 5 * 1024 * 1024;
+
     private static final int BURST = 30;
     private static final int PER_MINUTE = 10;
 
@@ -57,6 +67,7 @@ public class BeaconIntakeRoutes implements Routes {
     private final Network network;
     private final BeaconIntakeService intake;
     private final DiscoverySigningService signing;
+    private final ProblemReportScreenshotService pictures;
     private final LeakyBucket limiter = new LeakyBucket(BURST, PER_MINUTE, Duration.ofHours(1));
 
     @Inject
@@ -65,12 +76,14 @@ public class BeaconIntakeRoutes implements Routes {
             Api api,
             Network network,
             BeaconIntakeService intake,
-            DiscoverySigningService signing) {
+            DiscoverySigningService signing,
+            ProblemReportScreenshotService pictures) {
         this.config = config;
         this.api = api;
         this.network = network;
         this.intake = intake;
         this.signing = signing;
+        this.pictures = pictures;
     }
 
     @Override
@@ -78,6 +91,7 @@ public class BeaconIntakeRoutes implements Routes {
         String base = prefix + "/beacon";
         routes.post(base + "/problems", this::takeProblem);
         routes.post(base + "/reports", this::takeReport);
+        routes.post(base + "/report-images", this::takeReportImage);
         routes.post(base + "/figures", this::takeMetrics);
     }
 
@@ -91,13 +105,17 @@ public class BeaconIntakeRoutes implements Routes {
      * before a single signature is checked.
      */
     private String guardedBody(Context ctx) {
+        return guardedBody(ctx, MAX_BODY_BYTES);
+    }
+
+    private String guardedBody(Context ctx, int maxBytes) {
         requireBeacon();
         String address = ClientIp.resolve(ctx, network).getHostAddress();
         if (limiter.tryAcquire(address).isPresent()) {
             throw new ForbiddenResponse("Too many reports from this address");
         }
         String body = ctx.body();
-        if (body.length() > MAX_BODY_BYTES) {
+        if (body.length() > maxBytes) {
             throw new BadRequestResponse("That report is larger than a beacon reads");
         }
         return body;
@@ -147,6 +165,23 @@ public class BeaconIntakeRoutes implements Routes {
         var sender = senderOf(ctx, body, payload.envelope());
         intake.storeReport(sender.instanceId(), sender.publicKey(), payload);
         ctx.status(HttpStatus.ACCEPTED);
+    }
+
+    /**
+     * Takes the picture belonging to a report, which always arrives just before the report itself.
+     *
+     * <p>Answers with the number it gave the picture, because that is what the report names a moment
+     * later. A picture nothing ever names is swept by age like everything else here, so a sender that
+     * dies between the two leaves one file behind and not a half report.
+     */
+    private void takeReportImage(Context ctx) {
+        String body = guardedBody(ctx, MAX_IMAGE_BODY_BYTES);
+        var payload = ctx.bodyAsClass(BeaconPayloads.ReportImagePayload.class);
+        var sender = senderOf(ctx, body, payload.envelope());
+        intake.noteReportImage(sender.instanceId(), sender.publicKey());
+        int imageId = pictures.store(payload.data(), null)
+                .orElseThrow(() -> new BadRequestResponse("A picture delivery needs a picture"));
+        ctx.status(HttpStatus.ACCEPTED).json(new BeaconPayloads.ReportImageAccepted(imageId));
     }
 
     /**

@@ -142,6 +142,7 @@ public class BeaconAdminRoutes implements Routes {
             String url,
             boolean forwardProblems,
             boolean forwardReports,
+            boolean reviewReportPictures,
             boolean metricsEnabled,
             boolean receiving,
             String contactName,
@@ -153,6 +154,7 @@ public class BeaconAdminRoutes implements Routes {
                 config.url(),
                 config.forwardProblems(),
                 config.forwardReports(),
+                config.reviewReportPictures(),
                 config.metricsEnabled(),
                 config.receiving(),
                 config.contactName(),
@@ -172,6 +174,7 @@ public class BeaconAdminRoutes implements Routes {
                 request.url(),
                 request.forwardProblems(),
                 request.forwardReports(),
+                request.reviewReportPictures(),
                 request.metricsEnabled(),
                 request.receiving(),
                 request.contactName(),
@@ -179,12 +182,18 @@ public class BeaconAdminRoutes implements Routes {
         status(ctx);
     }
 
-    /** The switches and the contact, as the screen sends them back. */
+    /**
+     * The switches and the contact, as the screen sends them back.
+     *
+     * @param reviewReportPictures whether a report carrying a picture waits for somebody here before
+     *     it is passed on. On unless an operator says otherwise
+     */
     public record SettingsRequest(
             boolean enabled,
             String url,
             boolean forwardProblems,
             boolean forwardReports,
+            boolean reviewReportPictures,
             boolean metricsEnabled,
             boolean receiving,
             String contactName,

@@ -12,6 +12,12 @@ COMMENT ON COLUMN ember_schema.problem_report.acknowledged_at IS
 COMMENT ON COLUMN ember_schema.problem_report.forwarded_at IS
     'When the report was passed on to a beacon, or NULL where it has not been. A report waiting for somebody to look at its picture first is one with a picture and no such date.';
 
+ALTER TABLE ember_schema.beacon_report
+    ADD COLUMN screenshot_file_id INTEGER NULL REFERENCES ember_schema.station_file (id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN ember_schema.beacon_report.screenshot_file_id IS
+    'The picture that arrived just before this report, or NULL where it came without one. It was covered on the instance it came from before it was sent, and there is nothing here to uncover it with.';
+
 -- Reports already marked dealt with carry no date to count from. Stamping them now gives them their
 -- thirty days from the update rather than deleting them the moment it lands, which is a deletion
 -- nobody asked for arriving as a surprise.

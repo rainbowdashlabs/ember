@@ -124,9 +124,10 @@ public class BeaconIntakeRepository {
     public void insertReport(String instanceId, BeaconPayloads.ReportPayload payload) {
         query("""
                         INSERT INTO beacon_report (instance_id, message, page, version, reported_at,
-                                                   browser, screen_size, roles, recent_requests)
+                                                   browser, screen_size, roles, recent_requests,
+                                                   screenshot_file_id)
                         VALUES (:instance, :message, :page, :version, :reported,
-                                :browser, :screen, :roles, :requests);""")
+                                :browser, :screen, :roles, :requests, :screenshot);""")
                 .single(call().bind("instance", instanceId)
                         .bind("message", payload.message())
                         .bind("page", payload.page())
@@ -135,7 +136,8 @@ public class BeaconIntakeRepository {
                         .bind("browser", payload.browser())
                         .bind("screen", payload.screenSize())
                         .bind("roles", payload.roles())
-                        .bind("requests", payload.recentRequests()))
+                        .bind("requests", payload.recentRequests())
+                        .bind("screenshot", payload.imageId()))
                 .insert();
     }
 

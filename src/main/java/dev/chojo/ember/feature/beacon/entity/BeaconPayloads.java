@@ -84,6 +84,9 @@ public final class BeaconPayloads {
      *                       told from one everybody meets. Rights, never a name
      * @param recentRequests the calls the screen made before they wrote, each with its query string
      *                       removed the same way the page is
+     * @param imageId        the picture that was delivered just before this report, as the beacon
+     *                       numbered it, or null where the report carries none. The picture always
+     *                       arrives first, so a beacon never holds a report naming one it has not got
      */
     public record ReportPayload(
             Envelope envelope,
@@ -96,7 +99,24 @@ public final class BeaconPayloads {
             String screenSize,
             String roles,
             String recentRequests,
-            Instant reportedAt) {}
+            Instant reportedAt,
+            Integer imageId) {}
+
+    /**
+     * The picture belonging to a report, delivered on its own and just before it.
+     *
+     * <p>Its own delivery because a report is capped at what a sentence needs and a picture is
+     * thousands of times that, and raising that cap would widen what every other delivery may send.
+     * It carries nothing that says who is in the picture: what was to be covered was covered before
+     * it left the instance, and there is no layer here to take off.
+     *
+     * @param contentType what the bytes are, which a beacon checks against the bytes themselves
+     * @param data        the picture, base64 as it travels in JSON
+     */
+    public record ReportImagePayload(Envelope envelope, String contentType, String data) {}
+
+    /** What a beacon answers a picture with, so the report that follows can name it. */
+    public record ReportImageAccepted(int imageId) {}
 
     /**
      * A day of bucketed counts for one subject.

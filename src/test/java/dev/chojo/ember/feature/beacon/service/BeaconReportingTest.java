@@ -70,7 +70,7 @@ class BeaconReportingTest extends RepositoryTestBase {
     /** Nothing has been switched on, so nothing is on. */
     @Test
     void anInstanceThatWasNeverConfiguredReportsNowhere() {
-        config.update(false, "", false, false, false, false, "", "");
+        config.update(false, "", false, false, true, false, false, "", "");
         assertFalse(config.enabled());
         assertFalse(config.forwardProblems());
         assertFalse(config.metricsEnabled());
@@ -83,12 +83,12 @@ class BeaconReportingTest extends RepositoryTestBase {
      */
     @Test
     void theMasterSwitchSilencesTheRest() {
-        config.update(true, "https://beacon.test", true, true, true, false, "Nora", "nora@example.com");
+        config.update(true, "https://beacon.test", true, true, true, true, false, "Nora", "nora@example.com");
         assertTrue(config.forwardProblems());
         assertTrue(config.forwardReports());
         assertTrue(config.metricsEnabled());
 
-        config.update(false, "https://beacon.test", true, true, true, false, "Nora", "nora@example.com");
+        config.update(false, "https://beacon.test", true, true, true, true, false, "Nora", "nora@example.com");
         assertFalse(config.forwardProblems());
         assertFalse(config.forwardReports());
         assertFalse(config.metricsEnabled());
@@ -97,14 +97,14 @@ class BeaconReportingTest extends RepositoryTestBase {
     /** Clearing the address falls back to the default beacon rather than to nowhere. */
     @Test
     void anEmptyAddressFallsBackToTheDefault() {
-        config.update(true, "  ", false, false, false, false, "", "");
+        config.update(true, "  ", false, false, true, false, false, "", "");
         assertEquals(BeaconSettings.DEFAULT_URL, config.url());
     }
 
     /** Accepting reports is its own decision and does not follow the sending switch. */
     @Test
     void beingABeaconIsSeparateFromReporting() {
-        config.update(false, "", false, false, false, true, "", "");
+        config.update(false, "", false, false, true, false, true, "", "");
         assertFalse(config.enabled());
         assertTrue(config.receiving());
     }
@@ -124,7 +124,7 @@ class BeaconReportingTest extends RepositoryTestBase {
     /** With the daily report switched off, the watch ticking changes nothing. */
     @Test
     void nothingGoesWhileTheDailyReportIsOff() {
-        config.update(true, "https://beacon.test", false, false, false, false, "", "");
+        config.update(true, "https://beacon.test", false, false, true, false, false, "", "");
         assertFalse(metrics.sendIfDue("26.15.0"));
         verify(httpClient, never()).signedPost(anyString(), anyString(), any());
     }
@@ -132,7 +132,7 @@ class BeaconReportingTest extends RepositoryTestBase {
     /** A send that goes through is written down, so the day is not reported twice. */
     @Test
     void aSuccessfulSendIsWrittenDown() {
-        config.update(true, "https://beacon.test", false, false, true, false, "", "");
+        config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
         when(httpClient.signedPost(anyString(), anyString(), any())).thenReturn(true);
         settings.set(BeaconMetricsScheduler.LAST_SENT_KEY, Instant.EPOCH.toString());
         var afterTheSlot = new BeaconMetricsScheduler(settings, new BeaconMetricsIdentity(settings))
@@ -158,7 +158,7 @@ class BeaconReportingTest extends RepositoryTestBase {
                 new BeaconMetricsIdentity(settings),
                 new BeaconMetricsScheduler(settings, new BeaconMetricsIdentity(settings)),
                 httpClient);
-        config.update(true, "https://beacon.test", false, false, true, false, "", "");
+        config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
 
         suppressed.start("26.15.0");
 
@@ -168,7 +168,7 @@ class BeaconReportingTest extends RepositoryTestBase {
     /** The watch starts on an ordinary instance, and starting it sends nothing by itself. */
     @Test
     void theWatchStartsWithoutSendingAnything() {
-        config.update(true, "https://beacon.test", false, false, true, false, "", "");
+        config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
         metrics.start("26.15.0");
         verify(httpClient, never()).signedPost(anyString(), anyString(), any());
     }
@@ -180,7 +180,7 @@ class BeaconReportingTest extends RepositoryTestBase {
      */
     @Test
     void aTickThatThrowsDoesNotKillTheWatch() {
-        config.update(true, "https://beacon.test", false, false, true, false, "", "");
+        config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
         when(httpClient.signedPost(anyString(), anyString(), any())).thenThrow(new IllegalStateException("no"));
         settings.set(BeaconMetricsScheduler.LAST_SENT_KEY, Instant.EPOCH.toString());
 
@@ -191,7 +191,7 @@ class BeaconReportingTest extends RepositoryTestBase {
     /** A send that fails leaves no mark, so the next tick tries again rather than skipping the day. */
     @Test
     void aFailedSendIsNotWrittenDownAsDone() {
-        config.update(true, "https://beacon.test", false, false, true, false, "", "");
+        config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
         when(httpClient.signedPost(anyString(), anyString(), any())).thenReturn(false);
         settings.set(BeaconMetricsScheduler.LAST_SENT_KEY, Instant.EPOCH.toString());
         var afterTheSlot = new BeaconMetricsScheduler(settings, new BeaconMetricsIdentity(settings))
