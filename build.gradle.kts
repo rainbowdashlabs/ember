@@ -2,6 +2,7 @@ import org.jetbrains.gradle.ext.runConfigurations
 import org.jetbrains.gradle.ext.settings
 import java.net.URI
 import java.time.Instant
+import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -22,7 +23,7 @@ application {
 
 group = "dev.chojo"
 // CalVer as YY.MINOR.MICRO -> https://calver.org/
-version = "26.17.3"
+version = "26.18.0"
 
 repositories {
     maven("https://eldonexus.de/repository/maven-proxies/")
@@ -98,6 +99,66 @@ fun testForks(): Int {
     return configured ?: (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
 }
 
+/**
+ * Runs a git command in this checkout, or answers null where it cannot be run at all.
+ *
+ * A build has no business failing because the sources arrived without their history: a tarball, a
+ * shallow clone and an image built from a context that leaves `.git` behind are all legitimate ways
+ * to get here, and each of them simply knows less about when a version was released.
+ */
+fun gitOutput(vararg arguments: String): String? =
+    try {
+        val process = ProcessBuilder(listOf("git") + arguments)
+            .directory(layout.projectDirectory.asFile)
+            .start()
+        val text = process.inputStream.bufferedReader().readText()
+        val finished = process.waitFor(30, TimeUnit.SECONDS)
+        if (finished && process.exitValue() == 0) text else null
+    } catch (e: Exception) {
+        null
+    }
+
+/**
+ * When each version was tagged, as the changelog page shows it and links between.
+ *
+ * Read from the tags rather than written down by hand, because the tag is what a release is cut
+ * from and anything kept beside it would be one more thing to forget. A checkout with no tags
+ * yields an empty record, and the page then shows the entries without their dates.
+ */
+fun releaseTagsJson(): String {
+    val format = "--format=%(refname:short)\t%(creatordate:iso-strict)"
+    val lines = gitOutput("for-each-ref", "--sort=-creatordate", format, "refs/tags")
+        ?.lines()
+        ?.filter { it.isNotBlank() }
+        .orEmpty()
+    val entries = lines.mapNotNull { line ->
+        val parts = line.split('\t')
+        if (parts.size != 2) return@mapNotNull null
+        val tag = parts[0].trim()
+        val version = tag.removePrefix("v")
+        if (!version.matches(Regex("\\d+(\\.\\d+)*"))) return@mapNotNull null
+        val released = try {
+            OffsetDateTime.parse(parts[1].trim()).toInstant().toString()
+        } catch (e: Exception) {
+            return@mapNotNull null
+        }
+        """  "$version": {"tag": "$tag", "releasedAt": "$released"}"""
+    }
+    return entries.joinToString(",\n", "{\n", "\n}\n")
+}
+
+val releaseTags by tasks.registering {
+    description = "Records when each version was tagged, for the changelog to show and link between"
+    val output = layout.buildDirectory.file("generated/changelog/releases.json")
+    outputs.file(output)
+    outputs.upToDateWhen { false }
+    doLast {
+        val file = output.get().asFile
+        file.parentFile.mkdirs()
+        file.writeText(releaseTagsJson())
+    }
+}
+
 tasks {
     withType<Test>().configureEach {
         environment("TESTCONTAINERS_RYUK_DISABLED", "true")
@@ -153,6 +214,9 @@ tasks {
         from(layout.projectDirectory.file("CHANGELOG.de.md")) {
             into("changelog")
             rename { "de.md" }
+        }
+        from(releaseTags) {
+            into("changelog")
         }
     }
 

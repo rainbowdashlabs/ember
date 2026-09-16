@@ -370,6 +370,7 @@ case "$cmd" in
         cd "$ROOT/docker"
         run docker compose -f compose.dev.yaml --profile e2e down
         run docker volume rm -f "${COMPOSE_PROJECT_NAME:-docker}_ember-e2e-data"
+        run bash e2e-pull.sh
         run docker compose -f compose.dev.yaml --profile e2e up -d --build --force-recreate
         fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
         # Whatever follows the project goes in front of --project: a bare argument after it is read
@@ -430,7 +431,8 @@ case "$cmd" in
         cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile full down "$@"
         ;;
     docker-e2e)
-        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile e2e up -d --build "$@"
+        cd "$ROOT/docker"; run bash e2e-pull.sh
+        run docker compose -f compose.dev.yaml --profile e2e up -d --build "$@"
         ;;
     docker-e2e-down)
         # -v is allowed again. It was refused while the development and the end-to-end stack were one
@@ -452,6 +454,7 @@ case "$cmd" in
         # How a backend change reaches the stories: the suite reuses a stack that is already up, and
         # that one is still running the sources as they were when it started.
         cd "$ROOT/docker"
+        run bash e2e-pull.sh
         run docker compose -f compose.dev.yaml --profile e2e up -d --build --force-recreate "$@"
         ;;
     docker-app-restart)

@@ -25,6 +25,10 @@ export interface ChangelogEntry {
     version: string
     /** What it brought, as markdown. */
     body: string
+    /** When it was tagged, or null where this build knows no tag of it. */
+    releasedAt?: string | null
+    /** Where its changes can be read against the release before it, or null where there is no such pair. */
+    compareUrl?: string | null
 }
 
 /**

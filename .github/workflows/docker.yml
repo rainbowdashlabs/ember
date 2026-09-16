@@ -52,7 +52,11 @@ jobs:
             runner: ubuntu-24.04-arm
 
     steps:
+      # The whole history, because the backend build reads the tags to record when each version was
+      # released. A shallow checkout carries none of them and the changelog page then shows no dates.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: gradle/actions/wrapper-validation@v6
         if: matrix.name == 'backend'
 

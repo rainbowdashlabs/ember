@@ -104,4 +104,34 @@ describe('PatchNotesView', () => {
         expect(view.findAll('[data-testid="changelog-version"]')).toHaveLength(2)
         expect(view.find('[data-testid="changelog-current"]').exists()).toBe(false)
     })
+
+    it('says when a version was released and where its changes can be read', async () => {
+        getChangelog.mockResolvedValue([
+            {
+                version: '26.17.0',
+                body: '- Etwas Neues.',
+                releasedAt: '2026-09-15T12:40:08Z',
+                compareUrl: 'https://github.com/rainbowdashlabs/ember/compare/v26.16.0...v26.17.0',
+            },
+        ])
+
+        const view = await settled(page())
+
+        expect(view.find('[data-testid="changelog-released"]').text()).toContain('September 2026')
+        const compare = view.find('[data-testid="changelog-compare"]')
+        expect(compare.attributes('href')).toBe(
+            'https://github.com/rainbowdashlabs/ember/compare/v26.16.0...v26.17.0')
+        expect(compare.attributes('target')).toBe('_blank')
+    })
+
+    /** A build that found no tags knows neither, and the entry is still worth reading. */
+    it('leaves out the date and the link where the version was never tagged', async () => {
+        getChangelog.mockResolvedValue([{version: '26.17.0', body: '- Etwas Neues.'}])
+
+        const view = await settled(page())
+
+        expect(view.find('[data-testid="changelog-version"]').exists()).toBe(true)
+        expect(view.find('[data-testid="changelog-released"]').exists()).toBe(false)
+        expect(view.find('[data-testid="changelog-compare"]').exists()).toBe(false)
+    })
 })

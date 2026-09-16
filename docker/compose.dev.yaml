@@ -165,7 +165,11 @@ services:
       - ember-e2e-gradle-cache:/home/gradle/.gradle
       - ember-e2e-gradle-build:/home/gradle/project/build
       - ember-e2e-project-gradle:/home/gradle/project/.gradle
-      - ./config:/home/gradle/project/config
+      # Its own config, and not the development stack's `./config`. The file is written on the
+      # first start by whoever gets there first, and both instances of this stack start at once:
+      # sharing one directory had the second read it half written, fall back to the defaults, and
+      # go looking for a database on localhost.
+      - ember-e2e-config:/home/gradle/project/config
       - ember-e2e-app-data:/home/gradle/project/data
     depends_on:
       postgres-e2e:
@@ -230,7 +234,7 @@ services:
       - ember-e2e-peer-gradle-cache:/home/gradle/.gradle
       - ember-e2e-peer-gradle-build:/home/gradle/project/build
       - ember-e2e-peer-project-gradle:/home/gradle/project/.gradle
-      - ./config:/home/gradle/project/config
+      - ember-e2e-peer-config:/home/gradle/project/config
       # Its own data directory, which is what gives it its own discovery identity: the keypair
       # behind the instance id is a file, not a row, so a shared directory would leave both
       # instances answering with the same name.
@@ -526,6 +530,8 @@ volumes:
   ember-e2e-gradle-cache:
   ember-e2e-gradle-build:
   ember-e2e-project-gradle:
+  ember-e2e-config:
+  ember-e2e-peer-config:
   ember-e2e-peer-app-data:
   ember-e2e-peer-gradle-cache:
   ember-e2e-peer-gradle-build:

@@ -5,10 +5,16 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.conf.file.elements.Updates;
+import dev.chojo.ember.feature.system.service.ChangelogService.ChangelogEntry;
 import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -20,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class ChangelogServiceTest {
 
-    private final ChangelogService service = new ChangelogService();
+    private final ChangelogService service = new ChangelogService(new Updates());
 
     @Test
     void theShippedChangelogIsReadAndSplitIntoItsVersions() {
@@ -97,5 +103,122 @@ class ChangelogServiceTest {
         assertTrue(ChangelogService.compareVersions("26.16.1", "26.17.0") < 0);
         assertEquals(0, ChangelogService.compareVersions("26.17.0", "v26.17.0"));
         assertTrue(ChangelogService.compareVersions("26.17", "26.17.0") == 0, "a missing segment is a zero");
+    }
+
+    private static ChangelogService withTags(String releasesJson) {
+        return new ChangelogService(new Updates(), releasesJson);
+    }
+
+    private static ChangelogEntry versionOf(ChangelogService service, String version) {
+        return service.forVersion("de", version).orElseThrow();
+    }
+
+    @Test
+    void aTaggedVersionSaysWhenItWasReleasedAndWhereItsChangesAre() {
+        var service = withTags("""
+                {
+                  "26.17.0": {"tag": "v26.17.0", "releasedAt": "2026-09-15T12:40:08Z"},
+                  "26.16.0": {"tag": "v26.16.0", "releasedAt": "2026-09-14T15:03:30Z"}
+                }""");
+
+        var entry = versionOf(service, "26.17.0");
+
+        assertEquals(Instant.parse("2026-09-15T12:40:08Z"), entry.releasedAt());
+        assertEquals("https://github.com/rainbowdashlabs/ember/compare/v26.16.0...v26.17.0", entry.compareUrl());
+    }
+
+    /**
+     * A release can be cut without an entry of its own, and a comparison that skipped it would claim
+     * its changes for the entry above it.
+     */
+    @Test
+    void theComparisonRunsAgainstTheReleaseBeforeItRatherThanTheEntryAboveIt() {
+        var service = withTags("""
+                {
+                  "26.17.0": {"tag": "v26.17.0", "releasedAt": "2026-09-15T12:40:08Z"},
+                  "26.16.9": {"tag": "v26.16.9", "releasedAt": "2026-09-14T20:00:00Z"},
+                  "26.16.0": {"tag": "v26.16.0", "releasedAt": "2026-09-14T15:03:30Z"}
+                }""");
+
+        var entry = versionOf(service, "26.17.0");
+
+        assertEquals(
+                "https://github.com/rainbowdashlabs/ember/compare/v26.16.9...v26.17.0",
+                entry.compareUrl(),
+                "the tag before it, entry or no entry");
+    }
+
+    /** Nothing older to compare against, so the oldest release is offered no comparison. */
+    @Test
+    void theOldestReleaseIsOfferedNoComparison() {
+        var service = withTags("""
+                {"26.16.0": {"tag": "v26.16.0", "releasedAt": "2026-09-14T15:03:30Z"}}""");
+
+        var entry = versionOf(service, "26.16.0");
+
+        assertNotNull(entry.releasedAt());
+        assertNull(entry.compareUrl());
+    }
+
+    /** A checkout without its history knows no tags, and the entries are readable without them. */
+    @Test
+    void aBuildThatFoundNoTagsListsItsVersionsWithoutDates() {
+        var service = withTags(null);
+
+        var versions = service.all("de");
+
+        assertFalse(versions.isEmpty(), "the entries are still there");
+        assertTrue(
+                versions.stream().allMatch(entry -> entry.releasedAt() == null && entry.compareUrl() == null),
+                "nothing is claimed about when they were released");
+    }
+
+    /**
+     * A record this build cannot read costs the dates and nothing else.
+     *
+     * <p>What is written there is written by a git that could answer anything, and a changelog that
+     * refused to be read because a date in it was unreadable would be the worse of the two failures.
+     */
+    @Test
+    void aRecordThatCannotBeReadLeavesTheEntriesStanding() {
+        var service = withTags("this is not the json anybody meant");
+
+        var versions = service.all("de");
+
+        assertFalse(versions.isEmpty(), "the entries are still there");
+        assertTrue(versions.stream().allMatch(entry -> entry.releasedAt() == null));
+    }
+
+    /** A build ships what it shipped, and a resource it left out is absent rather than an error. */
+    @Test
+    void aResourceThisBuildDidNotShipIsAbsent() {
+        assertNull(ChangelogService.readResource("changelog/nothing-was-written-here.json"));
+        assertNotNull(ChangelogService.readResource("changelog/de.md"));
+    }
+
+    /** Half an entry says nothing about when a version was released, so it says nothing at all. */
+    @Test
+    void aTagWithNoDateIsPassedOver() {
+        var service = withTags("""
+                {
+                  "26.17.0": {"tag": "v26.17.0"},
+                  "26.16.0": {"tag": "v26.16.0", "releasedAt": "2026-09-14T15:03:30Z"}
+                }""");
+
+        assertNull(versionOf(service, "26.17.0").releasedAt());
+        assertNull(versionOf(service, "26.17.0").compareUrl(), "there is no pair of tags to compare");
+        assertNotNull(versionOf(service, "26.16.0").releasedAt());
+    }
+
+    /** A version named in the changelog that was never tagged carries neither. */
+    @Test
+    void aVersionWithNoTagCarriesNeitherDateNorLink() {
+        var service = withTags("""
+                {"26.17.0": {"tag": "v26.17.0", "releasedAt": "2026-09-15T12:40:08Z"}}""");
+
+        var entry = versionOf(service, "26.16.0");
+
+        assertNull(entry.releasedAt());
+        assertNull(entry.compareUrl());
     }
 }
