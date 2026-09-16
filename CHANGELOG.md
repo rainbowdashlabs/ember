@@ -5,6 +5,13 @@
 ### Improvements
 
 - **The changelog says when each version was released.** Every entry now carries the day it came out, with the exact time under the pointer, and ends with a link that opens its changes against the release before it on GitHub.
+- **A birth date can be shown without the age behind it.** The field now carries a switch for it, on as before, so a station that also asks the age as a question of its own no longer states it twice on one row.
+- **A calculated field only offers the settings that reach it.** Nobody writes the answer to one, so it no longer asks whether an answer is expected, whether it may be written, whether a change should be reported, or what it should start out as.
+
+### Fixes
+
+- **Somebody could turn a year older the day before their birthday.** On a device set to a timezone behind UTC, the age behind a birth date and the age in a column of its own were both a day ahead of themselves. A birth date is now read as the day it names, wherever the reader sits.
+- **Renaming a date emptied every age worked out from it.** An age field held on to the name of the question it counts from, so renaming that question left the column blank with nothing to say why. It now holds on to the question itself, and existing age fields are picked up as they are.
 
 ## v26.17.3
 

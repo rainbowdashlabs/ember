@@ -13,7 +13,14 @@ defineProps<{
   dateFields: ProfileField[]
 }>()
 
-const source = defineModel<string>('source', {required: true})
+/**
+ * Which question the age is worked out from, held by its identifier rather than by its name.
+ *
+ * <p>A name is what somebody writes on a question and changes their mind about, and the age was
+ * pointed at one: renaming the birth date left every age blank, with nothing on either screen
+ * saying why. An identifier outlives what the question is called.
+ */
+const sourceId = defineModel<number | null>('sourceId', {required: true})
 const mode = defineModel<string>('mode', {required: true})
 
 const {t} = useI18n()
@@ -23,9 +30,9 @@ const {t} = useI18n()
   <div class="space-y-3">
     <div class="space-y-1">
       <FieldLabel>{{ t('membersConfig.fieldAgeSource') }}</FieldLabel>
-      <SelectInput v-model="source">
-        <option disabled value="">{{ t('membersConfig.fieldAgeSourcePlaceholder') }}</option>
-        <option v-for="f in dateFields" :key="f.id" :value="f.name">{{ f.name }}</option>
+      <SelectInput v-model="sourceId">
+        <option :value="null" disabled>{{ t('membersConfig.fieldAgeSourcePlaceholder') }}</option>
+        <option v-for="f in dateFields" :key="f.id" :value="f.id">{{ f.name }}</option>
       </SelectInput>
       <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldAgeSourceHint') }}</p>
     </div>

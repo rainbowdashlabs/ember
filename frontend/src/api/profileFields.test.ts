@@ -5,21 +5,39 @@
  */
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
-import {parseFieldConfig} from './profileFields'
+import {ageSourceOf, FieldTypes, type ProfileField} from './profileFields'
 
 /**
- * Every dynamic field reads its configuration through this. The settings arrive as an object in
- * both directions now, so all that is left to answer for is a field that carries none: answering
- * with an empty configuration rather than throwing is what the field renderers rely on.
+ * Which question a calculated age reads.
+ *
+ * <p>The point of the identifier is that it survives what the question is called, and the point of
+ * the name is that a field configured before there were identifiers still finds its source.
  */
-describe('parseFieldConfig', () => {
-    it('passes an object through untouched', () => {
-        const config = {required: true, options: ['S', 'M']}
-        expect(parseFieldConfig(config)).toBe(config)
+describe('ageSourceOf', () => {
+    const birthDate: ProfileField = {id: 10, name: 'Geburtsdatum', fieldType: FieldTypes.BIRTH_DATE}
+    const joined: ProfileField = {id: 11, name: 'Beitrittsdatum', fieldType: FieldTypes.DATE}
+    const fields = [birthDate, joined]
+
+    it('reads the question the identifier names', () => {
+        expect(ageSourceOf({sourceFieldId: 10}, fields)).toBe(birthDate)
+        expect(ageSourceOf({sourceFieldId: 11}, fields)).toBe(joined)
     })
 
-    it('answers empty for nothing', () => {
-        expect(parseFieldConfig(null)).toEqual({})
-        expect(parseFieldConfig(undefined)).toEqual({})
+    /** The whole reason for the identifier: the question is still the question after a rename. */
+    it('follows a renamed question', () => {
+        const renamed = [{...birthDate, name: 'Geburtstag'}, joined]
+
+        expect(ageSourceOf({sourceFieldId: 10, sourceField: 'Geburtsdatum'}, renamed)?.id).toBe(10)
+    })
+
+    /** Written before identifiers were recorded, and still worth reading. */
+    it('falls back to the name where no identifier stands', () => {
+        expect(ageSourceOf({sourceField: 'Geburtsdatum'}, fields)).toBe(birthDate)
+    })
+
+    it('finds nothing where the question is gone or was never named', () => {
+        expect(ageSourceOf({sourceFieldId: 99}, fields)).toBeUndefined()
+        expect(ageSourceOf({sourceField: 'Was anderes'}, fields)).toBeUndefined()
+        expect(ageSourceOf({}, fields)).toBeUndefined()
     })
 })

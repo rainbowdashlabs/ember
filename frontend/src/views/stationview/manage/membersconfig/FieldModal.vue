@@ -17,7 +17,7 @@ import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
 import WidthField from '@/components/profilefields/WidthField.vue'
 import {
-    DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
+    ageSourceOf, DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
     type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
 } from '@/api/profileFields'
 import {FieldWidths} from '@/components/profilefields/fieldLayout'
@@ -67,7 +67,7 @@ const fieldReadonly = ref(false)
 const fieldNotifyOnChange = ref(false)
 const fieldOverview = ref(false)
 const fieldEnumOptions = ref<string[]>([])
-const fieldAgeSource = ref('')
+const fieldAgeSourceId = ref<number | null>(null)
 const fieldAgeMode = ref('now')
 const fieldHasDefault = ref(false)
 const fieldDefaultValue = ref('')
@@ -100,7 +100,7 @@ watch(modelValue, (open) => {
     fieldNotifyOnChange.value = !!cfg.notifyOnChange
     fieldOverview.value = !!cfg.overview
     fieldEnumOptions.value = [...((cfg.options as string[]) ?? [])]
-    fieldAgeSource.value = (cfg.sourceField as string) ?? ''
+    fieldAgeSourceId.value = ageSourceOf(cfg, props.dateFields)?.id ?? null
     fieldAgeMode.value = (cfg.ageMode as string) ?? 'now'
     fieldHasDefault.value = cfg.defaultValue !== undefined
     if (f.fieldType === FieldTypes.BOOLEAN) {
@@ -124,7 +124,7 @@ watch(modelValue, (open) => {
     fieldNotifyOnChange.value = false
     fieldOverview.value = false
     fieldEnumOptions.value = []
-    fieldAgeSource.value = ''
+    fieldAgeSourceId.value = null
     fieldAgeMode.value = 'now'
     fieldHasDefault.value = false
     fieldDefaultValue.value = ''
@@ -152,7 +152,11 @@ function buildConfig(): ProfileFieldConfig {
     cfg.options = [...fieldEnumOptions.value]
   }
   if (fieldType.value === FieldTypes.AGE) {
-    if (fieldAgeSource.value) cfg.sourceField = fieldAgeSource.value
+    const source = props.dateFields.find(f => f.id === fieldAgeSourceId.value)
+    if (source) {
+      cfg.sourceFieldId = source.id
+      cfg.sourceField = source.name
+    }
     cfg.ageMode = fieldAgeMode.value
   }
   if (fieldType.value === FieldTypes.BIRTH_DATE && !fieldShowAge.value) cfg.showAge = false
@@ -199,7 +203,7 @@ function submit() {
             v-model="fieldEnumOptions"
             :label="t('membersConfig.fieldEnumOptions')"
         />
-        <AgeFields v-if="fieldType === 'AGE'" v-model:source="fieldAgeSource" v-model:mode="fieldAgeMode"
+        <AgeFields v-if="fieldType === 'AGE'" v-model:source-id="fieldAgeSourceId" v-model:mode="fieldAgeMode"
                    :date-fields="dateFields"/>
         <FieldDefaultValueSection
           v-if="!isCalculated"

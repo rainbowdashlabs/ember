@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { ref, computed } from 'vue'
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import {ageSourceOf, parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import type { ProfileFieldAssignment } from '@/util/profileFields'
 import type { StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
 import { profileFields, stationMembers } from '@/api'
@@ -99,7 +99,7 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
     const field = fields.value.find(f => f.id === fieldId)
     if (field?.fieldType === 'AGE') {
       const cfg = parseFieldConfig(field.config)
-      const sourceField = fields.value.find(f => f.name === cfg.sourceField)
+      const sourceField = ageSourceOf(cfg, fields.value)
       if (sourceField) {
         const dateVal = String(getRawFieldValue(memberId, sourceField.id))
         return computeAge(dateVal, (cfg.ageMode as string) ?? 'now')
