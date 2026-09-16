@@ -1,5 +1,12 @@
 # Changelog
 
+## v26.17.3
+
+### Fixes
+
+- **An appointment was written in the server's clock rather than the station's.** An evening running from 09:00 to 14:00 arrived in the notification feed as 07:00 to 12:00, because the machine building the feed keeps UTC and the station's own timezone was never asked for. Times are now written where the appointment takes place, and a station that has named no timezone still reads in UTC. The time on an exported checklist follows the station too, and a calendar file for a station whose timezone cannot be read no longer falls back to the server's.
+- **A reminder for an appointment just after midnight went out a day early.** Which day an appointment falls on, and which day it is now, were both worked out in the server's clock, so half past midnight at the station counted as the evening before and every reminder for it was one day out.
+
 ## v26.17.2
 
 ### Improvements

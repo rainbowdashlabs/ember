@@ -11,6 +11,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
@@ -24,6 +25,7 @@ import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.notifications.entity.Notification;
@@ -34,6 +36,10 @@ import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageUsage;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
@@ -66,6 +72,7 @@ class NotificationFeedRendererTest {
     private InventoryService inventoryService;
     private BoardTicketService boardTicketService;
     private ProcedureService procedureService;
+    private StationRepository stationRepository;
 
     @BeforeEach
     void setup() {
@@ -78,6 +85,7 @@ class NotificationFeedRendererTest {
         inventoryService = mock(InventoryService.class);
         boardTicketService = mock(BoardTicketService.class);
         procedureService = mock(ProcedureService.class);
+        stationRepository = mock(StationRepository.class);
         // No-ops by default; per-test stubbing wires up real returns when needed.
         when(crudService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
         when(eventFieldService.findByEvent(ArgumentMatchers.anyInt())).thenReturn(List.of());
@@ -131,7 +139,8 @@ class NotificationFeedRendererTest {
                 storageQuotaService,
                 inventoryService,
                 boardTicketService,
-                procedureService);
+                procedureService,
+                stationRepository);
     }
 
     private NotificationFeedRenderer.RenderContext richCtx() {
@@ -578,6 +587,87 @@ class NotificationFeedRendererTest {
                 null,
                 null,
                 null);
+    }
+
+    /**
+     * An appointment is written in the clock of the station holding it, not the server's.
+     *
+     * <p>The one this is about ran from 09:00 to 14:00 in Berlin and reached the feed as 07:00 to
+     * 12:00, because the machine rendering it keeps UTC. Both times are asserted, since reading the
+     * start right and the end wrong is exactly what a half-fixed range looks like.
+     */
+    @Test
+    void anAppointmentIsWrittenInTheStationsClockAndNotTheMachines() {
+        when(stationRepository.findById(1)).thenReturn(Optional.of(berlinStation()));
+        when(crudService.findById(42))
+                .thenReturn(Optional.of(
+                        stubEvent(42, Instant.parse("2026-09-19T07:00:00Z"), Instant.parse("2026-09-19T12:00:00Z"))));
+
+        var n = notification(
+                21,
+                NotificationType.NEW_EVENT,
+                new NotificationParams.NewEvent("Probe", "Konzertprobe"),
+                new NotificationData.NotificationLink("event-detail", Map.of("id", 42)));
+        var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
+
+        assertTrue(html.contains("09:00"), "the evening starts when the station says it does: " + html);
+        assertTrue(html.contains("14:00"), "and ends when it says it does: " + html);
+        assertFalse(html.contains("07:00"), "not in the machine's clock: " + html);
+    }
+
+    /** A station with no zone falls back to UTC rather than to whatever the machine keeps. */
+    @Test
+    void aStationWithoutAZoneIsReadInUtc() {
+        when(stationRepository.findById(1)).thenReturn(Optional.empty());
+        when(crudService.findById(43))
+                .thenReturn(Optional.of(
+                        stubEvent(43, Instant.parse("2026-09-19T07:00:00Z"), Instant.parse("2026-09-19T12:00:00Z"))));
+
+        var n = notification(
+                22,
+                NotificationType.NEW_EVENT,
+                new NotificationParams.NewEvent("Probe", "Konzertprobe"),
+                new NotificationData.NotificationLink("event-detail", Map.of("id", 43)));
+        var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
+
+        assertTrue(html.contains("07:00"), "UTC is the fallback: " + html);
+    }
+
+    private static Station berlinStation() {
+        return new Station(
+                1,
+                null,
+                "Test",
+                "Europe/Berlin",
+                "de-DE",
+                null,
+                null,
+                false,
+                null,
+                ThemeFeel.ROUNDED,
+                false,
+                PublicKbMode.OFF,
+                null,
+                DiscoveryVisibility.NONE,
+                null,
+                false,
+                false,
+                null,
+                false,
+                null,
+                false,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                StationKind.REGULAR,
+                null,
+                false,
+                false);
     }
 
     @Test

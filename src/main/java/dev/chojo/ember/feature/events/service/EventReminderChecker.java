@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -24,8 +26,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -44,6 +47,7 @@ public class EventReminderChecker {
     private final MemberNameResolver memberNameResolver;
     private final EventRestrictionService restrictionService;
     private final StationReadOnlyGuard readOnlyGuard;
+    private final StationRepository stationRepository;
 
     @Inject
     public EventReminderChecker(
@@ -54,7 +58,8 @@ public class EventReminderChecker {
             NotificationService notificationService,
             MemberNameResolver memberNameResolver,
             EventRestrictionService restrictionService,
-            StationReadOnlyGuard readOnlyGuard) {
+            StationReadOnlyGuard readOnlyGuard,
+            StationRepository stationRepository) {
         this.eventRepository = eventRepository;
         this.reminderRepository = reminderRepository;
         this.registrationRepository = registrationRepository;
@@ -63,6 +68,7 @@ public class EventReminderChecker {
         this.memberNameResolver = memberNameResolver;
         this.restrictionService = restrictionService;
         this.readOnlyGuard = readOnlyGuard;
+        this.stationRepository = stationRepository;
         var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "event-reminder-checker");
             t.setDaemon(true);
@@ -73,16 +79,35 @@ public class EventReminderChecker {
 
     private static final int[] CLOSING_WARNINGS = {3, 1};
 
+    /**
+     * The clock a station's evenings are read by, or UTC where it has named none.
+     *
+     * <p>Looked up once per station per sweep rather than once per event, since a station with a
+     * weekly drill and a dozen appointments would otherwise ask the same question a dozen times.
+     */
+    private ZoneId zoneOf(int stationId) {
+        return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
+    }
+
+    /**
+     * One sweep: what has to be warned about, and what has to be reminded of.
+     *
+     * <p>Which day it is, and which day an evening falls on, are both questions about the station's
+     * clock. Asked in UTC, an evening starting at 00:30 in Berlin belongs to the day before, and a
+     * reminder set three days ahead goes out four days ahead.
+     */
     private void check() {
         try {
             warnAboutClosingRegistrations();
             var events = eventRepository.findEventsWithReminders();
-            LocalDate today = LocalDate.now(ZoneOffset.UTC);
+            var zones = new HashMap<Integer, ZoneId>();
 
             for (var event : events) {
                 if (!readOnlyGuard.isWritable(event.stationId())) continue;
+                ZoneId zone = zones.computeIfAbsent(event.stationId(), this::zoneOf);
+                LocalDate today = LocalDate.now(zone);
                 var reminderDays = reminderRepository.findDays(event.id());
-                var occurrences = computeOccurrences(event, today, reminderDays);
+                var occurrences = computeOccurrences(event, today, reminderDays, zone);
 
                 for (var occurrence : occurrences) {
                     for (int daysBefore : reminderDays) {
@@ -115,13 +140,19 @@ public class EventReminderChecker {
         }
     }
 
-    private List<LocalDate> computeOccurrences(StationEvent event, LocalDate today, List<Integer> reminderDays) {
+    /**
+     * The days this event falls on that are worth reminding about, read in the station's own clock.
+     *
+     * @param zone the station's zone, which is what decides the day an evening belongs to
+     */
+    private List<LocalDate> computeOccurrences(
+            StationEvent event, LocalDate today, List<Integer> reminderDays, ZoneId zone) {
         int maxDays = reminderDays.stream().mapToInt(Integer::intValue).max().orElse(0);
         var result = new ArrayList<LocalDate>();
 
         if (event.eventType() == StationEvent.EventType.ONE_TIME) {
             if (event.startTime() != null) {
-                LocalDate eventDate = event.startTime().atZone(ZoneOffset.UTC).toLocalDate();
+                LocalDate eventDate = event.startTime().atZone(zone).toLocalDate();
                 if (!eventDate.isBefore(today)) {
                     result.add(eventDate);
                 }

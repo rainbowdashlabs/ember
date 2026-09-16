@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -66,6 +65,8 @@ public class ChecklistExportService {
         var columns = checklistService.findColumns(checklistId);
         var entries = checklistService.findEntries(checklistId, false);
         var cells = indexCells(checklistService.findCells(checklistId));
+        ZoneId zone = StationFormat.timezoneOf(
+                stationRepository.findById(checklist.stationId()).orElse(null));
 
         var sb = new StringBuilder();
         sb.append(csvField("Member")).append(',').append(csvField("Updated at"));
@@ -78,7 +79,7 @@ public class ChecklistExportService {
         for (var entry : entries) {
             String name = memberNameResolver.resolveLocal(entry.memberId());
             sb.append(csvField(name != null ? name : "#" + entry.memberId()));
-            var latestUpdate = latestUpdateForEntry(cells, entry.id());
+            var latestUpdate = latestUpdateForEntry(cells, entry.id(), zone);
             sb.append(',').append(csvField(latestUpdate));
             for (var column : columns) {
                 var cell = cells.get(cellKey(entry.id(), column.id()));
@@ -147,12 +148,17 @@ public class ChecklistExportService {
         return pdf;
     }
 
-    private String latestUpdateForEntry(Map<String, ChecklistCell> cells, int entryId) {
+    /**
+     * When an entry was last touched, written in the station's own clock.
+     *
+     * @param zone the station's zone, so a row exported in Berlin does not read two hours early
+     */
+    private String latestUpdateForEntry(Map<String, ChecklistCell> cells, int entryId, ZoneId zone) {
         return cells.values().stream()
                 .filter(c -> c.entryId() == entryId)
                 .map(ChecklistCell::updatedAt)
                 .max(Comparator.naturalOrder())
-                .map(ts -> CSV_DATE_TIME_FMT.format(ts.atZone(ZoneOffset.UTC)))
+                .map(ts -> CSV_DATE_TIME_FMT.format(ts.atZone(zone)))
                 .orElse("");
     }
 

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import net.fortuna.ical4j.model.component.VEvent;
@@ -54,17 +55,6 @@ public class IcalEventRenderer {
     public IcalEventRenderer(EventFieldService eventFieldService, NotificationService notificationService) {
         this.eventFieldService = eventFieldService;
         this.notificationService = notificationService;
-    }
-
-    private static ZoneId resolveZone(Station station) {
-        if (station.timezone() != null && !station.timezone().isBlank()) {
-            try {
-                return ZoneId.of(station.timezone());
-            } catch (Exception ignored) {
-                // fall through to system default
-            }
-        }
-        return ZoneId.systemDefault();
     }
 
     /**
@@ -294,7 +284,7 @@ public class IcalEventRenderer {
     }
 
     private String formatInstant(Instant instant, Context ctx) {
-        ZoneId zone = resolveZone(ctx.station());
+        ZoneId zone = StationFormat.timezoneOf(ctx.station());
         var fmt = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
                 .withLocale(Locale.forLanguageTag(ctx.locale()))
                 .withZone(zone);

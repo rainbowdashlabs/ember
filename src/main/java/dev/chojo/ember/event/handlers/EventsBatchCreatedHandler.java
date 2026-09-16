@@ -12,12 +12,13 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.Map;
 import java.util.Objects;
 
@@ -30,10 +31,12 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
     private static final int PREVIEW_LIMIT = 3;
 
     private final NotificationService notificationService;
+    private final StationRepository stationRepository;
 
     @Inject
-    public EventsBatchCreatedHandler(NotificationService notificationService) {
+    public EventsBatchCreatedHandler(NotificationService notificationService, StationRepository stationRepository) {
         this.notificationService = notificationService;
+        this.stationRepository = stationRepository;
     }
 
     @Override
@@ -41,6 +44,13 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
         return EventsBatchCreated.class;
     }
 
+    /**
+     * Announces a batch of new appointments as one entry naming when the first of them falls.
+     *
+     * <p>Which day that is belongs to the station's clock rather than the server's: an evening just
+     * after midnight in Berlin is the previous day read in UTC, and the announcement would name a
+     * day nobody is meeting on.
+     */
     @Override
     public void handle(EventsBatchCreated event) {
         var events = event.events();
@@ -56,13 +66,13 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
             preview.append(", …");
         }
 
-        // Earliest start time across the batch - surfaces "starting 15 Sep" in the title so
-        // members see when the first occurrence falls without expanding.
+        var zone = StationFormat.timezoneOf(
+                stationRepository.findById(event.stationId()).orElse(null));
         LocalDate firstEventDate = events.stream()
                 .map(StationEvent::startTime)
                 .filter(Objects::nonNull)
                 .min(Instant::compareTo)
-                .map(instant -> instant.atZone(ZoneId.systemDefault()).toLocalDate())
+                .map(instant -> instant.atZone(zone).toLocalDate())
                 .orElse(null);
 
         notificationService.notifyStation(

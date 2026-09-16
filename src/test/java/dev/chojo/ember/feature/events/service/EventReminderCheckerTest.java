@@ -6,10 +6,12 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -17,6 +19,10 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +30,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.List;
@@ -42,8 +49,10 @@ class EventReminderCheckerTest {
     private MemberNameResolver memberNameResolver;
     private EventRestrictionService restrictionService;
     private StationReadOnlyGuard readOnlyGuard;
+    private StationRepository stationRepository;
 
     private static final int STATION_ID = 1;
+    private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
 
     @BeforeEach
     void setUp() {
@@ -58,6 +67,71 @@ class EventReminderCheckerTest {
         when(restrictionService.canView(anyInt(), anyInt(), any())).thenReturn(true);
         readOnlyGuard = mock(StationReadOnlyGuard.class);
         when(readOnlyGuard.isWritable(anyInt())).thenReturn(true);
+        stationRepository = mock(StationRepository.class);
+    }
+
+    /**
+     * An appointment just after midnight belongs to the day the station is having it on.
+     *
+     * <p>Half past midnight in Berlin is half past ten the evening before in UTC, so a server
+     * reckoning in its own clock puts the appointment on the wrong day and sends the reminder a day
+     * early. Which day it falls on, and which day it is now, are both questions about the station's
+     * clock, and this is the pair of them.
+     */
+    @Test
+    void anAppointmentJustAfterMidnightIsRemindedOnTheStationsDay() {
+        when(stationRepository.findById(STATION_ID)).thenReturn(Optional.of(berlinStation()));
+        LocalDate eventDate = LocalDate.now(BERLIN).plusDays(3);
+        Instant eventStart = eventDate.atStartOfDay(BERLIN).plusMinutes(30).toInstant();
+
+        var event = oneTimeEvent(42, eventStart, false);
+        when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
+        when(reminderRepository.findDays(42)).thenReturn(List.of(3));
+        when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10)));
+        when(registrationRepository.findNotAttendingMemberIds(42, eventDate)).thenReturn(List.of());
+
+        invokeCheck();
+
+        verify(reminderRepository).markSent(42, eventDate, 3);
+        verify(notificationService)
+                .notifyMembers(eq(List.of(10)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+    }
+
+    private static Station berlinStation() {
+        return new Station(
+                STATION_ID,
+                null,
+                "Test",
+                "Europe/Berlin",
+                "de-DE",
+                null,
+                null,
+                false,
+                null,
+                ThemeFeel.ROUNDED,
+                false,
+                PublicKbMode.OFF,
+                null,
+                DiscoveryVisibility.NONE,
+                null,
+                false,
+                false,
+                null,
+                false,
+                null,
+                false,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                StationKind.REGULAR,
+                null,
+                false,
+                false);
     }
 
     private StationEvent oneTimeEvent(int id, Instant startTime, boolean requiresRegistration) {
@@ -475,7 +549,8 @@ class EventReminderCheckerTest {
                     notificationService,
                     memberNameResolver,
                     restrictionService,
-                    readOnlyGuard);
+                    readOnlyGuard,
+                    stationRepository);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

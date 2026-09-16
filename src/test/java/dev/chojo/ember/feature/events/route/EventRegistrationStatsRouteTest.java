@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
 import io.javalin.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
@@ -115,7 +116,8 @@ class EventRegistrationStatsRouteTest {
                 mock(AttendanceService.class),
                 mock(MemberIdentityFactory.class),
                 mock(EventRegistrationFieldService.class),
-                mock(RegistrationAnswerReminder.class));
+                mock(RegistrationAnswerReminder.class),
+                mock(StationRepository.class));
     }
 
     @SuppressWarnings("unchecked")

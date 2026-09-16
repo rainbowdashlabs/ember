@@ -30,6 +30,8 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -48,7 +50,6 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -80,6 +81,7 @@ public class EventRegistrationRoutes implements Routes {
     private final MemberIdentityFactory memberIdentityFactory;
     private final EventRegistrationFieldService registrationFieldService;
     private final RegistrationAnswerReminder answerReminder;
+    private final StationRepository stationRepository;
 
     @Inject
     public EventRegistrationRoutes(
@@ -93,8 +95,10 @@ public class EventRegistrationRoutes implements Routes {
             AttendanceService attendanceService,
             MemberIdentityFactory memberIdentityFactory,
             EventRegistrationFieldService registrationFieldService,
-            RegistrationAnswerReminder answerReminder) {
+            RegistrationAnswerReminder answerReminder,
+            StationRepository stationRepository) {
         this.crudService = crudService;
+        this.stationRepository = stationRepository;
         this.registrationService = registrationService;
         this.restrictionService = restrictionService;
         this.memberNameResolver = memberNameResolver;
@@ -775,10 +779,18 @@ public class EventRegistrationRoutes implements Routes {
                 .toList());
     }
 
+    /**
+     * The day a registration is filed against, read in the clock of the station holding the event.
+     *
+     * <p>Not the server's: an evening just after midnight in Berlin is the previous day in UTC, and
+     * the registration would be filed against a day the event is not on.
+     */
     private LocalDate resolveEventDate(RegisterRequest req, StationEvent event) {
         if (event.eventType() == StationEvent.EventType.ONE_TIME) {
             if (event.startTime() == null) throw new BadRequestResponse("Event has no start time");
-            return event.startTime().atZone(ZoneId.systemDefault()).toLocalDate();
+            var zone = StationFormat.timezoneOf(
+                    stationRepository.findById(event.stationId()).orElse(null));
+            return event.startTime().atZone(zone).toLocalDate();
         }
         if (req.eventDate() == null) {
             throw new BadRequestResponse("eventDate is required for recurring events");

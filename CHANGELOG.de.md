@@ -1,5 +1,12 @@
 # Änderungsprotokoll
 
+## v26.17.3
+
+### Fehlerbehebungen
+
+- **Ein Termin wurde in der Uhr des Servers geschrieben statt in der der Wache.** Ein Abend von 09:00 bis 14:00 kam im Benachrichtigungs-Feed als 07:00 bis 12:00 an, weil die Maschine, die den Feed baut, UTC führt und die Zeitzone der Wache nie gefragt wurde. Zeiten stehen jetzt dort, wo der Termin stattfindet, und eine Wache ohne eingetragene Zeitzone liest weiterhin in UTC. Auch die Zeit in einem exportierten Selbstcheck folgt der Wache, und eine Kalenderdatei einer Wache mit unlesbarer Zeitzone fällt nicht mehr auf die des Servers zurück.
+- **Die Erinnerung an einen Termin kurz nach Mitternacht kam einen Tag zu früh.** Auf welchen Tag ein Termin fällt und welcher Tag gerade ist, wurden beide in der Uhr des Servers bestimmt, sodass halb eins in der Wache als der Abend davor zählte und jede Erinnerung dafür einen Tag danebenlag.
+
 ## v26.17.2
 
 ### Verbesserungen

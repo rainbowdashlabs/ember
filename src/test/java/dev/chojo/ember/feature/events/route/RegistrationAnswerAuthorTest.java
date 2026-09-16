@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -94,7 +95,8 @@ class RegistrationAnswerAuthorTest {
                 mock(AttendanceService.class),
                 mock(MemberIdentityFactory.class),
                 mock(EventRegistrationFieldService.class),
-                mock(RegistrationAnswerReminder.class));
+                mock(RegistrationAnswerReminder.class),
+                mock(StationRepository.class));
     }
 
     /** Runs the check the way the route does, unwrapping what reflection wraps a refusal in. */
