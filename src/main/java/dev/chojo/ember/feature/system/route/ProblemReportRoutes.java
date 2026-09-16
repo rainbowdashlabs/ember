@@ -85,7 +85,7 @@ public class ProblemReportRoutes implements Routes {
         // Forwarded on the way out rather than swept up later, so a report reaches the beacon while
         // whoever wrote it is still at the screen they wrote it about. The service decides whether the
         // operator agreed to that and queues without blocking this response.
-        beacon.sendReport(report.message(), report.pageUrl(), report.createdAt(), updates.currentVersion());
+        beacon.sendReport(report, updates.currentVersion());
         ctx.status(HttpStatus.CREATED).json(report);
     }
 

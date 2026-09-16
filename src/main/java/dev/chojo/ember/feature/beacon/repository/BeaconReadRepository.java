@@ -36,6 +36,7 @@ public class BeaconReadRepository {
             String level,
             String exceptionClass,
             String logger,
+            String message,
             String frames,
             int instances,
             long occurrences,
@@ -51,6 +52,10 @@ public class BeaconReadRepository {
             String message,
             String page,
             String version,
+            String browser,
+            String screenSize,
+            String roles,
+            String recentRequests,
             String contactName,
             String contactMail,
             Instant reportedAt,
@@ -69,7 +74,7 @@ public class BeaconReadRepository {
     /** The faults, most widely met first. */
     public List<FaultRow> faults(boolean includeAcknowledged) {
         return query("""
-                        SELECT p.id, p.fingerprint, p.level, p.exception_class, p.logger, p.frames,
+                        SELECT p.id, p.fingerprint, p.level, p.exception_class, p.logger, p.message, p.frames,
                                p.first_seen, p.last_seen, p.acknowledged, p.resolved_in,
                                count(pi.instance_id)                                     AS instances,
                                coalesce(sum(pi.occurrences), 0)                          AS occurrences,
@@ -86,6 +91,7 @@ public class BeaconReadRepository {
                         row.getString("level"),
                         row.getString("exception_class"),
                         row.getString("logger"),
+                        row.getString("message"),
                         row.getString("frames"),
                         row.getInt("instances"),
                         row.getLong("occurrences"),
@@ -101,6 +107,7 @@ public class BeaconReadRepository {
     public List<ReportRow> reports(boolean includeAcknowledged) {
         return query("""
                         SELECT r.id, r.message, r.page, r.version, r.reported_at, r.acknowledged,
+                               r.browser, r.screen_size, r.roles, r.recent_requests,
                                i.contact_name, i.contact_mail
                         FROM beacon_report r
                                  JOIN beacon_instance i ON i.instance_id = r.instance_id
@@ -113,6 +120,10 @@ public class BeaconReadRepository {
                         row.getString("message"),
                         row.getString("page"),
                         row.getString("version"),
+                        row.getString("browser"),
+                        row.getString("screen_size"),
+                        row.getString("roles"),
+                        row.getString("recent_requests"),
                         row.getString("contact_name"),
                         row.getString("contact_mail"),
                         row.get("reported_at", INSTANT_TIMESTAMP),

@@ -44,7 +44,7 @@ const shortLogger = computed(() => props.logger?.split('.').pop() ?? '')
         </span>
         <slot name="badges"/>
       </div>
-      <p class="text-sm font-medium max-w-full break-words line-clamp-3 sm:line-clamp-none sm:truncate">{{ title }}</p>
+      <p class="text-sm font-medium max-w-full break-words">{{ title }}</p>
       <p class="text-xs text-(--text-muted)">
         {{ formatDateTime(firstOccurrence) }}
         <template v-if="count > 1"> - {{ formatDateTime(lastOccurrence) }}</template>

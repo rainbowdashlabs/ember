@@ -58,6 +58,7 @@ class BeaconRepositoriesTest extends RepositoryTestBase {
                 "ERROR",
                 "dev.chojo.ember.Some",
                 "java.lang.IllegalStateException",
+                "Etwas ging schief",
                 "dev.chojo.ember.Some.thing",
                 occurrences,
                 Instant.now().minusSeconds(600),
@@ -155,6 +156,10 @@ class BeaconRepositoriesTest extends RepositoryTestBase {
                         "nora@example.com",
                         message,
                         "/station/events",
+                        "Firefox/141.0",
+                        "1920x1080",
+                        "LOGIN, USER",
+                        "[{\"url\":\"/api/v1/events\",\"status\":500}]",
                         Instant.now()));
 
         var stored = read.reports(true).stream()

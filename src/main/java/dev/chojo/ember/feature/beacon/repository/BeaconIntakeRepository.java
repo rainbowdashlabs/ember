@@ -70,14 +70,17 @@ public class BeaconIntakeRepository {
      */
     public int upsertProblem(BeaconPayloads.ProblemPayload payload) {
         query("""
-                        INSERT INTO beacon_problem (fingerprint, level, logger, exception_class, frames, first_seen, last_seen)
-                        VALUES (:fingerprint, :level, :logger, :exception, :frames, :first, :last)
+                        INSERT INTO beacon_problem (fingerprint, level, logger, exception_class, message, frames,
+                                                    first_seen, last_seen)
+                        VALUES (:fingerprint, :level, :logger, :exception, :message, :frames, :first, :last)
                         ON CONFLICT (fingerprint)
-                            DO UPDATE SET last_seen = greatest(beacon_problem.last_seen, EXCLUDED.last_seen);""")
+                            DO UPDATE SET last_seen = greatest(beacon_problem.last_seen, EXCLUDED.last_seen),
+                                          message = coalesce(EXCLUDED.message, beacon_problem.message);""")
                 .single(call().bind("fingerprint", payload.fingerprint())
                         .bind("level", payload.level())
                         .bind("logger", payload.logger())
                         .bind("exception", payload.exceptionClass())
+                        .bind("message", payload.message())
                         .bind("frames", payload.frames())
                         .bind("first", payload.firstOccurrence(), INSTANT_TIMESTAMP)
                         .bind("last", payload.lastOccurrence(), INSTANT_TIMESTAMP))
@@ -120,13 +123,19 @@ public class BeaconIntakeRepository {
     /** Stores somebody's own words, which do not group and are never corrected. */
     public void insertReport(String instanceId, BeaconPayloads.ReportPayload payload) {
         query("""
-                        INSERT INTO beacon_report (instance_id, message, page, version, reported_at)
-                        VALUES (:instance, :message, :page, :version, :reported);""")
+                        INSERT INTO beacon_report (instance_id, message, page, version, reported_at,
+                                                   browser, screen_size, roles, recent_requests)
+                        VALUES (:instance, :message, :page, :version, :reported,
+                                :browser, :screen, :roles, :requests);""")
                 .single(call().bind("instance", instanceId)
                         .bind("message", payload.message())
                         .bind("page", payload.page())
                         .bind("version", payload.version())
-                        .bind("reported", payload.reportedAt(), INSTANT_TIMESTAMP))
+                        .bind("reported", payload.reportedAt(), INSTANT_TIMESTAMP)
+                        .bind("browser", payload.browser())
+                        .bind("screen", payload.screenSize())
+                        .bind("roles", payload.roles())
+                        .bind("requests", payload.recentRequests()))
                 .insert();
     }
 

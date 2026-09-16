@@ -35,9 +35,20 @@ const {t} = useI18n()
 
 const containerComponent = computed(() => props.fault.level === 'ERROR' ? ErrorContainer : InfoContainer)
 
-const expandable = computed(() => !!props.fault.frames)
+const expandable = computed(() => !!props.fault.frames || !!props.fault.message)
 
-const title = computed(() => props.fault.exceptionClass ?? props.fault.logger ?? props.fault.fingerprint)
+/**
+ * What the fault is called.
+ *
+ * <p>The words it was logged with where there are any: a warning without an exception has no class,
+ * and one class logs several different failures, so the logger name on its own named nothing an
+ * operator could act on. The first line only, since the rest is read by opening the card.
+ */
+const title = computed(() => {
+  const words = props.fault.message?.split('\n')[0]?.trim()
+  if (words) return words
+  return props.fault.exceptionClass ?? props.fault.logger ?? props.fault.fingerprint
+})
 
 /** A fault that arrived without its frames does not open, so the card does not invite the click either. */
 function toggle() {
@@ -84,7 +95,9 @@ function toggle() {
     </ProblemCardHeader>
 
     <ProblemCardDetails v-if="expanded && expandable">
-      <ProblemStacktrace :trace="fault.frames ?? ''"/>
+      <ProblemStacktrace v-if="fault.message" :trace="fault.message" class="mb-3"/>
+      <MutedText v-if="fault.exceptionClass" tag="p" size="sm" class="mb-3">{{ fault.exceptionClass }}</MutedText>
+      <ProblemStacktrace v-if="fault.frames" :trace="fault.frames"/>
     </ProblemCardDetails>
   </component>
 </template>

@@ -86,6 +86,10 @@ class BeaconDeliveryTest {
                 null,
                 "Etwas ging schief",
                 "/station/dashboard/overview",
+                "Firefox/141.0",
+                "1920x1080",
+                "LOGIN, USER",
+                "[{\"url\":\"/api/v1/events\",\"status\":500}]",
                 Instant.now());
     }
 

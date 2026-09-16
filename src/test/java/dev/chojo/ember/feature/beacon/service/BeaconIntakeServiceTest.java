@@ -142,6 +142,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
                         "ERROR",
                         "logger",
                         "java.lang.IllegalStateException",
+                        "Etwas ging schief",
                         "frames",
                         1,
                         Instant.now(),
@@ -168,6 +169,7 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
                 "ERROR",
                 "l",
                 null,
+                null,
                 "",
                 1,
                 Instant.now(),
@@ -181,7 +183,17 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
         byte[] key = key();
         String id = service.accept(key, envelope(Instant.now(), OWN_URL), OWN_URL);
         var payload = new BeaconPayloads.ReportPayload(
-                envelope(Instant.now(), OWN_URL), "26.15.0", null, null, "   ", null, Instant.now());
+                envelope(Instant.now(), OWN_URL),
+                "26.15.0",
+                null,
+                null,
+                "   ",
+                null,
+                null,
+                null,
+                null,
+                null,
+                Instant.now());
         assertThrows(BadRequestResponse.class, () -> service.storeReport(id, "k", payload));
     }
 
@@ -240,9 +252,20 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
                         "nora@example.com",
                         message,
                         "/station/events",
+                        "Firefox/141.0",
+                        "1920x1080",
+                        "LOGIN, USER",
+                        "[{\"url\":\"/api/v1/events\",\"status\":500}]",
                         Instant.now()));
 
-        assertTrue(read.reports(true).stream().anyMatch(r -> r.message().equals(message)));
+        var stored = read.reports(true).stream()
+                .filter(r -> r.message().equals(message))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("Firefox/141.0", stored.browser(), "what they were reading it in");
+        assertEquals("1920x1080", stored.screenSize());
+        assertEquals("LOGIN, USER", stored.roles());
+        assertTrue(stored.recentRequests().contains("/api/v1/events"), "and what the screen had just asked for");
     }
 
     /** An audience that is not an address at all is refused rather than parsed hopefully. */

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:7170fb4f7d5514027899358efbefc07a343baa6adb1b3a820fd3e28abaa274d8",
-  "generatedAt": "2026-09-15T10:05:31Z",
+  "schemaHash": "sha256:390de50d51bb5d30389ebd95cfc869d1797eb1301a37e8bae9dcabf89079a22c",
+  "generatedAt": "2026-09-16T01:16:01Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -1853,7 +1853,7 @@
     "beacon_problem": {
       "feature": "beacon",
       "scope": "INSTANCE",
-      "tableHash": "sha256:82b23580c40211e1940d363434d92066400364d46e496192b1826f54bb6a5c49",
+      "tableHash": "sha256:7a0988a5e6041b30292d142232374ffe791d8eddcf86788629c51c5fcfa8594b",
       "columns": [
         {
           "name": "id",
@@ -1916,6 +1916,13 @@
           "nullable": true,
           "verified": true,
           "description": "The version this was fixed in, where somebody has said so. NULL while it still stands."
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the fault was logged with, mail addresses removed. The wordings of one fault are separated by newlines."
         }
       ],
       "foreignKeys": [],
@@ -2007,7 +2014,7 @@
     "beacon_report": {
       "feature": "beacon",
       "scope": "INSTANCE",
-      "tableHash": "sha256:cb4de93954fceb8a7eda10341b52af912f13e80d0ebe0016f83f3160fdb4ce11",
+      "tableHash": "sha256:c8a1a48bc21e540df24934e6675e7ea08e8f11ac8fc10c1add5b480469af1574",
       "columns": [
         {
           "name": "id",
@@ -2056,6 +2063,34 @@
           "type": "bool",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "browser",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the reporter was reading the screen in."
+        },
+        {
+          "name": "screen_size",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "How large their window was, which is half of what a layout fault needs."
+        },
+        {
+          "name": "roles",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the reporter was allowed to do, so a fault only some people meet is told from one everybody meets. Rights, never a name."
+        },
+        {
+          "name": "recent_requests",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The calls the screen made before the report was written, each with its query string removed."
         }
       ],
       "foreignKeys": [

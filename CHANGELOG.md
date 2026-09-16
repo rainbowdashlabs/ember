@@ -2,6 +2,11 @@
 
 ## v26.17.2
 
+### Improvements
+
+- **A beacon is now told what a fault actually was.** A fault arrived as a logger name, a level and a count, and for a warning logged without an exception that is everything there is, so several different failures of one class arrived as one row naming none of them. What it was logged with now travels too, with mail addresses taken out.
+- **A forwarded problem report arrives with the screen it was written about.** The browser, the size of the window, what the reader was allowed to do and the calls the screen had just made all travel with it, each address stripped of its query the way the page already was. Who wrote it still stays at their station. "Der Knopf tut nichts" names no defect on its own.
+
 ### Fixes
 
 - **A link to another screen of this instance was not a link.** Anything written as a path, which is how everything inside Ember is written, lost its address on the way to the screen and arrived as underlined words nobody could follow. The link in the entry Ember writes after an update was one of them. Links to other sites were never affected.

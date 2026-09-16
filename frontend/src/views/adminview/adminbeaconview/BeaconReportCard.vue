@@ -10,7 +10,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import ReportCardHeader from '@/components/problem/ReportCardHeader.vue'
 import ReportMetadataGrid from '@/components/problem/ReportMetadataGrid.vue'
+import RecentRequestsTable from '@/components/problem/RecentRequestsTable.vue'
 import type {BeaconReport} from '@/api/beacon'
+import type {RequestHistoryEntry} from '@/api/client'
 
 /**
  * Somebody's own words, forwarded without their name, read exactly like a report written here.
@@ -35,8 +37,27 @@ const reporter = computed(() => props.report.contactName?.trim() || t('beacon.un
 const metadata = computed(() => [
   {label: t('problemReport.page'), value: props.report.page},
   {label: t('beacon.version'), value: props.report.version},
+  {label: t('problemReport.browser'), value: props.report.browser},
+  {label: t('problemReport.screen'), value: props.report.screenSize},
+  {label: t('problemReport.roles'), value: props.report.roles},
   {label: t('beacon.contact'), value: props.report.contactMail},
 ].filter((entry): entry is {label: string; value: string} => !!entry.value))
+
+/**
+ * The calls the screen made before somebody wrote, as the screen recorded them.
+ *
+ * <p>Read as the table this instance draws for its own reports, so a report forwarded from elsewhere
+ * is read the same way as one written here. What cannot be read is left as the text it arrived as
+ * rather than dropped: a beacon takes what an older instance sends it.
+ */
+const recentRequests = computed<RequestHistoryEntry[]>(() => {
+  if (!props.report.recentRequests) return []
+  try {
+    return JSON.parse(props.report.recentRequests)
+  } catch {
+    return []
+  }
+})
 </script>
 
 <template>
@@ -56,5 +77,6 @@ const metadata = computed(() => [
     </ReportCardHeader>
 
     <ReportMetadataGrid v-if="expanded && metadata.length > 0" :entries="metadata"/>
+    <RecentRequestsTable v-if="expanded && recentRequests.length > 0" :requests="recentRequests"/>
   </NeutralContainer>
 </template>

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.beacon.service;
 
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.discovery.service.DiscoveryHttpClient;
+import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -14,12 +15,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Sending this instance's problems to its beacon.
@@ -39,6 +43,18 @@ public class BeaconReportService {
     private static final Logger log = LoggerFactory.getLogger(BeaconReportService.class);
     private static final int QUEUE_CAPACITY = 200;
     private static final long BACKOFF_SECONDS = 30;
+
+    /** How many wordings of one fault travel. Enough to tell them apart, not a log shipped whole. */
+    private static final int MAX_DISTINCT_MESSAGES = 10;
+
+    private static final int MAX_MESSAGE_CHARS = 4000;
+
+    /** A mail address, which is the one thing in a message that is a person and never a diagnosis. */
+    private static final Pattern MAIL_ADDRESS =
+            Pattern.compile("[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+", Pattern.CASE_INSENSITIVE);
+
+    /** How the screen writes down one call it made, which is what a query has to be taken out of. */
+    private static final Pattern REQUEST_URL = Pattern.compile("\"url\"\\s*:\\s*\"([^\"]*)\"");
 
     private final BeaconSettings config;
     private final DiscoveryHttpClient httpClient;
@@ -121,10 +137,39 @@ public class BeaconReportService {
                 entry.level(),
                 entry.logger(),
                 entry.exceptionClass(),
+                wordsOf(entry),
                 String.join("\n", BeaconFingerprint.frameNames(entry.stacktrace())),
                 entry.count(),
                 entry.firstOccurrence(),
                 entry.lastOccurrence());
+    }
+
+    /**
+     * What the fault was logged with, which is most of what names it.
+     *
+     * <p>A warning without an exception carries no class and no frames, so without this a beacon is
+     * told a logger name and a count: several different failures logged by one class arrive as one
+     * row nobody can act on. The distinct wordings the group gathered are carried too, capped,
+     * because the same fingerprint often covers "failed: HTTP 409" and "failed: HTTP 500" and the
+     * difference between them is the whole of the diagnosis.
+     *
+     * <p>Mail addresses are taken out. A message quotes what failed and sometimes what failed is a
+     * person's address, and unlike a path or an identifier it is never the thing that names the
+     * fault. Everything else is left as it was written: an address inside the product, an
+     * identifier, a status code, all of which are what makes a fault findable again.
+     */
+    private static String wordsOf(ProblemLogAppender.Snapshot entry) {
+        var words = new LinkedHashSet<String>();
+        if (entry.exceptionMessage() != null && !entry.exceptionMessage().isBlank()) {
+            words.add(entry.exceptionMessage().strip());
+        }
+        for (String message : entry.distinctMessages()) {
+            if (message != null && !message.isBlank()) words.add(message.strip());
+            if (words.size() >= MAX_DISTINCT_MESSAGES) break;
+        }
+        String joined = String.join("\n", words);
+        String withoutMail = MAIL_ADDRESS.matcher(joined).replaceAll("[mail]");
+        return withoutMail.length() > MAX_MESSAGE_CHARS ? withoutMail.substring(0, MAX_MESSAGE_CHARS) : withoutMail;
     }
 
     /**
@@ -162,15 +207,13 @@ public class BeaconReportService {
      * person, so the two are agreed to separately, and a switch that only the caller checks is one
      * the next caller forgets.
      *
-     * @param message    what they wrote
-     * @param page       the address they were on
-     * @param reportedAt when they wrote it
-     * @param version    this instance's version
+     * @param report  the report as the station holds it
+     * @param version this instance's version
      * @return whether it was queued
      */
-    public boolean sendReport(String message, String page, Instant reportedAt, String version) {
+    public boolean sendReport(ProblemReport report, String version) {
         if (!config.forwardReports()) return false;
-        return sendReportNow(message, page, reportedAt, version);
+        return sendReportNow(report, version);
     }
 
     /**
@@ -182,8 +225,8 @@ public class BeaconReportService {
      *
      * @return whether it was queued, false when the queue is full
      */
-    public boolean sendReportNow(String message, String page, Instant reportedAt, String version) {
-        var payload = reportPayloadFor(message, page, reportedAt, version);
+    public boolean sendReportNow(ProblemReport report, String version) {
+        var payload = reportPayloadFor(report, version);
         return queue.offer(() -> deliver("/api/v1/beacon/reports", payload));
     }
 
@@ -217,22 +260,43 @@ public class BeaconReportService {
      * <p>The counterpart of {@link #payloadFor}, and for the same reason: what leaves the instance is
      * decided here, so here is where it can be read.
      *
-     * @param message    what they wrote
-     * @param page       the address they were on
-     * @param reportedAt when they wrote it
-     * @param version    this instance's version
+     * <p>What travels is everything about the screen and nothing about the person. Who wrote it,
+     * which member they are and which station they belong to stay at home; the browser, the size of
+     * the window, the rights they held and the calls the screen had just made all go, because
+     * "the button did nothing" names no defect without them.
+     *
+     * @param report  the report as the station holds it
+     * @param version this instance's version
      * @return the payload, ready to be shown or sent
      */
-    public BeaconPayloads.ReportPayload reportPayloadFor(
-            String message, String page, Instant reportedAt, String version) {
+    public BeaconPayloads.ReportPayload reportPayloadFor(ProblemReport report, String version) {
         return new BeaconPayloads.ReportPayload(
                 envelope(),
                 version,
                 blankToNull(config.contactName()),
                 blankToNull(config.contactMail()),
-                message,
-                withoutQuery(page),
-                reportedAt);
+                report.message(),
+                withoutQuery(report.pageUrl()),
+                blankToNull(report.browserInfo()),
+                blankToNull(report.screenSize()),
+                blankToNull(report.userRoles()),
+                requestsWithoutQueries(report.recentRequests()),
+                report.createdAt());
+    }
+
+    /**
+     * The calls the screen made, with every address stripped of its query the way the page is.
+     *
+     * <p>They travel as the screen recorded them, which is JSON. A query carries what somebody
+     * searched for and sometimes who they looked at, and none of that says which call went wrong,
+     * so the same rule applies to each of them as to the page the report was written on.
+     */
+    private static String requestsWithoutQueries(String recentRequests) {
+        if (recentRequests == null || recentRequests.isBlank()) return null;
+        String stripped = REQUEST_URL
+                .matcher(recentRequests)
+                .replaceAll(match -> Matcher.quoteReplacement("\"url\":\"" + withoutQuery(match.group(1)) + "\""));
+        return stripped.length() > MAX_MESSAGE_CHARS ? stripped.substring(0, MAX_MESSAGE_CHARS) : stripped;
     }
 
     /**

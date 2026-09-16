@@ -2,6 +2,11 @@
 
 ## v26.17.2
 
+### Verbesserungen
+
+- **Ein Beacon erfährt jetzt, was ein Fehler überhaupt war.** Ein Fehler kam als Logger-Name, Stufe und Anzahl an, und bei einer Warnung ohne Exception ist das alles, was es gibt, sodass mehrere verschiedene Fehlschläge derselben Klasse als eine Zeile ankamen, die keinen davon benannte. Was dabei geloggt wurde, reist jetzt mit, ohne Mailadressen.
+- **Eine weitergegebene Meldung kommt mit dem Bildschirm an, über den sie geschrieben wurde.** Browser, Fenstergröße, die Rechte der schreibenden Person und die letzten Anfragen der Seite reisen mit, jede Adresse ohne ihre Parameter, so wie die Seite selbst schon vorher. Wer sie geschrieben hat, bleibt weiterhin in der Wache. „Der Knopf tut nichts" benennt für sich genommen keinen Fehler.
+
 ### Fehlerbehebungen
 
 - **Ein Link auf eine andere Seite dieser Instanz war kein Link.** Alles, was als Pfad geschrieben ist, und so ist alles innerhalb von Ember geschrieben, verlor auf dem Weg zur Anzeige seine Adresse und kam als unterstrichener Text an, dem niemand folgen konnte. Der Link in dem Eintrag, den Ember nach einer Aktualisierung schreibt, war einer davon. Links auf andere Seiten waren nie betroffen.
