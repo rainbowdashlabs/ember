@@ -1893,6 +1893,7 @@ export default {
         },
     },
     profile: {
+        documentsOf: 'Dokumente von {name}',
         avatar: 'Profilbild',
         uploadAvatar: 'Bild hochladen',
         avatarHint: 'PNG, JPEG oder WebP.',

@@ -39,7 +39,9 @@ import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The document store of a member.
@@ -148,7 +150,7 @@ public class DocumentRoutes implements Routes {
         var session = UserSession.from(ctx);
         int stationId = requireMemberStation(ctx, memberId);
         boolean readsOthers = session.hasPermission(StationPermission.DOCUMENT_READ_MEMBER);
-        if (!readsOthers && !isSelf(session, memberId)) throw new ForbiddenResponse();
+        if (!readsOthers && !ownAndManaged(session).contains(memberId)) throw new ForbiddenResponse();
         ctx.json(documentRepository.findByMember(stationId, memberId, readsOthers).stream()
                 .map(this::toResponse)
                 .toList());
@@ -434,6 +436,10 @@ public class DocumentRoutes implements Routes {
      * The document behind the path, when the reader may see it at all. A document of one's own is
      * readable without any permission; a hidden one never is, because hiding it means hiding it
      * from the member it belongs to.
+     *
+     * <p>A guardian reads what the member they answer for reads, which is what the forms a station
+     * holds for a child are for. They see no more of it than that member would: a hidden document is
+     * refused above this, so it is hidden from them for the same reason it is hidden from the child.
      */
     private Document requireReadable(Context ctx) {
         int id = pathInt(ctx, "id");
@@ -441,8 +447,7 @@ public class DocumentRoutes implements Routes {
         var document = requireOwnedDocument(ctx, id);
         if (mayRead(session, id)) return document;
         if (document.hidden()) throw new NotFoundResponse();
-        if (session.member() == null
-                || !documentRepository.isBoundTo(id, session.member().id())) {
+        if (ownAndManaged(session).stream().noneMatch(member -> documentRepository.isBoundTo(id, member))) {
             throw new ForbiddenResponse();
         }
         return document;
@@ -487,6 +492,25 @@ public class DocumentRoutes implements Routes {
 
     private static boolean isSelf(UserSession session, int memberId) {
         return session.member() != null && session.member().id() == memberId;
+    }
+
+    /**
+     * The members whose paperwork is the reader's business as well as their own.
+     *
+     * <p>A guardian is handed the forms of the child they answer for: the medical note, the consent,
+     * the certificate the station holds. Reading those was refused, which is the one reader for whom
+     * a member's documents are obviously not somebody else's business, and the product already knows
+     * the relation, so documents were the feature not asking about it.
+     *
+     * @return the reader's own member and everybody they look after, empty for a reader who is no
+     *     member of the station at all
+     */
+    private Set<Integer> ownAndManaged(UserSession session) {
+        if (session.member() == null) return Set.of();
+        var own = new HashSet<Integer>();
+        own.add(session.member().id());
+        memberRepository.findManaged(session.member().id()).forEach(managed -> own.add(managed.id()));
+        return own;
     }
 
     /** The station of the member named in the path, which has to be the reader's own. */
