@@ -20,6 +20,7 @@ const FAULTS: BeaconFault[] = [
     level: 'ERROR',
     exceptionClass: 'java.lang.IllegalStateException',
     logger: 'dev.chojo.ember.feature.events.service.EventService',
+    message: 'Termin 41 konnte nicht geladen werden',
     frames: 'dev.chojo.ember.feature.events.service.EventService.load\ndev.chojo.ember.feature.events.route.EventRoutes.list',
     instances: 12,
     occurrences: 340,

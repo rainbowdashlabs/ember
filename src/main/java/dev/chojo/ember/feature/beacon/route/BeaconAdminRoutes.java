@@ -239,9 +239,7 @@ public class BeaconAdminRoutes implements Routes {
      * is theirs, and the only honest way to ask an operator to pass it on is to show what goes.
      */
     private void previewReport(Context ctx) {
-        var report = report(ctx);
-        ctx.json(reports.reportPayloadFor(
-                report.message(), report.pageUrl(), report.createdAt(), updates.currentVersion()));
+        ctx.json(reports.reportPayloadFor(report(ctx), updates.currentVersion()));
     }
 
     /**
@@ -253,9 +251,7 @@ public class BeaconAdminRoutes implements Routes {
      */
     private void sendReport(Context ctx) {
         requireEnabled();
-        var report = report(ctx);
-        boolean queued =
-                reports.sendReportNow(report.message(), report.pageUrl(), report.createdAt(), updates.currentVersion());
+        boolean queued = reports.sendReportNow(report(ctx), updates.currentVersion());
         ctx.json(new SendResult(queued ? 1 : 0));
     }
 

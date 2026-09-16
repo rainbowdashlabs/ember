@@ -31,6 +31,7 @@ export interface ProblemPayload {
     level: string
     logger: string
     exceptionClass: string | null
+    message: string | null
     frames: string
     occurrences: number
     firstOccurrence: string
@@ -44,6 +45,10 @@ export interface ReportPayload {
     contactMail: string | null
     message: string
     page: string | null
+    browser: string | null
+    screenSize: string | null
+    roles: string | null
+    recentRequests: string | null
     reportedAt: string
 }
 
@@ -72,6 +77,8 @@ export interface BeaconFault {
     level: string
     exceptionClass: string | null
     logger: string | null
+    /** What it was logged with. For a warning without an exception it is the only thing that names it. */
+    message: string | null
     frames: string | null
     instances: number
     occurrences: number
@@ -82,12 +89,18 @@ export interface BeaconFault {
     resolvedIn: string | null
 }
 
-/** A forwarded report, with whoever can be written to about it. */
+/** A forwarded report, with the screen it was written about and whoever can be written to about it. */
 export interface BeaconReport {
     id: number
     message: string
     page: string | null
     version: string | null
+    browser: string | null
+    screenSize: string | null
+    /** What the reporter was allowed to do, which tells a fault some people meet from one everybody meets. */
+    roles: string | null
+    /** The calls the screen made before it was written, each stripped of its query string. */
+    recentRequests: string | null
     contactName: string | null
     contactMail: string | null
     reportedAt: string

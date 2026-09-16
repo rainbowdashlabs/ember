@@ -11,7 +11,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ReportCardHeader from '@/components/problem/ReportCardHeader.vue'
 import ReportMetadata from './ReportMetadata.vue'
-import RecentRequestsTable from './RecentRequestsTable.vue'
+import RecentRequestsTable from '@/components/problem/RecentRequestsTable.vue'
 import type {ProblemReport} from '@/api/problemReports'
 import type {RequestHistoryEntry} from '@/api/client'
 

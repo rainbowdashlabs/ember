@@ -20,8 +20,16 @@ import java.util.List;
  */
 public final class BeaconPayloads {
 
-    /** The contract these payloads are written against. */
-    public static final int PROTOCOL_VERSION = 1;
+    /**
+     * The contract these payloads are written against.
+     *
+     * <p>Raised to 2 when a fault gained the words it was logged with and a report gained the
+     * context it was written in. Until then a beacon was told a logger name and a count and nothing
+     * else, which named no fault anybody could act on. A beacon still on 1 refuses a delivery from
+     * an instance on 2 and says which of the two is behind, rather than failing on a field it has
+     * never heard of.
+     */
+    public static final int PROTOCOL_VERSION = 2;
 
     private BeaconPayloads() {}
 
@@ -42,6 +50,8 @@ public final class BeaconPayloads {
      * total, so the same fault arriving twice corrects the row rather than doubling it.
      *
      * @param fingerprint the exception chain and frame names, without line numbers
+     * @param message     what was logged, which for a warning without an exception is the whole of
+     *                    what there is to know: a logger name and a count name no fault
      * @param occurrences what the sender counted, not an increment
      */
     public record ProblemPayload(
@@ -53,15 +63,27 @@ public final class BeaconPayloads {
             String level,
             String logger,
             String exceptionClass,
+            String message,
             String frames,
             int occurrences,
             Instant firstOccurrence,
             Instant lastOccurrence) {}
 
     /**
-     * Somebody's own words about what went wrong, forwarded without their name.
+     * Somebody's own words about what went wrong, and what they were looking at while writing them.
      *
-     * @param page the address they were on, with any query string already removed
+     * <p>Forwarded without their name: who wrote it is the station's business, and a beacon reading
+     * "somebody on version X, on this page, in this browser" can act on all of it without knowing
+     * whose evening it was. What the report is worth at the other end is the context around the
+     * sentence, because "der Knopf tut nichts" names no defect on its own.
+     *
+     * @param page           the address they were on, with any query string already removed
+     * @param browser        what they were reading it in
+     * @param screenSize     how large the window was, which is half of what a layout fault needs
+     * @param roles          what they were allowed to do, so a fault only some people meet can be
+     *                       told from one everybody meets. Rights, never a name
+     * @param recentRequests the calls the screen made before they wrote, each with its query string
+     *                       removed the same way the page is
      */
     public record ReportPayload(
             Envelope envelope,
@@ -70,6 +92,10 @@ public final class BeaconPayloads {
             String contactMail,
             String message,
             String page,
+            String browser,
+            String screenSize,
+            String roles,
+            String recentRequests,
             Instant reportedAt) {}
 
     /**
