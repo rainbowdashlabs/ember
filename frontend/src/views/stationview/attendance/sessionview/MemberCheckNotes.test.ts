@@ -79,7 +79,7 @@ describe('MemberCheckNotes', () => {
      */
     it('names the step on the button and sends the piece set aside with it', async () => {
         const wrapper = mount(MemberCheckNotes, {
-            props: {canMoveSwap: true, notes: notes({swaps: [handOver()]})},
+            props: {canManageSwap: true, notes: notes({swaps: [handOver()]})},
             ...i18n,
         })
 
@@ -108,7 +108,7 @@ describe('MemberCheckNotes', () => {
     /** A handover whose replacement nobody has picked says so instead of offering a step that refuses. */
     it('says so where the replacement has not been picked', () => {
         const wrapper = mount(MemberCheckNotes, {
-            props: {canMoveSwap: true, notes: notes({swaps: [handOver({replacementItemId: null})]})},
+            props: {canManageSwap: true, notes: notes({swaps: [handOver({replacementItemId: null})]})},
             ...i18n,
         })
 
@@ -147,5 +147,32 @@ describe('MemberCheckNotes', () => {
         })
         await withRight.find('[data-testid="note-found-sign-off"]').trigger('click')
         expect(withRight.emitted('signOffFound')).toEqual([[3]])
+    })
+
+    /** Calling one off is the same right as moving it on, and neither is offered without it. */
+    it('offers calling a swap off only to a reader who may settle it', () => {
+        const wrapper = mount(MemberCheckNotes, {props: {notes: notes({swaps: [handOver()]})}, ...i18n})
+
+        expect(wrapper.find('[data-testid="note-swap-drop"]').exists()).toBe(false)
+    })
+
+    /**
+     * The sheet is worked through at speed with the member in the room, and a movement removed by a
+     * mis-press cannot be got back, so the press asks first and says which piece it is about.
+     */
+    it('asks before calling a swap off, and names the piece when it does', async () => {
+        const wrapper = mount(MemberCheckNotes, {
+            props: {canManageSwap: true, notes: notes({swaps: [handOver()]})},
+            ...i18n,
+        })
+
+        await wrapper.find('[data-testid="note-swap-drop"]').trigger('click')
+        expect(wrapper.emitted('dropSwap'), 'nothing is called off on the first press').toBeUndefined()
+
+        const confirm = wrapper.findComponent({name: 'ConfirmDeleteModal'})
+        expect(confirm.props('message')).toContain('Einsatzjacke 04')
+
+        confirm.vm.$emit('confirm')
+        expect(wrapper.emitted('dropSwap')).toEqual([[7]])
     })
 })

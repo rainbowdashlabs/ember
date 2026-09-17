@@ -29,7 +29,7 @@ defineProps<{
   memberName: string
   memberIdentity?: MemberIdentity | null
   notes?: MemberNotes
-  canMoveSwap?: boolean
+  canManageSwap?: boolean
   canSignOffFound?: boolean
 }>()
 
@@ -38,6 +38,7 @@ const emit = defineEmits<{
   skip: []
   end: []
   moveSwap: [movementId: number, stepId: number, replacementItemId: number | null]
+  dropSwap: [movementId: number]
   signOffFound: [itemId: number]
 }>()
 </script>
@@ -52,10 +53,11 @@ const emit = defineEmits<{
       <p class="text-sm text-(--text-muted)">{{ checkIndex + 1 }} / {{ totalUnchecked }}</p>
       <MemberCheckNotes
           :notes="notes"
-          :can-move-swap="canMoveSwap"
+          :can-manage-swap="canManageSwap"
           :can-sign-off-found="canSignOffFound"
           class="text-left inline-block"
           @move-swap="(movementId, stepId, replacementItemId) => emit('moveSwap', movementId, stepId, replacementItemId)"
+          @drop-swap="(movementId) => emit('dropSwap', movementId)"
           @sign-off-found="(itemId) => emit('signOffFound', itemId)"
       />
       <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">

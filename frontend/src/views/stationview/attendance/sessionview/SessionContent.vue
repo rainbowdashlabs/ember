@@ -41,7 +41,7 @@ defineProps<{
   locked: boolean
   canManage: boolean
   memberNotes: Map<number, MemberNotes>
-  canMoveSwap: boolean
+  canManageSwap: boolean
   canSignOffFound: boolean
   checkMode: boolean
   checkIndex: number
@@ -83,6 +83,7 @@ const emit = defineEmits<{
   unlock: []
   lock: []
   moveSwap: [movementId: number, stepId: number, replacementItemId: number | null]
+  dropSwap: [movementId: number]
   signOffFound: [itemId: number]
   checkIn: [entryId: number, time: string]
   checkOut: [entryId: number, time: string]
@@ -135,12 +136,13 @@ const emit = defineEmits<{
           :member-name="currentMemberName"
           :member-identity="currentMemberIdentity"
           :notes="currentCheckRow ? memberNotes.get(currentCheckRow.memberId) : undefined"
-          :can-move-swap="canMoveSwap"
+          :can-manage-swap="canManageSwap"
           :can-sign-off-found="canSignOffFound"
           @set-status="emit('checkSetStatus', $event)"
           @skip="emit('skipCheck')"
           @end="emit('endCheckMode')"
           @move-swap="(movementId, stepId, replacementItemId) => emit('moveSwap', movementId, stepId, replacementItemId)"
+          @drop-swap="(movementId) => emit('dropSwap', movementId)"
           @sign-off-found="(itemId) => emit('signOffFound', itemId)"
       />
 
@@ -167,11 +169,12 @@ const emit = defineEmits<{
             :session-start="session.startTime"
             :spans-days="spansDays"
             :member-notes="memberNotes"
-            :can-move-swap="canMoveSwap"
+            :can-manage-swap="canManageSwap"
             :can-sign-off-found="canSignOffFound"
             @set-status="(entryId, status) => emit('setStatus', entryId, status)"
             @enter="(memberId, status) => emit('enter', memberId, status)"
             @move-swap="(movementId, stepId, replacementItemId) => emit('moveSwap', movementId, stepId, replacementItemId)"
+            @drop-swap="(movementId) => emit('dropSwap', movementId)"
             @sign-off-found="(itemId) => emit('signOffFound', itemId)"
             @check-in="(entryId, time) => emit('checkIn', entryId, time)"
             @check-out="(entryId, time) => emit('checkOut', entryId, time)"

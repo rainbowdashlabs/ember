@@ -49,6 +49,20 @@ export function useSessionNotes(sessionId: Ref<number>, error: Ref<string>) {
         }
     }
 
+    /**
+     * Calls a swap off from the sheet, removing it rather than closing it. Only swaps where nothing
+     * has changed hands stand beside a name here, so there is never anything to put back.
+     */
+    async function dropSwap(movementId: number) {
+        error.value = ''
+        try {
+            await movements.deleteMovement(movementId)
+            await loadNotes()
+        } catch {
+            error.value = t('common.error')
+        }
+    }
+
     async function signOffFound(itemId: number) {
         error.value = ''
         try {
@@ -59,5 +73,5 @@ export function useSessionNotes(sessionId: Ref<number>, error: Ref<string>) {
         }
     }
 
-    return {memberNotes, loadNotes, moveSwap, signOffFound}
+    return {memberNotes, loadNotes, moveSwap, dropSwap, signOffFound}
 }
