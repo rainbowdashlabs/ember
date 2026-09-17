@@ -16,6 +16,8 @@ import MovementActionPanel, {type AcknowledgePayload} from '../movementview/Move
 import {inventory, movements} from '@/api'
 import type {InventorySize} from '@/api/inventory'
 import type {MovementDetail} from '@/api/movements'
+import {StationPermission} from '@/api/types'
+import {useSession} from '@/composables/useSession'
 import {apiErrorMessage} from '@/util/apiError'
 
 /**
@@ -38,6 +40,7 @@ const emit = defineEmits<{
 const model = defineModel<boolean>({required: true})
 
 const {t} = useI18n()
+const {hasPermission} = useSession()
 
 const detail = ref<MovementDetail | null>(null)
 const sizes = ref<InventorySize[]>([])
@@ -49,12 +52,15 @@ const currentStep = computed(() => detail.value?.steps.find(step => step.current
 const mayRecord = computed(() => detail.value?.movement.ownerAnswersHere === false)
 const drawnSteps = computed(() => detail.value?.steps ?? [])
 
+/** Whether the reader may name the arriving piece, which is whether they may read the shelf. */
+const mayPick = computed(() => hasPermission(StationPermission.INVENTORY_READ))
+
 async function load() {
   loading.value = true
   error.value = ''
   try {
     detail.value = await movements.getMovement(props.movementId)
-    const naming = detail.value.steps.some(step => step.current && step.picksItem)
+    const naming = mayPick.value && detail.value.steps.some(step => step.current && step.picksItem)
     const inventoryId = detail.value.movement.inventoryId
     sizes.value = naming && inventoryId ? await inventory.listSizes(inventoryId) : []
   } catch (e) {

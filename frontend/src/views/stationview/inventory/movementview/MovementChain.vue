@@ -95,7 +95,7 @@ const drawnSteps = computed(() =>
     >
       <template #action>
         <MovementActionPanel
-            v-if="step.current && props.open"
+            v-if="step.current && props.open && (step.actionable || props.isManager)"
             :busy="props.busy"
             :can-force="props.isManager"
             :inventory-id="movement.inventoryId"

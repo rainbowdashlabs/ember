@@ -15,8 +15,17 @@ import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {ItemOwner, type InventorySize, type InventoryTypeName, type ItemOwnerName} from '@/api/inventory'
 import type {MovementStep, NewItemRequest} from '@/api/movements'
+import {StationPermission} from '@/api/types'
+import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
+const {hasPermission} = useSession()
+
+/**
+ * Whether the reader may name the arriving piece, which is whether they may read the shelf. The
+ * picker asks for the whole inventory and everybody at the station, and a member may have neither.
+ */
+const mayPick = computed(() => hasPermission(StationPermission.INVENTORY_READ))
 
 const props = defineProps<{
   step: MovementStep
@@ -122,7 +131,7 @@ function payload(): AcknowledgePayload {
 
 <template>
   <div class="mt-2 space-y-2">
-    <div v-if="props.step.picksItem" class="space-y-2">
+    <div v-if="props.step.picksItem && mayPick" class="space-y-2">
       <FieldLabel>{{ t('movements.pickItem') }}</FieldLabel>
 
       <ItemSearchPicker
@@ -145,6 +154,10 @@ function payload(): AcknowledgePayload {
         </SecondaryButton>
       </div>
     </div>
+
+    <p v-if="props.step.picksItem && !mayPick" class="text-xs text-(--text-muted)">
+      {{ t('movements.pickItemNotAllowed') }}
+    </p>
 
     <div v-if="recording" class="space-y-2 rounded-md border border-(--border) p-2">
       <p class="text-xs text-(--text-muted)">{{ recordHint }}</p>

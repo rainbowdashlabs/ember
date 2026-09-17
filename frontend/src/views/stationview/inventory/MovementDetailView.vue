@@ -44,18 +44,21 @@ const currentStep = computed(() => detail.value?.steps.find(s => s.current) ?? n
  */
 const mayRecord = computed(() => detail.value?.movement.ownerAnswersHere === false)
 
+/** Whether the reader may name the arriving piece, which is whether they may read the shelf. */
+const mayPick = computed(() => hasPermission(StationPermission.INVENTORY_READ))
+
 const {loading, error, reload} = useAsyncLoader(async () => {
   detail.value = await movements.getMovement(movementId.value)
-  const naming = detail.value.steps.some(s => s.current && s.picksItem)
+  const naming = mayPick.value && detail.value.steps.some(s => s.current && s.picksItem)
   sizes.value = naming ? await sizesOfInventory() : []
 })
 
 /**
  * The sizes of the inventory a written-down piece lands in, so it is recorded like any other.
  *
- * <p>Fetched whenever the current step names a piece, rather than only where writing one down is
- * allowed. Which of the two applies depends on the movement's owner, and reading that first made the
- * sizes arrive a moment too late for the form that needs them.
+ * <p>Fetched whenever the current step names a piece and the reader may name it, rather than only
+ * where writing one down is allowed. Which of the two applies depends on the movement's owner, and
+ * reading that first made the sizes arrive a moment too late for the form that needs them.
  */
 async function sizesOfInventory(): Promise<InventorySize[]> {
   const inventoryId = detail.value?.movement.inventoryId
