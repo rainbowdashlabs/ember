@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders} from './fixtures/auth'
+import {ownMember} from './fixtures/ownMember'
 
 /**
  * The name a station calls somebody by, and the name on its documents.
@@ -84,21 +85,19 @@ test.describe('A name to be called by', () => {
      */
     test('a manager may name a member they do not look after', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
-        const session = await (await page.request.get('/api/v1/session', {headers})).json()
-        const members = await (await page.request.get('/api/v1/station-members/rich', {headers})).json()
-        const somebodyElse = members.find((m: {id: number}) => m.id !== session.member.id)
-        expect(somebodyElse, 'the station has another member').toBeTruthy()
+        // Somebody this story made. A name is read by whoever is asserting one elsewhere, and
+        // putting it back afterwards does not help: the window between is where the other worker
+        // looks, and a story that fails never reaches the putting back at all.
+        const somebodyElse = await ownMember(page, 'Spitzname')
 
-        const named = await page.request.put(`/api/v1/station-members/${somebodyElse.id}/nickname`, {
+        const named = await page.request.put(`/api/v1/station-members/${somebodyElse.memberId}/nickname`, {
             headers,
             data: {nickname: 'Sprosse'},
         })
         expect(named.status(), await named.text()).toBe(204)
 
         const after = (await (await page.request.get('/api/v1/station-members/rich', {headers})).json())
-            .find((m: {id: number}) => m.id === somebodyElse.id)
+            .find((m: {id: number}) => m.id === somebodyElse.memberId)
         expect(after.nickname, 'the name the station now calls them by').toBe('Sprosse')
-
-        await clearNickname(page, somebodyElse.id)
     })
 })

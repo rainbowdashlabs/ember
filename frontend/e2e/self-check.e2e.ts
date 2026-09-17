@@ -5,6 +5,7 @@
  */
 import type {APIRequestContext, Browser, Page} from '@playwright/test'
 import {test, expect, apiHeaders, demoAccounts, pageAsThrowaway, stationPeers} from './fixtures/auth'
+import {spokenForMemberIds} from './fixtures/cast'
 
 /**
  * A member answering for their own gear, and a checker reading what they said.
@@ -47,9 +48,16 @@ async function askSomebody(browser: Browser, request: APIRequestContext, manager
         && account.userType === 'MEMBER'
         && account.email !== checker.email)
     const headers = await apiHeaders(manager)
+    // Whoever another story was cast as is left out of this. Handing them a task and answering it
+    // writes their gear and their answers, which is what the story acting as them is reading.
+    const spokenFor = await spokenForMemberIds()
     for (const account of candidates) {
         const page = await pageAsThrowaway(browser, request, [], account)
         const memberId = await ownMemberId(page)
+        if (spokenFor.has(memberId)) {
+            await page.context().close()
+            continue
+        }
         const response = await manager.request.post('/api/v1/self-checks', {
             headers,
             data: {memberIds: [memberId], dueOn: null},

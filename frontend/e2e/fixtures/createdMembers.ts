@@ -21,14 +21,15 @@ import type {APIRequestContext} from '@playwright/test'
  */
 interface Made {
     headers: Record<string, string>
-    surname: string
+    /** The membership, which is what the removal names. Nothing rewrites it. */
+    memberId: number
 }
 
 const made: Made[] = [];
 
 /** Notes somebody down to be removed when the story that made them ends. */
-export function remember(headers: Record<string, string>, surname: string) {
-    made.push({headers, surname})
+export function remember(headers: Record<string, string>, memberId: number) {
+    made.push({headers, memberId})
 }
 
 /**
@@ -42,11 +43,10 @@ export async function removeMade(request: APIRequestContext): Promise<void> {
     const pending = made.splice(0)
     for (const entry of pending) {
         try {
-            const listed = await request.get('/api/v1/station-members/rich', {headers: entry.headers})
-            if (!listed.ok()) continue
-            const rows: {id: number; lastName?: string}[] = await listed.json()
-            const row = rows.find(member => (member.lastName ?? '') === entry.surname)
-            if (row) await request.delete(`/api/v1/station-members/${row.id}`, {headers: entry.headers})
+            // By the id they were made with. Looking them up by surname again asked the name to be
+            // both unique and unchanged, and a story that renames somebody is exactly what this
+            // cleans up after.
+            await request.delete(`/api/v1/station-members/${entry.memberId}`, {headers: entry.headers})
         } catch {
             /* a story that tore down its own station leaves nothing to clear */
         }

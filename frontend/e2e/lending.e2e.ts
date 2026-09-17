@@ -7,6 +7,7 @@ import {expect, test, apiHeaders, pageAsThrowaway} from './fixtures/auth'
 import type {DemoAccount} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 import type {APIRequestContext, Page} from '@playwright/test'
+import {must} from './fixtures/must'
 
 interface OfferedEntry {
     inventoryId: number
@@ -80,7 +81,7 @@ test.describe('Lending offer', () => {
      * answer is a row per kind of thing rather than one per drawer, so a drawer holding a kind and a
      * piece without one answers in two rows that mean one number.
      */
-    function offeredCount(offered: {inventoryName: string; availableCount: number}[] | undefined, name: string): number {
+    function offeredCount(offered: {inventoryName: string; availableCount: number}[] | null | undefined, name: string): number {
         return (offered ?? [])
             .filter(entry => entry.inventoryName === name)
             .reduce((sum, entry) => sum + entry.availableCount, 0)
@@ -125,7 +126,7 @@ test.describe('Lending offer', () => {
      */
     test('a partner finds gear only once the owning station offers it', async ({managerPage, browser, request}) => {
         const ownerHeaders = await apiHeaders(managerPage)
-        const ownerStationId = ownerHeaders['X-Station-Id']
+        const ownerStationId = must(ownerHeaders['X-Station-Id'], 'the station the owner is acting for')
         const borrower = await partnerOf(request, ownerStationId)
         const borrowerPage = await pageAsThrowaway(browser, request, [], borrower)
         const borrowerHeaders = await apiHeaders(borrowerPage)

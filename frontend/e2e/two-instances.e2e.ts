@@ -16,6 +16,7 @@ import {
 import {proveFreshly} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 import type {APIRequestContext} from '@playwright/test'
+import {must} from './fixtures/must'
 
 /** What a station says about a partner. Only the parts a story here reads. */
 interface Partner {
@@ -41,7 +42,7 @@ async function partnersOf(api: APIRequestContext): Promise<Partner[]> {
 async function partnerWith(api: APIRequestContext, stationUid: string): Promise<Partner> {
     const matching = (await partnersOf(api)).filter(partner => partner.partnerStationId === stationUid)
     if (matching.length !== 1) throw new Error(`${matching.length} partners name station ${stationUid}, expected one`)
-    return matching[0]
+    return must(matching[0], `the partner naming station ${stationUid}`)
 }
 
 /**
@@ -172,9 +173,10 @@ test.describe('Two instances', () => {
 
             const there = await partnersOf(inviting)
             expect(there).toHaveLength(1)
-            expect(there[0].remoteHost).toBe(homePublishedUrl())
-            expect(there[0].status).not.toBe('PENDING')
-            expect(there[0].partnerStationId).not.toBe(invitingStation)
+            const theirs = must(there[0], 'the partner the other instance now holds')
+            expect(theirs.remoteHost).toBe(homePublishedUrl())
+            expect(theirs.status).not.toBe('PENDING')
+            expect(theirs.partnerStationId).not.toBe(invitingStation)
         } finally {
             await inviting.dispose()
         }

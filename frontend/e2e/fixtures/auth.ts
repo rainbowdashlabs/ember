@@ -147,6 +147,14 @@ export async function pinnedRole(role: 'manager' | 'member' | 'admin'): Promise<
     return (await cast())[role]
 }
 
+/**
+ * Re-exported so a spec can name a page without reaching past the fixtures for the type.
+ *
+ * <p>Ten of them already imported it from here, which type-checked as nothing until the suite was
+ * type-checked at all.
+ */
+export type {Page} from '@playwright/test'
+
 /** The one password every seeded account shares. */
 export const DEMO_PASSWORD = 'demo'
 

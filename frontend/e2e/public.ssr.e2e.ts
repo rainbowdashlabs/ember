@@ -67,11 +67,12 @@ test.describe('Public pages without JavaScript', () => {
     })
 
     test('the legal pages are server-rendered', async ({page}) => {
-        for (const [path, heading] of [
+        const legal: [string, string][] = [
             ['/imprint', 'Impressum'],
             ['/privacy', 'Datenschutzerklärung'],
             ['/terms', 'Nutzungsbedingungen'],
-        ]) {
+        ]
+        for (const [path, heading] of legal) {
             await visit(page, path)
             await expect(page.getByRole('heading', {name: heading}).first()).toBeVisible()
         }

@@ -300,7 +300,12 @@ case "$cmd" in
         fe; NODE_OPTIONS="$NODE_HEAP" run npm run build
         ;;
     fe-format)     cd "$ROOT"; run ./gradlew formatFrontend "$@" ;;
-    fe-typecheck)  fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi typecheck ;;
+    fe-typecheck)
+        # Two of them: the application through Nuxt, and the stories, which its tsconfig never
+        # included. A missing import in a spec used to type-check clean and fail only when it ran.
+        fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi typecheck
+        fe; run npx tsc -p tsconfig.e2e.json
+        ;;
     fe-audit)      fe; NODE_OPTIONS="$NODE_HEAP" run npm run lint:audit ;;
     fe-help-index)
         fe; run node scripts/generate-help-index.mjs

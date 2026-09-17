@@ -9,6 +9,7 @@ import {test, expect, apiHeaders, demoAccounts, otherStationManager, pageAsThrow
 import {sidebarEntry} from './fixtures/sidebar'
 import {unique} from './fixtures/unique'
 import {pickMemberByName} from './fixtures/memberMenu'
+import {must} from './fixtures/must'
 
 /**
  * The lost and found, end to end: reporting a find, giving it a picture, claiming it, taking that
@@ -569,13 +570,13 @@ async function noticeNow(page: Page, type: string, itemId: number) {
  * moment a call returns is asking too early. Reading once made this a race the suite lost every so
  * often, and a notice that is merely late is not the failure any of these stories is about.
  */
-async function notices(page: Page, type: string, itemId: number) {
-    let found: unknown
+async function notices(page: Page, type: string, itemId: number): Promise<{link: {route: string}}> {
+    let found: {link: {route: string}} | undefined
     await expect(async () => {
         found = await noticeNow(page, type, itemId)
         expect(found, 'the notice has arrived').toBeTruthy()
     }).toPass({timeout: 15000})
-    return found
+    return must(found, `a ${type} notice for item ${itemId}`)
 }
 
 /**

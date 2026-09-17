@@ -156,7 +156,6 @@ test.describe('Item custody', () => {
         expect(free.some((i: {id: number}) => i.id === piece.id),
             'and stands in neither store').toBeFalsy()
 
-        return {inventoryId, piece}
     })
 
     /**

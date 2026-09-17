@@ -203,7 +203,7 @@ test.describe('Movement queue', () => {
                 {headers, data: {name: `Wizardinventar ${stamp}`, inventoryType: 'EXTERNAL', hasSizes: false}})
             expect(inventory.ok(), await inventory.text()).toBeTruthy()
 
-            const about = (rows: {inventoryName: string}[]) =>
+            const about = (rows: {inventoryName: string; purpose?: string}[]) =>
                 rows.filter(row => row.inventoryName === `Wizardinventar ${stamp}`)
 
             await page.goto('/station/inventory/movements')
@@ -233,7 +233,7 @@ test.describe('Movement queue', () => {
 
             await expect(async () => {
                 const rows = await page.request.get('/api/v1/movements', {headers}).then(r => r.json())
-                expect(about(rows).map((row: {purpose: string}) => row.purpose),
+                expect(about(rows).map(row => row.purpose),
                     'and the hand-out is now under way').toEqual(['ISSUE'])
             }).toPass()
         })

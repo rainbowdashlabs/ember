@@ -64,7 +64,7 @@ test.describe('Passkeys', () => {
      * about switching the password off need one: both are refused to somebody the way back in
      * cannot be mailed to.
      */
-    async function addressedStoryAccount(browser: Browser, request: APIRequestContext, slot: number): Promise<DemoAccount> {
+    async function addressedStoryAccount(browser: Browser, request: APIRequestContext, slot: number): Promise<CastMember> {
         const account = await storyAccount(slot)
         const manager = await pageAs(browser, 'manager')
         try {
@@ -186,7 +186,7 @@ test.describe('Passkeys', () => {
         await answerStepUpPrompts(page)
         await page.goto('/login')
         await page.evaluate(([sessionToken, stationId]) => {
-            window.localStorage.setItem('session_token', sessionToken)
+            window.localStorage.setItem('session_token', sessionToken ?? '')
             if (stationId) window.localStorage.setItem('station_id', stationId)
         }, [token, account.stationId ?? ''])
 
