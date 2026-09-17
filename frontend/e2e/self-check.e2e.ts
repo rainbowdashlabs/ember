@@ -143,11 +143,20 @@ function sizedKindTheMemberHolds(task: {required: Required[]; assigned: Assigned
  * leaves no window between the two at all.
  *
  * @param prefix the test id up to the entry's own key, ending in a hyphen
+ * @param wanted which of the offered entries will do, where the first will not do for every story
  */
-async function entryOffering(member: Page, prefix: string): Promise<string> {
-    const offered = member.locator(`[data-testid^="${prefix}"]`).first()
-    await expect(offered, `the screen offers ${prefix} on something`).toBeVisible()
-    return (await offered.getAttribute('data-testid'))!.slice(prefix.length)
+async function entryOffering(
+    member: Page,
+    prefix: string,
+    wanted: (key: string) => boolean = () => true,
+): Promise<string> {
+    const offered = member.locator(`[data-testid^="${prefix}"]`)
+    await expect(offered.first(), `the screen offers ${prefix} on something`).toBeVisible()
+    for (let index = 0; index < (await offered.count()); index++) {
+        const key = (await offered.nth(index).getAttribute('data-testid'))!.slice(prefix.length)
+        if (wanted(key)) return key
+    }
+    throw new Error(`no entry offering ${prefix} is one this story can use`)
 }
 
 /**
@@ -405,9 +414,12 @@ test.describe('Self-check', () => {
         await memberPage.goto(`/station/inventory/self-check/${taskId}`)
         await expect(memberPage.getByTestId('app-shell')).toBeVisible()
 
-        const pieceId = pieceOf(await entryOffering(memberPage, 'self-check-broken-piece-'))
-        const sizeId = (await ownTask(memberPage, taskId)).assigned.find(item => item.id === pieceId)!.sizeId
-        expect(sizeId, 'the piece is one the record gives a size').toBeTruthy()
+        const sized = new Map((await ownTask(memberPage, taskId)).assigned
+            .filter(item => item.sizeId != null)
+            .map(item => [item.id, item.sizeId!]))
+        const pieceId = pieceOf(await entryOffering(memberPage, 'self-check-broken-piece-',
+            key => sized.has(pieceOf(key))))
+        const sizeId = sized.get(pieceId)!
 
         await memberPage.getByTestId(`self-check-broken-piece-${pieceId}`).click()
         await expect(memberPage.getByTestId('exchange-cause')).toContainText('kaputt')
