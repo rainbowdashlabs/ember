@@ -1788,6 +1788,10 @@ export default {
         replacementNotChosen: 'Ersatzteil ist noch nicht ausgewählt',
         foundItem: 'Fundsache abzuholen: {description}',
         signOffFound: 'Übergeben',
+        openNone: 'Hinweis',
+        openOne: '1 offener Vorgang',
+        openMany: '{count} offene Vorgänge',
+        dropSwapConfirm: 'Den Vorgang zu {piece} wirklich löschen? Das Teil wurde noch nicht übergeben, der Vorgang wird ersatzlos entfernt.',
     },
     footer: {
         privacy: 'Datenschutz',
@@ -2000,6 +2004,10 @@ export default {
         },
     },
     memberEdit: {
+        nickname: 'Spitzname',
+        nicknameHint: 'Der Name, mit dem die Wache dieses Mitglied anspricht. Er ersetzt den Vornamen auf den '
+            + 'Bildschirmen, in Benachrichtigungen und in Mails; auf Anwesenheitslisten, Ausdrucken und Exporten '
+            + 'steht weiterhin der Name aus dem Register. Leer lassen, um wieder den Vornamen zu verwenden.',
         back: 'Zurück',
         tabProfile: 'Profil',
         tabPermissions: 'Berechtigungen',
@@ -2854,6 +2862,20 @@ export default {
         modalTitle: 'Zeitraum der Erfassung',
         modalHint: 'Beginn und Ende bestimmen die Stunden, die gezählt werden. '
             + 'Ein Zeltlager darf über mehrere Tage laufen.',
+        entersGroups: 'Trägt ein: {groups}',
+        entersNobody: 'Trägt niemanden ein',
+        asksFor: 'Fragt nach: {fields}',
+        asksNothing: 'Fragt nichts ab',
+        withoutTemplate: 'Ohne passende Vorlage',
+        emptyTitle: 'Leere Anwesenheit',
+        emptyHint: 'Im nächsten Schritt wählst du aus, wer eingetragen wird.',
+        audienceTitle: 'Wer wird eingetragen?',
+        audienceHint: 'Mitgliedstypen und Gruppen ergänzen sich: Wer einem davon entspricht, steht auf der Liste.',
+        userTypes: 'Mitgliedstypen',
+        groups: 'Gruppen',
+        noGroups: 'Diese Wache hat noch keine Gruppen.',
+        fieldsFrom: 'Felder übernehmen von',
+        fieldsFromHint: 'Die Liste braucht Felder. Die Gruppen dieser Vorlage werden dabei nicht übernommen.',
     },
     membersConfig: {
         roles: {
@@ -6457,6 +6479,7 @@ export default {
         notePlaceholder: 'z. B. per Post verschickt',
         pickItem: 'Ersatzteil',
         pickItemPlaceholder: 'Teil auswählen',
+        pickItemNotAllowed: 'Welches Teil es wird, trägt die Wache ein. Du siehst es, sobald es eingetragen ist.',
         newSize: 'Gewünschte Größe',
         selectNewSize: 'Größe auswählen',
         noSize: 'Keine Größe',
@@ -9441,6 +9464,8 @@ export default {
     problemReport: {
         button: 'Fehler in Ember melden',
         forward: 'An das Beacon weitergeben',
+        heldForReview: 'Wartet auf dich',
+        forwarded: 'Weitergegeben',
         title: 'Fehler in Ember melden',
         notTheStation: 'Das geht an die Betreiber von Ember, nicht an deine Wache.',
         notTheStationDetail: 'Diese Meldung ist für Fehlverhalten der Anwendung selbst: etwas lässt sich nicht speichern, eine Seite zeigt Unsinn an, ein Knopf tut nichts. Niemand in deiner Wache sieht sie. Wenn es um fehlende Rechte, Ausrüstung, Termine oder eine Frage an die Wachleitung geht, sprich die zuständigen Personen in deiner Wache direkt an: hier kann dir dabei niemand helfen.',
@@ -9456,6 +9481,8 @@ export default {
         pictureAttach: 'Bild auswählen',
         pictureDiscard: 'Bild verwerfen',
         pictureRefused: 'Es wurde kein Bild aufgenommen. Du kannst stattdessen eines auswählen, das du selbst gemacht hast.',
+        pictureFailed: 'Das Bild konnte nicht aufgenommen werden. Wähle stattdessen eines aus, das du selbst gemacht '
+            + 'hast, zum Beispiel mit der Bildschirmfoto-Taste.',
         coverHint: 'Ziehe über alles, was abgedeckt werden soll. Ein Klick auf eine Fläche nimmt sie wieder weg.',
         coverRemove: 'Abdeckung entfernen',
         coverPersonalData: 'Namen und Daten abdecken',

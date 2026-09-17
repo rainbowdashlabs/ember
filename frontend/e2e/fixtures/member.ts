@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {expect, type Page} from '@playwright/test'
+import {apiHeaders} from './auth'
+import {remember} from './createdMembers'
 import {unique} from './unique'
 
 /**
@@ -35,5 +37,14 @@ export async function createMember(page: Page): Promise<string> {
         await next.click()
     }
 
+    // The wizard walks the screens rather than the endpoint, so the id is read back from the list
+    // once, here, while the name it was just given is still the name it carries.
+    const headers = await apiHeaders(page)
+    const listed = await page.request.get('/api/v1/station-members/rich', {headers})
+    if (listed.ok()) {
+        const rows = await listed.json() as {id: number; lastName?: string}[]
+        const row = rows.find(member => (member.lastName ?? '') === surname)
+        if (row) remember(headers, row.id)
+    }
     return surname
 }

@@ -205,6 +205,7 @@ public class StationMemberRepository {
                        %s AS name,
                        coalesce(a.first_name, sm.display_name, '') AS first_name,
                        coalesce(a.last_name, '') AS last_name,
+                       sm.nickname,
                        coalesce(a.email, '') AS email,
                        (a.id IS NOT NULL AND a.setup_completed_at IS NULL
                             AND NOT EXISTS (SELECT 1 FROM account_credential ac

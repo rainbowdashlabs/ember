@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
+import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
 import dev.chojo.ember.feature.attendance.service.AttendanceExportService;
 import dev.chojo.ember.feature.attendance.service.AttendanceReportService;
@@ -98,6 +99,12 @@ public class AttendanceRoutes implements Routes {
         routes.get(
                 prefix + "/attendance/templates",
                 this::listTemplates,
+                StationPermission.ATTENDANCE_READ,
+                StationPermission.ATTENDANCE_CONFIGURE,
+                StationPermission.EVENT_EDIT);
+        routes.get(
+                prefix + "/attendance/templates/detail",
+                this::listTemplateDetails,
                 StationPermission.ATTENDANCE_READ,
                 StationPermission.ATTENDANCE_CONFIGURE,
                 StationPermission.EVENT_EDIT);
@@ -307,6 +314,26 @@ public class AttendanceRoutes implements Routes {
     private void listTemplates(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(attendanceService.findTemplatesByStation(session.stationId()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/attendance/templates/detail",
+            methods = HttpMethod.GET,
+            summary = "List attendance templates with their fields and groups",
+            tags = {"Attendance"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplateDetail[].class)))
+    private void listTemplateDetails(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(attendanceService.findTemplatesByStation(session.stationId()).stream()
+                .map(template -> new TemplateDetail(
+                        template.id(),
+                        template.stationId(),
+                        template.name(),
+                        attendanceService.findTemplateFields(template.id()),
+                        attendanceService.findTemplateGroups(template.id()).stream()
+                                .map(group -> new TemplateGroupEntry(group.groupId(), group.position()))
+                                .toList()))
+                .toList());
     }
 
     @OpenApi(
@@ -557,7 +584,8 @@ public class AttendanceRoutes implements Routes {
                         request.endTime(),
                         request.eventId(),
                         request.title(),
-                        request.countedMinutes()));
+                        request.countedMinutes(),
+                        request.audience()));
     }
 
     @OpenApi(
@@ -1318,9 +1346,16 @@ public class AttendanceRoutes implements Routes {
      *
      * @param countedMinutes what a whole presence at the sheet counts as when hours are added up,
      *     null where the sheet's own times decide
+     * @param audience whom to enter on this one sheet, null where the template's own groups decide
+     *     as they always have
      */
     public record SessionRequest(
-            Instant startTime, Instant endTime, Integer eventId, String title, Integer countedMinutes) {}
+            Instant startTime,
+            Instant endTime,
+            Integer eventId,
+            String title,
+            Integer countedMinutes,
+            SessionAudience audience) {}
 
     /**
      * Detailed session response including fields and attendance entries.

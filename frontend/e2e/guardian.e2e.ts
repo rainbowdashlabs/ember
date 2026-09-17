@@ -4,7 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {APIRequestContext, Page} from '@playwright/test'
-import {test, expect, accountWith, apiHeaders, pageAsThrowaway, stationPeers} from './fixtures/auth'
+import {test, expect, apiHeaders, pageAsThrowaway} from './fixtures/auth'
+import {cast} from './fixtures/cast'
+import {ownMember, type OwnMember} from './fixtures/ownMember'
 import {unique} from './fixtures/unique'
 import {pickMemberByName} from './fixtures/memberMenu'
 
@@ -21,8 +23,7 @@ import {pickMemberByName} from './fixtures/memberMenu'
  * looking for.
  */
 async function guardianPage(browser: Parameters<typeof pageAsThrowaway>[0], request: APIRequestContext): Promise<Page> {
-    const guardian = await accountWith(request, 'MEMBER_GUARDIAN')
-    return pageAsThrowaway(browser, request, [], guardian)
+    return pageAsThrowaway(browser, request, [], (await cast()).guardians.guardianSpec)
 }
 
 /** Somebody the signed-in guardian looks after. */
@@ -45,19 +46,26 @@ async function managedMembers(page: Page): Promise<ManagedMember[]> {
 }
 
 /**
- * One of them to act on - never the account the rest of the suite is signed in as.
+ * A charge of this story's own, attached to the guardian this spec was cast as.
  *
- * Giving somebody a new address ends the sessions they have open, which is right: the address is how
- * they sign in. The seeded guardian happens to look after the very member every other story acts as,
- * so a story writing an address for the first of their children would sign the suite out of half of
- * itself.
+ * <p>These stories re-address their charge and switch their way in on and off, and an address is how
+ * somebody signs in: writing one ends every session that person holds. Done to a seeded member, it
+ * was done to whoever else was acting as them. It once reached the very member the rest of the suite
+ * is signed in as, because the guard that was meant to skip them compared addresses, which is the
+ * thing these stories write.
+ *
+ * <p>So the charge is made here and belongs to nobody else. The guardian's list is replaced rather
+ * than added to, which is safe because this spec is the only one cast as this guardian.
  */
-async function managedMemberToActOn(page: Page, request: APIRequestContext): Promise<ManagedMember> {
-    const {member} = await stationPeers(request)
-    const managed = await managedMembers(page)
-    const spare = managed.find(candidate => candidate.email !== member.email)
-    if (!spare) throw new Error('The guardian looks after nobody besides the member the suite signs in as')
-    return spare
+async function ownCharge(managerPage: Page, guardianMemberId: number): Promise<OwnMember> {
+    const charge = await ownMember(managerPage, 'Muendel')
+    const headers = await apiHeaders(managerPage)
+    const attached = await managerPage.request.put(`/api/v1/station-members/${guardianMemberId}/managed`, {
+        headers,
+        data: {managedIds: [charge.memberId]},
+    })
+    expect(attached.ok(), `the guardian is given their charge (${await attached.text()})`).toBeTruthy()
+    return charge
 }
 
 /**
@@ -72,15 +80,16 @@ test.describe('Guardian', () => {
      * The panel is where a parent does this, so the story goes through it rather than through the
      * endpoint: filling the address in and saving it has to leave the address standing afterwards.
      */
-    test('a guardian gives a managed member an address', async ({browser, request}) => {
+    test('a guardian gives a managed member an address', async ({browser, request, managerPage}) => {
+        const guardian = (await cast()).guardians.guardianSpec
+        const target = await ownCharge(managerPage, guardian.memberId)
         const page = await guardianPage(browser, request)
-        const target = await managedMemberToActOn(page, request)
         const address = `${unique('kind').toLowerCase()}@example.test`
 
         // The child is picked by name, because which of them the story may write to is not a matter
         // of position.
         await page.goto('/station/profile/managed')
-        await pickMemberByName(page, target.name)
+        await pickMemberByName(page, target.surname)
 
         await expect(page.getByText('Zugang')).toBeVisible()
         await page.getByPlaceholder('name@example.org').fill(address)
@@ -89,7 +98,7 @@ test.describe('Guardian', () => {
 
         await expect(page.getByText('Adresse gespeichert.')).toBeVisible()
         await page.reload()
-        await pickMemberByName(page, target.name)
+        await pickMemberByName(page, target.surname)
         await expect(page.getByPlaceholder('name@example.org')).toHaveValue(address)
 
         await page.context().close()
@@ -99,9 +108,10 @@ test.describe('Guardian', () => {
      * Signing in is the second half, and it hangs on the first: without an address there is nowhere
      * to send the invitation, so the switch stays out of reach until one is set.
      */
-    test('signing in can be allowed once there is an address', async ({browser, request}) => {
+    test('signing in can be allowed once there is an address', async ({browser, request, managerPage}) => {
+        const guardian = (await cast()).guardians.guardianSpec
+        const memberId = (await ownCharge(managerPage, guardian.memberId)).memberId
         const page = await guardianPage(browser, request)
-        const memberId = (await managedMemberToActOn(page, request)).id
         const headers = await apiHeaders(page)
 
         const cleared = await page.request.put(`/api/v1/managed-members/${memberId}/email`, {
@@ -128,9 +138,10 @@ test.describe('Guardian', () => {
      * reachable at all. The story sets one and then signs in with it, because a name that is stored
      * but does not sign anybody in would prove nothing.
      */
-    test('a member signs in with the name their guardian gave them', async ({browser, request}) => {
+    test('a member signs in with the name their guardian gave them', async ({browser, request, managerPage}) => {
+        const guardian = (await cast()).guardians.guardianSpec
+        const memberId = (await ownCharge(managerPage, guardian.memberId)).memberId
         const page = await guardianPage(browser, request)
-        const memberId = (await managedMemberToActOn(page, request)).id
         const headers = await apiHeaders(page)
         const name = unique('kind').toLowerCase()
 
@@ -156,6 +167,8 @@ test.describe('Guardian', () => {
      * care. A member they do not manage is refused, whichever of the three endpoints is asked.
      */
     test('a member the guardian does not manage is refused', async ({browser, request, managerPage}) => {
+        // A charge of its own, so that "outside their care" has something to be outside of.
+        await ownCharge(managerPage, (await cast()).guardians.guardianSpec.memberId)
         const page = await guardianPage(browser, request)
         const mine = (await managedMembers(page)).map(member => member.id)
         const headers = await apiHeaders(page)
@@ -197,7 +210,8 @@ test.describe('Guardian', () => {
      * The profile changes of the station are not a guardian's to read. They see what happened to
      * the members they look after, and the list stops there.
      */
-    test('the profile changes a guardian sees stay within their own members', async ({browser, request}) => {
+    test('the profile changes a guardian sees stay within their own members', async ({browser, request, managerPage}) => {
+        await ownCharge(managerPage, (await cast()).guardians.guardianSpec.memberId)
         const page = await guardianPage(browser, request)
         // All of them: a guardian may look after more than one, and every change has to belong to
         // one of those rather than to the first of them.
@@ -228,6 +242,7 @@ test.describe('Guardian', () => {
      */
     test('a guardian gives up the place of part of the household in one dialog',
         async ({browser, request, managerPage}) => {
+            await ownCharge(managerPage, (await cast()).guardians.guardianSpec.memberId)
             const page = await guardianPage(browser, request)
             const managed = await managedMembers(page)
             const managerHeaders = await apiHeaders(managerPage)

@@ -59,7 +59,18 @@ public class BeaconReadRepository {
             String contactName,
             String contactMail,
             Instant reportedAt,
-            boolean acknowledged) {}
+            boolean acknowledged,
+            /** The picture that came with it, or null where the report arrived without one. */
+            Integer screenshotFileId,
+            /**
+             * Which installation sent it, worked out from the key that signed the delivery.
+             *
+             * <p>A beacon collects from many, and an instance that has named no contact would
+             * otherwise be indistinguishable from every other instance that has named none: three
+             * reports would read alike whether they came from one installation or three. This is
+             * the one name a beacon always has for a sender.
+             */
+            String instanceId) {}
 
     /** A day of one subject's bucketed counts. */
     public record MetricsRow(
@@ -108,7 +119,7 @@ public class BeaconReadRepository {
         return query("""
                         SELECT r.id, r.message, r.page, r.version, r.reported_at, r.acknowledged,
                                r.browser, r.screen_size, r.roles, r.recent_requests,
-                               i.contact_name, i.contact_mail
+                               r.screenshot_file_id, r.instance_id, i.contact_name, i.contact_mail
                         FROM beacon_report r
                                  JOIN beacon_instance i ON i.instance_id = r.instance_id
                         WHERE ( :include_acknowledged OR r.acknowledged = FALSE )
@@ -127,7 +138,9 @@ public class BeaconReadRepository {
                         row.getString("contact_name"),
                         row.getString("contact_mail"),
                         row.get("reported_at", INSTANT_TIMESTAMP),
-                        row.getBoolean("acknowledged")))
+                        row.getBoolean("acknowledged"),
+                        row.getObject("screenshot_file_id", Integer.class),
+                        row.getString("instance_id")))
                 .all();
     }
 

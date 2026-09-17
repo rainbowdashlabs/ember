@@ -29,6 +29,16 @@ jobs:
       - uses: gradle/actions/wrapper-validation@v6
       - name: Build with Gradle
         run: ./gradlew --build-cache build -x test -x spotlessCheck -x javadoc
+      # Built once here rather than inside each e2e container, twice a group and five groups over.
+      - name: Build the runnable distribution
+        run: ./gradlew --build-cache installDist -x test
+      - name: Pack the distribution
+        run: tar czf backend-dist.tar.gz -C build/install ember
+      - name: Upload the distribution
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-dist
+          path: backend-dist.tar.gz
 
   verify-test-repositories:
     runs-on: ubuntu-latest
@@ -206,6 +216,15 @@ jobs:
           pattern: jacoco-*
           path: build/jacoco
           merge-multiple: true
+      # Before the gate: the run that fails it is the one whose uncovered lines somebody wants.
+      - name: Build the coverage report
+        run: ./gradlew --build-cache jacocoFullReport -x test -x testRepositories -x testServices -x testTracking -x testOther
+      - name: Upload the coverage report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: coverage-report
+          path: build/reports/jacoco/jacocoFullReport/
       - name: Verify coverage thresholds
         run: ./gradlew --build-cache jacocoCoverageCheck -x test -x testRepositories -x testServices -x testTracking -x testOther
 
@@ -281,8 +300,10 @@ jobs:
     runs-on: ubuntu-latest
     # Divided by area, so a red job names where to look. Each brings up a stack of its own.
     name: Verify Frontend End-to-End (${{ matrix.group }})
-    needs: [ verify-build-frontend ]
+    needs: [ verify-build-frontend, verify-build-backend ]
     timeout-minutes: 20
+    env:
+      E2E_PREBUILT: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -310,6 +331,12 @@ jobs:
       - name: Unpack the build
         working-directory: frontend
         run: tar xzf frontend-build.tar.gz
+      - name: Download the backend distribution
+        uses: actions/download-artifact@v8
+        with:
+          name: backend-dist
+      - name: Unpack the backend distribution
+        run: mkdir -p build/install && tar xzf backend-dist.tar.gz -C build/install
       # The suite brings up its own stack - a database and a backend of its own, and the built server
       # in front of them - because that is what it is configured against. Starting another backend
       # here would only occupy a port nothing asks for.

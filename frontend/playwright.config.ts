@@ -24,6 +24,19 @@ import {defineConfig, devices} from '@playwright/test'
  * variable, so the two can never disagree about which port the run is on.
  */
 const backendUrl = process.env.NUXT_BACKEND_URL || 'http://localhost:8899'
+
+/**
+ * Where the backend comes from. Set E2E_PREBUILT where `./gradlew installDist` has already run and
+ * the stack should start that rather than compile the sources again inside its container.
+ *
+ * `--build` comes with it, because the distribution is baked into the image rather than mounted:
+ * `up` on its own reuses whatever image is already there, which would silently run the build before
+ * last. Nothing is cached on a fresh runner, so this costs it nothing.
+ */
+const prebuilt = !!process.env.E2E_PREBUILT
+const composeFiles = prebuilt
+    ? '-f ../docker/compose.dev.yaml -f ../docker/compose.e2e-prebuilt.yaml'
+    : '-f ../docker/compose.dev.yaml'
 const baseUrl = process.env.E2E_BASE_URL || 'http://localhost:3010'
 const webPort = new URL(baseUrl).port || '3000'
 
@@ -51,6 +64,20 @@ export default defineConfig({
 
     use: {
         baseURL: baseUrl,
+        /**
+         * A bound on one action, which Playwright leaves off by default.
+         *
+         * <p>Without it a click whose target keeps moving out from under it is retried for as long
+         * as there is time, never rejects, and takes the whole budget of the story with it. What
+         * that leaves behind is a bare timeout on a page that looks perfectly healthy, with nothing
+         * naming the action that hung: a passkey sign-in spent two minutes that way, and the catch
+         * written to swallow exactly that race never ran, because a promise that never settles
+         * cannot be caught.
+         *
+         * <p>Generous on purpose. It is here to end a hang, not to hurry a slow screen, and it sits
+         * above every timeout a call passes for itself and below the story's own.
+         */
+        actionTimeout: 30_000,
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
         video: 'on-first-retry',
@@ -92,12 +119,11 @@ export default defineConfig({
                 // The pull goes first and retries, because `up` fetches as its first act and dies
                 // with the fetch: one reset connection to the registry failed an entire shard and
                 // read like a broken test.
-                command: 'bash ../docker/e2e-pull.sh && docker compose -f ../docker/compose.dev.yaml --profile e2e up',
+                command: `bash ../docker/e2e-pull.sh && docker compose ${composeFiles} --profile e2e up${prebuilt ? ' --build' : ''}`,
                 url: `${backendUrl}/api/v1/public/config`,
                 reuseExistingServer: true,
-                // The backend is built inside its container from the sources beside it. On a machine
-                // that has done it before this is a moment; on a cold one - a fresh runner with no
-                // Gradle cache - it is the whole build, so the wait is generous.
+                // Without E2E_PREBUILT the backend is compiled inside its container from the sources
+                // beside it, which on a cold machine is the whole build, so the wait is generous.
                 timeout: 900_000,
             },
             !process.env.E2E_DEV_SERVER

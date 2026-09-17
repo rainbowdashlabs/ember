@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 // @vitest-environment happy-dom
-import {describe, expect, it} from 'vitest'
-import {DEFAULT_IMAGE_BUDGET, scaledSize} from './imageUpload'
+import {describe, expect, it, vi} from 'vitest'
+import {DEFAULT_IMAGE_BUDGET, prepareImageUpload, scaledSize} from './imageUpload'
 
 /**
  * A phone camera writes far more picture than any screen shows and far more bytes than the
@@ -33,5 +33,61 @@ describe('fitting a picked picture into what may be sent', () => {
 
     it('stays under what the endpoints accept', () => {
         expect(DEFAULT_IMAGE_BUDGET.maxBytes).toBeLessThan(5 * 1024 * 1024)
+    })
+})
+
+/**
+ * Where the work happens, which decides whether the page answers while it does.
+ *
+ * <p>Encoding a photograph is several hundred milliseconds of arithmetic. On the screen's own thread
+ * that is a page that does not respond, and what people did was press the button again and ask
+ * whether it had worked. The surface is the whole of the fix: the offscreen one takes the encoding
+ * somewhere else, and the frame waited for before any of it starts is what lets the spinner appear.
+ */
+describe('where a picture is redrawn', () => {
+
+    it('asks for an offscreen surface where the browser has one', async () => {
+        const made: number[][] = []
+        class FakeOffscreen {
+            constructor(public width: number, public height: number) {
+                made.push([width, height])
+            }
+
+            getContext() {
+                return {drawImage: () => {}}
+            }
+
+            convertToBlob() {
+                return Promise.resolve(new Blob(['x'], {type: 'image/jpeg'}))
+            }
+        }
+        vi.stubGlobal('OffscreenCanvas', FakeOffscreen)
+        vi.stubGlobal('createImageBitmap', () =>
+            Promise.resolve({width: 4000, height: 3000, close: () => {}}))
+
+        const prepared = await prepareImageUpload(new File(['x'], 'photo.heic', {type: 'image/heic'}))
+
+        expect(made, 'the surface was the offscreen one').toEqual([[2048, 1536]])
+        expect(prepared.type).toBe('image/jpeg')
+        expect(prepared.name).toBe('photo.jpg')
+        vi.unstubAllGlobals()
+    })
+
+    it('still works where the browser has no offscreen canvas', async () => {
+        vi.stubGlobal('OffscreenCanvas', undefined)
+        vi.stubGlobal('createImageBitmap', () =>
+            Promise.resolve({width: 100, height: 100, close: () => {}}))
+        const canvas = {
+            width: 0,
+            height: 0,
+            getContext: () => ({drawImage: () => {}}),
+            toBlob: (back: (b: Blob) => void) => back(new Blob(['x'], {type: 'image/jpeg'})),
+        }
+        vi.stubGlobal('document', {createElement: () => canvas})
+
+        const prepared = await prepareImageUpload(new File(['x'], 'photo.png', {type: 'image/png'}))
+
+        expect(prepared.type).toBe('image/jpeg')
+        vi.unstubAllGlobals()
     })
 })

@@ -813,9 +813,25 @@ public class ProfileFieldService {
         return permissionResolver.resolve(changedBy).contains(StationPermission.MEMBER_CHANGES);
     }
 
+    /**
+     * Whether an answer amounts to nothing having been given.
+     *
+     * <p>A question nobody has answered is stored as the absent value, and one answered with an
+     * empty box is stored as an empty string. They are different strings and the same thing: nothing
+     * was said either time. Told apart, they made a change out of somebody opening a form and saving
+     * it, and somebody else was asked to confirm it.
+     */
+    private static boolean saysNothing(String value) {
+        if (value == null) return true;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() || trimmed.equals("null") || trimmed.equals("\"\"");
+    }
+
     private void recordChange(int fieldId, int memberId, String oldValue, String newValue, int changedBy) {
         var field = profileFieldRepository.findById(fieldId).orElse(null);
         if (field == null) return;
+        if (field.fieldType().isCalculated()) return;
+        if (saysNothing(oldValue) && saysNothing(newValue)) return;
 
         boolean requiresAcknowledgement = field.config().notifyOnChange() && !acknowledgesTheirOwn(changedBy);
 

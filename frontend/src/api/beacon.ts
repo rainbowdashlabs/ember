@@ -107,6 +107,10 @@ export interface BeaconReport {
     contactMail: string | null
     reportedAt: string
     acknowledged: boolean
+    /** The picture the report was forwarded with, absent where it carried none. */
+    screenshotFileId: number | null
+    /** Which installation sent it, worked out from the key that signed the delivery. */
+    instanceId: string | null
 }
 
 /** A day of one subject's bucketed counts. */

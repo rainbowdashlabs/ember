@@ -4,11 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import {hasAnything, hasBirthday} from './memberNotes'
 import type {MemberNotes, SwapNote} from '@/api/attendance'
 
 const {t} = useI18n()
@@ -23,21 +26,32 @@ const {t} = useI18n()
  */
 const props = defineProps<{
   notes?: MemberNotes
-  /** Whether this reader may move a swap on. Seeing one and moving it are different rights. */
-  canMoveSwap?: boolean
+  /** Whether this reader may move a swap on and call one off, which is the one right. */
+  canManageSwap?: boolean
   /** Whether this reader may sign a found item over. */
   canSignOffFound?: boolean
 }>()
 
 const emit = defineEmits<{
   moveSwap: [movementId: number, stepId: number, replacementItemId: number | null]
+  dropSwap: [movementId: number]
   signOffFound: [itemId: number]
 }>()
 
-const hasAnything = computed(
-    () => !!props.notes && (props.notes.swaps.length > 0 || props.notes.foundItems.length > 0
-        || props.notes.birthdayDaysAgo !== null),
-)
+const anything = computed(() => hasAnything(props.notes))
+
+/** The swap asked to be called off, held until said twice: a mis-press here cannot be got back. */
+const dropping = ref<SwapNote | null>(null)
+const confirming = computed({
+  get: () => dropping.value !== null,
+  set: open => { if (!open) dropping.value = null },
+})
+
+function dropConfirmed() {
+  const swap = dropping.value
+  dropping.value = null
+  if (swap) emit('dropSwap', swap.movementId)
+}
 
 /**
  * What the note is about: the piece the step names, falling back to the inventory it is out of for a
@@ -61,9 +75,9 @@ const birthdayText = computed(() => {
 </script>
 
 <template>
-  <div v-if="hasAnything" class="space-y-2" data-testid="member-check-notes">
+  <div v-if="anything" class="space-y-2" data-testid="member-check-notes">
     <div
-        v-if="notes?.birthdayDaysAgo !== null && notes?.birthdayDaysAgo !== undefined"
+        v-if="hasBirthday(notes)"
         class="flex items-center gap-2 text-sm"
         data-testid="note-birthday"
     >
@@ -89,7 +103,7 @@ const birthdayText = computed(() => {
         {{ t('checkNotes.replacementNotChosen') }}
       </span>
       <PrimaryButton
-          v-else-if="canMoveSwap && swap.stepId !== null"
+          v-else-if="canManageSwap && swap.stepId !== null"
           class="text-xs"
           data-testid="note-swap-step"
           @click="emit('moveSwap', swap.movementId, swap.stepId, swap.replacementItemId)"
@@ -97,6 +111,7 @@ const birthdayText = computed(() => {
         {{ swap.stepLabel }}
       </PrimaryButton>
       <InfoBadge v-else data-testid="note-swap-waiting">{{ swap.stepLabel }}</InfoBadge>
+      <DeleteButton v-if="canManageSwap" data-testid="note-swap-drop" @click="dropping = swap"/>
     </ButtonRow>
 
     <div
@@ -116,5 +131,11 @@ const birthdayText = computed(() => {
         {{ t('checkNotes.signOffFound') }}
       </PrimaryButton>
     </div>
+
+    <ConfirmDeleteModal
+        v-model="confirming"
+        :message="t('checkNotes.dropSwapConfirm', {piece: dropping ? pieceOf(dropping) : ''})"
+        @confirm="dropConfirmed"
+    />
   </div>
 </template>

@@ -64,12 +64,14 @@ public class BeaconReportService {
 
     private final BeaconSettings config;
     private final DiscoveryHttpClient httpClient;
+    private final SelfDelivery self;
     private final BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
 
     @Inject
-    public BeaconReportService(BeaconSettings config, DiscoveryHttpClient httpClient) {
+    public BeaconReportService(BeaconSettings config, DiscoveryHttpClient httpClient, SelfDelivery self) {
         this.config = config;
         this.httpClient = httpClient;
+        this.self = self;
         startWorker();
     }
 
@@ -284,7 +286,20 @@ public class BeaconReportService {
      *
      * @return the number, or empty where the beacon could not be reached or turned the picture away
      */
+    /**
+     * Writes a delivery straight into this instance's own beacon, where that is where it is going.
+     *
+     * @return whether it was taken, false for anything this does not know how to hand over, which
+     *     then goes the way everything went before
+     */
+    private boolean takenBySelf(String path, Object payload) {
+        if (payload instanceof BeaconPayloads.ReportPayload report) return self.takeReport(report);
+        if (payload instanceof BeaconPayloads.ProblemPayload problem) return self.takeProblem(problem);
+        return false;
+    }
+
     private Optional<Integer> deliverPicture(BeaconPayloads.ReportImagePayload image) {
+        if (self.isSelf()) return self.takePicture(image.data());
         var answer = httpClient.beaconPost(config.url(), "/api/v1/beacon/report-images", image);
         if (answer.isEmpty() || !answer.get().accepted()) {
             log.warn("The beacon at {} did not take the picture of a report", config.url());
@@ -308,6 +323,7 @@ public class BeaconReportService {
      * missing header went unnoticed through several releases.
      */
     private void deliver(String path, Object payload) {
+        if (self.isSelf() && takenBySelf(path, payload)) return;
         var answer = httpClient.beaconPost(config.url(), path, payload);
         if (answer.isEmpty()) {
             log.warn("The beacon at {} could not be reached for {}", config.url(), path);

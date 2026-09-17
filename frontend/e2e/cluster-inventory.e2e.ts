@@ -8,6 +8,7 @@ import {
     test, expect, apiHeaders, enterCluster, clusterGearManagerPage, clusterStationManager, pageAsThrowaway,
 } from './fixtures/auth'
 import {MADE_BY_A_STORY, stationUnder} from './fixtures/cluster'
+import {must} from './fixtures/must'
 
 /**
  * The cluster's own gear: where each piece is, who may change it, and which steps of a movement only the
@@ -169,12 +170,11 @@ test.describe('Cluster inventory', () => {
         const cluster = await enterCluster(page)
         const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
 
-        const resting = await page.request
+        const resting = must(await page.request
             .get('/api/v1/cluster/inventory/items', {headers})
             .then(r => r.json())
             .then((items: {id: number; custody: string; stationUid: string}[]) =>
-                items.find(i => i.custody === 'AT_STATION'))
-        expect(resting, 'the cluster has gear resting at a station').toBeTruthy()
+                items.find(i => i.custody === 'AT_STATION')), 'gear of the cluster resting at a station')
 
         const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
         const stationHeaders = await apiHeaders(station)
@@ -191,7 +191,8 @@ test.describe('Cluster inventory', () => {
         const withMember = await page.request
             .get('/api/v1/cluster/inventory/items', {headers})
             .then(r => r.json())
-            .then((items: {id: number; custody: string}[]) => items.find(i => i.id === resting.id))
+            .then((items: {id: number; custody: string}[]) => must(items.find(i => i.id === resting.id),
+                'the piece, as the cluster sees it'))
         expect(withMember.custody, 'and the cluster sees it without being asked').toBe('WITH_MEMBER')
 
         const back = await station.request.put(`/api/v1/inventory-items/${resting.id}/assign`,
@@ -201,7 +202,8 @@ test.describe('Cluster inventory', () => {
         const returned = await page.request
             .get('/api/v1/cluster/inventory/items', {headers})
             .then(r => r.json())
-            .then((items: {id: number; custody: string}[]) => items.find(i => i.id === resting.id))
+            .then((items: {id: number; custody: string}[]) => must(items.find(i => i.id === resting.id),
+                'the piece, back where it came from'))
         expect(returned.custody, 'and back again, with no movement anywhere').toBe('AT_STATION')
 
         await station.context().close()
@@ -503,8 +505,8 @@ test.describe('Cluster inventory', () => {
         const home = await admin.request
             .get('/api/v1/cluster/inventory/items', {headers})
             .then(r => r.json())
-            .then((items: {id: number; custody: string; stationName: string}[]) => items.find(i => i.id === itemId))
-        expect(home, 'the cluster still owns it').toBeTruthy()
+            .then((items: {id: number; custody: string; stationName: string}[]) =>
+                must(items.find(i => i.id === itemId), 'the piece the cluster still owns'))
         expect(home.custody, 'and it is back in the cluster\'s own store').toBe('WITH_OWNER')
         expect(home.stationName, 'held at no station any more').toBeFalsy()
 

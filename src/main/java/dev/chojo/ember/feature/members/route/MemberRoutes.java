@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.ProvisionException;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
@@ -57,6 +58,7 @@ public class MemberRoutes implements Routes {
     private final AccountEmailService accountEmailService;
     private final StepUpGuard stepUpGuard;
     private final PasskeyEnrollmentService enrollmentService;
+    private final MemberNameResolver nameResolver;
 
     @Inject
     public MemberRoutes(
@@ -67,7 +69,9 @@ public class MemberRoutes implements Routes {
             LoginNameService loginNameService,
             AccountEmailService accountEmailService,
             StepUpGuard stepUpGuard,
-            PasskeyEnrollmentService enrollmentService) {
+            PasskeyEnrollmentService enrollmentService,
+            MemberNameResolver nameResolver) {
+        this.nameResolver = nameResolver;
         this.authService = authService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -228,6 +232,7 @@ public class MemberRoutes implements Routes {
         if (!accountRepository.update(accountId, existing.email(), request.firstName(), request.lastName())) {
             throw new NotFoundResponse();
         }
+        nameResolver.forgetAccount(accountId);
 
         if (request.username() != null) {
             accountRepository.updateUsername(accountId, loginNameService.validatedFor(existing, request.username()));

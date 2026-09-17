@@ -5,6 +5,7 @@
  */
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders, stationPeers, pageAsThrowaway} from './fixtures/auth'
+import {cast} from './fixtures/cast'
 
 /**
  * Gear walking between parties, as a chain of steps somebody acknowledges.
@@ -205,11 +206,11 @@ test.describe('Item movements', () => {
         async ({managerPage: page, browser, request}) => {
             const headers = await apiHeaders(page)
             const {inventoryId, item} = await gear(page, headers, 'FOLLOW')
-            const {member} = await stationPeers(request)
+            const member = (await cast()).member
 
             const members = await page.request.get('/api/v1/station-members', {headers}).then(r => r.json())
             const row = (Array.isArray(members) ? members : members.members ?? [])
-                .find((m: {email: string}) => m.email === member.email)
+                .find((m: {id: number}) => m.id === member.memberId)
             expect(row, 'the member the fixture signs in as is at this station').toBeTruthy()
 
             await page.request.put(`/api/v1/inventory-items/${item.id}/assign`,

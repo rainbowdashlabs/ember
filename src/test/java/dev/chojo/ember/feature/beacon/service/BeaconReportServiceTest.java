@@ -26,13 +26,21 @@ class BeaconReportServiceTest {
 
     private final DiscoveryHttpClient httpClient = mock(DiscoveryHttpClient.class);
 
+    /**
+     * A sender reporting to somebody else, which is what these stories are about.
+     *
+     * <p>An instance that is its own beacon never reaches the network at all, so it is told here
+     * that it is not one: what it does instead is settled where that decision lives.
+     */
     private BeaconReportService serviceThatForwards(boolean forwardReports) {
         var config = mock(BeaconSettings.class);
         when(config.forwardReports()).thenReturn(forwardReports);
         when(config.url()).thenReturn("https://beacon.test");
         when(config.contactName()).thenReturn("");
         when(config.contactMail()).thenReturn("");
-        return new BeaconReportService(config, httpClient);
+        var self = mock(SelfDelivery.class);
+        when(self.isSelf()).thenReturn(false);
+        return new BeaconReportService(config, httpClient, self);
     }
 
     /**

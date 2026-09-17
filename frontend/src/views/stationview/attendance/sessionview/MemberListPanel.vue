@@ -28,7 +28,7 @@ const props = defineProps<{
   spansDays?: boolean
   /** Absent where the screen has no notes to show, as the pitch does not. */
   memberNotes?: Map<number, MemberNotes>
-  canMoveSwap?: boolean
+  canManageSwap?: boolean
   canSignOffFound?: boolean
 }>()
 
@@ -40,6 +40,7 @@ const emit = defineEmits<{
   resetTimes: [entryId: number]
   addMember: []
   moveSwap: [movementId: number, stepId: number, replacementItemId: number | null]
+  dropSwap: [movementId: number]
   signOffFound: [itemId: number]
 }>()
 
@@ -86,11 +87,12 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
           :session-start="sessionStart"
           :spans-days="spansDays"
           :notes="memberNotes?.get(member.id)"
-          :can-move-swap="canMoveSwap"
+          :can-manage-swap="canManageSwap"
           :can-sign-off-found="canSignOffFound"
           @set-status="(entryId, status) => emit('setStatus', entryId, status)"
           @enter="(memberId, status) => emit('enter', memberId, status)"
           @move-swap="(movementId, stepId, replacementItemId) => emit('moveSwap', movementId, stepId, replacementItemId)"
+          @drop-swap="(movementId) => emit('dropSwap', movementId)"
           @sign-off-found="(itemId) => emit('signOffFound', itemId)"
           @check-in="(entryId, time) => emit('checkIn', entryId, time)"
           @check-out="(entryId, time) => emit('checkOut', entryId, time)"

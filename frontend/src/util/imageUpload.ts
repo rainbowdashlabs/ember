@@ -65,13 +65,12 @@ export function scaledSize(width: number, height: number, maxEdge: number): {wid
  * @throws UnreadableImageError when this browser cannot decode the file
  */
 export async function prepareImageUpload(file: File, budget: ImageBudget = DEFAULT_IMAGE_BUDGET): Promise<File> {
+    await painted()
     const source = await decode(file)
     try {
         const {width, height} = scaledSize(source.width, source.height, budget.maxEdge)
-        const canvas = document.createElement('canvas')
-        canvas.width = width
-        canvas.height = height
-        const context = canvas.getContext('2d')
+        const canvas = surfaceOf(width, height)
+        const context = canvas.getContext('2d') as CanvasRenderingContext2D | null
         if (!context) throw new UnreadableImageError()
         context.drawImage(source.image as CanvasImageSource, 0, 0, width, height)
 
@@ -85,6 +84,37 @@ export async function prepareImageUpload(file: File, budget: ImageBudget = DEFAU
     } finally {
         source.release()
     }
+}
+
+/**
+ * Lets the screen catch up before the work starts.
+ *
+ * <p>Whatever said it was busy said so in the same breath as calling this, and a frame has to be
+ * drawn for anybody to see it. Decoding and encoding a photograph from a modern camera holds the
+ * thread long enough that the spinner would otherwise appear only once the work was already over,
+ * which is what left people pressing the button again and wondering whether anything had happened.
+ */
+function painted(): Promise<void> {
+    if (typeof requestAnimationFrame !== 'function') return Promise.resolve()
+    return new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)))
+}
+
+/** What a picture is drawn on: off the screen thread where the browser has such a thing. */
+type Surface = HTMLCanvasElement | OffscreenCanvas
+
+/**
+ * A surface to redraw the picture on.
+ *
+ * <p>An {@link OffscreenCanvas} is asked for first, because the encoding that follows is where the
+ * time goes and that one can hand it to another thread. Everything else keeps the canvas element,
+ * which does the same work in front of the person waiting.
+ */
+function surfaceOf(width: number, height: number): Surface {
+    if (typeof OffscreenCanvas === 'function') return new OffscreenCanvas(width, height)
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    return canvas
 }
 
 /** A decoded picture together with whatever has to be let go of afterwards. */
@@ -133,7 +163,19 @@ function loadElement(url: string): Promise<HTMLImageElement> {
     })
 }
 
-function encode(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+/**
+ * Writes the surface out as a JPEG.
+ *
+ * <p>The offscreen way of asking is a promise the browser may answer from another thread, which is
+ * the whole reason for preferring that surface: encoding a picture of this size is several hundred
+ * milliseconds of arithmetic, and on the screen's own thread that is a page that does not respond.
+ */
+function encode(canvas: Surface, quality: number): Promise<Blob> {
+    if ('convertToBlob' in canvas) {
+        return canvas.convertToBlob({type: 'image/jpeg', quality}).catch(() => {
+            throw new UnreadableImageError()
+        })
+    }
     return new Promise((resolve, reject) => {
         canvas.toBlob(blob => (blob ? resolve(blob) : reject(new UnreadableImageError())), 'image/jpeg', quality)
     })
@@ -143,13 +185,11 @@ function encode(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
  * The last resort for a picture that will not fit even at the lowest quality: draw it again at
  * half the edge and try once more.
  */
-async function halved(canvas: HTMLCanvasElement, budget: ImageBudget): Promise<Blob | null> {
-    const smaller = document.createElement('canvas')
-    smaller.width = Math.max(1, Math.round(canvas.width / 2))
-    smaller.height = Math.max(1, Math.round(canvas.height / 2))
-    const context = smaller.getContext('2d')
+async function halved(canvas: Surface, budget: ImageBudget): Promise<Blob | null> {
+    const smaller = surfaceOf(Math.max(1, Math.round(canvas.width / 2)), Math.max(1, Math.round(canvas.height / 2)))
+    const context = smaller.getContext('2d') as CanvasRenderingContext2D | null
     if (!context) return null
-    context.drawImage(canvas, 0, 0, smaller.width, smaller.height)
+    context.drawImage(canvas as CanvasImageSource, 0, 0, smaller.width, smaller.height)
     const blob = await encode(smaller, LOWEST_QUALITY)
     return blob.size <= budget.maxBytes ? blob : null
 }

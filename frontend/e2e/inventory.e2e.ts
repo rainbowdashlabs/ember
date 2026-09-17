@@ -8,6 +8,8 @@ import {setMovementFilter} from './fixtures/movementFilter'
 import {pickMemberByName} from './fixtures/memberMenu'
 import {unique} from './fixtures/unique'
 import type {Locator, Page} from '@playwright/test'
+import {must} from './fixtures/must'
+import {cast} from './fixtures/cast'
 
 /**
  * A piece of the station's own gear that belongs to this story alone, and answers with its code.
@@ -158,7 +160,7 @@ test.describe('Inventory', () => {
     test('an item is assigned to a member and handed back', async ({managerPage: page, request}) => {
         const headers = await apiHeaders(page)
         const code = await pieceOfItsOwn(page, headers)
-        const {member} = await stationPeers(request)
+        const member = (await cast()).member
         const name = `${member.firstName} ${member.lastName}`
 
         await page.goto('/station/inventory/assign')
@@ -844,13 +846,14 @@ test.describe('Inventory', () => {
             const chosen = inventories.reduce((best, id) =>
                 inInventory(id).length > inInventory(best).length ? id : best)
             const expected = inInventory(chosen).map(movement => movement.id)
-            const chosenName = inInventory(chosen)[0].inventoryName
+            const chosenName = must(inInventory(chosen)[0], 'a movement of the chosen inventory').inventoryName
 
             await page.goto('/station/inventory/movements')
             const rows = page.getByTestId('movement-row')
             const rowOf = (id: number) => page.locator(`[data-movement="${id}"]`)
             await expect(rows.first()).toBeVisible()
-            await expect(rowOf(open[0].id), 'the queue opens on what is still running').toHaveCount(1)
+            await expect(rowOf(must(open[0], 'a movement still running').id),
+                'the queue opens on what is still running').toHaveCount(1)
             for (const gone of raised.filter(movement => movement.state !== 'OPEN').slice(0, 3)) {
                 await expect(rowOf(gone.id), 'and leaves out the ones that have ended').toHaveCount(0)
             }
@@ -916,7 +919,7 @@ test.describe('Inventory', () => {
             }
 
             await setMovementFilter(page, 'movement-filter-purpose',
-                sorts.map(purpose => MOVEMENT_PURPOSE_LABELS[purpose]))
+                sorts.map(purpose => must(MOVEMENT_PURPOSE_LABELS[purpose], `a label for ${purpose}`)))
             for (const kept of expected) {
                 await expect(rowOf(kept), 'and two ticks show the rows of both kinds at once')
                     .toHaveCount(1)

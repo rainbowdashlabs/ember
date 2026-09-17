@@ -13,11 +13,22 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   firstName: string
   lastName: string
-  action: () => Promise<void>
-}>()
+  /**
+   * How to save it on its own, for a screen where this stands by itself. Where a screen saves the
+   * whole form at once it passes nothing, and no button of its own is drawn: two buttons both
+   * reading "save" on one form is a form where nobody knows which one they pressed.
+   */
+  action?: () => Promise<void>
+  /**
+   * What to say about the field, which differs by who is reading it: somebody setting their own name
+   * is told what it does for them, and somebody setting another member's is told the same about that
+   * member.
+   */
+  hint?: string
+}>(), {hint: '', action: undefined})
 
 const nickname = defineModel<string>({required: true})
 
@@ -41,12 +52,12 @@ const preview = computed(() => {
     <div class="space-y-1">
       <FieldLabel>{{ t('profile.nickname') }}</FieldLabel>
       <TextInput v-model="nickname" :maxlength="60" :placeholder="firstName"/>
-      <MutedText tag="p" size="sm">{{ t('profile.nicknameHint') }}</MutedText>
+      <MutedText tag="p" size="sm">{{ props.hint || t('profile.nicknameHint') }}</MutedText>
     </div>
     <div class="space-y-1">
       <FieldLabel>{{ t('profile.nicknamePreview') }}</FieldLabel>
       <MutedText tag="p">{{ preview }}</MutedText>
     </div>
-    <SaveButton :action="action"/>
+    <SaveButton v-if="props.action" :action="props.action"/>
   </NeutralContainer>
 </template>

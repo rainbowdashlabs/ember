@@ -2081,6 +2081,18 @@ volumes:
             fromEventText: 'Wenn es heute Termine gibt, werden sie oben angezeigt. Klicke auf den Termin, um direkt eine Anwesenheit für diesen Termin zu starten.',
             fromTemplateTitle: 'Aus Vorlage erstellen',
             fromTemplateText: 'Du kannst auch eine Anwesenheitsvorlage wählen (z.B. „Übungsabend"). Die Vorlage bestimmt, welche Gruppen erwartet werden und welche Felder erfasst werden.',
+            whatATileSaysTitle: 'Was eine Kachel verrät',
+            whatATileSaysText: 'Jede Vorlage sagt auf ihrer Kachel, wen sie einträgt und wonach sie fragt. So musst '
+                + 'du nicht aus dem Gedächtnis entscheiden, welche Vorlage die Felder für den Bericht mitbringt oder '
+                + 'welche die Jugendgruppe erwartet. Eine Vorlage, die niemanden einträgt, sagt das ebenfalls.',
+            emptyTitle: 'Ohne passende Vorlage starten',
+            emptyText: 'Passt keine Vorlage zu den Leuten, die heute da sind, wähle „Leere Anwesenheit". Früher '
+                + 'musste dafür eine leere Vorlage angelegt und für immer behalten werden; das ist nicht mehr nötig.',
+            audienceTitle: 'Wer eingetragen wird',
+            audienceText: 'Im zweiten Schritt wählst du Mitgliedstypen und Gruppen. Beides ergänzt sich: Wer einem '
+                + 'davon entspricht, steht auf der Liste, und wer beidem entspricht, steht genau einmal darauf. Die '
+                + 'Liste braucht außerdem Felder, deshalb wählst du eine Vorlage, deren Felder übernommen werden; '
+                + 'deren Gruppen bleiben dabei außen vor.',
             timesTitle: 'Zeitraum festlegen',
             timesText: 'Nach der Auswahl der Vorlage fragt Ember, wann die Erfassung läuft. Beginn und Ende sind mit '
                 + 'der aktuellen Zeit und der Dauer der letzten Erfassung dieser Vorlage vorbelegt, du kannst beide '

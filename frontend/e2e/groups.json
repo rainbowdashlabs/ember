@@ -56,6 +56,7 @@
     "news",
     "page",
     "procedure",
+    "problem-report-picture",
     "profile-fields",
     "protocol",
     "quiz",
@@ -72,6 +73,7 @@
   "instance": [
     "admin",
     "admin-log",
+    "beacon-report-picture",
     "discovery",
     "federation",
     "first-start",

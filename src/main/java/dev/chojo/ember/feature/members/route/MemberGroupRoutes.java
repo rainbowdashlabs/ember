@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -46,6 +47,7 @@ public class MemberGroupRoutes implements Routes {
     private final MemberGroupService groupService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final MemberNameResolver memberNameResolver;
     private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
@@ -53,11 +55,13 @@ public class MemberGroupRoutes implements Routes {
             MemberGroupService groupService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            MemberNameResolver memberNameResolver) {
         this.groupService = groupService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.memberNameResolver = memberNameResolver;
     }
 
     private static boolean isBlank(String s) {
@@ -103,7 +107,7 @@ public class MemberGroupRoutes implements Routes {
     }
 
     private MemberWithName toMemberWithName(StationMember m) {
-        return MemberWithName.from(m, accountRepository, memberIdentityFactory);
+        return MemberWithName.from(m, accountRepository, memberIdentityFactory, memberNameResolver);
     }
 
     // -- Groups --

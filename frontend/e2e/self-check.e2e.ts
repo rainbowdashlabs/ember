@@ -5,6 +5,7 @@
  */
 import type {APIRequestContext, Browser, Page} from '@playwright/test'
 import {test, expect, apiHeaders, demoAccounts, pageAsThrowaway, stationPeers} from './fixtures/auth'
+import {cast, spokenForMemberIds} from './fixtures/cast'
 
 /**
  * A member answering for their own gear, and a checker reading what they said.
@@ -40,16 +41,22 @@ interface Asked {
  * task, so an empty answer is read as "try somebody else" rather than as a failure.
  */
 async function askSomebody(browser: Browser, request: APIRequestContext, manager: Page): Promise<Asked> {
-    const {manager: checker} = await stationPeers(request)
+    const checker = (await cast()).manager
     const candidates = (await demoAccounts(request)).filter(account =>
         !!account.email
         && account.stationId === checker.stationId
-        && account.userType === 'MEMBER'
-        && account.email !== checker.email)
+        && account.userType === 'MEMBER')
     const headers = await apiHeaders(manager)
+    // Whoever another story was cast as is left out of this. Handing them a task and answering it
+    // writes their gear and their answers, which is what the story acting as them is reading.
+    const spokenFor = await spokenForMemberIds()
     for (const account of candidates) {
         const page = await pageAsThrowaway(browser, request, [], account)
         const memberId = await ownMemberId(page)
+        if (spokenFor.has(memberId)) {
+            await page.context().close()
+            continue
+        }
         const response = await manager.request.post('/api/v1/self-checks', {
             headers,
             data: {memberIds: [memberId], dueOn: null},
@@ -143,11 +150,20 @@ function sizedKindTheMemberHolds(task: {required: Required[]; assigned: Assigned
  * leaves no window between the two at all.
  *
  * @param prefix the test id up to the entry's own key, ending in a hyphen
+ * @param wanted which of the offered entries will do, where the first will not do for every story
  */
-async function entryOffering(member: Page, prefix: string): Promise<string> {
-    const offered = member.locator(`[data-testid^="${prefix}"]`).first()
-    await expect(offered, `the screen offers ${prefix} on something`).toBeVisible()
-    return (await offered.getAttribute('data-testid'))!.slice(prefix.length)
+async function entryOffering(
+    member: Page,
+    prefix: string,
+    wanted: (key: string) => boolean = () => true,
+): Promise<string> {
+    const offered = member.locator(`[data-testid^="${prefix}"]`)
+    await expect(offered.first(), `the screen offers ${prefix} on something`).toBeVisible()
+    for (let index = 0; index < (await offered.count()); index++) {
+        const key = (await offered.nth(index).getAttribute('data-testid'))!.slice(prefix.length)
+        if (wanted(key)) return key
+    }
+    throw new Error(`no entry offering ${prefix} is one this story can use`)
 }
 
 /**
@@ -405,9 +421,12 @@ test.describe('Self-check', () => {
         await memberPage.goto(`/station/inventory/self-check/${taskId}`)
         await expect(memberPage.getByTestId('app-shell')).toBeVisible()
 
-        const pieceId = pieceOf(await entryOffering(memberPage, 'self-check-broken-piece-'))
-        const sizeId = (await ownTask(memberPage, taskId)).assigned.find(item => item.id === pieceId)!.sizeId
-        expect(sizeId, 'the piece is one the record gives a size').toBeTruthy()
+        const sized = new Map((await ownTask(memberPage, taskId)).assigned
+            .filter(item => item.sizeId != null)
+            .map(item => [item.id, item.sizeId!]))
+        const pieceId = pieceOf(await entryOffering(memberPage, 'self-check-broken-piece-',
+            key => sized.has(pieceOf(key))))
+        const sizeId = sized.get(pieceId)!
 
         await memberPage.getByTestId(`self-check-broken-piece-${pieceId}`).click()
         await expect(memberPage.getByTestId('exchange-cause')).toContainText('kaputt')

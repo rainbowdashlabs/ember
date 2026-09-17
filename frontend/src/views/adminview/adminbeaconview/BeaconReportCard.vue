@@ -11,6 +11,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import ReportCardHeader from '@/components/problem/ReportCardHeader.vue'
 import ReportMetadataGrid from '@/components/problem/ReportMetadataGrid.vue'
 import RecentRequestsTable from '@/components/problem/RecentRequestsTable.vue'
+import AuthImage from '@/components/display/AuthImage.vue'
 import type {BeaconReport} from '@/api/beacon'
 import type {RequestHistoryEntry} from '@/api/client'
 
@@ -32,7 +33,30 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const reporter = computed(() => props.report.contactName?.trim() || t('beacon.unknownInstance'))
+/** The address the report was written on, which says which installation it came from. */
+function hostOf(page: string | null): string | null {
+  if (!page) return null
+  try {
+    return new URL(page).host || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Who sent it, by whatever the beacon actually knows.
+ *
+ * An installation that has named a contact is called that. One that has not is called by the
+ * address its reports were written on, and failing that by the identifier the beacon works out from
+ * the signing key. Something is always known: falling straight to "unknown instance" made every
+ * anonymous installation read alike, so three reports looked the same whether they came from one or
+ * from three.
+ */
+const reporter = computed(() =>
+    props.report.contactName?.trim()
+    || hostOf(props.report.page)
+    || props.report.instanceId?.slice(0, 8)
+    || t('beacon.unknownInstance'))
 
 const metadata = computed(() => [
   {label: t('problemReport.page'), value: props.report.page},
@@ -77,6 +101,12 @@ const recentRequests = computed<RequestHistoryEntry[]>(() => {
     </ReportCardHeader>
 
     <ReportMetadataGrid v-if="expanded && metadata.length > 0" :entries="metadata"/>
+    <AuthImage
+        v-if="expanded && report.screenshotFileId"
+        :src="`/admin/beacon/collected/reports/${report.id}/screenshot`"
+        class="w-full rounded-theme border border-bg-light-accent dark:border-bg-dark-accent"
+        data-testid="beacon-report-screenshot"
+    />
     <RecentRequestsTable v-if="expanded && recentRequests.length > 0" :requests="recentRequests"/>
   </NeutralContainer>
 </template>

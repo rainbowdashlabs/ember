@@ -6,6 +6,7 @@
 import {test, expect, apiHeaders, demoAccounts, pageAsThrowaway, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 import type {APIRequestContext, Browser} from '@playwright/test'
+import {must} from './fixtures/must'
 
 /**
  * A file the demo seeder puts in the main station's library. Picking one is what attaching an event
@@ -176,8 +177,9 @@ test.describe('Event files', () => {
 
         const items: {partnerStationUid: string; event: {id: number}}[] = await shared.json()
         expect(items.length, 'a seeded partner shares an event with this station').toBeGreaterThan(0)
-        const owningStation = items[0].partnerStationUid
-        const eventId = items[0].event.id
+        const shown = must(items[0], 'an event a partner shares with this station')
+        const owningStation = shown.partnerStationUid
+        const eventId = shown.event.id
 
         const ownerPage = await managerOfStation(browser, request, owningStation)
         const fileId = await libraryFileId(ownerPage)

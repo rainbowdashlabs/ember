@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.FormerMemberService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.NicknameService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -73,6 +74,7 @@ public class StationMemberRoutes implements Routes {
     private final AuthService authService;
     private final MailRecipientService mailRecipientService;
     private final NicknameService nicknameService;
+    private final MemberNameResolver memberNameResolver;
 
     @Inject
     public StationMemberRoutes(
@@ -87,8 +89,10 @@ public class StationMemberRoutes implements Routes {
             AvatarService avatarService,
             AuthService authService,
             MailRecipientService mailRecipientService,
-            NicknameService nicknameService) {
+            NicknameService nicknameService,
+            MemberNameResolver memberNameResolver) {
         this.nicknameService = nicknameService;
+        this.memberNameResolver = memberNameResolver;
         this.memberService = memberService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -441,7 +445,7 @@ public class StationMemberRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         requireOwnedMember(ctx, id);
         var request = ctx.bodyAsClass(NicknameRequest.class);
-        nicknameService.set(id, request.nickname(), session.member().id());
+        nicknameService.set(id, request.nickname(), session.member().id(), session.permissions());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -520,7 +524,7 @@ public class StationMemberRoutes implements Routes {
 
     private MemberWithName toMemberWithName(StationMember m) {
         boolean complete = profileFieldService.isProfileComplete(m.id());
-        return MemberWithName.from(m, accountRepository, memberIdentityFactory, complete);
+        return MemberWithName.from(m, accountRepository, memberIdentityFactory, memberNameResolver, complete);
     }
 
     @OpenApi(

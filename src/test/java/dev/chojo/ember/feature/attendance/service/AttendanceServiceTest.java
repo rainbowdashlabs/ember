@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
@@ -12,6 +13,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
+import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
@@ -39,6 +41,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1419,6 +1422,150 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertNotNull(session.startTime());
         assertNotNull(session.endTime());
         service.deleteSession(session.id());
+    }
+
+    /**
+     * A sheet told whom to expect enters them instead of the template's own groups, and adds the two
+     * answers up rather than crossing them.
+     *
+     * <p>The station kept a template with no groups on it purely to open an empty sheet. Saying who
+     * belongs on this one sheet is what takes that template away.
+     */
+    @Test
+    @Order(60)
+    void aChosenAudienceEntersTypesAndGroupsTogether() {
+        var group = memberGroupRepo.create(station.id(), "Jugend");
+        var inGroupAccount = accountRepo.create("attend-audience-group@test.com", "Grup", "Pe");
+        var inGroup = stationMemberRepo.create(station.id(), inGroupAccount.id());
+        memberGroupRepo.addMember(group.id(), inGroup.id());
+        stationMemberRepo.setUserType(inGroup.id(), StationUserType.TRIAL);
+
+        var teamAccount = accountRepo.create("attend-audience-team@test.com", "Te", "Am");
+        var team = stationMemberRepo.create(station.id(), teamAccount.id());
+        stationMemberRepo.setUserType(team.id(), StationUserType.TEAM);
+
+        var outsiderAccount = accountRepo.create("attend-audience-out@test.com", "Drau", "Ssen2");
+        var outsider = stationMemberRepo.create(station.id(), outsiderAccount.id());
+        stationMemberRepo.setUserType(outsider.id(), StationUserType.GUARDIAN);
+
+        var template = service.createTemplate(station.id(), "Leihgabe der Felder");
+        var session = service.createSession(
+                template.id(),
+                Instant.now(),
+                Instant.now().plus(2, ChronoUnit.HOURS),
+                null,
+                "Ad hoc",
+                null,
+                new SessionAudience(Set.of(StationUserType.TEAM), List.of(group.id())));
+
+        var entered = service.findEntries(session.id()).stream()
+                .map(AttendanceEntry::memberId)
+                .toList();
+        assertTrue(entered.contains(inGroup.id()), "the group's member is on the sheet");
+        assertTrue(entered.contains(team.id()), "and so is everybody of the chosen type");
+        assertFalse(entered.contains(outsider.id()), "nobody either answer names is left off");
+
+        service.deleteSession(session.id());
+        service.deleteTemplate(template.id());
+        memberGroupRepo.delete(group.id());
+    }
+
+    /**
+     * Somebody a type and a group both name stands on the sheet once, and the group decides where:
+     * a sheet built this way has to read like one built from a template's groups.
+     */
+    @Test
+    @Order(61)
+    void aChosenAudienceEntersNobodyTwiceAndOrdersGroupsFirst() {
+        var group = memberGroupRepo.create(station.id(), "Aktive");
+        var bothAccount = accountRepo.create("attend-audience-both@test.com", "Bei", "Des");
+        var both = stationMemberRepo.create(station.id(), bothAccount.id());
+        memberGroupRepo.addMember(group.id(), both.id());
+        stationMemberRepo.setUserType(both.id(), StationUserType.TEAM);
+
+        var typeOnlyAccount = accountRepo.create("attend-audience-type@test.com", "Nur", "Typ");
+        var typeOnly = stationMemberRepo.create(station.id(), typeOnlyAccount.id());
+        stationMemberRepo.setUserType(typeOnly.id(), StationUserType.TEAM);
+
+        var template = service.createTemplate(station.id(), "Zweite Leihgabe");
+        var session = service.createSession(
+                template.id(),
+                Instant.now(),
+                Instant.now().plus(2, ChronoUnit.HOURS),
+                null,
+                "Ad hoc zwei",
+                null,
+                new SessionAudience(Set.of(StationUserType.TEAM), List.of(group.id())));
+
+        var entered = service.findEntries(session.id()).stream()
+                .map(AttendanceEntry::memberId)
+                .toList();
+        assertEquals(1, entered.stream().filter(id -> id == both.id()).count(), "named twice, entered once");
+        assertTrue(
+                entered.indexOf(both.id()) < entered.indexOf(typeOnly.id()),
+                "whom a group names comes before whom only a type names");
+
+        service.deleteSession(session.id());
+        service.deleteTemplate(template.id());
+        memberGroupRepo.delete(group.id());
+    }
+
+    /** Told nothing, a sheet still expects exactly whom its template expects. */
+    @Test
+    @Order(62)
+    void anEmptyAudienceLeavesTheTemplateToDecide() {
+        var group = memberGroupRepo.create(station.id(), "Vorlagengruppe");
+        memberGroupRepo.addMember(group.id(), member.id());
+        var template = service.createTemplate(station.id(), "Mit eigener Gruppe");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+
+        var session = service.createSession(
+                template.id(),
+                Instant.now(),
+                Instant.now().plus(2, ChronoUnit.HOURS),
+                null,
+                "Wie bisher",
+                null,
+                new SessionAudience(Set.of(), List.of()));
+
+        assertTrue(
+                service.findEntries(session.id()).stream().anyMatch(entry -> entry.memberId() == member.id()),
+                "the template's own group still fills the sheet");
+
+        service.deleteSession(session.id());
+        service.deleteTemplate(template.id());
+        memberGroupRepo.delete(group.id());
+    }
+
+    /**
+     * A group of another station is dropped rather than obeyed. Which groups exist is the screen's
+     * business, and a sheet is not the place to reach into another station's members.
+     */
+    @Test
+    @Order(63)
+    void aGroupOfAnotherStationNamesNobody() {
+        var elsewhere = stationRepo.create("AttendanceSvc Fremde Wache");
+        var foreignGroup = memberGroupRepo.create(elsewhere.id(), "Fremde Gruppe");
+        var foreignAccount = accountRepo.create("attend-audience-foreign@test.com", "Frem", "De");
+        var foreign = stationMemberRepo.create(elsewhere.id(), foreignAccount.id());
+        memberGroupRepo.addMember(foreignGroup.id(), foreign.id());
+
+        var template = service.createTemplate(station.id(), "Dritte Leihgabe");
+        var session = service.createSession(
+                template.id(),
+                Instant.now(),
+                Instant.now().plus(2, ChronoUnit.HOURS),
+                null,
+                "Ad hoc drei",
+                null,
+                new SessionAudience(Set.of(), List.of(foreignGroup.id())));
+
+        assertTrue(service.findEntries(session.id()).isEmpty(), "nobody of the other station is reached");
+
+        service.deleteSession(session.id());
+        service.deleteTemplate(template.id());
+        stationRepo.delete(elsewhere.id());
+        accountRepo.delete(foreignAccount.id());
     }
 
     // -- Cleanup --

@@ -8,6 +8,7 @@ import {
     test, expect, enterCluster, clustersOf, theSeededCluster, apiHeaders, demoAccounts, pageAsThrowaway,
 } from './fixtures/auth'
 import {activeSidebarGroup, sidebarEntry} from './fixtures/sidebar'
+import {must} from './fixtures/must'
 
 /**
  * Identity and context: who reaches the cluster area, what they see once they are in it, and where
@@ -199,7 +200,7 @@ test.describe('Cluster', () => {
         await page.waitForURL(/\/cluster$/)
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        const [cluster] = await clustersOf(page)
+        const cluster = must((await clustersOf(page))[0], 'a cluster this account acts for')
         await expect(page.getByText(cluster.name).first()).toBeVisible()
     })
 

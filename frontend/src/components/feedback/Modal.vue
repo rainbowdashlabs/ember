@@ -16,9 +16,16 @@ const model = defineModel<boolean>({default: false})
 const props = withDefaults(defineProps<{
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full'
   mobileFull?: boolean
+  /**
+   * Takes the dialog off the screen without closing it, so that what is behind it can be seen or
+   * photographed and the half-filled form inside is still there afterwards. Closing it would take
+   * the form with it, and unmounting would take whatever it is in the middle of doing.
+   */
+  hidden?: boolean
 }>(), {
   size: 'md',
   mobileFull: false,
+  hidden: false,
 })
 
 const sizeClass = computed(() => {
@@ -94,6 +101,7 @@ function onKeydown(e: KeyboardEvent) {
       <div
           v-if="model"
           class="fixed inset-0 flex items-center justify-center"
+          :class="{'invisible opacity-0': props.hidden}"
           :style="{zIndex: layer}"
       >
         <!-- Backdrop -->

@@ -81,6 +81,10 @@ public class BeaconAdminRoutes implements Routes {
                 base + "/collected/reports/{id}/acknowledge",
                 this::acknowledgeReport,
                 InstancePermission.ADMINISTRATOR);
+        routes.get(
+                base + "/collected/reports/{id}/screenshot",
+                this::collectedReportScreenshot,
+                InstancePermission.ADMINISTRATOR);
         routes.get(base + "/collected/figures", this::collectedMetrics, InstancePermission.ADMINISTRATOR);
     }
 
@@ -113,6 +117,24 @@ public class BeaconAdminRoutes implements Routes {
         requireBeacon();
         if (!collected.acknowledgeReport(pathId(ctx))) throw new NotFoundResponse();
         ctx.status(io.javalin.http.HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * The picture that came with a report this beacon was sent.
+     *
+     * <p>Served from the report rather than from the file library: a picture forwarded here is of a
+     * page of somebody else's installation, and it has no business appearing in a list of files
+     * anybody browses.
+     */
+    private void collectedReportScreenshot(Context ctx) {
+        requireBeacon();
+        var report = collected.reports(true).stream()
+                .filter(row -> row.id() == pathId(ctx))
+                .findFirst()
+                .orElseThrow(NotFoundResponse::new);
+        if (report.screenshotFileId() == null) throw new NotFoundResponse();
+        var picture = pictures.read(report.screenshotFileId()).orElseThrow(NotFoundResponse::new);
+        ctx.contentType(picture.contentType()).result(picture.data());
     }
 
     private void collectedMetrics(Context ctx) {

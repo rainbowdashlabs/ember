@@ -44,6 +44,14 @@ const sent = ref(false)
 const picture = ref<HTMLCanvasElement | null>(null)
 const pictureSection = ref<InstanceType<typeof ReportPictureSection>>()
 
+/**
+ * Whether a picture is being taken, during which this dialog is not on the screen.
+ *
+ * <p>It sits over whatever is being reported, so a picture taken with it open shows the dialog and
+ * not the thing. What is kept in the form survives, because it is hidden rather than closed.
+ */
+const capturing = ref(false)
+
 const enoughSaid = computed(() => description.value.trim().length >= 10)
 
 const {running: sending, error, run: send, clearError} = useAsyncAction(async () => {
@@ -74,7 +82,12 @@ function close() {
 </script>
 
 <template>
-  <Modal :model-value="open" @update:model-value="value => !value && close()">
+  <Modal
+      :hidden="capturing"
+      :model-value="open"
+      :size="picture ? 'xl' : 'md'"
+      @update:model-value="value => !value && close()"
+  >
     <template #title>{{ t('problemReport.title') }}</template>
 
     <div class="space-y-4">
@@ -118,7 +131,11 @@ function close() {
           </MutedText>
         </div>
 
-        <ReportPictureSection ref="pictureSection" v-model="picture"/>
+        <ReportPictureSection
+            ref="pictureSection"
+            v-model="picture"
+            @capturing="value => capturing = value"
+        />
 
         <MutedText size="sm" tag="p">{{ t('problemReport.autoCapture') }}</MutedText>
 

@@ -52,7 +52,7 @@ const canEdit = computed(() => hasPermission(StationPermission.ATTENDANCE_EDIT) 
  * seeing a found item and signing it over. The server already leaves out what may not be seen; these
  * decide whether the button beside it is offered.
  */
-const canMoveSwap = computed(() => hasPermission(StationPermission.INVENTORY_MOVEMENTS))
+const canManageSwap = computed(() => hasPermission(StationPermission.INVENTORY_MOVEMENTS))
 const canSignOffFound = computed(() => hasPermission(StationPermission.LOST_AND_FOUND_MANAGE))
 
 const sessionId = computed(() => Number(route.params.id))
@@ -334,7 +334,7 @@ async function syncFromEvent() {
   }
 }
 
-const {memberNotes, loadNotes, moveSwap, signOffFound} = useSessionNotes(sessionId, error)
+const {memberNotes, loadNotes, moveSwap, dropSwap, signOffFound} = useSessionNotes(sessionId, error)
 
 async function unlockSession() {
   error.value = ''
@@ -412,7 +412,7 @@ watch(loaded, (isLoaded) => {
         :locked="locked"
         :can-manage="canManage"
         :member-notes="memberNotes"
-        :can-move-swap="canMoveSwap"
+        :can-manage-swap="canManageSwap"
         :can-sign-off-found="canSignOffFound"
         :check-mode="checkMode"
         :check-index="checkIndex"
@@ -449,6 +449,7 @@ watch(loaded, (isLoaded) => {
         @unlock="unlockSession"
         @lock="lockSession"
         @move-swap="moveSwap"
+        @drop-swap="dropSwap"
         @sign-off-found="signOffFound"
         @check-in="setCheckIn"
         @check-out="setCheckOut"

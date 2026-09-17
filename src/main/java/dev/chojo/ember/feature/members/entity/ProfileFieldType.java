@@ -45,6 +45,16 @@ public enum ProfileFieldType {
     }
 
     /**
+     * Whether the answer is worked out rather than given.
+     *
+     * <p>An age counts itself from a date of birth, so nobody writes one and nobody has changed one:
+     * a change recorded against it is a change nobody made, and somebody was asked to confirm it.
+     */
+    public boolean isCalculated() {
+        return this == AGE;
+    }
+
+    /**
      * The shared kind this type is, which is what the one check measures an answer against, or
      * nothing for a heading, which asks nobody anything.
      *

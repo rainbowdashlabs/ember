@@ -10,14 +10,17 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {AttendanceTemplate} from '@/api/attendance'
+import type {SessionAudience, TemplateDetail} from '@/api/attendance'
 import type {StationEvent} from '@/api/events'
-import {attendance, events} from '@/api'
+import type {MemberGroup} from '@/api/types'
+import {attendance, events, memberGroups} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import TodayEventsGrid from '@/views/stationview/attendance/newview/TodayEventsGrid.vue'
 import TemplateGrid from '@/views/stationview/attendance/newview/TemplateGrid.vue'
+import EmptySessionTile from '@/views/stationview/attendance/newview/EmptySessionTile.vue'
+import AudienceStep from '@/views/stationview/attendance/newview/AudienceStep.vue'
 import NewSessionModal from '@/views/stationview/attendance/newview/NewSessionModal.vue'
 
 /** How long a sheet runs where the template has no sheet of its own to go by yet. */
@@ -28,25 +31,32 @@ const router = useRouter()
 const route = useRoute()
 const {loaded} = useSession()
 
-const templates = ref<AttendanceTemplate[]>([])
+const templates = ref<TemplateDetail[]>([])
 const todayEvents = ref<StationEvent[]>([])
+const groups = ref<MemberGroup[]>([])
 
-const chosenTemplate = ref<AttendanceTemplate | null>(null)
+const chosenTemplate = ref<TemplateDetail | null>(null)
 const suggestedStart = ref('')
 const suggestedEnd = ref('')
 const askTimes = ref(false)
+
+/** The audience for a sheet no template describes, set only by the second step and held until the times are. */
+const chosenAudience = ref<SessionAudience | null>(null)
+const askingAudience = ref(false)
 
 const eventsWithTemplate = computed(() =>
     todayEvents.value.filter(ev => ev.templateId != null)
 )
 
 const {loading, error, reload} = useAsyncLoader(async () => {
-  const [tpl, today] = await Promise.all([
-    attendance.listTemplates(),
+  const [tpl, today, known] = await Promise.all([
+    attendance.listTemplateDetails(),
     events.listTodayEvents(),
+    memberGroups.listGroups(),
   ])
   templates.value = tpl
   todayEvents.value = today
+  groups.value = known
 
   const templateId = route.query.templateId ? Number(route.query.templateId) : null
   if (templateId) {
@@ -60,6 +70,7 @@ const {running: creating, error: createError, run: runCreate} = useAsyncAction(
       const session = await attendance.createSession(templateId, {
         eventId: eventId ?? null,
         ...(times ?? {}),
+        ...(chosenAudience.value ? {audience: chosenAudience.value} : {}),
       })
       askTimes.value = false
       router.push({name: 'attendance-session', params: {id: session.id}})
@@ -91,7 +102,7 @@ async function suggestSpan(templateId: number): Promise<number> {
   }
 }
 
-async function askForTimes(template: AttendanceTemplate) {
+async function askForTimes(template: TemplateDetail) {
   error.value = ''
   chosenTemplate.value = template
   const start = new Date()
@@ -104,7 +115,23 @@ async function askForTimes(template: AttendanceTemplate) {
 
 function createFromTemplate(templateId: number) {
   const template = templates.value.find(tpl => tpl.id === templateId)
+  chosenAudience.value = null
   if (template) askForTimes(template)
+}
+
+function startEmpty() {
+  error.value = ''
+  chosenAudience.value = null
+  askingAudience.value = true
+}
+
+/** The audience is answered, so the sheet is now started the way any other one is: by its times. */
+function audienceChosen(templateId: number, audience: SessionAudience) {
+  const template = templates.value.find(tpl => tpl.id === templateId)
+  if (!template) return
+  chosenAudience.value = audience
+  askingAudience.value = false
+  askForTimes(template)
 }
 
 function createWithTimes(times: {title: string; startTime: string; endTime: string}) {
@@ -114,12 +141,17 @@ function createWithTimes(times: {title: string; startTime: string; endTime: stri
 
 function createFromEvent(ev: StationEvent) {
   if (ev.templateId) {
+    chosenAudience.value = null
     createSession(ev.templateId, ev.id)
   }
 }
 
 function getTemplateName(templateId: number): string {
   return templates.value.find(t => t.id === templateId)?.name ?? ''
+}
+
+function groupName(groupId: number): string {
+  return groups.value.find(group => group.id === groupId)?.name ?? ''
 }
 
 watch(loaded, (isLoaded) => {
@@ -136,12 +168,22 @@ watch(loaded, (isLoaded) => {
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
 
-      <template v-if="!loading && !creating">
+      <AudienceStep
+          v-if="askingAudience && !creating"
+          :busy="creating"
+          :groups="groups"
+          :templates="templates"
+          @back="askingAudience = false"
+          @confirm="audienceChosen"
+      />
+
+      <template v-else-if="!loading && !creating">
         <TodayEventsGrid v-if="eventsWithTemplate.length > 0"
                          :events="eventsWithTemplate"
                          :template-name="getTemplateName"
                          @select="createFromEvent"/>
-        <TemplateGrid :templates="templates" @select="createFromTemplate"/>
+        <TemplateGrid :group-name="groupName" :templates="templates" @select="createFromTemplate"/>
+        <EmptySessionTile v-if="templates.length > 0" @start="startEmpty"/>
       </template>
 
       <div v-if="creating" class="flex items-center gap-2 justify-center py-8">

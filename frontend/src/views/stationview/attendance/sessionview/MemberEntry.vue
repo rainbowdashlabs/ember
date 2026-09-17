@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MemberName from '@/components/avatar/MemberName.vue'
 import MemberEntryStatusIcon from './memberentry/MemberEntryStatusIcon.vue'
@@ -12,6 +12,7 @@ import MemberEntryActions from './memberentry/MemberEntryActions.vue'
 import MemberEntryStatusButtons from './memberentry/MemberEntryStatusButtons.vue'
 import MemberEntryReadonlyTimes from './memberentry/MemberEntryReadonlyTimes.vue'
 import MemberCheckNotes from './MemberCheckNotes.vue'
+import {actionCount, hasAnything, hasBirthday} from './memberNotes'
 import type {AttendanceEntry, AttendanceStatus, MemberNotes} from '@/api/attendance'
 import type {StationMember} from '@/api/types'
 
@@ -26,7 +27,7 @@ const props = defineProps<{
   sessionEnd?: string
   spansDays?: boolean
   notes?: MemberNotes
-  canMoveSwap?: boolean
+  canManageSwap?: boolean
   canSignOffFound?: boolean
 }>()
 
@@ -34,6 +35,7 @@ const emit = defineEmits<{
   setStatus: [entryId: number, status: AttendanceStatus]
   enter: [memberId: number, status: AttendanceStatus]
   moveSwap: [movementId: number, stepId: number, replacementItemId: number | null]
+  dropSwap: [movementId: number]
   signOffFound: [itemId: number]
   checkIn: [entryId: number, time: string]
   checkOut: [entryId: number, time: string]
@@ -48,6 +50,19 @@ const emit = defineEmits<{
 const hadJoined = computed(() => {
   if (!props.member.joinDate || !props.sessionStart) return true
   return props.member.joinDate <= props.sessionStart.slice(0, 10)
+})
+
+/** What is outstanding is folded behind its count, so a station of forty stays a sheet of names. */
+const showingNotes = ref(false)
+const anyNotes = computed(() => hasAnything(props.notes))
+const birthday = computed(() => hasBirthday(props.notes))
+
+/** Nothing to settle leaves the line saying only that there is something to read, which is the birthday. */
+const notesLabel = computed(() => {
+  const count = actionCount(props.notes)
+  if (count === 0) return t('checkNotes.openNone')
+  if (count === 1) return t('checkNotes.openOne')
+  return t('checkNotes.openMany', {count})
 })
 </script>
 
@@ -93,12 +108,27 @@ const hadJoined = computed(() => {
         {{ hadJoined ? t('attendanceSession.noEntry') : t('attendanceSession.beforeJoining') }}
       </span>
     </div>
+    <button
+        v-if="anyNotes"
+        :aria-expanded="showingNotes"
+        class="mt-2 flex items-center gap-2 text-xs text-(--text-muted) hover:text-(--text)"
+        data-testid="member-notes-toggle"
+        type="button"
+        @click="showingNotes = !showingNotes"
+    >
+      <font-awesome-icon :icon="['fas', showingNotes ? 'chevron-down' : 'chevron-right']"/>
+      <span>{{ notesLabel }}</span>
+      <font-awesome-icon v-if="birthday" :icon="['fas', 'cake-candles']" class="text-primary"/>
+    </button>
+
     <MemberCheckNotes
+        v-if="anyNotes && showingNotes"
         :notes="notes"
-        :can-move-swap="canMoveSwap"
+        :can-manage-swap="canManageSwap"
         :can-sign-off-found="canSignOffFound"
         class="mt-2"
         @move-swap="(movementId, stepId, replacementItemId) => emit('moveSwap', movementId, stepId, replacementItemId)"
+        @drop-swap="(movementId) => emit('dropSwap', movementId)"
         @sign-off-found="(itemId) => emit('signOffFound', itemId)"
     />
   </div>

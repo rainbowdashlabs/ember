@@ -135,6 +135,10 @@ services:
       DB_DATABASE: ember
       DB_SCHEMA: ember_schema
       DEMO_DEV: "true"
+      # A session per login rather than one per account. The dev default answers with the account's
+      # address as its token, so signing the same person in twice takes the first row over and takes
+      # that session's freshness with it: four workers acting as one person signed each other out.
+      DEMO_STABLESESSIONTOKENS: "false"
       # Never the public demo, whatever the shared config file says. That mode blocks the very
       # actions several stories walk through - a station application, a public waiting-list
       # registration, lending across stations - and turns the login page into an account picker,
@@ -218,6 +222,10 @@ services:
       # sees none of the first instance's tables.
       DB_SCHEMA: ember_peer_schema
       DEMO_DEV: "true"
+      # A session per login rather than one per account. The dev default answers with the account's
+      # address as its token, so signing the same person in twice takes the first row over and takes
+      # that session's freshness with it: four workers acting as one person signed each other out.
+      DEMO_STABLESESSIONTOKENS: "false"
       DEMO_ENABLED: "false"
       STORAGE_CREDENTIALENCRYPTIONKEY: "ZTJlLXN0YWNrLW9ubHkta2V5LW5vdC1hLXNlY3JldCE="
       FEDERATION_ALLOWPRIVATEHOSTS: "true"

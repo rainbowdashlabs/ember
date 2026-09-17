@@ -6,6 +6,8 @@
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
 import type {MovementPurposeName, StepActorName} from './movements'
+import type {StationUserTypeName} from './types'
+
 export interface AttendanceTemplate {
     id: number
     stationId: string
@@ -71,6 +73,17 @@ export interface SessionRequest {
     eventId?: number | null
     title?: string
     countedMinutes?: number | null
+    /** Whom to enter on this one sheet, left out where the template's own groups decide. */
+    audience?: SessionAudience
+}
+
+/**
+ * Who stands on one sheet, where the template it borrows its fields from is not the answer. The two
+ * add up, and the groups keep the order they were chosen in, which the sheet is then written in.
+ */
+export interface SessionAudience {
+    userTypes: StationUserTypeName[]
+    groupIds: number[]
 }
 
 export interface AttendanceSessionField {
@@ -143,6 +156,13 @@ const templateFields = createScopedCrudResource<
 
 export const listTemplates = templates.list
 export const getTemplate = templates.get
+
+/** Every template of the station with its fields and its groups, in one call rather than one a tile. */
+export async function listTemplateDetails(): Promise<TemplateDetail[]> {
+    const res = await client.get<TemplateDetail[]>('/attendance/templates/detail')
+    return res.data
+}
+
 export const createTemplate = templates.create
 export const updateTemplate = templates.update
 export const deleteTemplate = templates.remove

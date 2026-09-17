@@ -7,6 +7,8 @@ import {request, type FullConfig} from '@playwright/test'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {dirname} from 'node:path'
 import {instanceAdmin, stationPeers, storageStatePath} from './fixtures/auth'
+import {castPath} from './fixtures/cast'
+import {settleCast} from './fixtures/casting'
 import {peerBaseUrl, waitForInstance} from './fixtures/peer'
 
 /**
@@ -20,7 +22,12 @@ import {peerBaseUrl, waitForInstance} from './fixtures/peer'
  * The stored state marks the introductory tour as seen: its bar is fixed to the bottom of the
  * window and swallows clicks meant for anything anchored there.
  */
-async function saveSession(baseURL: string, email: string, stationId: string | undefined, role: string) {
+async function saveSession(
+    baseURL: string,
+    email: string,
+    stationId: string | undefined,
+    role: string,
+): Promise<string> {
     const context = await request.newContext({baseURL})
     try {
         const login = await context.post('/api/v1/demo/login', {data: {email}})
@@ -41,6 +48,7 @@ async function saveSession(baseURL: string, email: string, stationId: string | u
                 ],
             }],
         }, null, 2))
+        return token as string
     } finally {
         await context.dispose()
     }
@@ -92,9 +100,41 @@ export default async function globalSetup(config: FullConfig) {
 
     const context = await request.newContext({baseURL})
     const {manager, member} = await stationPeers(context)
-    const admin = await instanceAdmin(context).finally(() => context.dispose())
+    const admin = await instanceAdmin(context)
 
-    await saveSession(baseURL, manager.email, manager.stationId, 'manager')
+    const managerToken = await saveSession(baseURL, manager.email, manager.stationId, 'manager')
     await saveSession(baseURL, member.email, member.stationId, 'member')
     await saveSession(baseURL, admin.email, admin.stationId, 'admin')
+
+    // Cast now, while the seeded people still carry the addresses they were seeded with and no
+    // story has edited anybody. What is written down is ids, which nothing rewrites.
+    const managers = await request.newContext({
+        baseURL,
+        extraHTTPHeaders: {
+            Authorization: `Bearer ${managerToken}`,
+            ...(manager.stationId ? {'X-Station-Id': manager.stationId} : {}),
+        },
+    })
+    /** A context signed in as whoever is named, for the listings only that person may read. */
+    const asAccount = async (email: string, stationId?: string) => {
+        const login = await context.post('/api/v1/demo/login', {data: {email}})
+        if (!login.ok()) throw new Error(`Demo login for ${email} answered ${login.status()} while casting`)
+        const {token} = await login.json()
+        return request.newContext({
+            baseURL,
+            extraHTTPHeaders: {
+                Authorization: `Bearer ${token}`,
+                ...(stationId ? {'X-Station-Id': stationId} : {}),
+            },
+        })
+    }
+
+    try {
+        const cast = await settleCast(context, managers, asAccount)
+        await mkdir(dirname(castPath()), {recursive: true})
+        await writeFile(castPath(), JSON.stringify(cast, null, 2))
+    } finally {
+        await managers.dispose()
+        await context.dispose()
+    }
 }

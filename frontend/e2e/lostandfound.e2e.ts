@@ -9,6 +9,8 @@ import {test, expect, apiHeaders, demoAccounts, otherStationManager, pageAsThrow
 import {sidebarEntry} from './fixtures/sidebar'
 import {unique} from './fixtures/unique'
 import {pickMemberByName} from './fixtures/memberMenu'
+import {must} from './fixtures/must'
+import {cast} from './fixtures/cast'
 
 /**
  * The lost and found, end to end: reporting a find, giving it a picture, claiming it, taking that
@@ -96,7 +98,7 @@ async function reportWithoutPicture(page: Page, description: string): Promise<nu
  * another station would be signed in at a lost and found that never sees the find this story files.
  */
 async function guardianOfTheStation(request: APIRequestContext): Promise<DemoAccount> {
-    const {manager} = await stationPeers(request)
+    const manager = (await cast()).manager
     const accounts = await demoAccounts(request)
     const guardian = accounts.find(account => !!account.email
         && account.stationId === manager.stationId
@@ -355,7 +357,7 @@ test.describe('Lost and found', () => {
      * entry; everybody else sees what is still free and what they claimed themselves.
      */
     test('an ordinary member sees only what is free and what is theirs', async ({browser, request, managerPage}) => {
-        const {member} = await stationPeers(request)
+        const member = (await cast()).member
         const memberPage = await pageAsThrowaway(browser, request, [], member)
         const mine = unique('Fundstueck-Meins-Sicht')
         const theirs = unique('Fundstueck-Fremd')
@@ -431,7 +433,7 @@ test.describe('Lost and found', () => {
      * else: not the entry, not its picture, and neither by claiming it nor by giving it a picture.
      */
     test('a find of another station cannot be reached through its number', async ({browser, request, managerPage}) => {
-        const {manager} = await stationPeers(request)
+        const manager = (await cast()).manager
         const other = await otherStationManager(request, manager.stationId, manager.email)
         const otherPage = await pageAsThrowaway(browser, request, [], other)
 
@@ -468,7 +470,7 @@ test.describe('Lost and found', () => {
      */
     test('reporting and claiming tell the right people, and the notice leads to a page',
         async ({browser, request, managerPage}) => {
-            const {member} = await stationPeers(request)
+            const member = (await cast()).member
             const memberPage = await pageAsThrowaway(browser, request, [], member)
             const followed = unique('Fundstueck-Nachricht')
             const claimedItem = unique('Fundstueck-Beansprucht')
@@ -510,7 +512,7 @@ test.describe('Lost and found', () => {
      * entry that no longer exists.
      */
     test('handing a find over withdraws the notices about it', async ({browser, request, managerPage}) => {
-        const {member} = await stationPeers(request)
+        const member = (await cast()).member
         const memberPage = await pageAsThrowaway(browser, request, [], member)
         const item = unique('Fundstueck-Aufgeraeumt')
 
@@ -569,13 +571,13 @@ async function noticeNow(page: Page, type: string, itemId: number) {
  * moment a call returns is asking too early. Reading once made this a race the suite lost every so
  * often, and a notice that is merely late is not the failure any of these stories is about.
  */
-async function notices(page: Page, type: string, itemId: number) {
-    let found: unknown
+async function notices(page: Page, type: string, itemId: number): Promise<{link: {route: string}}> {
+    let found: {link: {route: string}} | undefined
     await expect(async () => {
         found = await noticeNow(page, type, itemId)
         expect(found, 'the notice has arrived').toBeTruthy()
     }).toPass({timeout: 15000})
-    return found
+    return must(found, `a ${type} notice for item ${itemId}`)
 }
 
 /**

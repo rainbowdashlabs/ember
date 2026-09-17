@@ -26,12 +26,29 @@ public class Demo {
     @Overwrite(env = @Env)
     private boolean federationForceHttp = false;
 
+    @Overwrite(env = @Env)
+    private boolean stableSessionTokens = true;
+
     public boolean enabled() {
         return enabled;
     }
 
     public boolean dev() {
         return dev;
+    }
+
+    /**
+     * Whether a dev or demo login answers with the account's own address as its token, keeping one
+     * session per account.
+     *
+     * <p>On for the demo, where a link that signs somebody in has to survive a restart, and where
+     * one person is one browser. Off for anything driving several browsers as the same person at
+     * once: with it on, a second login takes the first one's row over rather than standing beside
+     * it, and it takes the freshness of that session with it. Switch it off and a dev instance
+     * mints a token per login and keeps a row per session, the way a real one does.
+     */
+    public boolean stableSessionTokens() {
+        return stableSessionTokens;
     }
 
     /**

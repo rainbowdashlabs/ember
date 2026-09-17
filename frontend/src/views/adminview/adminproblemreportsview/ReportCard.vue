@@ -13,6 +13,8 @@ import ReportCardHeader from '@/components/problem/ReportCardHeader.vue'
 import ReportMetadata from './ReportMetadata.vue'
 import RecentRequestsTable from '@/components/problem/RecentRequestsTable.vue'
 import AuthImage from '@/components/display/AuthImage.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import type {ProblemReport} from '@/api/problemReports'
 import type {RequestHistoryEntry} from '@/api/client'
 
@@ -21,6 +23,14 @@ const props = defineProps<{
   expanded: boolean
   /** Whether this instance reports to a beacon at all, which is what makes passing one on possible. */
   canForward: boolean
+  /**
+   * Whether this one has gone to the beacon, is waiting for somebody here to send it, or neither.
+   *
+   * <p>A report carrying a picture waits where the operator asked to see pictures before they leave,
+   * and a waiting one used to look exactly like one that had gone. That is how a report being held
+   * reads as a report being lost.
+   */
+  forwardState?: 'sent' | 'held' | null
 }>()
 
 const emit = defineEmits<{
@@ -54,6 +64,12 @@ const recentRequests = computed<RequestHistoryEntry[]>(() => {
         @click="emit('toggle', report.id)"
     >
       <template #actions>
+        <InfoBadge v-if="forwardState === 'held'" data-testid="problem-report-held">
+          {{ t('problemReport.heldForReview') }}
+        </InfoBadge>
+        <SuccessBadge v-else-if="forwardState === 'sent'" data-testid="problem-report-sent">
+          {{ t('problemReport.forwarded') }}
+        </SuccessBadge>
         <IconButton v-if="canForward" :icon="['fas', 'tower-broadcast']" :label="t('problemReport.forward')"
                     data-testid="problem-report-forward" @click.stop="emit('forward', report.id)"/>
         <IconButton v-if="!report.acknowledged" :icon="['fas', 'check']" :label="t('problemReport.acknowledge')"

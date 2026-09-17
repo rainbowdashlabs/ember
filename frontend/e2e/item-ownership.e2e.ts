@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders, accountWithout, pageAsThrowaway} from './fixtures/auth'
+import {cast} from './fixtures/cast'
 
 /**
  * Who owns a piece of gear, which is a different question from who has it.
@@ -112,7 +113,7 @@ test.describe('Item ownership', () => {
      * is a separate right from recording what the station bought.
      */
     test('recording gear the station does not own needs its own right', async ({browser, request}) => {
-        const account = await accountWithout(request, 'MEMBER', 'INVENTORY_CREATE_EXTERNAL', 'STATION_ADMINISTRATOR')
+        const account = (await cast()).plainMember
         const page = await pageAsThrowaway(browser, request, [], account)
         const headers = await apiHeaders(page)
 

@@ -4,11 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 // @vitest-environment happy-dom
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
 import {mount} from '@vue/test-utils'
 import {createI18n} from 'vue-i18n'
 import MovementActionPanel from './MovementActionPanel.vue'
 import type {MovementStep} from '@/api/movements'
+
+const held = {inventoryRead: true}
+
+vi.mock('@/composables/useSession', () => ({
+    useSession: () => ({hasPermission: () => held.inventoryRead}),
+}))
 
 /**
  * What the panel asks the picker for when a step wants to know which piece arrived.
@@ -74,5 +80,20 @@ describe('MovementActionPanel', () => {
         const wrapper = panel()
 
         expect(wrapper.find('[data-testid="movement-acknowledge"]').text()).toBe('Ersatz bereit')
+    })
+
+    /**
+     * The picker asks for every piece the station keeps and everybody it has, so somebody who may
+     * not read the shelf got four refusals and a form they could not fill in.
+     */
+    it('draws no picker for somebody who may not read the shelf', () => {
+        held.inventoryRead = false
+        try {
+            const wrapper = panel()
+
+            expect(wrapper.findComponent({name: 'ItemSearchPicker'}).exists()).toBe(false)
+        } finally {
+            held.inventoryRead = true
+        }
     })
 })

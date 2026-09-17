@@ -4,8 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {createHmac} from 'node:crypto'
+import {cast, type CastMember} from './cast'
 import {readFile} from 'node:fs/promises'
 import {MADE_BY_A_STORY} from './cluster'
+import {removeMade} from './createdMembers'
 import {test as base, type APIRequestContext, type Browser, type Page} from '@playwright/test'
 
 /**
@@ -129,24 +131,29 @@ export function storageStatePath(role: string): string {
 }
 
 /**
- * The identity a role was pinned to at global setup, read back from its stored session.
+ * The identity a role was cast as at global setup.
  *
- * Asked from the file rather than recomputed, because the discovery that picked it is not stable
+ * <p>Asked of the cast rather than recomputed, because the discovery that picked it is not stable
  * across a run: stories create stations, and one made by importing a transfer holds the very same
- * accounts as the seeded one. A story that recomputed would drift to whichever station the
- * response lists first at that moment. The dev instance issues the account's address as its
- * session token, which is what makes the file carry the identity at all.
+ * accounts as the seeded one. A story that recomputed would drift to whichever station the response
+ * lists first at that moment.
+ *
+ * <p>Read from the cast and not from the stored session, which used to carry the address because a
+ * dev instance answered with it as the token. An instance that mints a token per login, which is
+ * what anything driving several browsers as one person needs, carries no identity in its token at
+ * all.
  */
-export async function pinnedRole(role: 'manager' | 'member' | 'admin'): Promise<{email: string; stationId?: string}> {
-    const state = JSON.parse(await readFile(storageStatePath(role), 'utf-8')) as {
-        origins?: {localStorage?: {name: string; value: string}[]}[]
-    }
-    const entries = state.origins?.[0]?.localStorage ?? []
-    const value = (name: string) => entries.find(entry => entry.name === name)?.value
-    const email = value('session_token')
-    if (!email || !email.includes('@')) throw new Error(`The ${role} storage state holds no dev session token`)
-    return {email, stationId: value('station_id')}
+export async function pinnedRole(role: 'manager' | 'member' | 'admin'): Promise<CastMember> {
+    return (await cast())[role]
 }
+
+/**
+ * Re-exported so a spec can name a page without reaching past the fixtures for the type.
+ *
+ * <p>Ten of them already imported it from here, which type-checked as nothing until the suite was
+ * type-checked at all.
+ */
+export type {Page} from '@playwright/test'
 
 /** The one password every seeded account shares. */
 export const DEMO_PASSWORD = 'demo'
@@ -332,7 +339,8 @@ export async function pageAsThrowaway(
     browser: Browser,
     request: APIRequestContext,
     taken: string[],
-    named?: DemoAccount,
+    /** Whoever the story was cast as. Only the way in is needed, so a cast member will do. */
+    named?: {email: string; stationId?: string},
 ): Promise<Page> {
     const accounts = await demoAccounts(request)
     // An address is what the login goes by, and a station holds members who never sign in: somebody
@@ -644,6 +652,13 @@ export async function clusterGearManagerPage(browser: Browser, request: APIReque
 }
 
 interface Fixtures {
+    /**
+     * Takes away the people a story made, once it has finished with them.
+     *
+     * <p>Nothing asks for this one: it runs for every story, because the stories that make somebody
+     * are exactly the ones that would not think to clear them away. See {@code createdMembers}.
+     */
+    tidyUp: void
     managerPage: Page
     memberPage: Page
     adminPage: Page
@@ -657,6 +672,11 @@ interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
+    tidyUp: [async ({request}, use) => {
+        await use()
+        await removeMade(request)
+    }, {auto: true}],
+
     managerPage: async ({browser}, use) => {
         const page = await pageAs(browser, 'manager')
         await use(page)

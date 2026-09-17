@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
+import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
@@ -22,6 +23,7 @@ import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -257,6 +259,21 @@ public class AttendanceService {
      */
     public AttendanceSession createSession(
             int templateId, Instant startTime, Instant endTime, Integer eventId, String title, Integer countedMinutes) {
+        return createSession(templateId, startTime, endTime, eventId, title, countedMinutes, null);
+    }
+
+    /**
+     * @param audience whom to enter instead of the template's own groups, null or naming nobody
+     *     where the template decides as it always has
+     */
+    public AttendanceSession createSession(
+            int templateId,
+            Instant startTime,
+            Instant endTime,
+            Integer eventId,
+            String title,
+            Integer countedMinutes,
+            SessionAudience audience) {
         requireUsableSpan(startTime, endTime);
         requireUsableCountedMinutes(countedMinutes);
         if (eventId != null) {
@@ -335,7 +352,7 @@ public class AttendanceService {
         // The appointment's own answers stand above the defaults the sheet and the appointment carry
         if (eventId != null) takeEventFieldValues(session.id(), eventId, false);
 
-        enterExpectedMembers(session.id(), expectedMembers(templateId), new HashSet<>());
+        enterExpectedMembers(session.id(), expectedFor(templateId, audience), new HashSet<>());
         enterMembersNamedInAutoAttendFields(session.id(), templateId);
 
         return session;
@@ -416,6 +433,42 @@ public class AttendanceService {
             for (var member : memberGroupRepository.findMembers(group.groupId())) {
                 if (!member.former()) expected.add(member.id());
             }
+        }
+        return expected;
+    }
+
+    /** Whom a new sheet expects: what it was told, or its template's groups when it was told nothing. */
+    private Set<Integer> expectedFor(int templateId, SessionAudience audience) {
+        if (audience == null || audience.namesNobody()) return expectedMembers(templateId);
+        return attendanceRepository
+                .findTemplateById(templateId)
+                .map(template -> chosenMembers(template.stationId(), audience))
+                .orElseGet(() -> expectedMembers(templateId));
+    }
+
+    /**
+     * Whom a sheet was told to expect. The two answers add up and name nobody twice, groups first so
+     * that the entries read like a template's. A group of another station is dropped rather than
+     * refused, since a sheet is not the place to say what another station keeps.
+     *
+     * @param stationId the station the sheet belongs to, which bounds both answers
+     * @param audience  the types and groups chosen for this one sheet
+     * @return the members the two answers name, without those who have left
+     */
+    private Set<Integer> chosenMembers(int stationId, SessionAudience audience) {
+        Set<Integer> ofThisStation = memberGroupRepository.findByStation(stationId).stream()
+                .map(MemberGroup::id)
+                .collect(Collectors.toSet());
+        Set<Integer> expected = new LinkedHashSet<>();
+        for (int groupId : audience.groupIds()) {
+            if (!ofThisStation.contains(groupId)) continue;
+            for (var member : memberGroupRepository.findMembers(groupId)) {
+                if (!member.former()) expected.add(member.id());
+            }
+        }
+        if (audience.userTypes().isEmpty()) return expected;
+        for (var member : stationMemberRepository.findByStation(stationId)) {
+            if (!member.former() && audience.userTypes().contains(member.userType())) expected.add(member.id());
         }
         return expected;
     }

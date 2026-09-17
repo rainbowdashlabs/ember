@@ -1055,7 +1055,8 @@ public class AuthService {
 
         // In dev/demo mode the token is derived from the account so sessions survive a restart. Keeping
         // it is what makes that work, and rotating the row onto the same token still moves the expiry.
-        boolean stableToken = demo.dev() || demo.enabled();
+        // Where that is switched off the token was random to begin with, so it rotates like any other.
+        boolean stableToken = (demo.dev() || demo.enabled()) && demo.stableSessionTokens();
         String newToken = stableToken ? token : generateToken();
         Instant expiresAt = stableToken
                 ? Instant.now().plus(365, ChronoUnit.DAYS)
@@ -1475,11 +1476,16 @@ public class AuthService {
             Instant twoFactorVerifiedAt,
             Integer deviceTrustId,
             boolean trustedDevice) {
-        if (demo.dev() || demo.enabled()) {
+        if ((demo.dev() || demo.enabled()) && demo.stableSessionTokens()) {
             // In dev/demo mode, use the email as a stable session token so sessions survive restarts.
             // Signing the same account in twice therefore writes the same token twice, so the row is
             // taken over rather than deleted and written again: two logins arriving together used to
             // race, and the one that lost was answered as a server error.
+            //
+            // One row per account is the price, and it is only worth paying where one person is one
+            // browser. Anything signing in as the same person from several places at once wants a
+            // row apiece, because taking the row over takes that session's freshness with it and
+            // signs the other place out. Such an instance switches this off.
             String stableToken =
                     accountRepository.findById(accountId).map(Account::email).orElseGet(this::generateToken);
             Instant stableExpiry = Instant.now().plus(365, ChronoUnit.DAYS);

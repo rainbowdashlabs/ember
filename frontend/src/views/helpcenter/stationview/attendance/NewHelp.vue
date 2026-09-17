@@ -46,22 +46,55 @@ const {t} = useI18n()
     <SectionHeader>{{ t('attendanceNew.fromTemplate') }}</SectionHeader>
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <NeutralContainer clickable>
-        <div class="flex items-center justify-between">
-          <span class="font-medium">Übungsabend</span>
-          <PrimaryButton :icon="['fas', 'plus']">
-            {{ t('attendanceNew.create') }}
-          </PrimaryButton>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-medium">Übungsabend</span>
+            <PrimaryButton :icon="['fas', 'plus']">
+              {{ t('attendanceNew.create') }}
+            </PrimaryButton>
+          </div>
+          <p class="text-sm text-(--text-muted)">{{ t('attendanceNew.entersGroups', {groups: 'Aktive'}) }}</p>
+          <p class="text-sm text-(--text-muted)">{{ t('attendanceNew.asksFor', {fields: 'Thema, Ort'}) }}</p>
         </div>
       </NeutralContainer>
       <NeutralContainer clickable>
-        <div class="flex items-center justify-between">
-          <span class="font-medium">Jugenddienst</span>
-          <PrimaryButton :icon="['fas', 'plus']">
-            {{ t('attendanceNew.create') }}
-          </PrimaryButton>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-medium">Jugenddienst</span>
+            <PrimaryButton :icon="['fas', 'plus']">
+              {{ t('attendanceNew.create') }}
+            </PrimaryButton>
+          </div>
+          <p class="text-sm text-(--text-muted)">{{ t('attendanceNew.entersGroups', {groups: 'Jugend'}) }}</p>
+          <p class="text-sm text-(--text-muted)">{{ t('attendanceNew.asksNothing') }}</p>
         </div>
       </NeutralContainer>
     </div>
+
+    <HelpSection :title="t('helpCenter.attendanceNew.whatATileSaysTitle')">
+      <p>{{ t('helpCenter.attendanceNew.whatATileSaysText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.attendanceNew.emptyTitle')">
+      <p>{{ t('helpCenter.attendanceNew.emptyText') }}</p>
+    </HelpSection>
+
+    <SectionHeader>{{ t('attendanceNew.withoutTemplate') }}</SectionHeader>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <NeutralContainer clickable>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-medium">{{ t('attendanceNew.emptyTitle') }}</span>
+            <PrimaryButton :icon="['fas', 'plus']">{{ t('attendanceNew.create') }}</PrimaryButton>
+          </div>
+          <p class="text-sm text-(--text-muted)">{{ t('attendanceNew.emptyHint') }}</p>
+        </div>
+      </NeutralContainer>
+    </div>
+
+    <HelpSection :title="t('helpCenter.attendanceNew.audienceTitle')">
+      <p>{{ t('helpCenter.attendanceNew.audienceText') }}</p>
+    </HelpSection>
 
     <HelpSection :title="t('helpCenter.attendanceNew.timesTitle')">
       <p>{{ t('helpCenter.attendanceNew.timesText') }}</p>

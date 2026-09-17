@@ -72,6 +72,18 @@ e2e_environment() {
     export E2E_PEER_URL="http://localhost:$EMBER_E2E_PEER_PORT"
 }
 
+# The compose files the e2e profile is brought up from. With E2E_PREBUILT set, the backend comes from
+# a distribution `./gradlew installDist` has already built rather than being compiled again inside
+# its container, which is what a runner wants and a developer with warm caches does not.
+# Playwright's own webServer reads the same variable, so the two cannot disagree.
+e2e_compose_files() {
+    if [ -n "${E2E_PREBUILT:-}" ]; then
+        printf -- "-f compose.dev.yaml -f compose.e2e-prebuilt.yaml"
+    else
+        printf -- "-f compose.dev.yaml"
+    fi
+}
+
 # Runs a command inside the project's direnv/nix environment, falling back to running it
 # directly when direnv is not installed so the script still works on a plain checkout.
 run() {
@@ -288,7 +300,12 @@ case "$cmd" in
         fe; NODE_OPTIONS="$NODE_HEAP" run npm run build
         ;;
     fe-format)     cd "$ROOT"; run ./gradlew formatFrontend "$@" ;;
-    fe-typecheck)  fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi typecheck ;;
+    fe-typecheck)
+        # Two of them: the application through Nuxt, and the stories, which its tsconfig never
+        # included. A missing import in a spec used to type-check clean and fail only when it ran.
+        fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi typecheck
+        fe; run npx tsc -p tsconfig.e2e.json
+        ;;
     fe-audit)      fe; NODE_OPTIONS="$NODE_HEAP" run npm run lint:audit ;;
     fe-help-index)
         fe; run node scripts/generate-help-index.mjs
@@ -368,10 +385,10 @@ case "$cmd" in
         # it restarts is this checkout's own.
         project="${1:-chromium}"; shift || true
         cd "$ROOT/docker"
-        run docker compose -f compose.dev.yaml --profile e2e down
+        run docker compose $(e2e_compose_files) --profile e2e down
         run docker volume rm -f "${COMPOSE_PROJECT_NAME:-docker}_ember-e2e-data"
         run bash e2e-pull.sh
-        run docker compose -f compose.dev.yaml --profile e2e up -d --build --force-recreate
+        run docker compose $(e2e_compose_files) --profile e2e up -d --build --force-recreate
         fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
         # Whatever follows the project goes in front of --project: a bare argument after it is read
         # as a second project name rather than as the spec to run.
@@ -432,7 +449,7 @@ case "$cmd" in
         ;;
     docker-e2e)
         cd "$ROOT/docker"; run bash e2e-pull.sh
-        run docker compose -f compose.dev.yaml --profile e2e up -d --build "$@"
+        run docker compose $(e2e_compose_files) --profile e2e up -d --build "$@"
         ;;
     docker-e2e-down)
         # -v is allowed again. It was refused while the development and the end-to-end stack were one
@@ -440,14 +457,14 @@ case "$cmd" in
         # object storage, the SMB share, the gradle caches - and somebody lost a session's work to
         # it. The end-to-end stack is a project of its own per checkout now, and a project's volumes
         # are prefixed with its name, so the only ones this can reach are the ones it made.
-        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile e2e down "$@"
+        cd "$ROOT/docker"; run docker compose $(e2e_compose_files) --profile e2e down "$@"
         ;;
     docker-e2e-reset)
         # A stack built from one branch will not start against a database another branch has already
         # migrated further: it reports that the version is ahead and stops. The database is the only
         # thing worth throwing away for that, so this takes it and leaves every other volume alone.
         cd "$ROOT/docker"
-        run docker compose -f compose.dev.yaml --profile e2e down
+        run docker compose $(e2e_compose_files) --profile e2e down
         run docker volume rm -f "${COMPOSE_PROJECT_NAME:-docker}_ember-e2e-data"
         ;;
     docker-e2e-restart)
@@ -455,7 +472,7 @@ case "$cmd" in
         # that one is still running the sources as they were when it started.
         cd "$ROOT/docker"
         run bash e2e-pull.sh
-        run docker compose -f compose.dev.yaml --profile e2e up -d --build --force-recreate "$@"
+        run docker compose $(e2e_compose_files) --profile e2e up -d --build --force-recreate "$@"
         ;;
     docker-app-restart)
         # An up rather than a restart, because `docker compose restart` takes no --build: it starts
@@ -494,7 +511,7 @@ case "$cmd" in
         done
         ;;
     docker-e2e-logs)
-        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile e2e logs -f "$@"
+        cd "$ROOT/docker"; run docker compose $(e2e_compose_files) --profile e2e logs -f "$@"
         ;;
     docker-app-logs)
         cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile full logs -f "$@"

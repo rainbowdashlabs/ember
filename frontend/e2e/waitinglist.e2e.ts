@@ -3,7 +3,26 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders} from './fixtures/auth'
+import {test, expect, apiHeaders, type Page} from './fixtures/auth'
+
+/**
+ * A list of this story's own, for a story that changes the fields of one.
+ *
+ * <p>A list takes one date of birth and no more, so two stories adding one to the seeded
+ * Schnupperstunde at the same time settle it between them: whichever arrives second is refused, and
+ * the column the first went looking for is whatever the other left behind.
+ *
+ * @param page a page signed in as somebody who may keep the waiting lists
+ * @return the id of the new list
+ */
+async function ownList(page: Page): Promise<string> {
+    const created = await page.request.post('/api/v1/waiting-lists', {
+        headers: await apiHeaders(page),
+        data: {name: `Eigene Liste ${Date.now()}-${Math.floor(Math.random() * 10000)}`},
+    })
+    expect(created.ok(), `the story makes a list of its own (${await created.text()})`).toBeTruthy()
+    return String((await created.json()).id)
+}
 
 test.describe('Waiting lists', () => {
     test('the waiting lists of the station are reachable', async ({managerPage: page}) => {
@@ -87,11 +106,7 @@ test.describe('Waiting lists', () => {
      */
     test('a date field becomes the date of birth and the list sorts by it', async ({managerPage: page}) => {
         const fieldName = `Geburtstag-${Date.now()}`
-
-        await page.goto('/station/members/waiting-lists')
-        await page.getByText('Schnupperstunde').first().click()
-        await page.waitForURL(/\/station\/members\/waiting-lists\/(\d+)/)
-        const id = page.url().match(/waiting-lists\/(\d+)/)?.[1]
+        const id = await ownList(page)
 
         await page.goto(`/station/members/waiting-lists/${id}/fields`)
         await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
@@ -102,6 +117,14 @@ test.describe('Waiting lists', () => {
         await page.reload()
         await expect(page.getByText('Geburtsdatum').first()).toBeVisible()
 
+        // Somebody has to be on it, or the list draws the words for an empty one and no columns at
+        // all, which is a table with no headers rather than a table missing one.
+        const entered = await page.request.post(`/api/v1/waiting-lists/${id}/entries`, {
+            headers: await apiHeaders(page),
+            data: {firstname: 'Testperson', lastname: `Wartend-${Date.now()}`},
+        })
+        expect(entered.ok(), `somebody stands on the list (${await entered.text()})`).toBeTruthy()
+
         // The list opens with a column of its own for it, sortable like the rest.
         await page.goto(`/station/members/waiting-lists/${id}`)
         await expect(page.getByRole('columnheader', {name: new RegExp(fieldName)})).toBeVisible()
@@ -111,10 +134,15 @@ test.describe('Waiting lists', () => {
 
     /** One is what makes the age findable without being told where it is; two would be a guess. */
     test('a list takes only one date of birth field', async ({managerPage: page}) => {
-        await page.goto('/station/members/waiting-lists')
-        await page.getByText('Schnupperstunde').first().click()
-        await page.waitForURL(/\/station\/members\/waiting-lists\/(\d+)/)
-        const id = page.url().match(/waiting-lists\/(\d+)/)?.[1]
+        const id = await ownList(page)
+
+        // The first one is put there by this story rather than taken from the seed, so that what the
+        // second one runs into is a field this story knows about and nobody else can take away.
+        const first = await page.request.post(`/api/v1/waiting-lists/${id}/fields`, {
+            headers: await apiHeaders(page),
+            data: {name: `Erstes-${Date.now()}`, fieldType: 'BIRTH_DATE', position: 0, required: false},
+        })
+        expect(first.ok(), `the list has one to begin with (${await first.text()})`).toBeTruthy()
 
         await page.goto(`/station/members/waiting-lists/${id}/fields`)
         await page.getByRole('button', {name: 'Feld hinzufügen'}).click()

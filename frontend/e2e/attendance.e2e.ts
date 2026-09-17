@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {statSync} from 'node:fs'
+import type {Locator} from '@playwright/test'
 import {test, expect, apiHeaders, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
@@ -35,6 +36,24 @@ async function walkUntilTheHandOver(
         if (!answered.ok()) return false
     }
     return false
+}
+
+/**
+ * Opens what stands beside a member's name on the sheet, which a row keeps folded away.
+ *
+ * <p>A station of forty people with a swap each would otherwise turn the sheet into a page of
+ * errands, so a row says only how many there are until it is asked.
+ *
+ * @param page   the sheet
+ * @param rows   the rows to open, or every row that has anything when none is named
+ */
+async function openNotes(page: Page, rows?: Locator) {
+    const toggles = (rows ?? page.locator('body')).getByTestId('member-notes-toggle')
+    await expect(toggles.first(), 'a row says there is something to see').toBeVisible()
+    for (let index = 0; index < (await toggles.count()); index++) {
+        const toggle = toggles.nth(index)
+        if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
+    }
 }
 
 /**
@@ -102,20 +121,28 @@ function asLocalInput(moment: Date): string {
  * ordinary evening is one further click and nothing has to be typed here.
  */
 /**
- * Presses the export, wherever the toolbar is keeping it.
+ * Presses the export, wherever the toolbar is keeping it, until the dialog is actually open.
  *
  * <p>A sheet with names still to check offers the check as its button and puts the export in the
  * menu beside it; a sheet with nothing left to check offers the export itself. A story that opened
  * a sheet a moment ago cannot know which of the two it is looking at.
+ *
+ * <p>Nor is one press enough. The sheet settles after it is first drawn, and the toolbar it drew on
+ * the way is replaced when it does: the press lands on a button that is no longer in the page, and
+ * the story then waits a minute for a dialog nothing opened. Pressing again is the answer, because
+ * which of the two shapes the toolbar has taken is only settled by then.
  */
 async function openExport(page: Page) {
-    const button = page.getByRole('button', {name: 'PDF Export'})
-    if (await button.count() > 0) {
-        await button.first().click()
-        return
-    }
-    await page.getByTestId('session-actions-trigger').click()
-    await page.getByTestId('session-actions').getByText('PDF Export').click()
+    await expect(async () => {
+        const button = page.getByRole('button', {name: 'PDF Export'})
+        if (await button.count() > 0) {
+            await button.first().click({timeout: 5_000})
+        } else {
+            await page.getByTestId('session-actions-trigger').click({timeout: 5_000})
+            await page.getByTestId('session-actions').getByText('PDF Export').click({timeout: 5_000})
+        }
+        await expect(page.getByTestId('export-sheet-modal')).toBeVisible({timeout: 5_000})
+    }).toPass({timeout: 30_000})
 }
 
 async function openSheetFromTemplate(page: Page) {
@@ -125,6 +152,47 @@ async function openSheetFromTemplate(page: Page) {
 }
 
 test.describe('Attendance', () => {
+    /**
+     * A sheet for people no template describes, which is what took the empty template away.
+     *
+     * <p>The story asks for one member type and nothing else, so what lands on the sheet can be
+     * checked against what the station says its members are. A template still lends its fields, and
+     * its own groups must not come with them.
+     */
+    test('a sheet started without a template enters the types and groups it was told', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+
+        await page.goto('/station/attendance/new')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+
+        await page.getByTestId('attendance-start-empty').click()
+        await expect(page.getByTestId('attendance-audience-step')).toBeVisible()
+
+        await page.getByTestId('attendance-type-TEAM').setChecked(true)
+        await page.getByTestId('attendance-audience-confirm').click()
+        await page.getByTestId('new-session-create').click()
+        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+
+        const sessionId = Number(page.url().match(/\/session\/(\d+)/)![1])
+        const detail = await page.request
+            .get(`/api/v1/attendance/sessions/${sessionId}`, {headers})
+            .then(response => response.json())
+        const entered: number[] = (detail.entries ?? []).map((entry: {memberId: number}) => entry.memberId)
+        expect(entered.length, 'the sheet is filled rather than empty').toBeGreaterThan(0)
+
+        const members = await page.request
+            .get('/api/v1/station-members/rich', {headers})
+            .then(response => response.json())
+        const team = new Set(members
+            .filter((member: {userType: string; formerAt: string | null}) => member.userType === 'TEAM')
+            .map((member: {id: number}) => member.id))
+        expect(
+            entered.every(id => team.has(id)),
+            'only the type that was chosen reached the sheet',
+        ).toBeTruthy()
+    })
+
+
     /**
      * Recording who was there is the whole of attendance. The story opens a past session, marks
      * someone present and reloads: a mark that does not survive a reload never reached the server.
@@ -319,8 +387,9 @@ test.describe('Attendance', () => {
         // Scoped to the note of this very swap. The same member may be waiting on several, ours
         // among them, and reaching for the first handover button would just as happily finish
         // somebody else's, which is data another story is standing on.
-        const handOver = page
-            .getByTestId(`member-row-${waiting.memberId}`)
+        const row = page.getByTestId(`member-row-${waiting.memberId}`)
+        await openNotes(page, row)
+        const handOver = row
             .locator(`[data-testid="note-swap"][data-swap="${waiting.id}"]`)
             .getByTestId('note-swap-step')
         await expect(handOver, 'our swap is waiting to be handed over').toBeVisible()
@@ -338,6 +407,50 @@ test.describe('Attendance', () => {
             .then(response => response.json())
         expect(replacement.custody, 'the piece is in the member\'s hands, not merely hidden')
             .toBe('WITH_MEMBER')
+    })
+
+    /**
+     * A swap nobody wants any more is called off from the sheet, with the member standing there to
+     * say so. Nothing has changed hands while it waits there, so there is nothing to put back.
+     */
+    test('a swap that is no longer wanted is called off from the sheet', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+
+        await page.goto('/station/attendance/new')
+        await openSheetFromTemplate(page)
+        const sessionId = Number(page.url().match(/\/session\/(\d+)/)![1])
+
+        const detail = await page.request
+            .get(`/api/v1/attendance/sessions/${sessionId}`, {headers})
+            .then(response => response.json())
+        const waiting = await raiseSwapAwaitingHandover(
+            page,
+            headers,
+            (detail.entries ?? []).map((entry: {memberId: number}) => entry.memberId),
+        )
+        await page.reload()
+
+        const row = page.getByTestId(`member-row-${waiting.memberId}`)
+        await openNotes(page, row)
+        const drop = row
+            .locator(`[data-testid="note-swap"][data-swap="${waiting.id}"]`)
+            .getByTestId('note-swap-drop')
+        await expect(drop, 'our swap can be called off').toBeVisible()
+
+        const dropped = page.waitForResponse(
+            response => response.request().method() === 'DELETE' && response.url().includes('/movements/'),
+        )
+        await drop.click()
+        await page.locator('[data-confirm]').click()
+        expect((await dropped).status()).toBe(204)
+
+        const left = await page.request
+            .get('/api/v1/movements', {headers})
+            .then(response => response.json())
+        expect(
+            left.some((entry: {id: number}) => entry.id === waiting.id),
+            'the swap is gone rather than merely hidden',
+        ).toBe(false)
     })
 
     /**
@@ -369,6 +482,7 @@ test.describe('Attendance', () => {
 
         // Scoped to the note naming the find this story reported. The demo leaves a claimed find of
         // its own that another spec is standing on, and signing that one over would take it away.
+        await openNotes(page)
         const signOff = page
             .getByTestId('note-found')
             .filter({hasText: description})
@@ -408,6 +522,7 @@ test.describe('Attendance', () => {
         )
         await page.reload()
 
+        await openNotes(page)
         await expect(page.getByTestId('member-check-notes').first()).toBeVisible()
         await expect(page.getByTestId('note-swap').first()).toBeVisible()
 

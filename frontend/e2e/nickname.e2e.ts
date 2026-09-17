@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders} from './fixtures/auth'
+import {ownMember} from './fixtures/ownMember'
 
 /**
  * The name a station calls somebody by, and the name on its documents.
@@ -74,22 +75,29 @@ test.describe('A name to be called by', () => {
     })
 
     /**
-     * Somebody who may edit every member still may not decide what one of them is called.
+     * Whoever keeps the station's members may put a name right, including one they did not write.
      *
-     * A nickname another person can impose is how this feature would turn into a way to label
-     * people, so the refusal does not depend on what rights the person holds over members.
+     * A name somebody is unhappy to have been given has to be correctable by the people who run the
+     * place, and refusing them would leave the member with only the person who named them to ask.
+     * What keeps this from becoming a way to label people is not a refusal but a record: who wrote
+     * the name is kept on the row, which is what `nickname_set_by` is for. That record is not read
+     * back by any screen yet, so this story stops where the product does, at the name itself.
      */
-    test('a manager cannot name a member they do not look after', async ({managerPage: page}) => {
+    test('a manager may name a member they do not look after', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
-        const session = await (await page.request.get('/api/v1/session', {headers})).json()
-        const members = await (await page.request.get('/api/v1/station-members/rich', {headers})).json()
-        const somebodyElse = members.find((m: {id: number}) => m.id !== session.member.id)
-        expect(somebodyElse, 'the station has another member').toBeTruthy()
+        // Somebody this story made. A name is read by whoever is asserting one elsewhere, and
+        // putting it back afterwards does not help: the window between is where the other worker
+        // looks, and a story that fails never reaches the putting back at all.
+        const somebodyElse = await ownMember(page, 'Spitzname')
 
-        const refused = await page.request.put(`/api/v1/station-members/${somebodyElse.id}/nickname`, {
+        const named = await page.request.put(`/api/v1/station-members/${somebodyElse.memberId}/nickname`, {
             headers,
-            data: {nickname: 'Zwerg'},
+            data: {nickname: 'Sprosse'},
         })
-        expect(refused.status(), await refused.text()).toBe(403)
+        expect(named.status(), await named.text()).toBe(204)
+
+        const after = (await (await page.request.get('/api/v1/station-members/rich', {headers})).json())
+            .find((m: {id: number}) => m.id === somebodyElse.memberId)
+        expect(after.nickname, 'the name the station now calls them by').toBe('Sprosse')
     })
 })

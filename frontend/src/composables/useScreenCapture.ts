@@ -31,6 +31,44 @@ export function canCaptureScreen(): boolean {
         && typeof navigator.mediaDevices.getDisplayMedia === 'function'
 }
 
+/** What came of asking for a picture, which is not the same question as whether there is one. */
+export interface Capture {
+    picture: HTMLCanvasElement | null
+    /** Whether the person turned the prompt down, as against it going wrong on its own. */
+    refused: boolean
+}
+
+/** How long a frame is waited for before whatever the video already holds is drawn. */
+const FRAME_WAIT = 2000
+
+/**
+ * How long to let the screen settle after sharing begins, before the frame is kept.
+ *
+ * <p>The first frames still have the browser's own sharing prompt in them: it is taken down after
+ * the choice is made rather than before sharing starts, so a picture grabbed the instant a frame is
+ * available is a picture of the prompt. The video goes on receiving frames throughout, so waiting
+ * costs nothing but the wait and what is kept is the screen as it looks once the asking is over.
+ */
+const SETTLE = 700
+
+/**
+ * What is asked for, which is this tab before anything else.
+ *
+ * <p>Both of these are hints and a browser may ignore either, but where they are read they take the
+ * desktop out of the question. Sharing a window or a screen is the operating system's business, and
+ * on Linux that means its own dialog on top of the browser's, which is a great deal of asking for
+ * one picture of one page. Sharing a tab is the browser's business alone, and the tab wanted is
+ * almost always the one the report is being written on.
+ *
+ * <p>Nothing is narrowed by this. Whoever is asked can still pick any window or screen they like:
+ * the prompt is the browser's and says what is being shared, which is what keeps this honest.
+ */
+const WHAT_TO_SHARE: DisplayMediaStreamOptions = {
+    video: {displaySurface: 'browser'},
+    audio: false,
+    preferCurrentTab: true,
+} as DisplayMediaStreamOptions
+
 /**
  * Takes one picture of whatever the person chooses to share, and stops sharing at once.
  *
@@ -38,32 +76,124 @@ export function canCaptureScreen(): boolean {
  * browser says what is being shared, not this code. The track is stopped the moment a frame is
  * held, so nothing goes on watching after the one picture.
  *
- * @return the picture, or null where they refused the prompt or the browser cannot do it
+ * <p>Nothing here waits on an animation frame. A browser stops running those while the page is
+ * hidden, and on Linux the sharing prompt is a window of the desktop rather than of the browser, so
+ * the page is hidden for exactly as long as the person spends choosing. Waiting for a frame that
+ * way is waiting for something that has been switched off, which is why the picture never arrived:
+ * the wait never ended, the prompt was answered, and nothing happened. What is waited for instead
+ * is the video saying it has data, and never for longer than {@link FRAME_WAIT}.
  */
-export async function captureScreen(): Promise<HTMLCanvasElement | null> {
-    if (!canCaptureScreen()) return null
+export async function captureScreen(): Promise<Capture> {
+    if (!canCaptureScreen()) return {picture: null, refused: false}
     let stream: MediaStream | null = null
     try {
-        stream = await navigator.mediaDevices.getDisplayMedia({video: true, audio: false})
+        stream = await navigator.mediaDevices.getDisplayMedia(WHAT_TO_SHARE)
+    } catch (e) {
+        return {picture: null, refused: isRefusal(e)}
+    }
+    try {
         const track = stream.getVideoTracks()[0]
-        if (!track) return null
+        if (!track) return {picture: null, refused: false}
         const video = document.createElement('video')
         video.srcObject = stream
         video.muted = true
-        await video.play()
-        await new Promise(resolve => requestAnimationFrame(resolve))
-        const canvas = document.createElement('canvas')
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
-        canvas.getContext('2d')?.drawImage(video, 0, 0)
+        video.setAttribute('playsinline', 'true')
+        await played(video)
+        await firstFrame(video)
+        await settled()
+        const picture = drawn(video, track)
         video.pause()
         video.srcObject = null
-        return canvas.width > 0 && canvas.height > 0 ? canvas : null
+        return {picture, refused: false}
     } catch {
-        return null
+        return {picture: null, refused: false}
     } finally {
-        stream?.getTracks().forEach(track => track.stop())
+        stream.getTracks().forEach(track => track.stop())
     }
+}
+
+/**
+ * Whether the person said no, rather than something failing.
+ *
+ * <p>Turning a prompt down is an answer and not a fault, so it is told apart here and reported
+ * nowhere: a report that somebody declined to share their screen is noise in the error log of every
+ * instance that has this switched on.
+ */
+function isRefusal(error: unknown): boolean {
+    const name = (error as {name?: string} | null)?.name
+    return name === 'NotAllowedError' || name === 'AbortError'
+}
+
+/**
+ * Starts the video and swallows whatever the attempt rejects with.
+ *
+ * <p>A play that is interrupted rejects with a media abort, which says nothing anybody can act on
+ * and must not escape: left alone it reaches the global handler and is filed as a fault in the
+ * product. Whether a frame actually arrived is answered by looking at the video, not by this.
+ */
+async function played(video: HTMLVideoElement): Promise<void> {
+    try {
+        await video.play()
+    } catch {
+        /* a frame may still arrive; the wait below is what decides */
+    }
+}
+
+/**
+ * Waits until the video holds something to draw, and gives up rather than hanging.
+ *
+ * <p>The frame callback where a browser has one, the loaded event where it does not, and a timeout
+ * behind both, because a wait that can outlast the dialog it belongs to is how this failed before.
+ */
+function firstFrame(video: HTMLVideoElement): Promise<void> {
+    const onFrame = (video as unknown as {requestVideoFrameCallback?: (cb: () => void) => number})
+        .requestVideoFrameCallback
+    return new Promise(resolve => {
+        let done = false
+        const finish = () => {
+            if (done) return
+            done = true
+            resolve()
+        }
+        const timer = setTimeout(finish, FRAME_WAIT)
+        const stop = () => {
+            clearTimeout(timer)
+            finish()
+        }
+        if (video.readyState >= 2) {
+            stop()
+            return
+        }
+        if (typeof onFrame === 'function') {
+            onFrame.call(video, stop)
+            return
+        }
+        video.addEventListener('loadeddata', stop, {once: true})
+    })
+}
+
+/** Lets the sharing prompt finish leaving the screen before the frame that is kept is taken. */
+function settled(): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, SETTLE))
+}
+
+/**
+ * Draws what the video holds, sized by the video where it knows and by the track where it does not.
+ *
+ * <p>A video that has not read its metadata reports no size at all, and a canvas of no size is the
+ * empty picture this used to hand back. The track carries the size of what is being shared whether
+ * or not the video has caught up, so it answers where the video cannot.
+ */
+function drawn(video: HTMLVideoElement, track: MediaStreamTrack): HTMLCanvasElement | null {
+    const settings = track.getSettings()
+    const width = video.videoWidth || settings.width || 0
+    const height = video.videoHeight || settings.height || 0
+    if (width <= 0 || height <= 0) return null
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    canvas.getContext('2d')?.drawImage(video, 0, 0, width, height)
+    return canvas
 }
 
 /** Reads a picture somebody attached themselves, which is the way where sharing is refused. */
