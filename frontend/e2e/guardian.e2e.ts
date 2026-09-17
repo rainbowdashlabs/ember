@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {APIRequestContext, Page} from '@playwright/test'
-import {test, expect, accountWith, apiHeaders, pageAsThrowaway, stationPeers} from './fixtures/auth'
+import {test, expect, accountWith, apiHeaders, pageAsThrowaway} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 import {pickMemberByName} from './fixtures/memberMenu'
 
@@ -51,13 +51,25 @@ async function managedMembers(page: Page): Promise<ManagedMember[]> {
  * they sign in. The seeded guardian happens to look after the very member every other story acts as,
  * so a story writing an address for the first of their children would sign the suite out of half of
  * itself.
+ *
+ * <p>Whom to leave alone is settled by the member id and not by the address, because the address is
+ * the very thing these stories write. Once one of them had run, the shared member no longer carried
+ * the address the pinned account was read under, stopped being recognised here, and was handed the
+ * next address going: every story acting as that member then failed on a session that had been
+ * ended underneath it, none of them anywhere near a guardian.
  */
-async function managedMemberToActOn(page: Page, request: APIRequestContext): Promise<ManagedMember> {
-    const {member} = await stationPeers(request)
+async function managedMemberToActOn(page: Page, sharedMemberId: number): Promise<ManagedMember> {
     const managed = await managedMembers(page)
-    const spare = managed.find(candidate => candidate.email !== member.email)
+    const spare = managed.find(candidate => candidate.id !== sharedMemberId)
     if (!spare) throw new Error('The guardian looks after nobody besides the member the suite signs in as')
     return spare
+}
+
+/** The member every other story is signed in as, by the id that outlives any address written here. */
+async function sharedMemberId(page: Page): Promise<number> {
+    const session = await page.request.get('/api/v1/session', {headers: await apiHeaders(page)})
+    expect(session.ok(), `the shared member is signed in (${await session.text()})`).toBeTruthy()
+    return (await session.json()).member.id
 }
 
 /**
@@ -72,9 +84,9 @@ test.describe('Guardian', () => {
      * The panel is where a parent does this, so the story goes through it rather than through the
      * endpoint: filling the address in and saving it has to leave the address standing afterwards.
      */
-    test('a guardian gives a managed member an address', async ({browser, request}) => {
+    test('a guardian gives a managed member an address', async ({browser, request, memberPage}) => {
         const page = await guardianPage(browser, request)
-        const target = await managedMemberToActOn(page, request)
+        const target = await managedMemberToActOn(page, await sharedMemberId(memberPage))
         const address = `${unique('kind').toLowerCase()}@example.test`
 
         // The child is picked by name, because which of them the story may write to is not a matter
@@ -99,9 +111,9 @@ test.describe('Guardian', () => {
      * Signing in is the second half, and it hangs on the first: without an address there is nowhere
      * to send the invitation, so the switch stays out of reach until one is set.
      */
-    test('signing in can be allowed once there is an address', async ({browser, request}) => {
+    test('signing in can be allowed once there is an address', async ({browser, request, memberPage}) => {
         const page = await guardianPage(browser, request)
-        const memberId = (await managedMemberToActOn(page, request)).id
+        const memberId = (await managedMemberToActOn(page, await sharedMemberId(memberPage))).id
         const headers = await apiHeaders(page)
 
         const cleared = await page.request.put(`/api/v1/managed-members/${memberId}/email`, {
@@ -128,9 +140,9 @@ test.describe('Guardian', () => {
      * reachable at all. The story sets one and then signs in with it, because a name that is stored
      * but does not sign anybody in would prove nothing.
      */
-    test('a member signs in with the name their guardian gave them', async ({browser, request}) => {
+    test('a member signs in with the name their guardian gave them', async ({browser, request, memberPage}) => {
         const page = await guardianPage(browser, request)
-        const memberId = (await managedMemberToActOn(page, request)).id
+        const memberId = (await managedMemberToActOn(page, await sharedMemberId(memberPage))).id
         const headers = await apiHeaders(page)
         const name = unique('kind').toLowerCase()
 
