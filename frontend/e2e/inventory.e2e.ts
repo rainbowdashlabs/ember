@@ -9,6 +9,7 @@ import {pickMemberByName} from './fixtures/memberMenu'
 import {unique} from './fixtures/unique'
 import type {Locator, Page} from '@playwright/test'
 import {must} from './fixtures/must'
+import {cast} from './fixtures/cast'
 
 /**
  * A piece of the station's own gear that belongs to this story alone, and answers with its code.
@@ -159,7 +160,7 @@ test.describe('Inventory', () => {
     test('an item is assigned to a member and handed back', async ({managerPage: page, request}) => {
         const headers = await apiHeaders(page)
         const code = await pieceOfItsOwn(page, headers)
-        const {member} = await stationPeers(request)
+        const member = (await cast()).member
         const name = `${member.firstName} ${member.lastName}`
 
         await page.goto('/station/inventory/assign')

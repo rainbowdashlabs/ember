@@ -5,6 +5,7 @@
  */
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders, accountWithout, pageAsThrowaway} from './fixtures/auth'
+import {cast} from './fixtures/cast'
 
 /**
  * The chains themselves: how a station shapes what a movement walks, and what it may not reshape while
@@ -223,7 +224,7 @@ test.describe('Movement flows', () => {
      * them underneath everybody else.
      */
     test('shaping the chains is closed to somebody who only walks them', async ({browser, request}) => {
-        const account = await accountWithout(request, 'MEMBER', 'INVENTORY_MANAGER', 'STATION_ADMINISTRATOR')
+        const account = (await cast()).plainMember
         const page = await pageAsThrowaway(browser, request, [], account)
         const headers = await apiHeaders(page)
 

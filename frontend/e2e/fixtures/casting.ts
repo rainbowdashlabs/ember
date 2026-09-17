@@ -46,6 +46,8 @@ export async function settleCast(
             accountId: row?.accountId ?? 0,
             memberId: row?.id ?? 0,
             email: account.email,
+            firstName: account.firstName,
+            lastName: account.lastName,
             stationId: account.stationId,
             part: name,
         }
@@ -109,6 +111,27 @@ export async function settleCast(
         throw new Error(`The station seeds ${slotPool.length} spare members; the passkey stories need ${PASSKEY_PARTS}`)
     }
 
+    // Nothing beyond the ordinary, for the stories that prove a refusal. The list is the union of
+    // what those stories ask to be missing, so one person answers for all of them.
+    const NOTHING_BEYOND_THE_ORDINARY = [
+        'STATION_ADMINISTRATOR', 'STATION_MANAGER', 'INVENTORY_EDIT',
+        'INVENTORY_CREATE_EXTERNAL', 'INVENTORY_MANAGER', 'MEMBER_MANAGER', 'MEMBER_NOTES',
+    ]
+    const plainMember = accounts.find(candidate =>
+        ofStation(candidate) && !!candidate.email && candidate.userType === 'MEMBER'
+        && NOTHING_BEYOND_THE_ORDINARY.every(right => !candidate.permissions.includes(right)))
+    if (!plainMember) throw new Error('The station seeds no member free of every management right')
+
+    const plainTeam = accounts.find(candidate =>
+        ofStation(candidate) && !!candidate.email && candidate.userType === 'TEAM'
+        && !candidate.permissions.includes('MEMBER_NOTES')
+        && !candidate.permissions.includes('MEMBER_MANAGER'))
+    if (!plainTeam) throw new Error('The station seeds no team member free of the member rights')
+
+    const administrator = accounts.find(candidate =>
+        !!candidate.email && candidate.permissions.includes('STATION_ADMINISTRATOR'))
+    if (!administrator) throw new Error('No seeded account administers a station')
+
     // Of the second seeded station, so that signing out cannot reach anybody the rest of the run is
     // acting as. The suffix is what tells the two seeds' people apart.
     const loner = accounts.find(candidate =>
@@ -126,5 +149,8 @@ export async function settleCast(
         },
         passkeySlots: slotPool.slice(0, PASSKEY_PARTS),
         logoutLoner: {...part(loner, 'logoutLoner'), memberId: 0},
+        administrator: part(administrator, 'administrator'),
+        plainMember: part(plainMember, 'plainMember'),
+        plainTeam: part(plainTeam, 'plainTeam'),
     }
 }

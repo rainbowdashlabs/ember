@@ -5,7 +5,7 @@
  */
 import type {APIRequestContext, Browser, Page} from '@playwright/test'
 import {test, expect, apiHeaders, demoAccounts, pageAsThrowaway, stationPeers} from './fixtures/auth'
-import {spokenForMemberIds} from './fixtures/cast'
+import {cast, spokenForMemberIds} from './fixtures/cast'
 
 /**
  * A member answering for their own gear, and a checker reading what they said.
@@ -41,12 +41,11 @@ interface Asked {
  * task, so an empty answer is read as "try somebody else" rather than as a failure.
  */
 async function askSomebody(browser: Browser, request: APIRequestContext, manager: Page): Promise<Asked> {
-    const {manager: checker} = await stationPeers(request)
+    const checker = (await cast()).manager
     const candidates = (await demoAccounts(request)).filter(account =>
         !!account.email
         && account.stationId === checker.stationId
-        && account.userType === 'MEMBER'
-        && account.email !== checker.email)
+        && account.userType === 'MEMBER')
     const headers = await apiHeaders(manager)
     // Whoever another story was cast as is left out of this. Handing them a task and answering it
     // writes their gear and their answers, which is what the story acting as them is reading.

@@ -31,6 +31,9 @@ export interface CastMember {
      * this person another one, and then this no longer finds them.
      */
     email: string
+    /** What the screens show them as, which is what a list is searched by. */
+    firstName: string
+    lastName: string
     stationId?: string
     /** What they were cast for, so a failure says which part is missing rather than which id. */
     part: string
@@ -54,6 +57,17 @@ export interface Cast {
     passkeySlots: CastMember[]
     /** Somebody to sign out without taking the suite's own session with it. */
     logoutLoner: CastMember
+    /** Whoever administers the seeded station, for the stories about what only they may see. */
+    administrator: CastMember
+    /**
+     * A member holding nothing beyond the ordinary, and a team member holding no member rights.
+     *
+     * <p>The stories about a refusal need somebody a right is genuinely missing from. They used to
+     * ask for "the first member without it", which is the same person in every worker and a person
+     * some other story may be busy changing.
+     */
+    plainMember: CastMember
+    plainTeam: CastMember
 }
 
 /** Where global setup leaves the cast, beside the sessions it logs in. */

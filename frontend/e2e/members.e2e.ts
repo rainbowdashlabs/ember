@@ -9,6 +9,7 @@ import {unique} from './fixtures/unique'
 import {createMember} from './fixtures/member'
 import {pickMemberByName} from './fixtures/memberMenu'
 import type {Page} from '@playwright/test'
+import {cast} from './fixtures/cast'
 
 /**
  * Puts a question already written down to the station's ordinary members.
@@ -622,7 +623,7 @@ test.describe('Members', () => {
         // The endpoint reports what was granted, not what those grants imply, and the right to manage
         // members carries the right to read notes. Asking only about the note right picks somebody
         // who can read them after all.
-        const helper = await accountWithout(request, 'TEAM', 'MEMBER_NOTES', 'MEMBER_MANAGER')
+        const helper = (await cast()).plainTeam
         const helperPage = await pageAsThrowaway(browser, request, [], helper)
 
         await helperPage.goto(`/station/members/detail/${id}`)

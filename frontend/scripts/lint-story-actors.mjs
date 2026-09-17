@@ -25,16 +25,25 @@ const CATEGORY = 'Story actor'
 const asError = process.argv.includes('--error')
 const E2E = 'e2e'
 
-/** Asking who exists. The fixtures may; a story may not. */
-const DISCOVERY = /\b(demoAccounts|accountWith|accountWithout|stationPeers|instanceAdmin)\s*\(/
+/**
+ * Helpers that hand back a person to act as. The fixtures may ask; a story may not.
+ *
+ * <p>`demoAccounts` is deliberately absent. It answers with the catalogue rather than with somebody,
+ * and a story reading it for a station's name or a count acts as nobody. These four each pick a
+ * person, and a description picks the same person in every worker.
+ */
+const DISCOVERY = /\b(accountWith|accountWithout|stationPeers|instanceAdmin)\s*\(/
 
 /**
- * Comparing an identity by something a story can rewrite.
+ * Comparing who somebody is by something a story can rewrite.
  *
- * <p>Only where an address or a name is on one side of the comparison, so that comparing a label or
- * a status is left alone.
+ * <p>The address and the person's own name, and nothing else. A station's name or an inventory's is
+ * a label rather than an identity, and reporting those taught nobody anything: the first version of
+ * this said sixty-three things, half of which were about labels, and a linter read that way is a
+ * linter nobody reads.
  */
-const MUTABLE_IDENTITY = /\b\w*(?:[eE]mail|[nN]ame)\b\s*(?:!==|===)\s*|\s(?:!==|===)\s*\w*(?:[eE]mail|[nN]ame)\b/
+const MUTABLE_IDENTITY =
+    /(?:^|[^.\w])(?:email|lastName|firstName|username)\s*(?:!==|===)|(?:!==|===)\s*\w+\.(?:email|lastName|firstName|username)\b|\.\s*(?:email|lastName|firstName|username)\s*(?:!==|===)/
 
 function specs(directory) {
     const found = []
@@ -78,3 +87,4 @@ for (const path of specs(E2E)) {
 }
 
 reporter.print()
+reporter.exit()

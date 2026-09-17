@@ -5,6 +5,7 @@
  */
 import {test, expect, apiHeaders, pageAsThrowaway, stationPeers, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {cast} from './fixtures/cast'
 
 /**
  * A file the demo seeder puts in the station library. The stack these stories run against is a
@@ -243,7 +244,7 @@ test.describe('News', () => {
      */
     test('deleting an article withdraws the notice about it and leaves the others standing',
         async ({browser, request, managerPage}) => {
-            const {member} = await stationPeers(request)
+            const member = (await cast()).member
             const memberPage = await pageAsThrowaway(browser, request, [], member)
             const removed = unique('Neuigkeit-Entfernt')
             const kept = unique('Neuigkeit-Geblieben')

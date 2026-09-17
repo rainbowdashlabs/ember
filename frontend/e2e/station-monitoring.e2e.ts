@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, accountWith, demoAccounts, pageAsThrowaway} from './fixtures/auth'
+import {cast} from './fixtures/cast'
 
 test.describe('Station monitoring', () => {
     /**
@@ -13,13 +14,10 @@ test.describe('Station monitoring', () => {
      * whoever runs the station, so the story walks both halves rather than reading the endpoint.
      */
     test('a subscription set up in a profile shows up in the station list', async ({browser, request}) => {
-        const administrator = await accountWith(request, 'STATION_ADMINISTRATOR')
-        const accounts = await demoAccounts(request)
-        const subscriber = accounts.find(account =>
-            account.stationId === administrator.stationId
-            && !!account.email
-            && account.email !== administrator.email)
-        expect(subscriber, 'the administrator station has another member with an address').toBeTruthy()
+        const administrator = (await cast()).administrator
+        // Cast, rather than "the first member who is not the administrator": that description is the
+        // same person in every worker, and it read the address, which stories rewrite.
+        const subscriber = (await cast()).member
 
         const member = await pageAsThrowaway(browser, request, [], subscriber)
         await member.goto('/station/profile/settings/notifications')
@@ -52,7 +50,7 @@ test.describe('Station monitoring', () => {
      * checks that the sidebar leads there.
      */
     test('traffic, the page statistics and the storage overview stand under monitoring', async ({browser, request}) => {
-        const administrator = await accountWith(request, 'STATION_ADMINISTRATOR')
+        const administrator = (await cast()).administrator
         const station = await pageAsThrowaway(browser, request, [], administrator)
 
         for (const path of ['/station/monitoring/traffic', '/station/monitoring/insights', '/station/monitoring/storage']) {

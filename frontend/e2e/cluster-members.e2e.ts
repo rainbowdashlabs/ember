@@ -5,6 +5,7 @@
  */
 import {test, expect, apiHeaders, enterCluster, clusterAccountOnlyWith, clusterPage,
     clusterStationManager, pageAsThrowaway} from './fixtures/auth'
+import type {Page} from '@playwright/test'
 
 /**
  * The people at every station under a cluster, and the questions the cluster asks of them.
@@ -13,6 +14,18 @@ import {test, expect, apiHeaders, enterCluster, clusterAccountOnlyWith, clusterP
  * anywhere, and may not touch a station's owner. Both are here as stories of their own, because they are
  * the only thing standing between a cluster role and a way to promote yourself.
  */
+/**
+ * Which membership the signed-in page is, asked of the application.
+ *
+ * <p>Their own row is picked out by id rather than by address: an address is what several stories
+ * rewrite, and a row found by one is a row that may have moved on.
+ */
+async function ownMembershipId(page: Page): Promise<number> {
+    const session = await page.request.get('/api/v1/session', {headers: await apiHeaders(page)})
+    expect(session.ok(), `the signed-in page has a session (${await session.text()})`).toBeTruthy()
+    return (await session.json()).member.id
+}
+
 test.describe('Cluster members and fields', () => {
     /**
      * CLS-23 - The cluster searches members across all its stations.
@@ -64,7 +77,8 @@ test.describe('Cluster members and fields', () => {
         const {members} = await page.request
             .get('/api/v1/cluster/members/manage/search?size=200', {headers})
             .then(r => r.json())
-        const own = members.find((m: {email: string}) => m.email === manager.email)
+        const mine = await ownMembershipId(page)
+        const own = members.find((m: {id: number}) => m.id === mine)
         expect(own, 'the member manager is also a member of one of the stations').toBeTruthy()
 
         const refused = await page.request.put(`/api/v1/cluster/members/manage/${own.id}/user-type`,
@@ -89,8 +103,9 @@ test.describe('Cluster members and fields', () => {
         const {members} = await page.request
             .get('/api/v1/cluster/members/manage/search?size=200', {headers})
             .then(r => r.json())
-        const owner = members.find((m: {stationOwner: boolean; email: string}) =>
-            m.stationOwner && m.email !== manager.email)
+        const mine = await ownMembershipId(page)
+        const owner = members.find((m: {stationOwner: boolean; id: number}) =>
+            m.stationOwner && m.id !== mine)
         expect(owner, 'a member station has an owner').toBeTruthy()
 
         const refused = await page.request.put(`/api/v1/cluster/members/manage/${owner.id}/permissions`,

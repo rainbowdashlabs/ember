@@ -5,6 +5,7 @@
  */
 import {test, expect, accountWithout, apiHeaders, pageAsThrowaway} from './fixtures/auth'
 import type {Locator, Page} from '@playwright/test'
+import {cast} from './fixtures/cast'
 
 /** One inventory as the summary endpoint reports it. */
 interface Summary {
@@ -112,7 +113,7 @@ test.describe('The two kinds of inventory', () => {
     /** Somebody who may read the stock but not change the inventory is not offered the way in. */
     test('a reader is not offered the way into the settings', async ({managerPage, browser, request}) => {
         const collection = await theSeededCollection(managerPage)
-        const reader = await accountWithout(request, 'MEMBER', 'INVENTORY_EDIT', 'STATION_ADMINISTRATOR')
+        const reader = (await cast()).plainMember
         const page = await pageAsThrowaway(browser, request, [], reader)
 
         await page.goto(`/station/inventory/detail/${collection.id}`)

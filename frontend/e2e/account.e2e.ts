@@ -15,6 +15,7 @@ import {
     type DemoAccount,
     type DemoStationGroup,
 } from './fixtures/auth'
+import {cast} from './fixtures/cast'
 
 /**
  * Logging in is the one story that walks the login screen itself; every other story in the suite
@@ -84,7 +85,7 @@ test.describe('Account & session', () => {
      * it, which is the order a real first visit meets them too.
      */
     test('logging in reaches the station', async ({page, request}) => {
-        const account = await accountWithout(request, 'MEMBER', 'STATION_ADMINISTRATOR')
+        const account = (await cast()).plainMember
 
         await page.goto('/login')
         await page.getByRole('button', {name: 'Zustimmen'}).click()
@@ -162,7 +163,7 @@ test.describe('Account & session', () => {
         // A member of the second seeded station: the passkey stories own fixed members of the
         // shared one, and logging one of those out mid-story would pull the ground from under
         // it. The .nord suffix is what separates the two seeds' people.
-        const {member} = await stationPeers(request)
+        const member = (await cast()).member
         const accounts = await demoAccounts(request)
         const loner = accounts.find(candidate =>
             candidate.userType === 'MEMBER'
