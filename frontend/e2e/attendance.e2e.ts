@@ -121,20 +121,28 @@ function asLocalInput(moment: Date): string {
  * ordinary evening is one further click and nothing has to be typed here.
  */
 /**
- * Presses the export, wherever the toolbar is keeping it.
+ * Presses the export, wherever the toolbar is keeping it, until the dialog is actually open.
  *
  * <p>A sheet with names still to check offers the check as its button and puts the export in the
  * menu beside it; a sheet with nothing left to check offers the export itself. A story that opened
  * a sheet a moment ago cannot know which of the two it is looking at.
+ *
+ * <p>Nor is one press enough. The sheet settles after it is first drawn, and the toolbar it drew on
+ * the way is replaced when it does: the press lands on a button that is no longer in the page, and
+ * the story then waits a minute for a dialog nothing opened. Pressing again is the answer, because
+ * which of the two shapes the toolbar has taken is only settled by then.
  */
 async function openExport(page: Page) {
-    const button = page.getByRole('button', {name: 'PDF Export'})
-    if (await button.count() > 0) {
-        await button.first().click()
-        return
-    }
-    await page.getByTestId('session-actions-trigger').click()
-    await page.getByTestId('session-actions').getByText('PDF Export').click()
+    await expect(async () => {
+        const button = page.getByRole('button', {name: 'PDF Export'})
+        if (await button.count() > 0) {
+            await button.first().click({timeout: 5_000})
+        } else {
+            await page.getByTestId('session-actions-trigger').click({timeout: 5_000})
+            await page.getByTestId('session-actions').getByText('PDF Export').click({timeout: 5_000})
+        }
+        await expect(page.getByTestId('export-sheet-modal')).toBeVisible({timeout: 5_000})
+    }).toPass({timeout: 30_000})
 }
 
 async function openSheetFromTemplate(page: Page) {
