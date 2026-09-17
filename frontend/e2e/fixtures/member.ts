@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {expect, type Page} from '@playwright/test'
+import {apiHeaders} from './auth'
+import {remember} from './createdMembers'
 import {unique} from './unique'
 
 /**
@@ -35,5 +37,6 @@ export async function createMember(page: Page): Promise<string> {
         await next.click()
     }
 
+    remember(await apiHeaders(page), surname)
     return surname
 }

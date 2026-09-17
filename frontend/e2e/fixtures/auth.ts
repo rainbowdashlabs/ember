@@ -6,6 +6,7 @@
 import {createHmac} from 'node:crypto'
 import {readFile} from 'node:fs/promises'
 import {MADE_BY_A_STORY} from './cluster'
+import {removeMade} from './createdMembers'
 import {test as base, type APIRequestContext, type Browser, type Page} from '@playwright/test'
 
 /**
@@ -644,6 +645,13 @@ export async function clusterGearManagerPage(browser: Browser, request: APIReque
 }
 
 interface Fixtures {
+    /**
+     * Takes away the people a story made, once it has finished with them.
+     *
+     * <p>Nothing asks for this one: it runs for every story, because the stories that make somebody
+     * are exactly the ones that would not think to clear them away. See {@code createdMembers}.
+     */
+    tidyUp: void
     managerPage: Page
     memberPage: Page
     adminPage: Page
@@ -657,6 +665,11 @@ interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
+    tidyUp: [async ({request}, use) => {
+        await use()
+        await removeMade(request)
+    }, {auto: true}],
+
     managerPage: async ({browser}, use) => {
         const page = await pageAs(browser, 'manager')
         await use(page)
