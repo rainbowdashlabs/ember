@@ -1001,6 +1001,8 @@ class AuthServiceTest extends RepositoryTestBase {
     private AuthService demoModeService() {
         var demo = mock(Demo.class);
         when(demo.enabled()).thenReturn(true);
+        // The address as the token is what a demo instance does, and what the stories about it read.
+        when(demo.stableSessionTokens()).thenReturn(true);
         var hibpClient = mock(HibpClient.class);
         when(hibpClient.isPwned(anyString())).thenReturn(false);
         return new AuthService(
