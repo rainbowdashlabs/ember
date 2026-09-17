@@ -16,6 +16,16 @@ import type {Page} from '@playwright/test'
  * rather than leaving the next reader with a list somebody else has already emptied.
  */
 
+/**
+ * Serial, because every story here drives the same task of the same shared member.
+ *
+ * <p>Tests inside one file are handed to different workers like any others, so one story opening the
+ * task and expecting to see it ran beside another skipping it and expecting it gone. Whichever
+ * arrived second read what the first had left. Putting the task back afterwards does not help: the
+ * window between the two is exactly where the other worker looks.
+ */
+test.describe.configure({mode: 'serial'})
+
 const TASK = 'member.absence'
 
 async function setTaskState(page: Page, state: 'OPEN' | 'DONE' | 'SKIPPED') {

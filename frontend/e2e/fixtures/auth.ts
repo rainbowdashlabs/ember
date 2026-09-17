@@ -333,7 +333,8 @@ export async function pageAsThrowaway(
     browser: Browser,
     request: APIRequestContext,
     taken: string[],
-    named?: DemoAccount,
+    /** Whoever the story was cast as. Only the way in is needed, so a cast member will do. */
+    named?: {email: string; stationId?: string},
 ): Promise<Page> {
     const accounts = await demoAccounts(request)
     // An address is what the login goes by, and a station holds members who never sign in: somebody

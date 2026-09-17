@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, accountWith, pageAsThrowaway} from './fixtures/auth'
+import {test, expect, pageAsThrowaway} from './fixtures/auth'
+import {cast} from './fixtures/cast'
 import {sidebarEntry} from './fixtures/sidebar'
 
 /**
@@ -39,8 +40,10 @@ test.describe('Sidebar permissions', () => {
      * else's profile and is given the entry for it; whoever looks after nobody is not.
      */
     test('the managed profiles of a guardian stay out of a member\'s sidebar', async ({browser, request, memberPage}) => {
-        const guardian = await accountWith(request, 'MEMBER_GUARDIAN')
-        const guardianPage = await pageAsThrowaway(browser, request, [], guardian)
+        // A guardian of this spec's own. Three specs used to take the first one the demo lists, at
+        // the same time, and a guardian speaks for somebody: two stories doing that at once settle
+        // it between them.
+        const guardianPage = await pageAsThrowaway(browser, request, [], (await cast()).guardians.sidebarSpec)
 
         // The subpoints of a group only render while the group is open, and a group opens on the
         // routes it holds.

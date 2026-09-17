@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {APIRequestContext, Page} from '@playwright/test'
-import {test, expect, accountWith, apiHeaders, pageAsThrowaway} from './fixtures/auth'
+import {test, expect, apiHeaders, pageAsThrowaway} from './fixtures/auth'
+import {cast} from './fixtures/cast'
 import {unique} from './fixtures/unique'
 import {pickMemberByName} from './fixtures/memberMenu'
 
@@ -21,8 +22,7 @@ import {pickMemberByName} from './fixtures/memberMenu'
  * looking for.
  */
 async function guardianPage(browser: Parameters<typeof pageAsThrowaway>[0], request: APIRequestContext): Promise<Page> {
-    const guardian = await accountWith(request, 'MEMBER_GUARDIAN')
-    return pageAsThrowaway(browser, request, [], guardian)
+    return pageAsThrowaway(browser, request, [], (await cast()).guardians.guardianSpec)
 }
 
 /** Somebody the signed-in guardian looks after. */

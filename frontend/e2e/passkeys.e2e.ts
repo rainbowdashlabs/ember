@@ -17,6 +17,7 @@ import {
     type DemoAccount,
 } from './fixtures/auth'
 import type {APIRequestContext, Browser, CDPSession, Page} from '@playwright/test'
+import {cast, passkeySlot, spokenForMemberIds, type CastMember} from './fixtures/cast'
 
 /**
  * The passkey stories, over Chromium's virtual authenticator: the only way to prove any of this
@@ -31,52 +32,23 @@ test.describe('Passkeys', () => {
     // stagger that keeps the proofs off the throttle costs its seconds too.
     test.describe.configure({timeout: 120_000})
 
-    /** The address `giveAddress` writes, which is how a member it has touched is still recognised. */
-    const STORY_ADDRESS = 'passkey-story-'
-
     /**
-     * The members these stories may act as, in a fixed order, minus the two accounts the shared
-     * role sessions belong to. Each story owns one slot: the suite runs fully parallel across
-     * workers, so nothing mutable can hand out accounts, and two stories acting as the same
-     * person would wipe each other's sessions - several of these end sessions on purpose.
+     * The member this story was cast as, and nobody else's part.
      *
-     * <p>Neither who is in the pool nor what order they stand in may depend on the address, because
-     * these stories rewrite it. It used to decide both: a member given an address dropped out of the
-     * pool, every slot above them moved down one, and a slot then named somebody a story in another
-     * worker was signed in as. Onboarding that person again ended their session, and a scattering of
-     * stories across the group failed at once with no story in sight that had touched them.
-     *
-     * <p>So membership keeps the addresses these stories write, and the order comes from the name,
-     * which nothing here changes. Accounts another spec makes carry neither and stay out, which is
-     * what the seeded addresses were guarding in the first place.
+     * <p>The parts are settled at global setup and written down by id. They used to be worked out
+     * here, from a pool filtered and sorted by the address, which these very stories rewrite: a
+     * member given one dropped out, every part below them shifted down, and a part came to name
+     * somebody another worker was signed in as. Ending that session, which several of these stories
+     * do on purpose, then failed a scattering of stories with no story in sight that had touched
+     * them. The neighbouring guardian spec writes addresses too, so no filter written here could
+     * have held.
      */
-    async function storyCandidates(request: Parameters<typeof demoAccounts>[0]): Promise<DemoAccount[]> {
-        const [accounts, manager, member] = await Promise.all([
-            demoAccounts(request), pinnedRole('manager'), pinnedRole('member'),
-        ])
-        const reserved = [manager.email, member.email]
-        return accounts
-            .filter(candidate =>
-                candidate.userType === 'MEMBER'
-                && !!candidate.email
-                // The station the roles were pinned to at global setup: a station made mid-run by
-                // importing a transfer holds the same accounts again under its own station id,
-                // and a pool computed against it would hand out different slots.
-                && candidate.stationId === manager.stationId
-                && (candidate.email.endsWith('.local') || candidate.email.startsWith(STORY_ADDRESS))
-                && !reserved.includes(candidate.email)
-                && !candidate.permissions.includes('STATION_MANAGER'))
-            .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`))
+    async function storyAccount(slot: number): Promise<CastMember> {
+        return passkeySlot(slot)
     }
 
-    /** How many slots the independent stories occupy; the onboarding story picks past them. */
-    const STORY_SLOTS = 5
-
-    async function storyAccount(request: APIRequestContext, slot: number): Promise<DemoAccount> {
-        const account = (await storyCandidates(request))[slot]
-        if (!account) throw new Error(`No member account for passkey story slot ${slot}`)
-        return account
-    }
+    /** The part the onboarding story takes, past the ones the independent stories hold. */
+    const ONBOARD_SLOT = 5
 
     interface MemberRow {
         id: number
@@ -93,11 +65,11 @@ test.describe('Passkeys', () => {
      * cannot be mailed to.
      */
     async function addressedStoryAccount(browser: Browser, request: APIRequestContext, slot: number): Promise<DemoAccount> {
-        const account = await storyAccount(request, slot)
+        const account = await storyAccount(slot)
         const manager = await pageAs(browser, 'manager')
         try {
             const address = `passkey-story-${slot}-${Date.now()}@example.test`
-            await giveAddress(manager, account.email, address, slot)
+            await giveAddress(manager, account.memberId, address, slot)
             return {...account, email: address}
         } finally {
             await manager.context().close()
@@ -112,12 +84,14 @@ test.describe('Passkeys', () => {
      * window, but only if the others arrive after it rather than alongside it. A burst of
      * simultaneous proofs spends codes on refusals until the account is throttled for minutes.
      */
-    async function giveAddress(manager: Page, currentEmail: string, address: string, slot: number): Promise<MemberRow> {
+    async function giveAddress(manager: Page, memberId: number, address: string, slot: number): Promise<MemberRow> {
         await manager.waitForTimeout(slot * 6_000)
         const headers = await apiHeaders(manager)
         const list = await manager.request.get('/api/v1/station-members', {headers})
-        const row = (await list.json() as MemberRow[]).find(candidate => candidate.email === currentEmail)
-        if (!row) throw new Error('The story member is not in the station list')
+        // By id, never by the address: the address is what this is about to overwrite, so a row
+        // found by it is a row that has not been written yet and cannot be found twice.
+        const row = (await list.json() as MemberRow[]).find(candidate => candidate.id === memberId)
+        if (!row) throw new Error(`Member ${memberId} is not in the station list`)
         const put = () => manager.request.put(`/api/v1/members/${row.accountId}`, {
             headers,
             data: {email: address, firstName: row.firstName, lastName: row.lastName},
@@ -196,7 +170,7 @@ test.describe('Passkeys', () => {
     }
 
     test('a passkey is created, tried, and signs its owner in', async ({browser, request}) => {
-        const account = await storyAccount(request, 0)
+        const account = await storyAccount(0)
 
         // The context is built by hand: the throwaway fixture plants its session through an init
         // script that runs on every load, which would put the token back the moment this story
@@ -278,7 +252,7 @@ test.describe('Passkeys', () => {
     })
 
     test('the device handshake frees a device across two contexts', async ({browser, request}) => {
-        const account = await storyAccount(request, 2)
+        const account = await storyAccount(2)
 
         // The signed-in device, which will approve.
         const approver = await pageAsThrowaway(browser, request, [], account)
@@ -326,7 +300,7 @@ test.describe('Passkeys', () => {
     test('a device with no credential is signed in by one that already holds a session', async ({browser, request}) => {
         // A slot of its own: the approval screen is throttled per account, and sharing one with the
         // enrolment story above made the second of the two meet a refusal instead of a code.
-        const account = await storyAccount(request, 4)
+        const account = await storyAccount(4)
         const approver = await pageAsThrowaway(browser, request, [], account)
 
         // Deliberately no authenticator on this context: nothing here can hold a passkey.
@@ -413,28 +387,18 @@ test.describe('Passkeys', () => {
     test('a guardian signs a member in their care in on a borrowed machine', async ({browser, request}) => {
         // Nobody another story is acting as, on either side. Signing in replaces a dev session row
         // and giving a managed member an address ends their sessions outright, so a guardian or a
-        // charge that is also a shared role or another story's slot would take that story's session
-        // out from under it in the middle of the run.
-        const spokenFor = new Set([
-            (await pinnedRole('manager')).email,
-            (await pinnedRole('member')).email,
-            ...(await storyCandidates(request)).slice(0, STORY_SLOTS + 1).map(candidate => candidate.email),
-        ])
-
-        const accounts = await demoAccounts(request)
-        const guardianAccount = accounts.find(account => !!account.email
-            && !spokenFor.has(account.email)
-            && account.permissions.includes('MEMBER_GUARDIAN'))
-        test.skip(!guardianAccount, 'no guardian in the seed is free for this story to act as')
-
-        const guardian = await pageAsThrowaway(browser, request, [], guardianAccount)
+        // charge that is also a shared role or another story's part would take that story's session
+        // out from under it in the middle of the run. Both are settled by id at global setup.
+        const spokenFor = await spokenForMemberIds()
+        const guardianCast = (await cast()).guardians.passkeySpec
+        const guardian = await pageAsThrowaway(browser, request, [], guardianCast)
         await answerStepUpPrompts(guardian)
         const headers = await apiHeaders(guardian)
 
         const managed = await guardian.request
             .get('/api/v1/managed-members', {headers})
             .then(response => response.json())
-        const charge = managed.find((member: {email?: string}) => !!member.email && !spokenFor.has(member.email))
+        const charge = managed.find((member: {id: number}) => !spokenFor.has(member.id))
         test.skip(!charge, 'every member this guardian looks after is already spoken for by another story')
 
         // Something to sign in with, and permission to. A managed member is seeded with neither, and
@@ -476,7 +440,7 @@ test.describe('Passkeys', () => {
             .get('/api/v1/session', {headers: await apiHeaders(newDevice)})
             .then(response => response.json())
         expect(session.account.username).toBe(loginName)
-        expect(session.account.email).not.toBe(guardianAccount!.email)
+        expect(session.member.id, 'the device holds the charge, not the guardian').not.toBe(guardianCast.memberId)
 
         await newContext.close()
         await guardian.context().close()
@@ -486,11 +450,11 @@ test.describe('Passkeys', () => {
         // The shared manager session acts here; a fresh login as the manager would replace it
         // under every other story. The target is a slot of its own, because onboarding again
         // ends the target's sessions.
-        const target = await storyAccount(request, STORY_SLOTS)
+        const target = await storyAccount(ONBOARD_SLOT)
         const page = await pageAs(browser, 'manager')
 
         const address = `passkey-story-onboard-${Date.now()}@example.test`
-        const row = await giveAddress(page, target.email, address, STORY_SLOTS)
+        const row = await giveAddress(page, target.memberId, address, ONBOARD_SLOT)
 
         await page.goto(`/station/members/edit/${row.id}`)
         await expect(page.getByRole('button', {name: 'Erneut onboarden'})).toBeVisible({timeout: 15_000})
