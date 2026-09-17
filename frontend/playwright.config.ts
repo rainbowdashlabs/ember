@@ -64,6 +64,20 @@ export default defineConfig({
 
     use: {
         baseURL: baseUrl,
+        /**
+         * A bound on one action, which Playwright leaves off by default.
+         *
+         * <p>Without it a click whose target keeps moving out from under it is retried for as long
+         * as there is time, never rejects, and takes the whole budget of the story with it. What
+         * that leaves behind is a bare timeout on a page that looks perfectly healthy, with nothing
+         * naming the action that hung: a passkey sign-in spent two minutes that way, and the catch
+         * written to swallow exactly that race never ran, because a promise that never settles
+         * cannot be caught.
+         *
+         * <p>Generous on purpose. It is here to end a hang, not to hurry a slow screen, and it sits
+         * above every timeout a call passes for itself and below the story's own.
+         */
+        actionTimeout: 30_000,
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
         video: 'on-first-retry',
