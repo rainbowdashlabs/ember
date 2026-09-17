@@ -1,0 +1,24 @@
+# The end-to-end stack running a distribution the caller already built, laid over compose.dev.yaml.
+#
+# Everything the stories depend on stays where it is: the ports, the environment, the database, the
+# two instances and their separate identities. Only where the backend comes from changes. Compile it
+# first with `./gradlew installDist -x test`, then pass this file after compose.dev.yaml.
+#
+# `!override` on the volumes replaces the development list rather than merging with it: those mounts
+# name paths under /home/gradle that this image does not have, the sources among them.
+services:
+  ember-e2e:
+    build:
+      context: ..
+      dockerfile: docker/backend.e2e.Dockerfile
+    volumes: !override
+      - ember-e2e-config:/app/config
+      - ember-e2e-app-data:/app/data
+
+  ember-e2e-peer:
+    build:
+      context: ..
+      dockerfile: docker/backend.e2e.Dockerfile
+    volumes: !override
+      - ember-e2e-peer-config:/app/config
+      - ember-e2e-peer-app-data:/app/data

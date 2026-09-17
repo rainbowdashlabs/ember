@@ -1,0 +1,8 @@
+# The context for backend.e2e.Dockerfile, which is the distribution and the templates and nothing
+# else. The repository's own .dockerignore excludes build/ outright, and rightly so: every other
+# image compiles from source and must not be handed whatever the host had lying there. This one is
+# the exception, so it carries its own list. BuildKit prefers <dockerfile>.dockerignore where it
+# exists.
+*
+!build/install/ember
+!templates
