@@ -11,6 +11,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
@@ -26,6 +27,7 @@ import dev.chojo.ember.feature.mail.service.MailDashboardService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService.MailDashboard;
 import dev.chojo.ember.feature.mail.service.MailDashboardService.RequeuedMails;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
+import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -60,6 +62,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.zone.ZoneRulesException;
 import java.util.ArrayList;
@@ -92,6 +95,8 @@ public class StationManageRoutes implements Routes {
     private final StationImportService importService;
     private final StationLocationService locationService;
     private final StationRepository stationRepository;
+    private final NotificationScheduleRepository scheduleRepository;
+    private final Mailing mailing;
     private final StationLogoService logoService;
     private final ClusterService clusterService;
 
@@ -112,8 +117,12 @@ public class StationManageRoutes implements Routes {
             StationLocationService locationService,
             StationRepository stationRepository,
             StationLogoService logoService,
-            ClusterService clusterService) {
+            ClusterService clusterService,
+            NotificationScheduleRepository scheduleRepository,
+            Mailing mailing) {
         this.stationService = stationService;
+        this.scheduleRepository = scheduleRepository;
+        this.mailing = mailing;
         this.accountRepository = accountRepository;
         this.mailLocaleService = mailLocaleService;
         this.mailProviderRepository = mailProviderRepository;
@@ -152,6 +161,14 @@ public class StationManageRoutes implements Routes {
         routes.put(
                 prefix + "/station/manage/mail/signing-secret",
                 this::updateSigningSecret,
+                StationPermission.STATION_MAIL);
+        routes.get(
+                prefix + "/station/manage/notifications",
+                this::getNotificationSchedule,
+                StationPermission.STATION_MAIL);
+        routes.put(
+                prefix + "/station/manage/notifications",
+                this::updateNotificationSchedule,
                 StationPermission.STATION_MAIL);
         routes.get(prefix + "/station/manage/mail/providers", this::getMailFallbacks, StationPermission.STATION_MAIL);
         routes.put(
@@ -496,6 +513,49 @@ public class StationManageRoutes implements Routes {
     /**
      * The providers this station falls back to, after the one in its own mail configuration.
      */
+    /**
+     * When this station's gathered notifications go out.
+     *
+     * <p>Empty times mean the station has asked for nothing and the operator's own number decides,
+     * which is what every station did before it could choose. The floor is sent along so the screen
+     * can say plainly where a station is asking for more often than the installation allows, rather
+     * than letting it believe it got what it asked for.
+     */
+    private void getNotificationSchedule(Context ctx) {
+        var session = UserSession.from(ctx);
+        var schedule = scheduleRepository.forStation(session.stationId()).orElseThrow(NotFoundResponse::new);
+        ctx.json(new NotificationSchedulePayload(
+                schedule.sendTimes().stream().map(LocalTime::toString).toList(),
+                mailing.notificationDigestIntervalMinutes()));
+    }
+
+    /**
+     * Sets the times, or gives them back so the operator's number decides again.
+     *
+     * <p>A time nobody could mean is refused rather than quietly dropped: a station that typed one
+     * and was answered with success would believe it had asked for something it had not.
+     */
+    private void updateNotificationSchedule(Context ctx) {
+        var session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(NotificationSchedulePayload.class);
+        var times = new ArrayList<LocalTime>();
+        for (String raw : request.sendTimes() == null ? List.<String>of() : request.sendTimes()) {
+            try {
+                times.add(LocalTime.parse(raw));
+            } catch (Exception e) {
+                throw new BadRequestResponse("'" + raw + "' is not a time of day");
+            }
+        }
+        scheduleRepository.setStationSendTimes(session.stationId(), times);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * @param sendTimes the times of day, empty where the operator's number decides
+     * @param floorMinutes the shortest gap between two mails the installation allows
+     */
+    public record NotificationSchedulePayload(List<String> sendTimes, int floorMinutes) {}
+
     private void getMailFallbacks(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(mailProviderRepository.findByStation(session.stationId()).stream()

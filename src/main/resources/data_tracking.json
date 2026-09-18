@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:37c3726413275786832cd6befd69353ebe977e88873ef027a7e5998e7fbe6d9e",
-  "generatedAt": "2026-09-16T19:05:14Z",
+  "schemaHash": "sha256:b6c57c9306a556d836c3b919c19e23b92e47a085ad4197dac4be750afd2d12f3",
+  "generatedAt": "2026-09-18T12:08:27Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -3968,7 +3968,7 @@
     "cluster": {
       "feature": "cluster",
       "scope": "CLUSTER",
-      "tableHash": "sha256:50a551c5fe27e597054bf11329b32c186a860a58c87d93d0c4ed0275032731ec",
+      "tableHash": "sha256:7d65fab196f6e6e69f96853779521287026b7cdef3e7b98ddf3a246e1feb9da1",
       "columns": [
         {
           "name": "id",
@@ -4151,6 +4151,20 @@
           "nullable": false,
           "verified": true,
           "description": "What a loss report must carry before the association will look at it: NOTHING, NOTE or DOCUMENT."
+        },
+        {
+          "name": "notification_send_times",
+          "type": "_time",
+          "nullable": true,
+          "verified": true,
+          "description": "The times of day this cluster's gathered notifications are mailed out. Read the station column of the same name: a cluster keeps its send times the same way, and sends through the instance's own mail chain because a cluster spanning several stations has no address of its own that a reader would recognise."
+        },
+        {
+          "name": "notification_last_sent",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When this cluster was last written to. Read the station column of the same name."
         }
       ],
       "foreignKeys": [
@@ -19799,7 +19813,7 @@
     "station": {
       "feature": "station",
       "scope": "STATION",
-      "tableHash": "sha256:5450bb24cc018b3311147a697618efde2dd3f293f70e22225511a85f356b8647",
+      "tableHash": "sha256:b382c0912f74fdc4b5b6350f793ab740095cc6f97f5e83a817352d482ec9b9ca",
       "columns": [
         {
           "name": "id",
@@ -20128,6 +20142,20 @@
           "nullable": false,
           "verified": true,
           "description": "Whether this station reads the names its members are called by. Switched off, every nickname is kept but none is read."
+        },
+        {
+          "name": "notification_send_times",
+          "type": "_time",
+          "nullable": true,
+          "verified": true,
+          "description": "The times of day this station's gathered notifications are mailed out, read on the station's own clock. NULL leaves it to the number the operator set for the whole installation, which is what every station did before this existed. A station asking for hourly mail holds all twenty-four hours here, so the sweep only ever reads a list of times."
+        },
+        {
+          "name": "notification_last_sent",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When this station was last written to, which is what a send time is measured against. NULL where it never has been, so its first gathered notifications go out at the next time it asked for rather than at once."
         }
       ],
       "foreignKeys": [

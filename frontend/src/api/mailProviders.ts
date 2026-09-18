@@ -245,6 +245,29 @@ export async function saveStationSigningSecret(secret: string): Promise<WebhookI
     return res.data
 }
 
+/**
+ * When this station's gathered notifications go out.
+ *
+ * <p>An empty list means the station has asked for nothing and the number the operator set for the
+ * whole installation decides, which is what every station did before it could choose. That number
+ * comes along as `floorMinutes`, because it is also the shortest gap allowed between two mails and
+ * a station asking for more often than that will not get it.
+ */
+export interface NotificationSchedule {
+    sendTimes: string[]
+    floorMinutes: number
+}
+
+export async function getNotificationSchedule(): Promise<NotificationSchedule> {
+    const res = await client.get<NotificationSchedule>('/station/manage/notifications')
+    return res.data
+}
+
+/** Writes the times, or gives them back by sending none. */
+export async function saveNotificationSchedule(sendTimes: string[]): Promise<void> {
+    await client.put('/station/manage/notifications', {sendTimes, floorMinutes: 0})
+}
+
 /** Replaces this station's webhook key, retiring its old address at once. */
 export async function regenerateStationWebhookKey(): Promise<string> {
     const res = await client.post<{deliveryWebhookUrl: string}>('/station/manage/mail/webhook')
