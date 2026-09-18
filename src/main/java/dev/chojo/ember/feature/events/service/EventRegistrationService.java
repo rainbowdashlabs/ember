@@ -288,16 +288,26 @@ public class EventRegistrationService {
      * @param id the registration ID
      * @return true if the registration was withdrawn or removed
      */
+    /**
+     * Giving a place back, whether or not anybody had confirmed it yet.
+     *
+     * <p>The row stays and records `WITHDRAWN`, where an unconfirmed one used to be deleted outright.
+     * Two reasons, and the second is the one that would have been easy to break: an undo needs
+     * something to put back, and `WITHDRAWN` is what tells the reminders this member still owes an
+     * answer. Recording a refusal instead would quietly stop anybody asking them again.
+     *
+     * @param id the registration ID
+     * @return true if the registration was withdrawn
+     */
     public boolean withdraw(int id) {
         var registration = registrationRepository.findById(id).orElse(null);
         if (registration == null) {
             log.warn("Cannot withdraw registration: registration {} not found", id);
             return false;
         }
-        var refusal = refusalFor(registration.status());
-        if (!registrationRepository.recordAnswer(id, refusal)) return false;
-        log.info("Recorded {} for registration {}", refusal, id);
-        recordRefusal(id, registration.eventId(), registration.memberId(), refusal);
+        if (!registrationRepository.recordAnswer(id, RegistrationStatus.WITHDRAWN)) return false;
+        log.info("Withdrew registration {}", id);
+        recordRefusal(id, registration.eventId(), registration.memberId(), RegistrationStatus.WITHDRAWN);
         return true;
     }
 

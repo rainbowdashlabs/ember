@@ -19,6 +19,17 @@ async function openEventWithRegistration(page: Page) {
     await page.waitForURL(/\/station\/events\/\d+/)
 }
 
+/**
+ * Giving a place back, which asks first.
+ *
+ * <p>Every button that gives one up now opens the same question, because a place given up is gone and
+ * the button sits in a list somebody is scrolling. The stories answer it the way a member would.
+ */
+async function signOff(page: Page, button: ReturnType<Page['getByTestId']>) {
+    await button.click()
+    await page.getByTestId('confirm-sign-off').click()
+}
+
 test.describe('Events', () => {
     test('the planner is reachable and offers a new event', async ({managerPage: page}) => {
         await page.goto('/station/events')
@@ -88,15 +99,61 @@ test.describe('Events', () => {
         // The event is shared with the other stories, so this one starts by putting it back as it found it
         const withdraw = page.getByTestId('withdraw-household')
         if (await withdraw.isVisible().catch(() => false)) {
-            await withdraw.click()
+            await signOff(page, withdraw)
             await expect(myAnswer).toHaveText('Noch keine Antwort', {timeout: 15000})
         }
 
         await page.getByTestId('answer-household').click()
         await expect(myAnswer).toHaveText('Bestätigt', {timeout: 15000})
 
-        await withdraw.click()
+        await signOff(page, withdraw)
         await expect(myAnswer).toHaveText('Noch keine Antwort', {timeout: 15000})
+    })
+
+    /**
+     * The wrong button, and the way back from it.
+     *
+     * <p>A place given up used to be gone the instant the press landed, which on an appointment past
+     * its deadline meant gone for good. For five minutes it can be put back, and what comes back is
+     * the place that was held rather than a fresh answer at the end of a queue: the story checks the
+     * confirmed seat is confirmed again, not pending.
+     */
+    test('a place given up by accident is taken back', async ({managerPage, memberPage}) => {
+        const managerHeaders = await apiHeaders(managerPage)
+        const name = `Versehen ${test.info().workerIndex}-${Date.now()}`
+
+        const created = await managerPage.request.post('/api/v1/events', {
+            headers: managerHeaders,
+            data: {
+                name,
+                description: 'Aus Versehen abgemeldet',
+                eventType: 'ONE_TIME',
+                startTime: new Date(Date.now() + 20 * 86400000).toISOString(),
+                endTime: new Date(Date.now() + 20 * 86400000 + 3600000).toISOString(),
+                requiresRegistration: true,
+            },
+        })
+        expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()
+        const eventId = (await created.json()).id
+
+        try {
+            await memberPage.goto(`/station/events/${eventId}`)
+            await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+
+            const myAnswer = memberPage.locator('[data-testid^="my-answer-"]').first()
+            await memberPage.getByTestId('answer-household').click()
+            await expect(myAnswer).toHaveText('Bestätigt', {timeout: 15000})
+
+            await signOff(memberPage, memberPage.getByTestId('withdraw-household'))
+            await expect(myAnswer, 'the place is given up').toHaveText('Noch keine Antwort', {timeout: 15000})
+
+            // The way back rides a toast, because by now the row may be nowhere near the reader.
+            await memberPage.getByTestId('toast-action').click()
+            await expect(myAnswer, 'the seat comes back as a seat, not as a pending answer')
+                .toHaveText('Bestätigt', {timeout: 15000})
+        } finally {
+            await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
+        }
     })
 
     /**
@@ -134,7 +191,7 @@ test.describe('Events', () => {
             await memberPage.getByTestId('answer-household').click()
             await expect(myAnswer, 'nobody has said yes to them yet').toHaveText('Ausstehend', {timeout: 15000})
 
-            await memberPage.getByTestId('withdraw-household').click()
+            await signOff(memberPage, memberPage.getByTestId('withdraw-household'))
             await expect(myAnswer, 'the place is gone rather than refused')
                 .toHaveText('Noch keine Antwort', {timeout: 15000})
 
