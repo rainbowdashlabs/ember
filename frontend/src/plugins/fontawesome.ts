@@ -38,7 +38,7 @@ import {
     faFilePowerpoint, faDisplay, faKey, faArrowsUpDown, faLightbulb, faBroom, faTowerBroadcast,
     faEllipsisVertical, faWarehouse, faBox, faSuitcase, faCube, faFingerprint,
     faHelmetSafety, faVest, faVestPatches, faMitten, faShoePrints, faSocks, faMask, faHeadSideMask,
-    faGlasses, faRadio, faWalkieTalkie, faToolbox, faScrewdriverWrench, faWrench, faHammer,
+    faGlasses, faRadio, faWalkieTalkie, faHeadphones, faStapler, faToolbox, faScrewdriverWrench, faWrench, faHammer,
     faFireExtinguisher, faWaterLadder, faBatteryFull, faTrowel, faKitMedical, faSuitcaseMedical,
     faTruckMedical, faDice, faDiceD20, faTent, faRuler, faBagShopping, faBriefcase,
 } from '@fortawesome/free-solid-svg-icons'
@@ -81,7 +81,7 @@ library.add(
     faArrowsUpDown, faLightbulb, faBroom, faTowerBroadcast, faEllipsisVertical,
     faWarehouse, faBox, faSuitcase, faCube, faFingerprint, faShirt,
     faHelmetSafety, faVest, faVestPatches, faMitten, faShoePrints, faSocks, faMask, faHeadSideMask,
-    faGlasses, faRadio, faWalkieTalkie, faToolbox, faScrewdriverWrench, faWrench, faHammer,
+    faGlasses, faRadio, faWalkieTalkie, faHeadphones, faStapler, faToolbox, faScrewdriverWrench, faWrench, faHammer,
     faFireExtinguisher, faWaterLadder, faBatteryFull, faTrowel, faKitMedical, faSuitcaseMedical,
     faTruckMedical, faDice, faDiceD20, faTent, faRuler, faBagShopping, faBriefcase,
 )
