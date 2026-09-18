@@ -25,6 +25,7 @@ import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useSignupMemberSet} from '@/composables/useSignupMemberSet'
 import {useConfirmAction} from '@/composables/useConfirmAction'
+import {showToast} from '@/util/toast'
 import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 import RegistrationsPanel from './RegistrationsPanel.vue'
 import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
@@ -218,10 +219,31 @@ async function confirmRegistrationFields(values: RegistrationFieldValue[]) {
  * <p>Not a refusal written down in its place: this event has to be signed up for, so having no place
  * already says everything a refusal would, and two rows saying the same thing is one too many.
  */
-async function undoAnswerFor(memberId: number) {
+/**
+ * Gives one person's place back, and remembers what was given up.
+ *
+ * <p>The ids are collected rather than acted on one at a time, because this screen gives up a whole
+ * household at once and one offer to put them all back reads better than three.
+ */
+async function undoAnswerFor(memberId: number, givenUp: GivenUp[] = []) {
   const registration = getRegistrationForMember(memberId)
   if (!registration) return
-  await events.withdrawRegistration(registration.id)
+  const withdrawal = await events.withdrawRegistration(registration.id)
+  givenUp.push({id: registration.id, undoUntil: withdrawal.undoUntil})
+  await reloadAndRefresh()
+}
+
+/** A place just given up, and how long the server said it would take it back. */
+interface GivenUp {
+  id: number
+  undoUntil: string
+}
+
+/** Puts back everything the one press gave up, for as long as the server still takes them back. */
+async function undoWithdrawals(givenUp: GivenUp[]) {
+  for (const place of givenUp) {
+    await events.undoWithdrawal(place.id).catch(() => undefined)
+  }
   await reloadAndRefresh()
 }
 
@@ -273,11 +295,22 @@ const {
   onConfirm: async signOff => signOff(),
 })
 
-/** Gives up every place the household holds, which is what the one button beside them offers. */
+/**
+ * Gives up every place the household holds, which is what the one button beside them offers, and
+ * offers all of them back together for as long as the server would take them.
+ */
 async function withdrawHousehold() {
+  const givenUp: GivenUp[] = []
   for (const person of withPlace.value) {
-    await undoAnswerFor(person.key)
+    await undoAnswerFor(person.key, givenUp)
   }
+  if (givenUp.length === 0) return
+  const remaining = new Date(givenUp[0]!.undoUntil).getTime() - Date.now()
+  if (remaining <= 0) return
+  showToast(t('eventsUpcoming.signedOff'), 'info', remaining, {
+    label: t('eventsUpcoming.undoSignOff'),
+    run: () => undoWithdrawals(givenUp),
+  })
 }
 
 async function confirmHouseholdAnswer(answers: PersonAnswer[]) {
