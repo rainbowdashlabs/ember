@@ -39,6 +39,30 @@ class AttendanceSessionCountedHoursTest {
         assertEquals(2.0, evening.countedHours(EVENING_START, EVENING_START.plusSeconds(7200)));
     }
 
+    /**
+     * Setting up and clearing away happen either side of the evening everybody else turns up for, and
+     * the two hours an appointment is scheduled for are not what whoever did them was there for. A
+     * sheet that names no number of its own counts the clock it is given, past its own ends included.
+     */
+    @Test
+    void aPresenceReachingPastTheSheetCountsWhatTheClockSays() {
+        var evening = sheet(Instant.parse("2026-09-02T17:00:00Z"), Instant.parse("2026-09-02T19:00:00Z"), null);
+
+        assertEquals(
+                4.0,
+                evening.countedHours(Instant.parse("2026-09-02T16:00:00Z"), Instant.parse("2026-09-02T20:00:00Z")));
+    }
+
+    /** The same evening with a number of its own caps everybody at it, whoever stayed on. */
+    @Test
+    void aSheetWithANumberOfItsOwnStillCapsThePresenceReachingPastIt() {
+        var evening = sheet(Instant.parse("2026-09-02T17:00:00Z"), Instant.parse("2026-09-02T19:00:00Z"), 120);
+
+        assertEquals(
+                2.0,
+                evening.countedHours(Instant.parse("2026-09-02T16:00:00Z"), Instant.parse("2026-09-02T20:00:00Z")));
+    }
+
     @Test
     void aWholePresenceCountsTheNumberTheSheetCarries() {
         var evening = sheet(EVENING_START, EVENING_END, 180);

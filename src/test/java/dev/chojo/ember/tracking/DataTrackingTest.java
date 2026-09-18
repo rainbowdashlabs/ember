@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -187,6 +188,49 @@ class DataTrackingTest extends RepositoryTestBase {
                     + String.join("\n  ", unverified.subList(0, Math.min(20, unverified.size())))
                     + (unverified.size() > 20 ? "\n  ... and " + (unverified.size() - 20) + " more" : "")
                     + "\n\nRun ./gradlew reviewDataTracking to verify them.");
+        }
+    }
+
+    /**
+     * Every column a rule names has to be a column the table actually has.
+     *
+     * <p>The columns of this file are refreshed from the live schema, while the rules written against
+     * them are kept by hand, so a renamed or dropped column leaves its rules pointing at nothing. The
+     * engine skips a rule it cannot resolve, which means an erasure declared here and believed to be
+     * running quietly does not run at all: deleting an account reported one such skip per stale rule
+     * and carried on. Nothing else in this file compares the two halves, so it is compared here.
+     */
+    @Test
+    void everyRuleNamesAColumnTheTableHas() {
+        List<String> dangling = new ArrayList<>();
+        for (var entry : tracking.tables().entrySet()) {
+            var table = entry.getValue();
+            if (table.columns() == null) continue;
+            var columns = table.columns().stream().map(ColumnEntry::name).collect(Collectors.toSet());
+
+            var deletion = table.gdprDeletion();
+            if (deletion != null && deletion.strategies() != null) {
+                for (var strategy : deletion.strategies()) {
+                    if (!columns.contains(strategy.column())) {
+                        dangling.add(
+                                entry.getKey() + "." + strategy.column() + " (deletion " + strategy.strategy() + ")");
+                    }
+                }
+            }
+
+            var export = table.gdprExport();
+            if (export != null && export.identityColumns() != null) {
+                for (var identity : export.identityColumns()) {
+                    if (!columns.contains(identity.column())) {
+                        dangling.add(entry.getKey() + "." + identity.column() + " (identity " + identity.type() + ")");
+                    }
+                }
+            }
+        }
+        if (!dangling.isEmpty()) {
+            fail("These rules name columns their table does not have (" + dangling.size() + " total):\n  "
+                    + String.join("\n  ", dangling)
+                    + "\n\nName the column the table really carries, or drop the rule.");
         }
     }
 

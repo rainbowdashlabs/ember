@@ -1,5 +1,21 @@
 # Änderungsprotokoll
 
+## v26.18.1
+
+### Verbesserungen
+
+- **Auswahlmöglichkeiten an Terminen und Wartelisten werden zeilenweise erfasst.** Beide fragten die ganze Liste noch in einem einzigen Feld ab, das eine trennte bei Zeilenumbrüchen, das andere bei Kommas: Eine Auswahl mit Komma wurde so unbemerkt zu zweien. Sie nutzen jetzt denselben Editor wie überall sonst, mit einer Zeile je Auswahl, die sich umsortieren lässt.
+- **Die Löschen-Schaltfläche an den Feldern eines Termins sitzt an einer festen Stelle.** Sie teilte sich eine Zeile, die umbrach, und konnte dadurch mitten im Bereich zwischen anderen Einstellungen landen; jetzt steht sie oben rechts an ihrem Feld.
+- **Die Neuigkeitenliste liest sich wieder als Liste.** Ein langer Beitrag füllt nicht mehr die ganze Seite: Beiträge werden auf wenige Zeilen gekürzt und laden zum Weiterlesen ein, den Rest gibt es auf der Seite des Beitrags.
+
+### Fehlerbehebungen
+
+- **Neuigkeiten von den Machern von Ember trugen in der Liste kein Zeichen.** Das Ember-Logo erschien erst im geöffneten Beitrag, nicht in der Liste, aus der er geöffnet wurde: Dort war ein solcher Beitrag von einem an der Station geschriebenen nicht zu unterscheiden.
+
+- **Das Löschen eines Kontos meldete Probleme, die keine waren.** Beim Entfernen eines Kontos wurden mehrere Datenarten aufgeführt, die nicht aufgeräumt werden konnten, obwohl die Datenbank sie längst entfernt hatte und nichts zurückblieb. Die Liste des Aufzuräumenden wird jetzt gegen die Datenbank selbst geprüft und kann nicht mehr unbemerkt auseinanderlaufen.
+- **Wer seinen Platz zurückgab, konnte ganz aus der Liste verschwinden.** Ein noch nicht bestätigter Platz wurde beim Zurückgeben gelöscht: Die Anmeldeliste war dann einfach um einen Eintrag kürzer und nichts sagte, wer abgesprungen war, obwohl die Benachrichtigung darüber verschickt wurde. Jeder zurückgegebene Platz bleibt jetzt als zurückgezogen in der Liste, und eine erneute Anmeldung funktioniert wie zuvor.
+- **Eine am späten Abend geöffnete Liste galt dem Vortag.** Wurde eine Anwesenheit aus einem wiederkehrenden Termin gestartet, las sie das Datum von der Uhr des Servers statt von der der Station: In den letzten Stunden vor Mitternacht wurde die Liste damit für den vorherigen Termin geöffnet und trug dessen Zeiten. Der Tag richtet sich jetzt durchgehend nach der Station.
+
 ## v26.18.0
 
 ### Neue Funktionen

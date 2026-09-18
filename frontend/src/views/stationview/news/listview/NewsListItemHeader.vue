@@ -12,6 +12,8 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import SystemBadge from '@/components/badge/SystemBadge.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
+import {emberLogo} from '@/composables/useEmberLogo'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NewsViewBadge from '../newsshared/NewsViewBadge.vue'
@@ -40,6 +42,7 @@ const props = defineProps<{
 const {t} = useI18n()
 const router = useRouter()
 const newsRoutes = useNewsRoutes()
+const logo = emberLogo()
 
 function viewBadgeRef(el: unknown) {
   props.setViewBadgeRef(el, props.id)
@@ -49,7 +52,15 @@ function viewBadgeRef(el: unknown) {
 <template>
   <div class="flex items-start justify-between gap-3">
     <div class="flex items-center gap-2">
-      <UserAvatar v-if="author || authorName" :identity="author" :name="author?.name ?? authorName" size="md"/>
+      <LayeredEmberLogo
+          v-if="kind === 'system'"
+          :layers="logo.layers"
+          :active-layers="logo.activeLayers"
+          :pixel-size="64"
+          data-testid="system-entry-logo"
+          size="h-10 w-10 shrink-0"
+      />
+      <UserAvatar v-else-if="author || authorName" :identity="author" :name="author?.name ?? authorName" size="md"/>
       <div>
         <SubHeader class="flex items-center gap-1">
           <span>{{ title }}</span>
