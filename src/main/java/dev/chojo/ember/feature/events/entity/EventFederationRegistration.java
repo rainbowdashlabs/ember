@@ -35,6 +35,17 @@ public record EventFederationRegistration(
         Instant createdAt) {
 
     /**
+     * Whether this answer still puts somebody on the list, as against one that was taken back.
+     *
+     * <p>Asked wherever a registration is shown or handed on. A withdrawal used to delete its row, so
+     * everything that reads these rows assumed what it found was somebody coming; now that the row
+     * stays, each of those places has to ask.
+     */
+    public boolean isStanding() {
+        return status != RegistrationStatus.WITHDRAWN && status != RegistrationStatus.DECLINED;
+    }
+
+    /**
      * Creates a row mapping for database result set conversion.
      */
     public static RowMapping<EventFederationRegistration> map() {

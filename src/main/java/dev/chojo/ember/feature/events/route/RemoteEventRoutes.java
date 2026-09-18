@@ -33,7 +33,6 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.List;
@@ -264,38 +263,10 @@ public class RemoteEventRoutes implements Routes {
         var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "id");
         requireSharedEvent(partner, eventId);
-        requireOpenForRegistration(eventId);
         var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
         var reg =
                 eventFederationService.registerFederated(eventId, partner.id(), req.remoteMemberId(), req.eventDate());
         ctx.status(HttpStatus.CREATED).json(reg);
-    }
-
-    /**
-     * The questions a member of this station answers before they are on a list, asked of a visitor
-     * too.
-     *
-     * <p>Being shared with is what makes somebody eligible from another station, and that is checked
-     * before this. Everything else the local door asks applies just as much to a visitor: an event
-     * that takes no registrations has no list to join, an event that has been called off is not one
-     * to join, and a deadline that has passed has passed for everybody. Without these the host's list
-     * filled up with people its own door would have turned away.
-     *
-     * <p>There is no equivalent of the eligibility check. Restrictions are written in terms of this
-     * station's members and groups, and a visitor is in none of them; the host said who may come when
-     * it chose whom to share with.
-     */
-    private void requireOpenForRegistration(int eventId) {
-        var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
-        if (!event.requiresRegistration()) {
-            throw new BadRequestResponse("Event does not require registration");
-        }
-        if (event.cancelled()) {
-            throw new BadRequestResponse("Event has been cancelled");
-        }
-        if (event.registrationDeadline() != null && Instant.now().isAfter(event.registrationDeadline())) {
-            throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
-        }
     }
 
     private void remoteWithdraw(Context ctx) {
@@ -307,13 +278,6 @@ public class RemoteEventRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    /**
-     * A partner asking for one of its members to be put back after a withdrawal.
-     *
-     * <p>Whether it is still possible is this station's to answer, because this station holds the
-     * row and the clock that measures the window. A refusal here is not a failure: it means the
-     * few minutes have passed, and the partner tells its member so.
-     */
     /**
      * A partner confirming one of its own members, where this station handed it that decision.
      *
@@ -339,6 +303,13 @@ public class RemoteEventRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    /**
+     * A partner asking for one of its members to be put back after a withdrawal.
+     *
+     * <p>Whether it is still possible is this station's to answer, because this station holds the
+     * row and the clock that measures the window. A refusal here is not a failure: it means the
+     * few minutes have passed, and the partner tells its member so.
+     */
     private void remoteUndoWithdrawal(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "id");
@@ -364,15 +335,9 @@ public class RemoteEventRoutes implements Routes {
         requireSharedEvent(partner, eventId);
         var registrations = eventFederationService.findRegistrationsByPartner(partner.id()).stream()
                 .filter(r -> r.eventId() == eventId)
-                .filter(RemoteEventRoutes::isStanding)
+                .filter(EventFederationRegistration::isStanding)
                 .toList();
         ctx.json(registrations);
-    }
-
-    /** Whether this answer still puts somebody on the list, as against one that was taken back. */
-    private static boolean isStanding(EventFederationRegistration registration) {
-        return registration.status() != RegistrationStatus.WITHDRAWN
-                && registration.status() != RegistrationStatus.DECLINED;
     }
 
     private void remoteListMemberRegistrations(Context ctx) {
@@ -380,7 +345,7 @@ public class RemoteEventRoutes implements Routes {
         var memberUid = pathUuid(ctx, "memberUid");
         var registrations = eventFederationService.findRegistrationsByRemoteMember(memberUid).stream()
                 .filter(r -> r.partnerId() == partner.id())
-                .filter(RemoteEventRoutes::isStanding)
+                .filter(EventFederationRegistration::isStanding)
                 .toList();
         ctx.json(registrations.stream()
                 .map(r -> new RemoteMemberRegistration(
