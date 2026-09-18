@@ -394,6 +394,82 @@ class NotificationServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * An installation that has switched the digest off writes to nobody and says so.
+     *
+     * <p>Zero has always meant off. It now also means the sweep never runs at all, so a station's
+     * own times are never reached either, which is the answer an operator who turned it off expects.
+     */
+    @Test
+    @Order(47)
+    void anInstallationCanTurnTheDigestOff() {
+        var silent = mock(Mailing.class);
+        assertEquals(0, silent.notificationDigestIntervalMinutes());
+
+        var svc = new NotificationService(
+                notificationRepo,
+                stationMemberRepo,
+                userSettingsRepo,
+                notificationSettingsRepo,
+                accountRepo,
+                stationRepo,
+                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
+                mock(EmailService.class),
+                new MailRecipientService(accountRepo, stationMemberRepo),
+                new NotificationScheduleRepository(),
+                clusterRepo,
+                silent);
+
+        assertNotNull(svc, "the service still starts, it simply never writes to anybody");
+    }
+
+    /**
+     * A station whose clock is unreadable is written to on the server's.
+     *
+     * <p>The timezone is a string somebody typed, so it can be a place that does not exist. Falling
+     * back is what everything else here does with one, and it matters more in this one: a station
+     * whose clock could not be read would otherwise never be written to at all.
+     */
+    @Test
+    @Order(48)
+    void aStationWhoseClockCannotBeReadIsStillWrittenTo() {
+        var emailServiceMock = mock(EmailService.class);
+        when(emailServiceMock.getBaseUrl()).thenReturn("https://ember.example.com");
+        when(emailServiceMock.canStationSend(anyInt())).thenReturn(true);
+        when(emailServiceMock.loadTemplate(anyString(), anyString(), any())).thenReturn("<html>digest</html>");
+
+        var schedules = new NotificationScheduleRepository();
+        var svc = new NotificationService(
+                notificationRepo,
+                stationMemberRepo,
+                userSettingsRepo,
+                notificationSettingsRepo,
+                accountRepo,
+                stationRepo,
+                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
+                emailServiceMock,
+                new MailRecipientService(accountRepo, stationMemberRepo),
+                schedules,
+                clusterRepo,
+                new Mailing());
+
+        stationRepo.updateTimezone(station.id(), "Nirgendwo/Nirgends");
+        schedules.setStationSendTimes(station.id(), java.util.List.of(java.time.LocalTime.of(0, 0)));
+        try {
+            service.notify(
+                    member1.id(),
+                    NotificationType.NEW_NEWS,
+                    NotificationData.of(
+                            new NotificationParams.NewNews("Nowhere", "Author", "preview"),
+                            new NotificationData.NotificationLink("dashboard-overview")));
+
+            assertDoesNotThrow(() -> invokeProcessDigest(svc));
+        } finally {
+            schedules.setStationSendTimes(station.id(), java.util.List.of());
+            stationRepo.updateTimezone(station.id(), "Europe/Berlin");
+        }
+    }
+
+    /**
      * A station whose moment has not come keeps its notifications.
      *
      * <p>This is the whole point of saying when rather than how long: what arrives between two of a
@@ -450,6 +526,10 @@ class NotificationServiceTest extends RepositoryTestBase {
 
         schedules.setStationSendTimes(station.id(), List.of());
         userSettingsRepo.updateEmailEnabled(member1.id(), false);
+        // The station is shared with the stories either side of this one, and having just been
+        // written to is exactly what stops the next one being written to at all. Put it back to
+        // long ago rather than leaving them inside the operator's floor.
+        schedules.markStationSent(station.id(), Instant.EPOCH);
     }
 
     /**
