@@ -32,6 +32,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.List;
@@ -229,10 +230,38 @@ public class RemoteEventRoutes implements Routes {
         var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "id");
         requireSharedEvent(partner, eventId);
+        requireOpenForRegistration(eventId);
         var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
         var reg =
                 eventFederationService.registerFederated(eventId, partner.id(), req.remoteMemberId(), req.eventDate());
         ctx.status(HttpStatus.CREATED).json(reg);
+    }
+
+    /**
+     * The questions a member of this station answers before they are on a list, asked of a visitor
+     * too.
+     *
+     * <p>Being shared with is what makes somebody eligible from another station, and that is checked
+     * before this. Everything else the local door asks applies just as much to a visitor: an event
+     * that takes no registrations has no list to join, an event that has been called off is not one
+     * to join, and a deadline that has passed has passed for everybody. Without these the host's list
+     * filled up with people its own door would have turned away.
+     *
+     * <p>There is no equivalent of the eligibility check. Restrictions are written in terms of this
+     * station's members and groups, and a visitor is in none of them; the host said who may come when
+     * it chose whom to share with.
+     */
+    private void requireOpenForRegistration(int eventId) {
+        var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        if (!event.requiresRegistration()) {
+            throw new BadRequestResponse("Event does not require registration");
+        }
+        if (event.cancelled()) {
+            throw new BadRequestResponse("Event has been cancelled");
+        }
+        if (event.registrationDeadline() != null && Instant.now().isAfter(event.registrationDeadline())) {
+            throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
+        }
     }
 
     private void remoteWithdraw(Context ctx) {

@@ -140,25 +140,34 @@ public class EventFederationRepository {
     }
 
     /**
-     * Creates a federated registration.
+     * Creates a federated registration, or answers again where one already stands.
+     *
+     * <p>Somebody may register, withdraw and register again, and once a withdrawal keeps its row the
+     * second registration meets the unique key the first one wrote. Answering again is the same
+     * gesture as answering the first time, so it takes the same door rather than a refusal the member
+     * did nothing to earn.
      *
      * @param eventId        the event ID
      * @param partnerId      the federation partner ID
      * @param remoteMemberId the remote member UUID
      * @param eventDate      the event occurrence date
-     * @return the created registration
+     * @param status         what the event's own rules make of the answer
+     * @return the registration as it now stands
      */
     public EventFederationRegistration createRegistration(
-            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate, RegistrationStatus status) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO event_federation_registration(event_id, partner_id, remote_member_id, event_date)
-                VALUES (:event_id, :partner_id, :remote_member_id::UUID, :event_date)
+                INSERT INTO event_federation_registration(event_id, partner_id, remote_member_id, event_date, status)
+                VALUES (:event_id, :partner_id, :remote_member_id::UUID, :event_date, :status)
+                ON CONFLICT (event_id, partner_id, remote_member_id, event_date)
+                    DO UPDATE SET status = EXCLUDED.status, created_at = now()
                 RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
-                        .bind("event_date", eventDate),
+                        .bind("event_date", eventDate)
+                        .bind("status", status),
                 EventFederationRegistration.map(),
                 EVENT_FEDERATION_REGISTRATION_COLUMNS);
     }

@@ -16,6 +16,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import type {MemberOption} from '@/components/input/select/memberOption'
 import type {FederatedRegistration} from '@/api/events'
+import {useConfirmAction} from '@/composables/useConfirmAction'
+import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 
 interface EligibleMember {
   uid: string
@@ -37,6 +39,19 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+/**
+ * Signing somebody off a partner station's appointment, which asks first exactly as the station's own
+ * appointments do. A place at somebody else's event is no easier to get back, and the button sits in
+ * the same place on the page. Holding shift carries it out at once, as everywhere else.
+ */
+const {
+  show: showSignOffConfirm,
+  request: requestSignOff,
+  confirm: confirmSignOff,
+} = useConfirmAction<string>({
+  onConfirm: async uid => emit('withdraw', uid),
+})
 
 function getRegistration(uid: string): FederatedRegistration | undefined {
   return props.registrations.find(r => r.eventId === props.eventId && r.remoteMemberId === uid)
@@ -65,7 +80,7 @@ const canSubmit = computed(() => {
           <SuccessBadge v-if="getRegistration(m.uid)!.status === 'ACCEPTED'">{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
           <InfoBadge v-else-if="getRegistration(m.uid)!.status === 'PENDING'">{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
           <ErrorBadge v-else-if="getRegistration(m.uid)!.status === 'DENIED'">{{ t('eventsUpcoming.statusDenied') }}</ErrorBadge>
-          <ErrorButton :disabled="props.registering" compact class="text-xs" @click="emit('withdraw', m.uid)">
+          <ErrorButton :disabled="props.registering" compact class="text-xs" @click="requestSignOff(m.uid)">
             <font-awesome-icon :icon="['fas', 'xmark']"/>
           </ErrorButton>
         </div>
@@ -85,5 +100,7 @@ const canSubmit = computed(() => {
         </PrimaryButton>
       </template>
     </div>
+
+    <SignOffConfirm v-model="showSignOffConfirm" :busy="props.registering" @confirm="confirmSignOff"/>
   </NeutralContainer>
 </template>

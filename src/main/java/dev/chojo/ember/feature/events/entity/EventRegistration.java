@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -30,7 +31,31 @@ public record EventRegistration(
         LocalDate eventDate,
         RegistrationStatus status,
         Instant createdAt,
-        Integer createdBy) {
+        Integer createdBy,
+        Instant statusChangedAt,
+        RegistrationStatus previousStatus) {
+
+    /**
+     * A registration whose answer has never moved, which is one nobody can take back.
+     *
+     * <p>For the callers that build a registration rather than read one, where when the status last
+     * changed is the moment it was written and nothing was held before it.
+     */
+    public EventRegistration(
+            int id,
+            int eventId,
+            int memberId,
+            LocalDate eventDate,
+            RegistrationStatus status,
+            Instant createdAt,
+            Integer createdBy) {
+        this(id, eventId, memberId, eventDate, status, createdAt, createdBy, createdAt, null);
+    }
+
+    /** Whether this answer can still be taken back, measured from when it was given. */
+    public boolean withinUndoWindow(Duration window) {
+        return statusChangedAt != null && statusChangedAt.isAfter(Instant.now().minus(window));
+    }
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -43,6 +68,8 @@ public record EventRegistration(
                 row.getObject("event_date", LocalDate.class),
                 row.getEnum("status", RegistrationStatus.class),
                 row.get("created_at", INSTANT_TIMESTAMP),
-                row.getObject("created_by", Integer.class));
+                row.getObject("created_by", Integer.class),
+                row.get("status_changed_at", INSTANT_TIMESTAMP),
+                row.getEnum("previous_status", RegistrationStatus.class));
     }
 }

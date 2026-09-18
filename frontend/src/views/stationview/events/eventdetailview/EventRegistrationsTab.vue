@@ -24,6 +24,8 @@ import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useSignupMemberSet} from '@/composables/useSignupMemberSet'
+import {useConfirmAction} from '@/composables/useConfirmAction'
+import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 import RegistrationsPanel from './RegistrationsPanel.vue'
 import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
 import SignupListsMenu from './signuplists/SignupListsMenu.vue'
@@ -256,6 +258,21 @@ const answerLabel = computed(() =>
 const withdrawLabel = computed(() =>
     withPlace.value.length > 1 ? t('events.declineForAll') : t('eventsUpcoming.unregister'))
 
+/**
+ * Signing the household off, which is the press worth asking about most.
+ *
+ * <p>Every other button that gives up a place gives up one. This one gives up all of them, so a
+ * guardian with three children loses three places to a single click and a misplaced finger costs the
+ * most here of anywhere. Holding shift carries it out at once, as everywhere else.
+ */
+const {
+  show: showSignOffConfirm,
+  request: requestSignOff,
+  confirm: confirmSignOff,
+} = useConfirmAction<() => Promise<void>>({
+  onConfirm: async signOff => signOff(),
+})
+
 /** Gives up every place the household holds, which is what the one button beside them offers. */
 async function withdrawHousehold() {
   for (const person of withPlace.value) {
@@ -350,7 +367,7 @@ onMounted(loadRegistrations)
           <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>{{ answerLabel }}
         </PrimaryButton>
         <SecondaryButton v-if="withPlace.length > 0" :disabled="registering" data-testid="withdraw-household"
-                         @click="withdrawHousehold()">
+                         @click="requestSignOff(withdrawHousehold)">
           <font-awesome-icon :icon="['fas', 'rotate-left']" class="mr-1"/>{{ withdrawLabel }}
         </SecondaryButton>
       </ButtonRow>
@@ -365,6 +382,8 @@ onMounted(loadRegistrations)
         <SecondaryBadge v-else :data-testid="`my-answer-${member.key}`">{{ t('eventDetail.noAnswerYet') }}</SecondaryBadge>
       </div>
     </NeutralContainer>
+
+    <SignOffConfirm v-model="showSignOffConfirm" :busy="registering" @confirm="confirmSignOff"/>
 
     <EventAnswerDialog
         v-model="showAnswerDialog"

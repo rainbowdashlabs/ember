@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -164,6 +165,12 @@ public class EventFederationService {
     /**
      * Registers a federated member for an event occurrence.
      *
+     * <p>The status is the event's to decide, exactly as it is for a member of this station: an event
+     * that asks for no confirmation accepts at once, and one that asks holds the registration until
+     * somebody answers. Without this the row took the column default and every visitor waited for a
+     * confirmation on events that ask nobody for one, which nobody at the host was ever prompted to
+     * give.
+     *
      * @param eventId        the event ID
      * @param partnerId      the federation partner ID
      * @param remoteMemberId the remote member UUID
@@ -172,8 +179,19 @@ public class EventFederationService {
      */
     public EventFederationRegistration registerFederated(
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        var registration = federationRepository.createRegistration(eventId, partnerId, remoteMemberId, eventDate);
-        log.info("Registered federated member for event {} from partner {} on {}", eventId, partnerId, eventDate);
+        var status = crudService
+                .findById(eventId)
+                .filter(StationEvent::requiresConfirmation)
+                .map(event -> RegistrationStatus.PENDING)
+                .orElse(RegistrationStatus.ACCEPTED);
+        var registration =
+                federationRepository.createRegistration(eventId, partnerId, remoteMemberId, eventDate, status);
+        log.info(
+                "Registered federated member for event {} from partner {} on {} as {}",
+                eventId,
+                partnerId,
+                eventDate,
+                status);
         return registration;
     }
 

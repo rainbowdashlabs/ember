@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -236,6 +237,28 @@ public class EventRegistrationFieldRepository {
         query("DELETE FROM event_registration_field_value WHERE registration_id = :registration_id;")
                 .single(call().bind("registration_id", registrationId))
                 .delete();
+    }
+
+    /**
+     * Clears the answers behind refusals old enough that they can no longer be taken back.
+     *
+     * <p>A refusal keeps its answers for as long as it can be undone, because an undo that gave back
+     * a registration with blank questions would be worse than no undo at all. Once the window has
+     * closed there is nothing left to restore them for.
+     *
+     * @param window how long a refusal may be taken back
+     * @return how many registrations were cleared
+     */
+    public int deleteValuesOfRefusalsOlderThan(Duration window) {
+        return query("""
+                DELETE FROM event_registration_field_value
+                WHERE registration_id IN (
+                    SELECT id FROM event_registration
+                    WHERE status IN ('WITHDRAWN', 'DECLINED')
+                      AND status_changed_at <= now() - CAST(:window AS INTERVAL))""")
+                .single(call().bind("window", window.toSeconds() + " seconds"))
+                .delete()
+                .rows();
     }
 
     public void deleteValue(int registrationId, int fieldId) {

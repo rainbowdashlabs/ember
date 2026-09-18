@@ -126,6 +126,7 @@ public class EventRegistrationRoutes implements Routes {
                 this::updateRegistrationStatus,
                 StationPermission.EVENT_REGISTRATION);
         routes.delete(prefix + "/events/registrations/{id}", this::withdrawRegistration, StationPermission.USER);
+        routes.post(prefix + "/events/registrations/{id}/undo", this::undoWithdrawal, StationPermission.USER);
         routes.put(prefix + "/events/registrations/{id}/answer", this::changeAnswer, StationPermission.USER);
 
         routes.get(
@@ -565,7 +566,7 @@ public class EventRegistrationRoutes implements Routes {
         if (!runsTheEvent
                 && event.registrationDeadline() != null
                 && Instant.now().isAfter(event.registrationDeadline())) {
-            throw new BadRequestResponse("Registration deadline has passed");
+            throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
         }
 
         int memberId = resolveTargetMemberId(session, req);
@@ -733,25 +734,56 @@ public class EventRegistrationRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         var reg = registrationService.findById(id).orElseThrow(NotFoundResponse::new);
-
-        int regMemberId = reg.memberId();
-        boolean isOwn = session.member() != null && session.member().id() == regMemberId;
-        boolean manages = session.member() != null
-                && session.hasPermission(StationPermission.MEMBER_GUARDIAN)
-                && stationMemberService.findManaged(session.member().id()).stream()
-                        .anyMatch(m -> m.id() == regMemberId);
-        if (!isOwn
-                && !manages
-                && !session.hasPermission(StationPermission.EVENT_MANAGER)
-                && !session.hasPermission(StationPermission.EVENT_REGISTRATION)) {
-            throw new ForbiddenResponse("You cannot withdraw this registration");
-        }
+        requireMayAnswerFor(session, reg.memberId());
 
         if (!registrationService.withdraw(id)) {
             throw new NotFoundResponse();
         }
+        ctx.json(new WithdrawalResponse(Instant.now().plus(EventRegistrationService.UNDO_WINDOW)));
+    }
+
+    /**
+     * Taking a withdrawal back, for as long as it may be taken back.
+     *
+     * <p>Whoever could give the answer can take it back, which is the same question asked at the same
+     * door. Past the window this is a plain refusal: there is nothing here to put back, and the
+     * member registers again the ordinary way if the appointment still takes answers.
+     */
+    private void undoWithdrawal(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        var reg = registrationService.findById(id).orElseThrow(NotFoundResponse::new);
+        requireMayAnswerFor(session, reg.memberId());
+
+        if (!registrationService.undoWithdrawal(id)) {
+            throw new BadRequestResponse("This can no longer be taken back");
+        }
         ctx.status(HttpStatus.NO_CONTENT);
     }
+
+    /**
+     * Whether this session may answer for that member: themselves, somebody in their care, or
+     * anybody where they keep the list.
+     */
+    private void requireMayAnswerFor(UserSession session, int memberId) {
+        boolean isOwn = session.member() != null && session.member().id() == memberId;
+        boolean manages = session.member() != null
+                && session.hasPermission(StationPermission.MEMBER_GUARDIAN)
+                && stationMemberService.findManaged(session.member().id()).stream()
+                        .anyMatch(m -> m.id() == memberId);
+        if (!isOwn
+                && !manages
+                && !session.hasPermission(StationPermission.EVENT_MANAGER)
+                && !session.hasPermission(StationPermission.EVENT_REGISTRATION)) {
+            throw new ForbiddenResponse("You cannot answer for this member");
+        }
+    }
+
+    /**
+     * @param undoUntil the moment the withdrawal stops being something that can be taken back, so the
+     *         page can offer it for exactly as long as the server would accept it
+     */
+    public record WithdrawalResponse(Instant undoUntil) {}
 
     @OpenApi(
             path = "/api/v1/events/{id}/absences",

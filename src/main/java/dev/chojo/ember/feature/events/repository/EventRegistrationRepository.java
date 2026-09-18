@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
@@ -30,7 +31,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class EventRegistrationRepository {
 
-    private static final String COLUMNS = "id, event_id, member_id, event_date, status, created_at, created_by";
+    private static final String COLUMNS =
+            "id, event_id, member_id, event_date, status, created_at, created_by, status_changed_at, previous_status";
 
     /**
      * Retrieves all registrations for an event on a specific date, ordered by creation time.
@@ -307,7 +309,10 @@ public class EventRegistrationRepository {
      * @return true if a row was updated
      */
     public boolean updateStatus(int id, RegistrationStatus status) {
-        return query("UPDATE event_registration SET status = :status WHERE id = :id;")
+        return query("""
+                UPDATE event_registration
+                SET status = :status, previous_status = status, status_changed_at = now()
+                WHERE id = :id;""")
                 .single(call().bind("status", status).bind("id", id))
                 .update()
                 .changed();
@@ -326,8 +331,36 @@ public class EventRegistrationRepository {
      * @return true if a row was updated
      */
     public boolean recordAnswer(int id, RegistrationStatus status) {
-        return query("UPDATE event_registration SET status = :status, created_at = now() WHERE id = :id;")
+        return query("""
+                UPDATE event_registration
+                SET status = :status, created_at = now(),
+                    previous_status = status, status_changed_at = now()
+                WHERE id = :id;""")
                 .single(call().bind("status", status).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Puts an answer back to what was held before it, for as long as it may still be taken back.
+     *
+     * <p>The window is in the statement rather than read first and checked after, so two presses
+     * racing cannot both find it open. The previous status has to be there: a row that never held
+     * anything has nothing to go back to, and is the decline that created it, which the caller
+     * removes instead.
+     *
+     * @param id     the registration to restore
+     * @param window how long an answer may be taken back
+     * @return {@code true} where the answer was restored, {@code false} where the window had closed
+     */
+    public boolean restorePreviousStatus(int id, Duration window) {
+        return query("""
+                UPDATE event_registration
+                SET status = previous_status, previous_status = NULL, status_changed_at = now()
+                WHERE id = :id
+                  AND previous_status IS NOT NULL
+                  AND status_changed_at > now() - CAST(:window AS INTERVAL);""")
+                .single(call().bind("id", id).bind("window", window.toSeconds() + " seconds"))
                 .update()
                 .changed();
     }
