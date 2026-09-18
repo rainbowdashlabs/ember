@@ -214,6 +214,16 @@ EOF
 
 fe() { cd "$FRONTEND"; }
 
+# The distribution the stories run when E2E_PREBUILT names one, rebuilt before every run.
+#
+# Nothing else refreshes it: one built in the morning served the stories all evening, and what it
+# failed was read as the suite's doing rather than as yesterday's backend. Gradle does nothing when
+# nothing changed, so the guard costs a second and removes the question.
+e2e_distribution() {
+    [ -n "${E2E_PREBUILT:-}" ] || return 0
+    (cd "$ROOT" && run ./gradlew installDist -x test -q)
+}
+
 # The command names are hyphenated, and the first hyphen also reads as a group: `docker app` is
 # accepted for `docker-app`, and both reach the same arm below. Naming the group alone lists what
 # is in it.
@@ -347,6 +357,7 @@ case "$cmd" in
         # anything under src/, use fe-e2e-built - this command would otherwise run the stories
         # against the build before the change and report on code nobody is looking at.
         project="${1:-chromium}"; shift || true
+        e2e_distribution
         fe
         [ -f .output/server/index.mjs ] || NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
         run npx playwright test --project "$project" "$@"
@@ -355,6 +366,7 @@ case "$cmd" in
         # One of the groups CI runs as a job of its own. `fe-e2e-groups` lists them.
         [ $# -ge 1 ] || { echo "fe-e2e-group needs a group, e.g. inventory" >&2; exit 2; }
         group="$1"; shift
+        e2e_distribution
         fe
         [ -f .output/server/index.mjs ] || NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
         # shellcheck disable=SC2046
@@ -366,12 +378,14 @@ case "$cmd" in
     fe-e2e1)
         [ $# -ge 1 ] || { echo "fe-e2e1 needs a spec name, e.g. account" >&2; exit 2; }
         spec="$1"; shift
+        e2e_distribution
         fe; run npx playwright test "$spec" --project chromium "$@"
         ;;
-    fe-e2e-ssr)      fe; run npx playwright test --project ssr-no-js "$@" ;;
+    fe-e2e-ssr)      e2e_distribution; fe; run npx playwright test --project ssr-no-js "$@" ;;
     fe-e2e-built)
         # Rebuilds first, for when the sources moved since the last build.
         project="${1:-chromium}"; shift || true
+        e2e_distribution
         fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
         # Whatever follows the project goes in front of --project: a bare argument after it is read
         # as a second project name rather than as the spec to run.
@@ -384,6 +398,7 @@ case "$cmd" in
         # backend of this one outright. It has no other checkout to fear any more, since the stack
         # it restarts is this checkout's own.
         project="${1:-chromium}"; shift || true
+        e2e_distribution
         cd "$ROOT/docker"
         run docker compose $(e2e_compose_files) --profile e2e down
         run docker volume rm -f "${COMPOSE_PROJECT_NAME:-docker}_ember-e2e-data"

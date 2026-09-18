@@ -16,6 +16,9 @@ import {
     instantToDate,
     instantToLocalInput,
     localInputToInstant,
+    stationClock,
+    stationDayOf,
+    stationToday,
     timeOnDayOf,
     todayIsoDate,
     toIsoDate,
@@ -158,6 +161,45 @@ describe('an appointment late in the evening', () => {
     it('survives the round trip an editable field makes of it', () => {
         const backOut = new Date(instantToLocalInput(lateInTheEvening)).toISOString()
         expect(backOut).toBe('2026-10-12T22:30:00.000Z')
+    })
+})
+
+/**
+ * The day an appointment is filed under is the station's, and nobody else's. The sign-ups, the
+ * absences and the gear claimed for an evening are all looked up by it, so a page that asks its own
+ * clock instead asks for a day nothing is filed under and comes back with nothing at all.
+ */
+describe('the day an appointment is filed under', () => {
+    const halfPastTenInBerlin = '2026-10-12T20:30:00Z'
+
+    it('is the station\'s day, whatever day the reader is on', () => {
+        readingFrom('Pacific/Auckland')
+        expect(stationDayOf(new Date(halfPastTenInBerlin), 'Europe/Berlin')).toBe('2026-10-12')
+        expect(toIsoDate(new Date(halfPastTenInBerlin))).toBe('2026-10-13')
+    })
+
+    it('stays the station\'s day for a reader sitting behind it', () => {
+        readingFrom('America/New_York')
+        expect(stationDayOf(new Date(halfPastTenInBerlin), 'Europe/Berlin')).toBe('2026-10-12')
+    })
+
+    it('rolls over with the station and not with the stored moment', () => {
+        const justAfterMidnightInBerlin = '2026-10-12T22:30:00Z'
+        expect(stationDayOf(new Date(justAfterMidnightInBerlin), 'Europe/Berlin')).toBe('2026-10-13')
+        expect(instantToDate(justAfterMidnightInBerlin)).toBe('2026-10-12')
+    })
+
+    it('falls back to the reader where the station keeps no clock', () => {
+        readingFrom('Europe/Berlin')
+        expect(stationDayOf(new Date(halfPastTenInBerlin), null)).toBe('2026-10-12')
+        expect(stationDayOf(new Date(halfPastTenInBerlin), 'Nirgendwo/Nirgends')).toBe('2026-10-12')
+        expect(stationToday('Europe/Berlin')).toBe(todayIsoDate())
+    })
+
+    it('reads the clock off the station too, so an evening ends when it ends there', () => {
+        readingFrom('Pacific/Auckland')
+        expect(stationClock(new Date(halfPastTenInBerlin), 'Europe/Berlin')).toBe('22:30')
+        expect(stationClock(new Date(halfPastTenInBerlin), null)).toBe('09:30')
     })
 })
 

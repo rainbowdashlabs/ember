@@ -20,11 +20,18 @@ import EventDetailBody from './eventdetailview/EventDetailBody.vue'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import {useEventAnswer} from '@/composables/useEventAnswer'
 import type {AnswerablePerson} from '@/util/eventAnswers'
-import {formatTime, formatWeekdayDate, instantToDate, toIsoDate} from '@/util/format'
+import {formatTime, formatWeekdayDate, stationClock, stationDayOf, stationToday} from '@/util/format'
 
 const {t} = useI18n()
 const route = useRoute()
-const {canManageEvents, canManageAttendance, isGuardian, sessionInfo, hasPermission} = useSession()
+const {
+  canManageEvents,
+  canManageAttendance,
+  isGuardian,
+  sessionInfo,
+  stationTimezone,
+  hasPermission,
+} = useSession()
 
 const eventId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
@@ -64,19 +71,18 @@ async function reloadMyRegistrations() {
  * one day the appointment actually takes place.
  */
 function nextOccurrence(dayOfWeek: number): string {
-  const now = new Date()
-  const todayDow = now.getDay() === 0 ? 7 : now.getDay()
+  const today = new Date(`${stationToday(stationTimezone.value)}T12:00:00Z`)
+  const todayDow = today.getUTCDay() === 0 ? 7 : today.getUTCDay()
   let daysAhead = dayOfWeek - todayDow
   if (daysAhead < 0) daysAhead += 7
   if (daysAhead === 0 && event.value?.endTime) {
-    const end = new Date(event.value.endTime)
-    const endToday = new Date(now)
-    endToday.setHours(end.getHours(), end.getMinutes(), 0, 0)
-    if (now > endToday) daysAhead = 7
+    const zone = stationTimezone.value
+    if (stationClock(new Date(), zone) > stationClock(new Date(event.value.endTime), zone)) {
+      daysAhead = 7
+    }
   }
-  const next = new Date(now)
-  next.setDate(now.getDate() + daysAhead)
-  return toIsoDate(next)
+  today.setUTCDate(today.getUTCDate() + daysAhead)
+  return today.toISOString().slice(0, 10)
 }
 
 const nextOccurrenceDate = computed(() => {
@@ -91,13 +97,18 @@ const nextOccurrenceDate = computed(() => {
  *   3. The event's {@code startTime} date for one-time events.
  *
  * <p>Every lookup keyed by an evening - absences, sign-ups, the gear claimed for it - reads from
- * here, so this is the name the server knows the evening by and not the day the reader sees. For a
- * one-off the server names it after the start time, and it is asked rather than guessed at.
+ * here, so this is the name the server knows the evening by and not the day the reader sees. The
+ * server names an evening after the day it falls on where the station stands, so that is the clock
+ * this asks: reading the day off the stored moment put the page a day ahead of its own sign-ups for
+ * every appointment made late in the evening, and reading it off the reader's clock does the same
+ * to anybody sitting in another zone.
  */
 const effectiveDate = computed((): string | null => {
   if (focusedDate.value) return focusedDate.value
   if (nextOccurrenceDate.value) return nextOccurrenceDate.value
-  if (event.value?.startTime) return instantToDate(event.value.startTime)
+  if (event.value?.startTime) {
+    return stationDayOf(new Date(event.value.startTime), stationTimezone.value)
+  }
   return null
 })
 
@@ -105,11 +116,17 @@ const effectiveDate = computed((): string | null => {
  * The day written above a time on this page.
  *
  * <p>A repeating appointment is shown on the occurrence the page is bound to, whose clock is the
- * one it repeats. A one-off is shown on the day its own moment falls on where the reader stands, so
- * the day and the clock beside it are read off one and the same moment rather than off two.
+ * one it repeats. A one-off is shown on the day its own moment falls on where the station stands,
+ * which is the same day {@link effectiveDate} looks its sign-ups up under: the day drawn and the
+ * day asked for have to be the one day, or the page reads as though it were showing an evening it
+ * has nothing for.
  */
 function dayShownFor(iso: string): string {
-  return focusedDate.value ?? nextOccurrenceDate.value ?? toIsoDate(new Date(iso))
+  return (
+    focusedDate.value ??
+    nextOccurrenceDate.value ??
+    stationDayOf(new Date(iso), stationTimezone.value)
+  )
 }
 
 function combineDateAndTime(iso: string): string {

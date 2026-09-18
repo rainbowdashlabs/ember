@@ -66,7 +66,7 @@ function toQueue() {
         <ItemChip :source="chipOf(movement)"/>
         <div class="flex flex-wrap items-center gap-1">
           <PrimaryBadge>{{ t(`movements.purpose.${movement.purpose}`) }}</PrimaryBadge>
-          <InfoBadge v-if="movement.currentStepLabel">{{ movement.currentStepLabel }}</InfoBadge>
+          <InfoBadge v-if="movement.reachedStepLabel">{{ movement.reachedStepLabel }}</InfoBadge>
           <SecondaryBadge v-if="movement.currentStepActor">
             {{ t(`movements.actor.${movement.currentStepActor}`) }}
           </SecondaryBadge>
@@ -92,7 +92,7 @@ function toQueue() {
         <Td><PrimaryBadge>{{ t(`movements.purpose.${movement.purpose}`) }}</PrimaryBadge></Td>
         <Td><MemberInventoryLink :identity="movement.memberIdentity ?? null" :member-id="movement.memberId"/></Td>
         <Td>
-          <InfoBadge v-if="movement.currentStepLabel">{{ movement.currentStepLabel }}</InfoBadge>
+          <InfoBadge v-if="movement.reachedStepLabel">{{ movement.reachedStepLabel }}</InfoBadge>
           <MutedText v-if="movement.currentStepActor" size="sm" class="ml-1">
             {{ t(`movements.actor.${movement.currentStepActor}`) }}
           </MutedText>

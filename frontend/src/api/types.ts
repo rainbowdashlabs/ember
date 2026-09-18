@@ -189,6 +189,8 @@ export interface SessionInfo {
     profileComplete?: boolean
     disabledModules?: string[]
     theme?: ThemeSessionInfo
+    /** The clock the station keeps its days by, as an IANA name, or UTC where it keeps none. */
+    stationTimezone?: string | null
     publicKbMode?: string
     /** ISO timestamp at which the station setup wizard was finished, or null while it still applies. */
     setupCompletedAt?: string | null
