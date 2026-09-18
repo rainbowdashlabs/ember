@@ -3745,6 +3745,7 @@ export default {
             radio: 'Funkgerät',
             'walkie-talkie': 'Handfunkgerät',
             toolbox: 'Werkzeugkasten',
+            headphones: 'Kopfhörer',
             'screwdriver-wrench': 'Werkzeug',
             wrench: 'Schlüssel',
             hammer: 'Hammer',
@@ -3779,6 +3780,8 @@ export default {
             briefcase: 'Aktentasche',
             'layer-group': 'Sammlung',
             folder: 'Ordner',
+            key: 'Schlüssel',
+            stapler: 'Tacker',
             'hand-holding': 'Geliehenes',
         },
         stock: {

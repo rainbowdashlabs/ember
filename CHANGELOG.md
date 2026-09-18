@@ -8,6 +8,7 @@
 
 ### Improvements
 
+- **Three more pictures to give a piece of gear.** Headphones, a key and a stapler join the ones a station can choose from, under Equipment and General.
 - **People following a cluster hear about its partner stations.** Notifications from a cluster were gathered but never mailed to anybody, so somebody who followed one to keep up with its partners heard nothing at all. They now go out with the same times and settings as a station's.
 - **An appointment's files are shown rather than only offered.** Pressing one opens it where it is, so finding out which of four sheets is the map no longer means saving all four. Saving is still a button of its own.
 - **Files show what they hold.** Pictures and the first page of a PDF now stand beside a file in an appointment's list and in the media library, instead of a row of identical icons.

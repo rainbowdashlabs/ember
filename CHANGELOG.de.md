@@ -8,6 +8,7 @@
 
 ### Verbesserungen
 
+- **Drei weitere Bilder für ein Ausrüstungsstück.** Kopfhörer, Schlüssel und Tacker stehen jetzt zusätzlich zur Auswahl, unter Ausrüstung und Allgemein.
 - **Wer einem Verbund folgt, erfährt von dessen Partnerwachen.** Benachrichtigungen aus einem Verbund wurden zwar gesammelt, aber an niemanden verschickt: Wer einem Verbund folgte, um über die Partner auf dem Laufenden zu bleiben, hörte gar nichts. Sie gehen jetzt mit denselben Zeiten und Einstellungen raus wie die einer Station.
 - **Die Dateien eines Termins werden gezeigt, nicht nur angeboten.** Ein Druck darauf öffnet die Datei an Ort und Stelle: Herauszufinden, welches von vier Blättern die Karte ist, heißt nicht mehr, alle vier herunterzuladen. Das Speichern bleibt eine eigene Schaltfläche.
 - **Dateien zeigen, was in ihnen steckt.** Bilder und die erste Seite eines PDFs stehen jetzt neben der Datei, in der Liste eines Termins wie in der Mediathek, statt einer Reihe gleicher Symbole.
