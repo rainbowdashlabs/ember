@@ -313,7 +313,9 @@ public class EventRegistrationRepository {
     public boolean updateStatus(int id, RegistrationStatus status) {
         return query("""
                 UPDATE event_registration
-                SET status = :status, previous_status = status, status_changed_at = now()
+                SET status = :status,
+                    previous_status = CASE WHEN status = :status THEN previous_status ELSE status END,
+                    status_changed_at = CASE WHEN status = :status THEN status_changed_at ELSE now() END
                 WHERE id = :id;""")
                 .single(call().bind("status", status).bind("id", id))
                 .update()
@@ -328,6 +330,11 @@ public class EventRegistrationRepository {
      * accepting or denying goes through {@link #updateStatus(int, RegistrationStatus)} instead and
      * leaves the member's own timestamp where it is.
      *
+     * <p>Answering the same thing twice records nothing. A member and whoever looks after them can
+     * both sign the same place off, from two screens, and the second press must not write the first
+     * one's withdrawal over its own memory: that would leave the first person an undo that puts back
+     * a withdrawal, and a window that keeps sliding forward.
+     *
      * @param id     the registration ID
      * @param status the status the member's answer leaves it in
      * @return true if a row was updated
@@ -336,7 +343,8 @@ public class EventRegistrationRepository {
         return query("""
                 UPDATE event_registration
                 SET status = :status, created_at = now(),
-                    previous_status = status, status_changed_at = now()
+                    previous_status = CASE WHEN status = :status THEN previous_status ELSE status END,
+                    status_changed_at = CASE WHEN status = :status THEN status_changed_at ELSE now() END
                 WHERE id = :id;""")
                 .single(call().bind("status", status).bind("id", id))
                 .update()

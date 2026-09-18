@@ -11,6 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import {StationPermission} from '@/api/types'
 import type {Comment} from '@/api/comments'
 import type {MemberCompletion} from '@/api/stationMembers'
 import {comments as commentsApi, events, stationMembers} from '@/api'
@@ -27,7 +28,7 @@ import CommentsCard from './federatedeventdetailview/CommentsCard.vue'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {sessionInfo} = useSession()
+const {sessionInfo, hasPermission} = useSession()
 
 const stationUid = ref(route.params.stationUid as string)
 const eventId = ref(Number(route.params.eventId))
@@ -59,18 +60,19 @@ const publicFields = computed(() => detail.value?.publicFields ?? [])
  */
 const ourPlaces = computed(() => detail.value?.places ?? null)
 
-/** How many of our places are filled, which is what the count is for. */
-const placesTaken = computed(() =>
-    myRegistrations.value.filter(reg => reg.eventId === eventId.value && reg.status === 'ACCEPTED').length)
-
+/**
+ * What we were given, in words, without claiming how much of it is left.
+ *
+ * <p>Only the station holding the appointment can count that: what this one can see is its own
+ * members' places and not the rest of the station's, and a number worked out from those alone would
+ * read as the whole and be wrong for everybody with colleagues. They answer when the places are
+ * full, and that answer is the one that counts.
+ */
 const placesSummary = computed(() => {
   const places = ourPlaces.value
   if (!places) return ''
   if (places.slotBudget === null) return t('eventsUpcoming.placesUncapped')
-  return t('eventsUpcoming.placesLeft', {
-    left: Math.max(0, places.slotBudget - placesTaken.value),
-    total: places.slotBudget,
-  })
+  return t('eventsUpcoming.placesGiven', {total: places.slotBudget})
 })
 
 /**
@@ -230,7 +232,7 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
             :registrations="myRegistrations"
             :event-id="eventId"
             :registering="registering"
-            :we-decide="ourPlaces?.decidesItself ?? false"
+            :we-decide="(ourPlaces?.decidesItself ?? false) && hasPermission(StationPermission.EVENT_REGISTRATION)"
             :places-summary="placesSummary"
             @register="registerForEvent"
             @withdraw="withdrawRegistration"

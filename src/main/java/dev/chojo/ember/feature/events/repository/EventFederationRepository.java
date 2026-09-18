@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Singleton;
 
 import java.time.Duration;
@@ -330,13 +331,38 @@ public class EventFederationRepository {
     /**
      * Fills one of a partner's places, and says whether there was one to fill.
      *
-     * <p>The count is inside the statement rather than read first and written after, because two
-     * people at the partner pressing confirm at the same moment would otherwise both see room and
-     * both take the last place. Counted per date: the budget is per occurrence.
+     * <p>Two people at the partner pressing confirm at the same moment must not both take the last
+     * place, and putting the count inside the statement is not enough to stop them: each press
+     * writes a different registration, so they lock different rows and each counts on a snapshot
+     * taken before the other committed. Both would find room. So the arrangement itself is locked
+     * first, which is the one row both presses have in common, and the count that follows runs after
+     * whoever got there first has finished. Counted per date: the budget is per occurrence.
      *
      * @return true where the place was granted, false where the budget was already spent
      */
     public boolean acceptWithinBudget(int registrationId, int eventId, int partnerId, LocalDate eventDate) {
+        return Transactions.call(() -> {
+            lockPlaces(eventId, partnerId);
+            return spendPlace(registrationId, eventId, partnerId, eventDate);
+        });
+    }
+
+    /**
+     * Holds the arrangement still while a place is counted and taken against it.
+     *
+     * <p>Nothing is read from it: what matters is that a second press waits here until the first has
+     * committed, so that the count it then makes is a count of what is really taken. Where a partner
+     * decides without a number there is no row and nothing to wait for, which is right, because
+     * there is no limit to race for.
+     */
+    private void lockPlaces(int eventId, int partnerId) {
+        query("SELECT 1 FROM event_partner_places WHERE event_id = :event_id AND partner_id = :partner_id FOR UPDATE;")
+                .single(call().bind("event_id", eventId).bind("partner_id", partnerId))
+                .map(row -> row.getInt(1))
+                .first();
+    }
+
+    private boolean spendPlace(int registrationId, int eventId, int partnerId, LocalDate eventDate) {
         return query("""
                 UPDATE event_federation_registration reg
                 SET status = 'ACCEPTED', previous_status = reg.status, status_changed_at = now()

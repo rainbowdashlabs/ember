@@ -2582,7 +2582,7 @@ export default {
         signOffConfirmBody: 'Der Platz wird wieder freigegeben. Wer später doch teilnehmen möchte, meldet sich neu an, und bei einem vollen Termin kann der Platz dann weg sein.',
         signedOff: 'Abgemeldet.',
         placesUncapped: 'Eure Wache entscheidet selbst, wer von euch mitkommt.',
-        placesLeft: 'Eure Wache entscheidet selbst: noch {left} von {total} Plätzen frei.',
+        placesGiven: 'Eure Wache entscheidet selbst, wer von euch mitkommt: {total} Plätze stehen euch zu.',
         noPlacesLeft: 'Die ausrichtende Wache hat keine Plätze mehr für euch frei.',
         undoSignOff: 'Rückgängig',
         undoTooLate: 'Das lässt sich jetzt nicht mehr rückgängig machen. Melde dich neu an, solange der Termin Anmeldungen annimmt.',

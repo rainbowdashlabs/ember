@@ -32,9 +32,13 @@ const props = defineProps<{
   registrations: FederatedRegistration[]
   eventId: number
   registering: boolean
-  /** Whether this station chooses who comes, because the other one handed that over. */
+  /**
+   * Whether this reader may choose who comes: the other station handed the choosing over, and
+   * keeping this station's registrations is the reader's job. Both, or the button would be offered
+   * to somebody the other station will refuse.
+   */
   weDecide: boolean
-  /** How many places are left, in words, or empty where there is nothing to say. */
+  /** What the other station set aside, in words, or empty where it set nothing aside. */
   placesSummary: string
 }>()
 

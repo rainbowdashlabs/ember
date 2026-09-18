@@ -80,7 +80,8 @@ public class EventSharingRoutes implements Routes {
                 prefix + "/events/federation-registrations/{id}/status",
                 this::updateFederationRegistrationStatus,
                 StationPermission.EVENT_REGISTRATION);
-        routes.get(prefix + "/events/{id}/partner-places", this::listPartnerPlaces, StationPermission.EVENT_MANAGER);
+        routes.get(
+                prefix + "/events/{id}/partner-places", this::listPartnerPlaces, StationPermission.EVENT_REGISTRATION);
         routes.put(
                 prefix + "/events/{id}/partner-places/{partnerId}",
                 this::setPartnerPlaces,
@@ -201,6 +202,13 @@ public class EventSharingRoutes implements Routes {
      *
      * <p>The host's list reads this to say which partners decide for themselves, so that a row it
      * cannot act on explains itself rather than simply refusing when somebody presses it.
+     */
+    /**
+     * What each partner was given, which whoever handles the registrations has to be able to read.
+     *
+     * <p>Arranging the places is the event manager's, but the registration screen needs the answer to
+     * know whose decision a pending visitor is: without it that screen shows accept and deny buttons
+     * beside people it may not decide about, and the refusal only arrives once somebody presses one.
      */
     private void listPartnerPlaces(Context ctx) {
         int eventId = pathInt(ctx, "id");

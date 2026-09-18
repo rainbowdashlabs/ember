@@ -23,11 +23,6 @@ public record EventPartnerPlaces(int eventId, int partnerId, Integer slotBudget,
         return new EventPartnerPlaces(eventId, partnerId, null, false);
     }
 
-    /** Whether this partner may fill another place, given how many it has filled already. */
-    public boolean hasRoomBeyond(int alreadyTaken) {
-        return slotBudget == null || alreadyTaken < slotBudget;
-    }
-
     public static RowMapping<EventPartnerPlaces> map() {
         return row -> new EventPartnerPlaces(
                 row.getInt("event_id"),

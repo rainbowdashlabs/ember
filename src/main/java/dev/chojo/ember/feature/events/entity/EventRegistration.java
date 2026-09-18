@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -50,11 +49,6 @@ public record EventRegistration(
             Instant createdAt,
             Integer createdBy) {
         this(id, eventId, memberId, eventDate, status, createdAt, createdBy, createdAt, null);
-    }
-
-    /** Whether this answer can still be taken back, measured from when it was given. */
-    public boolean withinUndoWindow(Duration window) {
-        return statusChangedAt != null && statusChangedAt.isAfter(Instant.now().minus(window));
     }
 
     /**

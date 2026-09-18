@@ -221,12 +221,6 @@ async function confirmRegistrationFields(values: RegistrationFieldValue[]) {
 }
 
 /**
- * Gives up the place somebody was given, by deleting it.
- *
- * <p>Not a refusal written down in its place: this event has to be signed up for, so having no place
- * already says everything a refusal would, and two rows saying the same thing is one too many.
- */
-/**
  * Gives one person's place back, and remembers what was given up.
  *
  * <p>The ids are collected rather than acted on one at a time, because this screen gives up a whole
