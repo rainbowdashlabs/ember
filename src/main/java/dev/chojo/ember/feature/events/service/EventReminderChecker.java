@@ -164,7 +164,7 @@ public class EventReminderChecker {
 
         for (int d = 0; d <= maxDays; d++) {
             LocalDate date = today.plusDays(d);
-            if (event.occursOn(date)) result.add(date);
+            if (event.occursOn(date, zone)) result.add(date);
         }
         return result;
     }

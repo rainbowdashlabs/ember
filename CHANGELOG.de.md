@@ -6,6 +6,11 @@
 
 - **Eine Personenliste lässt sich mit selbst gewählten Spalten anzeigen.** Wer zu einem Termin kommt, steht jetzt mit dem daneben, was die Wache wissen will, die Mitgliederliste bietet dieselbe Tabelle, und eine Spaltenauswahl lässt sich unter einem Namen speichern und als Blatt zum Mitnehmen oder als Tabelle für den Schreibtisch herausgeben. Angeboten und aufgeschrieben wird nur, was du auch sehen darfst; eine Frage, die du nicht lesen darfst, fehlt ganz, statt leer dazustehen.
 
+### Fehlerbehebungen
+
+- **Ein jährlicher Termin konnte am falschen Tag auftauchen.** Bei einer Wache, deren Uhr der des Servers vorausgeht, zählte ein um Mitternacht beginnender Abend als der Tag davor, sodass der Jahrestag eines jährlichen Termins einen Tag zu früh fiel. Der Tag wird jetzt auf der Uhr der Wache gelesen.
+- **Die Anmeldung konnte einen Tag zu früh schließen.** Die Prüfung, die eine Anmeldung eine bestimmte Zahl von Tagen vor dem Termin schließt, fragte den Server nach dem Datum statt die Wache, sodass eine Wache, die vorausgeht, in den letzten Stunden des Abends noch beim Vortag war und ihre Listen einen Tag daneben schloss.
+
 ## v26.18.1
 
 ### Neue Funktionen

@@ -6,6 +6,11 @@
 
 - **A list of people can be drawn with the columns you choose.** Who is coming to an appointment is shown with whatever the station wants beside each name, the register offers the same table, and a selection of columns can be saved under a name and taken away as a sheet to carry or a table for the desk. Only what you are allowed to see is ever offered or written down, and a question you may not read is left out rather than shown empty.
 
+### Fixes
+
+- **A yearly appointment could come up on the wrong day.** For a station whose clock runs ahead of the server's, an evening beginning at midnight counted as the day before, so the anniversary of a yearly appointment fell a day early. The day is now read on the station's own clock.
+- **Registration could close a day early.** The check that closes a list a set number of days before an appointment asked the server what day it was rather than the station, so a station ahead of it spent the last hours of the evening being told it was still yesterday and closed its lists one day out.
+
 ## v26.18.1
 
 ### New Features

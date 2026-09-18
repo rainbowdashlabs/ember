@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Optional;
 
@@ -142,10 +143,30 @@ public record StationEvent(
      * Returns whether this recurring event falls on the given date, matching the configured
      * weekday and recurrence schedule. One-time events never match.
      *
+     * <p>The zone is asked for rather than assumed because a yearly appointment is the day and month
+     * its first one fell on, and which day that was depends on where the station is. Read in UTC, an
+     * evening that starts at midnight in Berlin belongs to the day before, so its anniversary was
+     * quietly the wrong one for every station east of Greenwich.
+     *
+     * @param date the calendar date to test, worked out on the station's own clock
+     * @param zone the station's clock, which is the one the date came from
+     * @return true if the event recurs on that date
+     */
+    /**
+     * The same question asked in UTC, for the callers that already work in it.
+     *
+     * <p>Only the anniversary of a yearly appointment reads the clock at all, so everything built
+     * from weekdays gets the same answer whichever zone it names. A caller that knows the station's
+     * clock should say so and use the other one.
+     *
      * @param date the calendar date to test
      * @return true if the event recurs on that date
      */
     public boolean occursOn(LocalDate date) {
+        return occursOn(date, ZoneOffset.UTC);
+    }
+
+    public boolean occursOn(LocalDate date, ZoneId zone) {
         boolean matchesPattern =
                 switch (eventType) {
                     case RECURRING -> onTheWeekday(date);
@@ -154,8 +175,8 @@ public record StationEvent(
                         onTheWeekday(date) && date.getDayOfMonth() <= 7 && (date.getMonthValue() - 1) % 3 == 0;
                     case YEARLY ->
                         startTime != null
-                                && startTime.atZone(ZoneOffset.UTC).getMonthValue() == date.getMonthValue()
-                                && startTime.atZone(ZoneOffset.UTC).getDayOfMonth() == date.getDayOfMonth();
+                                && startTime.atZone(zone).getMonthValue() == date.getMonthValue()
+                                && startTime.atZone(zone).getDayOfMonth() == date.getDayOfMonth();
                     default -> false;
                 };
         return matchesPattern && !isAfterLastDate(date);
