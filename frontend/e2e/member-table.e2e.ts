@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders, type Page} from './fixtures/auth'
+import {type APIRequestContext} from '@playwright/test'
+import {test, expect, apiHeaders} from './fixtures/auth'
 
 /**
  * A table of people with the columns a station chose, on an appointment and on the register.
@@ -21,7 +22,7 @@ import {test, expect, apiHeaders, type Page} from './fixtures/auth'
  * nobody may read, so a field created and left unassigned is correctly invisible to every table.
  */
 async function askOf(
-    api: ReturnType<Page['request']>, headers: Record<string, string>, name: string, role: string,
+    api: APIRequestContext, headers: Record<string, string>, name: string, role: string,
 ) {
     const created = await api.post('/api/v1/profile-fields', {
         headers,

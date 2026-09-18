@@ -147,7 +147,7 @@ fun releaseTagsJson(): String {
     return entries.joinToString(",\n", "{\n", "\n}\n")
 }
 
-val releaseTags by tasks.registering {
+val releaseTags = tasks.register("releaseTags") {
     description = "Records when each version was tagged, for the changelog to show and link between"
     val output = layout.buildDirectory.file("generated/changelog/releases.json")
     outputs.file(output)
