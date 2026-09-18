@@ -11,6 +11,9 @@
 
 ### Improvements
 
+- **Giving up a place at an appointment asks first, and can be taken back.** Every button that signs somebody off now opens a short question before the place goes, including the one that signs off a whole household at once. For five minutes afterwards the sign-off can be undone from the message that appears, and what comes back is the place that was held rather than a fresh sign-up at the end of the queue. Hold shift while pressing to skip the question, as elsewhere.
+- **Being too late to sign up now says who can help.** Trying to sign up again after the list has closed answered with a bare failure. It now says the list is closed and that whoever runs the appointment can still add somebody.
+- **A guest from a partner station is treated like a member of the station.** Their sign-up is accepted straight away where the appointment asks for no confirmation, rather than waiting for one that nobody was ever asked to give, and it is refused where the appointment takes no sign-ups, has been called off, or has closed its list. Signing off keeps the record, so the station holding the appointment can tell somebody who left from somebody who never answered.
 - **A template says what it provides before you pick it.** Each tile on the new attendance screen now names the groups it enters and the questions it asks, so the choice no longer runs on memory. A template that enters nobody says so.
 - **The changelog says when each version was released.** Every entry now carries the day it came out, with the exact time under the pointer, and ends with a link that opens its changes against the release before it on GitHub.
 - **A birth date can be shown without the age behind it.** The field now carries a switch for it, on as before, so a station that also asks the age as a question of its own no longer states it twice on one row.
