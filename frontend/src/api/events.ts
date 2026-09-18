@@ -903,6 +903,36 @@ export async function removeFederationShare(eventId: number): Promise<void> {
     await client.delete(`/events/${eventId}/federation`)
 }
 
+/**
+ * What one partner station may do with a shared appointment.
+ *
+ * <p>Absent from the list means the arrangement nobody configured: this station decides, member by
+ * member, with no cap. That is how every shared appointment worked before any of this.
+ */
+export interface EventPartnerPlaces {
+    eventId: number
+    partnerId: number
+    /** How many places that partner may fill on one date, or null for no cap. */
+    slotBudget: number | null
+    /** Whether the partner decides who fills them rather than this station. */
+    partnerConfirms: boolean
+}
+
+export async function getPartnerPlaces(eventId: number): Promise<EventPartnerPlaces[]> {
+    const res = await client.get<EventPartnerPlaces[]>(`/events/${eventId}/partner-places`)
+    return res.data
+}
+
+/**
+ * Hands a partner a number of places, or takes the arrangement back.
+ *
+ * <p>A budget means the partner decides: handing somebody places and then choosing their people for
+ * them is not a thing anybody wants, so the two travel as one choice with an optional number.
+ */
+export async function setPartnerPlaces(eventId: number, partnerId: number, slotBudget: number | null, partnerConfirms: boolean): Promise<void> {
+    await client.put(`/events/${eventId}/partner-places/${partnerId}`, {slotBudget, partnerConfirms})
+}
+
 // -- Page-editor picker. PAGE_EDIT-gated. --
 
 export type EventPickerMode = 'FUTURE' | 'PAST' | 'ALL'

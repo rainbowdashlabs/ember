@@ -78,6 +78,8 @@ const reminders = defineModel<number[]>('reminders', {required: true})
 const federationShared = defineModel<boolean>('federationShared', {required: true})
 const federationScope = defineModel<string>('federationScope', {required: true})
 const federationPartnerIds = defineModel<number[]>('federationPartnerIds', {required: true})
+const federationPlaces = defineModel<Record<number, {decides: boolean; budget: number | null}>>(
+    'federationPlaces', {required: true})
 
 const {t} = useI18n()
 
@@ -128,6 +130,7 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
       v-model:shared="federationShared"
       v-model:scope="federationScope"
       v-model:partner-ids="federationPartnerIds"
+      v-model:places="federationPlaces"
       :partners="props.partners"
       :can-federate="props.canFederate"
   />
