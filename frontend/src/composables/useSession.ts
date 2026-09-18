@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {readonly} from 'vue'
+import {computed, readonly} from 'vue'
 import {session} from '@/api'
 import {getItem} from '@/api/storage'
 import {usePermissions} from '@/composables/usePermissions'
@@ -84,8 +84,19 @@ export function useSession() {
         return sessionInfo.value?.publicKbMode != null && sessionInfo.value.publicKbMode !== 'OFF'
     }
 
+    /**
+     * The clock the current station keeps its days by.
+     *
+     * <p>Any day used to look something up is the station's day and not the reader's: the server
+     * files an appointment's sign-ups, absences and claimed gear under the date the appointment
+     * falls on where the station stands. Hand this to {@link stationDayOf} rather than reading a
+     * day off the reader's own clock.
+     */
+    const stationTimezone = computed(() => sessionInfo.value?.stationTimezone ?? null)
+
     return {
         sessionInfo: readonly(sessionInfo),
+        stationTimezone,
         loaded: readonly(sessionLoaded),
         loadFailed: readonly(sessionLoadFailed),
         sessionStationId: readonly(sessionStationId),

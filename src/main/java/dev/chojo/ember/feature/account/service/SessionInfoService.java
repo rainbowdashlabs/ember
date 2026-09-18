@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.service.StationService;
@@ -168,7 +169,8 @@ public class SessionInfoService {
                         .sorted()
                         .toList(),
                 !mailChainService.forInstance().isEmpty(),
-                currentStation != null && currentStation.pdfHidesInstanceUrl());
+                currentStation != null && currentStation.pdfHidesInstanceUrl(),
+                StationFormat.timezoneOf(currentStation).getId());
     }
 
     private ManagedMemberInfo toManagedMemberInfo(StationMember member) {
@@ -277,7 +279,8 @@ public class SessionInfoService {
             List<String> clusterPermissions,
             List<String> ownStationPermissions,
             boolean canSendMail,
-            boolean pdfHidesInstanceUrl) {}
+            boolean pdfHidesInstanceUrl,
+            String stationTimezone) {}
 
     public record ThemeInfo(
             String instanceDefaultTheme,

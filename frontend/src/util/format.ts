@@ -159,9 +159,10 @@ export function dateToInstant(date?: string | null): string | null {
  * put back into a date field. Returns an empty string when there is nothing, which is what an empty
  * date field holds.
  *
- * <p>Not for showing anybody a date. This is the day the server names an instant by, which is what
- * makes it the right thing to send back and the wrong thing to put on a page: use {@link toIsoDate}
- * where the reader's own day is meant.
+ * <p>Not for showing anybody a date, and no longer the day the server names an instant by either:
+ * the server reads that off the station's own clock, so ask {@link stationDayOf} wherever a day is
+ * used to look something up. What is left here is the plain round trip with {@link dateToInstant},
+ * filling a date field from a moment that same field produced.
  */
 export function instantToDate(iso?: string | null): string {
     if (!iso) return ''
@@ -185,6 +186,56 @@ export function toIsoDate(date: Date): string {
 /** Today where the reader stands, as `yyyy-MM-dd`. */
 export function todayIsoDate(): string {
     return toIsoDate(new Date())
+}
+
+/**
+ * The calendar date a moment falls on where the station stands, as `yyyy-MM-dd`.
+ *
+ * <p>This is the day everything filed against an appointment is filed under: the server reads the
+ * day off the station's clock, and a reader in another zone, or in the same zone late enough in the
+ * evening, is already on the next one. Asking the reader's clock instead puts the page on a day
+ * nothing is filed under, and every list made from the appointment comes out empty.
+ *
+ * <p>Falls back to the reader's own day when the station keeps no timezone, which is what the
+ * server falls back to as well.
+ */
+export function stationDayOf(moment: Date, timezone?: string | null): string {
+    if (!timezone) return toIsoDate(moment)
+    try {
+        return new Intl.DateTimeFormat('en-CA', {
+            timeZone: timezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        }).format(moment)
+    } catch {
+        return toIsoDate(moment)
+    }
+}
+
+/** Today where the station stands, as `yyyy-MM-dd`. */
+export function stationToday(timezone?: string | null): string {
+    return stationDayOf(new Date(), timezone)
+}
+
+/**
+ * The time of day a moment shows where the station stands, as `HH:mm`.
+ *
+ * <p>Sorts and compares as it reads, which is what makes it the thing to ask when the question is
+ * whether this evening's appointment is over yet.
+ */
+export function stationClock(moment: Date, timezone?: string | null): string {
+    if (!timezone) return `${pad2(moment.getHours())}:${pad2(moment.getMinutes())}`
+    try {
+        return new Intl.DateTimeFormat('en-GB', {
+            timeZone: timezone,
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+        }).format(moment)
+    } catch {
+        return `${pad2(moment.getHours())}:${pad2(moment.getMinutes())}`
+    }
 }
 
 /**
