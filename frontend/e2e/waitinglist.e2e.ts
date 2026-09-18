@@ -283,13 +283,21 @@ test.describe('Waiting lists', () => {
         await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
         await page.getByPlaceholder('Name des Feldes').fill(fieldName)
         await page.getByRole('combobox').first().selectOption('ENUM')
-        await page.getByPlaceholder('Option 1, Option 2, Option 3').fill('rot, blau, grün')
+
+        await page.getByTestId('question-option-add').click()
+        await page.getByTestId('question-option-0').fill('rot')
+        await page.getByTestId('question-option-add').click()
+        await page.getByTestId('question-option-1').fill('blau, dunkel')
         await page.getByRole('button', {name: 'Speichern'}).click()
 
         await page.reload()
-        await expect(page.getByText('rot, blau, grün')).toBeVisible()
-
         await page.getByRole('button', {name: 'Bearbeiten'}).last().click()
-        await expect(page.getByPlaceholder('Option 1, Option 2, Option 3')).toHaveValue('rot, blau, grün')
+
+        await expect(page.getByTestId('question-option-0')).toHaveValue('rot')
+        await expect(
+            page.getByTestId('question-option-1'),
+            'a choice with a comma in it is one choice and not two',
+        ).toHaveValue('blau, dunkel')
+        await expect(page.getByTestId('question-option-2')).toHaveCount(0)
     })
 })

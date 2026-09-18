@@ -134,7 +134,8 @@ function moveField(fromIndex: number, toIndex: number) {
     {{ t('events.noFields') }}
   </MutedText>
 
-  <DragList :items="fields" :key-fn="(_, index) => index" @reorder="moveField">
+  <div data-testid="event-field-list">
+    <DragList :items="fields" :key-fn="(_, index) => index" @reorder="moveField">
     <template #default="{index}">
       <EventFieldEditor
           :model-value="fields[index]!"
@@ -150,7 +151,8 @@ function moveField(fromIndex: number, toIndex: number) {
           @remove="removeField(index)"
       />
     </template>
-  </DragList>
+    </DragList>
+  </div>
 
   <FieldLayoutPreview :fields="fields.map(field => ({name: field.name, width: configOf(field.config).width}))"/>
 </template>
