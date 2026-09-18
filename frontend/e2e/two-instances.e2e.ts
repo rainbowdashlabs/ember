@@ -20,6 +20,7 @@ import {must} from './fixtures/must'
 
 /** What a station says about a partner. Only the parts a story here reads. */
 interface Partner {
+    id: number
     status: string
     remoteHost: string | null
     partnerStationId: string
