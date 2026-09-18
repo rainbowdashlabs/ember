@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.18.2
+
+### New Features
+
+- **A list of people can be drawn with the columns you choose.** Who is coming to an appointment is shown with whatever the station wants beside each name, the register offers the same table, and a selection of columns can be saved under a name and taken away as a sheet to carry or a table for the desk. Only what you are allowed to see is ever offered or written down, and a question you may not read is left out rather than shown empty.
+
 ## v26.18.1
 
 ### New Features

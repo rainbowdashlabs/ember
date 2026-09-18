@@ -1,5 +1,11 @@
 # Änderungsprotokoll
 
+## v26.18.2
+
+### Neue Funktionen
+
+- **Eine Personenliste lässt sich mit selbst gewählten Spalten anzeigen.** Wer zu einem Termin kommt, steht jetzt mit dem daneben, was die Wache wissen will, die Mitgliederliste bietet dieselbe Tabelle, und eine Spaltenauswahl lässt sich unter einem Namen speichern und als Blatt zum Mitnehmen oder als Tabelle für den Schreibtisch herausgeben. Angeboten und aufgeschrieben wird nur, was du auch sehen darfst; eine Frage, die du nicht lesen darfst, fehlt ganz, statt leer dazustehen.
+
 ## v26.18.1
 
 ### Neue Funktionen
