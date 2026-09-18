@@ -14,7 +14,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import type {Comment} from '@/api/comments'
 import type {MemberCompletion} from '@/api/stationMembers'
 import {comments as commentsApi, events, stationMembers} from '@/api'
-import type {FederatedEventDetail, FederatedRegistration} from '@/api/events'
+import {UNDO_WINDOW_MS, type FederatedEventDetail, type FederatedRegistration} from '@/api/events'
+import {showToast} from '@/util/toast'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -65,18 +66,35 @@ function selectedUidForRegister(): string | null {
 const {running: registering, error: registrationError, run: runRegistration} = useAsyncAction(
     async (kind: 'register' | 'withdraw', uid: string) => {
       if (kind === 'register') {
-        await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), uid)
+        const status = await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), uid)
         myRegistrations.value.push({
           eventId: eventId.value, remoteMemberId: uid,
-          eventDate: getEventDate(), status: 'PENDING', partnerId: 0,
+          eventDate: getEventDate(), status, partnerId: 0,
         })
       } else {
         await events.withdrawFederatedRegistration(stationUid.value, eventId.value, getEventDate(), uid)
         myRegistrations.value = myRegistrations.value.filter(r => !(r.eventId === eventId.value && r.remoteMemberId === uid))
+        showToast(t('eventsUpcoming.signedOff'), 'info', UNDO_WINDOW_MS, {
+          label: t('eventsUpcoming.undoSignOff'),
+          run: () => undoWithdrawal(uid),
+        })
       }
     },
     {formatError: () => t('common.error')},
 )
+
+/**
+ * Asking the other station to put a place back. Theirs is the clock that decides, so a refusal here
+ * means the few minutes have passed rather than that anything went wrong.
+ */
+async function undoWithdrawal(uid: string) {
+  try {
+    await events.undoFederatedWithdrawal(stationUid.value, eventId.value, getEventDate(), uid)
+    myRegistrations.value = await events.listMyFederatedRegistrations()
+  } catch {
+    showToast(t('eventsUpcoming.undoTooLate'), 'error')
+  }
+}
 
 function registerForEvent() {
   const uid = selectedUidForRegister()

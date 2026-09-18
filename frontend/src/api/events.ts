@@ -546,6 +546,16 @@ export interface Withdrawal {
     undoUntil: string
 }
 
+/**
+ * How long a withdrawal is offered back where the server does not say.
+ *
+ * <p>The server is the authority and answers with its own deadline wherever it can. A partner
+ * station's appointment is the exception: the answer travels through two instances and carries no
+ * deadline, so the offer is shown for the length everybody uses and refused by whoever holds the row
+ * if it has run out.
+ */
+export const UNDO_WINDOW_MS = 5 * 60 * 1000
+
 export async function withdrawRegistration(id: number): Promise<Withdrawal> {
     const res = await client.delete<Withdrawal>(`/events/registrations/${id}`)
     return res.data
@@ -826,12 +836,29 @@ export async function listMyFederatedRegistrations(): Promise<FederatedRegistrat
     return res.data
 }
 
-export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<void> {
-    await client.post(`/federated/${stationUid}/events/${eventId}/register`, { eventDate, memberId: memberId ?? null })
+/**
+ * Signs a member up for a partner station's appointment and answers with what they recorded.
+ *
+ * <p>The status is theirs to decide: an appointment that asks for no confirmation accepts at once,
+ * and showing a pending badge regardless would tell the member something nobody said.
+ */
+export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<string> {
+    const res = await client.post<{status: string}>(`/federated/${stationUid}/events/${eventId}/register`, { eventDate, memberId: memberId ?? null })
+    return res.data.status
 }
 
 export async function withdrawFederatedRegistration(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<void> {
     await client.delete(`/federated/${stationUid}/events/${eventId}/register`, { data: { eventDate, memberId: memberId ?? null } })
+}
+
+/**
+ * Asks the station holding the appointment to put a place back after a withdrawal.
+ *
+ * <p>Their clock decides, because the registration is theirs. A refusal means the few minutes have
+ * passed rather than that anything went wrong.
+ */
+export async function undoFederatedWithdrawal(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<void> {
+    await client.post(`/federated/${stationUid}/events/${eventId}/register/undo`, { eventDate, memberId: memberId ?? null })
 }
 
 export interface FederatedEventRegistration {

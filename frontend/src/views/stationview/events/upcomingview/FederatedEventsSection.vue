@@ -9,7 +9,8 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FederatedEventTile from '@/views/stationview/events/upcomingview/federatedeventssection/FederatedEventTile.vue'
 import {events} from '@/api'
-import type {FederatedEvent, FederatedRegistration} from '@/api/events'
+import {UNDO_WINDOW_MS, type FederatedEvent, type FederatedRegistration} from '@/api/events'
+import {showToast} from '@/util/toast'
 import {useSession} from '@/composables/useSession'
 import {reportCaughtError} from '@/util/devErrorReporter'
 import type {AnswerablePerson} from '@/util/eventAnswers'
@@ -61,6 +62,12 @@ async function register(fed: FederatedEvent, people: AnswerablePerson<string>[])
   registering.value = null
 }
 
+/**
+ * Giving up a place at a partner station's appointment, and offering it back.
+ *
+ * <p>How long the offer stands is the other station's to say, because the registration is theirs.
+ * This end simply asks, and is told no once the few minutes have passed.
+ */
 async function withdraw(fed: FederatedEvent, memberUid: string) {
   const key = `${fed.partnerStationUid}-${fed.event.id}`
   registering.value = key
@@ -68,8 +75,24 @@ async function withdraw(fed: FederatedEvent, memberUid: string) {
     await events.withdrawFederatedRegistration(fed.partnerStationUid, fed.event.id, getEventDate(fed), memberUid)
     myRegistrations.value = myRegistrations.value.filter(
         r => !(r.eventId === fed.event.id && r.remoteMemberId === memberUid))
+    showToast(t('eventsUpcoming.signedOff'), 'info', UNDO_WINDOW_MS, {
+      label: t('eventsUpcoming.undoSignOff'),
+      run: () => undoWithdrawal(fed, memberUid),
+    })
   } catch (e) {
     reportCaughtError(e, 'federated event withdrawal')
+  }
+  registering.value = null
+}
+
+async function undoWithdrawal(fed: FederatedEvent, memberUid: string) {
+  const key = `${fed.partnerStationUid}-${fed.event.id}`
+  registering.value = key
+  try {
+    await events.undoFederatedWithdrawal(fed.partnerStationUid, fed.event.id, getEventDate(fed), memberUid)
+    myRegistrations.value = await events.listMyFederatedRegistrations()
+  } catch {
+    showToast(t('eventsUpcoming.undoTooLate'), 'error')
   }
   registering.value = null
 }
