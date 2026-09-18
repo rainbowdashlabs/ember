@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -20,7 +20,7 @@ const props = defineProps<{
   tags?: UserTag[]
 }>()
 
-const enumOptions = defineModel<string>('enumOptions', {required: true})
+const enumOptions = defineModel<string[]>('enumOptions', {required: true})
 const groupId = defineModel<string>('groupId', {required: true})
 const userType = defineModel<string>('userType', {required: true})
 const tagId = defineModel<string>('tagId', {required: true})
@@ -38,10 +38,11 @@ const isMemberField = computed(() => isMemberFieldType(props.fieldType))
 </script>
 
 <template>
-  <div v-if="fieldType === EventFieldTypes.ENUM" class="space-y-1">
-    <FieldLabel>{{ t('eventFields.enumOptions') }}</FieldLabel>
-    <TextAreaInput v-model="enumOptions" :placeholder="t('eventFields.enumOptionsPlaceholder')" :rows="3"/>
-  </div>
+  <QuestionOptionsEditor
+      v-if="fieldType === EventFieldTypes.ENUM"
+      v-model="enumOptions"
+      :label="t('eventFields.enumOptions')"
+  />
 
   <div v-if="constraint === 'group' && groups && groups.length > 0" class="space-y-1">
     <FieldLabel>{{ t('eventFields.group') }}</FieldLabel>

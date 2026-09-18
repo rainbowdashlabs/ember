@@ -12,7 +12,7 @@ const fieldName = defineModel<string>('fieldName', {required: true})
 const fieldType = defineModel<string>('fieldType', {required: true})
 const fieldRequired = defineModel<boolean>('fieldRequired', {required: true})
 const fieldPublic = defineModel<boolean>('fieldPublic', {required: true})
-const fieldEnumOptions = defineModel<string>('fieldEnumOptions', {required: true})
+const fieldEnumOptions = defineModel<string[]>('fieldEnumOptions', {required: true})
 
 defineProps<{
   isEdit: boolean

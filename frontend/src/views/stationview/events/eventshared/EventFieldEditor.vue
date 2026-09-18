@@ -65,7 +65,7 @@ const fieldValue = ref('')
 const overview = ref(false)
 const isPublic = ref(false)
 const attendanceFieldId = ref<number | null>(null)
-const enumOptions = ref('')
+const enumOptions = ref<string[]>([])
 const groupId = ref<string>('')
 const width = ref<string>(FieldWidths.FULL)
 const userType = ref<string>('')
@@ -82,7 +82,7 @@ function seed(entry: EventFieldEntry) {
   attendanceFieldId.value = entry.attendanceFieldId ?? null
 
   const cfg = entry.config ?? {}
-  enumOptions.value = Array.isArray(cfg.options) ? (cfg.options as string[]).join('\n') : ''
+  enumOptions.value = Array.isArray(cfg.options) ? [...(cfg.options as string[])] : []
   width.value = cfg.width ? String(cfg.width) : FieldWidths.FULL
   groupId.value = cfg.groupId ? String(cfg.groupId) : ''
   userType.value = cfg.userType ? String(cfg.userType) : ''
@@ -96,8 +96,8 @@ function buildConfig(): Record<string, unknown> {
   const c: Record<string, unknown> = {}
   if (width.value && width.value !== FieldWidths.FULL) c.width = width.value
   const constraint = fieldConstraint(fieldType.value)
-  if (fieldType.value === 'ENUM' && enumOptions.value.trim()) {
-    c.options = enumOptions.value.split('\n').map(o => o.trim()).filter(o => o)
+  if (fieldType.value === 'ENUM' && enumOptions.value.length > 0) {
+    c.options = [...enumOptions.value]
   }
   if (constraint === 'group' && groupId.value) {
     c.groupId = Number(groupId.value)
@@ -164,7 +164,7 @@ watch(modelValue, incoming => {
 
 <template>
   <div class="rounded border border-(--border) p-3 space-y-2">
-    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
       <div class="space-y-1">
         <FieldLabel>{{ t('eventFields.name') }}</FieldLabel>
         <TextInput v-model="name" :placeholder="t('eventFields.namePlaceholder')" data-testid="event-field-name"/>
@@ -176,6 +176,8 @@ watch(modelValue, incoming => {
           <option v-for="ft in fieldTypeOptions" :key="ft.value" :value="ft.value">{{ ft.label }}</option>
         </SelectInput>
       </div>
+
+      <DeleteButton class="justify-self-end" :label="t('common.delete')" @click="emit('remove')"/>
     </div>
 
     <EventFieldTypeConfig
@@ -210,10 +212,6 @@ watch(modelValue, incoming => {
 
       <div class="w-40">
         <WidthField v-model="width"/>
-      </div>
-
-      <div class="ms-auto flex items-center gap-1 pb-1">
-        <DeleteButton :label="t('common.delete')" @click="emit('remove')"/>
       </div>
     </div>
 

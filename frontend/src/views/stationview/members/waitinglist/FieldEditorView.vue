@@ -35,7 +35,7 @@ const fieldName = ref('')
 const fieldType = ref('TEXT')
 const fieldRequired = ref(false)
 const fieldPublic = ref(true)
-const fieldEnumOptions = ref('')
+const fieldEnumOptions = ref<string[]>([])
 
 const fieldTypes = ['TEXT', 'NUMBER', 'DATE', 'BIRTH_DATE', 'BOOLEAN', 'ENUM'] as const
 
@@ -71,7 +71,7 @@ function openAddField() {
   fieldType.value = 'TEXT'
   fieldRequired.value = false
   fieldPublic.value = true
-  fieldEnumOptions.value = ''
+  fieldEnumOptions.value = []
   showFieldModal.value = true
 }
 
@@ -81,13 +81,13 @@ function openEditField(field: WaitingListField) {
   fieldType.value = field.fieldType
   fieldRequired.value = field.required
   fieldPublic.value = field.isPublic ?? true
-  fieldEnumOptions.value = field.config?.options?.join(', ') ?? ''
+  fieldEnumOptions.value = [...(field.config?.options ?? [])]
   showFieldModal.value = true
 }
 
 function buildConfig(): WaitingListFieldConfig {
-  if (fieldType.value !== 'ENUM' || !fieldEnumOptions.value.trim()) return {}
-  return {options: fieldEnumOptions.value.split(',').map(o => o.trim()).filter(o => o)}
+  if (fieldType.value !== 'ENUM' || fieldEnumOptions.value.length === 0) return {}
+  return {options: [...fieldEnumOptions.value]}
 }
 
 const { running: savingField, error: saveFieldError, run: saveField } = useAsyncAction(async () => {
