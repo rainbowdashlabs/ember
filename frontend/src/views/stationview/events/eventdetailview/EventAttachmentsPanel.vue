@@ -11,6 +11,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
+import FileThumbnail from '@/components/documents/FileThumbnail.vue'
+import FilePreviewModal from '@/components/documents/FilePreviewModal.vue'
 import {formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {events} from '@/api'
@@ -46,6 +48,13 @@ function download(attachment: EventAttachment) {
   return downloadAuthed(events.eventAttachmentUrl(props.eventId, attachment.id), attachment.fileName)
 }
 
+const previewed = ref<EventAttachment | null>(null)
+
+/** What an attachment is called where it is shown, which is its label until it has none. */
+function nameOf(attachment: EventAttachment): string {
+  return attachment.label?.trim() || attachment.fileName
+}
+
 onMounted(load)
 watch(() => props.eventId, load)
 </script>
@@ -62,16 +71,36 @@ watch(() => props.eventId, load)
         v-for="attachment in attachments"
         :key="attachment.id"
         :data-attachment="attachment.id"
-        class="flex flex-wrap items-center gap-2"
+        class="flex w-full flex-wrap items-center gap-2 rounded-theme p-1 text-left hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40"
         data-testid="event-attachment-row"
     >
-      <font-awesome-icon :icon="['fas', 'paperclip']" class="text-primary"/>
-      <span class="text-sm">{{ attachment.label?.trim() || attachment.fileName }}</span>
-      <span class="text-xs text-(--text-muted)">{{ formatSize(attachment.fileSize) }}</span>
-      <InfoBadge v-if="attachment.internal" data-testid="event-attachment-internal-badge">
-        {{ t('events.attachments.internal') }}
-      </InfoBadge>
-      <DownloadButton data-testid="event-attachment-download" @click="download(attachment)"/>
+      <button
+          class="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left"
+          data-testid="event-attachment-open"
+          type="button"
+          @click="previewed = attachment"
+      >
+        <FileThumbnail
+            :url="events.eventAttachmentPictureUrl(eventId, attachment.id, 96)"
+            :mime-type="attachment.mimeType"
+            :alt="nameOf(attachment)"
+        />
+        <span class="text-sm">{{ nameOf(attachment) }}</span>
+        <span class="text-xs text-(--text-muted)">{{ formatSize(attachment.fileSize) }}</span>
+        <InfoBadge v-if="attachment.internal" data-testid="event-attachment-internal-badge">
+          {{ t('events.attachments.internal') }}
+        </InfoBadge>
+      </button>
+      <DownloadButton class="ms-auto" data-testid="event-attachment-download" @click="download(attachment)"/>
     </div>
+
+    <FilePreviewModal
+        v-if="previewed"
+        :url="events.eventAttachmentUrl(eventId, previewed.id)"
+        :title="nameOf(previewed)"
+        :mime-type="previewed.mimeType"
+        @close="previewed = null"
+        @download="download(previewed)"
+    />
   </NeutralContainer>
 </template>

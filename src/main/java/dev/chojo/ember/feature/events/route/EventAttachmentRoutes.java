@@ -73,6 +73,7 @@ public class EventAttachmentRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/events/{id}/attachments", this::list, StationPermission.USER);
         routes.get(prefix + "/events/{id}/attachments/{attachmentId}/file", this::download, StationPermission.USER);
+        routes.get(prefix + "/events/{id}/attachments/{attachmentId}/picture", this::picture, StationPermission.USER);
         routes.post(prefix + "/events/{id}/attachments", this::attach, StationPermission.EVENT_EDIT);
         routes.put(prefix + "/events/{id}/attachments/order", this::reorder, StationPermission.EVENT_EDIT);
         routes.put(prefix + "/events/{id}/attachments/{attachmentId}", this::update, StationPermission.EVENT_EDIT);
@@ -127,6 +128,66 @@ public class EventAttachmentRoutes implements Routes {
                                 : SafeContentDisposition.Disposition.ATTACHMENT,
                         attachment.fileName()));
         ctx.result(file.data());
+    }
+
+    /** A width that is not a usable number is no width at all, rather than a refusal to answer. */
+    private static Integer parseOptionalWidth(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            int value = Integer.parseInt(raw);
+            return value > 0 ? value : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * The picture of one attachment, for a list that shows what it holds.
+     *
+     * <p>A picture is the file in miniature, so it is refused wherever the file itself would be: the
+     * same two questions, asked the same way, and not the weaker one that lets a reader see the list.
+     * A file with no picture answers nothing, and the tile says what kind of file it is instead.
+     */
+    @OpenApi(
+            path = "/api/v1/events/{id}/attachments/{attachmentId}/picture",
+            methods = HttpMethod.GET,
+            summary = "The picture of an event attachment, where it has one",
+            tags = {"Events"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "attachmentId", type = Integer.class, required = true)
+            },
+            queryParams = @OpenApiParam(name = "w", type = Integer.class),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void picture(Context ctx) {
+        var session = UserSession.from(ctx);
+        int eventId = pathInt(ctx, "id");
+        requireVisibleEvent(ctx, eventId);
+
+        var attachment = attachmentService
+                .findReadable(pathInt(ctx, "attachmentId"), session.permissions())
+                .filter(found -> found.eventId() == eventId)
+                .orElseThrow(NotFoundResponse::new);
+
+        var picture = media.readPicture(
+                        session.stationId(),
+                        attachment.contentHash(),
+                        attachment.mimeType(),
+                        parseOptionalWidth(ctx.queryParam("w")))
+                .orElseThrow(NotFoundResponse::new);
+        String stored = picture.contentType();
+        ctx.contentType(SafeInlineMime.safeContentType(stored));
+        ctx.header(
+                "Content-Disposition",
+                SafeContentDisposition.build(
+                        SafeInlineMime.isInlineSafe(stored)
+                                ? SafeContentDisposition.Disposition.INLINE
+                                : SafeContentDisposition.Disposition.ATTACHMENT,
+                        attachment.fileName()));
+        ctx.result(picture.data());
     }
 
     @OpenApi(
