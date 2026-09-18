@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.notifications.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -16,9 +17,11 @@ import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
+import dev.chojo.ember.feature.notifications.entity.NotificationSchedule;
 import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
+import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
@@ -30,12 +33,18 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -59,6 +68,16 @@ public class NotificationService {
     public static final int BODY_SNIPPET_MAX = 500;
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
+
+    /**
+     * How often the sweep looks in, which is not how often anybody is written to.
+     *
+     * <p>A station asks for times of day, so the sweep has to come round often enough to catch them.
+     * Fifteen minutes is fine enough for an hour's resolution and rare enough to cost nothing on an
+     * installation where nothing is waiting.
+     */
+    private static final long TICK_MINUTES = 15;
+
     private static final Localizer LOCALIZER = new Localizer();
     private static final Map<String, String> ROUTE_PATHS = Map.ofEntries(
             Map.entry("news-list", "/station/news"),
@@ -97,6 +116,11 @@ public class NotificationService {
     private final StationLogoService logoService;
     private final EmailService emailService;
     private final MailRecipientService mailRecipientService;
+    private final NotificationScheduleRepository scheduleRepository;
+    private final ClusterRepository clusterRepository;
+
+    /** The shortest gap the operator allows between two mails to the same station. */
+    private final Duration digestFloor;
 
     @Inject
     public NotificationService(
@@ -109,6 +133,8 @@ public class NotificationService {
             StationLogoService logoService,
             EmailService emailService,
             MailRecipientService mailRecipientService,
+            NotificationScheduleRepository scheduleRepository,
+            ClusterRepository clusterRepository,
             Mailing mailing) {
         this.notificationRepository = notificationRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -119,16 +145,23 @@ public class NotificationService {
         this.logoService = logoService;
         this.emailService = emailService;
         this.mailRecipientService = mailRecipientService;
+        this.scheduleRepository = scheduleRepository;
+        this.clusterRepository = clusterRepository;
 
         int intervalMinutes = mailing.notificationDigestIntervalMinutes();
+        this.digestFloor = Duration.ofMinutes(Math.max(intervalMinutes, 0));
         if (intervalMinutes > 0) {
             ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
                 var t = new Thread(r, "notification-digest");
                 t.setDaemon(true);
                 return t;
             });
-            scheduler.scheduleWithFixedDelay(this::processDigest, intervalMinutes, intervalMinutes, TimeUnit.MINUTES);
-            log.info("Notification digest scheduled every {} minutes", intervalMinutes);
+            long tick = Math.min(intervalMinutes, TICK_MINUTES);
+            scheduler.scheduleWithFixedDelay(this::sweep, tick, tick, TimeUnit.MINUTES);
+            log.info(
+                    "Notification digest looks in every {} minutes, no station written to more often than every {}",
+                    tick,
+                    intervalMinutes);
         } else {
             log.info("Notification digest disabled (interval=0)");
         }
@@ -839,6 +872,26 @@ public class NotificationService {
         return notificationSettingsRepository.isAppEnabled(memberId, type);
     }
 
+    /**
+     * One look in, for everybody who is written to.
+     *
+     * <p>Stations and clusters keep their own times and are decided apart, but neither is allowed to
+     * stop the other: a cluster whose mail fails is not a reason for a station to go unwritten to.
+     */
+    private void sweep() {
+        processDigest();
+        processClusterDigest();
+    }
+
+    /**
+     * Writes to every station whose moment has come, and to nobody else.
+     *
+     * <p>This runs far more often than anybody is written to. A station says the times of day it
+     * wants its mail, so the sweep's own tick is no longer the width of the gathering: it looks in
+     * often and sends only where one of the times a station asked for has gone by since it was last
+     * written to. A station whose moment has not come keeps its notifications, unmailed and unmarked,
+     * for the next look.
+     */
     private void processDigest() {
         try {
             var unemailed = notificationRepository.findUnemailed();
@@ -850,41 +903,265 @@ public class NotificationService {
                 byMember.computeIfAbsent(n.memberId(), _ -> new ArrayList<>()).add(n);
             }
 
+            Map<Integer, Integer> stationOf = new LinkedHashMap<>();
+            for (int memberId : byMember.keySet()) {
+                stationMemberRepository
+                        .findById(memberId)
+                        .ifPresent(member -> stationOf.put(memberId, member.stationId()));
+            }
+
+            var due = stationsDue(byMember, stationOf);
+            if (due.isEmpty()) return;
+
             List<Integer> emailedIds = new ArrayList<>();
+            int membersWritten = 0;
 
             for (var entry : byMember.entrySet()) {
                 int memberId = entry.getKey();
+                Integer stationId = stationOf.get(memberId);
+                if (stationId == null || !due.contains(stationId)) continue;
                 List<Notification> notifications = entry.getValue();
+                membersWritten++;
 
                 try {
-                    if (trySendDigest(memberId, notifications)) {
-                        for (var n : notifications) {
-                            emailedIds.add(n.id());
-                        }
-                    } else {
-                        // User doesn't want emails or can't receive - still mark so we don't retry
-                        for (var n : notifications) {
-                            emailedIds.add(n.id());
-                        }
-                    }
+                    trySendDigest(memberId, notifications);
                 } catch (Exception e) {
                     log.warn("Failed to send digest for member {}", memberId, e);
-                    // Mark as emailed anyway to avoid infinite retries
-                    for (var n : notifications) {
-                        emailedIds.add(n.id());
-                    }
+                }
+                // Marked either way: a member who wants no mail, or whose mail could not be sent, is
+                // not a reason to try the same notifications again on every sweep for ever.
+                for (var n : notifications) {
+                    emailedIds.add(n.id());
                 }
             }
 
             if (!emailedIds.isEmpty()) {
                 notificationRepository.markEmailed(emailedIds);
+                var now = Instant.now();
+                for (int stationId : due) {
+                    scheduleRepository.markStationSent(stationId, now);
+                }
                 log.info(
-                        "Processed notification digest: {} notifications for {} members",
+                        "Processed notification digest: {} notifications for {} members across {} stations",
                         emailedIds.size(),
-                        byMember.size());
+                        membersWritten,
+                        due.size());
             }
         } catch (Exception e) {
             log.error("Error processing notification digest", e);
+        }
+    }
+
+    /**
+     * One notification as it reads in a digest mail.
+     *
+     * <p>The same for a station's members and for a cluster's followers, because a notification is a
+     * notification: only the station it points into differs, and a cluster has none, so the link falls
+     * back to the address without one.
+     */
+    private String digestItemHtml(Notification notification, String locale, String baseUrl, UUID stationUid) {
+        var labels = LOCALIZER.get("notifications", locale, "category");
+        String category = labels.getOrDefault(
+                notification.type().name(), notification.type().name());
+        String message = resolveMessage(locale, notification);
+        String itemUrl = resolveNotificationUrl(baseUrl, stationUid, notification.data());
+
+        var item = new StringBuilder("<li class=\"notification-item\">");
+        if (itemUrl != null) {
+            item.append("<a href=\"").append(itemUrl).append("\" style=\"text-decoration:none;color:inherit\">");
+        }
+        item.append("<span class=\"category\">")
+                .append(category)
+                .append("</span>")
+                .append("<p class=\"message\">")
+                .append(message)
+                .append("</p>");
+        String detail = resolveDetail(notification);
+        if (detail != null) {
+            item.append("<p class=\"detail\">").append(detail).append("</p>");
+        }
+        if (itemUrl != null) {
+            item.append("</a>");
+        }
+        return item.append("</li>").toString();
+    }
+
+    /**
+     * Writes to the people who follow a cluster.
+     *
+     * <p>Their notifications were gathered and never sent: the sweep only ever looked for the ones
+     * belonging to a station's members, so somebody following a cluster heard nothing about the
+     * partner stations they joined it for. A cluster keeps its send times the way a station does and
+     * sends through the instance's own chain, because a cluster spanning several stations has no
+     * address of its own that a reader would recognise.
+     */
+    private void processClusterDigest() {
+        try {
+            var unemailed = notificationRepository.findUnemailedForClusters();
+            if (unemailed.isEmpty()) return;
+
+            Map<Integer, List<Notification>> byClusterMember = new LinkedHashMap<>();
+            for (var n : unemailed) {
+                byClusterMember
+                        .computeIfAbsent(n.clusterMemberId(), _ -> new ArrayList<>())
+                        .add(n);
+            }
+
+            Map<Integer, Integer> clusterOf = new LinkedHashMap<>();
+            for (int clusterMemberId : byClusterMember.keySet()) {
+                clusterRepository
+                        .findMemberById(clusterMemberId)
+                        .ifPresent(member -> clusterOf.put(clusterMemberId, member.clusterId()));
+            }
+
+            var due = clustersDue(byClusterMember, clusterOf);
+            if (due.isEmpty()) return;
+
+            List<Integer> emailedIds = new ArrayList<>();
+            for (var entry : byClusterMember.entrySet()) {
+                Integer clusterId = clusterOf.get(entry.getKey());
+                if (clusterId == null || !due.contains(clusterId)) continue;
+                try {
+                    trySendClusterDigest(entry.getKey(), clusterId, entry.getValue());
+                } catch (Exception e) {
+                    log.warn("Failed to send cluster digest for cluster member {}", entry.getKey(), e);
+                }
+                for (var n : entry.getValue()) {
+                    emailedIds.add(n.id());
+                }
+            }
+
+            if (!emailedIds.isEmpty()) {
+                notificationRepository.markEmailed(emailedIds);
+                var now = Instant.now();
+                for (int clusterId : due) {
+                    scheduleRepository.markClusterSent(clusterId, now);
+                }
+                log.info(
+                        "Processed cluster digest: {} notifications across {} clusters", emailedIds.size(), due.size());
+            }
+        } catch (Exception e) {
+            log.error("Error processing cluster notification digest", e);
+        }
+    }
+
+    private Set<Integer> clustersDue(Map<Integer, List<Notification>> byMember, Map<Integer, Integer> clusterOf) {
+        Map<Integer, Instant> oldestWaiting = new LinkedHashMap<>();
+        for (var entry : byMember.entrySet()) {
+            Integer clusterId = clusterOf.get(entry.getKey());
+            if (clusterId == null) continue;
+            for (var notification : entry.getValue()) {
+                oldestWaiting.merge(clusterId, notification.createdAt(), (a, b) -> a.isBefore(b) ? a : b);
+            }
+        }
+
+        var now = Instant.now();
+        var due = new LinkedHashSet<Integer>();
+        for (var entry : oldestWaiting.entrySet()) {
+            var schedule = scheduleRepository.forCluster(entry.getKey()).orElse(null);
+            if (schedule == null) continue;
+            if (NotificationSchedule.isDue(
+                    schedule.sendTimes(), schedule.lastSent(), entry.getValue(), ZoneOffset.UTC, digestFloor, now)) {
+                due.add(entry.getKey());
+            }
+        }
+        return due;
+    }
+
+    /**
+     * One cluster follower's mail.
+     *
+     * <p>Whether they are written to at all is their own settings' business, the same as anywhere
+     * else: a person who has asked for no mail is not sent one because the notification happened to
+     * come from a cluster rather than from their station.
+     */
+    private boolean trySendClusterDigest(int clusterMemberId, int clusterId, List<Notification> notifications) {
+        var member = clusterRepository.findMemberById(clusterMemberId).orElse(null);
+        if (member == null) return false;
+
+        var account = accountRepository.findById(member.accountId()).orElse(null);
+        if (account == null) return false;
+        var recipients = mailRecipientService.forAccount(account.id());
+        if (recipients.isEmpty()) return false;
+        if (!emailService.canInstanceSend()) return false;
+
+        var cluster = clusterRepository.findById(clusterId).orElse(null);
+        if (cluster == null) return false;
+
+        String locale = resolveLocale(null);
+        String name = NameParts.of(account).called();
+        if (name == null || name.isEmpty()) name = account.loginName();
+
+        var itemsHtml = new StringBuilder();
+        for (var notification : notifications) {
+            itemsHtml.append(digestItemHtml(notification, locale, emailService.getBaseUrl(), null));
+        }
+
+        var vars = new HashMap<String, String>();
+        vars.put("name", name);
+        vars.put("baseUrl", emailService.getBaseUrl());
+        vars.put("stationName", cluster.name());
+        vars.put("count", String.valueOf(notifications.size()));
+        vars.put("items", itemsHtml.toString());
+        vars.put("actionUrl", emailService.getBaseUrl() + "/cluster/dashboard");
+        vars.put("logoHtml", "");
+
+        String subjectKey = notifications.size() == 1 ? "subject.one" : "subject.other";
+        String subject = resolveLocalized(
+                locale,
+                "digest",
+                subjectKey,
+                Map.of("stationName", cluster.name(), "count", String.valueOf(notifications.size())));
+        String body = emailService.loadTemplate("notification-digest.html", locale, vars);
+        for (var recipient : recipients) {
+            emailService.queueInstanceEmail(recipient.email(), subject, body);
+        }
+        return true;
+    }
+
+    /**
+     * The stations whose moment has come.
+     *
+     * <p>Decided per station rather than per member, because the times are the station's and every
+     * one of its members is written to in the same sweep. The oldest thing waiting is what a first
+     * mail is measured from, so a station that has never been written to is not written to the moment
+     * something arrives but at the next time it asked for.
+     */
+    private Set<Integer> stationsDue(Map<Integer, List<Notification>> byMember, Map<Integer, Integer> stationOf) {
+        Map<Integer, Instant> oldestWaiting = new LinkedHashMap<>();
+        for (var entry : byMember.entrySet()) {
+            Integer stationId = stationOf.get(entry.getKey());
+            if (stationId == null) continue;
+            for (var notification : entry.getValue()) {
+                oldestWaiting.merge(stationId, notification.createdAt(), (a, b) -> a.isBefore(b) ? a : b);
+            }
+        }
+
+        var now = Instant.now();
+        var due = new LinkedHashSet<Integer>();
+        for (var entry : oldestWaiting.entrySet()) {
+            var schedule = scheduleRepository.forStation(entry.getKey()).orElse(null);
+            if (schedule == null) continue;
+            if (NotificationSchedule.isDue(
+                    schedule.sendTimes(),
+                    schedule.lastSent(),
+                    entry.getValue(),
+                    zoneOf(schedule.timezone()),
+                    digestFloor,
+                    now)) {
+                due.add(entry.getKey());
+            }
+        }
+        return due;
+    }
+
+    /** A station's own clock, falling back the way everything else does where it keeps none. */
+    private static ZoneId zoneOf(String timezone) {
+        if (timezone == null || timezone.isBlank()) return ZoneOffset.UTC;
+        try {
+            return ZoneId.of(timezone);
+        } catch (Exception e) {
+            return ZoneOffset.UTC;
         }
     }
 
@@ -925,33 +1202,7 @@ public class NotificationService {
         String baseUrl = emailService.getBaseUrl();
         var itemsHtml = new StringBuilder();
         for (var n : eligible) {
-            var labels = LOCALIZER.get("notifications", locale, "category");
-            String category = labels.getOrDefault(n.type().name(), n.type().name());
-            String message = resolveMessage(locale, n);
-            String itemUrl = resolveNotificationUrl(baseUrl, station.uid(), n.data());
-
-            itemsHtml.append("<li class=\"notification-item\">");
-            if (itemUrl != null) {
-                itemsHtml
-                        .append("<a href=\"")
-                        .append(itemUrl)
-                        .append("\" style=\"text-decoration:none;color:inherit\">");
-            }
-            itemsHtml
-                    .append("<span class=\"category\">")
-                    .append(category)
-                    .append("</span>")
-                    .append("<p class=\"message\">")
-                    .append(message)
-                    .append("</p>");
-            String detail = resolveDetail(n);
-            if (detail != null) {
-                itemsHtml.append("<p class=\"detail\">").append(detail).append("</p>");
-            }
-            if (itemUrl != null) {
-                itemsHtml.append("</a>");
-            }
-            itemsHtml.append("</li>");
+            itemsHtml.append(digestItemHtml(n, locale, baseUrl, station.uid()));
         }
 
         var vars = new HashMap<String, String>();

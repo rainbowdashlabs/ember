@@ -7699,6 +7699,18 @@ export default {
         add: 'Option hinzufügen',
         placeholder: 'Antwortmöglichkeit',
     },
+    notificationSchedule: {
+        title: 'Versandzeiten der Benachrichtigungen',
+        hint: 'Gesammelte Benachrichtigungen gehen zu den hier genannten Zeiten als eine Mail raus, nach der Uhr der Station. Was dazwischen ankommt, wartet auf den nächsten Termin.',
+        mode: 'Versand',
+        modeOperator: 'Wie von der Instanz vorgegeben',
+        modeTimes: 'Zu festen Uhrzeiten',
+        modeHourly: 'Stündlich',
+        times: 'Uhrzeiten',
+        addTime: 'Uhrzeit hinzufügen',
+        floorHint: 'Diese Instanz verschickt höchstens alle {minutes} Minuten eine Mail. Häufigere Wünsche werden auf diesen Abstand gebracht.',
+        saved: 'Die Versandzeiten wurden gespeichert.',
+    },
     files: {
         noPreview: 'Für diesen Dateityp gibt es keine Vorschau. Lade sie herunter, um sie anzusehen.',
         truncated: 'Die Vorschau zeigt nur den Anfang der Datei. Lade sie herunter, um alles zu lesen.',

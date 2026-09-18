@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData.Notificatio
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationLogoService;
@@ -62,6 +63,8 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
                 mock(StationLogoService.class),
                 mock(EmailService.class),
                 new MailRecipientService(accountRepo, stationMemberRepo),
+                new NotificationScheduleRepository(),
+                clusterRepo,
                 new Mailing());
 
         station = stationRepo.create("Withdrawal Station");

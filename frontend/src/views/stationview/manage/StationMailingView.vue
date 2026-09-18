@@ -15,6 +15,7 @@ import MailDashboard from '@/components/mail/MailDashboard.vue'
 import ClearProvidersModal from '@/components/mail/ClearProvidersModal.vue'
 import MailWebhookPanel from '@/components/mail/MailWebhookPanel.vue'
 import MailProviderFreeTiers from '@/components/mail/MailProviderFreeTiers.vue'
+import NotificationSchedulePanel from './stationmailingview/NotificationSchedulePanel.vue'
 import {
   clearStationProviders,
   getStationMailDashboard,
@@ -155,6 +156,7 @@ async function test(position: number, recipient: string) {
           :lift="liftStationBlock"
           :requeue="requeueStationStuckMails"
       />
+      <NotificationSchedulePanel/>
       <MailProviderFreeTiers/>
       <ClearProvidersModal v-model="showClearModal" :clearing="clearing" @confirm="clearProviders"/>
     </div>
