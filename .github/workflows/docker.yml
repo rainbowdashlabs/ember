@@ -7,7 +7,9 @@ on:
   push:
     branches:
       - main
-      - 'feature/**'
+  # A feature branch is built on request rather than on every push. Each build pulls a full set of
+  # dependencies, and a branch pushed to twenty times a day pulled them twenty times.
+  workflow_dispatch:
 
 jobs:
   wait:
@@ -152,7 +154,7 @@ jobs:
           case "$REF_NAME" in
             feature/*)
               branch_tag="${REF_NAME#feature/}"
-              tags="$tags snapshot ${branch_tag//[^a-zA-Z0-9._-]/-}"
+              tags="$tags ${branch_tag//[^a-zA-Z0-9._-]/-}"
               ;;
           esac
 
