@@ -9,7 +9,6 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
-import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -123,15 +122,18 @@ public class FederatedEventRoutes implements Routes {
         ctx.json(eventFederationService.browseFederatedEvents(session.stationId()));
     }
 
+    /**
+     * A partner's appointment as that partner describes it, handed on without being rebuilt here.
+     *
+     * <p>This used to put the answer together itself, reading the questions out of this instance's
+     * own tables, which are not where a remote partner's live, and never asking about the places at
+     * all. The station holding the appointment is the one that knows all three, so it says all three.
+     */
     private void federatedGetEvent(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int eventId = pathInt(ctx, "id");
-        var event = eventFederationService.getFederatedEvent(session.stationId(), stationUid, eventId);
-        var fields = eventFieldService.findByEvent(eventId).stream()
-                .filter(EventField::isPublic)
-                .toList();
-        ctx.json(new FederatedEventDetail(event, fields));
+        ctx.json(eventFederationService.getFederatedEvent(session.stationId(), stationUid, eventId));
     }
 
     /** The files a partner's event hands over, as that partner is willing to hand them over. */
@@ -195,7 +197,7 @@ public class FederatedEventRoutes implements Routes {
                 : eventFederationService
                         .registerFederated(
                                 fed.eventId(),
-                                partner.id(),
+                                fed.hostPartner().id(),
                                 fed.remoteMemberId(),
                                 LocalDate.parse(fed.req().eventDate()))
                         .status();
@@ -217,7 +219,7 @@ public class FederatedEventRoutes implements Routes {
         } else {
             eventFederationService.withdrawRegistration(
                     fed.eventId(),
-                    partner.id(),
+                    fed.hostPartner().id(),
                     fed.remoteMemberId(),
                     LocalDate.parse(fed.req().eventDate()));
         }
@@ -245,7 +247,7 @@ public class FederatedEventRoutes implements Routes {
                         fed.station().federationPrivateKey())
                 : eventFederationService.undoWithdrawal(
                         fed.eventId(),
-                        partner.id(),
+                        fed.hostPartner().id(),
                         fed.remoteMemberId(),
                         LocalDate.parse(fed.req().eventDate()));
         if (!restored) {
@@ -290,16 +292,14 @@ public class FederatedEventRoutes implements Routes {
      */
     private boolean confirmOnThisInstance(FederatedRegContext fed) {
         var day = LocalDate.parse(fed.req().eventDate());
-        if (!eventFederationService
-                .partnerPlaces(fed.eventId(), fed.partner().id())
-                .partnerConfirms()) {
+        int hostPartnerId = fed.hostPartner().id();
+        if (!eventFederationService.partnerPlaces(fed.eventId(), hostPartnerId).partnerConfirms()) {
             throw new ForbiddenResponse("That station decides its own registrations for this event");
         }
         var registration = eventFederationService
-                .findRegistration(fed.eventId(), fed.partner().id(), fed.remoteMemberId(), day)
+                .findRegistration(fed.eventId(), hostPartnerId, fed.remoteMemberId(), day)
                 .orElseThrow(NotFoundResponse::new);
-        return eventFederationService.acceptWithinBudget(
-                registration.id(), fed.eventId(), fed.partner().id(), day);
+        return eventFederationService.acceptWithinBudget(registration.id(), fed.eventId(), hostPartnerId, day);
     }
 
     /**
@@ -314,7 +314,8 @@ public class FederatedEventRoutes implements Routes {
         var req = ctx.bodyAsClass(FederatedRegBody.class);
         UUID remoteMemberId =
                 req.memberId() != null ? req.memberId() : session.member().uid();
-        return new FederatedRegContext(station, partner, eventId, req, remoteMemberId);
+        var hostPartner = partner.isRemote() ? null : eventFederationService.hostPartnerOf(partner);
+        return new FederatedRegContext(station, partner, hostPartner, eventId, req, remoteMemberId);
     }
 
     private FederationPartner resolvePartner(Context ctx, int stationId) {
@@ -400,8 +401,6 @@ public class FederatedEventRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    public record FederatedEventDetail(Object event, List<EventField> publicFields) {}
-
     public record FederatedRegBody(String eventDate, UUID memberId) {}
 
     public record StatusResponse(String status) {}
@@ -409,6 +408,16 @@ public class FederatedEventRoutes implements Routes {
     /**
      * Shared inputs for a federated register or withdraw request.
      */
+    /**
+     * @param partner     this station's record of the one holding the appointment
+     * @param hostPartner the holder's record of this station, which is what its rows hang off, and
+     *                    null where the holder is on another instance and keeps its own
+     */
     private record FederatedRegContext(
-            Station station, FederationPartner partner, int eventId, FederatedRegBody req, UUID remoteMemberId) {}
+            Station station,
+            FederationPartner partner,
+            FederationPartner hostPartner,
+            int eventId,
+            FederatedRegBody req,
+            UUID remoteMemberId) {}
 }

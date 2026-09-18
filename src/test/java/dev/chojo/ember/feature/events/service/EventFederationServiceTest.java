@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -37,6 +38,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -116,6 +118,13 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 new FederationFanout(),
                 new FederationEntityResolver(federationRepo, stationRepo, httpClient),
                 attachmentService,
+                new EventFieldService(
+                        eventFieldRepo,
+                        stationMemberRepo,
+                        memberGroupRepo,
+                        mock(UserTagService.class),
+                        eventRepo,
+                        attendanceRepo),
                 media,
                 new Api());
 
@@ -369,16 +378,16 @@ class EventFederationServiceTest extends RepositoryTestBase {
         assertFalse(
                 service.partnerPlaces(eventId, partnerId).partnerConfirms(),
                 "saying nothing leaves the decision with the station holding the appointment");
-        assertTrue(
-                service.partnerPlaces(eventId, partnerId).hasRoomBeyond(1000),
+        assertNull(
+                service.partnerPlaces(eventId, partnerId).slotBudget(),
                 "and leaves it uncapped, which is what no arrangement means");
 
         service.setPartnerPlaces(eventId, partnerId, null, true);
         assertTrue(service.partnerPlaces(eventId, partnerId).partnerConfirms(), "the partner may be given the pen");
-        assertTrue(service.partnerPlaces(eventId, partnerId).hasRoomBeyond(1000), "with no cap on how many come");
+        assertNull(service.partnerPlaces(eventId, partnerId).slotBudget(), "with no cap on how many come");
 
         service.setPartnerPlaces(eventId, partnerId, 2, true);
-        assertFalse(service.partnerPlaces(eventId, partnerId).hasRoomBeyond(2), "or with one");
+        assertEquals(2, service.partnerPlaces(eventId, partnerId).slotBudget(), "or with one");
 
         service.setPartnerPlaces(eventId, partnerId, 3, true);
         assertEquals(
@@ -535,15 +544,81 @@ class EventFederationServiceTest extends RepositoryTestBase {
         }));
     }
 
+    /**
+     * A partner on this instance is told what it was given, exactly as one across the network is.
+     *
+     * <p>Both stations keep a record of the other, and everything the host writes hangs off the
+     * host's. Read through the visitor's, which is the one the visitor's own screens carry, the host
+     * appears to have set nothing aside: the places went missing and the choosing silently stayed
+     * with the host, on the one arrangement where it was meant to move.
+     */
+    @Test
+    @Order(31)
+    void aPartnerOnThisInstanceIsToldWhatItWasGiven() {
+        service.setShare(eventId, ShareScope.ALL_PARTNERS, List.of());
+        var hostPartner = federationService.findPartners(stationA.id()).stream()
+                .filter(p -> p.partnerStationId().equals(stationB.uid()))
+                .findFirst()
+                .orElseThrow();
+        service.setPartnerPlaces(eventId, hostPartner.id(), 2, true);
+        try {
+            var detail = service.getFederatedEvent(stationB.id(), stationA.uid(), eventId);
+            assertNotNull(detail.places(), "the arrangement reaches the station it was made with");
+            assertTrue(detail.places().decidesItself(), "which is what says the choosing is theirs");
+            assertEquals(2, detail.places().slotBudget(), "and how many places they were given");
+        } finally {
+            service.setPartnerPlaces(eventId, hostPartner.id(), null, false);
+        }
+    }
+
+    /**
+     * A visitor meets the same door a member does, wherever their station is kept.
+     *
+     * <p>The remote route asked this and the same-instance path did not, so two stations sharing an
+     * instance could sign up for an appointment that had been called off, or one whose list closed
+     * weeks ago. The question belongs where both paths pass, not on one of them.
+     */
+    @Test
+    @Order(33)
+    void aVisitorIsTurnedAwayFromAnAppointmentThatTakesNoRegistrations() {
+        Instant start = Instant.now().plus(3, ChronoUnit.DAYS);
+        var openHouse = eventRepo.create(
+                stationA.id(),
+                "Kein Anmeldung",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        try {
+            assertThrows(
+                    BadRequestResponse.class,
+                    () -> service.registerFederated(
+                            openHouse.id(), partnerId, REMOTE_MEMBER_3, LocalDate.of(2026, 7, 9)),
+                    "an appointment with no list has none for a visitor either");
+        } finally {
+            eventRepo.delete(openHouse.id());
+        }
+    }
+
     @Test
     @Order(32)
     void getFederatedEventLocal() {
         service.setShare(eventId, ShareScope.ALL_PARTNERS, List.of());
         var result = service.getFederatedEvent(stationB.id(), stationA.uid(), eventId);
         assertNotNull(result);
-        var event = (SharedEvent) result;
-        assertEquals(eventId, event.id());
-        assertEquals("Federated Event", event.name());
+        assertEquals(eventId, result.event().id());
+        assertEquals("Federated Event", result.event().name());
+        assertNull(result.places(), "nothing was set aside, so the holder decides as it always did");
     }
 
     @Test
@@ -621,12 +696,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 "Should contain the mocked remote event");
     }
 
+    /** A partner on another instance answers for itself, and what it answers is passed straight on. */
     @Test
     @Order(41)
     void getFederatedEventRemote() {
-        // stationA sees stationC as remote partner
-        // getFederatedEvent(stationA.id(), stationC.uid(), eventId) should call HTTP
-
         var remoteEvent = new SharedEvent(
                 eventId,
                 "Remote Event",
@@ -646,13 +719,12 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         eq(stationA.id()),
                         any(),
                         any()))
-                .thenReturn(remoteEvent);
+                .thenReturn(new RemoteEventRoutes.RemoteEventDetail(remoteEvent, List.of(), null));
 
         var result = service.getFederatedEvent(stationA.id(), stationC.uid(), eventId);
         assertNotNull(result);
-        var event = (SharedEvent) result;
-        assertEquals(eventId, event.id());
-        assertEquals("Remote Event", event.name());
+        assertEquals(eventId, result.event().id());
+        assertEquals("Remote Event", result.event().name());
 
         verify(httpClient)
                 .get(
@@ -1191,13 +1263,13 @@ class EventFederationServiceTest extends RepositoryTestBase {
         assertFalse(result.getFirst().requiresConfirmation());
     }
 
-    @Test
-    @Order(91)
     /**
      * What the other station recorded is carried back rather than assumed. An appointment that asks
      * for no confirmation accepts at once, and telling our own member they are waiting would be
      * telling them something nobody said.
      */
+    @Test
+    @Order(91)
     void registerForFederatedEvent() {
         UUID partnerUid = UUID.randomUUID();
         var accepted = new EventFederationRegistration(
