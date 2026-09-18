@@ -163,7 +163,10 @@ public class EventFederationRepository {
                 INSERT INTO event_federation_registration(event_id, partner_id, remote_member_id, event_date, status)
                 VALUES (:event_id, :partner_id, :remote_member_id::UUID, :event_date, :status)
                 ON CONFLICT (event_id, partner_id, remote_member_id, event_date)
-                    DO UPDATE SET status = EXCLUDED.status, created_at = now()
+                    DO UPDATE SET status            = EXCLUDED.status,
+                                  created_at        = now(),
+                                  previous_status   = event_federation_registration.status,
+                                  status_changed_at = now()
                 RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("partner_id", partnerId)
@@ -408,6 +411,10 @@ public class EventFederationRepository {
      * measured by this station's clock because this station holds the row. A partner whose own clock
      * disagrees still gets the answer the host gives.
      *
+     * <p>Only a withdrawal goes back. Confirming and denying stamp what they wrote over as well, so
+     * without this a partner could undo the host's deny, and a place the host had just given back to
+     * the budget would be spent twice.
+     *
      * @param window how long a withdrawal may be taken back
      * @return true where the place was restored, false where the window had closed
      */
@@ -420,8 +427,20 @@ public class EventFederationRepository {
                   AND partner_id = :partner_id
                   AND remote_member_id = :remote_member_id::UUID
                   AND event_date = :event_date
+                  AND status = 'WITHDRAWN'
                   AND previous_status IS NOT NULL
-                  AND status_changed_at > now() - CAST(:window AS INTERVAL);""")
+                  AND status_changed_at > now() - CAST(:window AS INTERVAL)
+                  AND (
+                      previous_status <> 'ACCEPTED'
+                      OR (SELECT slot_budget FROM event_partner_places
+                          WHERE event_id = :event_id AND partner_id = :partner_id) IS NULL
+                      OR (SELECT count(*) FROM event_federation_registration taken
+                          WHERE taken.event_id = :event_id
+                            AND taken.partner_id = :partner_id
+                            AND taken.event_date = :event_date
+                            AND taken.status = 'ACCEPTED')
+                         < (SELECT slot_budget FROM event_partner_places
+                            WHERE event_id = :event_id AND partner_id = :partner_id));""")
                 .single(call().bind("event_id", eventId)
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)

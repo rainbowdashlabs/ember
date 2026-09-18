@@ -393,6 +393,61 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
     }
 
     /**
+     * A deny is not a withdrawal, and the member it was written about cannot undo it.
+     *
+     * <p>Every status change remembers what it wrote over, a manager's deny among them. Without a
+     * word on which of them may go back, the undo would hand the denied member their own place
+     * again: the row is theirs, so nothing else standing between them and it would say no.
+     */
+    @Test
+    void onlyAWithdrawalGoesBack() {
+        var created = event("Abgelehnt", Instant.parse("2028-09-01T09:00:00Z"));
+        LocalDate date = LocalDate.of(2028, 9, 1);
+        try {
+            var reg = eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.ACCEPTED, null);
+            eventRegistrationRepo.updateStatus(reg.id(), RegistrationStatus.DENIED);
+
+            assertFalse(
+                    eventRegistrationRepo.restorePreviousStatus(reg.id(), Duration.ofMinutes(5)),
+                    "a deny is the station's word and not the member's to take back");
+            assertEquals(
+                    RegistrationStatus.DENIED,
+                    eventRegistrationRepo.findById(reg.id()).orElseThrow().status(),
+                    "and it stands");
+        } finally {
+            eventRepo.delete(created.id());
+        }
+    }
+
+    /**
+     * Signing up again closes the window on the withdrawal it replaces.
+     *
+     * <p>The row is written over rather than added to, so what it remembers has to move with it.
+     * Otherwise somebody accepted, withdrawn and signed up again would still be holding an undo that
+     * restores the acceptance, and a place nobody confirmed would confirm itself.
+     */
+    @Test
+    void signingUpAgainLeavesNothingToTakeBack() {
+        var created = event("Nochmal", Instant.parse("2028-09-02T09:00:00Z"));
+        LocalDate date = LocalDate.of(2028, 9, 2);
+        try {
+            var reg = eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.ACCEPTED, null);
+            eventRegistrationRepo.recordAnswer(reg.id(), RegistrationStatus.WITHDRAWN);
+            eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.PENDING, null);
+
+            assertFalse(
+                    eventRegistrationRepo.restorePreviousStatus(reg.id(), Duration.ofMinutes(5)),
+                    "the withdrawal was signed up over, so there is no longer one to take back");
+            assertEquals(
+                    RegistrationStatus.PENDING,
+                    eventRegistrationRepo.findById(reg.id()).orElseThrow().status(),
+                    "and the new answer is still waiting on somebody");
+        } finally {
+            eventRepo.delete(created.id());
+        }
+    }
+
+    /**
      * The window is in the statement rather than read first and checked after, so a withdrawal older
      * than it cannot be taken back however quickly somebody asks.
      */

@@ -213,9 +213,11 @@ public class EventRegistrationRepository {
                 ON CONFLICT (event_id, member_id, event_date)
                     DO UPDATE
                     SET
-                        status     = :status,
-                        created_at = now(),
-                        created_by = :created_by
+                        status            = :status,
+                        created_at        = now(),
+                        created_by        = :created_by,
+                        previous_status   = event_registration.status,
+                        status_changed_at = now()
                 RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("member_id", memberId)
@@ -345,9 +347,9 @@ public class EventRegistrationRepository {
      * Puts an answer back to what was held before it, for as long as it may still be taken back.
      *
      * <p>The window is in the statement rather than read first and checked after, so two presses
-     * racing cannot both find it open. The previous status has to be there: a row that never held
-     * anything has nothing to go back to, and is the decline that created it, which the caller
-     * removes instead.
+     * racing cannot both find it open. Only a withdrawal goes back: every status change stamps what
+     * it wrote over, a manager's deny among them, and without this the member whose place was denied
+     * could hand it back to themselves for as long as the window stood open.
      *
      * @param id     the registration to restore
      * @param window how long an answer may be taken back
@@ -358,6 +360,7 @@ public class EventRegistrationRepository {
                 UPDATE event_registration
                 SET status = previous_status, previous_status = NULL, status_changed_at = now()
                 WHERE id = :id
+                  AND status = 'WITHDRAWN'
                   AND previous_status IS NOT NULL
                   AND status_changed_at > now() - CAST(:window AS INTERVAL);""")
                 .single(call().bind("id", id).bind("window", window.toSeconds() + " seconds"))
