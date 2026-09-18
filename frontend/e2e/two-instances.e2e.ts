@@ -286,8 +286,6 @@ test.describe('Two instances', () => {
             expect(back.ok(), 'the other instance puts the place back while its own clock allows')
                 .toBe(true)
 
-            // An appointment whose list closed an hour ago, which a member of the owning station
-            // could not sign up for either.
             const closedId = await sharedEventTakingRegistrations(owner, new Date(Date.now() - 3_600_000))
             const closedRegister = `/api/v1/federated/${owningStation}/events/${closedId}/register`
             const tooLate = await homeManagerApi.post(closedRegister, {data: {eventDate, memberId: null}})
@@ -337,7 +335,6 @@ test.describe('Two instances', () => {
             })
             expect(handed.ok(), await handed.text()).toBe(true)
 
-            // The visitor is now held rather than accepted, because somebody has to choose.
             const register = `/api/v1/federated/${owningStation}/events/${eventId}/register`
             const signedUp = await homeManagerApi.post(register, {data: {eventDate, memberId: null}})
             expect(signedUp.status(), await signedUp.text()).toBe(201)

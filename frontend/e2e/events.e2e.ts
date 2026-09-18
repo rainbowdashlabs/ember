@@ -116,7 +116,8 @@ test.describe('Events', () => {
      * <p>A place given up used to be gone the instant the press landed, which on an appointment past
      * its deadline meant gone for good. For five minutes it can be put back, and what comes back is
      * the place that was held rather than a fresh answer at the end of a queue: the story checks the
-     * confirmed seat is confirmed again, not pending.
+     * confirmed seat is confirmed again, not pending. The way back is pressed on the message that
+     * appears, because by then the row may be nowhere near the reader.
      */
     test('a place given up by accident is taken back', async ({managerPage, memberPage}) => {
         const managerHeaders = await apiHeaders(managerPage)
@@ -147,7 +148,6 @@ test.describe('Events', () => {
             await signOff(memberPage, memberPage.getByTestId('withdraw-household'))
             await expect(myAnswer, 'the place is given up').toHaveText('Noch keine Antwort', {timeout: 15000})
 
-            // The way back rides a toast, because by now the row may be nowhere near the reader.
             await memberPage.getByTestId('toast-action').click()
             await expect(myAnswer, 'the seat comes back as a seat, not as a pending answer')
                 .toHaveText('Bestätigt', {timeout: 15000})

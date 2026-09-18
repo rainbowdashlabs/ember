@@ -57,6 +57,10 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
     }
   }
 
+  /**
+   * Writes the share, and only then what each partner was given, because a partner that is no longer
+   * shared with has nothing to arrange and the server would have nothing to hang it on.
+   */
   async function save(eventId: number) {
     if (!canFederate.value) return
     if (state.federationShared) {
@@ -65,8 +69,6 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
     } else {
       await events.removeFederationShare(eventId).catch(() => {})
     }
-    // The arrangement is saved after the share, because a partner that is no longer shared with has
-    // nothing to arrange and the server would have nothing to hang it on.
     for (const [partnerId, place] of Object.entries(state.federationPlaces)) {
       await events.setPartnerPlaces(eventId, Number(partnerId), place.budget, place.decides).catch(() => {})
     }
