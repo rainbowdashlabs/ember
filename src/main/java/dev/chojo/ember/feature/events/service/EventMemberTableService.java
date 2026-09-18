@@ -71,9 +71,10 @@ public class EventMemberTableService {
     /**
      * Draws the table of everybody standing on this appointment's list on one day.
      *
-     * <p>Only the answers that still stand are counted as being on the list: somebody who gave their
-     * place back is not coming, and a sheet carried to the evening that named them would have people
-     * looking for somebody who said they would not be there.
+     * <p>Every answer given for that day comes back, whatever it was. Which of them to show is the
+     * screen's to decide and it opens on the confirmed ones, because somebody chasing a missing answer
+     * wants the same list for the opposite reason: a table that only ever held the people who are
+     * coming could not be asked who is not.
      *
      * @param station            the station holding the appointment
      * @param eventId            the appointment
