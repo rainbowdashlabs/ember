@@ -678,7 +678,9 @@ public class EventRegistrationRoutes implements Routes {
                     + "whoever looks after them. Once it has closed only the people who run the event can, "
                     + "because the list has been counted on by then. Coming back after declining is a "
                     + "fresh answer rather than the old place restored: an event that confirms its list "
-                    + "confirms this one too, so nobody keeps a place they gave up.",
+                    + "confirms this one too, so nobody keeps a place they gave up. The few minutes "
+                    + "straight after giving one up are the exception, and have their own route: a "
+                    + "misclick put right at once is not a change of mind.",
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AnswerRequest.class)),

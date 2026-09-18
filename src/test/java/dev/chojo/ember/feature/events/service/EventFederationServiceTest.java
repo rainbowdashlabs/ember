@@ -356,6 +356,120 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 "registering again after a withdrawal answers rather than colliding with the old row");
     }
 
+    /**
+     * The three arrangements, and the default being the one the product always had.
+     *
+     * <p>Nobody has to configure anything for the host to decide: that is what holds where nothing is
+     * said, and it is what every shared appointment did before any of this existed.
+     */
+    @Test
+    @Order(19)
+    void aPartnerDecidesOnlyWhereTheHostSaidSo() {
+        service.setPartnerPlaces(eventId, partnerId, null, false);
+        assertFalse(
+                service.partnerPlaces(eventId, partnerId).partnerConfirms(),
+                "saying nothing leaves the decision with the station holding the appointment");
+        assertTrue(
+                service.partnerPlaces(eventId, partnerId).hasRoomBeyond(1000),
+                "and leaves it uncapped, which is what no arrangement means");
+
+        service.setPartnerPlaces(eventId, partnerId, null, true);
+        assertTrue(service.partnerPlaces(eventId, partnerId).partnerConfirms(), "the partner may be given the pen");
+        assertTrue(service.partnerPlaces(eventId, partnerId).hasRoomBeyond(1000), "with no cap on how many come");
+
+        service.setPartnerPlaces(eventId, partnerId, 2, true);
+        assertFalse(service.partnerPlaces(eventId, partnerId).hasRoomBeyond(2), "or with one");
+
+        service.setPartnerPlaces(eventId, partnerId, 3, true);
+        assertEquals(
+                1,
+                service.partnerPlaces(eventId).size(),
+                "the screen that arranges this reads every partner's arrangement for the appointment");
+
+        service.setPartnerPlaces(eventId, partnerId, null, false);
+        assertFalse(
+                service.partnerPlaces(eventId, partnerId).partnerConfirms(),
+                "and the host can take it back, which leaves no arrangement rather than a false one");
+        assertTrue(
+                service.partnerPlaces(eventId).isEmpty(),
+                "taking it back leaves no row, so nothing reads as an arrangement that is not one");
+    }
+
+    /**
+     * One partner's member on one date, which is what a partner names when it confirms or takes back.
+     * A date nobody answered for is empty rather than somebody else's row.
+     */
+    @Test
+    @Order(19)
+    void aRegistrationIsFoundByThePartnerAndTheDayItIsFor() {
+        LocalDate day = LocalDate.of(2026, 9, 11);
+        UUID who = UUID.fromString("00000000-0000-0000-0000-0000000000c1");
+        service.registerFederated(eventId, partnerId, who, day);
+
+        assertTrue(service.findRegistration(eventId, partnerId, who, day).isPresent());
+        assertTrue(
+                service.findRegistration(eventId, partnerId, who, day.plusDays(1))
+                        .isEmpty(),
+                "another day is another answer, or none");
+    }
+
+    /**
+     * A budget is spent in the statement that grants the place.
+     *
+     * <p>Counting first and writing after is exactly the race this has to survive: two people at the
+     * partner pressing confirm in the same moment would both see room and both take the last place.
+     */
+    @Test
+    @Order(19)
+    void aBudgetCannotBeOverspent() {
+        LocalDate day = LocalDate.of(2026, 9, 9);
+        UUID first = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
+        UUID second = UUID.fromString("00000000-0000-0000-0000-0000000000a2");
+        service.setPartnerPlaces(eventId, partnerId, 1, true);
+        var one = service.registerFederated(eventId, partnerId, first, day);
+        var two = service.registerFederated(eventId, partnerId, second, day);
+
+        assertTrue(
+                service.acceptWithinBudget(one.id(), eventId, partnerId, day),
+                "the one place the partner was given is theirs to fill");
+        assertFalse(
+                service.acceptWithinBudget(two.id(), eventId, partnerId, day),
+                "and the second is refused rather than quietly granted");
+
+        var counted = service.countPartnerPlaces(eventId, partnerId, day);
+        assertEquals(1, counted.taken());
+        assertEquals(1, counted.budget());
+
+        service.setPartnerPlaces(eventId, partnerId, null, false);
+    }
+
+    /**
+     * Lowering a budget below what is already taken never un-invites anybody.
+     *
+     * <p>Withdrawing a place already granted is a conversation between two stations, not a number
+     * quietly going down. The places stand and no more may be added.
+     */
+    @Test
+    @Order(19)
+    void loweringABudgetLeavesThePlacesAlreadyGiven() {
+        LocalDate day = LocalDate.of(2026, 9, 10);
+        UUID held = UUID.fromString("00000000-0000-0000-0000-0000000000b1");
+        UUID wanted = UUID.fromString("00000000-0000-0000-0000-0000000000b2");
+        service.setPartnerPlaces(eventId, partnerId, 2, true);
+        var standing = service.registerFederated(eventId, partnerId, held, day);
+        assertTrue(service.acceptWithinBudget(standing.id(), eventId, partnerId, day));
+
+        service.setPartnerPlaces(eventId, partnerId, 1, true);
+        assertEquals(
+                1, service.countPartnerPlaces(eventId, partnerId, day).taken(), "the place already given still stands");
+
+        var next = service.registerFederated(eventId, partnerId, wanted, day);
+        assertFalse(
+                service.acceptWithinBudget(next.id(), eventId, partnerId, day), "and the room that is gone is gone");
+
+        service.setPartnerPlaces(eventId, partnerId, null, false);
+    }
+
     // -- Name cache --
 
     @Test

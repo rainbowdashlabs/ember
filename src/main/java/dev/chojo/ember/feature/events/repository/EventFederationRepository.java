@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.repository;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
+import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
@@ -256,6 +257,118 @@ public class EventFederationRepository {
                 .single(call().bind("partner_id", partnerId))
                 .map(EventFederationRegistration.map())
                 .all();
+    }
+
+    /** One partner's member on one date, which is what the composite key addresses. */
+    public Optional<EventFederationRegistration> findRegistration(
+            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+        return query("""
+                SELECT %s FROM event_federation_registration
+                WHERE event_id = :event_id AND partner_id = :partner_id
+                  AND remote_member_id = :remote_member_id::UUID AND event_date = :event_date;""", EVENT_FEDERATION_REGISTRATION_COLUMNS)
+                .single(call().bind("event_id", eventId)
+                        .bind("partner_id", partnerId)
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
+                        .bind("event_date", eventDate))
+                .map(EventFederationRegistration.map())
+                .first();
+    }
+
+    /**
+     * What a partner may do with a shared appointment, or the arrangement that holds where nobody has
+     * said: the host decides, with no cap.
+     */
+    public EventPartnerPlaces findPartnerPlaces(int eventId, int partnerId) {
+        return query("""
+                SELECT event_id, partner_id, slot_budget, partner_confirms
+                FROM event_partner_places
+                WHERE event_id = :event_id AND partner_id = :partner_id;""")
+                .single(call().bind("event_id", eventId).bind("partner_id", partnerId))
+                .map(EventPartnerPlaces.map())
+                .first()
+                .orElseGet(() -> EventPartnerPlaces.hostDecides(eventId, partnerId));
+    }
+
+    /** Everything said per partner about one appointment, for the screen that sets it. */
+    public List<EventPartnerPlaces> findPartnerPlaces(int eventId) {
+        return query("""
+                SELECT event_id, partner_id, slot_budget, partner_confirms
+                FROM event_partner_places
+                WHERE event_id = :event_id;""")
+                .single(call().bind("event_id", eventId))
+                .map(EventPartnerPlaces.map())
+                .all();
+    }
+
+    /**
+     * Says what a partner may do, or stops saying anything where the host takes the decision back.
+     *
+     * <p>Taking it back removes the row rather than writing a false one, so an appointment nobody has
+     * arranged anything for reads the same whether it never had an arrangement or lost one.
+     */
+    public void setPartnerPlaces(int eventId, int partnerId, Integer slotBudget, boolean partnerConfirms) {
+        if (!partnerConfirms) {
+            query("DELETE FROM event_partner_places WHERE event_id = :event_id AND partner_id = :partner_id;")
+                    .single(call().bind("event_id", eventId).bind("partner_id", partnerId))
+                    .delete();
+            return;
+        }
+        query("""
+                INSERT INTO event_partner_places(event_id, partner_id, slot_budget, partner_confirms)
+                VALUES (:event_id, :partner_id, :slot_budget, TRUE)
+                ON CONFLICT (event_id, partner_id)
+                    DO UPDATE SET slot_budget = EXCLUDED.slot_budget, partner_confirms = TRUE;""")
+                .single(call().bind("event_id", eventId)
+                        .bind("partner_id", partnerId)
+                        .bind("slot_budget", slotBudget))
+                .insert();
+    }
+
+    /**
+     * Fills one of a partner's places, and says whether there was one to fill.
+     *
+     * <p>The count is inside the statement rather than read first and written after, because two
+     * people at the partner pressing confirm at the same moment would otherwise both see room and
+     * both take the last place. Counted per date: the budget is per occurrence.
+     *
+     * @return true where the place was granted, false where the budget was already spent
+     */
+    public boolean acceptWithinBudget(int registrationId, int eventId, int partnerId, LocalDate eventDate) {
+        return query("""
+                UPDATE event_federation_registration reg
+                SET status = 'ACCEPTED', previous_status = reg.status, status_changed_at = now()
+                WHERE reg.id = :id
+                  AND reg.status <> 'ACCEPTED'
+                  AND (
+                      (SELECT slot_budget FROM event_partner_places
+                       WHERE event_id = :event_id AND partner_id = :partner_id) IS NULL
+                      OR (SELECT count(*) FROM event_federation_registration taken
+                          WHERE taken.event_id = :event_id
+                            AND taken.partner_id = :partner_id
+                            AND taken.event_date = :event_date
+                            AND taken.status = 'ACCEPTED')
+                         < (SELECT slot_budget FROM event_partner_places
+                            WHERE event_id = :event_id AND partner_id = :partner_id));""")
+                .single(call().bind("id", registrationId)
+                        .bind("event_id", eventId)
+                        .bind("partner_id", partnerId)
+                        .bind("event_date", eventDate))
+                .update()
+                .changed();
+    }
+
+    /** How many places a partner has actually filled on one date, for the screen that shows it. */
+    public int countAcceptedForPartner(int eventId, int partnerId, LocalDate eventDate) {
+        return query("""
+                SELECT count(*) AS taken FROM event_federation_registration
+                WHERE event_id = :event_id AND partner_id = :partner_id
+                  AND event_date = :event_date AND status = 'ACCEPTED';""")
+                .single(call().bind("event_id", eventId)
+                        .bind("partner_id", partnerId)
+                        .bind("event_date", eventDate))
+                .map(row -> row.getInt("taken"))
+                .first()
+                .orElse(0);
     }
 
     /**

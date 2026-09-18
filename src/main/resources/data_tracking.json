@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:0dd069afc82326a693e6312aa2f385e8a28fb17c641b896b664695df2d4bce91",
-  "generatedAt": "2026-09-18T13:06:51Z",
+  "schemaHash": "sha256:eb07cc0ca41f6d6451e6d876958f35b67cd2551025fa199abd709254686a94c1",
+  "generatedAt": "2026-09-18T14:05:45Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -7314,6 +7314,64 @@
         "reason": "Event structure/template data, not per-member"
       },
       "description": "Default values for attendance session fields when created from an event."
+    },
+    "event_partner_places": {
+      "tableHash": "sha256:cfca64eea8beb0c2eebf3472319b63cc553bcbbdc2011fe3c0362796c1f0c68f",
+      "columns": [
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "partner_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "slot_budget",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many places this partner may fill on one date. NULL means no cap. Counted per occurrence, because a registration is per date and five places at a weekly evening means five every week."
+        },
+        {
+          "name": "partner_confirms",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this partner confirms its own members rather than the host doing it. False everywhere until somebody says otherwise, which is how it worked before this existed."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "partner_id",
+          "refTable": "federation_partner",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "What a partner was given to fill and to decide, beside the share it belongs to. Without it a transferred station keeps sharing an appointment while forgetting how many places it promised and who was choosing."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "An arrangement between two stations, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "An arrangement between two stations, not per-member"
+      },
+      "description": "What a partner station may do with a shared appointment: how many places it may fill, and whether it decides who fills them. Separate from the sharing tables because saving a share rewrites those wholesale."
     },
     "event_registration": {
       "feature": "events",

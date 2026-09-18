@@ -32,3 +32,30 @@ COMMENT ON COLUMN ember_schema.event_federation_registration.previous_status IS
 
 UPDATE ember_schema.event_registration SET status_changed_at = created_at;
 UPDATE ember_schema.event_federation_registration SET status_changed_at = created_at;
+
+-- A station that shares an appointment may hand a partner a number of places and let them decide who
+-- fills them. The obvious home for that was the table naming the partners a share is aimed at, and it
+-- is the wrong one twice over: saving the sharing screen deletes and rewrites every row in it, which
+-- would throw the budget away, and a share aimed at every partner has no rows in it at all. So this
+-- is a table of its own, written only by the screen that sets it and untouched by sharing.
+
+CREATE TABLE ember_schema.event_partner_places
+(
+    event_id         INTEGER NOT NULL REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    partner_id       INTEGER NOT NULL REFERENCES ember_schema.federation_partner (id) ON DELETE CASCADE,
+    slot_budget      INTEGER NULL,
+    partner_confirms BOOLEAN NOT NULL DEFAULT FALSE,
+    PRIMARY KEY (event_id, partner_id),
+    CONSTRAINT event_partner_places_budget_is_not_negative CHECK (slot_budget IS NULL OR slot_budget >= 0),
+
+    -- Handing somebody places and then choosing their people for them is not a thing anybody wants,
+    -- so a budget means they decide. Deciding without a budget is allowed and means no cap.
+    CONSTRAINT event_partner_places_budget_implies_deciding CHECK (slot_budget IS NULL OR partner_confirms)
+);
+
+COMMENT ON TABLE ember_schema.event_partner_places IS
+    'What a partner station may do with a shared appointment: how many places it may fill, and whether it decides who fills them. Separate from the sharing tables because saving a share rewrites those wholesale.';
+COMMENT ON COLUMN ember_schema.event_partner_places.slot_budget IS
+    'How many places this partner may fill on one date. NULL means no cap. Counted per occurrence, because a registration is per date and five places at a weekly evening means five every week.';
+COMMENT ON COLUMN ember_schema.event_partner_places.partner_confirms IS
+    'Whether this partner confirms its own members rather than the host doing it. False everywhere until somebody says otherwise, which is how it worked before this existed.';

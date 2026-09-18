@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.OpenApiName;
@@ -71,6 +72,18 @@ public class RemoteEventRoutes implements Routes {
     public static final FederationEndpoint UNDO_WITHDRAWAL = FederationEndpoint.post(
             FederationSurface.EVENT_SHARE,
             "/remote/events/{id}/register/undo",
+            RemoteRegistrationRequest.class,
+            Void.class);
+
+    /**
+     * A partner confirming one of its own members, where this station has handed it that decision.
+     *
+     * <p>Refused where no such arrangement stands, and refused again where the places it was given are
+     * already filled. The count is this station's either way, because the places are.
+     */
+    public static final FederationEndpoint CONFIRM_OWN = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/{id}/register/confirm",
             RemoteRegistrationRequest.class,
             Void.class);
 
@@ -130,6 +143,7 @@ public class RemoteEventRoutes implements Routes {
             REGISTER,
             WITHDRAW,
             UNDO_WITHDRAWAL,
+            CONFIRM_OWN,
             LIST_REGISTRATIONS,
             LIST_MEMBER_REGISTRATIONS,
             REGISTRATION_STATUS_WEBHOOK,
@@ -171,6 +185,7 @@ public class RemoteEventRoutes implements Routes {
                         .handle(REGISTER, this::remoteRegister)
                         .handle(WITHDRAW, this::remoteWithdraw)
                         .handle(UNDO_WITHDRAWAL, this::remoteUndoWithdrawal)
+                        .handle(CONFIRM_OWN, this::remoteConfirmOwn)
                         .handle(LIST_REGISTRATIONS, this::remoteListRegistrations)
                         .handle(LIST_MEMBER_REGISTRATIONS, this::remoteListMemberRegistrations)
                         .handle(REGISTRATION_STATUS_WEBHOOK, this::remoteOnRegistrationStatus)
@@ -295,6 +310,31 @@ public class RemoteEventRoutes implements Routes {
      * row and the clock that measures the window. A refusal here is not a failure: it means the
      * few minutes have passed, and the partner tells its member so.
      */
+    /**
+     * A partner confirming one of its own members, where this station handed it that decision.
+     *
+     * <p>Two refusals, and they say different things. Without an arrangement the partner is asking for
+     * something it was never given, which is forbidden. With one, but with its places already filled,
+     * the answer is that there is no room, which is an ordinary thing to be told and not a fault.
+     */
+    private void remoteConfirmOwn(Context ctx) {
+        var partner = FederationSession.requirePartner(ctx);
+        int eventId = pathInt(ctx, "id");
+        requireSharedEvent(partner, eventId);
+        var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
+
+        if (!eventFederationService.partnerPlaces(eventId, partner.id()).partnerConfirms()) {
+            throw new ForbiddenResponse("This station decides its own registrations for this event");
+        }
+        var registration = eventFederationService
+                .findRegistration(eventId, partner.id(), req.remoteMemberId(), req.eventDate())
+                .orElseThrow(NotFoundResponse::new);
+        if (!eventFederationService.acceptWithinBudget(registration.id(), eventId, partner.id(), req.eventDate())) {
+            throw new BadRequestResponse("No places left");
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
     private void remoteUndoWithdrawal(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "id");

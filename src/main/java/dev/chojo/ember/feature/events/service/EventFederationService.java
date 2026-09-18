@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
+import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -171,6 +172,11 @@ public class EventFederationService {
      * confirmation on events that ask nobody for one, which nobody at the host was ever prompted to
      * give.
      *
+     * <p>A partner with places of its own is the other reason somebody has to choose. Accepting at
+     * once there would hand out more places than the partner was given, since nothing would ever
+     * count them: the arrangement is itself the reason to pick, whatever the appointment asks of this
+     * station's own members.
+     *
      * @param eventId        the event ID
      * @param partnerId      the federation partner ID
      * @param remoteMemberId the remote member UUID
@@ -179,11 +185,12 @@ public class EventFederationService {
      */
     public EventFederationRegistration registerFederated(
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        var status = crudService
-                .findById(eventId)
-                .filter(StationEvent::requiresConfirmation)
-                .map(event -> RegistrationStatus.PENDING)
-                .orElse(RegistrationStatus.ACCEPTED);
+        boolean somebodyChooses = crudService
+                        .findById(eventId)
+                        .map(StationEvent::requiresConfirmation)
+                        .orElse(false)
+                || federationRepository.findPartnerPlaces(eventId, partnerId).partnerConfirms();
+        var status = somebodyChooses ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
         var registration =
                 federationRepository.createRegistration(eventId, partnerId, remoteMemberId, eventDate, status);
         log.info(
@@ -317,6 +324,77 @@ public class EventFederationService {
                 eventDate);
         return false;
     }
+
+    /** One partner's member on one date. */
+    public Optional<EventFederationRegistration> findRegistration(
+            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+        return federationRepository.findRegistration(eventId, partnerId, remoteMemberId, eventDate);
+    }
+
+    /** What a partner may do with a shared appointment: how many places, and who decides. */
+    public EventPartnerPlaces partnerPlaces(int eventId, int partnerId) {
+        return federationRepository.findPartnerPlaces(eventId, partnerId);
+    }
+
+    /** Everything said per partner about one appointment, for the screen that sets it. */
+    public List<EventPartnerPlaces> partnerPlaces(int eventId) {
+        return federationRepository.findPartnerPlaces(eventId);
+    }
+
+    /**
+     * Hands a partner a number of places, or takes the arrangement back.
+     *
+     * <p>A budget means the partner decides: handing somebody five places and then choosing their
+     * five for them is not a thing anybody wants, and the database refuses the combination outright.
+     */
+    public void setPartnerPlaces(int eventId, int partnerId, Integer slotBudget, boolean partnerConfirms) {
+        federationRepository.setPartnerPlaces(eventId, partnerId, slotBudget, partnerConfirms);
+        log.info(
+                "Event {} now gives partner {} {} places, decided by {}",
+                eventId,
+                partnerId,
+                slotBudget == null ? "as many as it likes" : slotBudget,
+                partnerConfirms ? "the partner" : "this station");
+    }
+
+    /**
+     * How many of a partner's places are taken on one date, and how many it may take.
+     *
+     * @return the places filled, and the budget, which is empty where there is no cap
+     */
+    public PartnerPlaceCount countPartnerPlaces(int eventId, int partnerId, LocalDate eventDate) {
+        var places = federationRepository.findPartnerPlaces(eventId, partnerId);
+        return new PartnerPlaceCount(
+                federationRepository.countAcceptedForPartner(eventId, partnerId, eventDate),
+                places.slotBudget(),
+                places.partnerConfirms());
+    }
+
+    /**
+     * Gives a partner's member one of that partner's places.
+     *
+     * <p>The budget is counted and spent in one statement, so two people at the partner confirming at
+     * the same moment cannot both take the last place. Whoever asked, the count is this station's,
+     * because the rows are.
+     *
+     * @return true where a place was granted, false where the budget was already spent
+     */
+    public boolean acceptWithinBudget(int registrationId, int eventId, int partnerId, LocalDate eventDate) {
+        boolean granted = federationRepository.acceptWithinBudget(registrationId, eventId, partnerId, eventDate);
+        if (!granted) {
+            log.info("Partner {} has no places left on event {} for {}", partnerId, eventId, eventDate);
+        }
+        return granted;
+    }
+
+    /**
+     * What a partner has and may have on one date.
+     *
+     * @param taken  how many places are filled
+     * @param budget how many it may fill, or {@code null} for no cap
+     * @param decidedByPartner whether the partner decides rather than this station
+     */
+    public record PartnerPlaceCount(int taken, Integer budget, boolean decidedByPartner) {}
 
     /**
      * Puts a partner's member back on the list, for as long as their withdrawal can be taken back.
