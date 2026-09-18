@@ -423,35 +423,52 @@ class EventServicesTest extends RepositoryTestBase {
     }
 
     /**
-     * A registration nobody had confirmed is removed outright. Nothing was given away, so there is
-     * nothing to record, and a row saying so would only stand in the way of signing up again.
+     * Giving a place back is something somebody did, and the list has to be able to say who.
+     *
+     * <p>An unconfirmed place used to be removed outright on the reasoning that nothing had been
+     * granted yet, which left whoever runs the appointment with a list one shorter than it was and
+     * nothing at all to say who had dropped out of it. Both are kept now, and signing up again writes
+     * over the same row rather than being turned away by it.
      */
     @Test
     @Order(61)
-    void withdrawRegistration() {
+    void aPlaceGivenBackIsKeptWhetherItHadBeenConfirmedOrNot() {
         var start = Instant.now().plus(11, ChronoUnit.DAYS);
-        var end = start.plus(2, ChronoUnit.HOURS);
         var event = crudService.create(
                 station.id(),
-                "Withdraw Event",
+                "Withdrawal Event",
                 "desc",
                 StationEvent.EventType.ONE_TIME,
                 null,
                 start,
-                end,
+                start.plus(2, ChronoUnit.HOURS),
                 null,
                 true,
                 null,
-                false,
+                true,
                 categoryId,
                 null,
                 null,
                 null,
                 null);
+        LocalDate day = LocalDate.of(2026, 10, 2);
 
-        var reg = registrationService.register(event.id(), member.id(), LocalDate.of(2026, 10, 2), false, null);
-        assertTrue(registrationService.withdraw(reg.id()));
-        assertTrue(registrationService.findById(reg.id()).isEmpty());
+        var confirmed = registrationService.register(event.id(), member.id(), day, true, null);
+        assertTrue(registrationService.withdraw(confirmed.id()));
+        assertEquals(
+                RegistrationStatus.WITHDRAWN,
+                registrationService.findById(confirmed.id()).orElseThrow().status());
+
+        var again = registrationService.register(event.id(), member.id(), day, false, null);
+        assertEquals(RegistrationStatus.PENDING, again.status(), "the withdrawn row does not stand in the way");
+
+        assertTrue(registrationService.withdraw(again.id()));
+        assertEquals(
+                RegistrationStatus.WITHDRAWN,
+                registrationService
+                        .findById(again.id())
+                        .orElseThrow(() -> new AssertionError("an unconfirmed place given back is kept too"))
+                        .status());
     }
 
     @Test

@@ -267,16 +267,18 @@ public class EventRegistrationService {
     /**
      * Takes a registration back at the member's request.
      *
-     * <p>A confirmed place is kept and marked, because a station that gave somebody a place needs to
-     * see that they gave it up. A registration still waiting on an answer is removed outright: nobody
-     * had confirmed anything, so there is nothing to record and a row saying so would only stand in
-     * the way of signing up again.
+     * <p>The row is kept and marked, whether or not the place had been confirmed. Taking a place back
+     * is a thing somebody did, and whoever runs the appointment has to be able to see that they did
+     * it: a removed row leaves the list one shorter than it was with nothing to say who is missing
+     * from it, and a place given up before anybody got round to confirming it is still a place given
+     * up. Signing up again is unaffected, because a registration is written over its own row where
+     * one already stands for that member on that day.
      *
-     * <p>Either way what the member had answered goes, the same way it goes wherever else somebody
+     * <p>What the member had answered goes either way, the same way it goes wherever else somebody
      * says they are not coming.
      *
      * @param id the registration ID
-     * @return true if the registration was withdrawn or removed
+     * @return true if the registration was withdrawn
      */
     public boolean withdraw(int id) {
         var registration = registrationRepository.findById(id).orElse(null);
@@ -284,14 +286,9 @@ public class EventRegistrationService {
             log.warn("Cannot withdraw registration: registration {} not found", id);
             return false;
         }
-        if (registration.status() != RegistrationStatus.ACCEPTED) {
-            if (!registrationRepository.delete(id)) return false;
-            log.info("Removed unconfirmed registration {}", id);
-            return true;
-        }
         if (!registrationRepository.recordAnswer(id, RegistrationStatus.WITHDRAWN)) return false;
         log.info("Withdrew registration {}", id);
-        recordRefusal(id, registration.eventId(), registration.memberId(), RegistrationStatus.WITHDRAWN);
+        recordRefusal(id, registration.eventId(), registration.memberId(), registration.status());
         return true;
     }
 
@@ -311,7 +308,7 @@ public class EventRegistrationService {
         var status = refusalFor(registration.status());
         if (!registrationRepository.recordAnswer(id, status)) return false;
         log.info("Recorded {} for registration {}", status, id);
-        recordRefusal(id, registration.eventId(), registration.memberId(), status);
+        recordRefusal(id, registration.eventId(), registration.memberId(), registration.status());
         return true;
     }
 
@@ -320,13 +317,16 @@ public class EventRegistrationService {
      *
      * <p>The answers go either way. They were given for a place the member is not taking, and
      * nobody has any use for a list of allergies or clothing sizes belonging to somebody who is not
-     * coming. Only a place given back is announced, because only a confirmed place falling free is
-     * somebody else's to fill.
+     * coming. What is announced is decided by the place that was held and not by the word written
+     * over it: only a confirmed place falling free is somebody else's to fill, and an answer that was
+     * never a yes frees nothing however it is recorded.
+     *
+     * @param heldBefore the status the registration held before this refusal was written
      */
-    private void recordRefusal(int registrationId, int eventId, int memberId, RegistrationStatus status) {
+    private void recordRefusal(int registrationId, int eventId, int memberId, RegistrationStatus heldBefore) {
         fieldRepository.deleteValues(registrationId);
-        if (status == RegistrationStatus.WITHDRAWN) {
-            announce(eventId, memberId, status);
+        if (heldBefore == RegistrationStatus.ACCEPTED) {
+            announce(eventId, memberId, RegistrationStatus.WITHDRAWN);
         }
     }
 
