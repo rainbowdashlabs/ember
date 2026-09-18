@@ -2447,6 +2447,7 @@ export default {
         noAnswerYet: 'Noch keine Antwort',
         myRegistration: 'Meine Anmeldung',
         federatedRegistrations: 'Föderierte Anmeldungen',
+        federatedPartnerDecides: 'Die Partnerwache entscheidet selbst',
         manualRegister: 'Mitglied anmelden',
         selectMember: 'Mitglied wählen',
         editAnswers: 'Antworten bearbeiten',

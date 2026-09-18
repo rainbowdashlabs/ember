@@ -346,14 +346,29 @@ public class RemoteEventRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    /**
+     * Who from this partner is coming, which is not the same as who has a row.
+     *
+     * <p>A withdrawal used to delete its row and now keeps it, so the refusals are filtered out here
+     * rather than sent. A partner reading this list treats a row as somebody coming, and an older one
+     * has never heard of a withdrawn status at all: sending them would put people back on a list they
+     * have left, on every instance that has not been updated.
+     */
     private void remoteListRegistrations(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "id");
         requireSharedEvent(partner, eventId);
         var registrations = eventFederationService.findRegistrationsByPartner(partner.id()).stream()
                 .filter(r -> r.eventId() == eventId)
+                .filter(RemoteEventRoutes::isStanding)
                 .toList();
         ctx.json(registrations);
+    }
+
+    /** Whether this answer still puts somebody on the list, as against one that was taken back. */
+    private static boolean isStanding(EventFederationRegistration registration) {
+        return registration.status() != RegistrationStatus.WITHDRAWN
+                && registration.status() != RegistrationStatus.DECLINED;
     }
 
     private void remoteListMemberRegistrations(Context ctx) {
@@ -361,6 +376,7 @@ public class RemoteEventRoutes implements Routes {
         var memberUid = pathUuid(ctx, "memberUid");
         var registrations = eventFederationService.findRegistrationsByRemoteMember(memberUid).stream()
                 .filter(r -> r.partnerId() == partner.id())
+                .filter(RemoteEventRoutes::isStanding)
                 .toList();
         ctx.json(registrations.stream()
                 .map(r -> new RemoteMemberRegistration(

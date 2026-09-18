@@ -16,7 +16,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField, type FederatedEventRegistration, type MemberRegistrationStats, type RegistrationFieldValue, type StationEvent} from '@/api/events'
+import {RegistrationStatus, type EventPartnerPlaces, type EventRegistrationEntry, type EventRegistrationField, type FederatedEventRegistration, type MemberRegistrationStats, type RegistrationFieldValue, type StationEvent} from '@/api/events'
 import {StationPermission} from '@/api/types'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import {events, stationMembers as stationMembersApi} from '@/api'
@@ -53,6 +53,12 @@ const {refresh: refreshSidebarCounts} = useSidebarCounts()
 const registrations = ref<EventRegistrationEntry[]>([])
 const registrationStats = ref<MemberRegistrationStats[]>([])
 const federatedRegs = ref<FederatedEventRegistration[]>([])
+
+/**
+ * What each partner may do with this appointment. Read so the list can say which partners decide for
+ * themselves rather than offering buttons the server would refuse.
+ */
+const partnerPlaces = ref<EventPartnerPlaces[]>([])
 const allMembers = ref<MemberOption[]>([])
 const error = ref('')
 const manualRegisterMemberId = ref('')
@@ -147,6 +153,7 @@ async function loadRegistrations() {
     }
     if (hasPermission(StationPermission.EVENT_REGISTRATION)) {
       federatedRegs.value = await events.listFederationRegistrations(props.eventId).catch(() => [])
+      partnerPlaces.value = await events.getPartnerPlaces(props.eventId).catch(() => [])
       const members = await stationMembersApi.listMembers().catch(() => [])
       allMembers.value = members.map(fromMember)
     }
@@ -472,6 +479,7 @@ onMounted(loadRegistrations)
     <FederatedRegistrationsPanel
         v-if="canManageEvents()"
         :registrations="federatedRegs"
+        :partner-places="partnerPlaces"
         @accept="acceptFederatedReg"
         @deny="denyFederatedReg"
     />

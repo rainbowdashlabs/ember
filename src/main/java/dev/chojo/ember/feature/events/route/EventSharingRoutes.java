@@ -196,12 +196,34 @@ public class EventSharingRoutes implements Routes {
         ctx.json(new MessageResponse("Status updated"));
     }
 
-    /** What a partner may do with this appointment, for the screen that arranges it. */
+    /**
+     * What each partner may do with this appointment, and how much of it is used.
+     *
+     * <p>The host's list reads this to say which partners decide for themselves, so that a row it
+     * cannot act on explains itself rather than simply refusing when somebody presses it.
+     */
     private void listPartnerPlaces(Context ctx) {
         int eventId = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, eventId, crudService::findById, StationEvent::stationId);
-        ctx.json(eventFederationService.partnerPlaces(eventId));
+        var date = ctx.queryParam("eventDate");
+        if (date == null) {
+            ctx.json(eventFederationService.partnerPlaces(eventId));
+            return;
+        }
+        var day = LocalDate.parse(date);
+        ctx.json(eventFederationService.partnerPlaces(eventId).stream()
+                .map(places -> {
+                    var counted = eventFederationService.countPartnerPlaces(eventId, places.partnerId(), day);
+                    return new PartnerPlacesView(
+                            places.partnerId(), places.slotBudget(), places.partnerConfirms(), counted.taken());
+                })
+                .toList());
     }
+
+    /**
+     * @param taken how many of the partner's places are filled on the day asked about
+     */
+    public record PartnerPlacesView(int partnerId, Integer slotBudget, boolean partnerConfirms, int taken) {}
 
     /**
      * Hands a partner a number of places, or takes the arrangement back.
