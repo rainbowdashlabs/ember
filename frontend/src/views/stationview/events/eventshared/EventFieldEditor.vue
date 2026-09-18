@@ -73,6 +73,21 @@ const userType = ref<string>('')
 const tagId = ref<string>('')
 const selfRegistration = ref(false)
 
+/**
+ * Takes the choices on only where they differ from the ones already held.
+ *
+ * <p>A list is a new value every time it is written, where a word is only a new value when the word
+ * changes. Reading a field back in therefore used to settle and now would not: writing the same
+ * choices again told everything watching them that they had changed, which wrote the field out,
+ * which read it back in, for as long as the page was open. Nothing moved on screen, so the only
+ * sign of it was a page that never went idle and a click that never landed.
+ */
+function setEnumOptions(incoming: string[]) {
+  const held = enumOptions.value
+  if (held.length === incoming.length && held.every((option, at) => option === incoming[at])) return
+  enumOptions.value = [...incoming]
+}
+
 /** Takes the form apart into the fields that edit it. */
 function seed(entry: EventFieldEntry) {
   name.value = entry.name ?? ''
@@ -83,7 +98,7 @@ function seed(entry: EventFieldEntry) {
   attendanceFieldId.value = entry.attendanceFieldId ?? null
 
   const cfg = entry.config ?? {}
-  enumOptions.value = Array.isArray(cfg.options) ? [...(cfg.options as string[])] : []
+  setEnumOptions(Array.isArray(cfg.options) ? (cfg.options as string[]) : [])
   width.value = cfg.width ? String(cfg.width) : FieldWidths.FULL
   groupId.value = cfg.groupId ? String(cfg.groupId) : ''
   userType.value = cfg.userType ? String(cfg.userType) : ''
