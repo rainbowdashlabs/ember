@@ -166,27 +166,35 @@ public class FederatedEventRoutes implements Routes {
         ctx.result(data);
     }
 
+    /**
+     * Signing one of our members up for a partner's appointment.
+     *
+     * <p>What comes back is the status the other station actually recorded. It used to say pending
+     * whatever happened, so a member accepted at once by an appointment that asks for no confirmation
+     * was told they were waiting on one that nobody would ever give.
+     */
     private void federatedRegister(Context ctx) {
         var fed = resolveFederatedRegContext(ctx);
         var partner = fed.partner();
-        if (partner.isRemote()) {
-            boolean success = eventFederationService.registerForFederatedEvent(
-                    partner.remoteHost(),
-                    partner.partnerStationId(),
-                    fed.eventId(),
-                    fed.remoteMemberId(),
-                    fed.req().eventDate(),
-                    fed.station().id(),
-                    fed.station().federationPrivateKey());
-            if (!success) throw new BadRequestResponse("Registration failed");
-        } else {
-            eventFederationService.registerFederated(
-                    fed.eventId(),
-                    partner.id(),
-                    fed.remoteMemberId(),
-                    LocalDate.parse(fed.req().eventDate()));
-        }
-        ctx.status(HttpStatus.CREATED).json(new StatusResponse("PENDING"));
+        var status = partner.isRemote()
+                ? eventFederationService
+                        .registerForFederatedEvent(
+                                partner.remoteHost(),
+                                partner.partnerStationId(),
+                                fed.eventId(),
+                                fed.remoteMemberId(),
+                                fed.req().eventDate(),
+                                fed.station().id(),
+                                fed.station().federationPrivateKey())
+                        .orElseThrow(() -> new BadRequestResponse("Registration failed"))
+                : eventFederationService
+                        .registerFederated(
+                                fed.eventId(),
+                                partner.id(),
+                                fed.remoteMemberId(),
+                                LocalDate.parse(fed.req().eventDate()))
+                        .status();
+        ctx.status(HttpStatus.CREATED).json(new StatusResponse(status.name()));
     }
 
     private void federatedWithdraw(Context ctx) {

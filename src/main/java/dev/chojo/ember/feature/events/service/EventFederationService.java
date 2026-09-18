@@ -682,7 +682,16 @@ public class EventFederationService {
                 SharedEvent.class);
     }
 
-    public boolean registerForFederatedEvent(
+    /**
+     * Registers one of our members for a partner's appointment, and reports what they said about it.
+     *
+     * <p>The status is theirs to decide and worth carrying back: an appointment that asks for no
+     * confirmation accepts at once, and telling our own member they are waiting for one would be
+     * telling them something the other station never said.
+     *
+     * @return the status the partner recorded, or empty where they refused the registration
+     */
+    public Optional<RegistrationStatus> registerForFederatedEvent(
             String remoteHost,
             UUID partnerStationUid,
             int eventId,
@@ -690,16 +699,25 @@ public class EventFederationService {
             String eventDate,
             int localStationId,
             String localPrivateKeyBase64) {
-        boolean registered = httpClient.post(
-                remoteHost,
-                RemoteEventRoutes.REGISTER.at(eventId),
-                new FederatedRegBody(remoteMemberId, eventDate),
-                partnerStationUid,
-                localStationId,
-                localPrivateKeyBase64);
-        if (registered)
-            log.info("Station {} registered a member for event {} at {}", localStationId, eventId, remoteHost);
-        else log.warn("Registration for event {} at {} was refused", eventId, remoteHost);
+        var registered = Optional.ofNullable(httpClient.post(
+                        remoteHost,
+                        RemoteEventRoutes.REGISTER.at(eventId),
+                        new FederatedRegBody(remoteMemberId, eventDate),
+                        partnerStationUid,
+                        localStationId,
+                        localPrivateKeyBase64,
+                        EventFederationRegistration.class))
+                .map(EventFederationRegistration::status);
+        if (registered.isPresent()) {
+            log.info(
+                    "Station {} registered a member for event {} at {} as {}",
+                    localStationId,
+                    eventId,
+                    remoteHost,
+                    registered.get());
+        } else {
+            log.warn("Registration for event {} at {} was refused", eventId, remoteHost);
+        }
         return registered;
     }
 

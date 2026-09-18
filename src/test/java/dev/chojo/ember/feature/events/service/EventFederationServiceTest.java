@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -1078,20 +1079,28 @@ class EventFederationServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(91)
+    /**
+     * What the other station recorded is carried back rather than assumed. An appointment that asks
+     * for no confirmation accepts at once, and telling our own member they are waiting would be
+     * telling them something nobody said.
+     */
     void registerForFederatedEvent() {
         UUID partnerUid = UUID.randomUUID();
+        var accepted = new EventFederationRegistration(
+                1, 1, 1, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1), RegistrationStatus.ACCEPTED, Instant.now());
         when(httpClient.post(
                         eq("https://example.com"),
                         pathIs("/remote/events/1/register"),
                         any(),
                         eq(partnerUid),
                         eq(1),
-                        eq("key123")))
-                .thenReturn(true);
+                        eq("key123"),
+                        eq(EventFederationRegistration.class)))
+                .thenReturn(accepted);
 
-        boolean success = service.registerForFederatedEvent(
+        var status = service.registerForFederatedEvent(
                 "https://example.com", partnerUid, 1, REMOTE_MEMBER_1, "2026-07-01", 1, "key123");
-        assertTrue(success);
+        assertEquals(RegistrationStatus.ACCEPTED, status.orElseThrow());
     }
 
     @Test
