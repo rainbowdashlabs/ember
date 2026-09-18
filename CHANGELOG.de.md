@@ -1,5 +1,28 @@
 # Änderungsprotokoll
 
+## v26.18.1
+
+### Neue Funktionen
+
+- **Eine Partnerwache kann eigene Plätze bekommen.** Ein mit einer anderen Wache geteilter Termin kann Plätze für sie zurücklegen, mit oder ohne Obergrenze, und diese Wache wählt dann selbst, wer von ihren Leuten sie einnimmt, statt auf eine Bestätigung zu warten. Ist nichts zurückgelegt, bestätigt die ausrichtende Wache wie bisher jeden Gast selbst.
+
+### Verbesserungen
+
+- **Eine Abmeldung von einem Termin fragt nach und lässt sich zurücknehmen.** Jeder Knopf, der einen Platz zurückgibt, stellt jetzt vorher eine kurze Frage, auch der, der einen ganzen Haushalt auf einmal abmeldet. Fünf Minuten lang lässt sich die Abmeldung über die eingeblendete Meldung wieder zurücknehmen, und zurück kommt der Platz, der belegt war, und nicht eine neue Anmeldung am Ende der Warteschlange. Mit gedrückter Umschalttaste entfällt die Frage, wie an anderen Stellen auch.
+- **Zu spät zur Anmeldung sagt jetzt, wer weiterhelfen kann.** Eine erneute Anmeldung nach dem Anmeldeschluss endete in einer nichtssagenden Fehlermeldung. Jetzt steht dort, dass die Anmeldung geschlossen ist und dass die Terminleitung noch jemanden aufnehmen kann.
+- **Ein Gast einer Partnerwache wird behandelt wie ein eigenes Mitglied.** Seine Anmeldung wird sofort angenommen, wenn der Termin keine Bestätigung verlangt, statt auf eine zu warten, um die nie jemand gebeten wurde, und sie wird abgelehnt, wenn der Termin keine Anmeldungen annimmt, abgesagt wurde oder die Anmeldung geschlossen ist. Eine Abmeldung bleibt vermerkt, damit die ausrichtende Wache erkennt, wer sich abgemeldet hat und wer nie geantwortet hat.
+- **Auswahlmöglichkeiten an Terminen und Wartelisten werden zeilenweise erfasst.** Beide fragten die ganze Liste noch in einem einzigen Feld ab, das eine trennte bei Zeilenumbrüchen, das andere bei Kommas: Eine Auswahl mit Komma wurde so unbemerkt zu zweien. Sie nutzen jetzt denselben Editor wie überall sonst, mit einer Zeile je Auswahl, die sich umsortieren lässt.
+- **Die Löschen-Schaltfläche an den Feldern eines Termins sitzt an einer festen Stelle.** Sie teilte sich eine Zeile, die umbrach, und konnte dadurch mitten im Bereich zwischen anderen Einstellungen landen; jetzt steht sie oben rechts an ihrem Feld.
+- **Die Neuigkeitenliste liest sich wieder als Liste.** Ein langer Beitrag füllt nicht mehr die ganze Seite: Beiträge werden auf wenige Zeilen gekürzt und laden zum Weiterlesen ein, den Rest gibt es auf der Seite des Beitrags.
+
+### Fehlerbehebungen
+
+- **Neuigkeiten von den Machern von Ember trugen in der Liste kein Zeichen.** Das Ember-Logo erschien erst im geöffneten Beitrag, nicht in der Liste, aus der er geöffnet wurde: Dort war ein solcher Beitrag von einem an der Station geschriebenen nicht zu unterscheiden.
+
+- **Das Löschen eines Kontos meldete Probleme, die keine waren.** Beim Entfernen eines Kontos wurden mehrere Datenarten aufgeführt, die nicht aufgeräumt werden konnten, obwohl die Datenbank sie längst entfernt hatte und nichts zurückblieb. Die Liste des Aufzuräumenden wird jetzt gegen die Datenbank selbst geprüft und kann nicht mehr unbemerkt auseinanderlaufen.
+- **Wer seinen Platz zurückgab, konnte ganz aus der Liste verschwinden.** Ein noch nicht bestätigter Platz wurde beim Zurückgeben gelöscht: Die Anmeldeliste war dann einfach um einen Eintrag kürzer und nichts sagte, wer abgesprungen war, obwohl die Benachrichtigung darüber verschickt wurde. Jeder zurückgegebene Platz bleibt jetzt als zurückgezogen in der Liste, und eine erneute Anmeldung funktioniert wie zuvor.
+- **Eine am späten Abend geöffnete Liste galt dem Vortag.** Wurde eine Anwesenheit aus einem wiederkehrenden Termin gestartet, las sie das Datum von der Uhr des Servers statt von der der Station: In den letzten Stunden vor Mitternacht wurde die Liste damit für den vorherigen Termin geöffnet und trug dessen Zeiten. Der Tag richtet sich jetzt durchgehend nach der Station.
+
 ## v26.18.0
 
 ### Neue Funktionen
@@ -8,13 +31,9 @@
 - **Ein Mitglied kann so genannt werden, wie es alle tatsächlich nennen.** Wer im Register Maximilian heißt und in der ganzen Wache Max gerufen wird, hinterlegt einen Spitznamen im Profil, und von da an steht auf dem Brett, in den Kommentaren, bei den Anmeldungen, in den Benachrichtigungen und in den Mails Max. In Mitgliederlisten steht `Maximilian "Max" Hoffmann`, damit niemand raten muss, wer gemeint ist. Das Mitglied setzt seinen eigenen im Profil, wer sich um es kümmert, darf einen für es setzen, und wer die Mitglieder der Wache pflegt, darf einen im Profil des Mitglieds in der Verwaltung richtigstellen. Sonst niemand, und wer ihn geschrieben hat, wird in jedem Fall festgehalten. Eine Wache, die lieber durchgehend Registernamen führt, schaltet das Ganze ab, und jeder hinterlegte Spitzname bleibt erhalten.
 - **Auf einem Dokument steht weiterhin der Name aus dem Register.** Anwesenheitsliste, Prüfprotokoll, Bestands- und Bewegungsexporte und die Datenauskunft nennen Maximilian Hoffmann, was immer die Bildschirme sagen. Wer die Wache verlässt, behält in den alten Einträgen den Namen, unter dem die Wache ihn kannte.
 - **Eine Anwesenheit kann ohne passende Vorlage begonnen werden.** Neben den Vorlagen steht jetzt eine Leere Anwesenheit, die in einem zweiten Schritt fragt, welche Mitgliedstypen und welche Gruppen eingetragen werden, und danach die gewohnte vorausgefüllte Liste öffnet. Beides ergänzt sich, und eine Wache muss dafür keine leere Vorlage mehr aufbewahren.
-- **Eine Partnerwache kann eigene Plätze bekommen.** Ein mit einer anderen Wache geteilter Termin kann Plätze für sie zurücklegen, mit oder ohne Obergrenze, und diese Wache wählt dann selbst, wer von ihren Leuten sie einnimmt, statt auf eine Bestätigung zu warten. Ist nichts zurückgelegt, bestätigt die ausrichtende Wache wie bisher jeden Gast selbst.
 
 ### Verbesserungen
 
-- **Eine Abmeldung von einem Termin fragt nach und lässt sich zurücknehmen.** Jeder Knopf, der einen Platz zurückgibt, stellt jetzt vorher eine kurze Frage, auch der, der einen ganzen Haushalt auf einmal abmeldet. Fünf Minuten lang lässt sich die Abmeldung über die eingeblendete Meldung wieder zurücknehmen, und zurück kommt der Platz, der belegt war, und nicht eine neue Anmeldung am Ende der Warteschlange. Mit gedrückter Umschalttaste entfällt die Frage, wie an anderen Stellen auch.
-- **Zu spät zur Anmeldung sagt jetzt, wer weiterhelfen kann.** Eine erneute Anmeldung nach dem Anmeldeschluss endete in einer nichtssagenden Fehlermeldung. Jetzt steht dort, dass die Anmeldung geschlossen ist und dass die Terminleitung noch jemanden aufnehmen kann.
-- **Ein Gast einer Partnerwache wird behandelt wie ein eigenes Mitglied.** Seine Anmeldung wird sofort angenommen, wenn der Termin keine Bestätigung verlangt, statt auf eine zu warten, um die nie jemand gebeten wurde, und sie wird abgelehnt, wenn der Termin keine Anmeldungen annimmt, abgesagt wurde oder die Anmeldung geschlossen ist. Eine Abmeldung bleibt vermerkt, damit die ausrichtende Wache erkennt, wer sich abgemeldet hat und wer nie geantwortet hat.
 - **Eine Vorlage sagt vor der Auswahl, was sie mitbringt.** Jede Kachel auf der Seite für eine neue Anwesenheit nennt jetzt die Gruppen, die sie einträgt, und die Felder, die sie abfragt; die Wahl läuft damit nicht mehr über das Gedächtnis. Eine Vorlage, die niemanden einträgt, sagt auch das.
 - **Das Änderungsprotokoll sagt, wann eine Version erschienen ist.** Jeder Eintrag trägt jetzt den Tag seines Erscheinens, mit der genauen Uhrzeit unter dem Mauszeiger, und endet mit einem Link, der seine Änderungen gegenüber der vorherigen Veröffentlichung auf GitHub öffnet.
 - **Ein Geburtsdatum kann ohne das Alter dahinter stehen.** Das Feld hat jetzt einen Schalter dafür, eingeschaltet wie bisher, damit eine Wache, die das Alter zusätzlich als eigene Frage stellt, es nicht zweimal in einer Zeile stehen hat.

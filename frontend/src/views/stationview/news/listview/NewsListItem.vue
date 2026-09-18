@@ -9,7 +9,7 @@ import NewsListItemHeader from './NewsListItemHeader.vue'
 import NewsListItemComments from './NewsListItemComments.vue'
 import type {NewsEntry} from '@/api/news'
 import type {MemberIdentity} from '@/api/types'
-import ProseContent from '@/components/display/ProseContent.vue'
+import NewsExcerpt from '../newsshared/NewsExcerpt.vue'
 
 defineProps<{
   kind: 'local' | 'federated' | 'system'
@@ -57,7 +57,7 @@ const emit = defineEmits<{
       :set-view-badge-ref="setViewBadgeRef"
       :on-request-delete="onRequestDelete"
     />
-    <ProseContent v-if="contentHtml" v-html="contentHtml"/>
+    <NewsExcerpt :content-html="contentHtml"/>
     <NewsListItemComments
       :news-id="id"
       :station-uid="kind === 'federated' ? stationUid : undefined"

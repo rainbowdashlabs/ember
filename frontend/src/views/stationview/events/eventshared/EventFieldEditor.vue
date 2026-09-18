@@ -15,6 +15,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import EventFieldTypeConfig from './EventFieldTypeConfig.vue'
+import {usableOptions} from '@/util/choiceOptions'
 import {fieldConstraint, isMemberFieldType} from './eventFieldConfig'
 import type {AttendanceTemplateField} from '@/api/attendance'
 import {EventFieldTypes, type EventFieldEntry} from '@/api/events'
@@ -65,12 +66,27 @@ const fieldValue = ref('')
 const overview = ref(false)
 const isPublic = ref(false)
 const attendanceFieldId = ref<number | null>(null)
-const enumOptions = ref('')
+const enumOptions = ref<string[]>([])
 const groupId = ref<string>('')
 const width = ref<string>(FieldWidths.FULL)
 const userType = ref<string>('')
 const tagId = ref<string>('')
 const selfRegistration = ref(false)
+
+/**
+ * Takes the choices on only where they differ from the ones already held.
+ *
+ * <p>A list is a new value every time it is written, where a word is only a new value when the word
+ * changes. Reading a field back in therefore used to settle and now would not: writing the same
+ * choices again told everything watching them that they had changed, which wrote the field out,
+ * which read it back in, for as long as the page was open. Nothing moved on screen, so the only
+ * sign of it was a page that never went idle and a click that never landed.
+ */
+function setEnumOptions(incoming: string[]) {
+  const held = enumOptions.value
+  if (held.length === incoming.length && held.every((option, at) => option === incoming[at])) return
+  enumOptions.value = [...incoming]
+}
 
 /** Takes the form apart into the fields that edit it. */
 function seed(entry: EventFieldEntry) {
@@ -82,7 +98,7 @@ function seed(entry: EventFieldEntry) {
   attendanceFieldId.value = entry.attendanceFieldId ?? null
 
   const cfg = entry.config ?? {}
-  enumOptions.value = Array.isArray(cfg.options) ? (cfg.options as string[]).join('\n') : ''
+  setEnumOptions(Array.isArray(cfg.options) ? (cfg.options as string[]) : [])
   width.value = cfg.width ? String(cfg.width) : FieldWidths.FULL
   groupId.value = cfg.groupId ? String(cfg.groupId) : ''
   userType.value = cfg.userType ? String(cfg.userType) : ''
@@ -96,8 +112,9 @@ function buildConfig(): Record<string, unknown> {
   const c: Record<string, unknown> = {}
   if (width.value && width.value !== FieldWidths.FULL) c.width = width.value
   const constraint = fieldConstraint(fieldType.value)
-  if (fieldType.value === 'ENUM' && enumOptions.value.trim()) {
-    c.options = enumOptions.value.split('\n').map(o => o.trim()).filter(o => o)
+  const options = usableOptions(enumOptions.value)
+  if (fieldType.value === 'ENUM' && options.length > 0) {
+    c.options = options
   }
   if (constraint === 'group' && groupId.value) {
     c.groupId = Number(groupId.value)
@@ -164,7 +181,7 @@ watch(modelValue, incoming => {
 
 <template>
   <div class="rounded border border-(--border) p-3 space-y-2">
-    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
       <div class="space-y-1">
         <FieldLabel>{{ t('eventFields.name') }}</FieldLabel>
         <TextInput v-model="name" :placeholder="t('eventFields.namePlaceholder')" data-testid="event-field-name"/>
@@ -176,6 +193,8 @@ watch(modelValue, incoming => {
           <option v-for="ft in fieldTypeOptions" :key="ft.value" :value="ft.value">{{ ft.label }}</option>
         </SelectInput>
       </div>
+
+      <DeleteButton class="justify-self-end" :label="t('common.delete')" @click="emit('remove')"/>
     </div>
 
     <EventFieldTypeConfig
@@ -210,10 +229,6 @@ watch(modelValue, incoming => {
 
       <div class="w-40">
         <WidthField v-model="width"/>
-      </div>
-
-      <div class="ms-auto flex items-center gap-1 pb-1">
-        <DeleteButton :label="t('common.delete')" @click="emit('remove')"/>
       </div>
     </div>
 

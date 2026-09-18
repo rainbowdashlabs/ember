@@ -277,24 +277,18 @@ public class EventRegistrationService {
     /**
      * Takes a registration back at the member's request.
      *
-     * <p>A confirmed place is kept and marked, because a station that gave somebody a place needs to
-     * see that they gave it up. A registration still waiting on an answer is removed outright: nobody
-     * had confirmed anything, so there is nothing to record and a row saying so would only stand in
-     * the way of signing up again.
+     * <p>The row is kept and marked, whether or not the place had been confirmed. Taking a place back
+     * is a thing somebody did, and whoever runs the appointment has to be able to see that they did
+     * it: a removed row leaves the list one shorter than it was with nothing to say who is missing
+     * from it, and a place given up before anybody got round to confirming it is still a place given
+     * up. Signing up again is unaffected, because a registration is written over its own row where
+     * one already stands for that member on that day.
      *
-     * <p>Either way what the member had answered goes, the same way it goes wherever else somebody
-     * says they are not coming.
-     *
-     * @param id the registration ID
-     * @return true if the registration was withdrawn or removed
-     */
-    /**
-     * Giving a place back, whether or not anybody had confirmed it yet.
-     *
-     * <p>The row stays and records `WITHDRAWN`, where an unconfirmed one used to be deleted outright.
-     * Two reasons, and the second is the one that would have been easy to break: an undo needs
-     * something to put back, and `WITHDRAWN` is what tells the reminders this member still owes an
-     * answer. Recording a refusal instead would quietly stop anybody asking them again.
+     * <p>What is written is always WITHDRAWN and never a decline, which would have been easy to get
+     * wrong: a decline reads as an answer given, and somebody who gave a place back before anybody
+     * confirmed it is still owed the question. What they had answered outlives the refusal by exactly
+     * the window it can be taken back in, because an undo handing back a registration with its
+     * questions blank would be worse than none.
      *
      * @param id the registration ID
      * @return true if the registration was withdrawn
@@ -307,7 +301,7 @@ public class EventRegistrationService {
         }
         if (!registrationRepository.recordAnswer(id, RegistrationStatus.WITHDRAWN)) return false;
         log.info("Withdrew registration {}", id);
-        recordRefusal(id, registration.eventId(), registration.memberId(), RegistrationStatus.WITHDRAWN);
+        announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
         return true;
     }
 
@@ -354,21 +348,26 @@ public class EventRegistrationService {
         var status = refusalFor(registration.status());
         if (!registrationRepository.recordAnswer(id, status)) return false;
         log.info("Recorded {} for registration {}", status, id);
-        recordRefusal(id, registration.eventId(), registration.memberId(), status);
+        announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
         return true;
     }
 
     /**
-     * Everything a "no" brings with it, whichever of the two it is.
+     * Tells whoever runs the event that a place has fallen free, where one actually has.
      *
-     * <p>The answers go either way. They were given for a place the member is not taking, and
-     * nobody has any use for a list of allergies or clothing sizes belonging to somebody who is not
-     * coming. Only a place given back is announced, because only a confirmed place falling free is
-     * somebody else's to fill.
+     * <p>What is announced is decided by the place that was held and not by the word written over it:
+     * only a confirmed place falling free is somebody else's to fill, and an answer that was never a
+     * yes frees nothing however it is recorded.
+     *
+     * <p>The answers stay where they are. They used to go the moment somebody said no, which is right
+     * until the no can be undone, so they now outlive the refusal by the window and a named sweep
+     * clears the ones that outlive it.
+     *
+     * @param heldBefore the status the registration held before this refusal was written
      */
-    private void recordRefusal(int registrationId, int eventId, int memberId, RegistrationStatus status) {
-        if (status == RegistrationStatus.WITHDRAWN) {
-            announce(eventId, memberId, status);
+    private void announceFreedPlace(int eventId, int memberId, RegistrationStatus heldBefore) {
+        if (heldBefore == RegistrationStatus.ACCEPTED) {
+            announce(eventId, memberId, RegistrationStatus.WITHDRAWN);
         }
     }
 
@@ -414,10 +413,11 @@ public class EventRegistrationService {
                 .filter(r -> r.memberId() == memberId)
                 .findFirst()
                 .orElse(null);
-        var status = refusalFor(existing == null ? null : existing.status());
+        var heldBefore = existing == null ? null : existing.status();
+        var status = refusalFor(heldBefore);
         var result = registrationRepository.create(eventId, memberId, eventDate, status, createdBy);
         log.info("Recorded {} for member {} on event {} ({})", status, memberId, eventId, eventDate);
-        recordRefusal(result.id(), eventId, memberId, status);
+        announceFreedPlace(eventId, memberId, heldBefore);
         return result;
     }
 

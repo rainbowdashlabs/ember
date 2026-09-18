@@ -689,7 +689,7 @@ public abstract class RepositoryTestBase {
                 new EventCrudService(eventRepo, eventBus, new EquipmentReleaseService(equipmentNeedRepo, lending));
         return new EventServices(
                 crudService,
-                new EventOccurrenceService(crudService, breakService),
+                new EventOccurrenceService(crudService, breakService, stationRepo),
                 new EventCategoryService(eventCategoryRepo),
                 breakService,
                 new EventRestrictionService(eventRepo, restrictionService),

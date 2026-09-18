@@ -16,6 +16,7 @@ import { waitingList } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useConfirmAction } from '@/composables/useConfirmAction'
+import {usableOptions} from '@/util/choiceOptions'
 import FieldsList from './fieldeditorview/FieldsList.vue'
 import FieldModal from './fieldeditorview/FieldModal.vue'
 import DeleteFieldModal from './fieldeditorview/DeleteFieldModal.vue'
@@ -35,7 +36,7 @@ const fieldName = ref('')
 const fieldType = ref('TEXT')
 const fieldRequired = ref(false)
 const fieldPublic = ref(true)
-const fieldEnumOptions = ref('')
+const fieldEnumOptions = ref<string[]>([])
 
 const fieldTypes = ['TEXT', 'NUMBER', 'DATE', 'BIRTH_DATE', 'BOOLEAN', 'ENUM'] as const
 
@@ -71,7 +72,7 @@ function openAddField() {
   fieldType.value = 'TEXT'
   fieldRequired.value = false
   fieldPublic.value = true
-  fieldEnumOptions.value = ''
+  fieldEnumOptions.value = []
   showFieldModal.value = true
 }
 
@@ -81,13 +82,14 @@ function openEditField(field: WaitingListField) {
   fieldType.value = field.fieldType
   fieldRequired.value = field.required
   fieldPublic.value = field.isPublic ?? true
-  fieldEnumOptions.value = field.config?.options?.join(', ') ?? ''
+  fieldEnumOptions.value = [...(field.config?.options ?? [])]
   showFieldModal.value = true
 }
 
 function buildConfig(): WaitingListFieldConfig {
-  if (fieldType.value !== 'ENUM' || !fieldEnumOptions.value.trim()) return {}
-  return {options: fieldEnumOptions.value.split(',').map(o => o.trim()).filter(o => o)}
+  const options = usableOptions(fieldEnumOptions.value)
+  if (fieldType.value !== 'ENUM' || options.length === 0) return {}
+  return {options}
 }
 
 const { running: savingField, error: saveFieldError, run: saveField } = useAsyncAction(async () => {

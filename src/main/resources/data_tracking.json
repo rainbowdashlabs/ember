@@ -6275,7 +6275,7 @@
         "status": "TRACKED",
         "strategies": [
           {
-            "column": "updated_by",
+            "column": "author_id",
             "strategy": "CASCADE",
             "reason": "FK ON DELETE CASCADE on member/account delete"
           }
@@ -10628,9 +10628,9 @@
         "status": "TRACKED",
         "strategies": [
           {
-            "column": "member_id",
+            "column": "response_id",
             "strategy": "CASCADE",
-            "reason": "FK ON DELETE CASCADE on member delete"
+            "reason": "FK ON DELETE CASCADE, removed with the response that carries the member"
           }
         ]
       },
@@ -13921,15 +13921,21 @@
         ]
       },
       "gdprExport": {
-        "status": "TRACKED"
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "created_by"
+          }
+        ]
       },
       "gdprDeletion": {
         "status": "TRACKED",
         "strategies": [
           {
-            "column": "kb_file_version.created_by (version=1)",
+            "column": "created_by",
             "strategy": "ANONYMIZE",
-            "reason": "File preserved, uploader anonymised in kb_file_version"
+            "reason": "File preserved, uploader forgotten; its versions carry the same rule"
           }
         ]
       },
@@ -18447,7 +18453,7 @@
         "status": "TRACKED",
         "strategies": [
           {
-            "column": "member_id",
+            "column": "acknowledged_by",
             "strategy": "CASCADE",
             "reason": "FK ON DELETE CASCADE on member/account delete"
           }
@@ -23179,8 +23185,8 @@
         "status": "TRACKED",
         "identityColumns": [
           {
-            "type": "ACCOUNT_ID",
-            "column": "account_id"
+            "type": "MEMBER_ID",
+            "column": "member_id"
           }
         ]
       },
@@ -23188,7 +23194,7 @@
         "status": "TRACKED",
         "strategies": [
           {
-            "column": "account_id",
+            "column": "member_id",
             "strategy": "CASCADE",
             "reason": "FK ON DELETE CASCADE on member/account delete"
           }
@@ -24029,9 +24035,9 @@
         "status": "TRACKED",
         "strategies": [
           {
-            "column": "entry_id",
+            "column": "list_id",
             "strategy": "CASCADE",
-            "reason": "FK ON DELETE CASCADE — removed with waitlist_entry"
+            "reason": "FK ON DELETE CASCADE, removed with the waiting list it belongs to"
           }
         ]
       },

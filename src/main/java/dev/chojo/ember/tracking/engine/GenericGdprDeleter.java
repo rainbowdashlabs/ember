@@ -75,17 +75,38 @@ public final class GenericGdprDeleter {
     // -- per-table operations ------------------------------------------------
 
     /**
-     * Returns true when {@code column} is listed as an identity column of the requested type. Without
-     * this check we'd run a DELETE/UPDATE on a strategy that isn't related to the requested identity -
-     * e.g. station_member.id has DELETE_EXPLICIT but only for MEMBER_ID identity, never for ACCOUNT_ID.
+     * Whether this column is one the requested identity may be matched against.
+     *
+     * <p>It has to be a column that could hold such an identity, and where the table says which of its
+     * columns carry which identity, one it names for this type. Without the second half a strategy
+     * unrelated to the identity being erased would run anyway: station_member.id is deleted outright,
+     * but only ever for a member, never for the account behind them.
      */
-    private static boolean identityMatchesColumn(TableEntry table, IdentityType type, String column) {
+    private static boolean identityMatchesColumn(TableEntry table, IdentityType type, ColumnEntry column) {
+        if (!typeCanHoldIdentity(type, column)) return false;
         var ctx = table.gdprExport();
         if (ctx == null || ctx.identityColumns() == null) return true; // permissive when no identity declared
         for (IdentityColumn ic : ctx.identityColumns()) {
-            if (ic.type() == type && column.equals(ic.column())) return true;
+            if (ic.type() == type && column.name().equals(ic.column())) return true;
         }
         return false;
+    }
+
+    /**
+     * Whether a column could hold this kind of identity at all.
+     *
+     * <p>A table that declares no identity columns is treated permissively, which is what lets a rule
+     * stand on its own. Permissive cannot mean anything goes: a member's uuid compared against an
+     * integer column is not a rule that matches nothing, it is SQL the database refuses outright, and
+     * the whole deletion stops on it. Only the shape of the column can say, so it is asked here.
+     */
+    private static boolean typeCanHoldIdentity(IdentityType type, ColumnEntry column) {
+        String columnType = column.type();
+        if (columnType == null) return true;
+        return switch (type) {
+            case MEMBER_UID -> "uuid".equals(columnType);
+            case ACCOUNT_ID, MEMBER_ID -> "int4".equals(columnType) || "int8".equals(columnType);
+        };
     }
 
     private static Call bindIdentity(IdentityType type, Object idVal) {
@@ -143,7 +164,7 @@ public final class GenericGdprDeleter {
                 report.skipped.add(new SkippedOp(tableName, s.column(), s.strategy(), "column not found on table"));
                 continue;
             }
-            if (!identityMatchesColumn(table, type, col.name())) continue;
+            if (!identityMatchesColumn(table, type, col)) continue;
 
             switch (s.strategy()) {
                 case NULL -> runNullUpdate(tableName, col, type, idVal, report);
@@ -171,7 +192,7 @@ public final class GenericGdprDeleter {
                 report.skipped.add(new SkippedOp(tableName, s.column(), s.strategy(), "column not found on table"));
                 continue;
             }
-            if (!identityMatchesColumn(table, type, col.name())) continue;
+            if (!identityMatchesColumn(table, type, col)) continue;
             runDelete(tableName, col, type, idVal, report);
         }
     }

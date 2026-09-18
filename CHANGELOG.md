@@ -1,5 +1,28 @@
 # Changelog
 
+## v26.18.1
+
+### New Features
+
+- **A partner station can be given places of its own.** An appointment shared with another station can set aside places for it, with or without a limit on how many, and that station then picks which of its own people fill them instead of waiting to be confirmed. Where nothing is set aside, the station holding the appointment confirms each guest itself, as it always did.
+
+### Improvements
+
+- **Giving up a place at an appointment asks first, and can be taken back.** Every button that signs somebody off now opens a short question before the place goes, including the one that signs off a whole household at once. For five minutes afterwards the sign-off can be undone from the message that appears, and what comes back is the place that was held rather than a fresh sign-up at the end of the queue. Hold shift while pressing to skip the question, as elsewhere.
+- **Being too late to sign up now says who can help.** Trying to sign up again after the list has closed answered with a bare failure. It now says the list is closed and that whoever runs the appointment can still add somebody.
+- **A guest from a partner station is treated like a member of the station.** Their sign-up is accepted straight away where the appointment asks for no confirmation, rather than waiting for one that nobody was ever asked to give, and it is refused where the appointment takes no sign-ups, has been called off, or has closed its list. Signing off keeps the record, so the station holding the appointment can tell somebody who left from somebody who never answered.
+- **Choices on an appointment and on a waiting list are written one to a row.** Both still asked for the whole list in a single box, one splitting it at line breaks and the other at commas, so a choice containing a comma quietly became two. They now use the same editor as everywhere else, with a row per choice that can be reordered.
+- **The delete button on an appointment's fields sits in one place.** It shared a row that wrapped, so it could end up in the middle of the panel between other settings; it now stays at the top right of the field it belongs to.
+- **The news list reads as a list again.** A long entry no longer fills the page: entries are cut to a few lines with an invitation to read on, and the entry's own page is where the rest of it is.
+
+### Fixes
+
+- **News from the makers of Ember carried no mark in the list.** The Ember logo appeared once an entry was opened but not on the list it was opened from, so nothing there told such an entry apart from one written at the station.
+
+- **Deleting an account reported problems that were not real.** Removing an account listed several kinds of data it could not clear up, although the database had already removed them and nothing was left behind. The list of what to clear is now checked against the database itself, so it cannot fall out of step again unnoticed.
+- **Somebody giving up a place could vanish from the list entirely.** A place that had not been confirmed was removed outright when it was given back, so the registration list was simply one shorter and nothing said who had dropped out, even though the notification about it had gone out. Every place given back now stays on the list as withdrawn, and signing up again works as before.
+- **A sheet opened late in the evening was made for the day before.** Starting an attendance from a repeating appointment read the date off the server's clock rather than the station's, so in the last hours before midnight the sheet was opened for the previous occurrence and carried that evening's times. The day is now the station's throughout.
+
 ## v26.18.0
 
 ### New Features
@@ -8,13 +31,9 @@
 - **A member can be called by the name everybody actually uses.** Somebody entered in the register as Maximilian and known to the whole station as Max sets a nickname on their profile, and from then on the board, the comments, who is coming on Friday, the notifications and the mails all say Max. A member list says `Maximilian "Max" Hoffmann`, so nobody has to guess who that is. A member sets their own on their profile, whoever looks after them may set one for them, and whoever keeps the station's members may put one right from the member's profile in the administration. Nobody else may, and who wrote it is recorded either way. A station that would rather keep register names throughout can switch the whole thing off, and every nickname is kept rather than deleted.
 - **A document still carries the name in the register.** The attendance sheet, the test protocol, the inventory and movement exports and the data handed over under a data request read Maximilian Hoffmann, whatever the screens say. A member who leaves keeps the name the station knew them by in the old entries that name them.
 - **An attendance can be started without a template that fits.** Beside the templates there is now a Leere Anwesenheit, which asks in a second step which member types and which groups to enter and then opens the usual pre-filled sheet. The two answers add up, and a station no longer has to keep an empty template around for the purpose.
-- **A partner station can be given places of its own.** An appointment shared with another station can set aside places for it, with or without a limit on how many, and that station then picks which of its own people fill them instead of waiting to be confirmed. Where nothing is set aside, the station holding the appointment confirms each guest itself, as it always did.
 
 ### Improvements
 
-- **Giving up a place at an appointment asks first, and can be taken back.** Every button that signs somebody off now opens a short question before the place goes, including the one that signs off a whole household at once. For five minutes afterwards the sign-off can be undone from the message that appears, and what comes back is the place that was held rather than a fresh sign-up at the end of the queue. Hold shift while pressing to skip the question, as elsewhere.
-- **Being too late to sign up now says who can help.** Trying to sign up again after the list has closed answered with a bare failure. It now says the list is closed and that whoever runs the appointment can still add somebody.
-- **A guest from a partner station is treated like a member of the station.** Their sign-up is accepted straight away where the appointment asks for no confirmation, rather than waiting for one that nobody was ever asked to give, and it is refused where the appointment takes no sign-ups, has been called off, or has closed its list. Signing off keeps the record, so the station holding the appointment can tell somebody who left from somebody who never answered.
 - **A template says what it provides before you pick it.** Each tile on the new attendance screen now names the groups it enters and the questions it asks, so the choice no longer runs on memory. A template that enters nobody says so.
 - **The changelog says when each version was released.** Every entry now carries the day it came out, with the exact time under the pointer, and ends with a link that opens its changes against the release before it on GitHub.
 - **A birth date can be shown without the age behind it.** The field now carries a switch for it, on as before, so a station that also asks the age as a question of its own no longer states it twice on one row.

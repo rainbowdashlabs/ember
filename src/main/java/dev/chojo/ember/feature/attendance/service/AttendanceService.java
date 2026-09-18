@@ -45,7 +45,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -294,7 +294,7 @@ public class AttendanceService {
                     resolvedTitle = event.name();
                 }
                 if (resolvedStart == null || resolvedEnd == null) {
-                    var span = event.occurrenceOn(LocalDate.now(ZoneOffset.UTC));
+                    var span = event.occurrenceOn(LocalDate.now(timezoneOf(event.stationId())));
                     if (span.isPresent()) {
                         if (resolvedStart == null) resolvedStart = span.get().start();
                         if (resolvedEnd == null) resolvedEnd = span.get().end();
@@ -546,6 +546,21 @@ public class AttendanceService {
         if (Duration.between(startTime, endTime).compareTo(MAX_SESSION_LENGTH) > 0) {
             throw new BadRequestResponse("The sheet may not run longer than " + MAX_SESSION_LENGTH.toDays() + " days");
         }
+    }
+
+    /**
+     * The clock a station keeps its days by.
+     *
+     * <p>Which day it is has to be asked of the station and not of the server: a repeating appointment
+     * is placed on the day it is opened for, and a server an hour or two behind is still on yesterday
+     * late in the evening. A sheet opened then was placed on the occurrence before the one everybody
+     * had turned up for.
+     *
+     * @param stationId the station whose day is meant
+     * @return its timezone, UTC where it keeps none
+     */
+    private ZoneId timezoneOf(int stationId) {
+        return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
     }
 
     /**

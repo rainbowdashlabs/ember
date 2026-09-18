@@ -10,6 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -18,7 +19,7 @@ const fieldName = defineModel<string>('fieldName', {required: true})
 const fieldType = defineModel<string>('fieldType', {required: true})
 const fieldRequired = defineModel<boolean>('fieldRequired', {required: true})
 const fieldPublic = defineModel<boolean>('fieldPublic', {required: true})
-const fieldEnumOptions = defineModel<string>('fieldEnumOptions', {required: true})
+const fieldEnumOptions = defineModel<string[]>('fieldEnumOptions', {required: true})
 
 defineProps<{
   isEdit: boolean
@@ -49,11 +50,11 @@ const { t } = useI18n()
           <option v-for="ft in fieldTypes" :key="ft" :value="ft">{{ fieldTypeLabel(ft) }}</option>
         </SelectInput>
       </div>
-      <div v-if="fieldType === 'ENUM'" class="space-y-1">
-        <FieldLabel>{{ t('waitingList.enumOptions') }}</FieldLabel>
-        <TextInput v-model="fieldEnumOptions" :placeholder="t('waitingList.enumOptionsPlaceholder')" />
-        <p class="text-xs text-(--text-muted)">{{ t('waitingList.enumOptionsHint') }}</p>
-      </div>
+      <QuestionOptionsEditor
+          v-if="fieldType === 'ENUM'"
+          v-model="fieldEnumOptions"
+          :label="t('waitingList.enumOptions')"
+      />
     </div>
     <div class="space-y-2">
       <div class="flex items-center gap-2">

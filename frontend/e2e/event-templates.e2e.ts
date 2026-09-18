@@ -50,7 +50,9 @@ test.describe('Event templates', () => {
         const before = await fieldNames(page)
         expect(before.length, 'the seeded template asks at least two things').toBeGreaterThan(1)
 
-        await page.getByTestId('move-down').first().click()
+        // Scoped to the list of questions, because a question offering choices now carries a list of
+        // its own and its arrows answer to the same name.
+        await page.getByTestId('event-field-list').getByTestId('move-down').first().click()
         await expect.poll(() => fieldNames(page)).toEqual([before[1], before[0], ...before.slice(2)])
 
         await Promise.all([

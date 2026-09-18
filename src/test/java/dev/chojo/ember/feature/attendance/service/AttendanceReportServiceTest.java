@@ -15,6 +15,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -105,6 +106,45 @@ class AttendanceReportServiceTest extends RepositoryTestBase {
 
         assertNull(line.countedHours());
         assertEquals(4.0, line.entries().getFirst().hours());
+    }
+
+    /**
+     * Setting up beforehand and clearing away afterwards are not part of the two hours an appointment
+     * is scheduled for, and whoever did them was there for longer than the sheet says. A sheet naming
+     * no worth of its own counts the clock it was given, both ends past its own included, and the
+     * report prints those times rather than the sheet's.
+     */
+    @Test
+    void anEveningWithoutAWorthOfItsOwnCountsPastItsOwnEnds() {
+        int sessionId = sheet(
+                "Cleanup",
+                FRIDAY,
+                FRIDAY.plus(2, ChronoUnit.HOURS),
+                null,
+                FRIDAY.minus(1, ChronoUnit.HOURS),
+                FRIDAY.plus(3, ChronoUnit.HOURS));
+
+        var line = lineOf(sessionId, report());
+        var entry = line.entries().getFirst();
+
+        assertEquals(4.0, entry.hours());
+        assertEquals(4, Duration.between(entry.checkIn(), entry.checkOut()).toHours());
+        assertTrue(entry.checkIn().toLocalTime().isBefore(line.startTime()));
+        assertTrue(entry.checkOut().toLocalTime().isAfter(line.endTime()));
+    }
+
+    /** The same evening carrying a worth of its own caps it again, which is what that field is for. */
+    @Test
+    void aWorthOfItsOwnStillCapsAnEveningSomebodyStayedPast() {
+        int sessionId = sheet(
+                "Cleanup counted",
+                FRIDAY,
+                FRIDAY.plus(2, ChronoUnit.HOURS),
+                120,
+                FRIDAY.minus(1, ChronoUnit.HOURS),
+                FRIDAY.plus(3, ChronoUnit.HOURS));
+
+        assertEquals(2.0, lineOf(sessionId, report()).entries().getFirst().hours());
     }
 
     @Test
