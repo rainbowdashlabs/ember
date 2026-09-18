@@ -541,8 +541,24 @@ export async function listRegistrationCounts(): Promise<RegistrationCount[]> {
     return res.data
 }
 
-export async function withdrawRegistration(id: number): Promise<void> {
-    await client.delete(`/events/registrations/${id}`)
+/** What a withdrawal leaves behind: the moment it stops being something that can be taken back. */
+export interface Withdrawal {
+    undoUntil: string
+}
+
+export async function withdrawRegistration(id: number): Promise<Withdrawal> {
+    const res = await client.delete<Withdrawal>(`/events/registrations/${id}`)
+    return res.data
+}
+
+/**
+ * Puts a withdrawal back, which the server allows for a few minutes and refuses afterwards.
+ *
+ * <p>What comes back is the place that was held rather than a fresh answer, so somebody who pressed
+ * the wrong button is where they were rather than at the end of the queue.
+ */
+export async function undoWithdrawal(id: number): Promise<void> {
+    await client.post(`/events/registrations/${id}/undo`)
 }
 
 /** Somebody in the household who still owes an answer. */

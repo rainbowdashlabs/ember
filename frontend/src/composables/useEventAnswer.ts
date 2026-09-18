@@ -6,6 +6,8 @@
 import {ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {events} from '@/api'
+import {apiErrorStatus} from '@/util/apiError'
+import {showToast} from '@/util/toast'
 import type {EventRegistrationField, RegistrationFieldValue, StationEvent} from '@/api/events'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import type {AnswerablePerson} from '@/util/eventAnswers'
@@ -58,13 +60,21 @@ export function useEventAnswer(
         error.value = ''
     }
 
-    async function changeRegistration(action: () => Promise<unknown>) {
+    /**
+     * Carries out an answer and reloads what the screen shows.
+     *
+     * <p>A refusal the member can do something about is told apart from a failure they cannot. The
+     * server answers a closed list with a plain refusal, and saying only that something went wrong
+     * leaves somebody pressing the same button again: the caller passes the words for that case, and
+     * they name whoever can still help.
+     */
+    async function changeRegistration(action: () => Promise<unknown>, refusedMessage?: string) {
         try {
             await action()
             await afterChange()
             refreshSidebarCounts()
-        } catch {
-            error.value = t('common.error')
+        } catch (e) {
+            error.value = refusedMessage && apiErrorStatus(e) === 400 ? refusedMessage : t('common.error')
         }
     }
 
@@ -81,8 +91,9 @@ export function useEventAnswer(
     ) {
         registering.value = `${ev.id}-${date}-${memberId}`
         try {
-            await changeRegistration(() =>
-                events.registerForEvent(ev.id, {eventDate: date, memberId: memberIdParam(memberId), fields}))
+            await changeRegistration(
+                () => events.registerForEvent(ev.id, {eventDate: date, memberId: memberIdParam(memberId), fields}),
+                t('eventsUpcoming.registrationClosedAskLead'))
         } finally {
             registering.value = null
         }
@@ -152,9 +163,36 @@ export function useEventAnswer(
             events.declineEvent(ev.id, {eventDate: date, memberId: memberIdParam(memberId)}))
     }
 
+    /**
+     * Giving up a place, and offering it back for as long as the server would take it back.
+     *
+     * <p>The offer rides a toast rather than the row it came from: by the time somebody realises they
+     * pressed the wrong one they have often scrolled past it, and the row may not be on the page at
+     * all any more. How long it stands is the server's to say, so the toast lasts exactly as long as
+     * the answer it was given.
+     */
     async function withdrawRegistration(regId: number) {
         beginAnswer()
-        await changeRegistration(() => events.withdrawRegistration(regId))
+        let withdrawal: Awaited<ReturnType<typeof events.withdrawRegistration>> | null = null
+        await changeRegistration(async () => {
+            withdrawal = await events.withdrawRegistration(regId)
+        })
+        if (!withdrawal) return
+        const remaining = new Date(withdrawal.undoUntil).getTime() - Date.now()
+        if (remaining <= 0) return
+        showToast(t('eventsUpcoming.signedOff'), 'info', remaining, {
+            label: t('eventsUpcoming.undoSignOff'),
+            run: () => undoWithdrawal(regId),
+        })
+    }
+
+    /**
+     * Putting a withdrawal back. Past the window the server refuses, and the member is told the place
+     * is not theirs to take back any more rather than left wondering whether the press landed.
+     */
+    async function undoWithdrawal(regId: number) {
+        beginAnswer()
+        await changeRegistration(() => events.undoWithdrawal(regId), t('eventsUpcoming.undoTooLate'))
     }
 
     return {

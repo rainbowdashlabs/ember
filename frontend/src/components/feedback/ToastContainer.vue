@@ -4,9 +4,18 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { dismissToast, getToasts } from '@/util/toast'
+import { dismissToast, getToasts, type ToastAction } from '@/util/toast'
 
 const toasts = getToasts()
+
+/**
+ * Carries out what the toast offered and closes it. The toast goes first: whatever it was offering is
+ * now happening, and leaving it on screen would invite a second press of the same undo.
+ */
+async function runAction(id: number, action: ToastAction) {
+    dismissToast(id)
+    await action.run()
+}
 </script>
 
 <template>
@@ -34,7 +43,14 @@ const toasts = getToasts()
                         }"
                         class="mt-0.5 shrink-0"
                     />
-                    <p class="text-sm text-(--text)">{{ toast.message }}</p>
+                    <p class="text-sm text-(--text) grow">{{ toast.message }}</p>
+                    <button
+                        v-if="toast.action"
+                        type="button"
+                        data-testid="toast-action"
+                        class="shrink-0 text-sm font-medium underline text-(--text) hover:no-underline"
+                        @click.stop="runAction(toast.id, toast.action)"
+                    >{{ toast.action.label }}</button>
                 </div>
             </TransitionGroup>
         </div>
