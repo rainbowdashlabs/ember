@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -64,6 +65,8 @@ class NotificationServiceTest extends RepositoryTestBase {
                 mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailService,
                 new MailRecipientService(accountRepo, stationMemberRepo),
+                new NotificationScheduleRepository(),
+                clusterRepo,
                 mailing);
 
         station = stationRepo.create("NotifStation");
@@ -331,6 +334,8 @@ class NotificationServiceTest extends RepositoryTestBase {
                 mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailServiceMock,
                 new MailRecipientService(accountRepo, stationMemberRepo),
+                new NotificationScheduleRepository(),
+                clusterRepo,
                 mailing);
 
         // Enable email for member1
@@ -350,6 +355,153 @@ class NotificationServiceTest extends RepositoryTestBase {
 
         // Disable email again to clean up
         userSettingsRepo.updateEmailEnabled(member1.id(), false);
+    }
+
+    /**
+     * What a cluster follower is told, read and acknowledged the way a station member's is.
+     *
+     * <p>The cluster side of notifications has always been written but never read back by anything
+     * that a test covered, which is the same blind spot that let its digest go unnoticed for as long
+     * as it did.
+     */
+    @Test
+    @Order(46)
+    void aClusterFollowerReadsAndClearsWhatTheyAreTold() {
+        var cluster = clusterRepo.create("ReadingCluster", "keeps up with its partners", station.id());
+        var follower = clusterRepo.addMember(
+                cluster.id(), account2.id(), dev.chojo.ember.api.auth.ClusterUserType.CLUSTER_USER);
+        try {
+            var data = NotificationData.of(
+                    new NotificationParams.NewEvent("Partner drill", "next door"),
+                    new NotificationData.NotificationLink("dashboard-overview"));
+
+            service.notifyClusterMembersIfAbsent(List.of(follower.id()), NotificationType.NEW_EVENT, data, null);
+            service.notifyClusterMembersIfAbsent(List.of(follower.id()), NotificationType.NEW_EVENT, data, null);
+
+            assertEquals(1, service.countUnacknowledgedForClusterMember(follower.id()), "and not told twice");
+            assertFalse(service.findAllForClusterMember(follower.id()).isEmpty());
+
+            var first =
+                    service.findUnacknowledgedForClusterMember(follower.id()).getFirst();
+            service.acknowledgeForClusterMember(first.id(), follower.id());
+            assertEquals(0, service.countUnacknowledgedForClusterMember(follower.id()));
+
+            service.notifyClusterMembersIfAbsent(List.of(follower.id()), NotificationType.NEW_EVENT, data, null);
+            assertTrue(service.acknowledgeAllForClusterMember(follower.id()) >= 1);
+        } finally {
+            clusterRepo.delete(cluster.id());
+        }
+    }
+
+    /**
+     * A station whose moment has not come keeps its notifications.
+     *
+     * <p>This is the whole point of saying when rather than how long: what arrives between two of a
+     * station's times waits for the next one, unmailed and unmarked, rather than going out on the
+     * next sweep that happens to come round.
+     */
+    @Test
+    @Order(45)
+    void aStationWhoseMomentHasNotComeIsNotWrittenTo() {
+        var emailServiceMock = mock(EmailService.class);
+        when(emailServiceMock.getBaseUrl()).thenReturn("https://ember.example.com");
+        when(emailServiceMock.canStationSend(anyInt())).thenReturn(true);
+        when(emailServiceMock.loadTemplate(anyString(), anyString(), any())).thenReturn("<html>digest</html>");
+
+        var schedules = new NotificationScheduleRepository();
+        var svc = new NotificationService(
+                notificationRepo,
+                stationMemberRepo,
+                userSettingsRepo,
+                notificationSettingsRepo,
+                accountRepo,
+                stationRepo,
+                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
+                emailServiceMock,
+                new MailRecipientService(accountRepo, stationMemberRepo),
+                schedules,
+                clusterRepo,
+                new Mailing());
+
+        // Written to a moment ago, and asking only for a time that is not now.
+        schedules.markStationSent(station.id(), Instant.now());
+        var farOff = java.time.LocalTime.now()
+                .plusHours(5)
+                .withMinute(0)
+                .withSecond(0)
+                .withNano(0);
+        schedules.setStationSendTimes(station.id(), List.of(farOff));
+
+        userSettingsRepo.updateEmailEnabled(member1.id(), true);
+        notificationSettingsRepo.upsert(member1.id(), NotificationType.NEW_NEWS, true, true, false);
+        service.notify(
+                member1.id(),
+                NotificationType.NEW_NEWS,
+                NotificationData.of(
+                        new NotificationParams.NewNews("Waiting", "Author", "for the hour"),
+                        new NotificationData.NotificationLink("dashboard-overview")));
+
+        invokeProcessDigest(svc);
+
+        verify(emailServiceMock, never()).queueStationEmail(anyInt(), anyString(), anyString(), anyString());
+        assertTrue(
+                notificationRepo.findUnemailed().stream().anyMatch(n -> n.memberId() == member1.id()),
+                "the notification is still waiting rather than marked as sent");
+
+        schedules.setStationSendTimes(station.id(), List.of());
+        userSettingsRepo.updateEmailEnabled(member1.id(), false);
+    }
+
+    /**
+     * Somebody who follows a cluster is written to at all, which is the case that never worked.
+     *
+     * <p>The sweep only ever looked for notifications belonging to a station's members, so a
+     * cluster's were written to the table and taken out of it again by nobody: the person who
+     * followed a cluster to hear about its partner stations heard nothing. They go out through the
+     * instance's own chain, because a cluster spanning several stations has no address of its own.
+     */
+    @Test
+    @Order(44)
+    void aClusterFollowerIsWrittenTo() {
+        var emailServiceMock = mock(EmailService.class);
+        when(emailServiceMock.getBaseUrl()).thenReturn("https://ember.example.com");
+        when(emailServiceMock.canInstanceSend()).thenReturn(true);
+        when(emailServiceMock.loadTemplate(anyString(), anyString(), any())).thenReturn("<html>digest</html>");
+
+        var svc = new NotificationService(
+                notificationRepo,
+                stationMemberRepo,
+                userSettingsRepo,
+                notificationSettingsRepo,
+                accountRepo,
+                stationRepo,
+                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
+                emailServiceMock,
+                new MailRecipientService(accountRepo, stationMemberRepo),
+                new NotificationScheduleRepository(),
+                clusterRepo,
+                new Mailing());
+
+        var cluster = clusterRepo.create("DigestCluster", "hears about its partners", station.id());
+        var follower = clusterRepo.addMember(
+                cluster.id(), account1.id(), dev.chojo.ember.api.auth.ClusterUserType.CLUSTER_USER);
+
+        var data = NotificationData.of(
+                new NotificationParams.NewEvent("Partner evening", "at the other station"),
+                new NotificationData.NotificationLink("dashboard-overview"));
+        notificationRepo.createForClusterMember(follower.id(), NotificationType.NEW_EVENT, data);
+
+        assertFalse(notificationRepo.findUnemailedForClusters().isEmpty(), "the cluster's notification is waiting");
+
+        invokeProcessClusterDigest(svc);
+
+        verify(emailServiceMock, atLeastOnce()).queueInstanceEmail(anyString(), anyString(), anyString());
+        assertTrue(
+                notificationRepo.findUnemailedForClusters().isEmpty(),
+                "and is not left waiting for a sweep that never takes it");
+
+        // The cluster stands on this station, which cannot be taken out from under it at the end.
+        clusterRepo.delete(cluster.id());
     }
 
     @Test
@@ -372,6 +524,8 @@ class NotificationServiceTest extends RepositoryTestBase {
                 mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailServiceMock,
                 new MailRecipientService(accountRepo, stationMemberRepo),
+                new NotificationScheduleRepository(),
+                clusterRepo,
                 mailing);
 
         userSettingsRepo.updateEmailEnabled(member2.id(), true);
@@ -527,6 +681,8 @@ class NotificationServiceTest extends RepositoryTestBase {
                 mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailServiceMock,
                 new MailRecipientService(accountRepo, stationMemberRepo),
+                new NotificationScheduleRepository(),
+                clusterRepo,
                 mailing);
 
         userSettingsRepo.updateEmailEnabled(member1.id(), true);
@@ -564,6 +720,8 @@ class NotificationServiceTest extends RepositoryTestBase {
                 mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailServiceMock,
                 new MailRecipientService(accountRepo, stationMemberRepo),
+                new NotificationScheduleRepository(),
+                clusterRepo,
                 mailing);
 
         userSettingsRepo.updateEmailEnabled(member2.id(), true);
@@ -1070,6 +1228,19 @@ class NotificationServiceTest extends RepositoryTestBase {
     }
 
     // -- Helper --
+
+    private static void invokeProcessClusterDigest(NotificationService svc) {
+        try {
+            Method m = NotificationService.class.getDeclaredMethod("processClusterDigest");
+            m.setAccessible(true);
+            m.invoke(svc);
+        } catch (InvocationTargetException e) {
+            if (e.getCause() instanceof RuntimeException re) throw re;
+            throw new RuntimeException(e.getCause());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private static void invokeProcessDigest(NotificationService svc) {
         try {
