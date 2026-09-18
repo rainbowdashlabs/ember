@@ -116,56 +116,6 @@ services:
     networks:
       - traefik
 
-  # --- snapshot (snapshot.ember-panel.de) ---
-
-  ember_snapshot:
-    container_name: ember_demo_snapshot
-    image: ghcr.io/rainbowdashlabs/ember-backend:snapshot
-    labels:
-      traefik.enable: true
-      traefik.http.routers.demo_snapshot_ember.rule: "Host(`snapshot.ember-panel.de`) && PathPrefix(`/api`)"
-      traefik.http.routers.demo_snapshot_ember.entrypoints: https
-      traefik.http.routers.demo_snapshot_ember.tls: true
-      traefik.http.routers.demo_snapshot_ember.tls.certresolver: cloudflare
-      traefik.http.services.demo_snapshot_ember.loadbalancer.server.port: "8080"
-      com.centurylinklabs.watchtower.enable: true
-    volumes:
-      - ./config_snapshot:/app/config
-    environment:
-      DB_HOST: ember_demo_db
-      DB_PORT: "5432"
-      DB_USER: ember
-      DB_PASSWORD: ember
-      DB_DATABASE: ember
-      DB_SCHEMA: ember_schema_snapshot
-      DEMO_ENABLED: "true"
-      DEMO_IDLERESETMINUTES: "15"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - traefik
-      - default
-
-  ember_snapshot_frontend:
-    container_name: ember_demo_snapshot_frontend
-    image: ghcr.io/rainbowdashlabs/ember-frontend:snapshot
-    environment:
-      NUXT_BACKEND_URL: http://ember_snapshot:8080
-    labels:
-      traefik.enable: true
-      traefik.http.routers.demo_snapshot_ember_web.rule: "Host(`snapshot.ember-panel.de`)"
-      traefik.http.routers.demo_snapshot_ember_web.entrypoints: https
-      traefik.http.routers.demo_snapshot_ember_web.tls: true
-      traefik.http.routers.demo_snapshot_ember_web.tls.certresolver: cloudflare
-      traefik.http.routers.demo_snapshot_ember_web.priority: "1"
-      traefik.http.services.demo_snapshot_ember_web.loadbalancer.server.port: "3000"
-      com.centurylinklabs.watchtower.enable: true
-    depends_on:
-      - ember_snapshot
-    networks:
-      - traefik
-
 networks:
   traefik:
     external: true
