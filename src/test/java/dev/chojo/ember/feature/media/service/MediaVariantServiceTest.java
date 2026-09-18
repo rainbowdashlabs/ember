@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.util.WebpEncoder;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -294,6 +296,91 @@ class MediaVariantServiceTest {
         assertFalse(Files.exists(dir.resolve("w128.png")), "Webp source must not produce resized PNG copies");
         assertFalse(Files.exists(dir.resolve("w128.webp")), "Webp source must not produce resized WebP copies");
         assertTrue(Files.exists(dir.resolve("orig.webp")), "Original webp stays in place");
+    }
+
+    /**
+     * A sheet is recognised by its first page, so a document with pages is given one to show.
+     */
+    @Test
+    void drawsTheFirstPageOfADocument() throws IOException {
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available - skipping WebP assertions");
+        byte[] pdf = pdfBytes();
+        String hash = MediaStorageService.hash(pdf);
+        storage.store(STATION_ID, hash, pdf, "application/pdf");
+
+        variants.generateVariants(STATION_ID, hash, pdf, "application/pdf");
+
+        assertTrue(
+                variants.readPicture(STATION_ID, hash, "application/pdf", null).isPresent());
+        assertTrue(
+                variants.readPicture(STATION_ID, hash, "application/pdf", 128).isPresent());
+    }
+
+    /**
+     * The drawn page is filed apart from the file's own variants.
+     *
+     * <p>Left under the name the file falls back to, every browser saying it takes WebP was handed the
+     * picture in place of the document it was drawn from, which is to say downloading a sheet gave back
+     * an image of its first page.
+     */
+    @Test
+    void theDrawnPageIsNeverHandedOutInPlaceOfTheDocument() throws IOException {
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available - skipping WebP assertions");
+        byte[] pdf = pdfBytes();
+        String hash = MediaStorageService.hash(pdf);
+        storage.store(STATION_ID, hash, pdf, "application/pdf");
+
+        variants.generateVariants(STATION_ID, hash, pdf, "application/pdf");
+
+        var served = variants.readBest(STATION_ID, hash, null, "image/webp,image/*");
+        assertTrue(served.isPresent());
+        assertArrayEquals(pdf, served.get().data());
+    }
+
+    /**
+     * A drawing is an image a browser draws and a document that can carry script, and everything else
+     * here refuses to hand one back inline. It therefore has no picture, rather than one that would be
+     * served as itself for want of a smaller copy.
+     */
+    @Test
+    void aDrawingHasNoPicture() throws IOException {
+        byte[] svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>".getBytes();
+        String hash = MediaStorageService.hash(svg);
+        storage.store(STATION_ID, hash, svg, "image/svg+xml");
+
+        assertTrue(variants.readPicture(STATION_ID, hash, "image/svg+xml", null).isEmpty());
+    }
+
+    /** A file nobody can draw says so, rather than answering with itself. */
+    @Test
+    void afileWithNoPictureAnswersNothing() throws IOException {
+        byte[] bytes = "nothing anybody draws".getBytes();
+        String hash = MediaStorageService.hash(bytes);
+        storage.store(STATION_ID, hash, bytes, "application/octet-stream");
+
+        assertTrue(variants.readPicture(STATION_ID, hash, "application/octet-stream", null)
+                .isEmpty());
+    }
+
+    /** An image that never got a smaller copy is still a picture, and answers as itself. */
+    @Test
+    void anImageWithoutVariantsIsItsOwnPicture() throws IOException {
+        byte[] png = pngBytes(64, 64);
+        String hash = MediaStorageService.hash(png);
+        storage.store(STATION_ID, hash, png, "image/png");
+
+        var picture = variants.readPicture(STATION_ID, hash, "image/png", null);
+        assertTrue(picture.isPresent());
+        assertArrayEquals(png, picture.get().data());
+    }
+
+    private static byte[] pdfBytes() throws IOException {
+        try (var document = new PDDocument()) {
+            document.addPage(new PDPage());
+            var out = new ByteArrayOutputStream();
+            document.save(out);
+            return out.toByteArray();
+        }
     }
 
     private static byte[] jpegBytes(int width, int height) throws IOException {

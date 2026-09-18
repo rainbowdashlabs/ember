@@ -60,6 +60,7 @@ public class MediaRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         String base = prefix + "/media";
         routes.get(base + "/file/{hash}", this::serveFile, StationPermission.LOGIN);
+        routes.get(base + "/picture/{hash}", this::servePicture, StationPermission.LOGIN);
         routes.get(base + "/files", this::listFiles, StationPermission.LOGIN);
         routes.post(base + "/files", this::upload, StationPermission.LOGIN);
         routes.post(base + "/files/prune", this::pruneFiles, StationPermission.PAGE_MANAGER);
@@ -125,6 +126,35 @@ public class MediaRoutes implements Routes {
         ctx.header("Cache-Control", "private, max-age=31536000, immutable");
         ctx.header("Vary", "Accept");
         ctx.result(fileData.data());
+    }
+
+    /**
+     * The picture of a file, for a library that shows what it holds rather than listing names.
+     *
+     * <p>Kept behind the same door as the bytes, down to the file an event holds back from the room:
+     * a thumbnail of a sheet is still the sheet. A file with no picture answers nothing rather than
+     * its own bytes, so a tile is never handed a document to draw.
+     */
+    private void servePicture(Context ctx) {
+        var session = UserSession.from(ctx);
+        String hash = ctx.pathParam("hash");
+        if (!session.permissions().contains(StationPermission.EVENT_INTERNAL)
+                && media.keptBack(session.stationId(), hash)) {
+            throw new NotFoundResponse();
+        }
+        var picture = media.readPicture(session.stationId(), hash, parseOptionalWidth(ctx.queryParam("w")))
+                .orElseThrow(NotFoundResponse::new);
+        String stored = picture.contentType();
+        ctx.contentType(SafeInlineMime.safeContentType(stored));
+        ctx.header(
+                "Content-Disposition",
+                SafeContentDisposition.build(
+                        SafeInlineMime.isInlineSafe(stored)
+                                ? SafeContentDisposition.Disposition.INLINE
+                                : SafeContentDisposition.Disposition.ATTACHMENT,
+                        hash));
+        ctx.header("Cache-Control", "private, max-age=31536000, immutable");
+        ctx.result(picture.data());
     }
 
     private static Integer parseOptionalWidth(String raw) {
