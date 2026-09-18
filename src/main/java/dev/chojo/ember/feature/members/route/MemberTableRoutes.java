@@ -11,6 +11,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.MemberTable;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.MemberTablePeople;
+import dev.chojo.ember.feature.members.entity.MemberTablePreset;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.MemberTablePresetRepository;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
  * The register as a table of chosen columns, and the selections a station has saved.
@@ -87,11 +89,9 @@ public class MemberTableRoutes implements Routes {
     }
 
     private void deletePreset(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var preset = presetRepository.findById(id).orElseThrow(NotFoundResponse::new);
-        if (preset.stationId() != session.stationId()) throw new NotFoundResponse();
-        presetRepository.delete(id);
+        requireOwnedOrNotFound(ctx, id, presetRepository::findById, MemberTablePreset::stationId);
+        presetRepository.delete(id, UserSession.from(ctx).stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

@@ -74,13 +74,18 @@ public class MemberTablePresetRepository {
     }
 
     /**
-     * Throws a saved selection away.
+     * Throws one of this station's saved selections away.
      *
-     * @param id the selection
+     * <p>The station is in the statement rather than checked before it. A handler can forget whose
+     * row it is asking about and this one cannot, which is the difference between a guard and a
+     * habit.
+     *
+     * @param id        the selection
+     * @param stationId the station it must belong to
      * @return {@code true} where one was thrown away
      */
-    public boolean delete(int id) {
-        return SqlSupport.deleteById("member_table_preset", id);
+    public boolean delete(int id, int stationId) {
+        return SqlSupport.deleteByIdInStation("member_table_preset", id, stationId);
     }
 
     private static String toJson(List<MemberTableColumn> columns) {

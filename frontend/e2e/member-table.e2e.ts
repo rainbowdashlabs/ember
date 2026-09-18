@@ -65,6 +65,9 @@ test.describe('A table of people', () => {
         expect(created.ok(), await created.text()).toBeTruthy()
         const eventId = (await created.json()).id
 
+        const signedUp = await managerPage.request.post(`/api/v1/events/${eventId}/register`, {headers, data: {}})
+        expect(signedUp.ok(), `somebody is coming (${await signedUp.text()})`).toBeTruthy()
+
         try {
             await managerPage.goto(`/station/events/${eventId}`)
             await managerPage.getByRole('button', {name: 'Anmeldungen'}).click()
