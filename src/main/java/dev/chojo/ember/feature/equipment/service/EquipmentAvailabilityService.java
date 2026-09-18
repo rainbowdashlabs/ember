@@ -246,7 +246,7 @@ public class EquipmentAvailabilityService {
         }
         for (LocalDate date = first; !date.isAfter(last); date = date.plusDays(1)) {
             if (EventBreak.coversAny(breaks, date)) continue;
-            if (event.occursOn(date)) dates.add(date);
+            if (event.occursOn(date, ZoneOffset.UTC)) dates.add(date);
         }
         return dates;
     }

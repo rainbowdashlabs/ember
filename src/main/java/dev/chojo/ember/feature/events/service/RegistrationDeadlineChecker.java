@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -20,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -36,7 +38,13 @@ public class RegistrationDeadlineChecker {
     private final EventRegistrationRepository registrationRepository;
     private final EventRegistrationService registrationService;
     private final DomainEventBus eventBus;
+    private final StationRepository stationRepository;
     private final StationReadOnlyGuard readOnlyGuard;
+
+    /** The clock a station keeps, which is the one its appointments are read on. */
+    private ZoneId zoneOf(int stationId) {
+        return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
+    }
 
     @Inject
     public RegistrationDeadlineChecker(
@@ -45,12 +53,14 @@ public class RegistrationDeadlineChecker {
             EventRegistrationRepository registrationRepository,
             EventRegistrationService registrationService,
             DomainEventBus eventBus,
+            StationRepository stationRepository,
             StationReadOnlyGuard readOnlyGuard) {
         this.eventRepository = eventRepository;
         this.breakRepository = breakRepository;
         this.registrationRepository = registrationRepository;
         this.registrationService = registrationService;
         this.eventBus = eventBus;
+        this.stationRepository = stationRepository;
         this.readOnlyGuard = readOnlyGuard;
 
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -85,15 +95,24 @@ public class RegistrationDeadlineChecker {
         }
     }
 
+    /**
+     * Which repeating appointments are about to close their list.
+     *
+     * <p>Each station is asked about on its own clock. Read on the server's, a station two hours ahead
+     * spends the last two hours of its evening being told about yesterday, and the appointment whose
+     * list closes at midnight closes it on the wrong day.
+     */
     private void checkRecurringEvents() {
-        var today = LocalDate.now(ZoneOffset.UTC);
         var events = eventRepository.findRecurringEventsWithCloseDays();
         var breaks = new HashMap<Integer, List<EventBreak>>();
+        var zones = new HashMap<Integer, ZoneId>();
 
         for (var event : events) {
             if (!readOnlyGuard.isWritable(event.stationId())) continue;
+            var zone = zones.computeIfAbsent(event.stationId(), this::zoneOf);
+            var today = LocalDate.now(zone);
             var stationBreaks = breaks.computeIfAbsent(event.stationId(), breakRepository::findByStation);
-            var nextDate = findNextOccurrence(event, today, stationBreaks);
+            var nextDate = findNextOccurrence(event, today, stationBreaks, zone);
             if (nextDate == null) continue;
 
             var deadlineDate = nextDate.minusDays(event.registrationCloseDays());
@@ -116,13 +135,13 @@ public class RegistrationDeadlineChecker {
         }
     }
 
-    private LocalDate findNextOccurrence(StationEvent event, LocalDate today, List<EventBreak> breaks) {
+    private LocalDate findNextOccurrence(StationEvent event, LocalDate today, List<EventBreak> breaks, ZoneId zone) {
         if (event.dayOfWeek() == null) return null;
         for (int d = 0; d <= 28; d++) {
             var date = today.plusDays(d);
             if (EventBreak.coversAny(breaks, date)) continue;
 
-            if (event.occursOn(date)) return date;
+            if (event.occursOn(date, zone)) return date;
         }
         return null;
     }

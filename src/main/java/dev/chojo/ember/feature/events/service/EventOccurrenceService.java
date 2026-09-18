@@ -84,7 +84,7 @@ public class EventOccurrenceService {
             if (event.startTime() == null) return false;
             return today.equals(event.startTime().atZone(zone).toLocalDate());
         }
-        return !inBreak && event.occursOn(today);
+        return !inBreak && event.occursOn(today, zone);
     }
 
     /**
@@ -119,7 +119,7 @@ public class EventOccurrenceService {
             if (EventBreak.coversAny(breaks, date)) continue;
 
             for (var ev : events) {
-                if (ev.occursOn(date)) {
+                if (ev.occursOn(date, zone)) {
                     occurrences.add(new UpcomingEventOccurrence(EventSummary.of(ev), date));
                 }
             }
