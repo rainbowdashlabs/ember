@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
@@ -19,6 +20,8 @@ import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.MemberTableRenderer;
+import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -117,6 +120,9 @@ class EventRegistrationStatsRouteTest {
                 mock(MemberIdentityFactory.class),
                 mock(EventRegistrationFieldService.class),
                 mock(RegistrationAnswerReminder.class),
+                mock(EventMemberTableService.class),
+                mock(MemberTableService.class),
+                mock(MemberTableRenderer.class),
                 mock(StationRepository.class));
     }
 

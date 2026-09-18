@@ -27,7 +27,11 @@ import java.util.List;
  * @param options        the list of allowed values for ENUM fields
  * @param defaultValue   the default value for new members
  * @param computed       whether this field is computed from another field
- * @param sourceField    the source field name for computed fields
+ * @param sourceField    the name of the question a computed field counts from, which is what was
+ *                       written down before questions could be pointed at, and is still what an
+ *                       older field carries
+ * @param sourceFieldId  the question a computed field counts from. Preferred over the name, because
+ *                       renaming a question used to leave the age counting from nothing
  * @param ageMode        the age calculation mode (e.g. for AGE-type fields)
  */
 public record ProfileFieldConfig(
@@ -38,9 +42,10 @@ public record ProfileFieldConfig(
         Object defaultValue,
         boolean computed,
         String sourceField,
+        Integer sourceFieldId,
         String ageMode) {
     private static final ProfileFieldConfig EMPTY =
-            new ProfileFieldConfig(null, false, false, null, null, false, null, null);
+            new ProfileFieldConfig(null, false, false, null, null, false, null, null, null);
 
     /**
      * The settings of a field that names none.

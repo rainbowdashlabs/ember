@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
@@ -22,6 +23,8 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.MemberTableRenderer;
+import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,6 +99,9 @@ class RegistrationAnswerAuthorTest {
                 mock(MemberIdentityFactory.class),
                 mock(EventRegistrationFieldService.class),
                 mock(RegistrationAnswerReminder.class),
+                mock(EventMemberTableService.class),
+                mock(MemberTableService.class),
+                mock(MemberTableRenderer.class),
                 mock(StationRepository.class));
     }
 
