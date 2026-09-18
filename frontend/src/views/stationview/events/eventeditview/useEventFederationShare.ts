@@ -18,6 +18,13 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
     federationShared: false,
     federationScope: 'ALL_PARTNERS',
     federationPartnerIds: [] as number[],
+    /**
+     * What each partner may do with this appointment, keyed by partner.
+     *
+     * <p>A partner missing from here is the arrangement nobody configured: this station decides, with
+     * no cap, which is how every shared appointment worked before this existed.
+     */
+    federationPlaces: {} as Record<number, {decides: boolean; budget: number | null}>,
   })
 
   const {props: modelProps, handlers} = modelBindings(state)
@@ -41,8 +48,19 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
     } catch {
       state.federationShared = false
     }
+    try {
+      const places = await events.getPartnerPlaces(eventId)
+      state.federationPlaces = Object.fromEntries(
+          places.map(place => [place.partnerId, {decides: place.partnerConfirms, budget: place.slotBudget}]))
+    } catch {
+      state.federationPlaces = {}
+    }
   }
 
+  /**
+   * Writes the share, and only then what each partner was given, because a partner that is no longer
+   * shared with has nothing to arrange and the server would have nothing to hang it on.
+   */
   async function save(eventId: number) {
     if (!canFederate.value) return
     if (state.federationShared) {
@@ -50,6 +68,9 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
       await events.setFederationShare(eventId, state.federationScope, partnerIds)
     } else {
       await events.removeFederationShare(eventId).catch(() => {})
+    }
+    for (const [partnerId, place] of Object.entries(state.federationPlaces)) {
+      await events.setPartnerPlaces(eventId, Number(partnerId), place.budget, place.decides).catch(() => {})
     }
   }
 

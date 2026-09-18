@@ -15,6 +15,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -22,6 +23,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EventRegistrationRepositoryTest extends RepositoryTestBase {
@@ -353,5 +355,119 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
                 .isEmpty());
         assertTrue(eventRegistrationRepo.findRegisteredMemberIds(99999).isEmpty());
         assertEquals(0, eventRegistrationRepo.countAccepted(99999));
+    }
+
+    /**
+     * A place given up by accident goes back as the place it was.
+     *
+     * <p>Somebody who held a confirmed seat and pressed the wrong button gets the seat, not a pending
+     * answer at the end of a queue: taking a misclick back must not cost more than the misclick did.
+     */
+    @Test
+    void takingAnAnswerBackRestoresTheOneThatWasHeld() {
+        var created = event("Rücknahme", Instant.parse("2028-07-01T09:00:00Z"));
+        LocalDate date = LocalDate.of(2028, 7, 1);
+        try {
+            var reg = eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.ACCEPTED, null);
+            eventRegistrationRepo.recordAnswer(reg.id(), RegistrationStatus.WITHDRAWN);
+
+            var withdrawn = eventRegistrationRepo.findById(reg.id()).orElseThrow();
+            assertEquals(RegistrationStatus.WITHDRAWN, withdrawn.status());
+            assertEquals(
+                    RegistrationStatus.ACCEPTED,
+                    withdrawn.previousStatus(),
+                    "what was held is remembered, or there is nothing to give back");
+            assertNotNull(withdrawn.statusChangedAt());
+
+            assertTrue(eventRegistrationRepo.restorePreviousStatus(reg.id(), Duration.ofMinutes(5)));
+            var restored = eventRegistrationRepo.findById(reg.id()).orElseThrow();
+            assertEquals(RegistrationStatus.ACCEPTED, restored.status(), "the seat comes back as a seat");
+            assertNull(restored.previousStatus(), "and there is nothing left to take back twice");
+
+            assertFalse(
+                    eventRegistrationRepo.restorePreviousStatus(reg.id(), Duration.ofMinutes(5)),
+                    "a second press has nothing to undo");
+        } finally {
+            eventRepo.delete(created.id());
+        }
+    }
+
+    /**
+     * A deny is not a withdrawal, and the member it was written about cannot undo it.
+     *
+     * <p>Every status change remembers what it wrote over, a manager's deny among them. Without a
+     * word on which of them may go back, the undo would hand the denied member their own place
+     * again: the row is theirs, so nothing else standing between them and it would say no.
+     */
+    @Test
+    void onlyAWithdrawalGoesBack() {
+        var created = event("Abgelehnt", Instant.parse("2028-09-01T09:00:00Z"));
+        LocalDate date = LocalDate.of(2028, 9, 1);
+        try {
+            var reg = eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.ACCEPTED, null);
+            eventRegistrationRepo.updateStatus(reg.id(), RegistrationStatus.DENIED);
+
+            assertFalse(
+                    eventRegistrationRepo.restorePreviousStatus(reg.id(), Duration.ofMinutes(5)),
+                    "a deny is the station's word and not the member's to take back");
+            assertEquals(
+                    RegistrationStatus.DENIED,
+                    eventRegistrationRepo.findById(reg.id()).orElseThrow().status(),
+                    "and it stands");
+        } finally {
+            eventRepo.delete(created.id());
+        }
+    }
+
+    /**
+     * Signing up again closes the window on the withdrawal it replaces.
+     *
+     * <p>The row is written over rather than added to, so what it remembers has to move with it.
+     * Otherwise somebody accepted, withdrawn and signed up again would still be holding an undo that
+     * restores the acceptance, and a place nobody confirmed would confirm itself.
+     */
+    @Test
+    void signingUpAgainLeavesNothingToTakeBack() {
+        var created = event("Nochmal", Instant.parse("2028-09-02T09:00:00Z"));
+        LocalDate date = LocalDate.of(2028, 9, 2);
+        try {
+            var reg = eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.ACCEPTED, null);
+            eventRegistrationRepo.recordAnswer(reg.id(), RegistrationStatus.WITHDRAWN);
+            eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.PENDING, null);
+
+            assertFalse(
+                    eventRegistrationRepo.restorePreviousStatus(reg.id(), Duration.ofMinutes(5)),
+                    "the withdrawal was signed up over, so there is no longer one to take back");
+            assertEquals(
+                    RegistrationStatus.PENDING,
+                    eventRegistrationRepo.findById(reg.id()).orElseThrow().status(),
+                    "and the new answer is still waiting on somebody");
+        } finally {
+            eventRepo.delete(created.id());
+        }
+    }
+
+    /**
+     * The window is in the statement rather than read first and checked after, so a withdrawal older
+     * than it cannot be taken back however quickly somebody asks.
+     */
+    @Test
+    void anAnswerCannotBeTakenBackOnceTheWindowHasClosed() {
+        var created = event("Zu spät", Instant.parse("2028-08-01T09:00:00Z"));
+        LocalDate date = LocalDate.of(2028, 8, 1);
+        try {
+            var reg = eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.ACCEPTED, null);
+            eventRegistrationRepo.recordAnswer(reg.id(), RegistrationStatus.WITHDRAWN);
+
+            assertFalse(
+                    eventRegistrationRepo.restorePreviousStatus(reg.id(), Duration.ZERO),
+                    "a window of no length is a window that has closed");
+            assertEquals(
+                    RegistrationStatus.WITHDRAWN,
+                    eventRegistrationRepo.findById(reg.id()).orElseThrow().status(),
+                    "and the refusal stands");
+        } finally {
+            eventRepo.delete(created.id());
+        }
     }
 }

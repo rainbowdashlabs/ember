@@ -428,7 +428,8 @@ class EventServicesTest extends RepositoryTestBase {
      * <p>An unconfirmed place used to be removed outright on the reasoning that nothing had been
      * granted yet, which left whoever runs the appointment with a list one shorter than it was and
      * nothing at all to say who had dropped out of it. Both are kept now, and signing up again writes
-     * over the same row rather than being turned away by it.
+     * over the same row rather than being turned away by it. The kept row is also what an undo has to
+     * put back, so the story carries on into one.
      */
     @Test
     @Order(61)
@@ -469,6 +470,12 @@ class EventServicesTest extends RepositoryTestBase {
                         .findById(again.id())
                         .orElseThrow(() -> new AssertionError("an unconfirmed place given back is kept too"))
                         .status());
+
+        assertTrue(registrationService.undoWithdrawal(again.id()), "and it can be put back while the window is open");
+        assertEquals(
+                RegistrationStatus.PENDING,
+                registrationService.findById(again.id()).orElseThrow().status(),
+                "what comes back is the place that was held, not a fresh answer");
     }
 
     @Test

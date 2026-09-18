@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
@@ -30,7 +31,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class EventRegistrationRepository {
 
-    private static final String COLUMNS = "id, event_id, member_id, event_date, status, created_at, created_by";
+    private static final String COLUMNS =
+            "id, event_id, member_id, event_date, status, created_at, created_by, status_changed_at, previous_status";
 
     /**
      * Retrieves all registrations for an event on a specific date, ordered by creation time.
@@ -211,9 +213,11 @@ public class EventRegistrationRepository {
                 ON CONFLICT (event_id, member_id, event_date)
                     DO UPDATE
                     SET
-                        status     = :status,
-                        created_at = now(),
-                        created_by = :created_by
+                        status            = :status,
+                        created_at        = now(),
+                        created_by        = :created_by,
+                        previous_status   = event_registration.status,
+                        status_changed_at = now()
                 RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("member_id", memberId)
@@ -307,7 +311,12 @@ public class EventRegistrationRepository {
      * @return true if a row was updated
      */
     public boolean updateStatus(int id, RegistrationStatus status) {
-        return query("UPDATE event_registration SET status = :status WHERE id = :id;")
+        return query("""
+                UPDATE event_registration
+                SET status = :status,
+                    previous_status = CASE WHEN status = :status THEN previous_status ELSE status END,
+                    status_changed_at = CASE WHEN status = :status THEN status_changed_at ELSE now() END
+                WHERE id = :id;""")
                 .single(call().bind("status", status).bind("id", id))
                 .update()
                 .changed();
@@ -321,13 +330,48 @@ public class EventRegistrationRepository {
      * accepting or denying goes through {@link #updateStatus(int, RegistrationStatus)} instead and
      * leaves the member's own timestamp where it is.
      *
+     * <p>Answering the same thing twice records nothing. A member and whoever looks after them can
+     * both sign the same place off, from two screens, and the second press must not write the first
+     * one's withdrawal over its own memory: that would leave the first person an undo that puts back
+     * a withdrawal, and a window that keeps sliding forward.
+     *
      * @param id     the registration ID
      * @param status the status the member's answer leaves it in
      * @return true if a row was updated
      */
     public boolean recordAnswer(int id, RegistrationStatus status) {
-        return query("UPDATE event_registration SET status = :status, created_at = now() WHERE id = :id;")
+        return query("""
+                UPDATE event_registration
+                SET status = :status, created_at = now(),
+                    previous_status = CASE WHEN status = :status THEN previous_status ELSE status END,
+                    status_changed_at = CASE WHEN status = :status THEN status_changed_at ELSE now() END
+                WHERE id = :id;""")
                 .single(call().bind("status", status).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Puts an answer back to what was held before it, for as long as it may still be taken back.
+     *
+     * <p>The window is in the statement rather than read first and checked after, so two presses
+     * racing cannot both find it open. Only a withdrawal goes back: every status change stamps what
+     * it wrote over, a manager's deny among them, and without this the member whose place was denied
+     * could hand it back to themselves for as long as the window stood open.
+     *
+     * @param id     the registration to restore
+     * @param window how long an answer may be taken back
+     * @return {@code true} where the answer was restored, {@code false} where the window had closed
+     */
+    public boolean restorePreviousStatus(int id, Duration window) {
+        return query("""
+                UPDATE event_registration
+                SET status = previous_status, previous_status = NULL, status_changed_at = now()
+                WHERE id = :id
+                  AND status = 'WITHDRAWN'
+                  AND previous_status IS NOT NULL
+                  AND status_changed_at > now() - CAST(:window AS INTERVAL);""")
+                .single(call().bind("id", id).bind("window", window.toSeconds() + " seconds"))
                 .update()
                 .changed();
     }

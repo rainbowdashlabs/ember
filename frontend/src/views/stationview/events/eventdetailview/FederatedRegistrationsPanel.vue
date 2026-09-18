@@ -15,12 +15,25 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import type {FederatedEventRegistration} from '@/api/events'
+import type {EventPartnerPlaces, FederatedEventRegistration} from '@/api/events'
 import {formatDate} from '@/util/format'
 
-defineProps<{
+const props = defineProps<{
   registrations: FederatedEventRegistration[]
+  /** What each partner may do here, by partner. Absent means this station decides, as it always did. */
+  partnerPlaces: EventPartnerPlaces[]
 }>()
+
+/**
+ * Whether this station still decides about a given partner's people.
+ *
+ * <p>Where it has handed the decision over, the buttons go and a line says who is choosing instead.
+ * The server refuses either way; a row that simply refused when pressed would leave the reader
+ * guessing why.
+ */
+function partnerDecides(partnerId: number): boolean {
+  return props.partnerPlaces.some(place => place.partnerId === partnerId && place.partnerConfirms)
+}
 
 const emit = defineEmits<{
   accept: [registrationId: number]
@@ -42,7 +55,10 @@ const {t} = useI18n()
           <InfoBadge v-else-if="fr.registration.status === 'PENDING'">{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
           <ErrorBadge v-else-if="fr.registration.status === 'DENIED'">{{ t('eventsUpcoming.statusDenied') }}</ErrorBadge>
         </div>
-        <ButtonRow v-if="fr.registration.status === 'PENDING'" pair>
+        <MutedText v-if="partnerDecides(fr.registration.partnerId)" size="sm">
+          {{ t('eventDetail.federatedPartnerDecides') }}
+        </MutedText>
+        <ButtonRow v-else-if="fr.registration.status === 'PENDING'" pair>
           <PrimaryButton compact @click="emit('accept', fr.registration.id)">
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
             {{ t('eventsRegistrations.accept') }}

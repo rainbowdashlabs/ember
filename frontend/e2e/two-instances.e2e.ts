@@ -20,6 +20,7 @@ import {must} from './fixtures/must'
 
 /** What a station says about a partner. Only the parts a story here reads. */
 interface Partner {
+    id: number
     status: string
     remoteHost: string | null
     partnerStationId: string
@@ -238,6 +239,118 @@ test.describe('Two instances', () => {
             await owner.dispose()
         }
     })
+
+    /**
+     * A visitor from another instance meets the same door a member does.
+     *
+     * <p>The station holding the appointment used to ask one question of them, whether the event was
+     * shared, and then write the registration down whatever else was true. So somebody from a partner
+     * could take a place at an appointment whose list had closed, which the station's own members
+     * could not, and the list filled up with people its own door would have turned away.
+     *
+     * <p>It also proves the other half: a place given up is recorded rather than deleted, and can be
+     * taken back for a few minutes by the clock of the station that holds it.
+     */
+    test('a partner station\'s member meets the deadline and the way back', async ({
+        peerAdminApi,
+        homeManagerApi,
+    }) => {
+        const manager = await stationManagerOf(peerBaseUrl())
+        const created = await peerAdminApi.post('/api/v1/stations', {
+            data: {name: unique('E2E-Fristwache'), managerEmail: manager.email},
+        })
+        expect(created.status()).toBe(201)
+        const {id: owningStation} = await created.json()
+
+        const owner = await instanceRequestAs(peerBaseUrl(), {email: manager.email, stationId: owningStation})
+        try {
+            await proveFreshly(owner)
+            const invited = await owner.post('/api/v1/federation/invite')
+            expect(invited.ok()).toBe(true)
+            const {inviteCode} = await invited.json()
+
+            await proveFreshly(homeManagerApi)
+            const accepted = await homeManagerApi.post('/api/v1/federation/accept', {data: {inviteCode}})
+            expect(accepted.status(), await accepted.text()).toBe(201)
+
+            const eventId = await sharedEventTakingRegistrations(owner, null)
+            const eventDate = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+            const register = `/api/v1/federated/${owningStation}/events/${eventId}/register`
+
+            const signedUp = await homeManagerApi.post(register, {data: {eventDate, memberId: null}})
+            expect(signedUp.status(), await signedUp.text()).toBe(201)
+
+            const withdrawn = await homeManagerApi.delete(register, {data: {eventDate, memberId: null}})
+            expect(withdrawn.ok(), await withdrawn.text()).toBe(true)
+
+            const back = await homeManagerApi.post(`${register}/undo`, {data: {eventDate, memberId: null}})
+            expect(back.ok(), 'the other instance puts the place back while its own clock allows')
+                .toBe(true)
+
+            const closedId = await sharedEventTakingRegistrations(owner, new Date(Date.now() - 3_600_000))
+            const closedRegister = `/api/v1/federated/${owningStation}/events/${closedId}/register`
+            const tooLate = await homeManagerApi.post(closedRegister, {data: {eventDate, memberId: null}})
+            expect(tooLate.ok(), 'a closed list is closed to a visitor too').toBe(false)
+        } finally {
+            await owner.dispose()
+        }
+    })
+
+    /**
+     * A station hands a partner a number of places and lets them fill it.
+     *
+     * <p>Who decides is the thing this proves. The holder keeps the places and the counting, so the
+     * partner asks and is told yes until the number runs out. Nobody at the holder is asked about each
+     * person: that was the point of handing it over.
+     */
+    test('a station hands a partner places and the partner fills them', async ({
+        peerAdminApi,
+        homeManagerApi,
+    }) => {
+        const manager = await stationManagerOf(peerBaseUrl())
+        const created = await peerAdminApi.post('/api/v1/stations', {
+            data: {name: unique('E2E-Platzwache'), managerEmail: manager.email},
+        })
+        expect(created.status()).toBe(201)
+        const {id: owningStation} = await created.json()
+
+        const owner = await instanceRequestAs(peerBaseUrl(), {email: manager.email, stationId: owningStation})
+        try {
+            await proveFreshly(owner)
+            const invited = await owner.post('/api/v1/federation/invite')
+            expect(invited.ok()).toBe(true)
+            const {inviteCode} = await invited.json()
+
+            await proveFreshly(homeManagerApi)
+            const accepted = await homeManagerApi.post('/api/v1/federation/accept', {data: {inviteCode}})
+            expect(accepted.status(), await accepted.text()).toBe(201)
+
+            const eventId = await sharedEventTakingRegistrations(owner, null)
+            const eventDate = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+
+            const partners = await partnersOf(owner)
+            const guest = must(partners[0], 'the holder sees the station it just invited')
+
+            const handed = await owner.put(`/api/v1/events/${eventId}/partner-places/${guest.id}`, {
+                data: {slotBudget: 1, partnerConfirms: true},
+            })
+            expect(handed.ok(), await handed.text()).toBe(true)
+
+            const register = `/api/v1/federated/${owningStation}/events/${eventId}/register`
+            const signedUp = await homeManagerApi.post(register, {data: {eventDate, memberId: null}})
+            expect(signedUp.status(), await signedUp.text()).toBe(201)
+            expect((await signedUp.json()).status, 'a place that has to be chosen is not given at once')
+                .toBe('PENDING')
+
+            const chosen = await homeManagerApi.post(`${register}/confirm`, {data: {eventDate, memberId: null}})
+            expect(chosen.ok(), 'the partner spends one of the places it was given').toBe(true)
+
+            const again = await homeManagerApi.post(`${register}/confirm`, {data: {eventDate, memberId: null}})
+            expect(again.ok(), 'and the one place it was given is spent exactly once').toBe(false)
+        } finally {
+            await owner.dispose()
+        }
+    })
 })
 
 /** The smallest thing the media library accepts: one transparent pixel. */
@@ -253,6 +366,38 @@ async function uploadedFile(api: APIRequestContext): Promise<number> {
     })
     expect(uploaded.status(), await uploaded.text()).toBe(201)
     return (await uploaded.json()).id
+}
+
+/**
+ * An event of the station that actually takes sign-ups, shared with every partner it has.
+ *
+ * <p>Separate from the helper below because that one makes an appointment nobody signs up for, which
+ * is all an attachment needs. A visitor asking to come is refused by such an event exactly as a member
+ * would be, so a story about registering has to make one that takes registrations.
+ *
+ * @param deadline when the list closes, or null for one that is still open
+ */
+async function sharedEventTakingRegistrations(api: APIRequestContext, deadline: Date | null): Promise<number> {
+    const start = new Date(Date.now() + 86_400_000).toISOString()
+    const created = await api.post('/api/v1/events', {
+        data: {
+            name: unique('Abend mit Anmeldung'),
+            description: '',
+            eventType: 'ONE_TIME',
+            startTime: start,
+            endTime: start,
+            requiresRegistration: true,
+            registrationDeadline: deadline ? deadline.toISOString() : null,
+        },
+    })
+    expect(created.status(), await created.text()).toBe(201)
+    const eventId = (await created.json()).id
+
+    const shared = await api.put(`/api/v1/events/${eventId}/federation`, {
+        data: {scope: 'ALL_PARTNERS', partnerIds: []},
+    })
+    expect(shared.ok(), await shared.text()).toBe(true)
+    return eventId
 }
 
 /** An event of the station, shared with every partner it has. */

@@ -16,7 +16,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField, type FederatedEventRegistration, type MemberRegistrationStats, type RegistrationFieldValue, type StationEvent} from '@/api/events'
+import {RegistrationStatus, type EventPartnerPlaces, type EventRegistrationEntry, type EventRegistrationField, type FederatedEventRegistration, type MemberRegistrationStats, type RegistrationFieldValue, type StationEvent} from '@/api/events'
 import {StationPermission} from '@/api/types'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import {events, stationMembers as stationMembersApi} from '@/api'
@@ -24,6 +24,9 @@ import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useSignupMemberSet} from '@/composables/useSignupMemberSet'
+import {useConfirmAction} from '@/composables/useConfirmAction'
+import {showToast} from '@/util/toast'
+import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 import RegistrationsPanel from './RegistrationsPanel.vue'
 import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
 import SignupListsMenu from './signuplists/SignupListsMenu.vue'
@@ -50,6 +53,12 @@ const {refresh: refreshSidebarCounts} = useSidebarCounts()
 const registrations = ref<EventRegistrationEntry[]>([])
 const registrationStats = ref<MemberRegistrationStats[]>([])
 const federatedRegs = ref<FederatedEventRegistration[]>([])
+
+/**
+ * What each partner may do with this appointment. Read so the list can say which partners decide for
+ * themselves rather than offering buttons the server would refuse.
+ */
+const partnerPlaces = ref<EventPartnerPlaces[]>([])
 const allMembers = ref<MemberOption[]>([])
 const error = ref('')
 const manualRegisterMemberId = ref('')
@@ -144,6 +153,7 @@ async function loadRegistrations() {
     }
     if (hasPermission(StationPermission.EVENT_REGISTRATION)) {
       federatedRegs.value = await events.listFederationRegistrations(props.eventId).catch(() => [])
+      partnerPlaces.value = await events.getPartnerPlaces(props.eventId).catch(() => [])
       const members = await stationMembersApi.listMembers().catch(() => [])
       allMembers.value = members.map(fromMember)
     }
@@ -211,15 +221,30 @@ async function confirmRegistrationFields(values: RegistrationFieldValue[]) {
 }
 
 /**
- * Gives up the place somebody was given, by deleting it.
+ * Gives one person's place back, and remembers what was given up.
  *
- * <p>Not a refusal written down in its place: this event has to be signed up for, so having no place
- * already says everything a refusal would, and two rows saying the same thing is one too many.
+ * <p>The ids are collected rather than acted on one at a time, because this screen gives up a whole
+ * household at once and one offer to put them all back reads better than three.
  */
-async function undoAnswerFor(memberId: number) {
+async function undoAnswerFor(memberId: number, givenUp: GivenUp[] = []) {
   const registration = getRegistrationForMember(memberId)
   if (!registration) return
-  await events.withdrawRegistration(registration.id)
+  const withdrawal = await events.withdrawRegistration(registration.id)
+  givenUp.push({id: registration.id, undoUntil: withdrawal.undoUntil})
+  await reloadAndRefresh()
+}
+
+/** A place just given up, and how long the server said it would take it back. */
+interface GivenUp {
+  id: number
+  undoUntil: string
+}
+
+/** Puts back everything the one press gave up, for as long as the server still takes them back. */
+async function undoWithdrawals(givenUp: GivenUp[]) {
+  for (const place of givenUp) {
+    await events.undoWithdrawal(place.id).catch(() => undefined)
+  }
   await reloadAndRefresh()
 }
 
@@ -256,11 +281,37 @@ const answerLabel = computed(() =>
 const withdrawLabel = computed(() =>
     withPlace.value.length > 1 ? t('events.declineForAll') : t('eventsUpcoming.unregister'))
 
-/** Gives up every place the household holds, which is what the one button beside them offers. */
+/**
+ * Signing the household off, which is the press worth asking about most.
+ *
+ * <p>Every other button that gives up a place gives up one. This one gives up all of them, so a
+ * guardian with three children loses three places to a single click and a misplaced finger costs the
+ * most here of anywhere. Holding shift carries it out at once, as everywhere else.
+ */
+const {
+  show: showSignOffConfirm,
+  request: requestSignOff,
+  confirm: confirmSignOff,
+} = useConfirmAction<() => Promise<void>>({
+  onConfirm: async signOff => signOff(),
+})
+
+/**
+ * Gives up every place the household holds, which is what the one button beside them offers, and
+ * offers all of them back together for as long as the server would take them.
+ */
 async function withdrawHousehold() {
+  const givenUp: GivenUp[] = []
   for (const person of withPlace.value) {
-    await undoAnswerFor(person.key)
+    await undoAnswerFor(person.key, givenUp)
   }
+  if (givenUp.length === 0) return
+  const remaining = new Date(givenUp[0]!.undoUntil).getTime() - Date.now()
+  if (remaining <= 0) return
+  showToast(t('eventsUpcoming.signedOff'), 'info', remaining, {
+    label: t('eventsUpcoming.undoSignOff'),
+    run: () => undoWithdrawals(givenUp),
+  })
 }
 
 async function confirmHouseholdAnswer(answers: PersonAnswer[]) {
@@ -350,7 +401,7 @@ onMounted(loadRegistrations)
           <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>{{ answerLabel }}
         </PrimaryButton>
         <SecondaryButton v-if="withPlace.length > 0" :disabled="registering" data-testid="withdraw-household"
-                         @click="withdrawHousehold()">
+                         @click="requestSignOff(withdrawHousehold)">
           <font-awesome-icon :icon="['fas', 'rotate-left']" class="mr-1"/>{{ withdrawLabel }}
         </SecondaryButton>
       </ButtonRow>
@@ -365,6 +416,8 @@ onMounted(loadRegistrations)
         <SecondaryBadge v-else :data-testid="`my-answer-${member.key}`">{{ t('eventDetail.noAnswerYet') }}</SecondaryBadge>
       </div>
     </NeutralContainer>
+
+    <SignOffConfirm v-model="showSignOffConfirm" :busy="registering" @confirm="confirmSignOff"/>
 
     <EventAnswerDialog
         v-model="showAnswerDialog"
@@ -420,6 +473,7 @@ onMounted(loadRegistrations)
     <FederatedRegistrationsPanel
         v-if="canManageEvents()"
         :registrations="federatedRegs"
+        :partner-places="partnerPlaces"
         @accept="acceptFederatedReg"
         @deny="denyFederatedReg"
     />

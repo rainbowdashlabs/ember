@@ -14,8 +14,11 @@ import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
+import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -39,6 +42,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -66,6 +70,7 @@ public class EventFederationService {
     private final FederationFanout fanout;
     private final FederationEntityResolver entityResolver;
     private final EventAttachmentService attachmentService;
+    private final EventFieldService fieldService;
     private final MediaLibraryService media;
     private final Api apiConfig;
 
@@ -83,6 +88,7 @@ public class EventFederationService {
             FederationFanout fanout,
             FederationEntityResolver entityResolver,
             EventAttachmentService attachmentService,
+            EventFieldService fieldService,
             MediaLibraryService media,
             Api apiConfig) {
         this.federationRepository = federationRepository;
@@ -97,6 +103,7 @@ public class EventFederationService {
         this.fanout = fanout;
         this.entityResolver = entityResolver;
         this.attachmentService = attachmentService;
+        this.fieldService = fieldService;
         this.media = media;
         this.apiConfig = apiConfig;
     }
@@ -164,6 +171,21 @@ public class EventFederationService {
     /**
      * Registers a federated member for an event occurrence.
      *
+     * <p>The status is the event's to decide, exactly as it is for a member of this station: an event
+     * that asks for no confirmation accepts at once, and one that asks holds the registration until
+     * somebody answers. Without this the row took the column default and every visitor waited for a
+     * confirmation on events that ask nobody for one, which nobody at the host was ever prompted to
+     * give.
+     *
+     * <p>A partner with places of its own is the other reason somebody has to choose. Accepting at
+     * once there would hand out more places than the partner was given, since nothing would ever
+     * count them: the arrangement is itself the reason to pick, whatever the appointment asks of this
+     * station's own members.
+     *
+     * <p>The door is asked here rather than at the route, because two stations that happen to sit on
+     * one instance never go through the remote one. Asking it in the one place both paths share is
+     * what keeps a visitor's answer the same wherever their station is kept.
+     *
      * @param eventId        the event ID
      * @param partnerId      the federation partner ID
      * @param remoteMemberId the remote member UUID
@@ -172,9 +194,72 @@ public class EventFederationService {
      */
     public EventFederationRegistration registerFederated(
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        var registration = federationRepository.createRegistration(eventId, partnerId, remoteMemberId, eventDate);
-        log.info("Registered federated member for event {} from partner {} on {}", eventId, partnerId, eventDate);
+        var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        requireOpenForRegistration(event);
+        boolean somebodyChooses = event.requiresConfirmation()
+                || federationRepository.findPartnerPlaces(eventId, partnerId).partnerConfirms();
+        var status = somebodyChooses ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
+        var registration =
+                federationRepository.createRegistration(eventId, partnerId, remoteMemberId, eventDate, status);
+        log.info(
+                "Registered federated member for event {} from partner {} on {} as {}",
+                eventId,
+                partnerId,
+                eventDate,
+                status);
         return registration;
+    }
+
+    /**
+     * The questions a member of this station answers before they are on a list, asked of a visitor
+     * too.
+     *
+     * <p>Being shared with is what makes somebody eligible from another station, and that is checked
+     * before this. Everything else the local door asks applies just as much to a visitor: an event
+     * that takes no registrations has no list to join, an event that has been called off is not one
+     * to join, and a deadline that has passed has passed for everybody. Without these the host's list
+     * filled up with people its own door would have turned away.
+     *
+     * <p>There is no equivalent of the eligibility check. Restrictions are written in terms of this
+     * station's members and groups, and a visitor is in none of them; the host said who may come when
+     * it chose whom to share with.
+     */
+    private static void requireOpenForRegistration(StationEvent event) {
+        if (!event.requiresRegistration()) {
+            throw new BadRequestResponse("Event does not require registration");
+        }
+        if (event.cancelled()) {
+            throw new BadRequestResponse("Event has been cancelled");
+        }
+        if (event.registrationDeadline() != null && Instant.now().isAfter(event.registrationDeadline())) {
+            throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
+        }
+    }
+
+    /**
+     * The host's own record of the station a visitor comes from, which is the one a registration
+     * belongs under.
+     *
+     * <p>Two stations on one instance keep a partner row each, pointing at one another, and a
+     * visitor's screen holds theirs. Everything the host writes hangs off the host's: the row a
+     * registration is filed under, the places it set aside, the station it puts to a guest's name.
+     * Filing under the visitor's leaves the host looking for an arrangement it never made, and
+     * naming a guest's station as itself.
+     *
+     * <p>A partner on another instance needs none of this. It reaches the host through the remote
+     * door, which resolves the host's own record from the signature and never sees the visitor's.
+     *
+     * @param visitorPartner the visiting station's record of the host
+     * @return the host's record of the visiting station
+     */
+    public FederationPartner hostPartnerOf(FederationPartner visitorPartner) {
+        var visitorUid = stationRepository
+                .findById(visitorPartner.stationId())
+                .map(Station::uid)
+                .orElseThrow(() -> new NotFoundResponse("Unknown station"));
+        return partnerRepository
+                .findPartnerByLocalAndRemoteStationUid(visitorPartner.partnerStationId(), visitorUid)
+                .orElseThrow(() -> new NotFoundResponse("The other station does not partner with this one"));
     }
 
     public List<EventFederationRegistration> findRegistrationsByRemoteMember(UUID remoteMemberId) {
@@ -182,16 +267,20 @@ public class EventFederationService {
     }
 
     /**
-     * Finds all federated event registrations for the given member UIDs.
-     * Queries local federation registrations directly and remote partners via HTTP.
+     * Every partner station's appointment these members stand on, wherever the row is kept.
+     *
+     * <p>A partner on this same instance is read straight out of the table, a remote one is asked
+     * over HTTP. Both drop the answers that were taken back: the remote side filters before it sends,
+     * and this does the same for the rows it reads itself, or a member who signed off a partner's
+     * appointment would find themselves back on it at the next reload, with no way to sign up again.
      */
     public List<MyFederatedRegistration> findMyRegistrations(int stationId, List<UUID> memberUids) {
         var result = new ArrayList<MyFederatedRegistration>();
 
-        // Local registrations (stored on owning stations that are local partners)
         for (var uid : memberUids) {
             var regs = federationRepository.findRegistrationsByRemoteMember(uid);
             for (var reg : regs) {
+                if (!reg.isStanding()) continue;
                 result.add(new MyFederatedRegistration(
                         reg.eventId(),
                         reg.remoteMemberId().toString(),
@@ -201,7 +290,6 @@ public class EventFederationService {
             }
         }
 
-        // Remote registrations - query each remote partner
         var partners = partnerRepository.findPartners(stationId).stream()
                 .filter(p -> p.isRemote() && p.status() == FederationStatus.ACTIVE)
                 .toList();
@@ -284,7 +372,7 @@ public class EventFederationService {
      * @return true if a registration was deleted
      */
     public boolean withdrawRegistration(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        if (federationRepository.deleteRegistration(eventId, partnerId, remoteMemberId, eventDate)) {
+        if (federationRepository.withdrawRegistration(eventId, partnerId, remoteMemberId, eventDate)) {
             log.info(
                     "Withdrew federated registration for event {} from partner {} on {}",
                     eventId,
@@ -294,6 +382,106 @@ public class EventFederationService {
         }
         log.warn(
                 "Cannot withdraw federated registration: no registration for event {} from partner {} on {}",
+                eventId,
+                partnerId,
+                eventDate);
+        return false;
+    }
+
+    /** One partner's member on one date. */
+    public Optional<EventFederationRegistration> findRegistration(
+            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+        return federationRepository.findRegistration(eventId, partnerId, remoteMemberId, eventDate);
+    }
+
+    /** What a partner may do with a shared appointment: how many places, and who decides. */
+    public EventPartnerPlaces partnerPlaces(int eventId, int partnerId) {
+        return federationRepository.findPartnerPlaces(eventId, partnerId);
+    }
+
+    /** Everything said per partner about one appointment, for the screen that sets it. */
+    public List<EventPartnerPlaces> partnerPlaces(int eventId) {
+        return federationRepository.findPartnerPlaces(eventId);
+    }
+
+    /**
+     * Hands a partner a number of places, or takes the arrangement back.
+     *
+     * <p>A budget means the partner decides: handing somebody five places and then choosing their
+     * five for them is not a thing anybody wants, and the database refuses the combination outright.
+     */
+    public void setPartnerPlaces(int eventId, int partnerId, Integer slotBudget, boolean partnerConfirms) {
+        federationRepository.setPartnerPlaces(eventId, partnerId, slotBudget, partnerConfirms);
+        log.info(
+                "Event {} now gives partner {} {} places, decided by {}",
+                eventId,
+                partnerId,
+                slotBudget == null ? "as many as it likes" : slotBudget,
+                partnerConfirms ? "the partner" : "this station");
+    }
+
+    /**
+     * How many of a partner's places are taken on one date, and how many it may take.
+     *
+     * @return the places filled, and the budget, which is empty where there is no cap
+     */
+    public PartnerPlaceCount countPartnerPlaces(int eventId, int partnerId, LocalDate eventDate) {
+        var places = federationRepository.findPartnerPlaces(eventId, partnerId);
+        return new PartnerPlaceCount(
+                federationRepository.countAcceptedForPartner(eventId, partnerId, eventDate),
+                places.slotBudget(),
+                places.partnerConfirms());
+    }
+
+    /**
+     * Gives a partner's member one of that partner's places.
+     *
+     * <p>The budget is counted and spent in one statement, so two people at the partner confirming at
+     * the same moment cannot both take the last place. Whoever asked, the count is this station's,
+     * because the rows are.
+     *
+     * @return true where a place was granted, false where the budget was already spent
+     */
+    public boolean acceptWithinBudget(int registrationId, int eventId, int partnerId, LocalDate eventDate) {
+        boolean granted = federationRepository.acceptWithinBudget(registrationId, eventId, partnerId, eventDate);
+        if (!granted) {
+            log.info("Partner {} has no places left on event {} for {}", partnerId, eventId, eventDate);
+        }
+        return granted;
+    }
+
+    /**
+     * What a partner has and may have on one date.
+     *
+     * @param taken  how many places are filled
+     * @param budget how many it may fill, or {@code null} for no cap
+     * @param decidedByPartner whether the partner decides rather than this station
+     */
+    public record PartnerPlaceCount(int taken, Integer budget, boolean decidedByPartner) {}
+
+    /**
+     * Puts a partner's member back on the list, for as long as their withdrawal can be taken back.
+     *
+     * <p>Two instances keep two clocks, and a window either could measure is a window neither agrees
+     * on. The row lives here, so this station's stamp decides and the partner only asks. A partner
+     * whose clock is minutes out gets this station's answer either way, and its member is told what
+     * this station said.
+     *
+     * @return true where the place was restored, false where the window had closed
+     */
+    public boolean undoWithdrawal(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+        boolean restored = federationRepository.restoreRegistration(
+                eventId, partnerId, remoteMemberId, eventDate, EventRegistrationService.UNDO_WINDOW);
+        if (restored) {
+            log.info(
+                    "Took back the withdrawal of a federated registration for event {} from partner {} on {}",
+                    eventId,
+                    partnerId,
+                    eventDate);
+            return true;
+        }
+        log.info(
+                "A federated withdrawal for event {} from partner {} on {} can no longer be taken back",
                 eventId,
                 partnerId,
                 eventDate);
@@ -349,15 +537,23 @@ public class EventFederationService {
     }
 
     /**
-     * Fetches a single federated event by partner station UUID and event ID.
-     * Transparently handles local and remote partners.
+     * One partner station's appointment, as that station describes it.
+     *
+     * <p>What comes back is the same shape either way: the appointment, the questions it asks openly,
+     * and the places it set aside for us where it set any aside. A partner on this instance is read
+     * here and a remote one answers for itself, and both have to say the same things, or a member
+     * would find the choosing handed to their station on one and not on the other.
+     *
+     * <p>The places hang off the holder's own record of us, never ours of them, which is why the
+     * local branch looks that record up rather than using the one the caller arrived with.
      */
-    public Object getFederatedEvent(int localStationId, UUID partnerStationUid, int eventId) {
+    public RemoteEventRoutes.RemoteEventDetail getFederatedEvent(
+            int localStationId, UUID partnerStationUid, int eventId) {
         return entityResolver.resolve(
                 localStationId,
                 partnerStationUid,
                 RemoteEventRoutes.GET_EVENT.at(eventId),
-                SharedEvent.class,
+                RemoteEventRoutes.RemoteEventDetail.class,
                 "event",
                 partner -> {
                     int partnerStationId = stationRepository
@@ -368,7 +564,17 @@ public class EventFederationService {
                     if (!eventIds.contains(eventId)) {
                         throw new BadRequestResponse("Event not shared with this partner");
                     }
-                    return crudService.findById(eventId).map(SharedEvent::of).orElseThrow();
+                    var event = crudService.findById(eventId).orElseThrow();
+                    var fields = fieldService.findByEvent(eventId).stream()
+                            .filter(EventField::isPublic)
+                            .toList();
+                    var places = partnerPlaces(eventId, hostPartnerOf(partner).id());
+                    return new RemoteEventRoutes.RemoteEventDetail(
+                            SharedEvent.of(event),
+                            fields,
+                            places.partnerConfirms()
+                                    ? new RemoteEventRoutes.RemotePlaces(places.slotBudget(), true)
+                                    : null);
                 });
     }
 
@@ -635,7 +841,16 @@ public class EventFederationService {
                 SharedEvent.class);
     }
 
-    public boolean registerForFederatedEvent(
+    /**
+     * Registers one of our members for a partner's appointment, and reports what they said about it.
+     *
+     * <p>The status is theirs to decide and worth carrying back: an appointment that asks for no
+     * confirmation accepts at once, and telling our own member they are waiting for one would be
+     * telling them something the other station never said.
+     *
+     * @return the status the partner recorded, or empty where they refused the registration
+     */
+    public Optional<RegistrationStatus> registerForFederatedEvent(
             String remoteHost,
             UUID partnerStationUid,
             int eventId,
@@ -643,16 +858,25 @@ public class EventFederationService {
             String eventDate,
             int localStationId,
             String localPrivateKeyBase64) {
-        boolean registered = httpClient.post(
-                remoteHost,
-                RemoteEventRoutes.REGISTER.at(eventId),
-                new FederatedRegBody(remoteMemberId, eventDate),
-                partnerStationUid,
-                localStationId,
-                localPrivateKeyBase64);
-        if (registered)
-            log.info("Station {} registered a member for event {} at {}", localStationId, eventId, remoteHost);
-        else log.warn("Registration for event {} at {} was refused", eventId, remoteHost);
+        var registered = Optional.ofNullable(httpClient.post(
+                        remoteHost,
+                        RemoteEventRoutes.REGISTER.at(eventId),
+                        new FederatedRegBody(remoteMemberId, eventDate),
+                        partnerStationUid,
+                        localStationId,
+                        localPrivateKeyBase64,
+                        EventFederationRegistration.class))
+                .map(EventFederationRegistration::status);
+        if (registered.isPresent()) {
+            log.info(
+                    "Station {} registered a member for event {} at {} as {}",
+                    localStationId,
+                    eventId,
+                    remoteHost,
+                    registered.get());
+        } else {
+            log.warn("Registration for event {} at {} was refused", eventId, remoteHost);
+        }
         return registered;
     }
 
@@ -675,6 +899,70 @@ public class EventFederationService {
             log.info("Station {} withdrew a registration for event {} at {}", localStationId, eventId, remoteHost);
         else log.warn("Withdrawal for event {} at {} was refused", eventId, remoteHost);
         return withdrawn;
+    }
+
+    /**
+     * Confirms one of our own members for a partner's appointment, where they handed us that decision.
+     *
+     * <p>The places are theirs and so is the counting, so this asks rather than decides. A refusal
+     * means either that they never handed the decision over or that the places they gave are full,
+     * and both are things to tell the person pressing the button rather than retry.
+     *
+     * @return true where they gave the place
+     */
+    public boolean confirmOwnFederatedMember(
+            String remoteHost,
+            UUID partnerStationUid,
+            int eventId,
+            UUID remoteMemberId,
+            String eventDate,
+            int localStationId,
+            String localPrivateKeyBase64) {
+        boolean confirmed = httpClient.post(
+                remoteHost,
+                RemoteEventRoutes.CONFIRM_OWN.at(eventId),
+                new FederatedRegBody(remoteMemberId, eventDate),
+                partnerStationUid,
+                localStationId,
+                localPrivateKeyBase64);
+        if (confirmed) {
+            log.info("Station {} confirmed one of its own for event {} at {}", localStationId, eventId, remoteHost);
+        } else {
+            log.info("Event {} at {} would not take another of our members", eventId, remoteHost);
+        }
+        return confirmed;
+    }
+
+    /**
+     * Asks the station that holds the appointment to put one of our members back after a withdrawal.
+     *
+     * <p>Their clock decides, not ours: two instances keep two clocks, and the row is theirs. A
+     * refusal here is the ordinary answer once the few minutes have passed, so it is not logged as
+     * anything worse.
+     *
+     * @return true where they put the place back
+     */
+    public boolean undoFederatedWithdrawal(
+            String remoteHost,
+            UUID partnerStationUid,
+            int eventId,
+            UUID remoteMemberId,
+            String eventDate,
+            int localStationId,
+            String localPrivateKeyBase64) {
+        boolean restored = httpClient.post(
+                remoteHost,
+                RemoteEventRoutes.UNDO_WITHDRAWAL.at(eventId),
+                new FederatedRegBody(remoteMemberId, eventDate),
+                partnerStationUid,
+                localStationId,
+                localPrivateKeyBase64);
+        if (restored) {
+            log.info("Station {} took a withdrawal back for event {} at {}", localStationId, eventId, remoteHost);
+        } else {
+            log.info("A withdrawal for event {} at {} could no longer be taken back", eventId, remoteHost);
+        }
+        return restored;
     }
 
     private List<FederatedEventItem> browseEventsDirect(FederationPartner partner) {

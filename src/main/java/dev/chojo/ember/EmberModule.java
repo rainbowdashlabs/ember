@@ -129,6 +129,7 @@ import dev.chojo.ember.feature.events.route.PublicEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.events.service.EventReminderChecker;
 import dev.chojo.ember.feature.events.service.EventThresholdChecker;
+import dev.chojo.ember.feature.events.service.SettledRefusalSweeper;
 import dev.chojo.ember.feature.federation.route.FederatedLendingRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
 import dev.chojo.ember.feature.federation.route.InventoryShareRoutes;
@@ -562,6 +563,7 @@ public class EmberModule extends AbstractModule {
         bind(ManagedLoginNoticeSweeper.class).asEagerSingleton();
         bind(AuthCleanupSweeper.class).asEagerSingleton();
         bind(ProblemReportSweeper.class).asEagerSingleton();
+        bind(SettledRefusalSweeper.class).asEagerSingleton();
         bind(KbTrashPurger.class).asEagerSingleton();
         bind(FederationVersionBroadcaster.class).asEagerSingleton();
         bind(FeedMetricsService.class).asEagerSingleton();

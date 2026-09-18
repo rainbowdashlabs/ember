@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.OpenApiName;
@@ -60,6 +61,31 @@ public class RemoteEventRoutes implements Routes {
             EventFederationRegistration.class);
     public static final FederationEndpoint WITHDRAW = FederationEndpoint.delete(
             FederationSurface.EVENT_SHARE, "/remote/events/{id}/register", RemoteRegistrationRequest.class, Void.class);
+
+    /**
+     * Putting a member back after a withdrawal, which this station allows for a few minutes.
+     *
+     * <p>A partner that has never heard of this endpoint simply never calls it, and its members keep
+     * the behaviour they had: a withdrawal that stands. Nothing older breaks for want of it.
+     */
+    public static final FederationEndpoint UNDO_WITHDRAWAL = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/{id}/register/undo",
+            RemoteRegistrationRequest.class,
+            Void.class);
+
+    /**
+     * A partner confirming one of its own members, where this station has handed it that decision.
+     *
+     * <p>Refused where no such arrangement stands, and refused again where the places it was given are
+     * already filled. The count is this station's either way, because the places are.
+     */
+    public static final FederationEndpoint CONFIRM_OWN = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/{id}/register/confirm",
+            RemoteRegistrationRequest.class,
+            Void.class);
+
     public static final FederationEndpoint LIST_REGISTRATIONS = FederationEndpoint.getList(
             FederationSurface.EVENT_SHARE, "/remote/events/{id}/registrations", EventFederationRegistration.class);
     public static final FederationEndpoint LIST_MEMBER_REGISTRATIONS = FederationEndpoint.getList(
@@ -115,6 +141,8 @@ public class RemoteEventRoutes implements Routes {
             GET_ATTACHMENT_CONTENT,
             REGISTER,
             WITHDRAW,
+            UNDO_WITHDRAWAL,
+            CONFIRM_OWN,
             LIST_REGISTRATIONS,
             LIST_MEMBER_REGISTRATIONS,
             REGISTRATION_STATUS_WEBHOOK,
@@ -155,6 +183,8 @@ public class RemoteEventRoutes implements Routes {
                         .handle(GET_ATTACHMENT_CONTENT, this::remoteGetAttachmentContent)
                         .handle(REGISTER, this::remoteRegister)
                         .handle(WITHDRAW, this::remoteWithdraw)
+                        .handle(UNDO_WITHDRAWAL, this::remoteUndoWithdrawal)
+                        .handle(CONFIRM_OWN, this::remoteConfirmOwn)
                         .handle(LIST_REGISTRATIONS, this::remoteListRegistrations)
                         .handle(LIST_MEMBER_REGISTRATIONS, this::remoteListMemberRegistrations)
                         .handle(REGISTRATION_STATUS_WEBHOOK, this::remoteOnRegistrationStatus)
@@ -183,7 +213,11 @@ public class RemoteEventRoutes implements Routes {
         var fields = eventFieldService.findByEvent(eventId).stream()
                 .filter(EventField::isPublic)
                 .toList();
-        ctx.json(new RemoteEventDetail(SharedEvent.of(event), fields));
+        var places = eventFederationService.partnerPlaces(eventId, partner.id());
+        ctx.json(new RemoteEventDetail(
+                SharedEvent.of(event),
+                fields,
+                places.partnerConfirms() ? new RemotePlaces(places.slotBudget(), true) : null));
     }
 
     /** The open files of a shared event, named for a partner that may ask about it. */
@@ -244,12 +278,64 @@ public class RemoteEventRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    /**
+     * A partner confirming one of its own members, where this station handed it that decision.
+     *
+     * <p>Two refusals, and they say different things. Without an arrangement the partner is asking for
+     * something it was never given, which is forbidden. With one, but with its places already filled,
+     * the answer is that there is no room, which is an ordinary thing to be told and not a fault.
+     */
+    private void remoteConfirmOwn(Context ctx) {
+        var partner = FederationSession.requirePartner(ctx);
+        int eventId = pathInt(ctx, "id");
+        requireSharedEvent(partner, eventId);
+        var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
+
+        if (!eventFederationService.partnerPlaces(eventId, partner.id()).partnerConfirms()) {
+            throw new ForbiddenResponse("This station decides its own registrations for this event");
+        }
+        var registration = eventFederationService
+                .findRegistration(eventId, partner.id(), req.remoteMemberId(), req.eventDate())
+                .orElseThrow(NotFoundResponse::new);
+        if (!eventFederationService.acceptWithinBudget(registration.id(), eventId, partner.id(), req.eventDate())) {
+            throw new BadRequestResponse("No places left");
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * A partner asking for one of its members to be put back after a withdrawal.
+     *
+     * <p>Whether it is still possible is this station's to answer, because this station holds the
+     * row and the clock that measures the window. A refusal here is not a failure: it means the
+     * few minutes have passed, and the partner tells its member so.
+     */
+    private void remoteUndoWithdrawal(Context ctx) {
+        var partner = FederationSession.requirePartner(ctx);
+        int eventId = pathInt(ctx, "id");
+        requireSharedEvent(partner, eventId);
+        var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
+        if (!eventFederationService.undoWithdrawal(eventId, partner.id(), req.remoteMemberId(), req.eventDate())) {
+            throw new BadRequestResponse("This can no longer be taken back");
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Who from this partner is coming, which is not the same as who has a row.
+     *
+     * <p>A withdrawal used to delete its row and now keeps it, so the refusals are filtered out here
+     * rather than sent. A partner reading this list treats a row as somebody coming, and an older one
+     * has never heard of a withdrawn status at all: sending them would put people back on a list they
+     * have left, on every instance that has not been updated.
+     */
     private void remoteListRegistrations(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "id");
         requireSharedEvent(partner, eventId);
         var registrations = eventFederationService.findRegistrationsByPartner(partner.id()).stream()
                 .filter(r -> r.eventId() == eventId)
+                .filter(EventFederationRegistration::isStanding)
                 .toList();
         ctx.json(registrations);
     }
@@ -259,6 +345,7 @@ public class RemoteEventRoutes implements Routes {
         var memberUid = pathUuid(ctx, "memberUid");
         var registrations = eventFederationService.findRegistrationsByRemoteMember(memberUid).stream()
                 .filter(r -> r.partnerId() == partner.id())
+                .filter(EventFederationRegistration::isStanding)
                 .toList();
         ctx.json(registrations.stream()
                 .map(r -> new RemoteMemberRegistration(
@@ -348,7 +435,19 @@ public class RemoteEventRoutes implements Routes {
         }
     }
 
-    public record RemoteEventDetail(SharedEvent event, List<EventField> publicFields) {}
+    /**
+     * @param places what this partner may do here, or {@code null} where the host decides as it always
+     *         did. A peer that has never heard of this field ignores it and behaves as before
+     */
+    public record RemoteEventDetail(SharedEvent event, List<EventField> publicFields, RemotePlaces places) {}
+
+    /**
+     * What a partner station has been given on one appointment, in its own terms.
+     *
+     * @param slotBudget how many places it may fill on a date, or {@code null} for no cap
+     * @param decidesItself whether it confirms its own members rather than the host doing it
+     */
+    public record RemotePlaces(Integer slotBudget, boolean decidesItself) {}
 
     /**
      * A file a shared event hands over, without its bytes: enough to list it and to ask for it.

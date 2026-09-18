@@ -4,10 +4,14 @@
 
 ### Neue Funktionen
 
+- **Eine Partnerwache kann eigene Plätze bekommen.** Ein mit einer anderen Wache geteilter Termin kann Plätze für sie zurücklegen, mit oder ohne Obergrenze, und diese Wache wählt dann selbst, wer von ihren Leuten sie einnimmt, statt auf eine Bestätigung zu warten. Ist nichts zurückgelegt, bestätigt die ausrichtende Wache wie bisher jeden Gast selbst.
 - **Eine Station bestimmt, wann ihre Benachrichtigungen verschickt werden.** Unter Station → Mailing nennt sie die Uhrzeiten, zu denen die gesammelten Benachrichtigungen rausgehen, etwa sieben Uhr morgens und zwei Uhr nachmittags, oder einfach stündlich. Was dazwischen ankommt, wartet auf den nächsten Termin: Eine Station, die eine Mail am Tag will, bekommt jetzt eine Mail am Tag.
 
 ### Verbesserungen
 
+- **Eine Abmeldung von einem Termin lässt sich zurücknehmen.** Fünf Minuten lang lässt sich die Abmeldung über die eingeblendete Meldung wieder zurücknehmen, und zurück kommt der Platz, der belegt war, und nicht eine neue Anmeldung am Ende der Warteschlange. Die letzten beiden Knöpfe, die einen Platz auf einen Druck hin zurückgaben, der für einen ganzen Haushalt und der am Termin einer Partnerwache, fragen jetzt vorher nach, wie die übrigen es längst tun.
+- **Zu spät zur Anmeldung sagt jetzt, wer weiterhelfen kann.** Eine erneute Anmeldung nach dem Anmeldeschluss endete in einer nichtssagenden Fehlermeldung. Jetzt steht dort, dass die Anmeldung geschlossen ist und dass die Terminleitung noch jemanden aufnehmen kann.
+- **Ein Gast einer Partnerwache wird behandelt wie ein eigenes Mitglied.** Seine Anmeldung wird sofort angenommen, wenn der Termin keine Bestätigung verlangt, statt auf eine zu warten, um die nie jemand gebeten wurde, und sie wird abgelehnt, wenn der Termin keine Anmeldungen annimmt, abgesagt wurde oder die Anmeldung geschlossen ist. Eine Abmeldung bleibt vermerkt, damit die ausrichtende Wache erkennt, wer sich abgemeldet hat und wer nie geantwortet hat.
 - **Drei weitere Bilder für ein Ausrüstungsstück.** Kopfhörer, Schlüssel und Tacker stehen jetzt zusätzlich zur Auswahl, unter Ausrüstung und Allgemein.
 - **Wer einem Verbund folgt, erfährt von dessen Partnerwachen.** Benachrichtigungen aus einem Verbund wurden zwar gesammelt, aber an niemanden verschickt: Wer einem Verbund folgte, um über die Partner auf dem Laufenden zu bleiben, hörte gar nichts. Sie gehen jetzt mit denselben Zeiten und Einstellungen raus wie die einer Station.
 - **Die Dateien eines Termins werden gezeigt, nicht nur angeboten.** Ein Druck darauf öffnet die Datei an Ort und Stelle: Herauszufinden, welches von vier Blättern die Karte ist, heißt nicht mehr, alle vier herunterzuladen. Das Speichern bleibt eine eigene Schaltfläche.

@@ -8,13 +8,16 @@ package dev.chojo.ember.feature.events.repository;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
+import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Singleton;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -140,25 +143,37 @@ public class EventFederationRepository {
     }
 
     /**
-     * Creates a federated registration.
+     * Creates a federated registration, or answers again where one already stands.
+     *
+     * <p>Somebody may register, withdraw and register again, and once a withdrawal keeps its row the
+     * second registration meets the unique key the first one wrote. Answering again is the same
+     * gesture as answering the first time, so it takes the same door rather than a refusal the member
+     * did nothing to earn.
      *
      * @param eventId        the event ID
      * @param partnerId      the federation partner ID
      * @param remoteMemberId the remote member UUID
      * @param eventDate      the event occurrence date
-     * @return the created registration
+     * @param status         what the event's own rules make of the answer
+     * @return the registration as it now stands
      */
     public EventFederationRegistration createRegistration(
-            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate, RegistrationStatus status) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO event_federation_registration(event_id, partner_id, remote_member_id, event_date)
-                VALUES (:event_id, :partner_id, :remote_member_id::UUID, :event_date)
+                INSERT INTO event_federation_registration(event_id, partner_id, remote_member_id, event_date, status)
+                VALUES (:event_id, :partner_id, :remote_member_id::UUID, :event_date, :status)
+                ON CONFLICT (event_id, partner_id, remote_member_id, event_date)
+                    DO UPDATE SET status            = EXCLUDED.status,
+                                  created_at        = now(),
+                                  previous_status   = event_federation_registration.status,
+                                  status_changed_at = now()
                 RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
-                        .bind("event_date", eventDate),
+                        .bind("event_date", eventDate)
+                        .bind("status", status),
                 EventFederationRegistration.map(),
                 EVENT_FEDERATION_REGISTRATION_COLUMNS);
     }
@@ -248,29 +263,216 @@ public class EventFederationRepository {
                 .all();
     }
 
+    /** One partner's member on one date, which is what the composite key addresses. */
+    public Optional<EventFederationRegistration> findRegistration(
+            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+        return query("""
+                SELECT %s FROM event_federation_registration
+                WHERE event_id = :event_id AND partner_id = :partner_id
+                  AND remote_member_id = :remote_member_id::UUID AND event_date = :event_date;""", EVENT_FEDERATION_REGISTRATION_COLUMNS)
+                .single(call().bind("event_id", eventId)
+                        .bind("partner_id", partnerId)
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
+                        .bind("event_date", eventDate))
+                .map(EventFederationRegistration.map())
+                .first();
+    }
+
     /**
-     * Deletes a federated registration by its composite key.
+     * What a partner may do with a shared appointment, or the arrangement that holds where nobody has
+     * said: the host decides, with no cap.
+     */
+    public EventPartnerPlaces findPartnerPlaces(int eventId, int partnerId) {
+        return query("""
+                SELECT event_id, partner_id, slot_budget, partner_confirms
+                FROM event_partner_places
+                WHERE event_id = :event_id AND partner_id = :partner_id;""")
+                .single(call().bind("event_id", eventId).bind("partner_id", partnerId))
+                .map(EventPartnerPlaces.map())
+                .first()
+                .orElseGet(() -> EventPartnerPlaces.hostDecides(eventId, partnerId));
+    }
+
+    /** Everything said per partner about one appointment, for the screen that sets it. */
+    public List<EventPartnerPlaces> findPartnerPlaces(int eventId) {
+        return query("""
+                SELECT event_id, partner_id, slot_budget, partner_confirms
+                FROM event_partner_places
+                WHERE event_id = :event_id;""")
+                .single(call().bind("event_id", eventId))
+                .map(EventPartnerPlaces.map())
+                .all();
+    }
+
+    /**
+     * Says what a partner may do, or stops saying anything where the host takes the decision back.
+     *
+     * <p>Taking it back removes the row rather than writing a false one, so an appointment nobody has
+     * arranged anything for reads the same whether it never had an arrangement or lost one.
+     */
+    public void setPartnerPlaces(int eventId, int partnerId, Integer slotBudget, boolean partnerConfirms) {
+        if (!partnerConfirms) {
+            query("DELETE FROM event_partner_places WHERE event_id = :event_id AND partner_id = :partner_id;")
+                    .single(call().bind("event_id", eventId).bind("partner_id", partnerId))
+                    .delete();
+            return;
+        }
+        query("""
+                INSERT INTO event_partner_places(event_id, partner_id, slot_budget, partner_confirms)
+                VALUES (:event_id, :partner_id, :slot_budget, TRUE)
+                ON CONFLICT (event_id, partner_id)
+                    DO UPDATE SET slot_budget = EXCLUDED.slot_budget, partner_confirms = TRUE;""")
+                .single(call().bind("event_id", eventId)
+                        .bind("partner_id", partnerId)
+                        .bind("slot_budget", slotBudget))
+                .insert();
+    }
+
+    /**
+     * Fills one of a partner's places, and says whether there was one to fill.
+     *
+     * <p>Two people at the partner pressing confirm at the same moment must not both take the last
+     * place, and putting the count inside the statement is not enough to stop them: each press
+     * writes a different registration, so they lock different rows and each counts on a snapshot
+     * taken before the other committed. Both would find room. So the arrangement itself is locked
+     * first, which is the one row both presses have in common, and the count that follows runs after
+     * whoever got there first has finished. Counted per date: the budget is per occurrence.
+     *
+     * @return true where the place was granted, false where the budget was already spent
+     */
+    public boolean acceptWithinBudget(int registrationId, int eventId, int partnerId, LocalDate eventDate) {
+        return Transactions.call(() -> {
+            lockPlaces(eventId, partnerId);
+            return spendPlace(registrationId, eventId, partnerId, eventDate);
+        });
+    }
+
+    /**
+     * Holds the arrangement still while a place is counted and taken against it.
+     *
+     * <p>Nothing is read from it: what matters is that a second press waits here until the first has
+     * committed, so that the count it then makes is a count of what is really taken. Where a partner
+     * decides without a number there is no row and nothing to wait for, which is right, because
+     * there is no limit to race for.
+     */
+    private void lockPlaces(int eventId, int partnerId) {
+        query("SELECT 1 FROM event_partner_places WHERE event_id = :event_id AND partner_id = :partner_id FOR UPDATE;")
+                .single(call().bind("event_id", eventId).bind("partner_id", partnerId))
+                .map(row -> row.getInt(1))
+                .first();
+    }
+
+    private boolean spendPlace(int registrationId, int eventId, int partnerId, LocalDate eventDate) {
+        return query("""
+                UPDATE event_federation_registration reg
+                SET status = 'ACCEPTED', previous_status = reg.status, status_changed_at = now()
+                WHERE reg.id = :id
+                  AND reg.status <> 'ACCEPTED'
+                  AND (
+                      (SELECT slot_budget FROM event_partner_places
+                       WHERE event_id = :event_id AND partner_id = :partner_id) IS NULL
+                      OR (SELECT count(*) FROM event_federation_registration taken
+                          WHERE taken.event_id = :event_id
+                            AND taken.partner_id = :partner_id
+                            AND taken.event_date = :event_date
+                            AND taken.status = 'ACCEPTED')
+                         < (SELECT slot_budget FROM event_partner_places
+                            WHERE event_id = :event_id AND partner_id = :partner_id));""")
+                .single(call().bind("id", registrationId)
+                        .bind("event_id", eventId)
+                        .bind("partner_id", partnerId)
+                        .bind("event_date", eventDate))
+                .update()
+                .changed();
+    }
+
+    /** How many places a partner has actually filled on one date, for the screen that shows it. */
+    public int countAcceptedForPartner(int eventId, int partnerId, LocalDate eventDate) {
+        return query("""
+                SELECT count(*) AS taken FROM event_federation_registration
+                WHERE event_id = :event_id AND partner_id = :partner_id
+                  AND event_date = :event_date AND status = 'ACCEPTED';""")
+                .single(call().bind("event_id", eventId)
+                        .bind("partner_id", partnerId)
+                        .bind("event_date", eventDate))
+                .map(row -> row.getInt("taken"))
+                .first()
+                .orElse(0);
+    }
+
+    /**
+     * Records that a partner's member gave their place back.
+     *
+     * <p>The row stays where it used to be deleted. The host could not otherwise tell somebody who
+     * withdrew from somebody who never answered, and a withdrawal with no row is a withdrawal nobody
+     * can take back.
      *
      * @param eventId        the event ID
      * @param partnerId      the federation partner ID
      * @param remoteMemberId the remote member UUID
      * @param eventDate      the event occurrence date
-     * @return true if a row was deleted
+     * @return true if a registration was withdrawn
      */
-    public boolean deleteRegistration(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+    public boolean withdrawRegistration(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
         return query("""
-                DELETE
-                FROM
-                    event_federation_registration
+                UPDATE event_federation_registration
+                SET status = 'WITHDRAWN', previous_status = status, status_changed_at = now()
                 WHERE event_id = :event_id
                   AND partner_id = :partner_id
                   AND remote_member_id = :remote_member_id::UUID
-                  AND event_date = :event_date;""")
+                  AND event_date = :event_date
+                  AND status <> 'WITHDRAWN';""")
                 .single(call().bind("event_id", eventId)
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
                         .bind("event_date", eventDate))
-                .delete()
+                .update()
+                .changed();
+    }
+
+    /**
+     * Puts a partner's member back on the list, for as long as their withdrawal can be taken back.
+     *
+     * <p>The window is in the statement so two presses racing cannot both find it open, and it is
+     * measured by this station's clock because this station holds the row. A partner whose own clock
+     * disagrees still gets the answer the host gives.
+     *
+     * <p>Only a withdrawal goes back. Confirming and denying stamp what they wrote over as well, so
+     * without this a partner could undo the host's deny, and a place the host had just given back to
+     * the budget would be spent twice.
+     *
+     * @param window how long a withdrawal may be taken back
+     * @return true where the place was restored, false where the window had closed
+     */
+    public boolean restoreRegistration(
+            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate, Duration window) {
+        return query("""
+                UPDATE event_federation_registration
+                SET status = previous_status, previous_status = NULL, status_changed_at = now()
+                WHERE event_id = :event_id
+                  AND partner_id = :partner_id
+                  AND remote_member_id = :remote_member_id::UUID
+                  AND event_date = :event_date
+                  AND status = 'WITHDRAWN'
+                  AND previous_status IS NOT NULL
+                  AND status_changed_at > now() - CAST(:window AS INTERVAL)
+                  AND (
+                      previous_status <> 'ACCEPTED'
+                      OR (SELECT slot_budget FROM event_partner_places
+                          WHERE event_id = :event_id AND partner_id = :partner_id) IS NULL
+                      OR (SELECT count(*) FROM event_federation_registration taken
+                          WHERE taken.event_id = :event_id
+                            AND taken.partner_id = :partner_id
+                            AND taken.event_date = :event_date
+                            AND taken.status = 'ACCEPTED')
+                         < (SELECT slot_budget FROM event_partner_places
+                            WHERE event_id = :event_id AND partner_id = :partner_id));""")
+                .single(call().bind("event_id", eventId)
+                        .bind("partner_id", partnerId)
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
+                        .bind("event_date", eventDate)
+                        .bind("window", window.toSeconds() + " seconds"))
+                .update()
                 .changed();
     }
 

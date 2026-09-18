@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
@@ -21,6 +22,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -78,6 +80,12 @@ public class EventSharingRoutes implements Routes {
                 prefix + "/events/federation-registrations/{id}/status",
                 this::updateFederationRegistrationStatus,
                 StationPermission.EVENT_REGISTRATION);
+        routes.get(
+                prefix + "/events/{id}/partner-places", this::listPartnerPlaces, StationPermission.EVENT_REGISTRATION);
+        routes.put(
+                prefix + "/events/{id}/partner-places/{partnerId}",
+                this::setPartnerPlaces,
+                StationPermission.EVENT_MANAGER);
     }
 
     private void getFederationShare(Context ctx) {
@@ -160,14 +168,95 @@ public class EventSharingRoutes implements Routes {
                 .withDisplay(cachedName, stationName, null, null);
     }
 
+    /**
+     * Confirming or turning down a partner's member, which is this station's to do unless it has said
+     * otherwise.
+     *
+     * <p>Where a partner decides its own, this station keeps the list but not the pen: taking the
+     * decision back is a change to the arrangement rather than something done one member at a time
+     * behind the partner's back. Accepting also spends one of that partner's places, so a host
+     * confirming somebody cannot put the partner over the number it was given.
+     */
     private void updateFederationRegistrationStatus(Context ctx) {
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(EventRegistrationRoutes.StatusUpdateRequest.class);
         var reg = eventFederationService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
         requireOwnedOrNotFound(ctx, reg.eventId(), crudService::findById, StationEvent::stationId);
-        eventFederationService.updateRegistrationStatus(id, req.status());
+
+        var places = eventFederationService.partnerPlaces(reg.eventId(), reg.partnerId());
+        if (places.partnerConfirms()) {
+            throw new ForbiddenResponse("This partner decides its own registrations for this event");
+        }
+        if (req.status() == RegistrationStatus.ACCEPTED) {
+            if (!eventFederationService.acceptWithinBudget(id, reg.eventId(), reg.partnerId(), reg.eventDate())) {
+                throw new BadRequestResponse("No places left for this partner");
+            }
+        } else {
+            eventFederationService.updateRegistrationStatus(id, req.status());
+        }
         ctx.json(new MessageResponse("Status updated"));
     }
+
+    /**
+     * What each partner may do with this appointment, and how much of it is used.
+     *
+     * <p>The host's list reads this to say which partners decide for themselves, so that a row it
+     * cannot act on explains itself rather than simply refusing when somebody presses it.
+     */
+    /**
+     * What each partner was given, which whoever handles the registrations has to be able to read.
+     *
+     * <p>Arranging the places is the event manager's, but the registration screen needs the answer to
+     * know whose decision a pending visitor is: without it that screen shows accept and deny buttons
+     * beside people it may not decide about, and the refusal only arrives once somebody presses one.
+     */
+    private void listPartnerPlaces(Context ctx) {
+        int eventId = pathInt(ctx, "id");
+        requireOwnedOrNotFound(ctx, eventId, crudService::findById, StationEvent::stationId);
+        var date = ctx.queryParam("eventDate");
+        if (date == null) {
+            ctx.json(eventFederationService.partnerPlaces(eventId));
+            return;
+        }
+        var day = LocalDate.parse(date);
+        ctx.json(eventFederationService.partnerPlaces(eventId).stream()
+                .map(places -> {
+                    var counted = eventFederationService.countPartnerPlaces(eventId, places.partnerId(), day);
+                    return new PartnerPlacesView(
+                            places.partnerId(), places.slotBudget(), places.partnerConfirms(), counted.taken());
+                })
+                .toList());
+    }
+
+    /**
+     * @param taken how many of the partner's places are filled on the day asked about
+     */
+    public record PartnerPlacesView(int partnerId, Integer slotBudget, boolean partnerConfirms, int taken) {}
+
+    /**
+     * Hands a partner a number of places, or takes the arrangement back.
+     *
+     * <p>A budget means the partner decides who fills it: the two are one choice with an optional
+     * number rather than two switches that can contradict each other.
+     */
+    private void setPartnerPlaces(Context ctx) {
+        int eventId = pathInt(ctx, "id");
+        int partnerId = pathInt(ctx, "partnerId");
+        requireOwnedOrNotFound(ctx, eventId, crudService::findById, StationEvent::stationId);
+        var req = ctx.bodyAsClass(SetPartnerPlacesRequest.class);
+        if (req.slotBudget() != null && req.slotBudget() < 0) {
+            throw new BadRequestResponse("A number of places cannot be negative");
+        }
+        boolean decides = req.partnerConfirms() || req.slotBudget() != null;
+        eventFederationService.setPartnerPlaces(eventId, partnerId, decides ? req.slotBudget() : null, decides);
+        ctx.json(new MessageResponse("Places updated"));
+    }
+
+    /**
+     * @param slotBudget      how many places the partner may fill, or null for no cap
+     * @param partnerConfirms whether the partner decides who fills them
+     */
+    public record SetPartnerPlacesRequest(Integer slotBudget, boolean partnerConfirms) {}
 
     public record SetFederationShareRequest(ShareScope scope, List<Integer> partnerIds) {}
 

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -67,12 +68,6 @@ public class EventRegistrationFieldRepository {
                         .bind("overview", overview),
                 EventRegistrationField.map(),
                 FIELD_COLUMNS);
-    }
-
-    public void deleteByEvent(int eventId) {
-        query("DELETE FROM event_registration_field WHERE event_id = :event_id;")
-                .single(call().bind("event_id", eventId))
-                .delete();
     }
 
     /**
@@ -223,19 +218,25 @@ public class EventRegistrationFieldRepository {
     }
 
     /**
-     * Drops every answer a registration carried.
+     * Clears the answers behind refusals old enough that they can no longer be taken back.
      *
-     * <p>A registration that is withdrawn keeps its row, so what the member had written no longer
-     * goes with it: the answers are theirs, given for a place they have given back, and a list of
-     * allergies or clothing sizes has no reason to outlive the registration it was asked for. This
-     * used to happen by cascade, when withdrawing deleted the registration outright.
+     * <p>A refusal keeps its answers for as long as it can be undone, because an undo that gave back
+     * a registration with blank questions would be worse than no undo at all. Once the window has
+     * closed there is nothing left to restore them for.
      *
-     * @param registrationId the registration to clear
+     * @param window how long a refusal may be taken back
+     * @return how many registrations were cleared
      */
-    public void deleteValues(int registrationId) {
-        query("DELETE FROM event_registration_field_value WHERE registration_id = :registration_id;")
-                .single(call().bind("registration_id", registrationId))
-                .delete();
+    public int deleteValuesOfRefusalsOlderThan(Duration window) {
+        return query("""
+                DELETE FROM event_registration_field_value
+                WHERE registration_id IN (
+                    SELECT id FROM event_registration
+                    WHERE status IN ('WITHDRAWN', 'DECLINED')
+                      AND status_changed_at <= now() - CAST(:window AS INTERVAL))""")
+                .single(call().bind("window", window.toSeconds() + " seconds"))
+                .delete()
+                .rows();
     }
 
     public void deleteValue(int registrationId, int fieldId) {

@@ -9,7 +9,6 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
-import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -23,6 +22,7 @@ import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.BadGatewayResponse;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -81,6 +81,14 @@ public class FederatedEventRoutes implements Routes {
                 prefix + "/federated/{stationuid}/events/{id}/register",
                 this::federatedWithdraw,
                 StationPermission.USER);
+        routes.post(
+                prefix + "/federated/{stationuid}/events/{id}/register/undo",
+                this::federatedUndoWithdrawal,
+                StationPermission.USER);
+        routes.post(
+                prefix + "/federated/{stationuid}/events/{id}/register/confirm",
+                this::federatedConfirmOwn,
+                StationPermission.EVENT_REGISTRATION);
         routes.get(
                 prefix + "/federated/{stationuid}/events/{id}/attachments",
                 this::federatedListAttachments,
@@ -114,15 +122,18 @@ public class FederatedEventRoutes implements Routes {
         ctx.json(eventFederationService.browseFederatedEvents(session.stationId()));
     }
 
+    /**
+     * A partner's appointment as that partner describes it, handed on without being rebuilt here.
+     *
+     * <p>This used to put the answer together itself, reading the questions out of this instance's
+     * own tables, which are not where a remote partner's live, and never asking about the places at
+     * all. The station holding the appointment is the one that knows all three, so it says all three.
+     */
     private void federatedGetEvent(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int eventId = pathInt(ctx, "id");
-        var event = eventFederationService.getFederatedEvent(session.stationId(), stationUid, eventId);
-        var fields = eventFieldService.findByEvent(eventId).stream()
-                .filter(EventField::isPublic)
-                .toList();
-        ctx.json(new FederatedEventDetail(event, fields));
+        ctx.json(eventFederationService.getFederatedEvent(session.stationId(), stationUid, eventId));
     }
 
     /** The files a partner's event hands over, as that partner is willing to hand them over. */
@@ -162,27 +173,35 @@ public class FederatedEventRoutes implements Routes {
         ctx.result(data);
     }
 
+    /**
+     * Signing one of our members up for a partner's appointment.
+     *
+     * <p>What comes back is the status the other station actually recorded. It used to say pending
+     * whatever happened, so a member accepted at once by an appointment that asks for no confirmation
+     * was told they were waiting on one that nobody would ever give.
+     */
     private void federatedRegister(Context ctx) {
         var fed = resolveFederatedRegContext(ctx);
         var partner = fed.partner();
-        if (partner.isRemote()) {
-            boolean success = eventFederationService.registerForFederatedEvent(
-                    partner.remoteHost(),
-                    partner.partnerStationId(),
-                    fed.eventId(),
-                    fed.remoteMemberId(),
-                    fed.req().eventDate(),
-                    fed.station().id(),
-                    fed.station().federationPrivateKey());
-            if (!success) throw new BadRequestResponse("Registration failed");
-        } else {
-            eventFederationService.registerFederated(
-                    fed.eventId(),
-                    partner.id(),
-                    fed.remoteMemberId(),
-                    LocalDate.parse(fed.req().eventDate()));
-        }
-        ctx.status(HttpStatus.CREATED).json(new StatusResponse("PENDING"));
+        var status = partner.isRemote()
+                ? eventFederationService
+                        .registerForFederatedEvent(
+                                partner.remoteHost(),
+                                partner.partnerStationId(),
+                                fed.eventId(),
+                                fed.remoteMemberId(),
+                                fed.req().eventDate(),
+                                fed.station().id(),
+                                fed.station().federationPrivateKey())
+                        .orElseThrow(() -> new BadRequestResponse("Registration failed"))
+                : eventFederationService
+                        .registerFederated(
+                                fed.eventId(),
+                                fed.hostPartner().id(),
+                                fed.remoteMemberId(),
+                                LocalDate.parse(fed.req().eventDate()))
+                        .status();
+        ctx.status(HttpStatus.CREATED).json(new StatusResponse(status.name()));
     }
 
     private void federatedWithdraw(Context ctx) {
@@ -200,11 +219,87 @@ public class FederatedEventRoutes implements Routes {
         } else {
             eventFederationService.withdrawRegistration(
                     fed.eventId(),
-                    partner.id(),
+                    fed.hostPartner().id(),
                     fed.remoteMemberId(),
                     LocalDate.parse(fed.req().eventDate()));
         }
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Asking the station that holds the appointment to put a place back.
+     *
+     * <p>Whether it is still possible is theirs to answer, because they hold the row and the clock
+     * that measures the few minutes. A refusal is not a failure here: it means the time has passed,
+     * and the member is told so rather than left wondering whether the press landed.
+     */
+    private void federatedUndoWithdrawal(Context ctx) {
+        var fed = resolveFederatedRegContext(ctx);
+        var partner = fed.partner();
+        boolean restored = partner.isRemote()
+                ? eventFederationService.undoFederatedWithdrawal(
+                        partner.remoteHost(),
+                        partner.partnerStationId(),
+                        fed.eventId(),
+                        fed.remoteMemberId(),
+                        fed.req().eventDate(),
+                        fed.station().id(),
+                        fed.station().federationPrivateKey())
+                : eventFederationService.undoWithdrawal(
+                        fed.eventId(),
+                        fed.hostPartner().id(),
+                        fed.remoteMemberId(),
+                        LocalDate.parse(fed.req().eventDate()));
+        if (!restored) {
+            throw new BadRequestResponse("This can no longer be taken back");
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Giving one of our own members a place at a partner's appointment, where they handed us the
+     * choosing and a number of places to make it with.
+     *
+     * <p>Whoever keeps this station's registrations decides, which is the same right they hold for
+     * this station's own appointments. The places belong to the other station and so does the
+     * counting, so a refusal here means either that they never handed it over or that the places are
+     * full: both are answers, not failures.
+     */
+    private void federatedConfirmOwn(Context ctx) {
+        var fed = resolveFederatedRegContext(ctx);
+        var partner = fed.partner();
+        boolean confirmed = partner.isRemote()
+                ? eventFederationService.confirmOwnFederatedMember(
+                        partner.remoteHost(),
+                        partner.partnerStationId(),
+                        fed.eventId(),
+                        fed.remoteMemberId(),
+                        fed.req().eventDate(),
+                        fed.station().id(),
+                        fed.station().federationPrivateKey())
+                : confirmOnThisInstance(fed);
+        if (!confirmed) {
+            throw new BadRequestResponse("No places left");
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * The same, where the other station happens to live on this instance.
+     *
+     * <p>It still asks whether the decision was handed over, because a partner on the same instance is
+     * no more entitled to confirm its own than one across the network.
+     */
+    private boolean confirmOnThisInstance(FederatedRegContext fed) {
+        var day = LocalDate.parse(fed.req().eventDate());
+        int hostPartnerId = fed.hostPartner().id();
+        if (!eventFederationService.partnerPlaces(fed.eventId(), hostPartnerId).partnerConfirms()) {
+            throw new ForbiddenResponse("That station decides its own registrations for this event");
+        }
+        var registration = eventFederationService
+                .findRegistration(fed.eventId(), hostPartnerId, fed.remoteMemberId(), day)
+                .orElseThrow(NotFoundResponse::new);
+        return eventFederationService.acceptWithinBudget(registration.id(), fed.eventId(), hostPartnerId, day);
     }
 
     /**
@@ -219,7 +314,8 @@ public class FederatedEventRoutes implements Routes {
         var req = ctx.bodyAsClass(FederatedRegBody.class);
         UUID remoteMemberId =
                 req.memberId() != null ? req.memberId() : session.member().uid();
-        return new FederatedRegContext(station, partner, eventId, req, remoteMemberId);
+        var hostPartner = partner.isRemote() ? null : eventFederationService.hostPartnerOf(partner);
+        return new FederatedRegContext(station, partner, hostPartner, eventId, req, remoteMemberId);
     }
 
     private FederationPartner resolvePartner(Context ctx, int stationId) {
@@ -305,8 +401,6 @@ public class FederatedEventRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    public record FederatedEventDetail(Object event, List<EventField> publicFields) {}
-
     public record FederatedRegBody(String eventDate, UUID memberId) {}
 
     public record StatusResponse(String status) {}
@@ -314,6 +408,16 @@ public class FederatedEventRoutes implements Routes {
     /**
      * Shared inputs for a federated register or withdraw request.
      */
+    /**
+     * @param partner     this station's record of the one holding the appointment
+     * @param hostPartner the holder's record of this station, which is what its rows hang off, and
+     *                    null where the holder is on another instance and keeps its own
+     */
     private record FederatedRegContext(
-            Station station, FederationPartner partner, int eventId, FederatedRegBody req, UUID remoteMemberId) {}
+            Station station,
+            FederationPartner partner,
+            FederationPartner hostPartner,
+            int eventId,
+            FederatedRegBody req,
+            UUID remoteMemberId) {}
 }

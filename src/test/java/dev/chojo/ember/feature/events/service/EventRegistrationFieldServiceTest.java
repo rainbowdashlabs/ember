@@ -347,7 +347,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(9)
-    void withdrawingARegistrationRemovesItsAnswers() {
+    void withdrawingARegistrationKeepsItsAnswersUntilItIsSettled() {
         LocalDate day = LocalDate.now().plusMonths(3).withDayOfMonth(4);
         var registration = registrationService.register(event.id(), member.id(), day, true, null);
         service.persistAnswers(
@@ -355,17 +355,25 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         assertTrue(!service.findValues(registration.id()).isEmpty());
 
         registrationService.withdraw(registration.id());
-        assertTrue(service.findValues(registration.id()).isEmpty());
+        assertTrue(
+                !service.findValues(registration.id()).isEmpty(),
+                "the answers outlive the refusal for as long as it can be taken back, "
+                        + "or an undo would hand back a registration with blank questions");
+
+        registrationService.sweepAnswersOfSettledRefusals();
+        assertTrue(
+                !service.findValues(registration.id()).isEmpty(),
+                "and the sweep leaves alone what could still be taken back");
     }
 
     /**
-     * Saying no takes the answers with it, whether the place had been confirmed or not. They were
-     * given for an appointment the member is not going to, and which of the ways they said so is
-     * not something the answers should survive.
+     * Saying no keeps the answers for as long as the no can be taken back, whichever way it was said.
+     * They are what an undo has to give back, and a registration handed back with blank questions
+     * would be worse than no undo at all. The sweep takes them once the window has closed.
      */
     @Test
     @Order(10)
-    void decliningARegistrationRemovesItsAnswersToo() {
+    void decliningARegistrationKeepsItsAnswersTooUntilItIsSettled() {
         LocalDate day = LocalDate.now().plusMonths(3).withDayOfMonth(11);
         var registration = registrationService.register(event.id(), member.id(), day, true, null);
         service.persistAnswers(
@@ -375,7 +383,9 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         var declined = registrationService.decline(event.id(), member.id(), day, null);
 
         assertEquals(RegistrationStatus.WITHDRAWN, declined.status());
-        assertTrue(service.findValues(declined.id()).isEmpty());
+        assertTrue(
+                !service.findValues(declined.id()).isEmpty(),
+                "however the member said no, the answers wait out the window with it");
     }
 
     @Test

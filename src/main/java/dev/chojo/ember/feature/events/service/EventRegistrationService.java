@@ -23,6 +23,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -40,6 +41,15 @@ import java.util.stream.Collectors;
 @Singleton
 public class EventRegistrationService {
     private static final Logger log = LoggerFactory.getLogger(EventRegistrationService.class);
+
+    /**
+     * How long a refusal can be taken back.
+     *
+     * <p>Long enough to notice the wrong row, short enough that a list somebody is planning from does
+     * not lie for long. Not a setting: a station has nothing to gain by choosing a different number
+     * and something to lose by choosing badly.
+     */
+    public static final Duration UNDO_WINDOW = Duration.ofMinutes(5);
 
     private final EventRegistrationRepository registrationRepository;
     private final EventRegistrationFieldRepository fieldRepository;
@@ -274,8 +284,11 @@ public class EventRegistrationService {
      * up. Signing up again is unaffected, because a registration is written over its own row where
      * one already stands for that member on that day.
      *
-     * <p>What the member had answered goes either way, the same way it goes wherever else somebody
-     * says they are not coming.
+     * <p>What is written is always WITHDRAWN and never a decline, which would have been easy to get
+     * wrong: a decline reads as an answer given, and somebody who gave a place back before anybody
+     * confirmed it is still owed the question. What they had answered outlives the refusal by exactly
+     * the window it can be taken back in, because an undo handing back a registration with its
+     * questions blank would be worse than none.
      *
      * @param id the registration ID
      * @return true if the registration was withdrawn
@@ -288,7 +301,34 @@ public class EventRegistrationService {
         }
         if (!registrationRepository.recordAnswer(id, RegistrationStatus.WITHDRAWN)) return false;
         log.info("Withdrew registration {}", id);
-        recordRefusal(id, registration.eventId(), registration.memberId(), registration.status());
+        announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
+        return true;
+    }
+
+    /**
+     * Puts a withdrawal back, for as long as it may still be put back.
+     *
+     * <p>What comes back is the place that was held, not a fresh answer at the end of the queue.
+     * Somebody who pressed the wrong button on a confirmed seat gets the seat, because a misclick is
+     * not a change of mind and taking it back should not cost them the thing they were taking back.
+     *
+     * <p>Past the window this refuses, and the member registers again the ordinary way if the
+     * appointment still takes answers. That is the point at which a withdrawal was meant.
+     *
+     * @param id the registration to restore
+     * @return true if the answer was put back
+     */
+    public boolean undoWithdrawal(int id) {
+        var registration = registrationRepository.findById(id).orElse(null);
+        if (registration == null) return false;
+        if (!registrationRepository.restorePreviousStatus(id, UNDO_WINDOW)) {
+            log.info("Registration {} can no longer be taken back", id);
+            return false;
+        }
+        log.info("Took back the withdrawal of registration {}", id);
+        if (registration.previousStatus() == RegistrationStatus.ACCEPTED) {
+            announce(registration.eventId(), registration.memberId(), RegistrationStatus.ACCEPTED);
+        }
         return true;
     }
 
@@ -308,26 +348,44 @@ public class EventRegistrationService {
         var status = refusalFor(registration.status());
         if (!registrationRepository.recordAnswer(id, status)) return false;
         log.info("Recorded {} for registration {}", status, id);
-        recordRefusal(id, registration.eventId(), registration.memberId(), registration.status());
+        announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
         return true;
     }
 
     /**
-     * Everything a "no" brings with it, whichever of the two it is.
+     * Tells whoever runs the event that a place has fallen free, where one actually has.
      *
-     * <p>The answers go either way. They were given for a place the member is not taking, and
-     * nobody has any use for a list of allergies or clothing sizes belonging to somebody who is not
-     * coming. What is announced is decided by the place that was held and not by the word written
-     * over it: only a confirmed place falling free is somebody else's to fill, and an answer that was
-     * never a yes frees nothing however it is recorded.
+     * <p>What is announced is decided by the place that was held and not by the word written over it:
+     * only a confirmed place falling free is somebody else's to fill, and an answer that was never a
+     * yes frees nothing however it is recorded.
+     *
+     * <p>The answers stay where they are. They used to go the moment somebody said no, which is right
+     * until the no can be undone, so they now outlive the refusal by the window and a named sweep
+     * clears the ones that outlive it.
      *
      * @param heldBefore the status the registration held before this refusal was written
      */
-    private void recordRefusal(int registrationId, int eventId, int memberId, RegistrationStatus heldBefore) {
-        fieldRepository.deleteValues(registrationId);
+    private void announceFreedPlace(int eventId, int memberId, RegistrationStatus heldBefore) {
         if (heldBefore == RegistrationStatus.ACCEPTED) {
             announce(eventId, memberId, RegistrationStatus.WITHDRAWN);
         }
+    }
+
+    /**
+     * Throws away the answers behind refusals that can no longer be taken back.
+     *
+     * <p>They used to go the moment somebody said no, which is right until the no can be undone: an
+     * undo that handed back a registration with its questions blank would be worse than none. So they
+     * outlive the refusal by exactly the window, and this clears the ones that outlived it.
+     *
+     * @return how many registrations had their answers cleared
+     */
+    public int sweepAnswersOfSettledRefusals() {
+        int cleared = fieldRepository.deleteValuesOfRefusalsOlderThan(UNDO_WINDOW);
+        if (cleared > 0) {
+            log.info("Cleared the answers of {} refusals that can no longer be taken back", cleared);
+        }
+        return cleared;
     }
 
     /**
@@ -355,10 +413,11 @@ public class EventRegistrationService {
                 .filter(r -> r.memberId() == memberId)
                 .findFirst()
                 .orElse(null);
-        var status = refusalFor(existing == null ? null : existing.status());
+        var heldBefore = existing == null ? null : existing.status();
+        var status = refusalFor(heldBefore);
         var result = registrationRepository.create(eventId, memberId, eventDate, status, createdBy);
         log.info("Recorded {} for member {} on event {} ({})", status, memberId, eventId, eventDate);
-        recordRefusal(result.id(), eventId, memberId, status);
+        announceFreedPlace(eventId, memberId, heldBefore);
         return result;
     }
 

@@ -4,10 +4,14 @@
 
 ### New Features
 
+- **A partner station can be given places of its own.** An appointment shared with another station can set aside places for it, with or without a limit on how many, and that station then picks which of its own people fill them instead of waiting to be confirmed. Where nothing is set aside, the station holding the appointment confirms each guest itself, as it always did.
 - **A station says when its notifications are mailed out.** Under Station → Mailing it names the times of day its gathered notifications go out, seven in the morning and two in the afternoon for instance, or simply every hour. What arrives between two of them waits for the next, so a station that wants one mail a day now gets one mail a day.
 
 ### Improvements
 
+- **Giving up a place at an appointment can be taken back.** For five minutes afterwards the sign-off can be undone from the message that appears, and what comes back is the place that was held rather than a fresh sign-up at the end of the queue. The last two buttons that gave a place away on a single press, the one for a whole household and the one on a partner station's appointment, now ask first as the others already did.
+- **Being too late to sign up now says who can help.** Trying to sign up again after the list has closed answered with a bare failure. It now says the list is closed and that whoever runs the appointment can still add somebody.
+- **A guest from a partner station is treated like a member of the station.** Their sign-up is accepted straight away where the appointment asks for no confirmation, rather than waiting for one that nobody was ever asked to give, and it is refused where the appointment takes no sign-ups, has been called off, or has closed its list. Signing off keeps the record, so the station holding the appointment can tell somebody who left from somebody who never answered.
 - **Three more pictures to give a piece of gear.** Headphones, a key and a stapler join the ones a station can choose from, under Equipment and General.
 - **People following a cluster hear about its partner stations.** Notifications from a cluster were gathered but never mailed to anybody, so somebody who followed one to keep up with its partners heard nothing at all. They now go out with the same times and settings as a station's.
 - **An appointment's files are shown rather than only offered.** Pressing one opens it where it is, so finding out which of four sheets is the map no longer means saving all four. Saving is still a button of its own.

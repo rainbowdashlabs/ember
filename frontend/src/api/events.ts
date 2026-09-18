@@ -541,8 +541,34 @@ export async function listRegistrationCounts(): Promise<RegistrationCount[]> {
     return res.data
 }
 
-export async function withdrawRegistration(id: number): Promise<void> {
-    await client.delete(`/events/registrations/${id}`)
+/** What a withdrawal leaves behind: the moment it stops being something that can be taken back. */
+export interface Withdrawal {
+    undoUntil: string
+}
+
+/**
+ * How long a withdrawal is offered back where the server does not say.
+ *
+ * <p>The server is the authority and answers with its own deadline wherever it can. A partner
+ * station's appointment is the exception: the answer travels through two instances and carries no
+ * deadline, so the offer is shown for the length everybody uses and refused by whoever holds the row
+ * if it has run out.
+ */
+export const UNDO_WINDOW_MS = 5 * 60 * 1000
+
+export async function withdrawRegistration(id: number): Promise<Withdrawal> {
+    const res = await client.delete<Withdrawal>(`/events/registrations/${id}`)
+    return res.data
+}
+
+/**
+ * Puts a withdrawal back, which the server allows for a few minutes and refuses afterwards.
+ *
+ * <p>What comes back is the place that was held rather than a fresh answer, so somebody who pressed
+ * the wrong button is where they were rather than at the end of the queue.
+ */
+export async function undoWithdrawal(id: number): Promise<void> {
+    await client.post(`/events/registrations/${id}/undo`)
 }
 
 /** Somebody in the household who still owes an answer. */
@@ -787,9 +813,29 @@ export async function listFederatedEvents(): Promise<FederatedEvent[]> {
     return res.data
 }
 
+/** What the station holding an appointment has given this one, where it has given anything. */
+export interface RemotePlaces {
+    /** How many places this station may fill on a date, or null for no cap. */
+    slotBudget: number | null
+    /** Whether this station confirms its own members rather than the holder doing it. */
+    decidesItself: boolean
+}
+
 export interface FederatedEventDetail {
     event: SharedEvent
     publicFields: { id: number; name: string; value: string; fieldType: string; isPublic: boolean }[]
+    /** Null where the station holding the appointment decides, which is the ordinary arrangement. */
+    places: RemotePlaces | null
+}
+
+/**
+ * Gives one of this station's own members a place at a partner's appointment.
+ *
+ * <p>Only where that station handed the choosing over. The places are theirs and so is the counting,
+ * so a refusal means the places are full rather than that anything went wrong.
+ */
+export async function confirmOwnFederatedMember(stationUid: string, eventId: number, eventDate: string, memberId: string): Promise<void> {
+    await client.post(`/federated/${stationUid}/events/${eventId}/register/confirm`, {eventDate, memberId})
 }
 
 export async function getFederatedEvent(stationUid: string, eventId: number): Promise<FederatedEventDetail> {
@@ -810,12 +856,29 @@ export async function listMyFederatedRegistrations(): Promise<FederatedRegistrat
     return res.data
 }
 
-export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<void> {
-    await client.post(`/federated/${stationUid}/events/${eventId}/register`, { eventDate, memberId: memberId ?? null })
+/**
+ * Signs a member up for a partner station's appointment and answers with what they recorded.
+ *
+ * <p>The status is theirs to decide: an appointment that asks for no confirmation accepts at once,
+ * and showing a pending badge regardless would tell the member something nobody said.
+ */
+export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<string> {
+    const res = await client.post<{status: string}>(`/federated/${stationUid}/events/${eventId}/register`, { eventDate, memberId: memberId ?? null })
+    return res.data.status
 }
 
 export async function withdrawFederatedRegistration(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<void> {
     await client.delete(`/federated/${stationUid}/events/${eventId}/register`, { data: { eventDate, memberId: memberId ?? null } })
+}
+
+/**
+ * Asks the station holding the appointment to put a place back after a withdrawal.
+ *
+ * <p>Their clock decides, because the registration is theirs. A refusal means the few minutes have
+ * passed rather than that anything went wrong.
+ */
+export async function undoFederatedWithdrawal(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<void> {
+    await client.post(`/federated/${stationUid}/events/${eventId}/register/undo`, { eventDate, memberId: memberId ?? null })
 }
 
 export interface FederatedEventRegistration {
@@ -858,6 +921,36 @@ export async function setFederationShare(eventId: number, scope: string, partner
 
 export async function removeFederationShare(eventId: number): Promise<void> {
     await client.delete(`/events/${eventId}/federation`)
+}
+
+/**
+ * What one partner station may do with a shared appointment.
+ *
+ * <p>Absent from the list means the arrangement nobody configured: this station decides, member by
+ * member, with no cap. That is how every shared appointment worked before any of this.
+ */
+export interface EventPartnerPlaces {
+    eventId: number
+    partnerId: number
+    /** How many places that partner may fill on one date, or null for no cap. */
+    slotBudget: number | null
+    /** Whether the partner decides who fills them rather than this station. */
+    partnerConfirms: boolean
+}
+
+export async function getPartnerPlaces(eventId: number): Promise<EventPartnerPlaces[]> {
+    const res = await client.get<EventPartnerPlaces[]>(`/events/${eventId}/partner-places`)
+    return res.data
+}
+
+/**
+ * Hands a partner a number of places, or takes the arrangement back.
+ *
+ * <p>A budget means the partner decides: handing somebody places and then choosing their people for
+ * them is not a thing anybody wants, so the two travel as one choice with an optional number.
+ */
+export async function setPartnerPlaces(eventId: number, partnerId: number, slotBudget: number | null, partnerConfirms: boolean): Promise<void> {
+    await client.put(`/events/${eventId}/partner-places/${partnerId}`, {slotBudget, partnerConfirms})
 }
 
 // -- Page-editor picker. PAGE_EDIT-gated. --

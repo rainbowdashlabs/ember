@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -16,6 +17,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import type {MemberOption} from '@/components/input/select/memberOption'
 import type {FederatedRegistration} from '@/api/events'
+import {useConfirmAction} from '@/composables/useConfirmAction'
+import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 
 interface EligibleMember {
   uid: string
@@ -29,14 +32,36 @@ const props = defineProps<{
   registrations: FederatedRegistration[]
   eventId: number
   registering: boolean
+  /**
+   * Whether this reader may choose who comes: the other station handed the choosing over, and
+   * keeping this station's registrations is the reader's job. Both, or the button would be offered
+   * to somebody the other station will refuse.
+   */
+  weDecide: boolean
+  /** What the other station set aside, in words, or empty where it set nothing aside. */
+  placesSummary: string
 }>()
 
 const emit = defineEmits<{
   register: []
   withdraw: [uid: string]
+  confirm: [uid: string]
 }>()
 
 const {t} = useI18n()
+
+/**
+ * Signing somebody off a partner station's appointment, which asks first exactly as the station's own
+ * appointments do. A place at somebody else's event is no easier to get back, and the button sits in
+ * the same place on the page. Holding shift carries it out at once, as everywhere else.
+ */
+const {
+  show: showSignOffConfirm,
+  request: requestSignOff,
+  confirm: confirmSignOff,
+} = useConfirmAction<string>({
+  onConfirm: async uid => emit('withdraw', uid),
+})
 
 function getRegistration(uid: string): FederatedRegistration | undefined {
   return props.registrations.find(r => r.eventId === props.eventId && r.remoteMemberId === uid)
@@ -58,6 +83,11 @@ const canSubmit = computed(() => {
 <template>
   <NeutralContainer class="space-y-3">
     <SubHeader>{{ t('eventsUpcoming.registration') }}</SubHeader>
+
+    <MutedText v-if="props.placesSummary" tag="p" size="sm" data-testid="our-places">
+      {{ props.placesSummary }}
+    </MutedText>
+
     <div class="flex items-center gap-2 flex-wrap">
       <template v-for="m in props.eligibleMembers" :key="`reg-${m.uid}`">
         <div v-if="getRegistration(m.uid)" class="flex items-center gap-1">
@@ -65,7 +95,17 @@ const canSubmit = computed(() => {
           <SuccessBadge v-if="getRegistration(m.uid)!.status === 'ACCEPTED'">{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
           <InfoBadge v-else-if="getRegistration(m.uid)!.status === 'PENDING'">{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
           <ErrorBadge v-else-if="getRegistration(m.uid)!.status === 'DENIED'">{{ t('eventsUpcoming.statusDenied') }}</ErrorBadge>
-          <ErrorButton :disabled="props.registering" compact class="text-xs" @click="emit('withdraw', m.uid)">
+          <PrimaryButton
+              v-if="props.weDecide && getRegistration(m.uid)!.status === 'PENDING'"
+              :disabled="props.registering"
+              compact
+              class="text-xs"
+              data-testid="confirm-own-member"
+              @click="emit('confirm', m.uid)"
+          >
+            <font-awesome-icon :icon="['fas', 'check']"/>
+          </PrimaryButton>
+          <ErrorButton :disabled="props.registering" compact class="text-xs" @click="requestSignOff(m.uid)">
             <font-awesome-icon :icon="['fas', 'xmark']"/>
           </ErrorButton>
         </div>
@@ -85,5 +125,7 @@ const canSubmit = computed(() => {
         </PrimaryButton>
       </template>
     </div>
+
+    <SignOffConfirm v-model="showSignOffConfirm" :busy="props.registering" @confirm="confirmSignOff"/>
   </NeutralContainer>
 </template>

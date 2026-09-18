@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:b6c57c9306a556d836c3b919c19e23b92e47a085ad4197dac4be750afd2d12f3",
-  "generatedAt": "2026-09-18T12:08:27Z",
+  "schemaHash": "sha256:f341f1381bbdd85dd8c1ea8cd71db76dcd1085e7dadb2a649a9ba1e885f171b4",
+  "generatedAt": "2026-09-18T17:10:33Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6968,7 +6968,7 @@
     "event_federation_registration": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:b38bcb650c9f0ad6fd83974c0a96c868c0e28946ee13cde524220fb233a1e5d1",
+      "tableHash": "sha256:8fa8893640a96f7acb2828bc6580e2856ecf6460513a600bf502a66b9525e535",
       "columns": [
         {
           "name": "id",
@@ -7018,6 +7018,20 @@
           "nullable": false,
           "verified": true,
           "description": "When the registration was created."
+        },
+        {
+          "name": "status_changed_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the status last changed, by the clock of the station that holds the appointment. Two instances have two clocks, and the one that owns the row is the one that decides whether a withdrawal can still be taken back."
+        },
+        {
+          "name": "previous_status",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What was held immediately before the current status, for as long as a withdrawal can be taken back."
         }
       ],
       "foreignKeys": [
@@ -7315,10 +7329,68 @@
       },
       "description": "Default values for attendance session fields when created from an event."
     },
+    "event_partner_places": {
+      "tableHash": "sha256:cfca64eea8beb0c2eebf3472319b63cc553bcbbdc2011fe3c0362796c1f0c68f",
+      "columns": [
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "partner_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "slot_budget",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many places this partner may fill on one date. NULL means no cap. Counted per occurrence, because a registration is per date and five places at a weekly evening means five every week."
+        },
+        {
+          "name": "partner_confirms",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this partner confirms its own members rather than the host doing it. False everywhere until somebody says otherwise, which is how it worked before this existed."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "partner_id",
+          "refTable": "federation_partner",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "What a partner was given to fill and to decide, beside the share it belongs to. Without it a transferred station keeps sharing an appointment while forgetting how many places it promised and who was choosing."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "An arrangement between two stations, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "An arrangement between two stations, not per-member"
+      },
+      "description": "What a partner station may do with a shared appointment: how many places it may fill, and whether it decides who fills them. Separate from the sharing tables because saving a share rewrites those wholesale."
+    },
     "event_registration": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:64dd25ffb2554646d53a4ddcc5a0a6286a283e0883c5618b61c9dc32b8615154",
+      "tableHash": "sha256:ee1b9e584e09d6470c7fbde267f6e3c639f536230751fc732c707eefe99c2fc1",
       "columns": [
         {
           "name": "id",
@@ -7368,6 +7440,20 @@
           "nullable": false,
           "verified": true,
           "description": "When the registration was created."
+        },
+        {
+          "name": "status_changed_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the status last changed. Its own column because created_at is bumped by some paths and not others, and a window measured off a value that means two things measures neither."
+        },
+        {
+          "name": "previous_status",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What was held immediately before the current status, for as long as a withdrawal can be taken back. Restoring a place has to give back the place: somebody who held a confirmed seat and pressed the wrong button must not be handed a pending one."
         }
       ],
       "foreignKeys": [
