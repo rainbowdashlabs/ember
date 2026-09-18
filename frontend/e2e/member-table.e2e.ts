@@ -14,14 +14,28 @@ import {test, expect, apiHeaders, type Page} from './fixtures/auth'
  * about those people in particular.
  */
 
-/** A question of the station's, asked of one audience and answered by one member. */
-async function askEveryone(api: ReturnType<Page['request']>, headers: Record<string, string>, name: string) {
+/**
+ * A question of the station's, put to one audience.
+ *
+ * <p>The audience is the point rather than an afterthought: a question nobody was asked is a question
+ * nobody may read, so a field created and left unassigned is correctly invisible to every table.
+ */
+async function askOf(
+    api: ReturnType<Page['request']>, headers: Record<string, string>, name: string, role: string,
+) {
     const created = await api.post('/api/v1/profile-fields', {
         headers,
         data: {name, fieldType: 'TEXT', config: {}, required: false, readonly: false},
     })
     expect(created.ok(), `the station asked "${name}" (${await created.text()})`).toBeTruthy()
-    return (await created.json()).id as number
+    const fieldId = (await created.json()).id as number
+
+    const assigned = await api.put(`/api/v1/profile-fields/${fieldId}/assignments`, {
+        headers,
+        data: {role, position: 0},
+    })
+    expect(assigned.ok(), `and put it to ${role} (${await assigned.text()})`).toBeTruthy()
+    return fieldId
 }
 
 test.describe('A table of people', () => {
@@ -35,7 +49,7 @@ test.describe('A table of people', () => {
         const headers = await apiHeaders(managerPage)
         const stamp = `${test.info().workerIndex}-${Date.now()}`
         const name = `Schuhgröße ${stamp}`
-        await askEveryone(managerPage.request, headers, name)
+        await askOf(managerPage.request, headers, name, 'MEMBER')
 
         const created = await managerPage.request.post('/api/v1/events', {
             headers,

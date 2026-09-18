@@ -46,6 +46,7 @@ public class EventExportService {
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private static final String[] DAY_NAMES = {"", "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"};
+    private static final String[] DAY_NAMES_EN = {"", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
     private final EventRepository eventRepository;
     private final EventCategoryRepository categoryRepository;
@@ -90,7 +91,7 @@ public class EventExportService {
         // Expand recurring events into individual occurrences
         var expandedEvents = expandEvents(allEvents, from, to, breaks, zone);
 
-        // Group events by category
+        String language = resolveLocalePrefix(station);
         var catGroups = new ArrayList<CategoryGroup>();
 
         for (var cat : eventCategories) {
@@ -100,16 +101,15 @@ public class EventExportService {
                             == (e.event().categoryId() != null ? e.event().categoryId() : -1))
                     .toList();
             if (catEvents.isEmpty()) continue;
-            catGroups.add(new CategoryGroup(cat.name(), buildEventRows(catEvents, columns, zone)));
+            catGroups.add(new CategoryGroup(cat.name(), buildEventRows(catEvents, columns, zone, language)));
         }
 
-        // Uncategorized
         if (categoryIds.isEmpty() || categoryIds.contains(-1)) {
             var uncategorized = expandedEvents.stream()
                     .filter(e -> e.event().categoryId() == null)
                     .toList();
             if (!uncategorized.isEmpty()) {
-                catGroups.add(new CategoryGroup("", buildEventRows(uncategorized, columns, zone)));
+                catGroups.add(new CategoryGroup("", buildEventRows(uncategorized, columns, zone, language)));
             }
         }
 
@@ -204,7 +204,8 @@ public class EventExportService {
         }
     }
 
-    private List<EventRow> buildEventRows(List<ExpandedEvent> events, List<ExportColumn> columns, ZoneId zone) {
+    private List<EventRow> buildEventRows(
+            List<ExpandedEvent> events, List<ExportColumn> columns, ZoneId zone, String language) {
         boolean needsFields = columns.stream().anyMatch(c -> "field".equals(c.type()));
         var rows = new ArrayList<EventRow>();
         for (var expanded : events) {
@@ -223,7 +224,7 @@ public class EventExportService {
                 if ("field".equals(col.type())) {
                     values.add(fieldMap.getOrDefault(col.fieldName(), ""));
                 } else {
-                    values.add(resolveBuiltinValue(event, expanded.date(), col.key(), zone));
+                    values.add(resolveBuiltinValue(event, expanded.date(), col.key(), zone, language));
                 }
             }
             rows.add(new EventRow(values));
@@ -231,19 +232,27 @@ public class EventExportService {
         return rows;
     }
 
-    private String resolveBuiltinValue(StationEvent event, LocalDate date, String key, ZoneId zone) {
+    /**
+     * One cell of the sheet, written in the station's own language.
+     *
+     * <p>The language reaches here because the words are values rather than chrome: a station reading
+     * English got an English heading over a column saying Wöchentlich, which is worse than either
+     * language on its own.
+     */
+    private String resolveBuiltinValue(StationEvent event, LocalDate date, String key, ZoneId zone, String language) {
         if (key == null) return "";
+        boolean english = "en".equals(language);
         return switch (key) {
             case "name" -> event.name() != null ? event.name() : "";
             case "type" ->
                 switch (event.eventType()) {
-                    case RECURRING -> "Wöchentlich";
-                    case MONTHLY_FIRST -> "Monatlich";
-                    case QUARTERLY -> "Vierteljährlich";
-                    case YEARLY -> "Jährlich";
-                    case ONE_TIME -> "Einmalig";
+                    case RECURRING -> english ? "Weekly" : "Wöchentlich";
+                    case MONTHLY_FIRST -> english ? "Monthly" : "Monatlich";
+                    case QUARTERLY -> english ? "Quarterly" : "Vierteljährlich";
+                    case YEARLY -> english ? "Yearly" : "Jährlich";
+                    case ONE_TIME -> english ? "Once" : "Einmalig";
                 };
-            case "day" -> event.dayOfWeek() != null ? DAY_NAMES[event.dayOfWeek()] : "";
+            case "day" -> event.dayOfWeek() != null ? dayName(event.dayOfWeek(), english) : "";
             case "date" -> DATE_FMT.format(date);
             case "time" -> {
                 String start = event.startTime() != null
@@ -257,6 +266,11 @@ public class EventExportService {
             case "description" -> event.description() != null ? event.description() : "";
             default -> "";
         };
+    }
+
+    private static String dayName(int dayOfWeek, boolean english) {
+        var names = english ? DAY_NAMES_EN : DAY_NAMES;
+        return dayOfWeek >= 0 && dayOfWeek < names.length ? names[dayOfWeek] : "";
     }
 
     private String resolveLocalePrefix(Station station) {
