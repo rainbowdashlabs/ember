@@ -73,16 +73,14 @@ test.describe('A table of people', () => {
             await managerPage.goto(`/station/events/${eventId}`)
             await managerPage.getByRole('button', {name: 'Anmeldungen'}).click()
 
-            await managerPage.getByTestId('open-registration-table').click()
-            const picker = managerPage.getByTestId('member-table-preview')
-            await expect(picker, 'the table opens for whoever handles the registrations').toBeVisible()
+            await managerPage.getByTestId('registration-table-menu-trigger').click()
+            await managerPage.getByTestId('registration-table-toggle').click()
+            const table = managerPage.getByTestId('confirmed-registrations-table')
+            await expect(table, 'the table opens for whoever handles the registrations').toBeVisible()
 
+            await managerPage.getByRole('button', {name: 'Spalten', exact: true}).click()
             await managerPage.getByRole('checkbox', {name}).check()
-            await picker.click()
-            await expect(
-                managerPage.getByTestId('member-table-preview-table'),
-                'and draws with the question that was ticked',
-            ).toContainText(name)
+            await expect(table, 'and draws with the question that was ticked').toContainText(name)
         } finally {
             await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers})
         }
@@ -116,7 +114,7 @@ test.describe('A table of people', () => {
             await memberPage.goto(`/station/events/${eventId}`)
             await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
             await expect(
-                memberPage.getByTestId('open-registration-table'),
+                memberPage.getByTestId('registration-table-menu-trigger'),
                 'the table is not there to be pressed',
             ).toHaveCount(0)
 
@@ -130,21 +128,19 @@ test.describe('A table of people', () => {
         }
     })
 
-    /** The register offers the same table to whoever may carry the list out. */
+    /** The register hands out the same sheet, through the export it already had. */
     test('the register offers the same table', async ({managerPage}) => {
         await managerPage.goto('/station/members/list')
-        await managerPage.getByTestId('open-member-table').click()
+        await managerPage.getByTestId('members-export').click()
+        await managerPage.getByTestId('member-select-all').check()
+        await managerPage.getByTestId('members-export-continue').click()
 
-        await expect(
-            managerPage.getByTestId('member-table-preview'),
-            'one table, reached from the other screen',
-        ).toBeVisible()
-
-        await managerPage.getByRole('checkbox', {name: 'Name'}).check()
-        await managerPage.getByTestId('member-table-preview').click()
-        await expect(
-            managerPage.getByTestId('member-table-preview-table'),
-            'and it draws the people the screen was showing',
-        ).toBeVisible()
+        await managerPage.getByRole('radio', {name: 'Blatt zum Mitnehmen (PDF)'}).check()
+        const download = managerPage.waitForEvent('download')
+        await managerPage.getByTestId('members-export-download').click()
+        expect(
+            (await download).suggestedFilename(),
+            'the sheet the server drew, for the people the screen was showing',
+        ).toBe('mitglieder.pdf')
     })
 })

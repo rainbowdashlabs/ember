@@ -29,6 +29,7 @@ import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {formatDateTime} from '@/util/format'
 import {answerTotals} from '@/util/eventAnswers'
+import ConfirmedRegistrationsTable from './ConfirmedRegistrationsTable.vue'
 
 interface StatusGroup { status: string; entries: EventRegistrationEntry[] }
 
@@ -40,7 +41,17 @@ const props = defineProps<{
   registrationStats: MemberRegistrationStats[]
   unregisteredMembers: MemberOption[]
   registrationFields?: EventRegistrationField[]
+  /** The evening in view, which is the one a table of who is coming is drawn for. */
+  effectiveDate?: string | null
 }>()
+
+/**
+ * Whether the confirmed sign-ups are shown as a table rather than as the cards they have always been.
+ *
+ * <p>Held here because this panel owns that block: the cards and the table are two ways of drawing
+ * the same people, and nothing above needs to know which is on screen.
+ */
+const confirmedAsTable = ref(false)
 
 const {t} = useI18n()
 const {hasPermission} = useSession()
@@ -192,8 +203,20 @@ function statusLabel(status: string): string {
     </div>
 
     <div v-for="group in nonPendingRegistrations" :key="group.status" class="space-y-2">
-      <SubHeader>{{ statusLabel(group.status) }}</SubHeader>
-      <NeutralContainer v-for="reg in group.entries" :key="reg.id">
+      <ConfirmedRegistrationsTable
+          v-if="group.status === RegistrationStatus.ACCEPTED"
+          v-model:as-table="confirmedAsTable"
+          :title="statusLabel(group.status)"
+          :event-id="event.id"
+          :effective-date="effectiveDate ?? null"
+          :entries="registrations"
+          @accept="emit('accept', $event)"
+      />
+      <SubHeader v-else>{{ statusLabel(group.status) }}</SubHeader>
+      <NeutralContainer
+          v-for="reg in (group.status === RegistrationStatus.ACCEPTED && confirmedAsTable ? [] : group.entries)"
+          :key="reg.id"
+      >
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div class="flex items-center gap-2 flex-wrap">
             <MemberName :identity="reg.memberIdentity ?? null"/>

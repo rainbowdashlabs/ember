@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.members.entity.MemberTable;
+import dev.chojo.ember.feature.members.entity.MemberTableColumnKind;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -50,13 +51,18 @@ public class MemberTableRenderer {
      * @param table the drawn table
      * @return the whole file
      */
-    public String toCsv(MemberTable table) {
+    public String toCsv(MemberTable table, Station station) {
+        var language = StationFormat.languageOf(station);
         var out = new StringBuilder();
         out.append(String.join(
                 ";", table.columns().stream().map(c -> cell(c.label())).toList()));
         out.append('\n');
         for (var row : table.rows()) {
-            out.append(String.join(";", row.values().stream().map(this::cell).toList()));
+            var cells = new ArrayList<String>(row.values().size());
+            for (int i = 0; i < row.values().size(); i++) {
+                cells.add(cell(worded(table.columns().get(i), row.values().get(i), language)));
+            }
+            out.append(String.join(";", cells));
             out.append('\n');
         }
         return out.toString();
@@ -75,9 +81,14 @@ public class MemberTableRenderer {
      */
     public byte[] toPdf(MemberTable table, Station station, String title, String subtitle, String generatedBy)
             throws Exception {
+        var language = StationFormat.languageOf(station);
         var rows = new ArrayList<Map<String, Object>>();
         for (var row : table.rows()) {
-            rows.add(Map.of("values", row.values()));
+            var worded = new ArrayList<String>(row.values().size());
+            for (int i = 0; i < row.values().size(); i++) {
+                worded.add(worded(table.columns().get(i), row.values().get(i), language));
+            }
+            rows.add(Map.of("values", worded));
         }
 
         var data = new LinkedHashMap<String, Object>();
@@ -101,6 +112,39 @@ public class MemberTableRenderer {
                 data,
                 StationFormat.languageOf(station) + "/member-table.typ",
                 logo == null ? null : new TypstCompiler.StationLogo(logo.data(), logo.contentType()));
+    }
+
+    /**
+     * A cell as a file should read it, which is words where the table holds a token.
+     *
+     * <p>The drawn table carries what a thing is rather than what it is called, because the screen has
+     * the words for it already and two places holding the same wording is one too many. A file has no
+     * screen behind it, so the words are put in here and only here.
+     */
+    private String worded(MemberTable.MemberTableHeader column, String value, String language) {
+        if (value == null || value.isBlank() || column.kind() != MemberTableColumnKind.BUILTIN) return value;
+        boolean english = "en".equals(language);
+        return switch (column.key()) {
+            case "registrationStatus" ->
+                switch (value) {
+                    case "ACCEPTED" -> english ? "Confirmed" : "Bestätigt";
+                    case "PENDING" -> english ? "Pending" : "Ausstehend";
+                    case "DENIED" -> english ? "Turned down" : "Abgelehnt";
+                    case "DECLINED" -> english ? "Declined" : "Abgemeldet";
+                    case "WITHDRAWN" -> english ? "Withdrawn" : "Zurückgezogen";
+                    default -> value;
+                };
+            case "memberType" ->
+                switch (value) {
+                    case "TRIAL" -> english ? "Trial" : "Probe";
+                    case "MEMBER" -> english ? "Member" : "Mitglied";
+                    case "GUARDIAN" -> english ? "Guardian" : "Erziehungsberechtigter";
+                    case "TEAM" -> "Team";
+                    case "MANAGER" -> "Manager";
+                    default -> value;
+                };
+            default -> value;
+        };
     }
 
     /**

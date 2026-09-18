@@ -30,7 +30,6 @@ import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistra
 import RegistrationsPanel from './RegistrationsPanel.vue'
 import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
 import SignupListsMenu from './signuplists/SignupListsMenu.vue'
-import RegistrationTableButton from './RegistrationTableButton.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import EventAnswerDialog from '../eventshared/EventAnswerDialog.vue'
 import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
@@ -58,7 +57,6 @@ const {refresh: refreshSidebarCounts} = useSidebarCounts()
  * where they live are confidential whichever columns somebody picks, so the permission comes first
  * and the field scopes cut what is left.
  */
-const canDrawTable = computed(() => hasPermission(StationPermission.EVENT_REGISTRATION))
 
 const registrations = ref<EventRegistrationEntry[]>([])
 const registrationStats = ref<MemberRegistrationStats[]>([])
@@ -447,6 +445,7 @@ onMounted(loadRegistrations)
         :registration-stats="registrationStats"
         :unregistered-members="unregisteredMembers"
         :registration-fields="registrationFields"
+        :effective-date="effectiveDate"
         v-model:manual-register-member-id="manualRegisterMemberId"
         @accept="acceptRegistration"
         @deny="denyRegistration"
@@ -454,7 +453,6 @@ onMounted(loadRegistrations)
         @manual-register="manualRegister"
     >
       <template #header-actions>
-        <RegistrationTableButton v-if="canDrawTable" :event-id="eventId" :effective-date="effectiveDate"/>
         <SignupListsMenu
             :event="event"
             :effective-date="effectiveDate"

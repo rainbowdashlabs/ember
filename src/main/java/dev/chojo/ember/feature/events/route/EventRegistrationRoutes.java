@@ -583,9 +583,11 @@ public class EventRegistrationRoutes implements Routes {
     }
 
     private void exportTableCsv(Context ctx) {
+        var session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow(NotFoundResponse::new);
         ctx.contentType("text/csv");
         ctx.header("Content-Disposition", "attachment; filename=\"anmeldungen.csv\"");
-        ctx.result(memberTableRenderer.toCsv(tableOf(ctx)));
+        ctx.result(memberTableRenderer.toCsv(tableOf(ctx), station));
     }
 
     private void exportTablePdf(Context ctx) {

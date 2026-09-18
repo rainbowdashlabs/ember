@@ -102,7 +102,7 @@ public class MemberTableRoutes implements Routes {
     private void exportCsv(Context ctx) {
         ctx.contentType("text/csv");
         ctx.header("Content-Disposition", "attachment; filename=\"mitglieder.csv\"");
-        ctx.result(renderer.toCsv(tableOf(ctx)));
+        ctx.result(renderer.toCsv(tableOf(ctx), stationOf(ctx)));
     }
 
     private void exportPdf(Context ctx) {

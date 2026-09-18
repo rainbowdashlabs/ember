@@ -18,9 +18,7 @@ import { STATION_MEMBER_SOURCE } from './listview/useMemberData'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useSession } from '@/composables/useSession'
 import { useMemberListConfig, type MemberListPort } from './listview/useMemberListConfig'
-import { stationMembers, memberTable } from '@/api'
-import type { MemberTableColumn, MemberTableHeader } from '@/api/memberTable'
-import MemberTableModal from '@/components/membertable/MemberTableModal.vue'
+import { stationMembers } from '@/api'
 
 const { t } = useI18n()
 const { hasPermission, canEditMemberAccounts } = useSession()
@@ -35,33 +33,6 @@ const port: MemberListPort = {
 }
 
 const config = useMemberListConfig(port)
-
-/**
- * The register as a table of chosen columns.
- *
- * <p>Which people is this screen's answer, because it is already showing them and the reader was
- * already allowed to see them. Which columns is not: the server works that out from the reader's own
- * permissions, so a question they may not read never reaches the sheet however it is asked for.
- */
-const showTable = ref(false)
-const tableColumns = ref<MemberTableHeader[]>([])
-
-async function openTable() {
-  tableColumns.value = await memberTable.listColumns()
-  showTable.value = true
-}
-
-function shownMemberIds(): number[] {
-  return config.sortedMembers.value.map(member => member.id)
-}
-
-function drawTable(columns: MemberTableColumn[]) {
-  return memberTable.drawMemberTable(shownMemberIds(), columns)
-}
-
-function downloadTable(columns: MemberTableColumn[], format: 'csv' | 'pdf') {
-  return memberTable.exportMemberTable(shownMemberIds(), columns, format)
-}
 
 const resendTarget = ref<StationMember | null>(null)
 const resendSuccess = ref('')
@@ -95,21 +66,7 @@ function openResendSetup(member: StationMember, event: Event) {
       :title="t('pages.members-list.title')"
       :subtitle="t('pages.members-list.subtitle')"
   >
-    <ButtonRow v-if="config.canExport.value" align="end" class="mb-2">
-      <SecondaryButton :icon="['fas', 'table-list']" compact data-testid="open-member-table" @click="openTable">
-        {{ t('memberTable.open') }}
-      </SecondaryButton>
-    </ButtonRow>
-
     <MemberListPanel :config="config" @resend-setup="openResendSetup"/>
-
-    <MemberTableModal
-        v-model="showTable"
-        :offered="tableColumns"
-        :draw="drawTable"
-        :download="downloadTable"
-        file-name="mitglieder"
-    />
 
     <Modal v-if="resendTarget" model-value @update:model-value="(v) => { if (!v) resendTarget = null }">
       <div class="space-y-4">

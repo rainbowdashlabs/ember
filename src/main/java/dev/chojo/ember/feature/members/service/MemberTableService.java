@@ -303,9 +303,9 @@ public class MemberTableService {
      */
     private enum Builtin {
         NAME("name", "Name"),
-        MEMBER_TYPE("memberType", "Art"),
+        MEMBER_TYPE("memberType", "Benutzertyp"),
         GROUPS("groups", "Gruppen"),
-        TAGS("tags", "Merkmale"),
+        TAGS("tags", "Tags"),
         EMAIL("email", "E-Mail"),
         JOIN_DATE("joinDate", "Eintritt"),
         REGISTRATION_STATUS("registrationStatus", "Anmeldung");

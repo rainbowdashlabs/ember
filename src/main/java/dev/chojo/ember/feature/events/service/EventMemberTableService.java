@@ -90,26 +90,10 @@ public class EventMemberTableService {
             List<MemberTableColumn> columns,
             Set<StationPermission> permissions,
             boolean readsHiddenAnswers) {
-        var standing = registrationRepository.findByEventAndDate(eventId, date).stream()
-                .filter(EventMemberTableService::isComing)
-                .toList();
+        var standing = registrationRepository.findByEventAndDate(eventId, date);
         var questions = offerableQuestions(eventId, readsHiddenAnswers);
         var people = peopleOf(standing, questions.keySet());
         return memberTableService.build(station, people, columns, permissions, questions);
-    }
-
-    /**
-     * Whether this answer puts somebody on the sheet.
-     *
-     * <p>A place given back is kept on the registration list so the station can see who dropped out,
-     * which is right there and wrong here: a sheet of who is coming on Friday is for the evening
-     * itself.
-     */
-    private static boolean isComing(EventRegistration registration) {
-        return switch (registration.status()) {
-            case ACCEPTED, PENDING -> true;
-            case DECLINED, DENIED, WITHDRAWN -> false;
-        };
     }
 
     private MemberTablePeople peopleOf(List<EventRegistration> registrations, Set<Integer> askableQuestions) {
