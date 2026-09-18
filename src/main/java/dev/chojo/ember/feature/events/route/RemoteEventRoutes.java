@@ -61,6 +61,19 @@ public class RemoteEventRoutes implements Routes {
             EventFederationRegistration.class);
     public static final FederationEndpoint WITHDRAW = FederationEndpoint.delete(
             FederationSurface.EVENT_SHARE, "/remote/events/{id}/register", RemoteRegistrationRequest.class, Void.class);
+
+    /**
+     * Putting a member back after a withdrawal, which this station allows for a few minutes.
+     *
+     * <p>A partner that has never heard of this endpoint simply never calls it, and its members keep
+     * the behaviour they had: a withdrawal that stands. Nothing older breaks for want of it.
+     */
+    public static final FederationEndpoint UNDO_WITHDRAWAL = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/{id}/register/undo",
+            RemoteRegistrationRequest.class,
+            Void.class);
+
     public static final FederationEndpoint LIST_REGISTRATIONS = FederationEndpoint.getList(
             FederationSurface.EVENT_SHARE, "/remote/events/{id}/registrations", EventFederationRegistration.class);
     public static final FederationEndpoint LIST_MEMBER_REGISTRATIONS = FederationEndpoint.getList(
@@ -116,6 +129,7 @@ public class RemoteEventRoutes implements Routes {
             GET_ATTACHMENT_CONTENT,
             REGISTER,
             WITHDRAW,
+            UNDO_WITHDRAWAL,
             LIST_REGISTRATIONS,
             LIST_MEMBER_REGISTRATIONS,
             REGISTRATION_STATUS_WEBHOOK,
@@ -156,6 +170,7 @@ public class RemoteEventRoutes implements Routes {
                         .handle(GET_ATTACHMENT_CONTENT, this::remoteGetAttachmentContent)
                         .handle(REGISTER, this::remoteRegister)
                         .handle(WITHDRAW, this::remoteWithdraw)
+                        .handle(UNDO_WITHDRAWAL, this::remoteUndoWithdrawal)
                         .handle(LIST_REGISTRATIONS, this::remoteListRegistrations)
                         .handle(LIST_MEMBER_REGISTRATIONS, this::remoteListMemberRegistrations)
                         .handle(REGISTRATION_STATUS_WEBHOOK, this::remoteOnRegistrationStatus)
@@ -270,6 +285,24 @@ public class RemoteEventRoutes implements Routes {
         requireSharedEvent(partner, eventId);
         var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
         eventFederationService.withdrawRegistration(eventId, partner.id(), req.remoteMemberId(), req.eventDate());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * A partner asking for one of its members to be put back after a withdrawal.
+     *
+     * <p>Whether it is still possible is this station's to answer, because this station holds the
+     * row and the clock that measures the window. A refusal here is not a failure: it means the
+     * few minutes have passed, and the partner tells its member so.
+     */
+    private void remoteUndoWithdrawal(Context ctx) {
+        var partner = FederationSession.requirePartner(ctx);
+        int eventId = pathInt(ctx, "id");
+        requireSharedEvent(partner, eventId);
+        var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
+        if (!eventFederationService.undoWithdrawal(eventId, partner.id(), req.remoteMemberId(), req.eventDate())) {
+            throw new BadRequestResponse("This can no longer be taken back");
+        }
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

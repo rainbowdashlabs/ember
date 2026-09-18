@@ -302,7 +302,7 @@ public class EventFederationService {
      * @return true if a registration was deleted
      */
     public boolean withdrawRegistration(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        if (federationRepository.deleteRegistration(eventId, partnerId, remoteMemberId, eventDate)) {
+        if (federationRepository.withdrawRegistration(eventId, partnerId, remoteMemberId, eventDate)) {
             log.info(
                     "Withdrew federated registration for event {} from partner {} on {}",
                     eventId,
@@ -312,6 +312,35 @@ public class EventFederationService {
         }
         log.warn(
                 "Cannot withdraw federated registration: no registration for event {} from partner {} on {}",
+                eventId,
+                partnerId,
+                eventDate);
+        return false;
+    }
+
+    /**
+     * Puts a partner's member back on the list, for as long as their withdrawal can be taken back.
+     *
+     * <p>Two instances keep two clocks, and a window either could measure is a window neither agrees
+     * on. The row lives here, so this station's stamp decides and the partner only asks. A partner
+     * whose clock is minutes out gets this station's answer either way, and its member is told what
+     * this station said.
+     *
+     * @return true where the place was restored, false where the window had closed
+     */
+    public boolean undoWithdrawal(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+        boolean restored = federationRepository.restoreRegistration(
+                eventId, partnerId, remoteMemberId, eventDate, EventRegistrationService.UNDO_WINDOW);
+        if (restored) {
+            log.info(
+                    "Took back the withdrawal of a federated registration for event {} from partner {} on {}",
+                    eventId,
+                    partnerId,
+                    eventDate);
+            return true;
+        }
+        log.info(
+                "A federated withdrawal for event {} from partner {} on {} can no longer be taken back",
                 eventId,
                 partnerId,
                 eventDate);

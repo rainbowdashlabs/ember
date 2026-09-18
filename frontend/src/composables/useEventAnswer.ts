@@ -173,12 +173,12 @@ export function useEventAnswer(
      */
     async function withdrawRegistration(regId: number) {
         beginAnswer()
-        let withdrawal: Awaited<ReturnType<typeof events.withdrawRegistration>> | null = null
+        let undoUntil: string | null = null
         await changeRegistration(async () => {
-            withdrawal = await events.withdrawRegistration(regId)
+            undoUntil = (await events.withdrawRegistration(regId)).undoUntil
         })
-        if (!withdrawal) return
-        const remaining = new Date(withdrawal.undoUntil).getTime() - Date.now()
+        if (undoUntil === null) return
+        const remaining = new Date(undoUntil).getTime() - Date.now()
         if (remaining <= 0) return
         showToast(t('eventsUpcoming.signedOff'), 'info', remaining, {
             label: t('eventsUpcoming.undoSignOff'),

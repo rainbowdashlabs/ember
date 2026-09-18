@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -258,28 +259,62 @@ public class EventFederationRepository {
     }
 
     /**
-     * Deletes a federated registration by its composite key.
+     * Records that a partner's member gave their place back.
+     *
+     * <p>The row stays where it used to be deleted. The host could not otherwise tell somebody who
+     * withdrew from somebody who never answered, and a withdrawal with no row is a withdrawal nobody
+     * can take back.
      *
      * @param eventId        the event ID
      * @param partnerId      the federation partner ID
      * @param remoteMemberId the remote member UUID
      * @param eventDate      the event occurrence date
-     * @return true if a row was deleted
+     * @return true if a registration was withdrawn
      */
-    public boolean deleteRegistration(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+    public boolean withdrawRegistration(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
         return query("""
-                DELETE
-                FROM
-                    event_federation_registration
+                UPDATE event_federation_registration
+                SET status = 'WITHDRAWN', previous_status = status, status_changed_at = now()
                 WHERE event_id = :event_id
                   AND partner_id = :partner_id
                   AND remote_member_id = :remote_member_id::UUID
-                  AND event_date = :event_date;""")
+                  AND event_date = :event_date
+                  AND status <> 'WITHDRAWN';""")
                 .single(call().bind("event_id", eventId)
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
                         .bind("event_date", eventDate))
-                .delete()
+                .update()
+                .changed();
+    }
+
+    /**
+     * Puts a partner's member back on the list, for as long as their withdrawal can be taken back.
+     *
+     * <p>The window is in the statement so two presses racing cannot both find it open, and it is
+     * measured by this station's clock because this station holds the row. A partner whose own clock
+     * disagrees still gets the answer the host gives.
+     *
+     * @param window how long a withdrawal may be taken back
+     * @return true where the place was restored, false where the window had closed
+     */
+    public boolean restoreRegistration(
+            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate, Duration window) {
+        return query("""
+                UPDATE event_federation_registration
+                SET status = previous_status, previous_status = NULL, status_changed_at = now()
+                WHERE event_id = :event_id
+                  AND partner_id = :partner_id
+                  AND remote_member_id = :remote_member_id::UUID
+                  AND event_date = :event_date
+                  AND previous_status IS NOT NULL
+                  AND status_changed_at > now() - CAST(:window AS INTERVAL);""")
+                .single(call().bind("event_id", eventId)
+                        .bind("partner_id", partnerId)
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
+                        .bind("event_date", eventDate)
+                        .bind("window", window.toSeconds() + " seconds"))
+                .update()
                 .changed();
     }
 
