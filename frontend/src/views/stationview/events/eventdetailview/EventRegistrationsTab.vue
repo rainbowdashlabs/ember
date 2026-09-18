@@ -30,6 +30,7 @@ import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistra
 import RegistrationsPanel from './RegistrationsPanel.vue'
 import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
 import SignupListsMenu from './signuplists/SignupListsMenu.vue'
+import RegistrationTableButton from './RegistrationTableButton.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import EventAnswerDialog from '../eventshared/EventAnswerDialog.vue'
 import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
@@ -49,6 +50,15 @@ const props = defineProps<{
 const {t} = useI18n()
 const {canManageEvents, hasPermission} = useSession()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
+
+/**
+ * Whether the table of who is coming is offered at all.
+ *
+ * <p>Only to whoever handles the registrations. A member's number on the register, their age and
+ * where they live are confidential whichever columns somebody picks, so the permission comes first
+ * and the field scopes cut what is left.
+ */
+const canDrawTable = computed(() => hasPermission(StationPermission.EVENT_REGISTRATION))
 
 const registrations = ref<EventRegistrationEntry[]>([])
 const registrationStats = ref<MemberRegistrationStats[]>([])
@@ -444,6 +454,7 @@ onMounted(loadRegistrations)
         @manual-register="manualRegister"
     >
       <template #header-actions>
+        <RegistrationTableButton v-if="canDrawTable" :event-id="eventId" :effective-date="effectiveDate"/>
         <SignupListsMenu
             :event="event"
             :effective-date="effectiveDate"
@@ -451,6 +462,7 @@ onMounted(loadRegistrations)
         />
       </template>
     </RegistrationsPanel>
+
 
     <RegistrationFieldsModal
         v-model="showEditAnswers"

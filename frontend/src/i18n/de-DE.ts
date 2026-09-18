@@ -2079,6 +2079,19 @@ export default {
         noMailServer: 'Diese Instanz hat keinen Mailserver eingerichtet und versendet keine '
             + 'Einrichtungs-Mails. Gib den Einrichtungs-Link selbst weiter.',
     },
+    memberTable: {
+        open: 'Tabelle',
+        title: 'Tabelle mit ausgewählten Spalten',
+        hint: 'Wähle, was neben den Namen stehen soll. Angeboten wird nur, was du selbst sehen darfst.',
+        selectColumns: 'Spalten',
+        savedSelections: 'Gespeicherte Auswahlen',
+        saveAs: 'Auswahl speichern als',
+        save: 'Speichern',
+        preview: 'Anzeigen',
+        csv: 'Als Tabelle',
+        pdf: 'Als Blatt',
+        nobody: 'Auf dieser Liste steht niemand.',
+    },
     membersList: {
         accountPending: 'Konto noch nicht eingerichtet - die Person hat sich noch kein Passwort gesetzt.',
         accountPendingExpires: 'Der zugesendete Link ist gültig bis {date}.',
