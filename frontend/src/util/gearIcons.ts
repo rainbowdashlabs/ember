@@ -49,6 +49,7 @@ export const GEAR_ICONS: readonly GearIcon[] = [
 
     entry('radio', 'equipment', ['funk', 'funkgerät', 'feststation']),
     entry('walkie-talkie', 'equipment', ['funk', 'handfunkgerät', 'hfg']),
+    entry('headphones', 'equipment', ['kopfhörer', 'headset', 'gehörschutz']),
     entry('toolbox', 'equipment', ['werkzeugkasten', 'werkzeug', 'kiste']),
     entry('screwdriver-wrench', 'equipment', ['werkzeug', 'schrauben', 'reparatur']),
     entry('wrench', 'equipment', ['schlüssel', 'werkzeug']),
@@ -87,6 +88,8 @@ export const GEAR_ICONS: readonly GearIcon[] = [
     entry('briefcase', 'general', ['aktentasche', 'unterlagen']),
     entry('layer-group', 'general', ['sammlung', 'schichten', 'gruppe']),
     entry('folder', 'general', ['ordner', 'mappe']),
+    entry('key', 'general', ['schlüssel', 'schließung', 'spind']),
+    entry('stapler', 'general', ['tacker', 'hefter', 'büro']),
     entry('hand-holding', 'general', ['leihe', 'geliehen', 'übergabe']),
 ] as const
 
