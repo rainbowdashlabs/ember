@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
@@ -38,6 +39,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -476,13 +478,61 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var session = openSheet(templateId, null, null, weekly.id(), null);
 
         assertEquals(
-                LocalDate.now(ZoneOffset.UTC),
+                LocalDate.now(stationRepo
+                        .findById(station.id())
+                        .map(StationFormat::timezoneOf)
+                        .orElseThrow()),
                 session.startTime().atZone(ZoneOffset.UTC).toLocalDate());
         assertEquals(18, session.startTime().atZone(ZoneOffset.UTC).getHour());
         assertEquals(Duration.ofHours(2), Duration.between(session.startTime(), session.endTime()));
 
         service.deleteSession(session.id());
         eventRepo.delete(weekly.id());
+    }
+
+    /**
+     * Which day a sheet is opened for is the station's day, not the server's.
+     *
+     * <p>A station far enough east has been on tomorrow for hours while the server is still on today,
+     * so asking the server put the sheet on the occurrence before the one everybody had turned up for,
+     * and the evening's sheet was nowhere to be found.
+     */
+    @Test
+    @Order(50)
+    void aSheetFromARepeatingAppointmentRunsOnTheStationsDayAndNotTheServers() {
+        var faraway = ZoneId.of("Pacific/Kiritimati");
+        stationRepo.updateTimezone(station.id(), faraway.getId());
+        Instant configuredLongAgo = Instant.parse("2024-09-04T18:00:00Z");
+        var weekly = eventRepo.create(
+                station.id(),
+                "Übung am anderen Ende der Welt",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                3,
+                configuredLongAgo,
+                configuredLongAgo.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        try {
+            var session = openSheet(templateId, null, null, weekly.id(), null);
+
+            assertEquals(
+                    LocalDate.now(faraway),
+                    session.startTime().atZone(ZoneOffset.UTC).toLocalDate());
+
+            service.deleteSession(session.id());
+        } finally {
+            stationRepo.updateTimezone(station.id(), station.timezone());
+            eventRepo.delete(weekly.id());
+        }
     }
 
     /** A sheet of no length counted everybody who was there for nothing, so it is no longer made. */
