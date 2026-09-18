@@ -16,6 +16,7 @@ import { waitingList } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useConfirmAction } from '@/composables/useConfirmAction'
+import {usableOptions} from '@/util/choiceOptions'
 import FieldsList from './fieldeditorview/FieldsList.vue'
 import FieldModal from './fieldeditorview/FieldModal.vue'
 import DeleteFieldModal from './fieldeditorview/DeleteFieldModal.vue'
@@ -86,8 +87,9 @@ function openEditField(field: WaitingListField) {
 }
 
 function buildConfig(): WaitingListFieldConfig {
-  if (fieldType.value !== 'ENUM' || fieldEnumOptions.value.length === 0) return {}
-  return {options: [...fieldEnumOptions.value]}
+  const options = usableOptions(fieldEnumOptions.value)
+  if (fieldType.value !== 'ENUM' || options.length === 0) return {}
+  return {options}
 }
 
 const { running: savingField, error: saveFieldError, run: saveField } = useAsyncAction(async () => {

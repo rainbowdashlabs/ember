@@ -15,6 +15,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import EventFieldTypeConfig from './EventFieldTypeConfig.vue'
+import {usableOptions} from '@/util/choiceOptions'
 import {fieldConstraint, isMemberFieldType} from './eventFieldConfig'
 import type {AttendanceTemplateField} from '@/api/attendance'
 import {EventFieldTypes, type EventFieldEntry} from '@/api/events'
@@ -96,8 +97,9 @@ function buildConfig(): Record<string, unknown> {
   const c: Record<string, unknown> = {}
   if (width.value && width.value !== FieldWidths.FULL) c.width = width.value
   const constraint = fieldConstraint(fieldType.value)
-  if (fieldType.value === 'ENUM' && enumOptions.value.length > 0) {
-    c.options = [...enumOptions.value]
+  const options = usableOptions(enumOptions.value)
+  if (fieldType.value === 'ENUM' && options.length > 0) {
+    c.options = options
   }
   if (constraint === 'group' && groupId.value) {
     c.groupId = Number(groupId.value)
