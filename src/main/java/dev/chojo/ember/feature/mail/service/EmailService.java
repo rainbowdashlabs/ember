@@ -336,6 +336,33 @@ public class EmailService {
      * <p>The allowance belongs to the providers rather than to the station, so a list whose first
      * provider is spent can still send through the next one.
      */
+    /**
+     * Queues a mail that belongs to no station, which goes out through the instance's own chain.
+     *
+     * <p>A cluster spans several stations and has no address of its own that a reader would
+     * recognise, so what it sends carries the instance's.
+     */
+    public void queueInstanceEmail(String to, String subject, String htmlBody) {
+        if (demoConfig.enabled()) {
+            log.info("Demo mode: Suppressed instance email to={} subject={}", to, subject);
+            return;
+        }
+        queueRepository.enqueue(to, subject, htmlBody, null);
+        log.debug("Instance email queued to={} subject={}", to, subject);
+    }
+
+    /** Whether the instance's own chain has room to send today. */
+    public boolean canInstanceSend() {
+        LocalDate today = LocalDate.now();
+        var chain = chainService.forInstance();
+        for (int position = 0; position < chain.size(); position++) {
+            if (chain.get(position).hasRoomToday(queueRepository.getProviderDailyCount(today, null, position))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean canStationSend(int stationId) {
         LocalDate today = LocalDate.now();
         var chain = chainService.forStation(stationId);

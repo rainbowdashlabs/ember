@@ -216,6 +216,20 @@ public class NotificationRepository {
      *
      * @return list of unemailed notifications, ordered by member and creation time
      */
+    /**
+     * The notifications waiting to be mailed to somebody who follows a cluster.
+     *
+     * <p>Its twin for station members has always existed; this one had not, so a cluster's
+     * notifications were written to the table and never taken out of it again. Somebody following a
+     * cluster heard nothing about the partner stations they joined it for.
+     */
+    public List<Notification> findUnemailedForClusters() {
+        return query("""
+                SELECT %s FROM notification
+                WHERE emailed_at IS NULL AND cluster_member_id IS NOT NULL
+                ORDER BY cluster_member_id, created_at;""", NOTIFICATION_COLUMNS).single().map(Notification.map()).all();
+    }
+
     public List<Notification> findUnemailed() {
         return query("""
                 SELECT %s FROM notification

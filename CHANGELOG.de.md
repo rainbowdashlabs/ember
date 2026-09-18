@@ -5,17 +5,23 @@
 ### Neue Funktionen
 
 - **Eine Partnerwache kann eigene Plätze bekommen.** Ein mit einer anderen Wache geteilter Termin kann Plätze für sie zurücklegen, mit oder ohne Obergrenze, und diese Wache wählt dann selbst, wer von ihren Leuten sie einnimmt, statt auf eine Bestätigung zu warten. Ist nichts zurückgelegt, bestätigt die ausrichtende Wache wie bisher jeden Gast selbst.
+- **Eine Station bestimmt, wann ihre Benachrichtigungen verschickt werden.** Unter Station → Mailing nennt sie die Uhrzeiten, zu denen die gesammelten Benachrichtigungen rausgehen, etwa sieben Uhr morgens und zwei Uhr nachmittags, oder einfach stündlich. Was dazwischen ankommt, wartet auf den nächsten Termin: Eine Station, die eine Mail am Tag will, bekommt jetzt eine Mail am Tag.
 
 ### Verbesserungen
 
 - **Eine Abmeldung von einem Termin fragt nach und lässt sich zurücknehmen.** Jeder Knopf, der einen Platz zurückgibt, stellt jetzt vorher eine kurze Frage, auch der, der einen ganzen Haushalt auf einmal abmeldet. Fünf Minuten lang lässt sich die Abmeldung über die eingeblendete Meldung wieder zurücknehmen, und zurück kommt der Platz, der belegt war, und nicht eine neue Anmeldung am Ende der Warteschlange. Mit gedrückter Umschalttaste entfällt die Frage, wie an anderen Stellen auch.
 - **Zu spät zur Anmeldung sagt jetzt, wer weiterhelfen kann.** Eine erneute Anmeldung nach dem Anmeldeschluss endete in einer nichtssagenden Fehlermeldung. Jetzt steht dort, dass die Anmeldung geschlossen ist und dass die Terminleitung noch jemanden aufnehmen kann.
 - **Ein Gast einer Partnerwache wird behandelt wie ein eigenes Mitglied.** Seine Anmeldung wird sofort angenommen, wenn der Termin keine Bestätigung verlangt, statt auf eine zu warten, um die nie jemand gebeten wurde, und sie wird abgelehnt, wenn der Termin keine Anmeldungen annimmt, abgesagt wurde oder die Anmeldung geschlossen ist. Eine Abmeldung bleibt vermerkt, damit die ausrichtende Wache erkennt, wer sich abgemeldet hat und wer nie geantwortet hat.
+- **Wer einem Verbund folgt, erfährt von dessen Partnerwachen.** Benachrichtigungen aus einem Verbund wurden zwar gesammelt, aber an niemanden verschickt: Wer einem Verbund folgte, um über die Partner auf dem Laufenden zu bleiben, hörte gar nichts. Sie gehen jetzt mit denselben Zeiten und Einstellungen raus wie die einer Station.
 - **Die Dateien eines Termins werden gezeigt, nicht nur angeboten.** Ein Druck darauf öffnet die Datei an Ort und Stelle: Herauszufinden, welches von vier Blättern die Karte ist, heißt nicht mehr, alle vier herunterzuladen. Das Speichern bleibt eine eigene Schaltfläche.
 - **Dateien zeigen, was in ihnen steckt.** Bilder und die erste Seite eines PDFs stehen jetzt neben der Datei, in der Liste eines Termins wie in der Mediathek, statt einer Reihe gleicher Symbole.
 - **Auswahlmöglichkeiten an Terminen und Wartelisten werden zeilenweise erfasst.** Beide fragten die ganze Liste noch in einem einzigen Feld ab, das eine trennte bei Zeilenumbrüchen, das andere bei Kommas: Eine Auswahl mit Komma wurde so unbemerkt zu zweien. Sie nutzen jetzt denselben Editor wie überall sonst, mit einer Zeile je Auswahl, die sich umsortieren lässt.
 - **Die Löschen-Schaltfläche an den Feldern eines Termins sitzt an einer festen Stelle.** Sie teilte sich eine Zeile, die umbrach, und konnte dadurch mitten im Bereich zwischen anderen Einstellungen landen; jetzt steht sie oben rechts an ihrem Feld.
 - **Die Neuigkeitenliste liest sich wieder als Liste.** Ein langer Beitrag füllt nicht mehr die ganze Seite: Beiträge werden auf wenige Zeilen gekürzt und laden zum Weiterlesen ein, den Rest gibt es auf der Seite des Beitrags.
+
+### Änderungen
+
+- **Benachrichtigungsmails gehen frühestens stündlich raus.** War eine Instanz auf eine kürzere Sammelzeit als eine Stunde eingestellt, werden ihre Stationen jetzt zur vollen Stunde angeschrieben. Wer sich auf eine kürzere Sammelzeit verlassen hat, sollte wissen, dass sie die Wartezeit nicht mehr darunter drückt.
 
 ### Fehlerbehebungen
 

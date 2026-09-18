@@ -5,17 +5,23 @@
 ### New Features
 
 - **A partner station can be given places of its own.** An appointment shared with another station can set aside places for it, with or without a limit on how many, and that station then picks which of its own people fill them instead of waiting to be confirmed. Where nothing is set aside, the station holding the appointment confirms each guest itself, as it always did.
+- **A station says when its notifications are mailed out.** Under Station → Mailing it names the times of day its gathered notifications go out, seven in the morning and two in the afternoon for instance, or simply every hour. What arrives between two of them waits for the next, so a station that wants one mail a day now gets one mail a day.
 
 ### Improvements
 
 - **Giving up a place at an appointment asks first, and can be taken back.** Every button that signs somebody off now opens a short question before the place goes, including the one that signs off a whole household at once. For five minutes afterwards the sign-off can be undone from the message that appears, and what comes back is the place that was held rather than a fresh sign-up at the end of the queue. Hold shift while pressing to skip the question, as elsewhere.
 - **Being too late to sign up now says who can help.** Trying to sign up again after the list has closed answered with a bare failure. It now says the list is closed and that whoever runs the appointment can still add somebody.
 - **A guest from a partner station is treated like a member of the station.** Their sign-up is accepted straight away where the appointment asks for no confirmation, rather than waiting for one that nobody was ever asked to give, and it is refused where the appointment takes no sign-ups, has been called off, or has closed its list. Signing off keeps the record, so the station holding the appointment can tell somebody who left from somebody who never answered.
+- **People following a cluster hear about its partner stations.** Notifications from a cluster were gathered but never mailed to anybody, so somebody who followed one to keep up with its partners heard nothing at all. They now go out with the same times and settings as a station's.
 - **An appointment's files are shown rather than only offered.** Pressing one opens it where it is, so finding out which of four sheets is the map no longer means saving all four. Saving is still a button of its own.
 - **Files show what they hold.** Pictures and the first page of a PDF now stand beside a file in an appointment's list and in the media library, instead of a row of identical icons.
 - **Choices on an appointment and on a waiting list are written one to a row.** Both still asked for the whole list in a single box, one splitting it at line breaks and the other at commas, so a choice containing a comma quietly became two. They now use the same editor as everywhere else, with a row per choice that can be reordered.
 - **The delete button on an appointment's fields sits in one place.** It shared a row that wrapped, so it could end up in the middle of the panel between other settings; it now stays at the top right of the field it belongs to.
 - **The news list reads as a list again.** A long entry no longer fills the page: entries are cut to a few lines with an invitation to read on, and the entry's own page is where the rest of it is.
+
+### Changes
+
+- **Notification mail goes out on the hour at the earliest.** An installation set to gather notifications for less than an hour now has its stations written to at the top of the hour instead. Operators relying on a shorter gathering time should know it no longer shortens the wait below that.
 
 ### Fixes
 
