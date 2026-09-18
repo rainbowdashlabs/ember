@@ -1,5 +1,21 @@
 # Changelog
 
+## v26.18.1
+
+### Improvements
+
+- **Choices on an appointment and on a waiting list are written one to a row.** Both still asked for the whole list in a single box, one splitting it at line breaks and the other at commas, so a choice containing a comma quietly became two. They now use the same editor as everywhere else, with a row per choice that can be reordered.
+- **The delete button on an appointment's fields sits in one place.** It shared a row that wrapped, so it could end up in the middle of the panel between other settings; it now stays at the top right of the field it belongs to.
+- **The news list reads as a list again.** A long entry no longer fills the page: entries are cut to a few lines with an invitation to read on, and the entry's own page is where the rest of it is.
+
+### Fixes
+
+- **News from the makers of Ember carried no mark in the list.** The Ember logo appeared once an entry was opened but not on the list it was opened from, so nothing there told such an entry apart from one written at the station.
+
+- **Deleting an account reported problems that were not real.** Removing an account listed several kinds of data it could not clear up, although the database had already removed them and nothing was left behind. The list of what to clear is now checked against the database itself, so it cannot fall out of step again unnoticed.
+- **Somebody giving up a place could vanish from the list entirely.** A place that had not been confirmed was removed outright when it was given back, so the registration list was simply one shorter and nothing said who had dropped out, even though the notification about it had gone out. Every place given back now stays on the list as withdrawn, and signing up again works as before.
+- **A sheet opened late in the evening was made for the day before.** Starting an attendance from a repeating appointment read the date off the server's clock rather than the station's, so in the last hours before midnight the sheet was opened for the previous occurrence and carried that evening's times. The day is now the station's throughout.
+
 ## v26.18.0
 
 ### New Features
