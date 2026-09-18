@@ -1,5 +1,12 @@
 # Changelog
 
+## v26.18.2
+
+### Fixes
+
+- **A yearly appointment could come up on the wrong day.** For a station whose clock runs ahead of the server's, an evening beginning at midnight counted as the day before, so the anniversary of a yearly appointment fell a day early. The day is now read on the station's own clock.
+- **Registration could close a day early.** The check that closes a list a set number of days before an appointment asked the server what day it was rather than the station, so a station ahead of it spent the last hours of the evening being told it was still yesterday and closed its lists one day out.
+
 ## v26.18.1
 
 ### New Features

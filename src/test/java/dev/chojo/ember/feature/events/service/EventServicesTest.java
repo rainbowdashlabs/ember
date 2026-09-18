@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
@@ -34,7 +35,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
 import java.util.List;
@@ -72,6 +73,23 @@ class EventServicesTest extends RepositoryTestBase {
         station = stationRepo.create("EventStation");
         account = accountRepo.create("event-svc@test.com", "Event", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
+    }
+
+    /**
+     * The clock the appointments are read on, which is the station's and never the server's.
+     *
+     * <p>A station in Berlin is already on the next day for the two hours before midnight UTC, so a
+     * test that asked UTC what day it was built its appointment for one day and then looked for it on
+     * another. It passed for twenty-two hours out of twenty-four, which is the worst way for a test to
+     * be wrong.
+     */
+    private static ZoneId stationZone() {
+        return StationFormat.timezoneOf(stationRepo.findById(station.id()).orElse(null));
+    }
+
+    /** Today as the station has it, which is the day every one of these lookups answers about. */
+    private static LocalDate stationToday() {
+        return LocalDate.now(stationZone());
     }
 
     @AfterAll
@@ -1025,8 +1043,8 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(120)
     void findUpcomingOccurrencesOneTime() {
         // Create a ONE_TIME event in the future
-        var futureDate = LocalDate.now(ZoneOffset.UTC).plusDays(5);
-        var start = futureDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+        var futureDate = stationToday().plusDays(5);
+        var start = futureDate.atStartOfDay(stationZone()).toInstant();
         var end = start.plus(2, ChronoUnit.HOURS);
 
         var event = crudService.create(
@@ -1058,7 +1076,7 @@ class EventServicesTest extends RepositoryTestBase {
         // break created by earlier tests (e.g. the Summer break 2026-07-01 to 2026-08-31).
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        int dow = LocalDate.now(ZoneOffset.UTC).getDayOfWeek().getValue();
+        int dow = stationToday().getDayOfWeek().getValue();
 
         var event = crudService.create(
                 station.id(),
@@ -1113,7 +1131,7 @@ class EventServicesTest extends RepositoryTestBase {
         // MONTHLY_FIRST: matches when dayOfWeek matches and dayOfMonth <= 7
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        int dow = LocalDate.now(ZoneOffset.UTC).plusDays(1).getDayOfWeek().getValue();
+        int dow = stationToday().plusDays(1).getDayOfWeek().getValue();
 
         var event = crudService.create(
                 station.id(),
@@ -1143,7 +1161,7 @@ class EventServicesTest extends RepositoryTestBase {
     void findUpcomingOccurrencesQuarterly() {
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        int dow = LocalDate.now(ZoneOffset.UTC).plusDays(1).getDayOfWeek().getValue();
+        int dow = stationToday().plusDays(1).getDayOfWeek().getValue();
 
         var event = crudService.create(
                 station.id(),
@@ -1171,8 +1189,8 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(127)
     void findUpcomingOccurrencesYearly() {
         // YEARLY event with start time set so month/day match a date in the next 28 days
-        var futureDate = LocalDate.now(ZoneOffset.UTC).plusDays(10);
-        var start = futureDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+        var futureDate = stationToday().plusDays(10);
+        var start = futureDate.atStartOfDay(stationZone()).toInstant();
         var end = start.plus(2, ChronoUnit.HOURS);
         int dow = futureDate.getDayOfWeek().getValue();
 
@@ -1202,7 +1220,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(128)
     void findUpcomingOccurrencesDuringBreak() {
         // Create a break covering the next 28 days
-        var breakStart = LocalDate.now(ZoneOffset.UTC);
+        var breakStart = stationToday();
         var breakEnd = breakStart.plusDays(28);
         var brk = breakService.create(station.id(), "Test Break", breakStart, breakEnd);
 
@@ -1212,7 +1230,7 @@ class EventServicesTest extends RepositoryTestBase {
 
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        int dow = LocalDate.now(ZoneOffset.UTC).plusDays(1).getDayOfWeek().getValue();
+        int dow = stationToday().plusDays(1).getDayOfWeek().getValue();
 
         crudService.create(
                 breakStation.id(),
@@ -1250,7 +1268,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(1290)
     void upcomingOccurrencesReadFromTheNearestToTheFurthest() {
         var sortStation = stationRepo.create("SortStation");
-        var day = LocalDate.now(ZoneOffset.UTC).plusDays(9);
+        var day = stationToday().plusDays(9);
 
         int evening = oneTimeAt(sortStation.id(), "Abends", day.atTime(19, 0)).id();
         int nextMorning = oneTimeAt(
@@ -1267,7 +1285,8 @@ class EventServicesTest extends RepositoryTestBase {
     }
 
     private static StationEvent oneTimeAt(int stationId, String name, LocalDateTime at) {
-        var start = at.toInstant(ZoneOffset.UTC);
+        var zone = StationFormat.timezoneOf(stationRepo.findById(stationId).orElse(null));
+        var start = at.atZone(zone).toInstant();
         return crudService.create(
                 stationId,
                 name,
@@ -1291,8 +1310,8 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(129)
     void findUpcomingOccurrencesOneTimePastNotIncluded() {
         // ONE_TIME event in the past should NOT appear
-        var pastDate = LocalDate.now(ZoneOffset.UTC).minusDays(5);
-        var start = pastDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+        var pastDate = stationToday().minusDays(5);
+        var start = pastDate.atStartOfDay(stationZone()).toInstant();
         var end = start.plus(2, ChronoUnit.HOURS);
 
         var event = crudService.create(
@@ -1669,7 +1688,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(160)
     void findTodayEventsRecurringMatchingToday() {
-        int todayDow = LocalDate.now(ZoneOffset.UTC).getDayOfWeek().getValue();
+        int todayDow = stationToday().getDayOfWeek().getValue();
         var start = Instant.now();
         var end = start.plus(2, ChronoUnit.HOURS);
 
@@ -1699,8 +1718,8 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(161)
     void findTodayEventsOneTimeNonMatchingDate() {
         // ONE_TIME event with start time on a different day should NOT match today
-        var tomorrow = LocalDate.now(ZoneOffset.UTC).plusDays(1);
-        var start = tomorrow.atStartOfDay(ZoneOffset.UTC).toInstant();
+        var tomorrow = stationToday().plusDays(1);
+        var start = tomorrow.atStartOfDay(stationZone()).toInstant();
         var end = start.plus(2, ChronoUnit.HOURS);
 
         var event = crudService.create(
@@ -1730,7 +1749,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(162)
     void findTodayEventsRecurringWithNonMatchingDayOfWeek() {
         // RECURRING event with a different day of week should NOT match today
-        int todayDow = LocalDate.now(ZoneOffset.UTC).getDayOfWeek().getValue();
+        int todayDow = stationToday().getDayOfWeek().getValue();
         int otherDow = (todayDow % 7) + 1; // pick a different day
         var start = Instant.now();
         var end = start.plus(2, ChronoUnit.HOURS);
@@ -1761,7 +1780,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(163)
     void findTodayEventsMonthlyFirst() {
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate today = stationToday();
         int todayDow = today.getDayOfWeek().getValue();
         var start = Instant.now();
         var end = start.plus(2, ChronoUnit.HOURS);
@@ -1796,7 +1815,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(164)
     void findTodayEventsQuarterly() {
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate today = stationToday();
         int todayDow = today.getDayOfWeek().getValue();
         var start = Instant.now();
         var end = start.plus(2, ChronoUnit.HOURS);
@@ -1831,8 +1850,8 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(165)
     void findTodayEventsYearly() {
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        var start = today.atStartOfDay(ZoneOffset.UTC).toInstant();
+        LocalDate today = stationToday();
+        var start = today.atStartOfDay(stationZone()).toInstant();
         var end = start.plus(2, ChronoUnit.HOURS);
 
         var event = crudService.create(
@@ -2058,8 +2077,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(102)
     void findTodayEventsWithOneTimeMatchingToday() {
         // Create a ONE_TIME event with start time = today UTC
-        var todayStart =
-                LocalDate.now(ZoneOffset.UTC).atStartOfDay(ZoneOffset.UTC).toInstant();
+        var todayStart = stationToday().atStartOfDay(stationZone()).toInstant();
         var todayEnd = todayStart.plus(2, ChronoUnit.HOURS);
 
         var event = crudService.create(
@@ -2171,7 +2189,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(207)
     void findUpcomingOccurrencesWithSearch() {
         // Create a recognisable event so the search filter has something to match.
-        int dow = LocalDate.now(ZoneOffset.UTC).getDayOfWeek().getValue();
+        int dow = stationToday().getDayOfWeek().getValue();
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
         var unique = crudService.create(
@@ -2254,7 +2272,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null,
                 null);
-        var eventDate = start.atZone(ZoneOffset.UTC).toLocalDate();
+        var eventDate = start.atZone(stationZone()).toLocalDate();
         registrationService.register(event.id(), member.id(), eventDate, true, null);
 
         var regs = registrationService.findByMembers(List.of(member.id()));
