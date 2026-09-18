@@ -81,6 +81,10 @@ public class FederatedEventRoutes implements Routes {
                 prefix + "/federated/{stationuid}/events/{id}/register",
                 this::federatedWithdraw,
                 StationPermission.USER);
+        routes.post(
+                prefix + "/federated/{stationuid}/events/{id}/register/undo",
+                this::federatedUndoWithdrawal,
+                StationPermission.USER);
         routes.get(
                 prefix + "/federated/{stationuid}/events/{id}/attachments",
                 this::federatedListAttachments,
@@ -203,6 +207,36 @@ public class FederatedEventRoutes implements Routes {
                     partner.id(),
                     fed.remoteMemberId(),
                     LocalDate.parse(fed.req().eventDate()));
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Asking the station that holds the appointment to put a place back.
+     *
+     * <p>Whether it is still possible is theirs to answer, because they hold the row and the clock
+     * that measures the few minutes. A refusal is not a failure here: it means the time has passed,
+     * and the member is told so rather than left wondering whether the press landed.
+     */
+    private void federatedUndoWithdrawal(Context ctx) {
+        var fed = resolveFederatedRegContext(ctx);
+        var partner = fed.partner();
+        boolean restored = partner.isRemote()
+                ? eventFederationService.undoFederatedWithdrawal(
+                        partner.remoteHost(),
+                        partner.partnerStationId(),
+                        fed.eventId(),
+                        fed.remoteMemberId(),
+                        fed.req().eventDate(),
+                        fed.station().id(),
+                        fed.station().federationPrivateKey())
+                : eventFederationService.undoWithdrawal(
+                        fed.eventId(),
+                        partner.id(),
+                        fed.remoteMemberId(),
+                        LocalDate.parse(fed.req().eventDate()));
+        if (!restored) {
+            throw new BadRequestResponse("This can no longer be taken back");
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }

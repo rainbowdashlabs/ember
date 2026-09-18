@@ -70,12 +70,6 @@ public class EventRegistrationFieldRepository {
                 FIELD_COLUMNS);
     }
 
-    public void deleteByEvent(int eventId) {
-        query("DELETE FROM event_registration_field WHERE event_id = :event_id;")
-                .single(call().bind("event_id", eventId))
-                .delete();
-    }
-
     /**
      * Replaces an event's questions with a new list, numbering them in the order given.
      *
@@ -221,22 +215,6 @@ public class EventRegistrationFieldRepository {
                         .bind("field_id", fieldId)
                         .bind("value", value))
                 .insert();
-    }
-
-    /**
-     * Drops every answer a registration carried.
-     *
-     * <p>A registration that is withdrawn keeps its row, so what the member had written no longer
-     * goes with it: the answers are theirs, given for a place they have given back, and a list of
-     * allergies or clothing sizes has no reason to outlive the registration it was asked for. This
-     * used to happen by cascade, when withdrawing deleted the registration outright.
-     *
-     * @param registrationId the registration to clear
-     */
-    public void deleteValues(int registrationId) {
-        query("DELETE FROM event_registration_field_value WHERE registration_id = :registration_id;")
-                .single(call().bind("registration_id", registrationId))
-                .delete();
     }
 
     /**

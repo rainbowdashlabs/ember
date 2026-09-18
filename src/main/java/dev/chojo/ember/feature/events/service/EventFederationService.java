@@ -724,6 +724,38 @@ public class EventFederationService {
         return withdrawn;
     }
 
+    /**
+     * Asks the station that holds the appointment to put one of our members back after a withdrawal.
+     *
+     * <p>Their clock decides, not ours: two instances keep two clocks, and the row is theirs. A
+     * refusal here is the ordinary answer once the few minutes have passed, so it is not logged as
+     * anything worse.
+     *
+     * @return true where they put the place back
+     */
+    public boolean undoFederatedWithdrawal(
+            String remoteHost,
+            UUID partnerStationUid,
+            int eventId,
+            UUID remoteMemberId,
+            String eventDate,
+            int localStationId,
+            String localPrivateKeyBase64) {
+        boolean restored = httpClient.post(
+                remoteHost,
+                RemoteEventRoutes.UNDO_WITHDRAWAL.at(eventId),
+                new FederatedRegBody(remoteMemberId, eventDate),
+                partnerStationUid,
+                localStationId,
+                localPrivateKeyBase64);
+        if (restored) {
+            log.info("Station {} took a withdrawal back for event {} at {}", localStationId, eventId, remoteHost);
+        } else {
+            log.info("A withdrawal for event {} at {} could no longer be taken back", eventId, remoteHost);
+        }
+        return restored;
+    }
+
     private List<FederatedEventItem> browseEventsDirect(FederationPartner partner) {
         int partnerStationId = stationRepository
                 .findByUid(partner.partnerStationId())

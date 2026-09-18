@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:37c3726413275786832cd6befd69353ebe977e88873ef027a7e5998e7fbe6d9e",
-  "generatedAt": "2026-09-16T19:05:14Z",
+  "schemaHash": "sha256:0dd069afc82326a693e6312aa2f385e8a28fb17c641b896b664695df2d4bce91",
+  "generatedAt": "2026-09-18T13:06:51Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6954,7 +6954,7 @@
     "event_federation_registration": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:b38bcb650c9f0ad6fd83974c0a96c868c0e28946ee13cde524220fb233a1e5d1",
+      "tableHash": "sha256:8fa8893640a96f7acb2828bc6580e2856ecf6460513a600bf502a66b9525e535",
       "columns": [
         {
           "name": "id",
@@ -7004,6 +7004,20 @@
           "nullable": false,
           "verified": true,
           "description": "When the registration was created."
+        },
+        {
+          "name": "status_changed_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the status last changed, by the clock of the station that holds the appointment. Two instances have two clocks, and the one that owns the row is the one that decides whether a withdrawal can still be taken back."
+        },
+        {
+          "name": "previous_status",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What was held immediately before the current status, for as long as a withdrawal can be taken back."
         }
       ],
       "foreignKeys": [
@@ -7304,7 +7318,7 @@
     "event_registration": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:64dd25ffb2554646d53a4ddcc5a0a6286a283e0883c5618b61c9dc32b8615154",
+      "tableHash": "sha256:ee1b9e584e09d6470c7fbde267f6e3c639f536230751fc732c707eefe99c2fc1",
       "columns": [
         {
           "name": "id",
@@ -7354,6 +7368,20 @@
           "nullable": false,
           "verified": true,
           "description": "When the registration was created."
+        },
+        {
+          "name": "status_changed_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the status last changed. Its own column because created_at is bumped by some paths and not others, and a window measured off a value that means two things measures neither."
+        },
+        {
+          "name": "previous_status",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What was held immediately before the current status, for as long as a withdrawal can be taken back. Restoring a place has to give back the place: somebody who held a confirmed seat and pressed the wrong button must not be handed a pending one."
         }
       ],
       "foreignKeys": [

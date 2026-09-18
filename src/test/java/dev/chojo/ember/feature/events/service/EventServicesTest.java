@@ -451,7 +451,13 @@ class EventServicesTest extends RepositoryTestBase {
 
         var reg = registrationService.register(event.id(), member.id(), LocalDate.of(2026, 10, 2), false, null);
         assertTrue(registrationService.withdraw(reg.id()));
-        assertTrue(registrationService.findById(reg.id()).isEmpty());
+
+        var withdrawn = registrationService.findById(reg.id()).orElseThrow();
+        assertEquals(
+                RegistrationStatus.WITHDRAWN,
+                withdrawn.status(),
+                "the row stays: an undo needs something to put back, and a withdrawal still owes an answer");
+        assertTrue(registrationService.undoWithdrawal(reg.id()), "and it can be put back while the window is open");
     }
 
     @Test

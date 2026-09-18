@@ -336,10 +336,23 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(17)
     void withdrawRegistration() {
         UUID toWithdraw = UUID.fromString("00000000-0000-0000-0000-000000000099");
-        service.registerFederated(eventId, partnerId, toWithdraw, LocalDate.of(2026, 8, 1));
-        boolean withdrawn = service.withdrawRegistration(eventId, partnerId, toWithdraw, LocalDate.of(2026, 8, 1));
-        assertTrue(withdrawn);
-        assertTrue(service.findRegistrations(eventId, LocalDate.of(2026, 8, 1)).isEmpty());
+        LocalDate day = LocalDate.of(2026, 8, 1);
+        service.registerFederated(eventId, partnerId, toWithdraw, day);
+
+        assertTrue(service.withdrawRegistration(eventId, partnerId, toWithdraw, day));
+        var withdrawn = service.findRegistrations(eventId, day).stream()
+                .filter(reg -> reg.remoteMemberId().equals(toWithdraw))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(
+                        "the row stays, or the host cannot tell somebody who left from somebody who never answered"));
+        assertEquals(RegistrationStatus.WITHDRAWN, withdrawn.status());
+
+        assertTrue(
+                service.undoWithdrawal(eventId, partnerId, toWithdraw, day),
+                "and a partner may ask for it back while the window is open");
+        assertTrue(
+                service.registerFederated(eventId, partnerId, toWithdraw, day).id() > 0,
+                "registering again after a withdrawal answers rather than colliding with the old row");
     }
 
     // -- Name cache --
