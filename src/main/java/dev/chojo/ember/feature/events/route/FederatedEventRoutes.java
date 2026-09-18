@@ -23,6 +23,7 @@ import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.BadGatewayResponse;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -85,6 +86,10 @@ public class FederatedEventRoutes implements Routes {
                 prefix + "/federated/{stationuid}/events/{id}/register/undo",
                 this::federatedUndoWithdrawal,
                 StationPermission.USER);
+        routes.post(
+                prefix + "/federated/{stationuid}/events/{id}/register/confirm",
+                this::federatedConfirmOwn,
+                StationPermission.EVENT_REGISTRATION);
         routes.get(
                 prefix + "/federated/{stationuid}/events/{id}/attachments",
                 this::federatedListAttachments,
@@ -247,6 +252,54 @@ public class FederatedEventRoutes implements Routes {
             throw new BadRequestResponse("This can no longer be taken back");
         }
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Giving one of our own members a place at a partner's appointment, where they handed us the
+     * choosing and a number of places to make it with.
+     *
+     * <p>Whoever keeps this station's registrations decides, which is the same right they hold for
+     * this station's own appointments. The places belong to the other station and so does the
+     * counting, so a refusal here means either that they never handed it over or that the places are
+     * full: both are answers, not failures.
+     */
+    private void federatedConfirmOwn(Context ctx) {
+        var fed = resolveFederatedRegContext(ctx);
+        var partner = fed.partner();
+        boolean confirmed = partner.isRemote()
+                ? eventFederationService.confirmOwnFederatedMember(
+                        partner.remoteHost(),
+                        partner.partnerStationId(),
+                        fed.eventId(),
+                        fed.remoteMemberId(),
+                        fed.req().eventDate(),
+                        fed.station().id(),
+                        fed.station().federationPrivateKey())
+                : confirmOnThisInstance(fed);
+        if (!confirmed) {
+            throw new BadRequestResponse("No places left");
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * The same, where the other station happens to live on this instance.
+     *
+     * <p>It still asks whether the decision was handed over, because a partner on the same instance is
+     * no more entitled to confirm its own than one across the network.
+     */
+    private boolean confirmOnThisInstance(FederatedRegContext fed) {
+        var day = LocalDate.parse(fed.req().eventDate());
+        if (!eventFederationService
+                .partnerPlaces(fed.eventId(), fed.partner().id())
+                .partnerConfirms()) {
+            throw new ForbiddenResponse("That station decides its own registrations for this event");
+        }
+        var registration = eventFederationService
+                .findRegistration(fed.eventId(), fed.partner().id(), fed.remoteMemberId(), day)
+                .orElseThrow(NotFoundResponse::new);
+        return eventFederationService.acceptWithinBudget(
+                registration.id(), fed.eventId(), fed.partner().id(), day);
     }
 
     /**

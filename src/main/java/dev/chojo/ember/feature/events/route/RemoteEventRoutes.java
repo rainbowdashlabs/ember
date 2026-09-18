@@ -214,7 +214,11 @@ public class RemoteEventRoutes implements Routes {
         var fields = eventFieldService.findByEvent(eventId).stream()
                 .filter(EventField::isPublic)
                 .toList();
-        ctx.json(new RemoteEventDetail(SharedEvent.of(event), fields));
+        var places = eventFederationService.partnerPlaces(eventId, partner.id());
+        ctx.json(new RemoteEventDetail(
+                SharedEvent.of(event),
+                fields,
+                places.partnerConfirms() ? new RemotePlaces(places.slotBudget(), true) : null));
     }
 
     /** The open files of a shared event, named for a partner that may ask about it. */
@@ -466,7 +470,19 @@ public class RemoteEventRoutes implements Routes {
         }
     }
 
-    public record RemoteEventDetail(SharedEvent event, List<EventField> publicFields) {}
+    /**
+     * @param places what this partner may do here, or {@code null} where the host decides as it always
+     *         did. A peer that has never heard of this field ignores it and behaves as before
+     */
+    public record RemoteEventDetail(SharedEvent event, List<EventField> publicFields, RemotePlaces places) {}
+
+    /**
+     * What a partner station has been given on one appointment, in its own terms.
+     *
+     * @param slotBudget how many places it may fill on a date, or {@code null} for no cap
+     * @param decidesItself whether it confirms its own members rather than the host doing it
+     */
+    public record RemotePlaces(Integer slotBudget, boolean decidesItself) {}
 
     /**
      * A file a shared event hands over, without its bytes: enough to list it and to ask for it.

@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -31,11 +32,16 @@ const props = defineProps<{
   registrations: FederatedRegistration[]
   eventId: number
   registering: boolean
+  /** Whether this station chooses who comes, because the other one handed that over. */
+  weDecide: boolean
+  /** How many places are left, in words, or empty where there is nothing to say. */
+  placesSummary: string
 }>()
 
 const emit = defineEmits<{
   register: []
   withdraw: [uid: string]
+  confirm: [uid: string]
 }>()
 
 const {t} = useI18n()
@@ -73,6 +79,11 @@ const canSubmit = computed(() => {
 <template>
   <NeutralContainer class="space-y-3">
     <SubHeader>{{ t('eventsUpcoming.registration') }}</SubHeader>
+
+    <MutedText v-if="props.placesSummary" tag="p" size="sm" data-testid="our-places">
+      {{ props.placesSummary }}
+    </MutedText>
+
     <div class="flex items-center gap-2 flex-wrap">
       <template v-for="m in props.eligibleMembers" :key="`reg-${m.uid}`">
         <div v-if="getRegistration(m.uid)" class="flex items-center gap-1">
@@ -80,6 +91,16 @@ const canSubmit = computed(() => {
           <SuccessBadge v-if="getRegistration(m.uid)!.status === 'ACCEPTED'">{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
           <InfoBadge v-else-if="getRegistration(m.uid)!.status === 'PENDING'">{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
           <ErrorBadge v-else-if="getRegistration(m.uid)!.status === 'DENIED'">{{ t('eventsUpcoming.statusDenied') }}</ErrorBadge>
+          <PrimaryButton
+              v-if="props.weDecide && getRegistration(m.uid)!.status === 'PENDING'"
+              :disabled="props.registering"
+              compact
+              class="text-xs"
+              data-testid="confirm-own-member"
+              @click="emit('confirm', m.uid)"
+          >
+            <font-awesome-icon :icon="['fas', 'check']"/>
+          </PrimaryButton>
           <ErrorButton :disabled="props.registering" compact class="text-xs" @click="requestSignOff(m.uid)">
             <font-awesome-icon :icon="['fas', 'xmark']"/>
           </ErrorButton>

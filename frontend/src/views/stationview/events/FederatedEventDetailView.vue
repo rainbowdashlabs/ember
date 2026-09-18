@@ -51,6 +51,41 @@ const eligibleMembers = computed(() => {
 const eventData = computed(() => detail.value?.event ?? null)
 const publicFields = computed(() => detail.value?.publicFields ?? [])
 
+/**
+ * What the station holding this appointment has given us, where it has given anything.
+ *
+ * <p>Absent is the ordinary arrangement: they decide about each of our members, as they always did.
+ * Present means we choose who comes, and where they also named a number, how many.
+ */
+const ourPlaces = computed(() => detail.value?.places ?? null)
+
+/** How many of our places are filled, which is what the count is for. */
+const placesTaken = computed(() =>
+    myRegistrations.value.filter(reg => reg.eventId === eventId.value && reg.status === 'ACCEPTED').length)
+
+const placesSummary = computed(() => {
+  const places = ourPlaces.value
+  if (!places) return ''
+  if (places.slotBudget === null) return t('eventsUpcoming.placesUncapped')
+  return t('eventsUpcoming.placesLeft', {
+    left: Math.max(0, places.slotBudget - placesTaken.value),
+    total: places.slotBudget,
+  })
+})
+
+/**
+ * Gives one of our own a place, which only works where the other station handed us the choosing.
+ * They count, so a refusal means their places are full rather than that anything broke.
+ */
+async function confirmOwn(uid: string) {
+  try {
+    await events.confirmOwnFederatedMember(stationUid.value, eventId.value, getEventDate(), uid)
+    myRegistrations.value = await events.listMyFederatedRegistrations()
+  } catch {
+    showToast(t('eventsUpcoming.noPlacesLeft'), 'error')
+  }
+}
+
 function getEventDate(): string {
   if (eventData.value?.startTime) return new Date(eventData.value.startTime as string).toISOString().slice(0, 10)
   return new Date().toISOString().slice(0, 10)
@@ -195,8 +230,11 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
             :registrations="myRegistrations"
             :event-id="eventId"
             :registering="registering"
+            :we-decide="ourPlaces?.decidesItself ?? false"
+            :places-summary="placesSummary"
             @register="registerForEvent"
             @withdraw="withdrawRegistration"
+            @confirm="confirmOwn"
         />
 
         <CommentsCard

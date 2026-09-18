@@ -296,6 +296,63 @@ test.describe('Two instances', () => {
             await owner.dispose()
         }
     })
+
+    /**
+     * A station hands a partner a number of places and lets them fill it.
+     *
+     * <p>Who decides is the thing this proves. The holder keeps the places and the counting, so the
+     * partner asks and is told yes until the number runs out. Nobody at the holder is asked about each
+     * person: that was the point of handing it over.
+     */
+    test('a station hands a partner places and the partner fills them', async ({
+        peerAdminApi,
+        homeManagerApi,
+    }) => {
+        const manager = await stationManagerOf(peerBaseUrl())
+        const created = await peerAdminApi.post('/api/v1/stations', {
+            data: {name: unique('E2E-Platzwache'), managerEmail: manager.email},
+        })
+        expect(created.status()).toBe(201)
+        const {id: owningStation} = await created.json()
+
+        const owner = await instanceRequestAs(peerBaseUrl(), {email: manager.email, stationId: owningStation})
+        try {
+            await proveFreshly(owner)
+            const invited = await owner.post('/api/v1/federation/invite')
+            expect(invited.ok()).toBe(true)
+            const {inviteCode} = await invited.json()
+
+            await proveFreshly(homeManagerApi)
+            const accepted = await homeManagerApi.post('/api/v1/federation/accept', {data: {inviteCode}})
+            expect(accepted.status(), await accepted.text()).toBe(201)
+
+            const eventId = await sharedEventTakingRegistrations(owner, null)
+            const eventDate = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+
+            const partners = await partnersOf(owner)
+            const guest = must(partners[0], 'the holder sees the station it just invited')
+
+            const handed = await owner.put(`/api/v1/events/${eventId}/partner-places/${guest.id}`, {
+                data: {slotBudget: 1, partnerConfirms: true},
+            })
+            expect(handed.ok(), await handed.text()).toBe(true)
+
+            // The visitor is now held rather than accepted, because somebody has to choose.
+            const register = `/api/v1/federated/${owningStation}/events/${eventId}/register`
+            const signedUp = await homeManagerApi.post(register, {data: {eventDate, memberId: null}})
+            expect(signedUp.status(), await signedUp.text()).toBe(201)
+            expect((await signedUp.json()).status, 'a place that has to be chosen is not given at once')
+                .toBe('PENDING')
+
+            const chosen = await homeManagerApi.post(`${register}/confirm`, {data: {eventDate, memberId: null}})
+            expect(chosen.ok(), 'the partner spends one of the places it was given').toBe(true)
+
+            const again = await homeManagerApi.post(`${register}/confirm`, {data: {eventDate, memberId: null}})
+            expect(again.ok(), 'and the one place it was given is spent exactly once').toBe(false)
+        } finally {
+            await owner.dispose()
+        }
+    })
 })
 
 /** The smallest thing the media library accepts: one transparent pixel. */

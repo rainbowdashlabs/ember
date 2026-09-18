@@ -821,6 +821,38 @@ public class EventFederationService {
     }
 
     /**
+     * Confirms one of our own members for a partner's appointment, where they handed us that decision.
+     *
+     * <p>The places are theirs and so is the counting, so this asks rather than decides. A refusal
+     * means either that they never handed the decision over or that the places they gave are full,
+     * and both are things to tell the person pressing the button rather than retry.
+     *
+     * @return true where they gave the place
+     */
+    public boolean confirmOwnFederatedMember(
+            String remoteHost,
+            UUID partnerStationUid,
+            int eventId,
+            UUID remoteMemberId,
+            String eventDate,
+            int localStationId,
+            String localPrivateKeyBase64) {
+        boolean confirmed = httpClient.post(
+                remoteHost,
+                RemoteEventRoutes.CONFIRM_OWN.at(eventId),
+                new FederatedRegBody(remoteMemberId, eventDate),
+                partnerStationUid,
+                localStationId,
+                localPrivateKeyBase64);
+        if (confirmed) {
+            log.info("Station {} confirmed one of its own for event {} at {}", localStationId, eventId, remoteHost);
+        } else {
+            log.info("Event {} at {} would not take another of our members", eventId, remoteHost);
+        }
+        return confirmed;
+    }
+
+    /**
      * Asks the station that holds the appointment to put one of our members back after a withdrawal.
      *
      * <p>Their clock decides, not ours: two instances keep two clocks, and the row is theirs. A

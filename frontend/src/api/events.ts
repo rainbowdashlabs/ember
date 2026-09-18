@@ -813,9 +813,29 @@ export async function listFederatedEvents(): Promise<FederatedEvent[]> {
     return res.data
 }
 
+/** What the station holding an appointment has given this one, where it has given anything. */
+export interface RemotePlaces {
+    /** How many places this station may fill on a date, or null for no cap. */
+    slotBudget: number | null
+    /** Whether this station confirms its own members rather than the holder doing it. */
+    decidesItself: boolean
+}
+
 export interface FederatedEventDetail {
     event: SharedEvent
     publicFields: { id: number; name: string; value: string; fieldType: string; isPublic: boolean }[]
+    /** Null where the station holding the appointment decides, which is the ordinary arrangement. */
+    places: RemotePlaces | null
+}
+
+/**
+ * Gives one of this station's own members a place at a partner's appointment.
+ *
+ * <p>Only where that station handed the choosing over. The places are theirs and so is the counting,
+ * so a refusal means the places are full rather than that anything went wrong.
+ */
+export async function confirmOwnFederatedMember(stationUid: string, eventId: number, eventDate: string, memberId: string): Promise<void> {
+    await client.post(`/federated/${stationUid}/events/${eventId}/register/confirm`, {eventDate, memberId})
 }
 
 export async function getFederatedEvent(stationUid: string, eventId: number): Promise<FederatedEventDetail> {
