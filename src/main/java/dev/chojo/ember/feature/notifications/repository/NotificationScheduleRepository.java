@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.notifications.repository;
 import jakarta.inject.Singleton;
 
 import java.sql.Array;
+import java.sql.SQLException;
 import java.sql.Time;
 import java.time.Instant;
 import java.time.LocalTime;
@@ -105,19 +106,20 @@ public class NotificationScheduleRepository {
         return "{" + String.join(",", parts) + "}";
     }
 
-    private static List<LocalTime> timesOf(Array array) {
+    /**
+     * The times an array column holds.
+     *
+     * <p>A failure to read it is left to travel rather than answered with no times: a station that
+     * asked for two would otherwise be read as having asked for none, and be written to on the
+     * operator's number without anybody being told why.
+     */
+    private static List<LocalTime> timesOf(Array array) throws SQLException {
         if (array == null) return List.of();
-        try {
-            Object raw = array.getArray();
-            if (!(raw instanceof Object[] values)) return List.of();
-            var times = new ArrayList<LocalTime>();
-            for (Object value : values) {
-                if (value instanceof Time time) times.add(time.toLocalTime());
-                else if (value != null) times.add(LocalTime.parse(value.toString()));
-            }
-            return List.copyOf(times);
-        } catch (Exception e) {
-            return List.of();
+        var times = new ArrayList<LocalTime>();
+        for (Object value : (Object[]) array.getArray()) {
+            if (value instanceof Time time) times.add(time.toLocalTime());
+            else if (value != null) times.add(LocalTime.parse(value.toString()));
         }
+        return List.copyOf(times);
     }
 }
