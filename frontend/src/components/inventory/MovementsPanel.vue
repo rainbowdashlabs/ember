@@ -22,7 +22,7 @@ import {apiErrorMessage} from '@/util/apiError'
  *
  * <p>Their inventory lists what they hold and nothing else, so a piece handed in for an exchange
  * leaves it at that moment. This is where it goes: the piece by name, what is being done with it and
- * which step it waits on. Without it, handing something in would look like losing it.
+ * how far it has come. Without it, handing something in would look like losing it.
  *
  * <p>It carries the two things a member can do about one. Confirming receipt ends a chain, and it is
  * the only confirmation worth having, because a station saying so on their behalf is a claim rather
@@ -126,7 +126,7 @@ onMounted(load)
         <MutedText v-if="movement.itemName" size="sm" class="ml-2">
           {{ t(`movements.purpose.${movement.purpose}`) }}
         </MutedText>
-        <span v-if="movement.currentStepLabel" class="text-(--text-muted)"> · {{ movement.currentStepLabel }}</span>
+        <span v-if="movement.reachedStepLabel" class="text-(--text-muted)"> · {{ movement.reachedStepLabel }}</span>
       </div>
       <ButtonRow pair align="end">
         <SecondaryButton

@@ -77,7 +77,7 @@ onMounted(loadData)
             <p class="text-xs text-(--text-muted)">{{ movement.reason }}</p>
           </div>
           <div class="flex shrink-0 flex-col items-end gap-1">
-            <InfoBadge v-if="movement.currentStepLabel">{{ movement.currentStepLabel }}</InfoBadge>
+            <InfoBadge v-if="movement.reachedStepLabel">{{ movement.reachedStepLabel }}</InfoBadge>
             <SecondaryBadge v-if="movement.currentStepActor">
               {{ t(`movements.actor.${movement.currentStepActor}`) }}
             </SecondaryBadge>
