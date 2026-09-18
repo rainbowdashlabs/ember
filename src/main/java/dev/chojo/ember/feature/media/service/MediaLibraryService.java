@@ -117,7 +117,7 @@ public class MediaLibraryService {
         }
         var file = fileRepository.create(pageId, stationId, contentHash, fileName, mimeType, data.length);
         storage.store(stationId, contentHash, data, mimeType);
-        if (isImage) {
+        if (MediaVariantService.canHavePicture(mimeType)) {
             variantService.generateVariants(stationId, contentHash, data, mimeType);
         }
         if (stationId != null) {
@@ -135,6 +135,26 @@ public class MediaLibraryService {
     public Optional<MediaStorageService.FileData> readVariant(
             Integer stationId, String contentHash, Integer requestedWidth, String acceptHeader) {
         return variantService.readBest(stationId, contentHash, requestedWidth, acceptHeader);
+    }
+
+    /**
+     * The picture of a file, for a list that shows what it holds rather than naming it.
+     *
+     * <p>An image is its own picture and a document with pages is its first one. Anything else has
+     * none, and answers so rather than handing back the file under that name.
+     */
+    public Optional<MediaStorageService.FileData> readPicture(
+            Integer stationId, String contentHash, String mimeType, Integer requestedWidth) {
+        return variantService.readPicture(stationId, contentHash, mimeType, requestedWidth);
+    }
+
+    /** The same, for a caller holding only the hash, which is how the delivery routes address a file. */
+    public Optional<MediaStorageService.FileData> readPicture(
+            Integer stationId, String contentHash, Integer requestedWidth) {
+        if (contentHash == null || contentHash.isBlank()) return Optional.empty();
+        return fileRepository
+                .findByStationAndHash(stationId, contentHash)
+                .flatMap(file -> variantService.readPicture(stationId, contentHash, file.mimeType(), requestedWidth));
     }
 
     /**

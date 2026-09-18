@@ -187,6 +187,20 @@ export async function unassignMediaTag(fileId: number, tagId: number): Promise<v
     await client.delete(`/media/files/${fileId}/tags/${tagId}`)
 }
 
+/**
+ * Where the picture of a library file is fetched from, at the width the tile wants.
+ *
+ * <p>The session's own address rather than the public one. A picture is the file in miniature, and
+ * the public route asks nothing beyond knowing the hash, which is right for a page anybody may read
+ * and wrong for a sheet an appointment keeps back from the room.
+ *
+ * <p>Refused where the file has no picture, which is what tells a tile to draw its kind instead.
+ */
+export function mediaPictureUrl(contentHash: string, width?: number): string {
+    const base = `/media/picture/${contentHash}`
+    return width ? `${base}?w=${width}` : base
+}
+
 /** Public URL for a media file, addressed by the hash of its bytes. */
 export function mediaFileUrl(stationUid: string, contentHash: string): string {
     return `/api/v1/public/media/${stationUid}/${contentHash}`

@@ -7714,6 +7714,10 @@ export default {
         add: 'Option hinzufügen',
         placeholder: 'Antwortmöglichkeit',
     },
+    files: {
+        noPreview: 'Für diesen Dateityp gibt es keine Vorschau. Lade sie herunter, um sie anzusehen.',
+        truncated: 'Die Vorschau zeigt nur den Anfang der Datei. Lade sie herunter, um alles zu lesen.',
+    },
     common: {
         send: 'Abschicken',
         continue: 'Weiter',

@@ -7,6 +7,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {mount} from '@vue/test-utils'
 import EventAttachmentsPanel from './EventAttachmentsPanel.vue'
+import FilePreviewModal from '@/components/documents/FilePreviewModal.vue'
 import type {EventAttachment} from '@/api/events'
 
 const listEventAttachments = vi.fn()
@@ -17,7 +18,13 @@ vi.mock('@/api', () => ({
         listEventAttachments: (...args: unknown[]) => listEventAttachments(...args),
         eventAttachmentUrl: (eventId: number, attachmentId: number) =>
             `/events/${eventId}/attachments/${attachmentId}/file`,
+        eventAttachmentPictureUrl: (eventId: number, attachmentId: number, width?: number) =>
+            `/events/${eventId}/attachments/${attachmentId}/picture${width ? `?w=${width}` : ''}`,
     },
+}))
+
+vi.mock('@/api/client', () => ({
+    default: {get: () => Promise.reject(new Error('no picture in a test'))},
 }))
 
 vi.mock('@/util/downloadAuthed', () => ({
@@ -98,6 +105,24 @@ describe('EventAttachmentsPanel', () => {
         expect(rows[0]!.text()).toContain('laufzettel.pdf')
         expect(rows[1]!.text()).toContain('Einsatzplan')
         expect(rows[1]!.text()).not.toContain('plan.pdf')
+    })
+
+    /**
+     * Knowing which of four sheets is the map meant saving all four. The row opens the file where it
+     * is, and saving it stays a thing of its own, so pressing the one never means the other.
+     */
+    it('opens the file for reading, and saves it only when asked to', async () => {
+        listEventAttachments.mockResolvedValue([attachment({id: 5, label: 'Einsatzplan'})])
+
+        const view = await settled(panel())
+        expect(view.findComponent(FilePreviewModal).exists()).toBe(false)
+
+        await view.find('[data-testid="event-attachment-open"]').trigger('click')
+
+        const preview = view.findComponent(FilePreviewModal)
+        expect(preview.exists()).toBe(true)
+        expect(preview.props('url')).toBe('/events/12/attachments/5/file')
+        expect(downloadAuthed).not.toHaveBeenCalled()
     })
 
     /**

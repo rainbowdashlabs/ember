@@ -1044,6 +1044,16 @@ export function eventAttachmentUrl(eventId: number, attachmentId: number): strin
     return `/events/${eventId}/attachments/${attachmentId}/file`
 }
 
+/**
+ * Where the picture of a file is fetched from, at the width the tile showing it wants.
+ *
+ * <p>Refused for a file that has none, which is what tells a tile to draw the kind of file instead.
+ */
+export function eventAttachmentPictureUrl(eventId: number, attachmentId: number, width?: number): string {
+    const base = `/events/${eventId}/attachments/${attachmentId}/picture`
+    return width ? `${base}?w=${width}` : base
+}
+
 export async function listFederatedEventAttachments(
     stationUid: string,
     eventId: number,

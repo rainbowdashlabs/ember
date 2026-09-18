@@ -6,7 +6,8 @@
 <script lang="ts" setup>
 import BaseButton from '@/components/button/BaseButton.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import {mediaFileUrl, type StationFile, type StationFileListing, type StationFileTag} from '@/api/media'
+import {mediaPictureUrl, type StationFile, type StationFileListing, type StationFileTag} from '@/api/media'
+import FileThumbnail from '@/components/documents/FileThumbnail.vue'
 import MediaGridItemMenu from './MediaGridItemMenu.vue'
 import {formatSize} from '@/util/format'
 
@@ -29,14 +30,6 @@ const emit = defineEmits<{
     'toggle-menu': [fileId: number]
 }>()
 
-function urlFor(f: StationFile): string {
-    return f.contentHash && props.stationUid ? mediaFileUrl(props.stationUid, f.contentHash) : ''
-}
-
-function isImage(f: StationFile): boolean {
-    return (f.mimeType ?? '').startsWith('image/')
-}
-
 function tagsOf(e: StationFileListing): StationFileTag[] {
     return props.tags.filter(t => e.tagIds.includes(t.id))
 }
@@ -57,12 +50,12 @@ function onCheckboxClick(e: MouseEvent) {
              @click.stop.prevent="onCheckboxClick($event)">
             <CheckboxInput :model-value="selected" class="pointer-events-none"/>
         </div>
-        <div class="aspect-square w-full bg-(--bg-accent) flex items-center justify-center overflow-hidden">
-            <img v-if="isImage(entry.file)" :src="urlFor(entry.file)"
-                 :alt="entry.file.defaultAltText ?? entry.file.fileName"
-                 loading="lazy" class="w-full h-full object-cover"/>
-            <font-awesome-icon v-else :icon="['fas', 'file']" class="text-3xl text-(--text-muted)"/>
-        </div>
+        <FileThumbnail
+            :url="entry.file.contentHash ? mediaPictureUrl(entry.file.contentHash, 320) : ''"
+            :mime-type="entry.file.mimeType"
+            :alt="entry.file.defaultAltText ?? entry.file.fileName"
+            size="aspect-square w-full"
+        />
         <div class="p-2 text-xs space-y-1 min-w-0 flex-1">
             <p class="truncate font-medium" :title="entry.file.fileName">{{ entry.file.fileName }}</p>
             <p class="text-(--text-muted)">{{ formatSize(entry.file.fileSize) }}</p>
