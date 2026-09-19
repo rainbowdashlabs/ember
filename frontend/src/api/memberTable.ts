@@ -21,12 +21,29 @@ export interface MemberTableColumn {
     fieldId?: number | null
 }
 
+/**
+ * What a drawn column holds. Dates and birth dates arrive as `dd.mm.yyyy` from the station's own
+ * questions and as ISO days from an appointment's; a boolean as the station's word for it or as
+ * `true` and `false`.
+ */
+export const MemberTableCellTypes = {
+    TEXT: 'TEXT',
+    NUMBER: 'NUMBER',
+    DATE: 'DATE',
+    BIRTH_DATE: 'BIRTH_DATE',
+    BOOLEAN: 'BOOLEAN',
+    ENUM: 'ENUM',
+} as const
+
+export type MemberTableCellTypeName = (typeof MemberTableCellTypes)[keyof typeof MemberTableCellTypes]
+
 /** A column as the reader may see it, which is what a picker offers and what a table prints. */
 export interface MemberTableHeader {
     label: string
     kind: MemberTableColumnKind
     key: string | null
     fieldId: number | null
+    type: MemberTableCellTypeName
 }
 
 /** One person's row, in the same order as the columns. */
@@ -52,7 +69,7 @@ export interface MemberTablePreset {
 /** What may go on an appointment's table: what the station knows, and what the appointment asked. */
 export interface RegistrationTableColumns {
     member: MemberTableHeader[]
-    questions: {fieldId: number; label: string}[]
+    questions: {fieldId: number; label: string; type: MemberTableCellTypeName}[]
 }
 
 /** The columns this reader may put on a table of the register. */

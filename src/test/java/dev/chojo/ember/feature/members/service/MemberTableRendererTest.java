@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.MemberTable;
+import dev.chojo.ember.feature.members.entity.MemberTableCellType;
 import dev.chojo.ember.feature.members.entity.MemberTableColumnKind;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -38,11 +39,13 @@ class MemberTableRendererTest {
     private MemberTableRenderer renderer;
 
     private static MemberTable.MemberTableHeader builtin(String key, String label) {
-        return new MemberTable.MemberTableHeader(label, MemberTableColumnKind.BUILTIN, key, null);
+        return new MemberTable.MemberTableHeader(
+                label, MemberTableColumnKind.BUILTIN, key, null, MemberTableCellType.TEXT);
     }
 
     private static MemberTable.MemberTableHeader question(String label) {
-        return new MemberTable.MemberTableHeader(label, MemberTableColumnKind.REGISTRATION_FIELD, null, 7);
+        return new MemberTable.MemberTableHeader(
+                label, MemberTableColumnKind.REGISTRATION_FIELD, null, 7, MemberTableCellType.TEXT);
     }
 
     private static Station stationSpeaking(String locale) {

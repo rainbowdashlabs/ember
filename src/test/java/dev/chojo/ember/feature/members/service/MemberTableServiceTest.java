@@ -8,9 +8,12 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.MemberTable;
+import dev.chojo.ember.feature.members.entity.MemberTableCellType;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.MemberTableColumnKind;
 import dev.chojo.ember.feature.members.entity.MemberTablePeople;
+import dev.chojo.ember.feature.members.entity.MemberTableQuestion;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -148,6 +151,25 @@ class MemberTableServiceTest extends RepositoryTestBase {
                 "and never offered to somebody the table would drop it for");
     }
 
+    /** Every column says what it holds, so a screen never has to guess a date from how its cells read. */
+    @Test
+    void everyColumnSaysWhatItHolds() {
+        var table = service.build(
+                station,
+                thisMember(),
+                List.of(
+                        MemberTableColumn.builtin("name"),
+                        MemberTableColumn.builtin("joinDate"),
+                        MemberTableColumn.builtin("memberType")),
+                Set.of(StationPermission.USER),
+                Map.of());
+
+        var types = table.columns().stream()
+                .map(MemberTable.MemberTableHeader::type)
+                .toList();
+        assertEquals(List.of(MemberTableCellType.TEXT, MemberTableCellType.DATE, MemberTableCellType.ENUM), types);
+    }
+
     private static List<String> valuesOf(String... builtinKeys) {
         var columns = java.util.Arrays.stream(builtinKeys)
                 .map(MemberTableColumn::builtin)
@@ -221,8 +243,10 @@ class MemberTableServiceTest extends RepositoryTestBase {
                 new MemberTablePeople(List.of(member.id()), Map.of(member.id(), Map.of(4711, "43")), Map.of()),
                 List.of(MemberTableColumn.registrationField(4711)),
                 Set.of(StationPermission.USER),
-                Map.of(4711, "Schuhgröße"));
+                Map.of(4711, new MemberTableQuestion("Schuhgröße", MemberTableCellType.NUMBER)));
         assertEquals("Schuhgröße", withAppointment.columns().getFirst().label());
+        assertEquals(
+                MemberTableCellType.NUMBER, withAppointment.columns().getFirst().type());
         assertEquals("43", withAppointment.rows().getFirst().values().getFirst());
     }
 
