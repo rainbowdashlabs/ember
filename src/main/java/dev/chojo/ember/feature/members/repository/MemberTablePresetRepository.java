@@ -89,10 +89,6 @@ public class MemberTablePresetRepository {
     }
 
     private static String toJson(List<MemberTableColumn> columns) {
-        try {
-            return Json.MAPPER.writeValueAsString(columns);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("These columns cannot be written down", e);
-        }
+        return Json.MAPPER.writeValueAsString(columns);
     }
 }

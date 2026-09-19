@@ -6,8 +6,10 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
+import dev.chojo.ember.feature.members.entity.MemberTableColumnKind;
 import dev.chojo.ember.feature.members.entity.MemberTablePeople;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -19,7 +21,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.node.StringNode;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -142,5 +146,231 @@ class MemberTableServiceTest extends RepositoryTestBase {
         assertFalse(
                 offeredToMember.stream().anyMatch(c -> "Ausweisnummer".equals(c.label())),
                 "and never offered to somebody the table would drop it for");
+    }
+
+    private static List<String> valuesOf(String... builtinKeys) {
+        var columns = java.util.Arrays.stream(builtinKeys)
+                .map(MemberTableColumn::builtin)
+                .toList();
+        var table = service.build(station, thisMember(), columns, Set.of(StationPermission.USER), Map.of());
+        return table.rows().getFirst().values();
+    }
+
+    /**
+     * What a membership says about somebody without anybody having asked a question.
+     *
+     * <p>These are not guarded by the field scopes, because they are not the station's questions: a
+     * reader who may see the person at all may see their name and what kind of member they are.
+     */
+    @Test
+    void theBuiltinsSayWhatTheMembershipHolds() {
+        var values = valuesOf("name", "memberType", "groups", "tags", "email", "joinDate");
+
+        assertEquals(6, values.size());
+        assertTrue(values.getFirst().contains("Toni"), "the name is the name");
+        assertEquals(StationUserType.MEMBER.name(), values.get(1), "the kind travels as itself, not as a word");
+        assertEquals("", values.get(2), "somebody in no group has nothing there");
+        assertEquals("", values.get(3), "and nothing where they carry no tags");
+        assertTrue(values.get(4).contains("@"), "the address is the address");
+    }
+
+    /** A key nothing answers to is no column, rather than a column of nothing. */
+    @Test
+    void anUnknownBuiltinIsNoColumn() {
+        var table = service.build(
+                station,
+                thisMember(),
+                List.of(MemberTableColumn.builtin("erfundeneSpalte")),
+                Set.of(StationPermission.USER),
+                Map.of());
+
+        assertTrue(table.columns().isEmpty());
+    }
+
+    /** A column naming nothing at all is dropped before anything tries to read it. */
+    @Test
+    void aColumnNamingNothingIsDropped() {
+        var table = service.build(
+                station,
+                thisMember(),
+                List.of(new MemberTableColumn(MemberTableColumnKind.PROFILE_FIELD, null, null)),
+                Set.of(StationPermission.USER, StationPermission.MEMBER_MANAGER),
+                Map.of());
+
+        assertTrue(table.columns().isEmpty(), "a question with no question behind it is not one");
+    }
+
+    /**
+     * An appointment's own question is a column only where the appointment named it.
+     *
+     * <p>The table is drawn for the register too, and there is no appointment there to have asked
+     * anything, so such a column simply has no label and falls away.
+     */
+    @Test
+    void anAppointmentsQuestionNeedsAnAppointment() {
+        var withoutAppointment = service.build(
+                station,
+                thisMember(),
+                List.of(MemberTableColumn.registrationField(4711)),
+                Set.of(StationPermission.USER),
+                Map.of());
+        assertTrue(withoutAppointment.columns().isEmpty());
+
+        var withAppointment = service.build(
+                station,
+                new MemberTablePeople(List.of(member.id()), Map.of(member.id(), Map.of(4711, "43")), Map.of()),
+                List.of(MemberTableColumn.registrationField(4711)),
+                Set.of(StationPermission.USER),
+                Map.of(4711, "Schuhgröße"));
+        assertEquals("Schuhgröße", withAppointment.columns().getFirst().label());
+        assertEquals("43", withAppointment.rows().getFirst().values().getFirst());
+    }
+
+    /** Somebody the station does not have is not a row, whoever asked for them. */
+    @Test
+    void anUnknownPersonIsNoRow() {
+        var table = service.build(
+                station,
+                MemberTablePeople.of(List.of(member.id(), 987654)),
+                List.of(MemberTableColumn.builtin("name")),
+                Set.of(StationPermission.USER),
+                Map.of());
+
+        assertEquals(1, table.rows().size());
+    }
+
+    /** A date is shown the way a date is written here, and an answer nobody gave stays empty. */
+    @Test
+    void aDateReadsAsADate() {
+        var dateField = profileFieldRepo.create(
+                station.id(), "Eintritt", ProfileFieldType.DATE, ProfileFieldConfig.parse("{}"), false, false, null);
+        profileFieldRepo.assignToRole(dateField.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        profileFieldRepo.setValue(member.id(), dateField.id(), StringNode.valueOf("2026-03-09"));
+
+        var table = service.build(
+                station,
+                thisMember(),
+                List.of(MemberTableColumn.profileField(dateField.id())),
+                Set.of(StationPermission.USER),
+                Map.of());
+
+        assertEquals("09.03.2026", table.rows().getFirst().values().getFirst());
+    }
+
+    /** A yes or no reads as a word, and an answer nobody gave stays empty rather than saying no. */
+    @Test
+    void aYesOrNoReadsAsAWord() {
+        var flag = profileFieldRepo.create(
+                station.id(),
+                "Führerschein",
+                ProfileFieldType.BOOLEAN,
+                ProfileFieldConfig.parse("{}"),
+                false,
+                false,
+                null);
+        profileFieldRepo.assignToRole(flag.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        profileFieldRepo.setValue(member.id(), flag.id(), StringNode.valueOf("true"));
+
+        var unanswered = profileFieldRepo.create(
+                station.id(), "Anhänger", ProfileFieldType.BOOLEAN, ProfileFieldConfig.parse("{}"), false, false, null);
+        profileFieldRepo.assignToRole(unanswered.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+
+        var table = service.build(
+                station,
+                thisMember(),
+                List.of(MemberTableColumn.profileField(flag.id()), MemberTableColumn.profileField(unanswered.id())),
+                Set.of(StationPermission.USER),
+                Map.of());
+
+        var values = table.rows().getFirst().values();
+        assertEquals("Ja", values.getFirst());
+        assertEquals("", values.get(1), "a question nobody answered says nothing, rather than no");
+    }
+
+    /**
+     * An answer that is not the shape its question expects is printed as it stands.
+     *
+     * <p>A question that was a line of text before somebody made it a date still holds whatever was
+     * typed then, and a table that threw its hands up at one cell would take the whole sheet with it.
+     */
+    @Test
+    void ananswerOfTheWrongShapeIsPrintedAsItIs() {
+        var date = profileFieldRepo.create(
+                station.id(), "Seit wann", ProfileFieldType.DATE, ProfileFieldConfig.parse("{}"), false, false, null);
+        profileFieldRepo.assignToRole(date.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        profileFieldRepo.setValue(member.id(), date.id(), StringNode.valueOf("schon lange"));
+
+        var table = service.build(
+                station,
+                thisMember(),
+                List.of(MemberTableColumn.profileField(date.id())),
+                Set.of(StationPermission.USER),
+                Map.of());
+
+        assertEquals("schon lange", table.rows().getFirst().values().getFirst());
+    }
+
+    /** An age whose question counts from nothing has nothing to count, and says so quietly. */
+    @Test
+    void anAgeCountingFromNothingIsEmpty() {
+        var age = profileFieldRepo.create(
+                station.id(),
+                "Alter ohne Quelle",
+                ProfileFieldType.AGE,
+                ProfileFieldConfig.parse("{}"),
+                false,
+                false,
+                null);
+        profileFieldRepo.assignToRole(age.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+
+        var table = service.build(
+                station,
+                thisMember(),
+                List.of(MemberTableColumn.profileField(age.id())),
+                Set.of(StationPermission.USER),
+                Map.of());
+
+        assertEquals("", table.rows().getFirst().values().getFirst());
+    }
+
+    /**
+     * How old somebody is, worked out rather than read.
+     *
+     * <p>Nothing stores an age: the question holds the day somebody was born and the age is counted
+     * wherever it is shown, so choosing the age column reads the date behind it and prints neither it
+     * nor a number that was true once.
+     */
+    @Test
+    void anAgeIsCountedFromTheDayBehindIt() {
+        var born = profileFieldRepo.create(
+                station.id(),
+                "Geburtstag",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                false,
+                false,
+                null);
+        profileFieldRepo.assignToRole(born.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        profileFieldRepo.setValue(member.id(), born.id(), StringNode.valueOf("2000-01-01"));
+
+        var age = profileFieldRepo.create(
+                station.id(),
+                "Alter",
+                ProfileFieldType.AGE,
+                ProfileFieldConfig.parse("{\"sourceFieldId\":" + born.id() + "}"),
+                false,
+                false,
+                null);
+        profileFieldRepo.assignToRole(age.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+
+        var table = service.build(
+                station,
+                thisMember(),
+                List.of(MemberTableColumn.profileField(age.id())),
+                Set.of(StationPermission.USER),
+                Map.of());
+
+        int expected = LocalDate.now().getYear() - 2000;
+        assertEquals(String.valueOf(expected), table.rows().getFirst().values().getFirst());
     }
 }
