@@ -25,6 +25,7 @@ import * as apiStatus from '@/api/apiStatus'
 import type {EndpointDetail} from '@/api/apiStatus'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {darkThemeActive as isDark} from '@/util/themeState'
+import {formatMs, methodColor} from './adminapistatusview/apiStatusFormat'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent])
 
@@ -43,25 +44,11 @@ const {config: detail, loading} = useConfigPanel<EndpointDetail | null>({
     formatError: () => '',
 })
 
-function methodColor(m: string): string {
-    switch (m) {
-        case 'GET': return 'text-green-600'
-        case 'POST': return 'text-blue-600'
-        case 'PUT': return 'text-yellow-600'
-        case 'DELETE': return 'text-red-600'
-        default: return 'text-(--text-muted)'
-    }
-}
-
 function statusColor(code: number): string {
     if (code < 300) return 'text-success'
     if (code < 400) return 'text-secondary'
     if (code < 500) return 'text-[#ffdd1b]'
     return 'text-error'
-}
-
-function formatMs(ms: number): string {
-    return ms < 1 ? '<1ms' : Math.round(ms) + 'ms'
 }
 
 function formatTimestamp(ts: string): string {
@@ -122,7 +109,6 @@ const responseTimeChartOption = computed(() => {
         <Spinner v-if="loading"/>
 
         <template v-if="!loading && detail">
-            <!-- Summary -->
             <div class="grid grid-cols-2 gap-3 mb-6">
                 <NeutralContainer class="text-center">
                     <p class="text-2xl font-bold">{{ detail.requestCount.toLocaleString('de-DE') }}</p>
@@ -134,7 +120,6 @@ const responseTimeChartOption = computed(() => {
                 </NeutralContainer>
             </div>
 
-            <!-- Charts -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                 <NeutralContainer>
                     <SectionHeader>{{ t('apiStatus.statusCodes') }}</SectionHeader>
@@ -146,7 +131,6 @@ const responseTimeChartOption = computed(() => {
                 </NeutralContainer>
             </div>
 
-            <!-- Recent requests -->
             <NeutralContainer>
                 <SectionHeader>{{ t('apiStatus.recentRequests') }}</SectionHeader>
                 <div class="overflow-x-auto mt-3">

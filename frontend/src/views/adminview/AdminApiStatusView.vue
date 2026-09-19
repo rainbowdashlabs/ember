@@ -6,7 +6,6 @@
 <script setup lang="ts">
 import {ref, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -14,7 +13,6 @@ import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import VChart from 'vue-echarts'
 import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
@@ -25,16 +23,14 @@ import type {EndpointStats, HourlyStats, StatusBreakdown} from '@/api/apiStatus'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {bottomLegend, cartesianGrid} from '@/util/chartLayout'
 import {darkThemeActive as isDark} from '@/util/themeState'
-import Td from '@/components/table/Td.vue'
+import EndpointStatsPanel from './adminapistatusview/EndpointStatsPanel.vue'
+import {formatMs} from './adminapistatusview/apiStatusFormat'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
 const {t} = useI18n()
-const router = useRouter()
 
 const textColor = computed(() => isDark.value ? '#ccc' : '#333')
-
-const activeTab = ref<'overview' | 'slowest' | 'fastest' | 'failing'>('overview')
 
 const slowest = ref<EndpointStats[]>([])
 const fastest = ref<EndpointStats[]>([])
@@ -128,27 +124,6 @@ const statusChartOption = computed(() => {
     }
 })
 
-function formatMs(ms: number): string {
-    return ms < 1 ? '<1ms' : Math.round(ms) + 'ms'
-}
-
-function formatPercent(rate: number): string {
-    return (rate * 100).toFixed(1) + '%'
-}
-
-function methodColor(method: string): string {
-    switch (method) {
-        case 'GET': return 'text-green-600'
-        case 'POST': return 'text-blue-600'
-        case 'PUT': return 'text-yellow-600'
-        case 'DELETE': return 'text-red-600'
-        default: return 'text-[var(--text-muted)]'
-    }
-}
-
-function openDetail(ep: EndpointStats) {
-    router.push({name: 'admin-api-status-detail', query: {method: ep.method, path: ep.path}})
-}
 </script>
 
 <template>
@@ -162,7 +137,6 @@ function openDetail(ep: EndpointStats) {
         <Spinner v-if="loading"/>
 
         <template v-else>
-            <!-- Summary cards -->
             <div class="grid grid-cols-3 gap-3 mb-6">
                 <NeutralContainer class="text-center">
                     <p class="text-2xl font-bold">{{ totalRequests.toLocaleString('de-DE') }}</p>
@@ -178,7 +152,6 @@ function openDetail(ep: EndpointStats) {
                 </component>
             </div>
 
-            <!-- Charts -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                 <NeutralContainer>
                     <SectionHeader>{{ t('apiStatus.requestsOverTime') }}</SectionHeader>
@@ -196,52 +169,7 @@ function openDetail(ep: EndpointStats) {
                 </NeutralContainer>
             </div>
 
-            <!-- Tabs -->
-            <div class="flex gap-2 mb-4">
-                <SelectionToggleButton :selected="activeTab === 'slowest'" @toggle="activeTab = 'slowest'">
-                    {{ t('apiStatus.slowest') }}
-                </SelectionToggleButton>
-                <SelectionToggleButton :selected="activeTab === 'fastest'" @toggle="activeTab = 'fastest'">
-                    {{ t('apiStatus.fastest') }}
-                </SelectionToggleButton>
-                <SelectionToggleButton :selected="activeTab === 'failing'" @toggle="activeTab = 'failing'">
-                    {{ t('apiStatus.failing') }}
-                </SelectionToggleButton>
-            </div>
-
-            <!-- Endpoint table -->
-            <NeutralContainer class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-left text-xs text-[var(--text-muted)] border-b border-[var(--border)]">
-                            <th class="py-2 pr-3">{{ t('apiStatus.endpoint') }}</th>
-                            <th class="py-2 pr-3 text-right">{{ t('apiStatus.count') }}</th>
-                            <th class="py-2 pr-3 text-right">{{ t('apiStatus.avg') }}</th>
-                            <th class="py-2 pr-3 text-right">Min</th>
-                            <th class="py-2 pr-3 text-right">Max</th>
-                            <th class="py-2 text-right">{{ t('apiStatus.errorRate') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="(ep, idx) in (activeTab === 'slowest' ? slowest : activeTab === 'fastest' ? fastest : failing)"
-                            :key="idx"
-                            class="border-b border-[var(--border)] last:border-0 cursor-pointer hover:bg-[var(--bg-accent)]/10 transition-colors"
-                            @click="openDetail(ep)">
-                            <td class="py-2 pr-3 font-mono text-xs">
-                                <span :class="methodColor(ep.method)" class="font-semibold mr-1">{{ ep.method }}</span>
-                                {{ ep.path }}
-                            </td>
-                            <Td dense align="right" class="tabular-nums">{{ ep.requestCount }}</Td>
-                            <Td dense align="right" class="tabular-nums">{{ formatMs(ep.avgDurationMs) }}</Td>
-                            <Td dense align="right" class="tabular-nums text-[var(--text-muted)]">{{ formatMs(ep.minDurationMs) }}</Td>
-                            <Td dense align="right" class="tabular-nums text-[var(--text-muted)]">{{ formatMs(ep.maxDurationMs) }}</Td>
-                            <td class="py-2 text-right tabular-nums" :class="ep.errorRate > 0.1 ? 'text-red-500 font-semibold' : ''">
-                                {{ formatPercent(ep.errorRate) }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </NeutralContainer>
+            <EndpointStatsPanel :fastest="fastest" :failing="failing" :slowest="slowest"/>
         </template>
     </ViewContent>
 </template>

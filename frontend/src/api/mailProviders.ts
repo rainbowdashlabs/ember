@@ -138,6 +138,30 @@ export interface ProviderStanding {
     exhausted: boolean
 }
 
+/** Where a mail stands in the queue: waiting, being handed over, handed over, or given up on. */
+export const MailQueueStatus = {
+    PENDING: 'PENDING',
+    SENDING: 'SENDING',
+    SENT: 'SENT',
+    FAILED: 'FAILED',
+} as const
+
+export type MailQueueStatusName = (typeof MailQueueStatus)[keyof typeof MailQueueStatus]
+
+/** What the provider reported about a mail after taking it. */
+export const MailDeliveryStatus = {
+    UNKNOWN: 'UNKNOWN',
+    DELIVERED: 'DELIVERED',
+    SOFT_BOUNCE: 'SOFT_BOUNCE',
+    HARD_BOUNCE: 'HARD_BOUNCE',
+    BLOCKED: 'BLOCKED',
+    SPAM: 'SPAM',
+    DEFERRED: 'DEFERRED',
+    ERROR: 'ERROR',
+} as const
+
+export type MailDeliveryStatusName = (typeof MailDeliveryStatus)[keyof typeof MailDeliveryStatus]
+
 /** One mail as the overview shows it. The body is deliberately absent. */
 export interface MailRecord {
     id: number
@@ -145,8 +169,8 @@ export interface MailRecord {
     subject: string
     createdAt: string
     sentAt: string | null
-    status: string
-    deliveryStatus: string
+    status: MailQueueStatusName
+    deliveryStatus: MailDeliveryStatusName
     deliveryDetail: string | null
     attempts: number
     providerPosition: number

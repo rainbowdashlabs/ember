@@ -16,10 +16,12 @@ import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import MailQueueRow from '@/components/mail/MailQueueRow.vue'
+import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import MailRecordTable from '@/components/mail/MailRecordTable.vue'
 import MailProviderStanding from '@/components/mail/MailProviderStanding.vue'
+import {useMailRecordTable} from '@/components/mail/useMailRecordTable'
 import {showToast} from '@/util/toast'
-import type {MailDashboard, ProviderBlock, RequeuedMails} from '@/api/mailProviders'
+import {MailDeliveryStatus, type MailDashboard, type ProviderBlock, type RequeuedMails} from '@/api/mailProviders'
 
 /**
  * What has become of the post.
@@ -42,7 +44,6 @@ const data = ref<MailDashboard | null>(null)
 const loading = ref(true)
 const error = ref('')
 
-const search = ref('')
 const statusFilter = ref('')
 
 async function reload() {
@@ -93,17 +94,13 @@ onMounted(reload)
 /** The delivery states actually present, so the filter offers nothing that would match nothing. */
 const deliveryStates = computed(() => {
   const seen = new Set((data.value?.recent ?? []).map(entry => entry.deliveryStatus).filter(Boolean))
-  return [...seen].sort()
+  return Object.values(MailDeliveryStatus).filter(state => seen.has(state))
 })
 
-const visible = computed(() => {
-  const term = search.value.trim().toLowerCase()
-  return (data.value?.recent ?? []).filter(entry => {
-    if (statusFilter.value && entry.deliveryStatus !== statusFilter.value) return false
-    if (!term) return true
-    return entry.recipient.toLowerCase().includes(term) || entry.subject.toLowerCase().includes(term)
-  })
-})
+const recentTable = useMailRecordTable('mail-recent', () => (data.value?.recent ?? [])
+    .filter(entry => !statusFilter.value || entry.deliveryStatus === statusFilter.value))
+
+const stuckTable = useMailRecordTable('mail-stuck', () => data.value?.stuckMails ?? [])
 </script>
 
 <template>
@@ -148,13 +145,13 @@ const visible = computed(() => {
           </SecondaryButton>
         </div>
         <MutedText tag="p" size="sm">{{ t('mailDashboard.stuckHint') }}</MutedText>
-        <MailQueueRow v-for="entry in data.stuckMails" :key="entry.id" :entry="entry">
-          <template #action>
-            <SecondaryButton v-if="props.requeue" :disabled="requeueing" @click="doRequeue(entry.id)">
+        <MailRecordTable :table="stuckTable" test-id="mail-stuck-table">
+          <template v-if="props.requeue" #actions="{row}">
+            <SecondaryButton :disabled="requeueing" @click="doRequeue(row.id)">
               {{ t('mailDashboard.requeueOne') }}
             </SecondaryButton>
           </template>
-        </MailQueueRow>
+        </MailRecordTable>
       </template>
 
       <MutedText v-if="data.oldestPendingAt" tag="p" size="sm">
@@ -188,19 +185,19 @@ const visible = computed(() => {
       <SubHeader>{{ t('mailDashboard.recentTitle') }}</SubHeader>
       <div class="flex gap-2 flex-wrap">
         <TextInput
-            v-model="search"
+            v-model="recentTable.search"
             class="flex-1 min-w-56"
             :placeholder="t('mailDashboard.searchPlaceholder')"
             :aria-label="t('mailDashboard.searchPlaceholder')"
         />
         <SelectInput v-model="statusFilter" :aria-label="t('mailDashboard.deliveryFilter')">
           <option value="">{{ t('mailDashboard.allDeliveryStates') }}</option>
-          <option v-for="state in deliveryStates" :key="state" :value="state">{{ state }}</option>
+          <option v-for="state in deliveryStates" :key="state" :value="state">{{ t(`mailDashboard.delivery.${state}`) }}</option>
         </SelectInput>
+        <ColumnPickerButton :options="recentTable.pickerOptions" @toggle="recentTable.toggleColumn"/>
       </div>
 
-      <EmptyHint v-if="visible.length === 0">{{ t('mailDashboard.noMails') }}</EmptyHint>
-      <MailQueueRow v-for="entry in visible" :key="entry.id" :entry="entry"/>
+      <MailRecordTable :table="recentTable" test-id="mail-recent-table"/>
     </template>
   </NeutralContainer>
 </template>

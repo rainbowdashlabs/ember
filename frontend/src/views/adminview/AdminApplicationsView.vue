@@ -9,19 +9,17 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
+import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
 import {stationApplications} from '@/api'
 import {ApplicationStatus, type StationApplication} from '@/api/stationApplications'
-import {useBreakpoint} from '@/composables/useBreakpoint'
+import {useDataTable} from '@/composables/useDataTable'
 import {useModalTarget} from '@/composables/useModalTarget'
 import ApplicationsTabs from './adminapplicationsview/ApplicationsTabs.vue'
-import ApplicationsMobileList from './adminapplicationsview/ApplicationsMobileList.vue'
-import ApplicationsDesktopTable from './adminapplicationsview/ApplicationsDesktopTable.vue'
+import ApplicationsTable from './adminapplicationsview/ApplicationsTable.vue'
 import DenyApplicationModal from './adminapplicationsview/DenyApplicationModal.vue'
+import {applicationColumns} from './adminapplicationsview/applicationColumns'
 import type {ApplicationTab} from './adminapplicationsview/types'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-
-const {isMobile} = useBreakpoint()
 
 const {t} = useI18n()
 
@@ -43,6 +41,14 @@ const filteredApplications = computed(() => {
     return applications.value.filter(a => a.status === ApplicationStatus.PENDING)
   }
   return applications.value
+})
+
+const table = useDataTable<StationApplication>({
+  id: 'admin-station-applications',
+  rows: filteredApplications,
+  columns: computed(() => applicationColumns(t)),
+  rowKey: app => app.id,
+  searchText: app => app.introduction,
 })
 
 async function acceptApplication(app: StationApplication) {
@@ -70,20 +76,10 @@ async function submitDeny() {
       <FailureAlert :message="error"/>
 
       <template v-if="!loading">
-        <ApplicationsTabs v-model="activeTab"/>
-        <EmptyState v-if="filteredApplications.length === 0">{{ t('adminApplications.empty') }}</EmptyState>
-        <ApplicationsMobileList
-            v-else-if="isMobile"
-            :applications="filteredApplications"
-            :processing="processing"
-            @accept="acceptApplication"
-            @deny="openDeny"/>
-        <ApplicationsDesktopTable
-            v-else
-            :applications="filteredApplications"
-            :processing="processing"
-            @accept="acceptApplication"
-            @deny="openDeny"/>
+        <ApplicationsTabs v-model="activeTab">
+          <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+        </ApplicationsTabs>
+        <ApplicationsTable :table="table" :processing="processing" @accept="acceptApplication" @deny="openDeny"/>
       </template>
 
       <DenyApplicationModal

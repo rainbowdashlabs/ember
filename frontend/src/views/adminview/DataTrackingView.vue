@@ -20,8 +20,10 @@ import type {
   TableUpdatePayload,
   TrackingStatusName,
 } from '@/api/dataTracking'
+import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
 import TableDetailDrawer from './datatrackingview/TableDetailDrawer.vue'
-import TableListRow from './datatrackingview/TableListRow.vue'
+import TrackingTable from './datatrackingview/TrackingTable.vue'
+import {useTrackingTable} from './datatrackingview/trackingtable/useTrackingTable'
 import SummaryCards from './datatrackingview/SummaryCards.vue'
 import StatusBreakdownGrid from './datatrackingview/StatusBreakdownGrid.vue'
 import DanglingRefAudit from './datatrackingview/DanglingRefAudit.vue'
@@ -35,9 +37,6 @@ const tracking = ref<DataTracking | null>(null)
 const summary = ref<DataTrackingSummary | null>(null)
 const loading = ref(true)
 const error = ref('')
-const search = ref('')
-const filterContext = ref<'all' | 'transfer' | 'gdprExport' | 'gdprDeletion'>('all')
-const filterStatus = ref<'all' | 'TRACKED' | 'IGNORED' | 'UNVERIFIED' | 'NEEDS_REVIEW'>('all')
 const selectedTable = ref<string | null>(null)
 
 const selectedForBatch = ref<Set<string>>(new Set())
@@ -52,67 +51,9 @@ const batchError = ref('')
  */
 const isDev = ref(false)
 
-interface Row {
-  name: string
-  entry: TableEntry
-  hasUnverifiedColumns: boolean
-  needsReview: boolean
-  rowKey: string
-}
-
-const rows = computed<Row[]>(() => {
-  if (!tracking.value) return []
-  return Object.entries(tracking.value.tables).map(([name, entry]) => {
-    const hasUnverifiedColumns = entry.columns.some(c => !c.verified)
-    const needsReview =
-        entry.stationTransfer.status === 'UNVERIFIED' ||
-        entry.gdprExport.status === 'UNVERIFIED' ||
-        entry.gdprDeletion.status === 'UNVERIFIED' ||
-        hasUnverifiedColumns
-    return {
-      name,
-      entry,
-      hasUnverifiedColumns,
-      needsReview,
-      rowKey: `${name}-${entry.tableHash}`,
-    }
-  })
-})
-
-function matchesSearch(r: Row, q: string): boolean {
-  if (!q) return true
-  if (r.name.toLowerCase().includes(q)) return true
-  if (r.entry.description && r.entry.description.toLowerCase().includes(q)) return true
-  return r.entry.columns.some(c =>
-      c.name.toLowerCase().includes(q) || (c.description ?? '').toLowerCase().includes(q),
-  )
-}
+const {table, filterContext, filterStatus, needsReviewCount} = useTrackingTable(tracking)
 
 const danglingMemberRefs = computed(() => findDanglingMemberRefs(tracking.value))
-
-const filteredRows = computed<Row[]>(() => {
-  const q = search.value.trim().toLowerCase()
-  return rows.value.filter(r => {
-    if (!matchesSearch(r, q)) return false
-    if (filterStatus.value === 'NEEDS_REVIEW' && !r.needsReview) return false
-    if (filterStatus.value !== 'all' && filterStatus.value !== 'NEEDS_REVIEW') {
-      const ctxes = filterContext.value === 'all'
-          ? [r.entry.stationTransfer.status, r.entry.gdprExport.status, r.entry.gdprDeletion.status]
-          : [statusOf(r.entry)]
-      if (!ctxes.includes(filterStatus.value)) return false
-    }
-    return true
-  }).sort((a, b) => a.name.localeCompare(b.name))
-})
-
-function statusOf(entry: TableEntry): string {
-  if (filterContext.value === 'transfer') return entry.stationTransfer.status
-  if (filterContext.value === 'gdprExport') return entry.gdprExport.status
-  if (filterContext.value === 'gdprDeletion') return entry.gdprDeletion.status
-  return entry.stationTransfer.status
-}
-
-const needsReviewCount = computed(() => rows.value.filter(r => r.needsReview).length)
 
 const verifiedPct = computed(() => {
   if (!summary.value || summary.value.totalColumns === 0) return 0
@@ -141,15 +82,18 @@ function selectedEntry(): TableEntry | null {
   return tracking.value.tables[selectedTable.value] ?? null
 }
 
+/** Reads the totals again after a change, keeping the ones shown where that fails. */
+async function refreshSummary() {
+  summary.value = await dataTracking.getDataTrackingSummary().catch(() => summary.value)
+}
+
 async function onTableUpdated(name: string, entry: TableEntry) {
   if (!tracking.value) return
   tracking.value = {
     ...tracking.value,
     tables: {...tracking.value.tables, [name]: entry},
   }
-  try {
-    summary.value = await dataTracking.getDataTrackingSummary()
-  } catch { /* ignore */ }
+  await refreshSummary()
 }
 
 function toggleBatchSelection(name: string) {
@@ -161,7 +105,7 @@ function toggleBatchSelection(name: string) {
 
 function selectAllFiltered() {
   const next = new Set(selectedForBatch.value)
-  for (const r of filteredRows.value) next.add(r.name)
+  for (const row of table.rows) next.add(row.name)
   selectedForBatch.value = next
 }
 
@@ -204,9 +148,7 @@ const {running: batchSaving, run: applyBatch} = useAsyncAction(async () => {
       ...tracking.value,
       tables: {...tracking.value.tables, ...successUpdates},
     }
-    try {
-      summary.value = await dataTracking.getDataTrackingSummary()
-    } catch { /* ignore */ }
+    await refreshSummary()
   }
 
   if (failures.length > 0) {
@@ -242,9 +184,11 @@ onMounted(async () => {
       <DanglingRefAudit :refs="danglingMemberRefs"/>
       <SectionHeader>{{ t('adminDataTracking.tables') }}</SectionHeader>
       <TableFilterBar
-          v-model:search="search"
+          v-model:search="table.search"
           v-model:filter-context="filterContext"
-          v-model:filter-status="filterStatus"/>
+          v-model:filter-status="filterStatus">
+        <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+      </TableFilterBar>
       <BatchToolbar
           :selected-count="selectedForBatch.size"
           v-model:batch-context="batchContext"
@@ -254,20 +198,12 @@ onMounted(async () => {
           @select-all="selectAllFiltered"
           @clear="clearBatchSelection"/>
       <Alert v-if="batchError" variant="error" class="mb-3 whitespace-pre-line">{{ batchError }}</Alert>
-      <div class="space-y-1">
-        <TableListRow
-            v-for="row in filteredRows"
-            :key="row.rowKey"
-            :row="row"
-            :selected="selectedForBatch.has(row.name)"
-            :search="search"
-            :tracking="tracking"
-            @open="selectedTable = row.name"
-            @toggle-batch="toggleBatchSelection(row.name)"/>
-        <div v-if="filteredRows.length === 0" class="text-center text-(--text-muted) py-8">
-          {{ t('adminDataTracking.noMatches') }}
-        </div>
-      </div>
+      <TrackingTable
+          :selected="selectedForBatch"
+          :table="table"
+          :tracking="tracking"
+          @open="selectedTable = $event"
+          @toggle-batch="toggleBatchSelection"/>
     </template>
 
     <TableDetailDrawer

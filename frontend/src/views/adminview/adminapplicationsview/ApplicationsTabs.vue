@@ -10,11 +10,12 @@ import type {ApplicationTab} from '@/views/adminview/adminapplicationsview/types
 
 const {t} = useI18n()
 
+/** Switches between the waiting applications and all of them, with room at the end for the table's controls. */
 const activeTab = defineModel<ApplicationTab>({required: true})
 </script>
 
 <template>
-  <div class="flex gap-2 border-b border-bg-light-accent dark:border-bg-dark-accent pb-2">
+  <div class="flex items-center gap-2 border-b border-bg-light-accent dark:border-bg-dark-accent pb-2">
     <SelectionToggleButton :selected="activeTab === 'pending'" size="md"
                            @toggle="activeTab = 'pending'">
       {{ t('adminApplications.pending') }}
@@ -23,5 +24,8 @@ const activeTab = defineModel<ApplicationTab>({required: true})
                            @toggle="activeTab = 'all'">
       {{ t('adminApplications.all') }}
     </SelectionToggleButton>
+    <div class="ml-auto">
+      <slot/>
+    </div>
   </div>
 </template>

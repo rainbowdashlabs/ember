@@ -20,5 +20,6 @@ defineProps<{
 <template>
   <SuccessBadge v-if="status === ApplicationStatus.ACCEPTED">{{ t('adminApplications.accepted') }}</SuccessBadge>
   <ErrorBadge v-else-if="status === ApplicationStatus.DENIED">{{ t('adminApplications.denied') }}</ErrorBadge>
-  <SecondaryBadge v-else>{{ t('adminApplications.pendingBadge') }}</SecondaryBadge>
+  <SecondaryBadge v-else-if="status === ApplicationStatus.PENDING">{{ t('adminApplications.pendingBadge') }}</SecondaryBadge>
+  <SecondaryBadge v-else>{{ t('adminApplications.unverified') }}</SecondaryBadge>
 </template>
