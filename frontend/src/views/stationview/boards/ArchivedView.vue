@@ -13,15 +13,13 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import { contrastTextColor } from '@/theme/contrast'
-import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { boards, stationMembers } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardTicket, BoardLabel } from '@/api/boards'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { formatDate } from '@/util/format'
-import { priorityIcon, priorityColor } from '@/util/ticketPriority'
-import Td from '@/components/table/Td.vue'
+import LabelChipFilter from './archivedview/LabelChipFilter.vue'
+import TicketTable from './tickettable/TicketTable.vue'
+import { useTicketTable } from './tickettable/useTicketTable'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -57,8 +55,18 @@ const filteredTickets = computed(() => {
     return tickets.value.filter(t => { const ids = ticketLabelMap.value.get(t.id) ?? []; return ids.some(id => labelFilter.value.has(id)) })
 })
 
-function labelsForTicket(ticketId: number): BoardLabel[] { return allLabels.value.filter(l => (ticketLabelMap.value.get(ticketId) ?? []).includes(l.id)) }
-function toggleLabelFilter(id: number) { const n = new Set(labelFilter.value); if (n.has(id)) n.delete(id); else n.add(id); labelFilter.value = n }
+function labelsForTicket(ticket: BoardTicket): BoardLabel[] {
+    const ids = ticketLabelMap.value.get(ticket.id) ?? []
+    return allLabels.value.filter(l => ids.includes(l.id))
+}
+
+const table = useTicketTable({
+    id: 'board-archived',
+    shortKey: () => board.value?.shortKey ?? '',
+    tickets: filteredTickets,
+    members,
+    labelsOf: labelsForTicket,
+})
 </script>
 
 <template>
@@ -74,27 +82,10 @@ function toggleLabelFilter(id: number) { const n = new Set(labelFilter.value); i
                 <SectionHeader>{{ board.name }} - {{ t('boards.archived') }}</SectionHeader>
             </div>
 
-            <div v-if="allLabels.length > 0" class="flex flex-wrap gap-1 mb-4 items-center">
-                <BaseBadge v-for="label in allLabels" :key="label.id" bg-class="" class="cursor-pointer transition-all" :class="labelFilter.has(label.id) ? 'ring-2 ring-offset-1 ring-[var(--text)]' : 'opacity-70 hover:opacity-100'" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }" @click="toggleLabelFilter(label.id)">{{ label.name }}</BaseBadge>
-                <span v-if="labelFilter.size > 0" class="text-xs text-(--text-muted) cursor-pointer ml-1" @click="labelFilter = new Set()"><font-awesome-icon :icon="['fas', 'xmark']" class="text-[0.6rem]" /></span>
-            </div>
+            <LabelChipFilter v-if="allLabels.length > 0" v-model="labelFilter" :labels="allLabels" class="mb-4" />
 
             <EmptyState v-if="filteredTickets.length === 0">{{ t('boards.noTickets') }}</EmptyState>
-            <table v-else class="w-full text-sm">
-                <thead><tr class="text-left text-xs text-(--text-muted) uppercase border-b border-(--border)">
-                    <th class="py-2 pr-3">ID</th><th class="py-2 pr-3 w-full">{{ t('boards.ticketTitle') }}</th><th class="py-2 pr-3">Labels</th><th class="py-2 pr-3">{{ t('boards.priority') }}</th><th class="py-2 pr-3">{{ t('boards.assignee') }}</th><th class="py-2">{{ t('boards.dueDate') }}</th>
-                </tr></thead>
-                <tbody>
-                    <tr v-for="ticket in filteredTickets" :key="ticket.id" class="border-b border-(--border) last:border-0 cursor-pointer hover:bg-primary/5" @click="router.push(`/station/boards/${board.shortKey}/tickets/${ticket.ticketNumber}`)">
-                        <Td dense muted class="font-mono whitespace-nowrap">{{ board.shortKey }}-{{ ticket.ticketNumber }}</Td>
-                        <td class="py-2 pr-3">{{ ticket.title }}</td>
-                        <td class="py-2 pr-3"><div class="flex gap-1"><BaseBadge v-for="l in labelsForTicket(ticket.id)" :key="l.id" bg-class="" :style="{ backgroundColor: l.color, color: contrastTextColor(l.color) }">{{ l.name }}</BaseBadge></div></td>
-                        <td class="py-2 pr-3"><font-awesome-icon :icon="priorityIcon(ticket.priority)" :class="priorityColor(ticket.priority)" class="text-xs" /></td>
-                        <td class="py-2 pr-3"><div v-if="ticket.assignee" class="flex items-center gap-1"><UserAvatar :identity="ticket.assignee" size="sm" /><span class="text-xs whitespace-nowrap">{{ members.find(m => m.memberUid === ticket.assignee?.memberUid)?.name ?? '' }}</span></div></td>
-                        <td class="py-2 text-xs whitespace-nowrap">{{ formatDate(ticket.dueDate) }}</td>
-                    </tr>
-                </tbody>
-            </table>
+            <TicketTable v-else :labels-of="labelsForTicket" :short-key="board.shortKey" :table="table" />
         </template>
     </ViewContent>
 </template>

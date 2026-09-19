@@ -17,12 +17,15 @@ import MovementAckModal from './movementqueueview/MovementAckModal.vue'
 import MovementCorrectModal from './movementqueueview/MovementCorrectModal.vue'
 import MovementWizard from './movementwizard/MovementWizard.vue'
 import {useMovementQueue} from './movementqueueview/useMovementQueue'
-import {inventory, movements, profileFields} from '@/api'
+import {MovementColumn, useMovementColumns} from './movementqueueview/movementColumns'
+import {queueOrder} from './movementqueueview/movementFilter'
+import {movements, profileFields} from '@/api'
 import type {Movement} from '@/api/movements'
 import type {ProfileField} from '@/api/profileFields'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useDataTable} from '@/composables/useDataTable'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {saveBlob} from '@/util/downloadAuthed'
 import {useExport} from '@/composables/useExport'
@@ -46,6 +49,18 @@ const canManage = computed(() => hasPermission(StationPermission.INVENTORY_MOVEM
 const isManager = computed(() => hasPermission(StationPermission.INVENTORY_MANAGER))
 
 const queue = useMovementQueue(() => rows.value)
+
+/** Who a movement is with is shown only to somebody working the whole queue. */
+const allColumns = useMovementColumns()
+const columns = computed(() => allColumns.value.filter(column => canManage.value || column.key !== MovementColumn.MEMBER))
+
+const table = useDataTable<Movement>({
+  id: 'inventory-movements',
+  rows: () => queue.matching.value,
+  columns,
+  rowKey: movement => movement.id,
+  fallbackSort: queueOrder,
+})
 
 const acknowledging = ref<number | null>(null)
 const correcting = ref<number | null>(null)
@@ -71,7 +86,7 @@ const {loading, error, reload} = useAsyncLoader(async () => {
  * out of the list, and everything ticked to begin with makes that a matter of unticking.
  */
 const exportFlow = useExport<Movement>({
-  rows: () => queue.visible.value,
+  rows: () => table.rows,
   rowId: row => row.id,
   columns: () => fields.value.map(field => ({key: String(field.id), label: field.name ?? String(field.id)})),
   selectAllRows: true,
@@ -136,18 +151,14 @@ function afterChange() {
             v-model:states="queue.states.value"
             v-model:turns="queue.turns.value"
             :inventories="queue.inventories.value"
-            :show-sort="true"
-            :sort-key="queue.sortKey.value"
-            @sort="queue.selectSort"
         />
 
         <MovementQueueList
-            :all="rows"
             :can-correct="isManager"
             :picked-ids="exportFlow.selectedIds.value"
             :picking="exportFlow.exportMode.value"
-            :show-member="canManage"
-            :visible="queue.visible.value"
+            :table="table"
+            :total="rows.length"
             @acknowledge="movement => acknowledging = movement.id"
             @correct="movement => correcting = movement.id"
             @open="openDetail"

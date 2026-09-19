@@ -7,16 +7,9 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SearchInput from '@/components/input/text/SearchInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FilterTicks from './FilterTicks.vue'
-import {
-  filterablePurposes,
-  filterableStates,
-  filterableTurns,
-  type InventoryChoice,
-  type MovementSortKey,
-} from './movementFilter'
+import {filterablePurposes, filterableStates, filterableTurns, type InventoryChoice} from './movementFilter'
 
 /**
  * What the queue is narrowed by: a name or a piece, an inventory, an art, a state, and whose turn it
@@ -24,13 +17,6 @@ import {
  */
 const props = defineProps<{
   inventories: InventoryChoice[]
-  sortKey: MovementSortKey
-  /** Whether the ordering is picked here, which is what a screen without column headers needs. */
-  showSort: boolean
-}>()
-
-const emit = defineEmits<{
-  (e: 'sort', key: MovementSortKey): void
 }>()
 
 const search = defineModel<string>('search', {required: true})
@@ -38,8 +24,6 @@ const inventoryIds = defineModel<string[]>('inventoryIds', {required: true})
 const purposes = defineModel<string[]>('purposes', {required: true})
 const states = defineModel<string[]>('states', {required: true})
 const turns = defineModel<string[]>('turns', {required: true})
-
-const sortKeys: MovementSortKey[] = ['turn', 'created', 'modified', 'member', 'inventory', 'purpose']
 
 const {t} = useI18n()
 
@@ -66,16 +50,5 @@ const turnOptions = computed(() => filterableTurns.map(name => ({value: name, la
                  testid="movement-filter-state"/>
     <FilterTicks v-model="inventoryIds" :label="t('movements.queue.filter.inventory')" :options="inventoryOptions"
                  testid="movement-filter-inventory"/>
-    <div v-if="showSort" class="w-48 space-y-1">
-      <FieldLabel>{{ t('movements.queue.filter.sort') }}</FieldLabel>
-      <SelectInput
-          :model-value="sortKey"
-          class="w-full"
-          data-testid="movement-sort"
-          @update:model-value="emit('sort', $event as MovementSortKey)"
-      >
-        <option v-for="key in sortKeys" :key="key" :value="key">{{ t(`movements.queue.sort.${key}`) }}</option>
-      </SelectInput>
-    </div>
   </div>
 </template>

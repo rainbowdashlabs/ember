@@ -11,9 +11,10 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import type { ColumnPickerOption } from '@/components/table/columns'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import type { FilterCriteria } from '@/composables/useMemberFilter'
-import type { Inventory } from '@/api/inventory'
 import type { MemberGroup, UserTag } from '@/api/types'
 
 const { t } = useI18n()
@@ -26,13 +27,13 @@ const showSize = defineModel<boolean>('showSize', { required: true })
 defineProps<{
   groups: MemberGroup[]
   tags: UserTag[]
-  inventories: Inventory[]
-  visibleInventoryIds: Set<number>
+  /** The inventories the list may show as columns, each ticked where it does. */
+  columnOptions: ColumnPickerOption[]
 }>()
 
 const emit = defineEmits<{
   filter: [criteria: FilterCriteria]
-  toggleInventory: [invId: number]
+  toggleColumn: [key: string | number]
 }>()
 
 const restriction = ref<RestrictionSelection>(emptyRestriction())
@@ -59,20 +60,9 @@ function emitFilter() {
       <label class="text-sm font-medium">{{ t('inventoryMembers.showEmpty') }}</label>
       <ToggleInput v-model="showEmpty" />
     </div>
+    <ColumnPickerButton :options="columnOptions" @toggle="(key) => emit('toggleColumn', key)" />
   </NeutralContainer>
 
-  <!-- Inventory column toggles -->
-  <NeutralContainer class="space-y-2">
-    <p class="text-sm font-medium">{{ t('inventoryMembers.columns') }}</p>
-    <div class="flex flex-wrap gap-2">
-      <FieldLabel v-for="inv in inventories" :key="inv.id" inline class="cursor-pointer">
-        <CheckboxInput :model-value="visibleInventoryIds.has(inv.id)" @update:model-value="emit('toggleInventory', inv.id)" />
-        {{ inv.name }}
-      </FieldLabel>
-    </div>
-  </NeutralContainer>
-
-  <!-- Display options -->
   <NeutralContainer class="space-y-2">
     <p class="text-sm font-medium">{{ t('inventoryMembers.displayOptions') }}</p>
     <div class="flex flex-wrap gap-4">

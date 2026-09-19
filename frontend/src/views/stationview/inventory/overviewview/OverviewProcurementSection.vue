@@ -4,80 +4,75 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import {computed} from 'vue'
+import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MemberInventoryLink from '@/components/inventory/MemberInventoryLink.vue'
-import Th from '@/components/table/Th.vue'
-import Td from '@/components/table/Td.vue'
-import DataTable from '@/components/table/DataTable.vue'
-import TRow from '@/components/table/TRow.vue'
-import type { ProcurementEntry } from '@/api/procurement'
-import { useBreakpoint } from '@/composables/useBreakpoint'
-import { inventoryTypeBadge, inventoryTypeLabel as toInventoryTypeLabel } from '@/util/inventoryType'
-import { formatDate } from '@/util/format'
+import RecordTable from '@/components/table/RecordTable.vue'
+import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
+import type {ProcurementEntry} from '@/api/procurement'
+import {useDataTable} from '@/composables/useDataTable'
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
+import InventoryTypeCell from './InventoryTypeCell.vue'
+import {INVENTORY_TYPE_KEY, inventoryTypeColumn} from './inventoryTypeColumn'
 
-const routes = useInventoryRoutes()
-
-const { t } = useI18n()
-const router = useRouter()
-const { isMobile } = useBreakpoint()
-
-defineProps<{
+/**
+ * What is still to be bought, as the inventory overview shows it. A press on a row leads to the
+ * procurement page, where it is dealt with.
+ */
+const props = defineProps<{
   entries: ProcurementEntry[]
   inventoryTypeMap: Map<number, string>
 }>()
 
-function inventoryTypeLabel(type?: string | null): string {
-  return toInventoryTypeLabel(t, type)
+const {t} = useI18n()
+const router = useRouter()
+const routes = useInventoryRoutes()
+
+function sizeOf(entry: ProcurementEntry): string {
+  return entry.sizeLabel || t('common.unisize')
+}
+
+const columns = computed<TableColumn<ProcurementEntry>[]>(() => [
+  {key: 'item', label: t('inventory.overview.colItem'), type: ColumnTypes.TEXT, value: entry => entry.inventoryName},
+  inventoryTypeColumn<ProcurementEntry>(t, entry => props.inventoryTypeMap.get(entry.inventoryId)),
+  {key: 'member', label: t('inventory.overview.colOwner'), type: ColumnTypes.TEXT, value: entry => entry.memberName},
+  {key: 'notes', label: t('inventory.overview.colNotes'), type: ColumnTypes.TEXT, value: entry => entry.notes},
+  {key: 'requested', label: t('inventory.overview.colRequested'), type: ColumnTypes.DATE, value: entry => entry.requestedAt},
+])
+
+const table = useDataTable<ProcurementEntry>({
+  id: 'inventory-overview-procurement',
+  rows: () => props.entries,
+  columns,
+  rowKey: entry => entry.id,
+  searchText: sizeOf,
+})
+
+function toProcurement() {
+  void router.push({name: routes.procurement})
 }
 </script>
 
 <template>
   <div class="space-y-3">
     <SubHeader>
-      <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-2" />
-      {{ t('inventory.overview.procurement') }} ({{ entries.length }})
+      <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-2"/>
+      {{ t('inventory.overview.procurement') }} ({{ props.entries.length }})
     </SubHeader>
-    <div v-if="isMobile" class="space-y-2">
-      <NeutralContainer v-for="p in entries" :key="p.id" class="space-y-1 cursor-pointer" @click="router.push({ name: routes.procurement })">
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-medium">{{ p.inventoryName }}</span>
-          <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
-        </div>
-        <div class="flex flex-wrap items-center gap-1">
-          <component :is="inventoryTypeBadge(inventoryTypeMap.get(p.inventoryId))">{{ inventoryTypeLabel(inventoryTypeMap.get(p.inventoryId)) }}</component>
-        </div>
-        <div class="text-xs text-(--text-muted)"><MemberInventoryLink :identity="p.memberIdentity ?? null" :member-id="p.memberId"/></div>
-        <div v-if="p.notes" class="text-xs text-(--text-muted)">{{ p.notes }}</div>
-        <div class="text-xs text-(--text-muted)">{{ t('inventory.overview.requestedAt') }}: {{ formatDate(p.requestedAt) }}</div>
-      </NeutralContainer>
-    </div>
-    <DataTable v-else>
-      <template #head>
-        <Th>{{ t('inventory.overview.colItem') }}</Th>
-        <Th>{{ t('inventory.overview.colType') }}</Th>
-        <Th>{{ t('inventory.overview.colOwner') }}</Th>
-        <Th>{{ t('inventory.overview.colNotes') }}</Th>
-        <Th>{{ t('inventory.overview.colRequested') }}</Th>
+    <RecordTable :table="table" clickable test-id="overview-procurement" @row-click="toProcurement">
+      <template #cell-item="{row, text}">
+        {{ text }}
+        <SizeBadge>{{ sizeOf(row) }}</SizeBadge>
       </template>
-      <TRow v-for="p in entries" :key="p.id"
-          class="cursor-pointer hover:bg-(--bg-accent)"
-          @click="router.push({ name: routes.procurement })">
-        <Td>
-          {{ p.inventoryName }}
-          <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
-        </Td>
-        <Td>
-          <component :is="inventoryTypeBadge(inventoryTypeMap.get(p.inventoryId))">{{ inventoryTypeLabel(inventoryTypeMap.get(p.inventoryId)) }}</component>
-        </Td>
-        <Td><MemberInventoryLink :identity="p.memberIdentity ?? null" :member-id="p.memberId"/></Td>
-        <Td muted>{{ p.notes || '-' }}</Td>
-        <Td muted>{{ formatDate(p.requestedAt) }}</Td>
-      </TRow>
-    </DataTable>
+      <template #[`cell-${INVENTORY_TYPE_KEY}`]="{row, text}">
+        <InventoryTypeCell :text="text" :type="props.inventoryTypeMap.get(row.inventoryId)"/>
+      </template>
+      <template #cell-member="{row}">
+        <MemberInventoryLink :identity="row.memberIdentity ?? null" :member-id="row.memberId"/>
+      </template>
+    </RecordTable>
   </div>
 </template>

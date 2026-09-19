@@ -4,32 +4,29 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
-import SizeBadge from '@/components/badge/SizeBadge.vue'
-import type { Inventory, InventoryItem } from '@/api/inventory'
+import RecordTable from '@/components/table/RecordTable.vue'
+import type { InventoryItem } from '@/api/inventory'
 import type { StationMember } from '@/api/types'
-import MutedText from '@/components/typography/MutedText.vue'
-import DataTable from '@/components/table/DataTable.vue'
-import Th from '@/components/table/Th.vue'
-import Td from '@/components/table/Td.vue'
-import TRow from '@/components/table/TRow.vue'
+import type { DataTableApi } from '@/composables/useDataTable'
+import MemberInventoryItems from './MemberInventoryItems.vue'
+import { inventoryIdOfColumn, NAME_KEY } from './inventoryMemberColumns'
+import type { ItemLabelParts } from './itemLabel'
 
-const { t } = useI18n()
-
+/**
+ * Who holds what, one line per member and one column per inventory. A press on a line opens the
+ * member's pieces, or ticks the member while choosing whom to export.
+ */
 const props = defineProps<{
-  members: StationMember[]
-  inventories: Inventory[]
+  table: DataTableApi<StationMember>
   exportMode: boolean
   selectedForExport: Set<number>
-  isMobile: boolean
-  memberItemMap: Map<number, Map<number, InventoryItem[]>>
-  showName: boolean
-  showInternalId: boolean
-  showSize: boolean
-  sizeMap: Map<number, string>
+  itemsFor: (memberId: number, inventoryId: number) => InventoryItem[]
+  parts: ItemLabelParts
 }>()
 
 const emit = defineEmits<{
@@ -38,103 +35,43 @@ const emit = defineEmits<{
   toggleSelectAll: []
 }>()
 
-function memberDisplayName(m: StationMember): string {
-  return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
-}
+const { t } = useI18n()
 
-function memberInventoryItems(memberId: number, inventoryId: number): InventoryItem[] {
-  return props.memberItemMap.get(memberId)?.get(inventoryId) ?? []
-}
+/** The inventory columns that show, each with the inventory it stands for. */
+const inventoryColumns = computed(() => props.table.visibleColumns
+  .map(column => ({ key: column.key, inventoryId: inventoryIdOfColumn(column.key) }))
+  .filter((column): column is { key: string, inventoryId: number } => column.inventoryId !== null))
 
-function memberInventoryCount(memberId: number, inventoryId: number): number {
-  return memberInventoryItems(memberId, inventoryId).length
-}
-
-function itemNamePart(item: InventoryItem): string {
-  const parts: string[] = []
-  if (props.showName && item.name) parts.push(item.name)
-  if (props.showInternalId && item.internalId) parts.push(`(${item.internalId})`)
-  return parts.join(' ')
-}
-
-function itemSizeLabel(item: InventoryItem): string {
-  if (!props.showSize) return ''
-  if (!item.sizeId) return ''
-  return props.sizeMap.get(item.sizeId) ?? ''
-}
+const allSelected = computed(() =>
+  props.table.rows.length > 0 && props.selectedForExport.size === props.table.rows.length)
 
 function handleRowClick(member: StationMember) {
-  if (props.exportMode) {
-    emit('toggleExportSelection', member.id)
-  } else {
-    emit('goToMember', member.id)
-  }
+  if (props.exportMode) emit('toggleExportSelection', member.id)
+  else emit('goToMember', member.id)
 }
 </script>
 
 <template>
-  <!-- Member cards (mobile) -->
-  <div v-if="isMobile" class="space-y-3">
-    <NeutralContainer v-for="member in members" :key="member.id" class="space-y-2 cursor-pointer" @click="handleRowClick(member)">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <CheckboxInput v-if="exportMode" :model-value="selectedForExport.has(member.id)" @update:model-value="emit('toggleExportSelection', member.id)" />
-          <UserAvatar :identity="member.identity" :name="memberDisplayName(member)" size="sm" />
-          <span class="font-medium text-primary text-sm">{{ memberDisplayName(member) }}</span>
-        </div>
-      </div>
-      <div v-for="inv in inventories" :key="inv.id" class="text-xs">
-        <template v-if="memberInventoryCount(member.id, inv.id) > 0">
-          <span class="font-medium text-(--text-muted)">{{ inv.name }}:</span>
-          <div class="flex flex-wrap gap-1 mt-0.5">
-            <span v-for="item in memberInventoryItems(member.id, inv.id)" :key="item.id"
-                  :class="item.lostAt ? 'text-error' : ''"
-                  class="inline-flex items-center gap-1">
-              <template v-if="itemNamePart(item)">{{ itemNamePart(item) }}</template>
-              <SizeBadge v-if="itemSizeLabel(item)" :lost="!!item.lostAt">{{ itemSizeLabel(item) }}</SizeBadge>
-              <span v-if="item.lostAt" class="text-[10px]">({{ t('inventoryMembers.lost') }})</span>
-            </span>
-          </div>
-        </template>
-      </div>
-    </NeutralContainer>
-  </div>
-
-  <!-- Member table (desktop) -->
-  <DataTable v-else>
-    <template #head>
-      <th v-if="exportMode" class="px-1 py-2 w-8">
-        <CheckboxInput :model-value="selectedForExport.size === members.length && members.length > 0" @update:model-value="emit('toggleSelectAll')" />
-      </th>
-      <Th>{{ t('membersList.colName') }}</Th>
-      <Th v-for="inv in inventories" :key="inv.id">{{ inv.name }}</Th>
+  <RecordTable :table="table" clickable test-id="inventory-members-table" @row-click="handleRowClick">
+    <template v-if="exportMode" #lead-head>
+      <CheckboxInput :model-value="allSelected" @update:model-value="emit('toggleSelectAll')" />
     </template>
-    <TRow v-for="member in members" :key="member.id"
-        class="hover:bg-(--bg-accent)/30 cursor-pointer"
-        @click="handleRowClick(member)">
-      <td v-if="exportMode" class="px-1 py-2.5 w-8" @click.stop>
-        <CheckboxInput :model-value="selectedForExport.has(member.id)" @update:model-value="emit('toggleExportSelection', member.id)" />
-      </td>
-      <Td class="font-medium text-primary">
-        <div class="flex items-center gap-2">
-          <UserAvatar :identity="member.identity" :name="memberDisplayName(member)" size="sm" />
-          {{ memberDisplayName(member) }}
-        </div>
-      </Td>
-      <Td v-for="inv in inventories" :key="inv.id">
-        <template v-if="memberInventoryCount(member.id, inv.id) > 0">
-          <div class="flex flex-wrap gap-1">
-            <span v-for="item in memberInventoryItems(member.id, inv.id)" :key="item.id"
-                  :class="item.lostAt ? 'text-error' : ''"
-                  class="inline-flex items-center gap-1 text-xs">
-              <template v-if="itemNamePart(item)">{{ itemNamePart(item) }}</template>
-              <SizeBadge v-if="itemSizeLabel(item)" :lost="!!item.lostAt">{{ itemSizeLabel(item) }}</SizeBadge>
-              <span v-if="item.lostAt" class="text-[10px]">({{ t('inventoryMembers.lost') }})</span>
-            </span>
-          </div>
-        </template>
-        <MutedText v-else size="base">–</MutedText>
-      </Td>
-    </TRow>
-  </DataTable>
+    <template v-if="exportMode" #lead="{row}">
+      <span @click.stop>
+        <CheckboxInput :model-value="selectedForExport.has(row.id)" @update:model-value="emit('toggleExportSelection', row.id)" />
+      </span>
+    </template>
+    <template #[`cell-${NAME_KEY}`]="{row, text}">
+      <span class="flex items-center gap-2 font-medium text-primary">
+        <UserAvatar :identity="row.identity" :name="text" size="sm" />
+        {{ text }}
+      </span>
+    </template>
+    <template v-for="column in inventoryColumns" :key="column.key" #[`cell-${column.key}`]="{row}">
+      <MemberInventoryItems :items="itemsFor(row.id, column.inventoryId)" :parts="parts" />
+    </template>
+    <template #empty>
+      <EmptyState>{{ t('inventoryMembers.empty') }}</EmptyState>
+    </template>
+  </RecordTable>
 </template>

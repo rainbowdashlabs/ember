@@ -8,8 +8,7 @@ import WaitingListsGrid from '@/views/stationview/members/waitinglist/listview/W
 import PendingSection from '@/views/stationview/members/waitinglist/detailview/PendingSection.vue'
 import TestingSection from '@/views/stationview/members/waitinglist/detailview/TestingSection.vue'
 import OverviewSection from '@/views/stationview/members/waitinglist/detailview/OverviewSection.vue'
-import WaitingSectionDesktop
-  from '@/views/stationview/members/waitinglist/detailview/waitingsection/WaitingSectionDesktop.vue'
+import WaitingSection from '@/views/stationview/members/waitinglist/detailview/WaitingSection.vue'
 import type {PitchWaitlist} from './pitchTypes'
 
 /** The waiting list of a station, drawn by the application's own sections. */
@@ -30,9 +29,7 @@ defineProps<{
   <TestingSection v-else-if="section === 'testing'" :entries="waitlist.testing"
                   :attendance-threshold="waitlist.list.attendanceThreshold"/>
 
-  <WaitingSectionDesktop v-else :entries="waitlist.waiting" :visible-fields="waitlist.fields.slice(0, 2)"
-                         :birth-date-field="null"
-      :direction="'desc'"
-      :sort-key="'score'"
-      :expanded-id="null" readonly/>
+  <WaitingSection v-else :entries="waitlist.waiting" :fields="waitlist.fields"
+                  :visible-field-ids="new Set(waitlist.fields.slice(0, 2).map(field => field.id))"
+                  :is-mobile="false" readonly/>
 </template>

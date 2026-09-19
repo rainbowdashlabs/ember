@@ -12,7 +12,7 @@ import {
     type MovementStateName,
     type StepActorName,
 } from '@/api/movements'
-import {byDate, byValue, type SortComparator} from '@/composables/useSortable'
+import type {SortComparator} from '@/composables/useSortable'
 
 /** Every purpose the filter offers to tick, in the order the wizard offers them. */
 export const filterablePurposes: MovementPurposeName[] = [
@@ -125,11 +125,13 @@ export function inventoryChoices(movements: Movement[]): InventoryChoice[] {
         .sort((a, b) => a.name.localeCompare(b.name, 'de'))
 }
 
-export type MovementSortKey = 'turn' | 'member' | 'inventory' | 'purpose' | 'created' | 'modified'
-
-const DATE_KEYS: MovementSortKey[] = ['created', 'modified']
-
-/** When the movement last moved, which for one that never has is the day it was raised. */
+/**
+ * When the movement last moved, which for one that never has is the day it was raised.
+ *
+ * <p>The two dates answer different questions. When it was raised is what the queue was let sit for,
+ * and when it last moved is what says which rows have gone quiet, so a row raised in January and
+ * touched yesterday belongs at opposite ends of the two orders.
+ */
 export function lastMovedAt(movement: Movement): string {
     return movement.updatedAt ?? movement.createdAt
 }
@@ -140,27 +142,9 @@ export function hasMoved(movement: Movement): boolean {
 }
 
 /**
- * How each sortable column compares two rows. The turn is the default and orders by whose move it is
- * rather than by any word, which is what a queue is read for.
- *
- * <p>The two dates answer different questions. When it was raised is what the queue was let sit for,
- * and when it last moved is what says which rows have gone quiet, so a row raised in January and
- * touched yesterday belongs at opposite ends of the two orders. A row that never moved falls back to
- * the day it was raised, which is the last thing that happened to it.
+ * The order of the queue while no column is sorted, and the tie break once one is: whose turn it is,
+ * and within an equal turn the oldest first, because a movement nobody has touched for a fortnight
+ * is the one to deal with.
  */
-export const movementComparators: Record<MovementSortKey, SortComparator<Movement>> = {
-    turn: byValue(turnRank),
-    member: byValue(memberNameOf),
-    inventory: byValue(movement => movement.inventoryName ?? ''),
-    purpose: byValue(movement => movement.purpose),
-    created: byDate(movement => movement.createdAt),
-    modified: byDate(lastMovedAt),
-}
-
-/**
- * Which way round a column reads when it is picked rather than toggled. A date answers "what is
- * new" and starts at the newest; everything else starts at the top of its own order.
- */
-export function naturalDirection(key: MovementSortKey): 'asc' | 'desc' {
-    return DATE_KEYS.includes(key) ? 'desc' : 'asc'
-}
+export const queueOrder: SortComparator<Movement> = (a, b) =>
+    turnRank(a) - turnRank(b) || a.createdAt.localeCompare(b.createdAt)

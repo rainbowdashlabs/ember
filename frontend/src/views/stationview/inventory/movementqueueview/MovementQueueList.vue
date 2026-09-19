@@ -6,22 +6,23 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import MovementQueueRow from './MovementQueueRow.vue'
-import MovementQueueCard from './MovementQueueCard.vue'
-import {useBreakpoint} from '@/composables/useBreakpoint'
+import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import type {DataTableApi} from '@/composables/useDataTable'
 import type {Movement} from '@/api/movements'
+import MovementRecordTable from './MovementRecordTable.vue'
+import MovementRowActions from './MovementRowActions.vue'
 
 /**
- * The rows themselves, as columns on a wide screen and as cards on a narrow one.
+ * The rows of the queue, each with what this reader may do with it.
  *
- * <p>Two empty states rather than one: a queue with nothing in it and a queue whose filters hide
- * everything are different situations, and the second one is a filter to undo.
+ * <p>The step is answered from the row rather than from a page of its own, because a queue is worked
+ * through rather than read. Two empty states rather than one: a queue with nothing in it and a queue
+ * whose filters hide everything are different situations, and the second one is a filter to undo.
  */
 const props = defineProps<{
-  /** Everything the station has, which decides whether the queue is empty or merely narrowed. */
-  all: Movement[]
-  visible: Movement[]
-  showMember: boolean
+  table: DataTableApi<Movement>
+  /** How many movements the station has, which decides whether the queue is empty or merely narrowed. */
+  total: number
   canCorrect: boolean
   picking: boolean
   pickedIds: Set<number>
@@ -35,25 +36,29 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const {isMobile} = useBreakpoint()
 </script>
 
 <template>
-  <EmptyState v-if="props.all.length === 0">{{ t('movements.queue.empty') }}</EmptyState>
-  <EmptyState v-else-if="props.visible.length === 0">{{ t('movements.queue.noMatch') }}</EmptyState>
-
-  <component
-      :is="isMobile ? MovementQueueCard : MovementQueueRow"
-      v-for="movement in props.visible"
-      :key="movement.id"
-      :can-correct="props.canCorrect"
-      :movement="movement"
-      :picked="props.pickedIds.has(movement.id)"
-      :picking="props.picking"
-      :show-member="props.showMember"
-      @acknowledge="emit('acknowledge', movement)"
-      @correct="emit('correct', movement)"
-      @open="emit('open', movement)"
-      @pick="emit('pick', movement)"
-  />
+  <div class="space-y-2">
+    <div class="flex justify-end">
+      <ColumnPickerButton :options="props.table.pickerOptions" @toggle="props.table.toggleColumn"/>
+    </div>
+    <MovementRecordTable :table="props.table" test-id="movement-queue">
+      <template #actions="{row}">
+        <MovementRowActions
+            :can-correct="props.canCorrect"
+            :movement="row"
+            :picked="props.pickedIds.has(row.id)"
+            :picking="props.picking"
+            @acknowledge="emit('acknowledge', row)"
+            @correct="emit('correct', row)"
+            @open="emit('open', row)"
+            @pick="emit('pick', row)"
+        />
+      </template>
+      <template #empty>
+        <EmptyState>{{ props.total === 0 ? t('movements.queue.empty') : t('movements.queue.noMatch') }}</EmptyState>
+      </template>
+    </MovementRecordTable>
+  </div>
 </template>

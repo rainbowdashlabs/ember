@@ -128,7 +128,7 @@ test.describe('Waiting lists', () => {
         // The list opens with a column of its own for it, sortable like the rest.
         await page.goto(`/station/members/waiting-lists/${id}`)
         await expect(page.getByRole('columnheader', {name: new RegExp(fieldName)})).toBeVisible()
-        await page.getByRole('columnheader', {name: 'Vorname'}).click()
+        await page.getByRole('columnheader', {name: 'Vorname'}).getByTestId('column-sort').click()
         await expect(page.getByRole('columnheader', {name: 'Vorname'})).toHaveAttribute('aria-sort', 'ascending')
     })
 

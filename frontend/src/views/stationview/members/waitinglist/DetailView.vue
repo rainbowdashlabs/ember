@@ -72,7 +72,6 @@ const finishedEntries = computed(() =>
 )
 
 const visibleFieldIds = computed(() => new Set(list.value?.visibleFields ?? []))
-const showFieldToggle = ref(false)
 
 const entryGroups = computed(() => ({
   pending: pendingEntries.value,
@@ -103,7 +102,6 @@ const sectionActions = computed(() => ({
   onNavigateToMember: navigateToMember,
   onDeleteEntry: requestDeleteEntry,
   onToggleField: toggleFieldVisibility,
-  onToggleFieldMenu: () => { showFieldToggle.value = !showFieldToggle.value },
   onAddEntry: navigateToCreateEntry,
   onCreateInvite: invite.openModal,
   onDeleteInvite: invite.remove,
@@ -226,7 +224,6 @@ function showErrorMessage(msg: string) {
         :entry-groups="entryGroups"
         :visible-field-ids="visibleFieldIds"
         :is-mobile="isMobile"
-        :show-field-toggle="showFieldToggle"
         :permissions="permissions"
         :actions="sectionActions"
       />

@@ -6,15 +6,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import EmptyState from '@/components/feedback/EmptyState.vue'
 import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
 import MemberListFilters from './MemberListFilters.vue'
 import MemberListTable from './MemberListTable.vue'
-import type { Inventory, InventoryItem } from '@/api/inventory'
+import type { InventoryItem } from '@/api/inventory'
 import type { ProfileField } from '@/api/profileFields'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
+import type { DataTableApi } from '@/composables/useDataTable'
 import type { ExportFieldOption } from '@/composables/useExport'
 import type { FilterCriteria } from '@/composables/useMemberFilter'
+import type { ItemLabelParts } from './itemLabel'
 
 const { t } = useI18n()
 
@@ -22,20 +23,13 @@ const props = defineProps<{
   showEmpty: boolean
   groups: MemberGroup[]
   tags: UserTag[]
-  inventories: Inventory[]
-  displayedInventories: Inventory[]
-  visibleInventoryIds: Set<number>
-  showName: boolean
-  showInternalId: boolean
-  showSize: boolean
+  table: DataTableApi<StationMember>
+  parts: ItemLabelParts
   exportMode: boolean
   allFields: ProfileField[]
   selectedExportFields: Set<number>
-  filteredMembers: StationMember[]
   selectedForExport: Set<number>
-  isMobile: boolean
-  memberItemMap: Map<number, Map<number, InventoryItem[]>>
-  sizeMap: Map<number, string>
+  itemsFor: (memberId: number, inventoryId: number) => InventoryItem[]
 }>()
 
 const emit = defineEmits<{
@@ -44,7 +38,6 @@ const emit = defineEmits<{
   (e: 'update:show-internal-id', value: boolean): void
   (e: 'update:show-size', value: boolean): void
   (e: 'filter', criteria: FilterCriteria): void
-  (e: 'toggle-inventory', inventoryId: number): void
   (e: 'toggle-export-field', fieldId: number): void
   (e: 'go-to-member', memberId: number): void
   (e: 'toggle-export-selection', memberId: number): void
@@ -59,19 +52,18 @@ const fieldOptions = computed((): ExportFieldOption<number>[] =>
 <template>
   <MemberListFilters
     :show-empty="showEmpty"
-    :show-name="showName"
-    :show-internal-id="showInternalId"
-    :show-size="showSize"
+    :show-name="parts.showName"
+    :show-internal-id="parts.showInternalId"
+    :show-size="parts.showSize"
     :groups="groups"
     :tags="tags"
-    :inventories="inventories"
-    :visible-inventory-ids="visibleInventoryIds"
+    :column-options="table.pickerOptions"
     @update:show-empty="emit('update:show-empty', $event)"
     @update:show-name="emit('update:show-name', $event)"
     @update:show-internal-id="emit('update:show-internal-id', $event)"
     @update:show-size="emit('update:show-size', $event)"
     @filter="emit('filter', $event)"
-    @toggle-inventory="emit('toggle-inventory', $event)"
+    @toggle-column="table.toggleColumn"
   />
 
   <ExportFieldPicker
@@ -84,26 +76,18 @@ const fieldOptions = computed((): ExportFieldOption<number>[] =>
     @toggle="emit('toggle-export-field', $event)"
   />
 
-  <EmptyState v-if="filteredMembers.length === 0">{{ t('inventoryMembers.empty') }}</EmptyState>
-
   <MemberListTable
-    v-if="filteredMembers.length > 0"
-    :members="filteredMembers"
-    :inventories="displayedInventories"
+    :table="table"
     :export-mode="exportMode"
     :selected-for-export="selectedForExport"
-    :is-mobile="isMobile"
-    :member-item-map="memberItemMap"
-    :show-name="showName"
-    :show-internal-id="showInternalId"
-    :show-size="showSize"
-    :size-map="sizeMap"
+    :items-for="itemsFor"
+    :parts="parts"
     @go-to-member="emit('go-to-member', $event)"
     @toggle-export-selection="emit('toggle-export-selection', $event)"
     @toggle-select-all="emit('toggle-select-all')"
   />
 
-  <p v-if="filteredMembers.length > 0" class="text-xs text-(--text-muted)">
-    {{ filteredMembers.length }} {{ t('inventoryMembers.memberCount') }}
+  <p v-if="table.rows.length > 0" class="text-xs text-(--text-muted)">
+    {{ table.rows.length }} {{ t('inventoryMembers.memberCount') }}
   </p>
 </template>

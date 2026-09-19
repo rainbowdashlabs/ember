@@ -17,7 +17,6 @@ import type { StationMember } from '@/api/types'
 import { stationMembers } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useConfirmAction } from '@/composables/useConfirmAction'
-import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 
@@ -29,10 +28,6 @@ const success = ref('')
 
 function memberDisplayName(m: StationMember): string {
   return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
-}
-
-function formatFormerDate(dateStr?: string | null): string {
-  return formatDate(dateStr) || '–'
 }
 
 const {
@@ -67,7 +62,6 @@ const {
           v-if="members.length > 0"
           :members="members"
           :member-display-name="memberDisplayName"
-          :format-date="formatFormerDate"
           @reactivate="openReactivate"
         />
 

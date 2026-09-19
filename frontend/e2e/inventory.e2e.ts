@@ -5,6 +5,7 @@
  */
 import {test, expect, apiHeaders, stationPeers} from './fixtures/auth'
 import {setMovementFilter} from './fixtures/movementFilter'
+import {movementRow} from './fixtures/movementRow'
 import {pickMemberByName} from './fixtures/memberMenu'
 import {unique} from './fixtures/unique'
 import type {Locator, Page} from '@playwright/test'
@@ -850,7 +851,7 @@ test.describe('Inventory', () => {
 
             await page.goto('/station/inventory/movements')
             const rows = page.getByTestId('movement-row')
-            const rowOf = (id: number) => page.locator(`[data-movement="${id}"]`)
+            const rowOf = (id: number) => movementRow(page, id)
             await expect(rows.first()).toBeVisible()
             await expect(rowOf(must(open[0], 'a movement still running').id),
                 'the queue opens on what is still running').toHaveCount(1)
@@ -910,7 +911,7 @@ test.describe('Inventory', () => {
             const rows = page.getByTestId('movement-row')
             await expect(rows.first()).toBeVisible()
 
-            const rowOf = (id: number) => page.locator(`[data-movement="${id}"]`)
+            const rowOf = (id: number) => movementRow(page, id)
 
             await setMovementFilter(page, 'movement-filter-state', [])
             for (const any of raised.slice(0, 3)) {

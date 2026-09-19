@@ -17,10 +17,8 @@ import {StationUserType} from '@/api/types'
 import {inventoryCheck} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {byDate, byValue, useSortable} from '@/composables/useSortable'
 import CheckOverviewTabs from './checkoverviewview/CheckOverviewTabs.vue'
 import MemberCheckTable from './checkoverviewview/MemberCheckTable.vue'
-import MemberCheckCardList from './checkoverviewview/MemberCheckCardList.vue'
 import SelfCheckPanel from './checkoverviewview/SelfCheckPanel.vue'
 import {memberName} from './checkoverviewview/memberHelpers'
 
@@ -47,16 +45,6 @@ const filteredMembers = computed(() => members.value.filter(m => {
   return ut === StationUserType.MEMBER
 }))
 
-const {sortKey: sortBy, sorted: sortedMembers} = useSortable<MemberCheckSummary, 'name' | 'lastChecked'>({
-  items: filteredMembers,
-  initialKey: 'name',
-  comparators: {
-    name: byValue(memberName),
-    lastChecked: byDate(m => m.lastCheckedAt, {nulls: 'first'}),
-  },
-  fallback: byValue(memberName),
-})
-
 function startCheck(memberId: number) {
   router.push({name: routes.checkMember, params: {memberId}, query: {teamOnly: activeTab.value === 'team' ? 'true' : 'false'}})
 }
@@ -82,24 +70,17 @@ function viewLastCheck(member: MemberCheckSummary) {
             :review-route="routes.selfCheckReview"
         />
 
-        <CheckOverviewTabs v-model:active-tab="activeTab" v-model:sort-by="sortBy"/>
+        <CheckOverviewTabs v-model:active-tab="activeTab"/>
 
-        <EmptyState v-if="sortedMembers.length === 0">{{ t('inventory.check.noMembers') }}</EmptyState>
+        <EmptyState v-if="filteredMembers.length === 0">{{ t('inventory.check.noMembers') }}</EmptyState>
 
-        <template v-else>
-          <MemberCheckTable
-              :members="sortedMembers"
-              :current-member-id="currentMemberId"
-              @start-check="startCheck"
-              @view-last-check="viewLastCheck"
-          />
-          <MemberCheckCardList
-              :members="sortedMembers"
-              :current-member-id="currentMemberId"
-              @start-check="startCheck"
-              @view-last-check="viewLastCheck"
-          />
-        </template>
+        <MemberCheckTable
+            v-else
+            :current-member-id="currentMemberId"
+            :members="filteredMembers"
+            @start-check="startCheck"
+            @view-last-check="viewLastCheck"
+        />
       </template>
     </div>
   </ViewContent>
