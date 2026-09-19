@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -25,6 +26,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -245,6 +247,20 @@ public class StationMemberService {
 
     public List<StationMember> findManaged(int managerId) {
         return memberRepository.findManaged(managerId);
+    }
+
+    /**
+     * The members a session speaks for: its own member and, for a guardian, everybody they look
+     * after. Empty where the session carries no member.
+     */
+    public List<Integer> findSpokenForIds(UserSession session) {
+        if (session.member() == null) return List.of();
+        var ids = new ArrayList<Integer>();
+        ids.add(session.member().id());
+        if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
+            findManaged(session.member().id()).forEach(managed -> ids.add(managed.id()));
+        }
+        return ids;
     }
 
     public List<StationMember> findManagers(int managedId) {

@@ -23,6 +23,8 @@
 - **Sign-ups sorted by a date came out of order.** In the table of an appointment's sign-ups, a date column sorted the days as text, so 2 January came before 15 December of the year before. It now sorts by the day.
 - **A saved member filter forgot the questions left open.** A saved filter asking for people who had not answered a question came back without that condition when chosen again. It now comes back complete.
 - **Grouped inventory ignored the table controls.** Where an inventory's pieces are grouped by kind, choosing columns and sorting or filtering from a column header had no effect. They now apply to every group.
+- **Guardians could not open an event's files.** For an event shown only to certain members, a guardian saw it through the children they look after but was refused its files. The files are now handed to a guardian whenever one of their children may see the event.
+- **Downloads did nothing on an iPhone.** Pressing a download button on an iPhone or iPad could leave the file unsaved without any message, most of all in the browser built into other apps. The file now opens the share sheet, from where it can be saved to Files or sent on.
 
 ## v26.18.2
 
