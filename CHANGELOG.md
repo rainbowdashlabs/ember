@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.18.3
+
+### Fixes
+
+- **Guardians could not open an event's files.** For an event shown only to certain members, a guardian saw it through the children they look after but was refused its files. The files are now handed to a guardian whenever one of their children may see the event.
+
 ## v26.18.2
 
 ### New Features

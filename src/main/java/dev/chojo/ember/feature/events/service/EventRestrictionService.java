@@ -17,6 +17,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.Set;
 
 /**
@@ -120,6 +121,17 @@ public class EventRestrictionService {
      */
     public boolean canView(int eventId, int memberId, Set<StationPermission> memberPermissions) {
         return restrictionService.checkRestriction(RestrictionType.EVENT_VIEW, eventId, memberId, memberPermissions);
+    }
+
+    /**
+     * Whether any of these members may know the event exists, which is how a guardian sees an event
+     * meant for somebody they look after.
+     *
+     * @param eventId   the event to check
+     * @param memberIds the members the reader speaks for
+     */
+    public boolean canViewAny(int eventId, Collection<Integer> memberIds, Set<StationPermission> memberPermissions) {
+        return memberIds.stream().anyMatch(memberId -> canView(eventId, memberId, memberPermissions));
     }
 
     /**

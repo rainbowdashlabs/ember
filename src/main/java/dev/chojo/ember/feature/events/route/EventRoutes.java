@@ -384,12 +384,7 @@ public class EventRoutes implements Routes {
         if (session.member() == null) {
             return List.of(-1);
         }
-        var ids = new ArrayList<Integer>();
-        ids.add(session.member().id());
-        if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
-            stationMemberService.findManaged(session.member().id()).forEach(m -> ids.add(m.id()));
-        }
-        return ids;
+        return stationMemberService.findSpokenForIds(session);
     }
 
     /**
@@ -439,12 +434,7 @@ public class EventRoutes implements Routes {
             return;
         }
 
-        var memberIds = new ArrayList<Integer>();
-        memberIds.add(session.member().id());
-        if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
-            stationMemberService.findManaged(session.member().id()).forEach(m -> memberIds.add(m.id()));
-        }
-
+        var memberIds = stationMemberService.findSpokenForIds(session);
         var allEvents = crudService.findByStation(session.stationId());
         var result = new HashMap<Integer, List<Integer>>();
 
