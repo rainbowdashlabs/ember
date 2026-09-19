@@ -2070,6 +2070,13 @@ export default {
         ageBelow: 'Unter',
         expandYear: 'Monate anzeigen',
         expandMonth: 'Tage anzeigen',
+        numberRange: 'Bereich',
+        atLeast: 'Mindestens',
+        atMost: 'Höchstens',
+        sortLabel: 'Sortieren nach',
+        unsorted: 'Unsortiert',
+        direction: 'Reihenfolge umkehren',
+        filterColumns: 'Spalten filtern',
     },
     setupMailChoice: {
         label: 'Einrichtungs-Mail sofort senden',
