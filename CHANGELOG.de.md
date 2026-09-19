@@ -1,5 +1,12 @@
 # Änderungsprotokoll
 
+## v26.18.3
+
+### Fehlerbehebungen
+
+- **Erziehungsberechtigte konnten die Dateien eines Termins nicht öffnen.** Bei einem Termin, der nur bestimmten Mitgliedern angezeigt wird, sahen Erziehungsberechtigte ihn über ihre Kinder, bekamen seine Dateien aber verweigert. Die Dateien stehen ihnen jetzt offen, sobald eines ihrer Kinder den Termin sehen darf.
+- **Downloads taten auf dem iPhone nichts.** Ein Druck auf einen Download-Knopf auf iPhone oder iPad konnte ohne jede Meldung ins Leere gehen, vor allem im Browser, der in andere Apps eingebaut ist. Die Datei öffnet jetzt das Teilen-Menü, von wo aus sie sich in Dateien sichern oder weitergeben lässt.
+
 ## v26.18.2
 
 ### Neue Funktionen
