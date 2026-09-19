@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -127,6 +129,24 @@ class StationMemberServiceTest extends RepositoryTestBase {
         var managers = service.findManagers(member2.id());
         assertTrue(managers.stream().anyMatch(m -> m.id() == member1.id()));
         stationMemberRepo.removeAllManaged(member1.id());
+    }
+
+    @Test
+    @Order(20)
+    void findSpokenForIdsAddsManagedMembersOnlyForGuardians() {
+        stationMemberRepo.addManager(member1.id(), member2.id());
+
+        assertEquals(
+                List.of(member1.id(), member2.id()),
+                service.findSpokenForIds(sessionOf(member1, Set.of(StationPermission.MEMBER_GUARDIAN))));
+        assertEquals(List.of(member1.id()), service.findSpokenForIds(sessionOf(member1, Set.of())));
+        assertEquals(List.of(), service.findSpokenForIds(sessionOf(null, Set.of(StationPermission.MEMBER_GUARDIAN))));
+
+        stationMemberRepo.removeAllManaged(member1.id());
+    }
+
+    private static UserSession sessionOf(StationMember member, Set<StationPermission> permissions) {
+        return new UserSession(account1, 1, station.id(), station.uid(), member, permissions, Set.of(), null);
     }
 
     @Test

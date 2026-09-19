@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.BadRequestResponse;
@@ -56,17 +57,20 @@ public class EventAttachmentRoutes implements Routes {
     private final EventCrudService crudService;
     private final EventRestrictionService restrictionService;
     private final MediaLibraryService media;
+    private final StationMemberService stationMemberService;
 
     @Inject
     public EventAttachmentRoutes(
             EventAttachmentService attachmentService,
             EventCrudService crudService,
             EventRestrictionService restrictionService,
-            MediaLibraryService media) {
+            MediaLibraryService media,
+            StationMemberService stationMemberService) {
         this.attachmentService = attachmentService;
         this.crudService = crudService;
         this.restrictionService = restrictionService;
         this.media = media;
+        this.stationMemberService = stationMemberService;
     }
 
     @Override
@@ -269,13 +273,15 @@ public class EventAttachmentRoutes implements Routes {
      * The event, asserted to be the caller's station's and one they may see.
      *
      * <p>Whoever may write events is let through whatever the event says about who may see it: an
-     * editor working on an evening they restricted to one group still has to be able to open it.
+     * editor working on an evening they restricted to one group still has to be able to open it. A
+     * guardian sees what the members they look after see, the same as in the event list.
      */
     private void requireVisibleEvent(Context ctx, int eventId) {
         var session = UserSession.from(ctx);
         requireOwnedEvent(crudService, eventId, session);
         if (session.permissions().contains(StationPermission.EVENT_EDIT)) return;
-        if (!restrictionService.canView(eventId, session.member().id(), session.permissions())) {
+        var spokenFor = stationMemberService.findSpokenForIds(session);
+        if (!restrictionService.canViewAny(eventId, spokenFor, session.permissions())) {
             throw new ForbiddenResponse("This event is not yours to see");
         }
     }
