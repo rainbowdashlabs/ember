@@ -1748,9 +1748,10 @@ volumes:
             createNoFlow: 'Gibt es für die Kombination keinen hinterlegten Ablauf, sagt der letzte Schritt das und '
                 + 'verlinkt die Abläufe in den Einstellungen. Ohne Ablauf lässt sich nichts starten.',
             filterTitle: 'Liste eingrenzen und sortieren',
-            filterText: 'Über der Liste stehen ein Suchfeld für Name, Teil und Kennzeichnung sowie Filter für Art, '
-                + 'Status, Inventar und „wer ist dran". Die Filter wirken zusammen, du kannst also alle offenen '
-                + 'Helm-Tausche zeigen lassen, bei denen der Verband dran ist.',
+            filterText: 'Über der Liste steht ein Suchfeld für Name, Teil und Kennzeichnung. Gefiltert wird über das '
+                + 'Filter-Symbol einer Spaltenüberschrift: „Worum es geht" nach Inventar, „Art" nach der Art des '
+                + 'Vorgangs und „Schritt" nach Status, nach wem dran ist und nach dem erreichten Schritt. Die Filter '
+                + 'wirken zusammen, du kannst also alle offenen Helm-Tausche zeigen lassen, bei denen der Verband dran ist.',
             filterOrderText: 'Voreingestellt stehen die Zeilen oben, bei denen jemand hier etwas tun kann. Ein '
                 + 'Klick auf das Sortier-Symbol einer Spaltenüberschrift sortiert nach dieser Spalte, ein zweiter '
                 + 'dreht die Reihenfolge um.',

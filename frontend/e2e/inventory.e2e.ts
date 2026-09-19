@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders, stationPeers} from './fixtures/auth'
-import {setMovementFilter} from './fixtures/movementFilter'
+import {MovementFilterColumn, setMovementFilter} from './fixtures/movementFilter'
 import {movementRow} from './fixtures/movementRow'
 import {pickMemberByName} from './fixtures/memberMenu'
 import {unique} from './fixtures/unique'
@@ -859,7 +859,7 @@ test.describe('Inventory', () => {
                 await expect(rowOf(gone.id), 'and leaves out the ones that have ended').toHaveCount(0)
             }
 
-            await setMovementFilter(page, 'movement-filter-inventory', [chosenName])
+            await setMovementFilter(page, MovementFilterColumn.SUBJECT, [chosenName])
             for (const kept of expected) {
                 await expect(rowOf(kept), 'ticking one inventory keeps its movements').toHaveCount(1)
             }
@@ -913,13 +913,13 @@ test.describe('Inventory', () => {
 
             const rowOf = (id: number) => movementRow(page, id)
 
-            await setMovementFilter(page, 'movement-filter-state', [])
+            await setMovementFilter(page, MovementFilterColumn.STEP, [])
             for (const any of raised.slice(0, 3)) {
                 await expect(rowOf(any.id),
                     'taking every tick off asks for nothing rather than for no rows').toHaveCount(1)
             }
 
-            await setMovementFilter(page, 'movement-filter-purpose',
+            await setMovementFilter(page, MovementFilterColumn.PURPOSE,
                 sorts.map(purpose => must(MOVEMENT_PURPOSE_LABELS[purpose], `a label for ${purpose}`)))
             for (const kept of expected) {
                 await expect(rowOf(kept), 'and two ticks show the rows of both kinds at once')

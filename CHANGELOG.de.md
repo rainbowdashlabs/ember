@@ -16,7 +16,7 @@
 
 ### Änderungen
 
-- **Die Sortierung ist in die Spaltenüberschriften gewandert.** Die Sortierliste der Bewegungen, die Sortierknöpfe der geliehenen Ausrüstung und der Sortierschalter der Inventarprüfungen sind weg; stattdessen sortieren die Spaltenüberschriften. Die Mitgliederliste im Inventar vergisst einmalig die vor dieser Version gewählten Spalten.
+- **Sortieren und Filtern sind in die Spaltenüberschriften gewandert.** Die Sortierliste und die Filterknöpfe der Bewegungen, die Sortierknöpfe der geliehenen Ausrüstung und der Sortierschalter der Inventarprüfungen sind weg; stattdessen sortieren und filtern die Spaltenüberschriften, und die Bewegungen filtern ihre Stücke nach Inventar und ihre Schritt-Spalte nach Status, nach wem dran ist und nach dem erreichten Schritt beim Namen. Die Mitgliederliste im Inventar vergisst einmalig die vor dieser Version gewählten Spalten.
 
 ### Fehlerbehebungen
 

@@ -11,21 +11,20 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MovementQueueToolbar from './movementqueueview/MovementQueueToolbar.vue'
-import MovementFilterBar from './movementqueueview/MovementFilterBar.vue'
 import MovementQueueList from './movementqueueview/MovementQueueList.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import MovementAckModal from './movementqueueview/MovementAckModal.vue'
 import MovementCorrectModal from './movementqueueview/MovementCorrectModal.vue'
 import MovementWizard from './movementwizard/MovementWizard.vue'
-import {useMovementQueue} from './movementqueueview/useMovementQueue'
 import {MovementColumn, useMovementColumns} from './movementqueueview/movementColumns'
 import {queueOrder} from './movementqueueview/movementFilter'
 import {movements, profileFields} from '@/api'
-import type {Movement} from '@/api/movements'
+import {MovementState, type Movement} from '@/api/movements'
 import type {ProfileField} from '@/api/profileFields'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {useDataTable} from '@/composables/useDataTable'
+import {emptyTableState, useDataTable} from '@/composables/useDataTable'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {saveBlob} from '@/util/downloadAuthed'
 import {useExport} from '@/composables/useExport'
@@ -48,18 +47,25 @@ const fields = ref<ProfileField[]>([])
 const canManage = computed(() => hasPermission(StationPermission.INVENTORY_MOVEMENTS))
 const isManager = computed(() => hasPermission(StationPermission.INVENTORY_MANAGER))
 
-const queue = useMovementQueue(() => rows.value)
-
 /** Who a movement is with is shown only to somebody working the whole queue. */
-const allColumns = useMovementColumns()
+const allColumns = useMovementColumns(() => rows.value)
 const columns = computed(() => allColumns.value.filter(column => canManage.value || column.key !== MovementColumn.MEMBER))
+
+/**
+ * The queue opens on what is still running. A finished movement is a record rather than a task, and
+ * whoever opens the queue is looking at the tasks; the step column's filter brings the others back.
+ */
+const state = ref(emptyTableState())
+state.value.filters = new Map([[MovementColumn.STANDING, new Set<string>([MovementState.OPEN])]])
 
 const table = useDataTable<Movement>({
   id: 'inventory-movements',
-  rows: () => queue.matching.value,
+  rows,
   columns,
   rowKey: movement => movement.id,
+  state,
   fallbackSort: queueOrder,
+  searchText: movement => movement.itemInternalId ?? '',
 })
 
 const acknowledging = ref<number | null>(null)
@@ -144,14 +150,7 @@ function afterChange() {
 
         <Alert v-if="exportError" variant="error">{{ exportError }}</Alert>
 
-        <MovementFilterBar
-            v-model:inventory-ids="queue.inventoryIds.value"
-            v-model:purposes="queue.purposes.value"
-            v-model:search="queue.search.value"
-            v-model:states="queue.states.value"
-            v-model:turns="queue.turns.value"
-            :inventories="queue.inventories.value"
-        />
+        <SearchInput v-model="table.search" :placeholder="t('movements.queue.filter.search')" data-testid="movement-filter-search"/>
 
         <MovementQueueList
             :can-correct="isManager"

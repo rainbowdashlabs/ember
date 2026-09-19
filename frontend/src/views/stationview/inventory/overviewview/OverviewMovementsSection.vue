@@ -35,7 +35,7 @@ const SHOWN: MovementColumnKey[] = [
   MovementColumn.CREATED,
 ]
 
-const allColumns = useMovementColumns()
+const allColumns = useMovementColumns(() => props.movements)
 const columns = computed(() => allColumns.value.filter(column => SHOWN.includes(column.key as MovementColumnKey)))
 
 const table = useDataTable<Movement>({

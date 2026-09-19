@@ -16,7 +16,7 @@
 
 ### Changes
 
-- **Sorting moved into the column headers.** The sort list of the movement queue, the sort buttons of borrowed gear and the sort toggle of inventory checks are gone; the column headers sort instead. The inventory member list forgets the columns chosen before this release once.
+- **Sorting and filtering moved into the column headers.** The sort list and filter buttons of the movement queue, the sort buttons of borrowed gear and the sort toggle of inventory checks are gone; the column headers sort and filter instead, and the movement queue filters its items by inventory and its step column by state, whose turn it is and the step reached by name. The inventory member list forgets the columns chosen before this release once.
 
 ### Fixes
 

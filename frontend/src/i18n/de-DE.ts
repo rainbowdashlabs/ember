@@ -6642,7 +6642,6 @@ export default {
                 turn: 'Dran',
                 what: 'Worum es geht',
                 member: 'Mitglied',
-                inventory: 'Inventar',
                 purpose: 'Art',
                 step: 'Schritt',
                 since: 'Seit',
@@ -6652,10 +6651,6 @@ export default {
             },
             filter: {
                 search: 'Nach Name, Teil oder Kennzeichnung suchen',
-                purpose: 'Art',
-                state: 'Status',
-                turn: 'Wer ist dran',
-                inventory: 'Inventar',
             },
             forTheStore: 'Für das Lager',
             acknowledge: 'Schritt bestätigen',

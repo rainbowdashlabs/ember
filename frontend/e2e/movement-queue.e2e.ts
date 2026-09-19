@@ -5,7 +5,7 @@
  */
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
-import {setMovementFilter} from './fixtures/movementFilter'
+import {MovementFilterColumn, setMovementFilter} from './fixtures/movementFilter'
 import {movementRow} from './fixtures/movementRow'
 
 /**
@@ -139,7 +139,7 @@ test.describe('Movement queue', () => {
             .toBe('CANCELLED')
 
         await page.goto('/station/inventory/movements')
-        await setMovementFilter(page, 'movement-filter-state', [])
+        await setMovementFilter(page, MovementFilterColumn.STEP, [])
         const row = movementRow(page, id)
         await expect(row, 'which the queue shows once the ticks stop keeping it to what is still running')
             .toBeVisible({timeout: 15000})
