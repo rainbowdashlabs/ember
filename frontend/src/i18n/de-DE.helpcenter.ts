@@ -1496,7 +1496,7 @@ volumes:
             searchDates: 'Datumsspalten filtern über ganze Jahre und Monate, die sich bis auf den Tag aufklappen lassen, dazu ein Zeitraum „Ab" (einschließlich) und „Vor" (ausschließlich). Bei einem Geburtsdatum steht hinter dem Datum das aktuelle Alter, und der Filter grenzt zusätzlich nach aktuellem Alter und nach Kalenderalter ein, dem Alter am 31. Dezember: „Mindestens" schließt den Wert ein, „Unter" schließt ihn aus.',
             searchSave: 'Häufig genutzte Filter kannst du speichern und später mit einem Klick wieder laden.',
             columnsTitle: 'Spalten anpassen',
-            columnsText: 'Klicke auf Spalten, um zusätzliche Profilfelder als Spalten in der Tabelle anzuzeigen.',
+            columnsText: 'Klicke auf Spalten, um zusätzliche Profilfelder als Spalten in der Tabelle anzuzeigen. Dein Browser merkt sich die Auswahl, für jeden Reiter getrennt. Jede Spalte filtert passend zu ihrem Inhalt: Zahlen über einen Bereich, Auswahlfelder über ihre Optionen, Daten über Jahre, Monate und Tage.',
             exportTitle: 'Export',
             exportText: 'Du kannst die Mitgliederliste als CSV-Datei exportieren. Wähle die Mitglieder und Spalten aus, die du exportieren möchtest.',
             tip: 'Klicke auf einen Namen, um die Detailseite des Mitglieds zu öffnen.',

@@ -8,19 +8,18 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import type {StationMember} from '@/api/types'
 import {
-    useMemberData, memberDisplayName, getMemberFirstName, getMemberLastName,
+    useMemberData, getMemberFirstName, getMemberLastName,
     type MemberDataSource,
 } from './useMemberData'
-import {useSavedFilters, type MemberSortKey} from './useSavedFilters'
+import {useSavedFilters} from './useSavedFilters'
 import {useMemberListTabs} from './useMemberListTabs'
+import {memberColumns} from './memberColumns'
 import {useExport, type ExportColumn, type ExportFormatName} from '@/composables/useExport'
+import {useDataTable} from '@/composables/useDataTable'
 import {memberTable} from '@/api'
 import type {MemberTableColumn} from '@/api/memberTable'
 import {saveBlob} from '@/util/downloadAuthed'
-import {byValue, useSortable} from '@/composables/useSortable'
 import {useMemberFilter} from '@/composables/useMemberFilter'
-import {DATE_FIELD_TYPES} from '@/api/profileFields'
-import {matchesDateFilter, splitDateTokens} from '@/util/dateFilter'
 
 /**
  * Where a member list's people come from and what may be done with them.
@@ -37,11 +36,20 @@ export interface MemberListPort {
     canEdit: ComputedRef<boolean>
     /** The name of the file an export produces, without an extension. */
     exportFileName: string
+    /** Names the list where its chosen columns are remembered, one set per tab. */
+    tableId: string
+    /**
+     * Whether groups and tags are columns at all. They are a station's own, so across the stations of
+     * an association most rows would have nothing under either.
+     */
+    stationLocalColumns?: boolean
+    /** Narrows the people further than the tabs and filters do, such as to one station. */
+    keeps?: (member: StationMember) => boolean
 }
 
 /**
- * The member list, without its markup: loading, the scope tabs, the search, the column filters, the
- * sort, the saved filters, the export and where a row leads.
+ * The member list, without its markup: loading, the scope tabs, the table with its search, column
+ * filters and sort, the saved filters, the export and where a row leads.
  *
  * @param port where the people come from and what may be done with them
  */
@@ -53,17 +61,12 @@ export function useMemberListConfig(port: MemberListPort) {
         members, fields, assignments, allGroups, allTags,
         memberRolesMap, memberGroupsMap, memberTagsMap, memberManagers,
         loading, error, expandedId, overviewFields,
-        getFieldValue, getFieldValueAsString, getMemberType, getMemberGroups, getColumnValues,
+        getFieldValue, getFieldValueAsString, getMemberType, getMemberGroups, getMemberTags,
         toggleExpand, reload,
     } = useMemberData(port.source)
 
-    const {
-        activeTab, tabStates, tabs,
-        filterText, columnMultiFilters, columnEmptyFilters, sortKey, sortDirection,
-        extraColumnIds, hiddenColumnIds,
-        tabScopedFields, tabOverviewFields, tabNonOverviewFields, visibleColumns, toggleColumn,
-        applyColumnFilter, isAskedOf,
-    } = useMemberListTabs(fields, assignments)
+    const {activeTab, tabStates, currentTabState, tabs, tabScopedFields, isAskedOf} =
+        useMemberListTabs(fields, assignments)
 
     const {savedFilters, loadSavedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters} =
         useSavedFilters(tabStates, activeTab)
@@ -79,57 +82,34 @@ export function useMemberListConfig(port: MemberListPort) {
         () => allTags.value,
     )
 
-    const filteredMembers = computed(() => {
-        let list = activeTab.value === 'ALL'
+    const tabMembers = computed(() => {
+        const onTab = activeTab.value === 'ALL'
             ? members.value
             : members.value.filter(m => getMemberType(m.id) === activeTab.value)
-        list = applyMemberFilter(list)
-
-        const q = filterText.value.toLowerCase().trim()
-        if (q) {
-            list = list.filter(m => {
-                if (memberDisplayName(m).toLowerCase().includes(q)) return true
-                if ((m.email ?? '').toLowerCase().includes(q)) return true
-                for (const f of overviewFields.value) {
-                    if (getFieldValueAsString(m.id, f.id).toLowerCase().includes(q)) return true
-                }
-                return false
-            })
-        }
-        for (const [key, selectedValues] of columnMultiFilters.value) {
-            if (selectedValues.size === 0) continue
-            const includeEmpty = columnEmptyFilters.value.has(key)
-            const fieldType = typeof key === 'number'
-                ? fields.value.find(f => f.id === key)?.fieldType
-                : undefined
-            const dateTokens = fieldType && DATE_FIELD_TYPES.includes(fieldType)
-                ? splitDateTokens(selectedValues)
-                : null
-            list = list.filter(m => {
-                const values = getColumnValues(m, key)
-                if (values.length === 0 || values.every(v => !v)) return includeEmpty
-                if (dateTokens) return values.some(v => matchesDateFilter(v, dateTokens))
-                return values.some(v => selectedValues.has(v))
-            })
-        }
-        for (const key of columnEmptyFilters.value) {
-            if (columnMultiFilters.value.has(key) && (columnMultiFilters.value.get(key)?.size ?? 0) > 0) continue
-            list = list.filter(m => {
-                const values = getColumnValues(m, key)
-                return values.length === 0 || values.every(v => !v)
-            })
-        }
-        return list
+        const restricted = applyMemberFilter(onTab)
+        return port.keeps ? restricted.filter(port.keeps) : restricted
     })
 
-    const {sorted: sortedMembers, toggle: toggleSort} = useSortable<StationMember, MemberSortKey>({
-        items: filteredMembers,
-        initialKey: 'name',
-        state: {key: sortKey, direction: sortDirection},
-        comparators: key => key === 'name'
-            ? byValue(memberDisplayName)
-            : byValue(member => getFieldValueAsString(member.id, key)),
+    const columns = computed(() => memberColumns(tabScopedFields.value, {
+        t,
+        groupsOf: getMemberGroups,
+        tagsOf: getMemberTags,
+        rolesOf: memberId => memberRolesMap.value.get(memberId) ?? [],
+        fieldValue: getFieldValue,
+        isAskedOf,
+        stationLocalColumns: port.stationLocalColumns ?? true,
+    }))
+
+    const table = useDataTable<StationMember>({
+        id: () => `${port.tableId}:${activeTab.value}`,
+        rows: tabMembers,
+        columns,
+        rowKey: member => member.id,
+        state: currentTabState,
+        searchText: member => member.email ?? '',
     })
+
+    const sortedMembers = computed(() => table.rows)
 
     const exportColumns = computed((): ExportColumn<StationMember>[] => [
         {key: 'firstName', label: t('membersList.export.colFirstName'), value: getMemberFirstName},
@@ -143,11 +123,7 @@ export function useMemberListConfig(port: MemberListPort) {
         })),
     ])
 
-    const {
-        exportMode, selectedIds, showExportModal, selectedColumns, columnOptions,
-        toggleExportMode, toggleRow, toggleAllRows, toggleColumn: toggleExportColumn,
-        selectColumns, openExportModal, performExport: downloadHere, selectedRows, cancelExport,
-    } = useExport({
+    const exporting = useExport({
         rows: () => sortedMembers.value,
         rowId: m => m.id,
         columns: () => exportColumns.value,
@@ -165,7 +141,7 @@ export function useMemberListConfig(port: MemberListPort) {
     function chosenServerColumns(): MemberTableColumn[] {
         const chosen: MemberTableColumn[] = [{kind: 'BUILTIN', key: 'name', fieldId: null}]
         for (const column of exportColumns.value) {
-            if (!selectedColumns.value.has(column.key)) continue
+            if (!exporting.selectedColumns.value.has(column.key)) continue
             if (column.key === 'groups') chosen.push({kind: 'BUILTIN', key: 'groups', fieldId: null})
             if (column.key === 'email') chosen.push({kind: 'BUILTIN', key: 'email', fieldId: null})
             if (column.key.startsWith('field:')) {
@@ -178,13 +154,13 @@ export function useMemberListConfig(port: MemberListPort) {
     /** Hands the export to whoever can make it: the sheet to the server, everything else to the screen. */
     async function performExport(format: ExportFormatName = 'csv') {
         if (format !== 'pdf') {
-            downloadHere(format)
+            exporting.performExport(format)
             return
         }
-        const memberIds = selectedRows.value.map(member => member.id)
+        const memberIds = exporting.selectedRows.value.map(member => member.id)
         const file = await memberTable.exportMemberTable(memberIds, chosenServerColumns(), 'pdf')
         saveBlob(file, `${port.exportFileName ?? 'export'}.pdf`)
-        cancelExport()
+        exporting.cancelExport()
     }
 
     /** Opens a person's screen, or does nothing where this reader has no such screen to open. */
@@ -205,20 +181,18 @@ export function useMemberListConfig(port: MemberListPort) {
 
     return {
         members, fields, allGroups, allTags,
-        memberRolesMap, memberGroupsMap, memberTagsMap, memberManagers,
+        memberRolesMap, memberManagers,
         loading, error, expandedId, overviewFields,
-        getFieldValue, getMemberType, toggleExpand, reload,
-        activeTab, tabs, filterText, columnMultiFilters, columnEmptyFilters,
-        sortKey, sortDirection, extraColumnIds, hiddenColumnIds,
-        tabOverviewFields, tabNonOverviewFields, visibleColumns, toggleColumn, applyColumnFilter,
+        getFieldValue, toggleExpand, reload,
+        activeTab, tabs, table, sortedMembers,
         isAskedOf,
         savedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters,
-        onMemberFilter, sortedMembers, toggleSort,
-        exportMode, selectedIds, showExportModal, selectedColumns, columnOptions,
-        toggleExportMode, toggleRow, toggleAllRows, toggleExportColumn,
-        selectColumns, openExportModal, performExport,
+        onMemberFilter,
+        exporting, performExport,
         canExport: port.canExport,
         canEdit: port.canEdit,
         navigateToDetail, navigateToEdit,
     }
 }
+
+export type MemberListConfig = ReturnType<typeof useMemberListConfig>

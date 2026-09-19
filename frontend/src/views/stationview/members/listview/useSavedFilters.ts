@@ -5,94 +5,92 @@
  */
 import { ref, type Ref } from 'vue'
 import { savedFilters as savedFiltersApi } from '@/api'
-import type { SortDirection } from '@/composables/useSortable'
-
-export type FilterKey = 'name' | 'groups' | 'tags' | number
-
-export type MemberSortKey = 'name' | number
-
-export interface TabFilterState {
-  filterText: string
-  columnMultiFilters: Map<FilterKey, Set<string>>
-  columnEmptyFilters: Set<FilterKey>
-  sortKey: MemberSortKey
-  sortDirection: SortDirection
-}
-
-export function emptyTabState(): TabFilterState {
-  return { filterText: '', columnMultiFilters: new Map(), columnEmptyFilters: new Set(), sortKey: 'name', sortDirection: 'asc' }
-}
+import type { DataTableState } from '@/composables/useDataTable'
 
 export interface SavedFilterPreset {
   id?: number
   name: string
   tab: string
-  textFilters: Record<string, string>
   multiFilters: Record<string, string[]>
-  emptyFilters?: string[]
+  emptyFilters: string[]
 }
 
 const TABLE_TYPE = 'members'
 
-export function useSavedFilters(tabStates: Ref<Record<string, TabFilterState>>, activeTab: Ref<string>) {
+/**
+ * A saved filter as it was stored, read defensively: an older one may lack the empty filters.
+ *
+ * <p>The empty filters were written from the start but dropped on the way back in, so a saved
+ * "this field is empty" came back without that condition. They are read here like everything else.
+ */
+export function presetOf(id: number, name: string, filterData: string): SavedFilterPreset {
+  const data = JSON.parse(filterData)
+  return {
+    id,
+    name,
+    tab: data.tab ?? 'ALL',
+    multiFilters: data.multiFilters ?? {},
+    emptyFilters: Array.isArray(data.emptyFilters) ? data.emptyFilters.map(String) : [],
+  }
+}
+
+/**
+ * The member list's saved filters: the filters of one tab kept under a name on the server.
+ *
+ * <p>Columns are stored by the key the table names them by, which for a profile field is its id.
+ */
+export function useSavedFilters(tabStates: Ref<Record<string, DataTableState>>, activeTab: Ref<string>) {
   const savedFilters = ref<SavedFilterPreset[]>([])
 
   async function loadSavedFilters() {
     try {
       const filters = await savedFiltersApi.listFilters(TABLE_TYPE)
-      savedFilters.value = filters.map(f => {
-        const data = JSON.parse(f.filterData)
-        return { id: f.id, name: f.name, tab: data.tab ?? 'ALL', textFilters: data.textFilters ?? {}, multiFilters: data.multiFilters ?? {} }
-      })
-    } catch { /* ignore */ }
+      savedFilters.value = filters.map(f => presetOf(f.id, f.name, f.filterData))
+    } catch {
+      savedFilters.value = []
+    }
   }
 
   async function saveCurrentFilter(name: string) {
     const state = tabStates.value[activeTab.value]
     if (!state) return
-    const textFilters: Record<string, string> = {}
     const multiFilters: Record<string, string[]> = {}
-    for (const [k, v] of state.columnMultiFilters) { multiFilters[String(k)] = [...v] }
-    const emptyFilters: string[] = [...state.columnEmptyFilters].map(String)
-    const filterData = JSON.stringify({ tab: activeTab.value, textFilters, multiFilters, emptyFilters })
+    for (const [key, values] of state.filters) multiFilters[key] = [...values]
+    const emptyFilters = [...state.empties]
+    const filterData = JSON.stringify({ tab: activeTab.value, textFilters: {}, multiFilters, emptyFilters })
     try {
       await savedFiltersApi.createFilter({ tableType: TABLE_TYPE, name, filterData })
       await loadSavedFilters()
-    } catch { /* ignore */ }
+    } catch {
+      return
+    }
   }
 
   function applyFilter(preset: SavedFilterPreset) {
     const state = tabStates.value[preset.tab]
     if (!state) return
     activeTab.value = preset.tab
-    const multiMap = new Map<FilterKey, Set<string>>()
-    for (const [k, v] of Object.entries(preset.multiFilters)) {
-      const key: FilterKey = (k === 'name' || k === 'groups' || k === 'tags') ? k : Number(k)
-      multiMap.set(key, new Set(v))
-    }
-    state.columnMultiFilters = multiMap
-    const emptySet = new Set<FilterKey>()
-    for (const k of (preset.emptyFilters ?? [])) {
-      emptySet.add((k === 'name' || k === 'groups' || k === 'tags') ? k : Number(k))
-    }
-    state.columnEmptyFilters = emptySet
+    state.filters = new Map(Object.entries(preset.multiFilters).map(([key, values]) => [key, new Set(values)]))
+    state.empties = new Set(preset.emptyFilters)
   }
 
   async function deleteFilter(index: number) {
     const preset = savedFilters.value[index]
-    if (!preset) return
+    if (preset?.id === undefined) return
     try {
-      await savedFiltersApi.deleteFilter(preset.id!)
+      await savedFiltersApi.deleteFilter(preset.id)
       await loadSavedFilters()
-    } catch { /* ignore */ }
+    } catch {
+      return
+    }
   }
 
   function clearFilters() {
     const state = tabStates.value[activeTab.value]
     if (!state) return
-    state.columnMultiFilters = new Map()
-    state.columnEmptyFilters = new Set()
-    state.filterText = ''
+    state.filters = new Map()
+    state.empties = new Set()
+    state.search = ''
   }
 
   return {

@@ -44,6 +44,9 @@ const port: MemberListPort = {
   canExport: computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_EXPORT)),
   canEdit: computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER)),
   exportFileName: 'verbandsmitglieder',
+  tableId: 'cluster-members',
+  stationLocalColumns: false,
+  keeps: member => !stationUid.value || managed.value.get(member.id)?.stationUid === stationUid.value,
 }
 
 const config = useMemberListConfig(port)
@@ -76,12 +79,7 @@ function stationNameOf(memberId: number): string {
   return person?.stationNames || person?.stationName || ''
 }
 
-provideMemberRowExtras({note: stationNameOf, blockedReason, stationLocalColumns: false})
-
-const shownMembers = computed(() => {
-  if (!stationUid.value) return config.sortedMembers.value
-  return config.sortedMembers.value.filter(m => managed.value.get(m.id)?.stationUid === stationUid.value)
-})
+provideMemberRowExtras({note: stationNameOf, blockedReason})
 
 const showCreate = ref(false)
 const canEdit = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER))
@@ -121,7 +119,7 @@ watch(includeFormer, () => { void config.reload() })
         </PrimaryButton>
       </NeutralContainer>
 
-      <MemberListPanel :config="config" :members="shownMembers"/>
+      <MemberListPanel :config="config"/>
 
       <CreateMemberModal v-model="showCreate" :stations="stations" @created="onCreated"/>
     </div>
