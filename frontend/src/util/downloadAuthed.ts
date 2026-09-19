@@ -25,8 +25,7 @@ export function parseContentDispositionFilename(header?: string | null): string 
  * The request is sent through the shared axios client so the
  * {@code Authorization} header and {@code X-Station-Id} header are applied
  * automatically. The response body is materialised as a {@link Blob} and
- * exposed to the browser via a temporary object URL that is revoked
- * immediately after the click is dispatched.
+ * exposed to the browser via a temporary object URL, see {@link saveBlob}.
  *
  * @param url      relative API path (e.g. {@code /kb/files/42/original}).
  * @param filename name suggested to the browser's save dialog; when omitted, the name
@@ -43,10 +42,53 @@ export async function downloadAuthed(url: string, filename?: string): Promise<vo
 }
 
 /**
- * Saves an already-materialised blob to disk via a temporary object URL that is revoked
- * immediately after the click is dispatched.
+ * How long a saved blob's object URL outlives the click that saves it.
+ *
+ * Safari on iOS reads the URL only after the click has returned, so a URL revoked at once leaves it
+ * nothing to save and the button silently does nothing.
+ */
+export const SAVED_BLOB_LIFETIME_MS = 40_000
+
+/**
+ * Hands an already-materialised blob to the reader.
+ *
+ * On an iPhone or iPad the file goes to the system share sheet, from where it can be saved to Files,
+ * opened in another app or sent on. A download link there does nothing inside the browsers apps
+ * embed, such as the Google app's, and the share sheet works in all of them. Where the share sheet
+ * refuses the file, the download link is the fallback; a reader closing the sheet has chosen, and
+ * nothing more happens.
  */
 export function saveBlob(blob: Blob, filename: string): void {
+    const file = new File([blob], filename, {type: blob.type})
+    if (!sharesFilesInstead(file)) {
+        clickDownloadLink(blob, filename)
+        return
+    }
+    navigator.share({files: [file]}).catch((error: unknown) => {
+        if (!isDismissal(error)) clickDownloadLink(blob, filename)
+    })
+}
+
+/** Whether this is an iPhone or iPad whose browser can put this file on the share sheet. */
+function sharesFilesInstead(file: File): boolean {
+    return isAppleTouchDevice() && typeof navigator.canShare === 'function' && navigator.canShare({files: [file]})
+}
+
+/** An iPhone or iPad, including an iPad that presents itself as a Mac. */
+function isAppleTouchDevice(): boolean {
+    const agent = navigator.userAgent
+    return /iPhone|iPad|iPod/.test(agent) || (agent.includes('Macintosh') && navigator.maxTouchPoints > 1)
+}
+
+function isDismissal(error: unknown): boolean {
+    return error instanceof DOMException && error.name === 'AbortError'
+}
+
+/**
+ * Saves a blob through a temporary object URL, revoked once the browser has had
+ * {@link SAVED_BLOB_LIFETIME_MS} to read it.
+ */
+function clickDownloadLink(blob: Blob, filename: string): void {
     const blobUrl = URL.createObjectURL(blob)
     try {
         const anchor = document.createElement('a')
@@ -57,6 +99,6 @@ export function saveBlob(blob: Blob, filename: string): void {
         anchor.click()
         anchor.remove()
     } finally {
-        URL.revokeObjectURL(blobUrl)
+        setTimeout(() => URL.revokeObjectURL(blobUrl), SAVED_BLOB_LIFETIME_MS)
     }
 }
