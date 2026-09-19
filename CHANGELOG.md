@@ -5,6 +5,7 @@
 ### Improvements
 
 - **A table's column list closes on its own.** It stayed open until its button was pressed again; it now closes on a press anywhere else on the page or on escape. A row's menu also closes when the menu of another row is opened.
+- **The column list shows all or none at once.** Two buttons at its top show or hide every column, and a long list spreads over several columns instead of running off the screen.
 - **Table filters match what a column holds.** Every column of the member list, an inventory's pieces and an appointment's sign-ups offers the filter its contents call for: dates by day, birth dates also by age, numbers by a range, and choices by their names. Sorting follows the same rule, so numbers and days come out in order and choices in the order they were set up.
 - **Tables remember their columns.** Where you allowed storing conveniences, the columns chosen for a table are still chosen on the next visit in the same browser, and the member list keeps its own choice for each tab. The privacy notice lists this once for every table, so it asks for your consent again one time.
 - **Tables sort and filter on a phone too.** On a small screen the rows are cards showing the chosen columns, with a sort and a filter control above them.

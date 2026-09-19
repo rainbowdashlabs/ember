@@ -20,7 +20,7 @@ import type {
   TableUpdatePayload,
   TrackingStatusName,
 } from '@/api/dataTracking'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import TableDetailDrawer from './datatrackingview/TableDetailDrawer.vue'
 import TrackingTable from './datatrackingview/TrackingTable.vue'
 import {useTrackingTable} from './datatrackingview/trackingtable/useTrackingTable'
@@ -187,7 +187,7 @@ onMounted(async () => {
           v-model:search="table.search"
           v-model:filter-context="filterContext"
           v-model:filter-status="filterStatus">
-        <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+        <TableColumnPicker :table="table"/>
       </TableFilterBar>
       <BatchToolbar
           :selected-count="selectedForBatch.size"

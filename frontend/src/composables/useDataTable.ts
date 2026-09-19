@@ -104,6 +104,17 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
         saveColumnChoices(memoryKey.value, choices.value)
     }
 
+    /** Shows or hides several columns as one choice, remembered once. Pinned columns stay. */
+    function setColumnsVisible(keys: readonly (string | number)[], visible: boolean) {
+        const next = {...choices.value}
+        for (const key of keys) {
+            const column = columns.value.find(candidate => candidate.key === String(key))
+            if (column && !column.pinned) next[column.key] = visible
+        }
+        choices.value = next
+        saveColumnChoices(memoryKey.value, choices.value)
+    }
+
     function columnOf(key: string): TableColumn<Row> | undefined {
         return columns.value.find(column => column.key === key)
     }
@@ -252,6 +263,7 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
         visibleColumns,
         pickerOptions,
         toggleColumn,
+        setColumnsVisible,
         rows,
         rowKey: options.rowKey,
         display,

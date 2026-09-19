@@ -11,7 +11,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import InventoryTabs from './clusterinventoryview/InventoryTabs.vue'
 import {useClusterQueueTable} from './clustermovementqueueview/useClusterQueueTable'
@@ -50,7 +50,7 @@ function open(entry: ClusterQueueEntry) {
 
       <div class="flex items-center justify-between gap-2">
         <p class="text-sm text-(--text-muted)">{{ t('clusterMovements.hint') }}</p>
-        <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+        <TableColumnPicker :table="table"/>
       </div>
 
       <Spinner v-if="loading" size="lg"/>

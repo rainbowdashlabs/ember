@@ -46,7 +46,7 @@ export interface DetailActions {
   onNavigateToEntry: (id: number) => void
   onNavigateToMember: (id: number) => void
   onDeleteEntry: (entry: WaitingListEntryWithScore) => void
-  onToggleField: (id: number) => void
+  onSetFields: (ids: number[], visible: boolean) => void
   onAddEntry: () => void
   onCreateInvite: () => void
   onDeleteInvite: (id: number) => void
@@ -99,7 +99,7 @@ defineProps<{
     @move-to-testing="actions.onMoveToTesting"
     @navigate-to-entry="actions.onNavigateToEntry"
     @delete-entry="actions.onDeleteEntry"
-    @toggle-field="actions.onToggleField"
+    @set-fields="actions.onSetFields"
     @add-entry="actions.onAddEntry"
   />
 

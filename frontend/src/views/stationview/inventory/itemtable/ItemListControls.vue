@@ -10,7 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import type { InventoryItem } from '@/api/inventory'
 import type { DataTableApi } from '@/composables/useDataTable'
 
@@ -52,6 +52,6 @@ const { t } = useI18n()
   <slot/>
   <div v-if="showSearch" class="flex items-center gap-2">
     <TextInput v-model="table.search" :placeholder="t('inventory.edit.searchItems')" class="flex-1"/>
-    <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+    <TableColumnPicker :table="table"/>
   </div>
 </template>

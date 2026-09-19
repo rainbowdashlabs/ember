@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import type {BeaconMetricsRow} from '@/api/beacon'
 import {useDataTable} from '@/composables/useDataTable'
@@ -38,7 +38,7 @@ const table = useDataTable<BeaconMetricsRow>({
   </NeutralContainer>
   <div v-else class="space-y-2">
     <div class="flex justify-end">
-      <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+      <TableColumnPicker :table="table"/>
     </div>
     <RecordTable :table="table" test-id="beacon-metrics-table"/>
   </div>

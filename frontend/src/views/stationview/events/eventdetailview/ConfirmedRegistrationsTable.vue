@@ -12,7 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import type {ColumnOption, TableColumn} from '@/components/table/tableColumn'
 import {memberTable as api} from '@/api'
@@ -189,12 +189,7 @@ async function download(format: 'csv' | 'pdf') {
     <div class="flex items-center justify-between gap-2">
       <SubHeader>{{ title }}</SubHeader>
       <div v-if="canDecide" class="flex items-center gap-2">
-        <ColumnPickerButton
-            v-if="asTable"
-            :options="table.pickerOptions"
-            :empty-label="t('common.noOptions')"
-            @toggle="table.toggleColumn"
-        />
+        <TableColumnPicker v-if="asTable" :empty-label="t('common.noOptions')" :table="table"/>
         <ActionsMenu :label="t('memberTable.menu')" test-id="registration-table-menu">
           <DropdownMenuItem :icon="['fas', 'table-list']" data-testid="registration-table-toggle" @click="asTable = !asTable">
             {{ asTable ? t('memberTable.asCards') : t('memberTable.asTable') }}

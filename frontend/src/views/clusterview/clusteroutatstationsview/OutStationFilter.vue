@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import type {OutItemTableApi} from './useOutItemTable'
 
 /** Narrows what is out to one station, and chooses the columns every station's block shows. */
@@ -30,6 +30,6 @@ const {t} = useI18n()
         <option v-for="name in stations" :key="name" :value="name">{{ name }}</option>
       </SelectInput>
     </div>
-    <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+    <TableColumnPicker :table="table"/>
   </div>
 </template>

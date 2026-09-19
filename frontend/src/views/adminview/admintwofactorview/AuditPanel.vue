@@ -12,7 +12,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import AccountSearchPicker from '@/components/input/search/AccountSearchPicker.vue'
 import {twoFactorAdmin} from '@/api'
@@ -99,7 +99,7 @@ onMounted(() => loadAudit(true))
             @update:model-value="onAuditUidUpdate"
         />
       </div>
-      <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+      <TableColumnPicker :table="table"/>
       <SecondaryButton :disabled="auditLoading" @click="loadAudit(true)">
         {{ t('common.refresh') }}
       </SecondaryButton>

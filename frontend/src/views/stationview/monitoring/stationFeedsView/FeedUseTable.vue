@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import MemberName from '@/components/avatar/MemberName.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
 import {emptyTableState, useDataTable} from '@/composables/useDataTable'
@@ -68,7 +68,7 @@ const table = useDataTable<FeedUse>({
   <div class="space-y-3">
     <div class="flex items-center gap-2">
       <SearchInput v-model="table.search" :placeholder="t('stationFeeds.searchPlaceholder')" class="flex-1"/>
-      <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+      <TableColumnPicker :table="table"/>
     </div>
 
     <RecordTable :table="table" row-test-id="feed-use-row" test-id="feed-use-table">

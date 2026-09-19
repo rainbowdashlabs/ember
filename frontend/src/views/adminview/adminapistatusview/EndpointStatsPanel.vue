@@ -8,7 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import type {EndpointStats} from '@/api/apiStatus'
 import {useDataTable} from '@/composables/useDataTable'
@@ -66,7 +66,7 @@ function errorRateClass(endpoint: EndpointStats): string {
         {{ t(labelKey) }}
       </SelectionToggleButton>
       <div class="ml-auto">
-        <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+        <TableColumnPicker :table="table"/>
       </div>
     </div>
     <RecordTable :table="table" clickable test-id="api-status-endpoints" @row-click="openDetail">

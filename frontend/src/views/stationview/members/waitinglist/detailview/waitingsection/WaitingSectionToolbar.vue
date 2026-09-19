@@ -20,6 +20,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   toggleColumn: [key: string | number]
+  setColumns: [keys: (string | number)[], visible: boolean]
   addEntry: []
 }>()
 
@@ -36,6 +37,7 @@ const { t } = useI18n()
           :full-width="props.isMobile"
           :options="props.columnOptions"
           @toggle="(key) => emit('toggleColumn', key)"
+          @set-visible="(keys, visible) => emit('setColumns', keys, visible)"
         />
       </div>
       <PrimaryButton v-if="props.canAdd" :icon="['fas', 'plus']" :full-width="props.isMobile" class="flex-1 sm:flex-initial" @click="emit('addEntry')">

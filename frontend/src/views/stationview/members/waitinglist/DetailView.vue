@@ -101,7 +101,7 @@ const sectionActions = computed(() => ({
   onNavigateToEntry: navigateToEntry,
   onNavigateToMember: navigateToMember,
   onDeleteEntry: requestDeleteEntry,
-  onToggleField: toggleFieldVisibility,
+  onSetFields: setFieldsVisible,
   onAddEntry: navigateToCreateEntry,
   onCreateInvite: invite.openModal,
   onDeleteInvite: invite.remove,
@@ -127,11 +127,14 @@ const invite = useListInvites(listId, invites, error, flash)
 const transitions = useEntryTransitions(listId, entries, error)
 const invitation = useEntryInvitation(listId, entries, error)
 
-async function toggleFieldVisibility(fieldId: number) {
+/** Shows or hides questions as columns for everybody on this list, written as one change. */
+async function setFieldsVisible(fieldIds: number[], visible: boolean) {
   if (!list.value) return
   const current = new Set(list.value.visibleFields ?? [])
-  if (current.has(fieldId)) current.delete(fieldId)
-  else current.add(fieldId)
+  for (const fieldId of fieldIds) {
+    if (visible) current.add(fieldId)
+    else current.delete(fieldId)
+  }
   try {
     list.value = await waitingList.updateVisibleFields(listId.value, [...current])
   } catch {

@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import {stationApplications} from '@/api'
 import {ApplicationStatus, type StationApplication} from '@/api/stationApplications'
 import {useDataTable} from '@/composables/useDataTable'
@@ -77,7 +77,7 @@ async function submitDeny() {
 
       <template v-if="!loading">
         <ApplicationsTabs v-model="activeTab">
-          <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+          <TableColumnPicker :table="table"/>
         </ApplicationsTabs>
         <ApplicationsTable :table="table" :processing="processing" @accept="acceptApplication" @deny="openDeny"/>
       </template>

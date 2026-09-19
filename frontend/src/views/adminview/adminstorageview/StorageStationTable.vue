@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import {isClusterOrigin} from '@/api/storageMonitoring'
 import {STORAGE_CATEGORY_COLORS, buildStorageCategoryLabeler} from '@/util/storage'
@@ -51,7 +51,7 @@ function governedElsewhere(station: StorageRoomRow): boolean {
   <div class="space-y-2">
     <div class="flex items-center justify-between gap-2">
       <SubHeader>{{ t('storageMonitoring.stationOverview') }}</SubHeader>
-      <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+      <TableColumnPicker :table="table"/>
     </div>
     <RecordTable :table="table" row-test-id="storage-station-row" test-id="storage-station-table">
       <template #cell-name="{row}">

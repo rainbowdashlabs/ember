@@ -16,7 +16,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import MailRecordTable from '@/components/mail/MailRecordTable.vue'
 import MailProviderStanding from '@/components/mail/MailProviderStanding.vue'
 import {useMailRecordTable} from '@/components/mail/useMailRecordTable'
@@ -194,7 +194,7 @@ const stuckTable = useMailRecordTable('mail-stuck', () => data.value?.stuckMails
           <option value="">{{ t('mailDashboard.allDeliveryStates') }}</option>
           <option v-for="state in deliveryStates" :key="state" :value="state">{{ t(`mailDashboard.delivery.${state}`) }}</option>
         </SelectInput>
-        <ColumnPickerButton :options="recentTable.pickerOptions" @toggle="recentTable.toggleColumn"/>
+        <TableColumnPicker :table="recentTable"/>
       </div>
 
       <MailRecordTable :table="recentTable" test-id="mail-recent-table"/>

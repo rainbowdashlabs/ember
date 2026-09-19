@@ -11,7 +11,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import type {EventRegistrationEntry, EventRegistrationField, MemberRegistrationStats} from '@/api/events'
 import {emptyTableState, useDataTable} from '@/composables/useDataTable'
@@ -65,7 +65,7 @@ function scoreClass(row: RankedRegistration): string {
 <template>
   <div class="space-y-2">
     <div class="flex justify-end">
-      <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+      <TableColumnPicker :table="table"/>
     </div>
     <RecordTable :table="table" plain test-id="registration-stats-table">
       <template #cell-member="{row}">

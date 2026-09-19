@@ -11,7 +11,7 @@ import SearchInput from '@/components/input/text/SearchInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import type { MemberListConfig } from './useMemberListConfig'
@@ -67,12 +67,7 @@ function submitSaveFilter() {
   <div class="space-y-2">
     <SearchInput v-model="table.search" :placeholder="t('membersList.filter')" autofocus/>
     <div class="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
-      <ColumnPickerButton
-          :empty-label="t('membersList.noExtraColumns')"
-          :full-width="isMobile"
-          :options="table.pickerOptions"
-          @toggle="table.toggleColumn"
-      />
+      <TableColumnPicker :empty-label="t('membersList.noExtraColumns')" :full-width="isMobile" :table="table"/>
       <SecondaryButton :icon="['fas', 'xmark']" :full-width="isMobile" @click="c.clearFilters">
         {{ t('membersList.clearFilters') }}
       </SecondaryButton>

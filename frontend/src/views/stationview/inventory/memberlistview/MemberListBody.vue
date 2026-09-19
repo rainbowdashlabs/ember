@@ -57,13 +57,12 @@ const fieldOptions = computed((): ExportFieldOption<number>[] =>
     :show-size="parts.showSize"
     :groups="groups"
     :tags="tags"
-    :column-options="table.pickerOptions"
+    :table="table"
     @update:show-empty="emit('update:show-empty', $event)"
     @update:show-name="emit('update:show-name', $event)"
     @update:show-internal-id="emit('update:show-internal-id', $event)"
     @update:show-size="emit('update:show-size', $event)"
     @filter="emit('filter', $event)"
-    @toggle-column="table.toggleColumn"
   />
 
   <ExportFieldPicker

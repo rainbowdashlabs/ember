@@ -38,7 +38,7 @@ const emit = defineEmits<{
   moveToTesting: [entryId: number]
   navigateToEntry: [entryId: number]
   deleteEntry: [entry: WaitingListEntryWithScore]
-  toggleField: [fieldId: number]
+  setFields: [fieldIds: number[], visible: boolean]
   addEntry: []
 }>()
 
@@ -59,9 +59,14 @@ const table = useDataTable<WaitingListEntryWithScore>({
   fallbackSort: byDate(item => item.entry.createdAt),
 })
 
+function setColumns(keys: (string | number)[], visible: boolean) {
+  const fieldIds = keys.map(fieldIdOfColumn).filter((fieldId): fieldId is number => fieldId !== null)
+  if (fieldIds.length > 0) emit('setFields', fieldIds, visible)
+}
+
 function toggleColumn(key: string | number) {
   const fieldId = fieldIdOfColumn(key)
-  if (fieldId !== null) emit('toggleField', fieldId)
+  if (fieldId !== null) emit('setFields', [fieldId], !props.visibleFieldIds.has(fieldId))
 }
 </script>
 
@@ -73,6 +78,7 @@ function toggleColumn(key: string | number) {
       :is-mobile="isMobile"
       :can-add="canAdd"
       @toggle-column="toggleColumn"
+      @set-columns="setColumns"
       @add-entry="emit('addEntry')"
     />
 

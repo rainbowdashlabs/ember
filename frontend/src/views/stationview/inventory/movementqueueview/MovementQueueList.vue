@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import type {DataTableApi} from '@/composables/useDataTable'
 import type {Movement} from '@/api/movements'
 import MovementRecordTable from './MovementRecordTable.vue'
@@ -41,7 +41,7 @@ const {t} = useI18n()
 <template>
   <div class="space-y-2">
     <div class="flex justify-end">
-      <ColumnPickerButton :options="props.table.pickerOptions" @toggle="props.table.toggleColumn"/>
+      <TableColumnPicker :table="props.table"/>
     </div>
     <MovementRecordTable :table="props.table" test-id="movement-queue">
       <template #actions="{row}">

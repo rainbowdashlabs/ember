@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import type {BoardLabel, BoardTicket} from '@/api/boards'
 import {priorityColor, priorityIcon} from '@/util/ticketPriority'
@@ -38,7 +38,7 @@ function open(ticket: BoardTicket) {
 <template>
   <div class="space-y-2">
     <div class="flex justify-end">
-      <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+      <TableColumnPicker :table="table"/>
     </div>
     <RecordTable :table="table" clickable row-test-id="ticket-row" test-id="ticket-table" @row-click="open">
       <template #cell-key="{text}">

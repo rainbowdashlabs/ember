@@ -5,6 +5,7 @@
 ### Verbesserungen
 
 - **Die Spaltenauswahl einer Tabelle schließt sich von selbst.** Sie blieb offen, bis ihr Knopf noch einmal gedrückt wurde; jetzt schließt sie sich bei einem Klick irgendwo sonst auf der Seite oder mit Escape. Auch das Menü einer Zeile schließt sich, sobald das einer anderen Zeile geöffnet wird.
+- **Die Spaltenauswahl blendet alle oder keine auf einmal ein.** Zwei Knöpfe oben darin zeigen oder verbergen alle Spalten, und eine lange Liste verteilt sich auf mehrere Spalten, statt über den Bildschirm hinauszulaufen.
 - **Tabellenfilter passen zum Inhalt der Spalte.** Jede Spalte der Mitgliederliste, der Stücke eines Inventars und der Anmeldungen zu einem Termin bietet den Filter an, den ihr Inhalt verlangt: Daten nach Tag, Geburtsdaten zusätzlich nach Alter, Zahlen über einen Bereich und Auswahlfelder über ihre Namen. Sortiert wird nach derselben Regel, sodass Zahlen und Tage in der richtigen Reihenfolge stehen und Auswahlfelder in der, in der sie angelegt wurden.
 - **Tabellen merken sich ihre Spalten.** Wo du das Speichern von Komfort-Einstellungen erlaubt hast, sind die für eine Tabelle gewählten Spalten beim nächsten Besuch im selben Browser noch gewählt, und die Mitgliederliste merkt sich die Auswahl für jeden Reiter einzeln. Die Datenschutzerklärung führt das einmal für alle Tabellen auf und fragt deshalb einmalig erneut nach deiner Zustimmung.
 - **Tabellen sortieren und filtern auch auf dem Handy.** Auf einem kleinen Bildschirm sind die Zeilen Karten mit den gewählten Spalten, darüber stehen eine Sortierung und ein Filter.
