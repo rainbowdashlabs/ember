@@ -4,13 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import { ColumnTypes, type TableColumn } from '@/components/table/tableColumn'
 import type { StationMember } from '@/api/types'
-import { emptyTableState, useDataTable } from '@/composables/useDataTable'
+import { useDataTable } from '@/composables/useDataTable'
+import { memberNameColumn } from '../listview/memberColumns'
 
 /**
  * The people who have left the station, sortable and filterable by name, address and leaving day.
@@ -18,7 +19,6 @@ import { emptyTableState, useDataTable } from '@/composables/useDataTable'
  */
 const props = defineProps<{
   members: StationMember[]
-  memberDisplayName: (m: StationMember) => string
 }>()
 
 defineEmits<{
@@ -28,7 +28,7 @@ defineEmits<{
 const { t } = useI18n()
 
 const columns = computed<TableColumn<StationMember>[]>(() => [
-  { key: 'name', label: t('membersList.colName'), type: ColumnTypes.TEXT, value: props.memberDisplayName },
+  memberNameColumn(t),
   { key: 'email', label: t('membersList.colEmail'), type: ColumnTypes.TEXT, value: member => member.email },
   { key: 'formerAt', label: t('formerMembers.colFormerAt'), type: ColumnTypes.DATE, value: member => member.formerAt },
 ])
@@ -38,7 +38,7 @@ const table = useDataTable<StationMember>({
   rows: () => props.members,
   columns,
   rowKey: member => member.id,
-  state: ref(emptyTableState('formerAt', 'desc')),
+  sort: { key: 'formerAt', direction: 'desc' },
 })
 </script>
 

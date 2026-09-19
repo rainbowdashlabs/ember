@@ -17,8 +17,8 @@ import type {DataTableApi} from '@/composables/useDataTable'
  *
  * <p>Cells are written as the column words them unless the screen fills the slot named
  * `cell-<key>`. Around the columns a screen may add a leading cell (`lead`, for a checkbox or an
- * icon), a trailing one (`actions`), a line under a row (`after-row`, for a row opened up), and a
- * card of its own (`card`). Each slot is handed the `row`.
+ * icon), a trailing one (`actions`), a line under a row (`after-row`, for a row opened up), and
+ * something under a card's cells (`card-extra`). Each slot is handed the `row`.
  *
  * <p>A screen that shows one table in parts, a block per group, passes each block its `subset` of
  * the rows. A part brings neither the filter dialog nor the phone's sort controls, which the screen
@@ -36,8 +36,6 @@ const props = withDefaults(defineProps<{
   /** Whether the rows answer a press, which also marks them as pressable. */
   clickable?: boolean
   rowClass?: (row: Row) => string
-  /** Whether a phone gets cards. A table narrow enough to fit keeps its rows. */
-  cards?: boolean
 }>(), {
   subset: undefined,
   testId: 'record-table',
@@ -45,7 +43,6 @@ const props = withDefaults(defineProps<{
   plain: false,
   clickable: false,
   rowClass: undefined,
-  cards: true,
 })
 
 const emit = defineEmits<{
@@ -61,7 +58,7 @@ const whole = computed(() => props.subset === undefined)
 <template>
   <div>
     <RecordTableCards
-        v-if="cards && isMobile"
+        v-if="isMobile"
         :clickable="clickable"
         :controls="whole"
         :row-class="rowClass"

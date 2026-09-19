@@ -19,12 +19,13 @@ import {memberTable as api} from '@/api'
 import {RegistrationStatus} from '@/api/events'
 import type {EventRegistrationEntry} from '@/api/events'
 import type {MemberTable, MemberTableColumn, MemberTableHeader} from '@/api/memberTable'
-import {StationPermission, StationUserTypeLabels} from '@/api/types'
+import {StationPermission} from '@/api/types'
+import {userTypeOptions} from '@/views/stationview/members/listview/memberColumns'
 import {emptyTableState, useDataTable} from '@/composables/useDataTable'
 import {useSession} from '@/composables/useSession'
 import {saveBlob} from '@/util/downloadAuthed'
 import RegistrationTableExport from './RegistrationTableExport.vue'
-import {columnOf, keyOf, tableColumnOf, type DrawnRow} from './registrationTableColumns'
+import {columnOf, keyOf, readDrawnTable, tableColumnOf, type DrawnRow} from './registrationTableColumns'
 
 const {t} = useI18n()
 const {hasPermission} = useSession()
@@ -75,10 +76,11 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
 /** The tokens the table carries for a status or a kind of member, in words. */
 const OPTIONS_BY_KEY = computed<Record<string, ColumnOption[]>>(() => ({
   [STATUS_KEY]: Object.entries(STATUS_LABEL_KEYS).map(([value, key]) => ({value, label: t(key)})),
-  'b:memberType': Object.entries(StationUserTypeLabels).map(([value, label]) => ({value, label})),
+  'b:memberType': userTypeOptions(),
 }))
 
 const offered = ref<MemberTableHeader[]>([])
+const offeredLoaded = ref(false)
 const drawn = ref<MemberTable | null>(null)
 const exporting = ref(false)
 
@@ -94,16 +96,9 @@ const columns = computed<TableColumn<Row>[]>(() => offered.value.map(header => {
 
 const byMember = computed(() => new Map(props.entries.map(entry => [entry.memberId, entry])))
 
-const rows = computed<Row[]>(() => {
-  const table = drawn.value
-  if (!table) return []
-  const keys = table.columns.map(keyOf)
-  return table.rows.map(row => ({
-    memberId: row.memberId,
-    cells: new Map(keys.map((key, index) => [key, row.values[index] ?? ''])),
-    extra: byMember.value.get(row.memberId) ?? null,
-  }))
-})
+const drawnCells = computed(() => drawn.value ? readDrawnTable(drawn.value) : [])
+
+const rows = computed<Row[]>(() => drawnCells.value.map(row => ({...row, extra: byMember.value.get(row.memberId) ?? null})))
 
 /**
  * The table opens on the confirmed sign-ups, because a sheet of who is coming is what it is for.
@@ -130,8 +125,7 @@ const drawnColumns = computed<MemberTableColumn[]>(() => [
 ].map(columnOf).filter((column): column is MemberTableColumn => column !== null))
 
 /** What may go on the table, asked for once, from the station holding the appointment. */
-async function ensureOffered() {
-  if (offered.value.length > 0) return
+async function loadOffered() {
   const available = await api.listRegistrationColumns(props.eventId)
   offered.value = [
     ...available.member,
@@ -143,6 +137,7 @@ async function ensureOffered() {
       type: question.type,
     })),
   ]
+  offeredLoaded.value = true
 }
 
 async function draw() {
@@ -155,20 +150,18 @@ async function draw() {
  * <p>Fetched on being shown rather than once at the start: somebody confirms a place, switches to
  * the table and must see them on it. The cards behind it are reloaded by the screen for the same
  * reason, and a table that answered from what it happened to be holding would disagree with them.
+ * The first showing only asks what may go on the table: its arrival settles the columns, and that
+ * one change draws the table once, whatever columns the reader chose before.
  */
 watch(
-    [asTable, () => props.eventId, day, () => props.entries.length],
+    [asTable, () => props.eventId, day, () => props.entries.length, () => drawnColumns.value.map(keyOf).join(), offeredLoaded],
     async () => {
       if (!asTable.value) return
-      await ensureOffered()
-      await draw()
+      if (!offeredLoaded.value) await loadOffered()
+      else await draw()
     },
     {immediate: true},
 )
-
-watch(() => drawnColumns.value.map(keyOf).join(), () => {
-  if (asTable.value && offered.value.length > 0) draw()
-})
 
 /**
  * Asks the station for the same table as a file.

@@ -61,7 +61,6 @@ defineProps<{
   invites: WaitingListInvite[]
   entryGroups: EntryGroups
   visibleFieldIds: Set<number>
-  isMobile: boolean
   permissions: DetailPermissions
   actions: DetailActions
 }>()
@@ -91,7 +90,6 @@ defineProps<{
     :entries="entryGroups.waiting"
     :fields="fields"
     :visible-field-ids="visibleFieldIds"
-    :is-mobile="isMobile"
     :readonly="!permissions.canEdit"
     :can-add="permissions.canAdd"
     @invite="actions.onInvite"

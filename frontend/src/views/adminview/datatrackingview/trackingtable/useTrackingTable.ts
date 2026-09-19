@@ -41,6 +41,7 @@ export function useTrackingTable(tracking: Ref<DataTracking | null>) {
 
     const table = useDataTable<TrackingRow>({
         id: 'admin-data-tracking',
+        perStation: false,
         rows: computed(() => rows.value.filter(passesToggles)),
         columns: computed(() => trackingColumns(t)),
         rowKey: row => row.name,

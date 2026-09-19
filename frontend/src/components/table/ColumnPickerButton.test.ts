@@ -50,14 +50,11 @@ describe('ColumnPickerButton', () => {
         expect(picker.emitted('setVisible')).toEqual([[['c2', 'c3'], false]])
     })
 
-    it('lays a list taller than the screen out in several columns', async () => {
-        window.innerHeight = 600
-        await openPicker(options(60))
+    it('sends a single tick as the same change for one column', async () => {
+        const picker = await openPicker(options(3, 1))
 
-        const list = document.body.querySelector<HTMLElement>('[data-testid="column-picker"] .grid')!
-        const rows = Number(/repeat\((\d+)/.exec(list.style.gridTemplateRows)?.[1])
+        document.body.querySelector<HTMLInputElement>('[data-testid="column-picker-list"] input')!.click()
 
-        expect(rows).toBeLessThan(60)
-        expect(rows).toBeGreaterThan(0)
+        expect(picker.emitted('setVisible')).toEqual([[['c0'], true]])
     })
 })

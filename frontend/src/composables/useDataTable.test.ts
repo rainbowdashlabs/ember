@@ -86,11 +86,11 @@ describe('useDataTable', () => {
         const table = tableOf()
         table.openFilter('role')
 
-        expect(table.filterDialog.choices).toEqual([
+        expect(table.filterDialog?.choices).toEqual([
             {value: 'LEAD', label: 'Leitung'},
             {value: 'MEMBER', label: 'Mitglied'},
         ])
-        table.applyFilter(new Set(['LEAD']), false)
+        table.setFilter('role', new Set(['LEAD']), false)
         expect(names(table)).toEqual(['Anna'])
     })
 
@@ -98,11 +98,34 @@ describe('useDataTable', () => {
         const table = tableOf()
 
         table.openFilter('shoe')
-        expect(table.filterDialog.kind).toBe('number')
+        expect(table.filterDialog?.kind).toBe('number')
         table.openFilter('born')
-        expect(table.filterDialog.kind).toBe('date')
+        expect(table.filterDialog?.kind).toBe('date')
         table.openFilter('active')
-        expect(table.filterDialog.choices.map(choice => choice.label)).toEqual(['Ja', 'Nein'])
+        expect(table.filterDialog?.choices.map(choice => choice.label)).toEqual(['Ja', 'Nein'])
+        table.closeFilter()
+        expect(table.filterDialog).toBeNull()
+    })
+
+    it('opens on the sort it is given', () => {
+        let api: DataTableApi<Person> | null = null
+        mount(defineComponent({
+            setup() {
+                api = useDataTable<Person>({id: 'sorted', rows: PEOPLE, columns: COLUMNS, rowKey: p => p.id, sort: {key: 'shoe', direction: 'desc'}})
+                return () => null
+            },
+        }))
+
+        expect(names(api as unknown as DataTableApi<Person>)).toEqual(['Ben', 'Anna', 'Cara'])
+    })
+
+    it('sorts before it searches, so narrowing keeps the order', () => {
+        const table = tableOf()
+        table.toggleSort('shoe')
+        table.toggleSort('shoe')
+        table.search = 'a'
+
+        expect(names(table)).toEqual(['Anna', 'Cara'])
     })
 
     it('narrows a number column to a range', () => {
@@ -122,14 +145,14 @@ describe('useDataTable', () => {
     it('drops the filter of a column taken out of view', () => {
         const table = tableOf()
         table.setFilter('shoe', new Set(['min:40']), false)
-        table.toggleColumn('shoe')
+        table.setColumnsVisible(['shoe'], false)
 
         expect(names(table)).toEqual(['Anna', 'Ben', 'Cara'])
     })
 
     it('matches any of the things a cell lists', () => {
         const table = tableOf()
-        table.toggleColumn('groups')
+        table.setColumnsVisible(['groups'], true)
         table.setFilter('groups', new Set(['Chor']), false)
 
         expect(names(table)).toEqual(['Ben'])
@@ -142,15 +165,15 @@ describe('useDataTable', () => {
     })
 
     it('remembers chosen columns for the next visit', () => {
-        tableOf('remembered').toggleColumn('groups')
+        tableOf('remembered').setColumnsVisible(['groups'], true)
 
         expect(tableOf('remembered').visibleColumns.map(column => column.key)).toContain('groups')
         expect(tableOf('elsewhere').visibleColumns.map(column => column.key)).not.toContain('groups')
     })
 
     it('keeps every table in the one stored value', () => {
-        tableOf('first').toggleColumn('groups')
-        tableOf('second').toggleColumn('shoe')
+        tableOf('first').setColumnsVisible(['groups'], true)
+        tableOf('second').setColumnsVisible(['shoe'], false)
 
         const keys = Object.keys(localStorage).filter(key => key !== 'storage_consent')
         expect(keys).toEqual(['table_columns'])
@@ -158,7 +181,7 @@ describe('useDataTable', () => {
 
     it('remembers nothing where comfort storage was declined', () => {
         localStorage.setItem('storage_scopes', 'FUNCTIONAL')
-        tableOf('declined').toggleColumn('groups')
+        tableOf('declined').setColumnsVisible(['groups'], true)
 
         expect(localStorage.getItem('table_columns')).toBeNull()
     })

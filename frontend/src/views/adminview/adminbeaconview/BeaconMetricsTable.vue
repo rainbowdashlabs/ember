@@ -26,6 +26,7 @@ const {t} = useI18n()
 
 const table = useDataTable<BeaconMetricsRow>({
   id: 'admin-beacon-figures',
+  perStation: false,
   rows: () => props.rows,
   columns: computed(() => beaconMetricColumns(t)),
   rowKey: row => `${row.metricsUid}-${row.day}`,

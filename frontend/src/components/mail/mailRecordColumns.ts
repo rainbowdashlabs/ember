@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {MailDeliveryStatus, MailQueueStatus, type MailRecord} from '@/api/mailProviders'
-import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
+import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 
 /** Delivery states that mean the mail did not arrive, which is what a reader is scanning for. */
 const UNDELIVERED: readonly string[] = [
@@ -45,15 +45,12 @@ function momentOf(mail: MailRecord): string {
  * reported afterwards. The reason a provider gave is worth more than either.
  */
 export function mailRecordColumns(t: (key: string) => string): TableColumn<MailRecord>[] {
-    const queueStates = Object.entries(QUEUE_LABEL_KEYS).map(([value, key]) => ({value, label: t(key)}))
-    const deliveryStates = Object.values(MailDeliveryStatus).map(value => ({value, label: t(`mailDashboard.delivery.${value}`)}))
+    const queueStates = enumOptions(Object.keys(QUEUE_LABEL_KEYS), value => t(QUEUE_LABEL_KEYS[value]!))
+    const deliveryStates = enumOptions(Object.values(MailDeliveryStatus), value => t(`mailDashboard.delivery.${value}`))
     return [
         {key: 'recipient', label: t('mailDashboard.colRecipient'), type: ColumnTypes.TEXT, value: mail => mail.recipient, pinned: true},
         {key: 'subject', label: t('mailDashboard.colSubject'), type: ColumnTypes.TEXT, value: mail => mail.subject},
-        {
-            key: 'when', label: t('mailDashboard.colWhen'), type: ColumnTypes.DATE,
-            value: momentOf, display: mail => new Date(momentOf(mail)).toLocaleString('de-DE'),
-        },
+        {key: 'when', label: t('mailDashboard.colWhen'), type: ColumnTypes.DATE_TIME, value: momentOf},
         {key: 'status', label: t('mailDashboard.colStatus'), type: ColumnTypes.ENUM, value: mail => mail.status, options: queueStates},
         {
             key: 'deliveryStatus', label: t('mailDashboard.colDelivery'), type: ColumnTypes.ENUM,

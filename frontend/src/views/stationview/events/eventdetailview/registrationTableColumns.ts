@@ -3,13 +3,17 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {MemberTableCellTypes, type MemberTableColumn, type MemberTableHeader} from '@/api/memberTable'
-import {ColumnTypes, type CellValue, type ColumnOption, type ColumnType, type TableColumn} from '@/components/table/tableColumn'
+import {MemberTableCellTypes, type MemberTable, type MemberTableColumn, type MemberTableHeader} from '@/api/memberTable'
+import {columnTypeOf, type CellValue, type ColumnOption, type TableColumn} from '@/components/table/tableColumn'
+
+/** One person on the drawn table: the cells as read back by column key, without anything beside them. */
+export interface DrawnCells {
+    memberId: number
+    cells: ReadonlyMap<string, CellValue>
+}
 
 /** One person on the drawn table: the cells by column key, and whatever the screen knows beside them. */
-export interface DrawnRow<Extra> {
-    memberId: number
-    cells: Map<string, string>
+export interface DrawnRow<Extra> extends DrawnCells {
     extra: Extra
 }
 
@@ -34,14 +38,6 @@ export function columnOf(key: string): MemberTableColumn | null {
 const LISTING_BUILTINS = new Set(['groups', 'tags'])
 const DAY_PATTERN = /^(\d{2})\.(\d{2})\.(\d{4})$/
 const TRUE_WORDS = new Set(['true', 'ja', 'yes'])
-
-const TYPE_OF: Record<string, ColumnType> = {
-    [MemberTableCellTypes.NUMBER]: ColumnTypes.NUMBER,
-    [MemberTableCellTypes.DATE]: ColumnTypes.DATE,
-    [MemberTableCellTypes.BIRTH_DATE]: ColumnTypes.BIRTH_DATE,
-    [MemberTableCellTypes.BOOLEAN]: ColumnTypes.BOOLEAN,
-    [MemberTableCellTypes.ENUM]: ColumnTypes.ENUM,
-}
 
 /** A drawn day as ISO, whichever of the two ways it was written. */
 function isoDay(cell: string): string {
@@ -71,6 +67,18 @@ function cellValue(header: MemberTableHeader, cell: string | undefined): CellVal
 }
 
 /**
+ * Every person on a drawn table with each cell read back once into what it holds, so sorting and
+ * filtering never parse a drawn string again.
+ */
+export function readDrawnTable(table: MemberTable): DrawnCells[] {
+    const columns = table.columns.map(header => ({header, key: keyOf(header)}))
+    return table.rows.map(row => ({
+        memberId: row.memberId,
+        cells: new Map(columns.map(({header, key}, index) => [key, cellValue(header, row.values[index])])),
+    }))
+}
+
+/**
  * One column of the drawn table.
  *
  * @param header  the column as the station offers it
@@ -83,8 +91,8 @@ export function tableColumnOf<Extra>(
     return {
         key,
         label: header.label,
-        type: TYPE_OF[header.type] ?? ColumnTypes.TEXT,
-        value: row => cellValue(header, row.cells.get(key)),
+        type: columnTypeOf(header.type),
+        value: row => row.cells.get(key) ?? null,
         options,
         defaultVisible: false,
     }

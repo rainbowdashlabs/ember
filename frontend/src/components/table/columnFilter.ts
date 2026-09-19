@@ -5,7 +5,7 @@
  */
 import {compareSortValues, type SortValue} from '@/composables/useSortable'
 import {matchesDateFilter, splitDateTokens} from '@/util/dateFilter'
-import {ColumnTypes, scalarsOf, wordScalar, type CellScalar, type TableColumn} from './tableColumn'
+import {ColumnTypes, optionIndexOf, scalarsOf, wordScalar, type CellScalar, type TableColumn} from './tableColumn'
 
 /** Which filter body a column's type opens. */
 export type FilterKind = 'values' | 'number' | 'date' | 'birthDate'
@@ -24,7 +24,7 @@ export interface YesNo {
 
 export function filterKindOf(type: string): FilterKind {
     if (type === ColumnTypes.NUMBER) return 'number'
-    if (type === ColumnTypes.DATE) return 'date'
+    if (type === ColumnTypes.DATE || type === ColumnTypes.DATE_TIME) return 'date'
     if (type === ColumnTypes.BIRTH_DATE) return 'birthDate'
     return 'values'
 }
@@ -110,26 +110,33 @@ function matchesNumber(value: string, tokens: NumberFilterTokens): boolean {
     return !(tokens.max !== null && number > tokens.max)
 }
 
-/**
- * Whether one cell passes the filter standing on its column.
- *
- * @param kind         the filter body the column opens
- * @param values       the cell as {@link filterValuesOf} gives it
- * @param selected     what the filter holds; nothing held means nothing narrowed but the empties
- * @param includeEmpty whether an empty cell passes
- */
-export function cellPasses(kind: FilterKind, values: readonly string[], selected: ReadonlySet<string>, includeEmpty: boolean): boolean {
-    if (values.length === 0) return includeEmpty
-    if (selected.size === 0) return !includeEmpty
+/** Whether one cell, as {@link filterValuesOf} gives it, passes the filter standing on its column. */
+export type CellFilter = (values: readonly string[]) => boolean
+
+function valueMatcher(kind: FilterKind, selected: ReadonlySet<string>): (value: string) => boolean {
     if (kind === 'date' || kind === 'birthDate') {
         const tokens = splitDateTokens(selected)
-        return values.some(value => matchesDateFilter(value, tokens))
+        const today = new Date()
+        return value => matchesDateFilter(value, tokens, today)
     }
     if (kind === 'number') {
         const tokens = splitNumberTokens(selected)
-        return values.some(value => matchesNumber(value, tokens))
+        return value => matchesNumber(value, tokens)
     }
-    return values.some(value => selected.has(value))
+    return value => selected.has(value)
+}
+
+/**
+ * The filter standing on one column, read once so each row only has to be matched against it.
+ *
+ * @param kind         the filter body the column opens
+ * @param selected     what the filter holds; nothing held means nothing narrowed but the empties
+ * @param includeEmpty whether an empty cell passes
+ */
+export function prepareFilter(kind: FilterKind, selected: ReadonlySet<string>, includeEmpty: boolean): CellFilter {
+    if (selected.size === 0) return values => values.length === 0 ? includeEmpty : !includeEmpty
+    const matches = valueMatcher(kind, selected)
+    return values => values.length === 0 ? includeEmpty : values.some(matches)
 }
 
 function sortScalar<Row>(column: TableColumn<Row>, scalar: CellScalar, yesNo: YesNo): SortValue {
@@ -142,10 +149,11 @@ function sortScalar<Row>(column: TableColumn<Row>, scalar: CellScalar, yesNo: Ye
         case ColumnTypes.BOOLEAN:
             return scalar === true || scalar === 'true'
         case ColumnTypes.ENUM: {
-            const index = column.options?.findIndex(option => option.value === String(scalar)) ?? -1
-            return index >= 0 ? index : wordScalar(column, scalar, yesNo)
+            const rank = column.options && optionIndexOf(column.options).rank.get(String(scalar))
+            return rank ?? wordScalar(column, scalar, yesNo)
         }
         case ColumnTypes.DATE:
+        case ColumnTypes.DATE_TIME:
         case ColumnTypes.BIRTH_DATE:
             return String(scalar)
         default:
@@ -154,14 +162,9 @@ function sortScalar<Row>(column: TableColumn<Row>, scalar: CellScalar, yesNo: Ye
 }
 
 /**
- * Orders two rows by one column the way its type reads: numbers by size, dates by day, options in
- * their own order, words alphabetically.
+ * The value a row sorts by in one column, null where its cell is empty: numbers by size, dates by
+ * day, options in their own order, words alphabetically.
  */
-export function compareByColumn<Row>(column: TableColumn<Row>, a: Row, b: Row, yesNo: YesNo): number {
-    return compareSortValues(sortValueOf(column, a, yesNo), sortValueOf(column, b, yesNo))
-}
-
-/** The value a row sorts by in one column, null where its cell is empty. */
 export function sortValueOf<Row>(column: TableColumn<Row>, row: Row, yesNo: YesNo): SortValue {
     if (column.sortValue) return column.sortValue(row) ?? null
     return sortScalar(column, scalarsOf(column.value(row))[0], yesNo)

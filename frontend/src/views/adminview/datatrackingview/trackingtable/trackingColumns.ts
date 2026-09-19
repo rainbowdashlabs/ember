@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {TrackingStatus, type TableEntry, type TrackingStatusName} from '@/api/dataTracking'
-import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
+import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 import type {TrackingRow} from './trackingRow'
 
 interface TrackingContext {
@@ -28,7 +28,7 @@ function strategiesOf(row: TrackingRow): string[] {
  * deletion strategies it carries, and how many of its columns nobody has verified yet.
  */
 export function trackingColumns(t: (key: string) => string): TableColumn<TrackingRow>[] {
-    const statuses = Object.values(TrackingStatus).map(value => ({value, label: t(`adminDataTracking.filter.${value}`)}))
+    const statuses = enumOptions(Object.values(TrackingStatus), value => t(`adminDataTracking.filter.${value}`))
     const contexts = Object.entries(TRACKING_CONTEXTS).map(([key, context]): TableColumn<TrackingRow> => ({
         key, label: t(context.labelKey), type: ColumnTypes.ENUM, value: row => context.statusOf(row.entry), options: statuses,
     }))

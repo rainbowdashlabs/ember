@@ -7,22 +7,17 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
-import MemberListFilters from './MemberListFilters.vue'
 import MemberListTable from './MemberListTable.vue'
 import type { InventoryItem } from '@/api/inventory'
 import type { ProfileField } from '@/api/profileFields'
-import type { MemberGroup, StationMember, UserTag } from '@/api/types'
+import type { StationMember } from '@/api/types'
 import type { DataTableApi } from '@/composables/useDataTable'
 import type { ExportFieldOption } from '@/composables/useExport'
-import type { FilterCriteria } from '@/composables/useMemberFilter'
 import type { ItemLabelParts } from './itemLabel'
 
 const { t } = useI18n()
 
 const props = defineProps<{
-  showEmpty: boolean
-  groups: MemberGroup[]
-  tags: UserTag[]
   table: DataTableApi<StationMember>
   parts: ItemLabelParts
   exportMode: boolean
@@ -33,11 +28,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:show-empty', value: boolean): void
-  (e: 'update:show-name', value: boolean): void
-  (e: 'update:show-internal-id', value: boolean): void
-  (e: 'update:show-size', value: boolean): void
-  (e: 'filter', criteria: FilterCriteria): void
   (e: 'toggle-export-field', fieldId: number): void
   (e: 'go-to-member', memberId: number): void
   (e: 'toggle-export-selection', memberId: number): void
@@ -50,21 +40,6 @@ const fieldOptions = computed((): ExportFieldOption<number>[] =>
 </script>
 
 <template>
-  <MemberListFilters
-    :show-empty="showEmpty"
-    :show-name="parts.showName"
-    :show-internal-id="parts.showInternalId"
-    :show-size="parts.showSize"
-    :groups="groups"
-    :tags="tags"
-    :table="table"
-    @update:show-empty="emit('update:show-empty', $event)"
-    @update:show-name="emit('update:show-name', $event)"
-    @update:show-internal-id="emit('update:show-internal-id', $event)"
-    @update:show-size="emit('update:show-size', $event)"
-    @filter="emit('filter', $event)"
-  />
-
   <ExportFieldPicker
     v-if="exportMode && fieldOptions.length > 0"
     boxed

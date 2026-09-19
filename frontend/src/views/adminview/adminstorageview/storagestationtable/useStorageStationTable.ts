@@ -3,10 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, ref, type MaybeRefOrGetter} from 'vue'
+import {computed, type MaybeRefOrGetter} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
-import {emptyTableState, useDataTable} from '@/composables/useDataTable'
+import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
+import {useDataTable} from '@/composables/useDataTable'
 import {useStorageCapabilities, type StorageRoomRow} from '@/composables/useStorageQuotas'
 import {formatBytes} from '@/util/storage'
 import {StorageStatus, storageStatusOf} from './storageStatus'
@@ -47,11 +47,7 @@ export function useStorageStationTable(stations: MaybeRefOrGetter<readonly Stora
         {
             key: 'status', label: t('storageMonitoring.status'), type: ColumnTypes.ENUM, align: 'center',
             value: storageStatusOf,
-            options: [
-                {value: StorageStatus.OK, label: t('storageMonitoring.ok')},
-                {value: StorageStatus.WARNING, label: t('storageMonitoring.warning')},
-                {value: StorageStatus.FULL, label: t('storageMonitoring.full')},
-            ],
+            options: enumOptions(Object.values(StorageStatus), status => t(`storageMonitoring.${status}`)),
         },
         {key: 'preset', label: t('storageMonitoring.preset'), type: ColumnTypes.TEXT, value: presetOf},
     ])
@@ -61,6 +57,7 @@ export function useStorageStationTable(stations: MaybeRefOrGetter<readonly Stora
         rows: stations,
         columns,
         rowKey: station => station.stationId,
-        state: ref(emptyTableState('percent', 'desc')),
+        sort: {key: 'percent', direction: 'desc'},
+        perStation: false,
     })
 }

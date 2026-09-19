@@ -45,6 +45,7 @@ const filteredApplications = computed(() => {
 
 const table = useDataTable<StationApplication>({
   id: 'admin-station-applications',
+  perStation: false,
   rows: filteredApplications,
   columns: computed(() => applicationColumns(t)),
   rowKey: app => app.id,

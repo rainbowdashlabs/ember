@@ -131,7 +131,6 @@ onMounted(load)
         />
         <MembersPanel
             :members="members"
-            :user-type-label="userTypeLabel"
             @reset="openReset"
         />
       </template>

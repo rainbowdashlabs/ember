@@ -21,6 +21,5 @@ defineProps<{
       :full-width="fullWidth"
       :options="table.pickerOptions"
       @set-visible="table.setColumnsVisible"
-      @toggle="table.toggleColumn"
   />
 </template>

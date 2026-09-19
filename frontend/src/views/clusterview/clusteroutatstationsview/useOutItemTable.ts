@@ -6,7 +6,7 @@
 import {computed, type MaybeRefOrGetter} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {ClusterItem} from '@/api/clusterInventory'
-import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
+import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 import {useDataTable} from '@/composables/useDataTable'
 
 /** Where a piece that is away from the association can be, in the order they sort in. */
@@ -26,20 +26,18 @@ export function useOutItemTable(items: MaybeRefOrGetter<readonly ClusterItem[]>)
         {key: 'holder', label: t('clusterInventory.outColumn.holder'), type: ColumnTypes.TEXT, value: item => item.holderName},
         {
             key: 'custody', label: t('clusterInventory.outColumn.custody'), type: ColumnTypes.ENUM, value: item => item.custody,
-            options: AWAY_CUSTODIES.map(custody => ({value: custody, label: t(`clusterInventory.custody.${custody}`)})),
+            options: enumOptions(AWAY_CUSTODIES, custody => t(`clusterInventory.custody.${custody}`)),
         },
     ])
 
-    const table = useDataTable<ClusterItem>({
+    return useDataTable<ClusterItem>({
         id: 'cluster-items-out',
         rows: items,
         columns,
         rowKey: item => item.id,
+        sort: {key: 'name'},
+        perStation: false,
     })
-
-    table.sortKey = 'name'
-
-    return table
 }
 
 export type OutItemTableApi = ReturnType<typeof useOutItemTable>

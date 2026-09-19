@@ -21,7 +21,6 @@ import type {
 } from '@/api/waitingList'
 import {StationPermission, type MemberGroup} from '@/api/types'
 import { waitingList, memberGroups } from '@/api'
-import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -35,7 +34,6 @@ import { useEntryInvitation } from './detailview/useEntryInvitation'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { isMobile } = useBreakpoint()
 const { refresh: refreshSidebarCounts } = useSidebarCounts()
 const { hasPermission } = useSession()
 
@@ -226,7 +224,6 @@ function showErrorMessage(msg: string) {
         :invites="invites"
         :entry-groups="entryGroups"
         :visible-field-ids="visibleFieldIds"
-        :is-mobile="isMobile"
         :permissions="permissions"
         :actions="sectionActions"
       />

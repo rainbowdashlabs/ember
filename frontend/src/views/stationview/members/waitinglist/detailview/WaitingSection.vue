@@ -12,7 +12,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import WaitingSectionToolbar from './waitingsection/WaitingSectionToolbar.vue'
 import WaitingSectionTable from './waitingsection/WaitingSectionTable.vue'
 import type { WaitingListEntryWithScore, WaitingListField } from '@/api/waitingList'
-import { emptyTableState, useDataTable } from '@/composables/useDataTable'
+import { useDataTable } from '@/composables/useDataTable'
 import { byDate } from '@/composables/useSortable'
 import { fieldIdOfColumn, SCORE_KEY, waitingColumns } from './waitingsection/waitingColumns'
 
@@ -27,7 +27,6 @@ const props = defineProps<{
   entries: WaitingListEntryWithScore[]
   fields: WaitingListField[]
   visibleFieldIds: Set<number>
-  isMobile: boolean
   readonly?: boolean
   canAdd?: boolean
 }>()
@@ -55,18 +54,13 @@ const table = useDataTable<WaitingListEntryWithScore>({
   rows: shown,
   columns: computed(() => waitingColumns({ t, fields: props.fields, visibleFieldIds: props.visibleFieldIds })),
   rowKey: item => item.entry.id,
-  state: ref(emptyTableState(SCORE_KEY, 'desc')),
+  sort: { key: SCORE_KEY, direction: 'desc' },
   fallbackSort: byDate(item => item.entry.createdAt),
 })
 
 function setColumns(keys: (string | number)[], visible: boolean) {
   const fieldIds = keys.map(fieldIdOfColumn).filter((fieldId): fieldId is number => fieldId !== null)
   if (fieldIds.length > 0) emit('setFields', fieldIds, visible)
-}
-
-function toggleColumn(key: string | number) {
-  const fieldId = fieldIdOfColumn(key)
-  if (fieldId !== null) emit('setFields', [fieldId], !props.visibleFieldIds.has(fieldId))
 }
 </script>
 
@@ -75,9 +69,7 @@ function toggleColumn(key: string | number) {
     <WaitingSectionToolbar
       :entries-count="entries.length"
       :column-options="table.pickerOptions"
-      :is-mobile="isMobile"
       :can-add="canAdd"
-      @toggle-column="toggleColumn"
       @set-columns="setColumns"
       @add-entry="emit('addEntry')"
     />

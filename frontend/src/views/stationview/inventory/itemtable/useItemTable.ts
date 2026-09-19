@@ -7,9 +7,10 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {listFields, type InventoryFieldDefinition} from '@/api/inventoryFields'
 import {inventoryItemTags} from '@/api/inventoryTags'
-import {ItemOwner, type InventoryItem, type InventorySize} from '@/api/inventory'
-import {ColumnTypes, type CellValue, type TableColumn} from '@/components/table/tableColumn'
+import type {InventoryItem, InventorySize} from '@/api/inventory'
+import {ColumnTypes, toCellValue, type CellValue, type TableColumn} from '@/components/table/tableColumn'
 import { useDataTable } from '@/composables/useDataTable'
+import {itemOwnerOptions} from '@/util/inventoryType'
 import { parseItemMetadata, type ParsedItemMetadata } from '../detailview/itemMetadata'
 
 export interface ItemTableOptions {
@@ -86,9 +87,7 @@ export function useItemTable(options: ItemTableOptions) {
   }
 
   function rawFieldValue(item: InventoryItem, fieldKey: string): CellValue {
-    const value = metadataById.value.get(item.id)?.fields[fieldKey]?.value
-    if (value === undefined || value === null) return null
-    return typeof value === 'object' ? JSON.stringify(value) : value as string | number | boolean
+    return toCellValue(metadataById.value.get(item.id)?.fields[fieldKey]?.value)
   }
 
   function fieldColumn(def: InventoryFieldDefinition): TableColumn<InventoryItem> {
@@ -125,11 +124,7 @@ export function useItemTable(options: ItemTableOptions) {
 
   const sizeOptions = computed(() => options.sizes().map(size => ({value: String(size.id), label: size.label ?? ''})))
 
-  const ownerOptions = computed(() => [
-    {value: ItemOwner.STATION, label: t('inventory.edit.ownerStation')},
-    {value: ItemOwner.CLUSTER, label: t('inventory.edit.ownerCluster')},
-    {value: ItemOwner.PARTNER_STATION, label: t('inventory.edit.ownerPartner')},
-  ])
+  const ownerOptions = computed(() => itemOwnerOptions(t))
 
   const holdingOptions = computed(() => [
     {value: HOLDING.ASSIGNED, label: t('inventory.edit.filterAssigned')},
@@ -167,9 +162,8 @@ export function useItemTable(options: ItemTableOptions) {
     columns,
     rowKey: item => item.id,
     searchText: item => `${options.sizeLabel(item)} ${options.assignedName(item)}`,
+    sort: {key: 'name'},
   })
-
-  table.sortKey = 'name'
 
   return {table, itemTagNames}
 }

@@ -6,7 +6,10 @@
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
 import {WaitingListFieldTypes, type WaitingListEntryWithScore, type WaitingListField} from '@/api/waitingList'
+import {sortValueOf} from '@/components/table/columnFilter'
 import {BIRTH_DATE_KEY, fieldIdOfColumn, waitingColumns} from './waitingColumns'
+
+const YES_NO = {yes: 'Ja', no: 'Nein'}
 
 function field(id: number, fieldType: WaitingListField['fieldType']): WaitingListField {
     return {id, listId: 1, name: `field ${id}`, fieldType, config: {}, position: id, required: false, isPublic: false}
@@ -41,9 +44,10 @@ describe('waitingColumns', () => {
 
     it('types an answer the way its column sorts it', () => {
         const row = entry({2: 'true', 3: '12'})
-        expect(columns.find(column => column.key === 'field-2')?.value(row)).toBe(true)
-        expect(columns.find(column => column.key === 'field-3')?.value(row)).toBe(12)
-        expect(columns.find(column => column.key === BIRTH_DATE_KEY)?.value(row)).toBeNull()
+        const sortsBy = (key: string) => sortValueOf(columns.find(column => column.key === key)!, row, YES_NO)
+        expect(sortsBy('field-2')).toBe(true)
+        expect(sortsBy('field-3')).toBe(12)
+        expect(sortsBy(BIRTH_DATE_KEY)).toBeNull()
     })
 
     it('reads the question back from a column key', () => {

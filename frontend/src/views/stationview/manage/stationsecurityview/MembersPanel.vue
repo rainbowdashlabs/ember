@@ -16,8 +16,8 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
 import type {MemberStatus} from '@/api/twoFactorAdmin'
-import {StationUserType} from '@/api/types'
 import {useDataTable} from '@/composables/useDataTable'
+import {userTypeOptions} from '@/views/stationview/members/listview/memberColumns'
 
 /**
  * Who of the station has a second factor, with the ones it is required of but who have none
@@ -25,7 +25,6 @@ import {useDataTable} from '@/composables/useDataTable'
  */
 const props = defineProps<{
   members: MemberStatus[]
-  userTypeLabel: (name: string) => string
 }>()
 
 const emit = defineEmits<{
@@ -59,7 +58,7 @@ const columns = computed<TableColumn<MemberStatus>[]>(() => [
     label: t('twoFactor.admin.col.userType'),
     type: ColumnTypes.ENUM,
     value: m => m.userType,
-    options: Object.values(StationUserType).map(value => ({value, label: props.userTypeLabel(value)})),
+    options: userTypeOptions(),
   },
   {
     key: 'status',

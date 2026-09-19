@@ -40,6 +40,7 @@ const ranking = ref<Ranking>('slowest')
 
 const table = useDataTable<EndpointStats>({
   id: 'admin-api-status-endpoints',
+  perStation: false,
   rows: computed(() => props[ranking.value]),
   columns: computed(() => endpointColumns(t)),
   rowKey: endpoint => `${endpoint.method} ${endpoint.path}`,

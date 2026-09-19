@@ -9,22 +9,22 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
 import type { ColumnPickerOption } from '@/components/table/columns'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 
 const props = defineProps<{
   entriesCount: number
   /** The questions the list may show as columns, each ticked where it does. */
   columnOptions: ColumnPickerOption[]
-  isMobile: boolean
   canAdd?: boolean
 }>()
 
 const emit = defineEmits<{
-  toggleColumn: [key: string | number]
   setColumns: [keys: (string | number)[], visible: boolean]
   addEntry: []
 }>()
 
 const { t } = useI18n()
+const { isMobile } = useBreakpoint()
 </script>
 
 <template>
@@ -34,13 +34,12 @@ const { t } = useI18n()
       <div class="flex-1 sm:flex-initial">
         <ColumnPickerButton
           :empty-label="t('waitingList.noFields')"
-          :full-width="props.isMobile"
+          :full-width="isMobile"
           :options="props.columnOptions"
-          @toggle="(key) => emit('toggleColumn', key)"
           @set-visible="(keys, visible) => emit('setColumns', keys, visible)"
         />
       </div>
-      <PrimaryButton v-if="props.canAdd" :icon="['fas', 'plus']" :full-width="props.isMobile" class="flex-1 sm:flex-initial" @click="emit('addEntry')">
+      <PrimaryButton v-if="props.canAdd" :icon="['fas', 'plus']" :full-width="isMobile" class="flex-1 sm:flex-initial" @click="emit('addEntry')">
         {{ t('waitingList.addEntry') }}
       </PrimaryButton>
     </div>

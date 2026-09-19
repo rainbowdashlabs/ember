@@ -41,9 +41,8 @@ const table = useDataTable<BorrowedItem>({
   columns,
   rowKey: row => row.item.id,
   fallbackSort: byValue(row => row.item.name),
+  sort: {key: 'owner'},
 })
-
-table.sortKey = 'owner'
 </script>
 
 <template>

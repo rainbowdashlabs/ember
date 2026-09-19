@@ -55,9 +55,13 @@ const filteredTickets = computed(() => {
     return tickets.value.filter(t => { const ids = ticketLabelMap.value.get(t.id) ?? []; return ids.some(id => labelFilter.value.has(id)) })
 })
 
+const labelsByTicket = computed(() => new Map([...ticketLabelMap.value].map(([ticketId, ids]) => {
+    const worn = new Set(ids)
+    return [ticketId, allLabels.value.filter(label => worn.has(label.id))]
+})))
+
 function labelsForTicket(ticket: BoardTicket): BoardLabel[] {
-    const ids = ticketLabelMap.value.get(ticket.id) ?? []
-    return allLabels.value.filter(l => ids.includes(l.id))
+    return labelsByTicket.value.get(ticket.id) ?? []
 }
 
 const table = useTicketTable({

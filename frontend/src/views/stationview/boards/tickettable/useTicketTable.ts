@@ -5,10 +5,11 @@
  */
 import {computed, type MaybeRefOrGetter, toValue} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {TicketPriority, type BoardLabel, type BoardTicket} from '@/api/boards'
+import type {BoardLabel, BoardTicket} from '@/api/boards'
 import type {MemberCompletion} from '@/api/stationMembers'
 import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
 import {useDataTable} from '@/composables/useDataTable'
+import {priorityOptions} from '@/util/ticketPriority'
 
 export interface TicketTableOptions {
   /** Names the table where its column choices are remembered. */
@@ -28,18 +29,14 @@ export interface TicketTableOptions {
 export function useTicketTable(options: TicketTableOptions) {
   const {t} = useI18n()
 
-  const priorityOptions = computed(() => [
-    {value: TicketPriority.LOWEST, label: t('boards.priorityLowest')},
-    {value: TicketPriority.LOW, label: t('boards.priorityLow')},
-    {value: TicketPriority.MEDIUM, label: t('boards.priorityMedium')},
-    {value: TicketPriority.HIGH, label: t('boards.priorityHigh')},
-    {value: TicketPriority.HIGHEST, label: t('boards.priorityHighest')},
-  ])
+  const priorities = computed(() => priorityOptions(t))
+
+  const memberNames = computed(() => new Map(toValue(options.members).map(member => [member.memberUid, member.name])))
 
   function assigneeName(ticket: BoardTicket): string {
     const uid = ticket.assignee?.memberUid
     if (!uid) return ''
-    return toValue(options.members).find(member => member.memberUid === uid)?.name ?? ''
+    return memberNames.value.get(uid) ?? ''
   }
 
   function labelColumns(): TableColumn<BoardTicket>[] {
@@ -55,7 +52,7 @@ export function useTicketTable(options: TicketTableOptions) {
     },
     {key: 'title', label: t('boards.ticketTitle'), type: ColumnTypes.TEXT, value: ticket => ticket.title, pinned: true},
     ...labelColumns(),
-    {key: 'priority', label: t('boards.priority'), type: ColumnTypes.ENUM, value: ticket => ticket.priority, options: priorityOptions.value},
+    {key: 'priority', label: t('boards.priority'), type: ColumnTypes.ENUM, value: ticket => ticket.priority, options: priorities.value},
     {key: 'assignee', label: t('boards.assignee'), type: ColumnTypes.TEXT, value: assigneeName},
     {key: 'dueDate', label: t('boards.dueDate'), type: ColumnTypes.DATE, value: ticket => ticket.dueDate},
   ])

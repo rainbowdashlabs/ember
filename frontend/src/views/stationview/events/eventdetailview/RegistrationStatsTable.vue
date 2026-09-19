@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -14,7 +14,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import type {EventRegistrationEntry, EventRegistrationField, MemberRegistrationStats} from '@/api/events'
-import {emptyTableState, useDataTable} from '@/composables/useDataTable'
+import {useDataTable} from '@/composables/useDataTable'
 import RegistrationStatsMember from './registrationstatstable/RegistrationStatsMember.vue'
 import {registrationStatsColumns, SCORE_KEY, type RankedRegistration} from './registrationstatstable/registrationStatsColumns'
 
@@ -51,7 +51,7 @@ const table = useDataTable<RankedRegistration>({
   rows,
   columns: computed(() => registrationStatsColumns(t)),
   rowKey: row => row.registration.id,
-  state: ref(emptyTableState(SCORE_KEY, 'desc')),
+  sort: {key: SCORE_KEY, direction: 'desc'},
 })
 
 /** The colour the ranking is read by: the ones with the strongest claim to a place stand out. */

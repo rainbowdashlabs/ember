@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {EndpointStats} from '@/api/apiStatus'
-import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
+import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 import {formatMs, formatPercent} from './apiStatusFormat'
 
 /** The HTTP methods an endpoint answers to, in the order the method column sorts them. */
@@ -19,7 +19,7 @@ export function endpointColumns(t: (key: string) => string): TableColumn<Endpoin
     return [
         {
             key: 'method', label: t('apiStatus.method'), type: ColumnTypes.ENUM,
-            value: endpoint => endpoint.method, options: METHODS.map(method => ({value: method, label: method})),
+            value: endpoint => endpoint.method, options: enumOptions(METHODS, method => method),
         },
         {key: 'path', label: t('apiStatus.endpoint'), type: ColumnTypes.TEXT, value: endpoint => endpoint.path, pinned: true},
         {key: 'count', label: t('apiStatus.count'), type: ColumnTypes.NUMBER, value: endpoint => endpoint.requestCount, align: 'right'},

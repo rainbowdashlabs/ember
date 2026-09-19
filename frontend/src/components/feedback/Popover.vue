@@ -92,7 +92,6 @@ function onPanelClick() {
 <template>
   <div ref="rootRef">
     <slot
-        :open="open"
         :toggle="toggle"
         :trigger-attrs="{'aria-controls': panelId, 'aria-expanded': open, 'aria-haspopup': role}"
         name="trigger"

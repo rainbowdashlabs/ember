@@ -9,21 +9,13 @@ import {
     type WaitingListEntryWithScore,
     type WaitingListField,
 } from '@/api/waitingList'
-import {ColumnTypes, type CellValue, type ColumnType, type TableColumn} from '@/components/table/tableColumn'
+import {ColumnTypes, columnTypeOf, toCellValue, type CellValue, type TableColumn} from '@/components/table/tableColumn'
 
 type Row = WaitingListEntryWithScore
 
 export const SCORE_KEY = 'score'
 export const BIRTH_DATE_KEY = 'birthDate'
 const FIELD_KEY_PREFIX = 'field-'
-
-const FIELD_TYPE_COLUMNS: Record<string, ColumnType> = {
-    [WaitingListFieldTypes.NUMBER]: ColumnTypes.NUMBER,
-    [WaitingListFieldTypes.DATE]: ColumnTypes.DATE,
-    [WaitingListFieldTypes.BIRTH_DATE]: ColumnTypes.BIRTH_DATE,
-    [WaitingListFieldTypes.BOOLEAN]: ColumnTypes.BOOLEAN,
-    [WaitingListFieldTypes.ENUM]: ColumnTypes.ENUM,
-}
 
 /** What the waiting list's columns need to know beyond the entries themselves. */
 export interface WaitingColumnSources {
@@ -39,23 +31,24 @@ export function fieldIdOfColumn(key: string | number): number | null {
     return text.startsWith(FIELD_KEY_PREFIX) ? Number(text.slice(FIELD_KEY_PREFIX.length)) : null
 }
 
-/** One entry's answer to one question, typed the way its column sorts and filters it. */
-function answerOf(row: Row, field: WaitingListField): CellValue {
-    const raw = row.values.find(value => value.fieldId === field.id)?.value
-    if (raw === null || raw === undefined || raw === '') return null
-    switch (field.fieldType) {
-        case WaitingListFieldTypes.BOOLEAN: return raw === true || raw === 'true'
-        case WaitingListFieldTypes.NUMBER: return Number(raw)
-        default: return String(raw)
+const answersByEntry = new WeakMap<Row, Map<number, CellValue>>()
+
+/** One entry's answers by question, each read into a cell once however often the table asks. */
+function answersOf(row: Row): Map<number, CellValue> {
+    let answers = answersByEntry.get(row)
+    if (!answers) {
+        answers = new Map(row.values.map(value => [value.fieldId, toCellValue(value.value)]))
+        answersByEntry.set(row, answers)
     }
+    return answers
 }
 
 function fieldColumn(field: WaitingListField, visibleFieldIds: ReadonlySet<number>): TableColumn<Row> {
     return {
         key: `${FIELD_KEY_PREFIX}${field.id}`,
         label: field.name,
-        type: FIELD_TYPE_COLUMNS[field.fieldType] ?? ColumnTypes.TEXT,
-        value: row => answerOf(row, field),
+        type: columnTypeOf(field.fieldType),
+        value: row => answersOf(row).get(field.id) ?? null,
         options: field.config.options?.map(option => ({value: option, label: option})),
         defaultVisible: visibleFieldIds.has(field.id),
     }

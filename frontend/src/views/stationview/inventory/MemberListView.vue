@@ -13,15 +13,17 @@ import Alert from '@/components/feedback/Alert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import MemberListHeader from './memberlistview/MemberListHeader.vue'
 import MemberListBody from './memberlistview/MemberListBody.vue'
+import MemberListFilters from './memberlistview/MemberListFilters.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import { inventory, stationMembers, memberGroups, userTags } from '@/api'
 import type { Inventory, InventoryItem } from '@/api/inventory'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { useMemberFilter } from '@/composables/useMemberFilter'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { emptyTableState, useDataTable } from '@/composables/useDataTable'
+import { useDataTable } from '@/composables/useDataTable'
 import { useInventoryMemberExport } from './memberlistview/useInventoryMemberExport'
 import { inventoryIdOfColumn, inventoryMemberColumns, NAME_KEY } from './memberlistview/inventoryMemberColumns'
+import { memberDisplayName } from '@/views/stationview/members/listview/useMemberData'
 import { itemLabel, type ItemLabelParts } from './memberlistview/itemLabel'
 import { getItem, setItem } from '@/api/storage'
 
@@ -67,10 +69,6 @@ const {
     () => tags.value,
 )
 
-function memberDisplayName(m: StationMember): string {
-  return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
-}
-
 const candidates = computed(() => {
   const result = applyMemberFilter(members.value)
   return showEmpty.value ? result : result.filter(m => memberItemMap.value.has(m.id))
@@ -97,16 +95,13 @@ const table = useDataTable<StationMember>({
   columns: computed(() => inventoryMemberColumns({
     t,
     inventories: inventories.value,
-    memberDisplayName,
     itemsFor: memberInventoryItems,
     label: formatItemLabel,
   })),
   rowKey: member => member.id,
-  state: ref(emptyTableState(NAME_KEY)),
+  sort: {key: NAME_KEY},
   searchText: member => member.email ?? '',
 })
-
-const filteredMembers = computed(() => table.rows)
 
 const visibleInventoryIds = computed(() => new Set(table.visibleColumns
   .map(column => inventoryIdOfColumn(column.key))
@@ -161,7 +156,7 @@ watch(showName, v => setItem('inv-members-show-name', String(v)))
 watch(showInternalId, v => setItem('inv-members-show-internal-id', String(v)))
 watch(showSize, v => setItem('inv-members-show-size', String(v)))
 
-watch(filteredMembers, list => {
+watch(() => table.rows, list => {
   if (!exportMode.value) return
   if (selectedForExport.value.size === 0) return
   const visibleIds = new Set(list.map(m => m.id))
@@ -189,7 +184,7 @@ const {
   exportCsv,
   exportPdf,
 } = useInventoryMemberExport(
-  filteredMembers,
+  () => table.rows,
   displayedInventories,
   visibleInventoryIds,
   {showName, showInternalId, showSize},
@@ -213,7 +208,7 @@ function goToMember(memberId: number) {
         :export-mode="exportMode"
         :exporting="exporting"
         :selected-count="selectedForExport.size"
-        :has-members="filteredMembers.length > 0"
+        :has-members="table.rows.length > 0"
         @enter-export="enterExportMode"
         @cancel-export="cancelExport"
         @export-csv="exportCsv"
@@ -225,10 +220,18 @@ function goToMember(memberId: number) {
       <AsyncSection :loading="loading">
         <SearchInput v-model="table.search" :placeholder="t('membersList.filter')" autofocus />
 
-        <MemberListBody
+        <MemberListFilters
           v-model:show-empty="showEmpty"
+          v-model:show-name="showName"
+          v-model:show-internal-id="showInternalId"
+          v-model:show-size="showSize"
           :groups="groups"
           :tags="tags"
+          :table="table"
+          @filter="onFilter"
+        />
+
+        <MemberListBody
           :table="table"
           :parts="parts"
           :export-mode="exportMode"
@@ -236,10 +239,6 @@ function goToMember(memberId: number) {
           :selected-export-fields="selectedExportFields"
           :selected-for-export="selectedForExport"
           :items-for="memberInventoryItems"
-          @update:show-name="showName = $event"
-          @update:show-internal-id="showInternalId = $event"
-          @update:show-size="showSize = $event"
-          @filter="onFilter"
           @toggle-export-field="toggleExportField"
           @go-to-member="goToMember"
           @toggle-export-selection="toggleExportSelection"

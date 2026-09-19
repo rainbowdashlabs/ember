@@ -39,6 +39,7 @@ const error = ref('')
  */
 const table = useDataTable<AuditEntry>({
   id: 'admin-two-factor-audit',
+  perStation: false,
   rows: audit,
   columns: computed(() => auditColumns(t)),
   rowKey: entry => entry.id,
@@ -80,7 +81,6 @@ function onAuditUidUpdate(uid: string | null | undefined) {
     loadAudit(true)
   }
 }
-
 
 onMounted(() => loadAudit(true))
 </script>

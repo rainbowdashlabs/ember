@@ -5,7 +5,7 @@
  */
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
+import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 import {MovementPurpose} from '@/api/movements'
 import type {ClusterQueueEntry} from '@/api/clusterInventory'
 import {useDataTable} from '@/composables/useDataTable'
@@ -30,10 +30,7 @@ export function useClusterQueueTable(entries: () => ClusterQueueEntry[]) {
         {
             key: 'purpose', label: t('movements.queue.columns.purpose'), type: ColumnTypes.ENUM,
             value: entry => entry.purpose,
-            options: Object.values(MovementPurpose).map(purpose => ({
-                value: purpose,
-                label: t(`clusterMovements.purpose.${purpose}`),
-            })),
+            options: enumOptions(Object.values(MovementPurpose), purpose => t(`clusterMovements.purpose.${purpose}`)),
         },
         {key: 'created', label: t('movements.queue.columns.created'), type: ColumnTypes.DATE, value: entry => entry.createdAt},
     ])
@@ -43,5 +40,6 @@ export function useClusterQueueTable(entries: () => ClusterQueueEntry[]) {
         rows: entries,
         columns,
         rowKey: entry => entry.movementId,
+        perStation: false,
     })
 }

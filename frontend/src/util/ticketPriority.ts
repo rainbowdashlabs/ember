@@ -4,6 +4,23 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {TicketPriority, type TicketPriorityName} from '@/api/boards'
+import {enumOptions, type ColumnOption} from '@/components/table/tableColumn'
+
+const PRIORITY_LABEL_KEYS: Record<TicketPriorityName, string> = {
+    [TicketPriority.LOWEST]: 'boards.priorityLowest',
+    [TicketPriority.LOW]: 'boards.priorityLow',
+    [TicketPriority.MEDIUM]: 'boards.priorityMedium',
+    [TicketPriority.HIGH]: 'boards.priorityHigh',
+    [TicketPriority.HIGHEST]: 'boards.priorityHighest',
+}
+
+/** Every ticket priority, lowest first. */
+export const ticketPriorities = Object.keys(PRIORITY_LABEL_KEYS) as TicketPriorityName[]
+
+/** Every ticket priority with its label, lowest first. */
+export function priorityOptions(t: (key: string) => string): ColumnOption[] {
+    return enumOptions(ticketPriorities, priority => t(PRIORITY_LABEL_KEYS[priority as TicketPriorityName]))
+}
 
 /**
  * Returns the FontAwesome icon tuple for a ticket priority, with a neutral

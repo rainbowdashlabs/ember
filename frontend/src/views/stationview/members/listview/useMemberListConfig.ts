@@ -13,7 +13,8 @@ import {
 } from './useMemberData'
 import {useSavedFilters} from './useSavedFilters'
 import {useMemberListTabs} from './useMemberListTabs'
-import {memberColumns} from './memberColumns'
+import {memberColumns, roleOf} from './memberColumns'
+import {toCellValue} from '@/components/table/tableColumn'
 import {useExport, type ExportColumn, type ExportFormatName} from '@/composables/useExport'
 import {useDataTable} from '@/composables/useDataTable'
 import {memberTable} from '@/api'
@@ -90,13 +91,21 @@ export function useMemberListConfig(port: MemberListPort) {
         return port.keeps ? restricted.filter(port.keeps) : restricted
     })
 
+    /**
+     * Every member's answers as cells, read once per load rather than on every sort and filter. A
+     * question not put to a member has no entry at all, which tells it apart from one left open.
+     */
+    const answerCells = computed(() => new Map(members.value.map(member => {
+        const role = roleOf(memberRolesMap.value.get(member.id) ?? [])
+        const asked = fields.value.filter(field => isAskedOf(field.id, role))
+        return [member.id, new Map(asked.map(field => [field.id, toCellValue(getFieldValue(member.id, field.id))]))]
+    })))
+
     const columns = computed(() => memberColumns(tabScopedFields.value, {
         t,
         groupsOf: getMemberGroups,
         tagsOf: getMemberTags,
-        rolesOf: memberId => memberRolesMap.value.get(memberId) ?? [],
-        fieldValue: getFieldValue,
-        isAskedOf,
+        answerOf: (memberId, fieldId) => answerCells.value.get(memberId)?.get(fieldId) ?? null,
         stationLocalColumns: port.stationLocalColumns ?? true,
     }))
 
@@ -108,8 +117,6 @@ export function useMemberListConfig(port: MemberListPort) {
         state: currentTabState,
         searchText: member => member.email ?? '',
     })
-
-    const sortedMembers = computed(() => table.rows)
 
     const exportColumns = computed((): ExportColumn<StationMember>[] => [
         {key: 'firstName', label: t('membersList.export.colFirstName'), value: getMemberFirstName},
@@ -124,7 +131,7 @@ export function useMemberListConfig(port: MemberListPort) {
     ])
 
     const exporting = useExport({
-        rows: () => sortedMembers.value,
+        rows: () => table.rows,
         rowId: m => m.id,
         columns: () => exportColumns.value,
         fileName: port.exportFileName,
@@ -184,7 +191,7 @@ export function useMemberListConfig(port: MemberListPort) {
         memberRolesMap, memberManagers,
         loading, error, expandedId, overviewFields,
         getFieldValue, toggleExpand, reload,
-        activeTab, tabs, table, sortedMembers,
+        activeTab, tabs, table, answerCells,
         isAskedOf,
         savedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters,
         onMemberFilter,

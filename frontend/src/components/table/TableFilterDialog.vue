@@ -11,21 +11,21 @@ import type {DataTableApi} from '@/composables/useDataTable'
  * The filter dialog of one table. A {@link RecordTable} brings its own; a screen drawing a table in
  * several parts places this once, so one column's filter never opens twice.
  */
-const props = defineProps<{
+defineProps<{
   table: DataTableApi<Row>
 }>()
-
-const dialog = props.table.filterDialog
 </script>
 
 <template>
   <ColumnFilterModal
-      v-model="dialog.open"
-      :choices="dialog.choices"
-      :column-label="dialog.label"
-      :include-empty="dialog.includeEmpty"
-      :kind="dialog.kind"
-      :selected-values="dialog.selected"
-      @apply="table.applyFilter"
+      v-if="table.filterDialog"
+      :choices="table.filterDialog.choices"
+      :column-label="table.filterDialog.label"
+      :include-empty="table.filterDialog.includeEmpty"
+      :kind="table.filterDialog.kind"
+      :model-value="true"
+      :selected-values="table.filterDialog.selected"
+      @apply="(selected, includeEmpty) => table.setFilter(table.filterDialog!.key, selected, includeEmpty)"
+      @update:model-value="table.closeFilter()"
   />
 </template>

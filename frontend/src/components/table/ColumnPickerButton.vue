@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { computed, onBeforeUnmount, onMounted, ref, type CSSProperties } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
@@ -18,12 +17,12 @@ import type { ColumnPickerOption } from './columns'
  * <p>It stays open while the reader ticks through it and closes on a press anywhere else, on
  * escape, or when focus is tabbed out of it.
  *
- * <p>A list taller than the screen is laid out in as many columns as it takes to fit, rather than
- * scrolled: a table with forty questions would otherwise hide most of them below the fold of a
- * panel that is itself below the button.
+ * <p>A list taller than the space the panel may take is laid out in as many columns as it needs
+ * rather than scrolled: a table with forty questions would otherwise hide most of them below the
+ * fold of a panel that is itself below the button.
  *
- * <p>All and none are one change, sent as `setVisible` with the columns whose state it changes, so
- * a screen that stores the choice elsewhere writes it once rather than once per column.
+ * <p>Every change is one `setVisible` with the columns it changes, a single tick as much as all or
+ * none, so a screen that stores the choice elsewhere writes it once rather than once per column.
  */
 const props = defineProps<{
   options: ColumnPickerOption[]
@@ -32,34 +31,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  toggle: [key: string | number]
   setVisible: [keys: (string | number)[], visible: boolean]
 }>()
 
 const { t } = useI18n()
-
-/** The height of one ticked line, and what the heading and the two buttons take above the list. */
-const LINE_HEIGHT = 28
-const CHROME_HEIGHT = 96
-const SCREEN_SHARE = 0.6
-
-const screenHeight = ref(typeof window === 'undefined' ? 800 : window.innerHeight)
-
-function measure() {
-  screenHeight.value = window.innerHeight
-}
-
-onMounted(() => window.addEventListener('resize', measure))
-onBeforeUnmount(() => window.removeEventListener('resize', measure))
-
-const linesPerColumn = computed(() =>
-  Math.max(4, Math.floor((screenHeight.value * SCREEN_SHARE - CHROME_HEIGHT) / LINE_HEIGHT)))
-
-const listStyle = computed<CSSProperties>(() => {
-  const columns = Math.max(1, Math.ceil(props.options.length / linesPerColumn.value))
-  const rows = Math.ceil(props.options.length / columns)
-  return { gridTemplateRows: `repeat(${rows}, auto)` }
-})
 
 function setAll(visible: boolean) {
   const changing = props.options.filter(option => option.visible !== visible).map(option => option.key)
@@ -94,9 +69,9 @@ function setAll(visible: boolean) {
       </div>
     </div>
     <div v-if="options.length === 0 && emptyLabel" class="text-xs text-(--text-muted)">{{ emptyLabel }}</div>
-    <div :style="listStyle" class="grid grid-flow-col gap-x-4">
+    <div class="grid grid-flow-col gap-x-4 max-h-[calc(60vh-6rem)] [grid-template-rows:repeat(auto-fill,minmax(1.75rem,auto))]" data-testid="column-picker-list">
       <FieldLabel v-for="option in options" :key="option.key" class="cursor-pointer py-0.5 whitespace-nowrap" inline>
-        <CheckboxInput :model-value="option.visible" @update:model-value="emit('toggle', option.key)"/>
+        <CheckboxInput :model-value="option.visible" @update:model-value="emit('setVisible', [option.key], !option.visible)"/>
         {{ option.label }}
       </FieldLabel>
     </div>

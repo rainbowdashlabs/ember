@@ -54,13 +54,15 @@ interface Block {
 
 /** One block per kind that actually holds something, in the order the inventory shows its kinds. */
 const blocks = computed<Block[]>(() => {
-  const shown = props.items.table.rows
-  const kinds = props.arts.map(art => ({
-    key: art.id,
-    title: art.name,
-    items: shown.filter(item => item.artId === art.id),
-  }))
-  const loose = {key: 'loose', title: t('inventory.art.looseTitle'), items: shown.filter(item => item.artId == null)}
+  const byArt = new Map<number | null, InventoryItem[]>()
+  for (const item of props.items.table.rows) {
+    const artId = item.artId ?? null
+    const bucket = byArt.get(artId)
+    if (bucket) bucket.push(item)
+    else byArt.set(artId, [item])
+  }
+  const kinds = props.arts.map(art => ({key: art.id, title: art.name, items: byArt.get(art.id) ?? []}))
+  const loose = {key: 'loose', title: t('inventory.art.looseTitle'), items: byArt.get(null) ?? []}
   return [...kinds, loose].filter(block => block.items.length > 0)
 })
 </script>

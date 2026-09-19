@@ -18,6 +18,7 @@ const {t} = useI18n()
         :load="getInstanceMailDashboard"
         :lift="liftInstanceBlock"
         :requeue="requeueInstanceStuckMails"
+        :per-station="false"
     />
   </ViewContent>
 </template>

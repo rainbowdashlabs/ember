@@ -36,7 +36,7 @@ export function useMemberCheckTable(members: () => MemberCheckSummary[], current
     const columns = computed<TableColumn<MemberCheckSummary>[]>(() => [
         {key: 'name', label: t('inventory.check.member'), type: ColumnTypes.TEXT, value: memberName, pinned: true},
         {
-            key: 'lastChecked', label: t('inventory.check.lastChecked'), type: ColumnTypes.DATE,
+            key: 'lastChecked', label: t('inventory.check.lastChecked'), type: ColumnTypes.DATE_TIME,
             value: member => member.lastCheckedAt,
             display: member => formatDate(member.lastCheckedAt, t('inventory.check.neverChecked')),
         },
@@ -54,15 +54,12 @@ export function useMemberCheckTable(members: () => MemberCheckSummary[], current
         },
     ])
 
-    const table = useDataTable<MemberCheckSummary>({
+    return useDataTable<MemberCheckSummary>({
         id: 'inventory-checks',
         rows: members,
         columns,
         rowKey: member => member.memberId,
         fallbackSort: byValue(memberName),
+        sort: {key: 'name'},
     })
-
-    table.sortKey = 'name'
-
-    return table
 }

@@ -10,6 +10,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
+import type {CellValue} from '@/components/table/tableColumn'
 import type {ProfileField} from '@/api/profileFields'
 import type {StationMember} from '@/api/types'
 import {memberDisplayName} from './useMemberData'
@@ -59,8 +60,8 @@ function managerName(manager: StationMember): string {
   return known ? memberDisplayName(known) : `#${manager.id}`
 }
 
-function isAsked(member: StationMember, field: ProfileField): boolean {
-  return c.isAskedOf(field.id, roleOf(c.memberRolesMap.value.get(member.id) ?? []))
+function answersOf(member: StationMember): ReadonlyMap<number, CellValue> | undefined {
+  return c.answerCells.value.get(member.id)
 }
 
 function rowClass(member: StationMember): string {
@@ -97,7 +98,7 @@ function onRowClick(member: StationMember) {
       <MemberTypeBadge :user-type="row.userType"/>
     </template>
     <template v-for="field in shownFields" :key="field.id" #[`cell-${field.id}`]="{row}">
-      <FieldValueDisplay v-if="isAsked(row, field)" :config="field.config" :field-type="field.fieldType" :value="c.getFieldValue(row.id, field.id)"/>
+      <FieldValueDisplay v-if="answersOf(row)?.has(field.id)" :config="field.config" :field-type="field.fieldType" :value="answersOf(row)?.get(field.id)"/>
     </template>
     <template #after-row="{row, span}">
       <MemberExpansion

@@ -36,6 +36,8 @@ const props = defineProps<{
   lift?: (provider: string, domain: string) => Promise<void>
   /** Puts left-behind mails back in the queue, one or all of them. Absent where nobody may. */
   requeue?: (id?: number) => Promise<RequeuedMails>
+  /** Whether the tables remember their columns per station: a station's page does, the instance's log does not. */
+  perStation?: boolean
 }>()
 
 const {t} = useI18n()
@@ -98,9 +100,9 @@ const deliveryStates = computed(() => {
 })
 
 const recentTable = useMailRecordTable('mail-recent', () => (data.value?.recent ?? [])
-    .filter(entry => !statusFilter.value || entry.deliveryStatus === statusFilter.value))
+    .filter(entry => !statusFilter.value || entry.deliveryStatus === statusFilter.value), props.perStation !== false)
 
-const stuckTable = useMailRecordTable('mail-stuck', () => data.value?.stuckMails ?? [])
+const stuckTable = useMailRecordTable('mail-stuck', () => data.value?.stuckMails ?? [], props.perStation !== false)
 </script>
 
 <template>

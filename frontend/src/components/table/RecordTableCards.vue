@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RecordCardControls from './RecordCardControls.vue'
+import RecordCell from './RecordCell.vue'
 import type {DataTableApi} from '@/composables/useDataTable'
 
 /**
@@ -38,40 +39,34 @@ const details = computed(() => props.table.visibleColumns.slice(1))
 <template>
   <div :data-testid="testId" class="space-y-2">
     <RecordCardControls v-if="controls" :table="table"/>
-    <template v-for="row in rows" :key="table.rowKey(row)">
-      <slot :row="row" name="card">
-        <NeutralContainer
-            :class="rowClass?.(row)"
-            :clickable="clickable"
-            :data-testid="rowTestId"
-            class="space-y-2"
-            @click="clickable && emit('row-click', row)"
-        >
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-center gap-2 min-w-0 font-medium">
-              <div v-if="$slots.lead" @click.stop><slot :row="row" name="lead"/></div>
-              <slot v-if="heading" :name="`cell-${heading.key}`" :row="row" :text="table.display(heading, row)">
-                {{ table.display(heading, row) }}
-              </slot>
-            </div>
-            <div v-if="$slots.actions" class="flex gap-1" @click.stop><slot :row="row" name="actions"/></div>
+    <NeutralContainer
+        v-for="row in rows"
+        :key="table.rowKey(row)"
+        :class="rowClass?.(row)"
+        :clickable="clickable"
+        :data-testid="rowTestId"
+        class="space-y-2"
+        @click="clickable && emit('row-click', row)"
+    >
+      <div class="flex items-start justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0 font-medium">
+          <div v-if="$slots.lead" @click.stop><slot :row="row" name="lead"/></div>
+          <RecordCell v-if="heading" v-slot="{text}" :column="heading" :row="row" :table="table">
+            <slot :name="`cell-${heading.key}`" :row="row" :text="text">{{ text }}</slot>
+          </RecordCell>
+        </div>
+        <div v-if="$slots.actions" class="flex gap-1" @click.stop><slot :row="row" name="actions"/></div>
+      </div>
+      <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+        <RecordCell v-for="column in details" :key="column.key" v-slot="{text}" :column="column" :row="row" :table="table">
+          <div v-if="text">
+            <dt class="text-(--text-muted)">{{ column.label }}</dt>
+            <dd><slot :name="`cell-${column.key}`" :row="row" :text="text">{{ text }}</slot></dd>
           </div>
-          <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-            <template v-for="column in details" :key="column.key">
-              <div v-if="table.display(column, row)">
-                <dt class="text-(--text-muted)">{{ column.label }}</dt>
-                <dd>
-                  <slot :name="`cell-${column.key}`" :row="row" :text="table.display(column, row)">
-                    {{ table.display(column, row) }}
-                  </slot>
-                </dd>
-              </div>
-            </template>
-          </dl>
-          <slot :row="row" name="card-extra"/>
-        </NeutralContainer>
-      </slot>
-    </template>
+        </RecordCell>
+      </dl>
+      <slot :row="row" name="card-extra"/>
+    </NeutralContainer>
     <slot v-if="rows.length === 0" name="empty"/>
   </div>
 </template>

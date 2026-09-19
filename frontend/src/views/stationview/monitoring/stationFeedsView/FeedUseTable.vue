@@ -4,15 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MemberName from '@/components/avatar/MemberName.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
-import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
-import {emptyTableState, useDataTable} from '@/composables/useDataTable'
+import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
+import {useDataTable} from '@/composables/useDataTable'
 import {formatRelative} from '@/util/format'
 import type {FeedUse} from '@/api/feedToken'
 import {usedRecently} from './feedUse'
@@ -48,10 +48,7 @@ const columns = computed<TableColumn<FeedUse>[]>(() => [
   {
     key: 'state', label: t('stationFeeds.column.state'), type: ColumnTypes.ENUM, align: 'right', searchable: false,
     value: use => usedRecently(use) ? FeedState.IN_USE : FeedState.DORMANT,
-    options: [
-      {value: FeedState.IN_USE, label: t('stationFeeds.inUse')},
-      {value: FeedState.DORMANT, label: t('stationFeeds.dormant')},
-    ],
+    options: enumOptions(Object.values(FeedState), state => t(`stationFeeds.${state}`)),
   },
 ])
 
@@ -60,7 +57,7 @@ const table = useDataTable<FeedUse>({
   rows: () => props.uses,
   columns,
   rowKey: use => use.memberId,
-  state: ref(emptyTableState('createdAt', 'desc')),
+  sort: {key: 'createdAt', direction: 'desc'},
 })
 </script>
 

@@ -24,6 +24,8 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { moveWithin } from '@/util/reorder'
+import { priorityColor, priorityIcon, priorityOptions } from '@/util/ticketPriority'
+import type { PriorityOption } from './ticketdetailview/types'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -69,13 +71,10 @@ const showChecklist = ref(false)
 const showAddLink = ref(false)
 const showAddWeblink = ref(false)
 
-const priorityOptions = computed(() => [
-    { value: TicketPriority.HIGHEST, label: t('boards.priorityHighest'), icon: ['fas', 'angles-up'], color: 'text-red-500' },
-    { value: TicketPriority.HIGH, label: t('boards.priorityHigh'), icon: ['fas', 'angle-up'], color: 'text-orange-500' },
-    { value: TicketPriority.MEDIUM, label: t('boards.priorityMedium'), icon: ['fas', 'equals'], color: 'text-yellow-500' },
-    { value: TicketPriority.LOW, label: t('boards.priorityLow'), icon: ['fas', 'angle-down'], color: 'text-blue-400' },
-    { value: TicketPriority.LOWEST, label: t('boards.priorityLowest'), icon: ['fas', 'angles-down'], color: 'text-gray-400' },
-])
+const priorityChoices = computed<PriorityOption[]>(() => priorityOptions(t).reverse().map(option => {
+    const value = option.value as TicketPriorityName
+    return { ...option, icon: priorityIcon(value), color: priorityColor(value) }
+}))
 const isWatching = ref(false)
 
 const allTickets = ref<BoardTicket[]>([])
@@ -255,7 +254,7 @@ watch(ticketNumber, reload)
                 :board="board" :ticket="ticket" :all-tickets="allTickets" :lanes="lanes" :members="members"
                 :assignable-members="assignableMembers"
                 :all-labels="allLabels" :ticket-labels="ticketLabels" :board-fields="boardFields"
-                :priority-options="priorityOptions" :checklist="checklist" :checklist-visible="checklistVisible"
+                :priority-options="priorityChoices" :checklist="checklist" :checklist-visible="checklistVisible"
                 :links="links" :weblinks="weblinks" :attachments="attachments" :transitions="transitions"
                 :history="ticketHistory" :comments="comments" :kb-links="kbLinks"
                 :kb-search-results="kbSearchResults" :can-edit="canEdit"
