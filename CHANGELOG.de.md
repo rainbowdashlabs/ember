@@ -1,5 +1,11 @@
 # Änderungsprotokoll
 
+## v26.18.4
+
+### Fehlerbehebungen
+
+- **Eine Suche konnte dabei bleiben, dass es nichts zu finden gibt.** Wer in eine Auswahl für Arten, Inventare oder Ausrüstungsbilder tippte, bevor ihre Liste fertig geladen war, sah unter Umständen keine Treffer, auch nachdem alles angekommen war. Jetzt sucht sie erneut, sobald die Liste da ist.
+
 ## v26.18.3
 
 ### Verbesserungen

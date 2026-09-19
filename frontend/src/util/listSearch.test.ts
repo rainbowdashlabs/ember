@@ -19,7 +19,8 @@ const ROWS: Row[] = [
   {name: 'Ladestation', drawer: 'Sonstiges'},
 ]
 
-const search = listSearch(ref(ROWS), row => `${row.name} ${row.drawer}`)
+const searching = listSearch(ref(ROWS), row => `${row.name} ${row.drawer}`)
+const search = (query: string) => searching.value(query)
 
 describe('listSearch', () => {
   it('offers everything while nothing is typed', async () => {
@@ -42,7 +43,19 @@ describe('listSearch', () => {
   it('caps what it offers, because a list of everything is the dropdown it replaced', async () => {
     const many = Array.from({length: 60}, (_, i) => ({name: `Stück ${i}`, drawer: 'Lager'}))
 
-    expect(await listSearch(ref(many), row => row.name)('stück')).toHaveLength(25)
+    expect(await listSearch(ref(many), row => row.name).value('stück')).toHaveLength(25)
+  })
+
+  it('is a new search once the rows have arrived, which finds what the empty list could not', async () => {
+    const rows = ref<Row[]>([])
+    const searching = listSearch(rows, row => row.name)
+    const beforeLoading = searching.value
+
+    rows.value = ROWS
+
+    expect(await beforeLoading('blau')).toHaveLength(0)
+    expect(searching.value).not.toBe(beforeLoading)
+    expect(await searching.value('blau')).toHaveLength(1)
   })
 })
 
