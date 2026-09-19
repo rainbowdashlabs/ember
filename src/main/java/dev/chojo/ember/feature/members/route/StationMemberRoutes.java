@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.Permission;
+import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -25,6 +26,7 @@ import dev.chojo.ember.feature.members.service.FormerMemberService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.NicknameService;
+import dev.chojo.ember.feature.members.service.ProfileFieldScopes;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionType;
@@ -51,6 +53,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.pathUuid;
@@ -328,10 +331,25 @@ public class StationMemberRoutes implements Routes {
             tags = {"Station Members"},
             queryParams = @OpenApiParam(name = "includeFormer", type = Boolean.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RichMember[].class)))
+    /**
+     * Everybody on the register, with the answers this reader may read and no others.
+     *
+     * <p>The row carries every answer a member has given, because one query is what makes this screen
+     * quick. Which of them may leave the server is decided here, by the same field scopes every other
+     * screen passes through: a reader holding nothing but the right to read the register used to be
+     * sent the lot, and drawing only some of it on screen is not the same as not sending it.
+     */
     private void listRichMembers(Context ctx) {
         var session = UserSession.from(ctx);
         boolean includeFormer = "true".equals(ctx.queryParam("includeFormer"));
+        var readable =
+                profileFieldService
+                        .findReadableBy(session.stationId(), ProfileFieldScopes.readableBy(session.permissions()))
+                        .stream()
+                        .map(ProfileField::id)
+                        .collect(Collectors.toSet());
         ctx.json(stationMemberRepository.findRichMembers(session.stationId(), includeFormer).stream()
+                .map(m -> m.withReadableValues(readable))
                 .map(m -> m.withIdentity(memberIdentityFactory.local(m.stationId(), m.id())))
                 .toList());
     }

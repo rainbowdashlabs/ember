@@ -15,8 +15,10 @@ import tools.jackson.core.type.TypeReference;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -109,6 +111,50 @@ public record RichMember(
             log.warn("Failed to parse JSON column: {}", json, e);
             return fallback;
         }
+    }
+
+    /**
+     * The same member carrying only the answers the reader may read.
+     *
+     * <p>The row is read whole, because reading every answer once is what makes one query out of
+     * hundreds. What a reader may see is a different question, and it is answered here rather than on
+     * the screen: a screen that draws the right columns out of a response holding the wrong ones has
+     * still sent them, and anybody can read a response.
+     *
+     * @param readableFieldIds the questions this reader may read, by id
+     */
+    public RichMember withReadableValues(Set<Integer> readableFieldIds) {
+        var kept = new LinkedHashMap<String, Object>();
+        for (var entry : profileValues.entrySet()) {
+            try {
+                if (readableFieldIds.contains(Integer.valueOf(entry.getKey()))) {
+                    kept.put(entry.getKey(), entry.getValue());
+                }
+            } catch (NumberFormatException e) {
+                log.warn("A profile answer is filed under something that is not a question: {}", entry.getKey());
+            }
+        }
+        return new RichMember(
+                id,
+                stationId,
+                uid,
+                accountId,
+                name,
+                firstName,
+                lastName,
+                nickname,
+                email,
+                accountSetupPending,
+                setupMailExpiresAt,
+                mailReaches,
+                former,
+                userType,
+                joinDate,
+                roles,
+                groups,
+                tags,
+                kept,
+                identity);
     }
 
     /**

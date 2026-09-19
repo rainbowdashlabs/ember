@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:f341f1381bbdd85dd8c1ea8cd71db76dcd1085e7dadb2a649a9ba1e885f171b4",
-  "generatedAt": "2026-09-18T17:10:33Z",
+  "schemaHash": "sha256:6a56d1c087f7f8dec6781d4dd27926ef56f4bb3224c7878953429e3b43f1c8d3",
+  "generatedAt": "2026-09-18T21:58:01Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -16059,6 +16059,62 @@
         ]
       },
       "description": "Member-manages-member relationships (e.g. legal guardian manages a minor)."
+    },
+    "member_table_preset": {
+      "tableHash": "sha256:127a8cbce3775be7aa1ad8c60cca1b9e46f5bee5cfb8318793dfa2ca0c52b367",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station whose selection this is."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the station calls this selection, unique within the station so a picker can name them."
+        },
+        {
+          "name": "columns",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "The chosen columns in order, as JSON objects carrying a kind and what it points at: a builtin name, a profile field id, or an appointment question id. Held whole because a selection is only ever read and written whole."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "station_id"
+        ]
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Which columns a station likes to see, not anything about a member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Which columns a station likes to see, not anything about a member"
+      },
+      "description": "A named set of columns a station wants when it lists people, used both for who is coming to an appointment and for the register. Saved per station rather than per screen, so the two never drift apart."
     },
     "movement_flow": {
       "feature": "inventory",

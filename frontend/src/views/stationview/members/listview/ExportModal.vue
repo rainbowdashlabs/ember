@@ -68,6 +68,10 @@ watch(canExportValues, (can) => {
             <RadioInput v-model="format" value="values" :disabled="!canExportValues"/>
             {{ t('membersList.export.formatValues') }}
           </FieldLabel>
+          <FieldLabel inline class="cursor-pointer">
+            <RadioInput v-model="format" value="pdf"/>
+            {{ t('membersList.export.formatPdf') }}
+          </FieldLabel>
         </div>
         <MutedText v-if="!canExportValues && format === 'values'" tag="p">
           {{ t('membersList.export.valuesHint') }}

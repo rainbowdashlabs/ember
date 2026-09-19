@@ -13,7 +13,10 @@ import {
 } from './useMemberData'
 import {useSavedFilters, type MemberSortKey} from './useSavedFilters'
 import {useMemberListTabs} from './useMemberListTabs'
-import {useExport, type ExportColumn} from '@/composables/useExport'
+import {useExport, type ExportColumn, type ExportFormatName} from '@/composables/useExport'
+import {memberTable} from '@/api'
+import type {MemberTableColumn} from '@/api/memberTable'
+import {saveBlob} from '@/util/downloadAuthed'
 import {byValue, useSortable} from '@/composables/useSortable'
 import {useMemberFilter} from '@/composables/useMemberFilter'
 import {DATE_FIELD_TYPES} from '@/api/profileFields'
@@ -143,7 +146,7 @@ export function useMemberListConfig(port: MemberListPort) {
     const {
         exportMode, selectedIds, showExportModal, selectedColumns, columnOptions,
         toggleExportMode, toggleRow, toggleAllRows, toggleColumn: toggleExportColumn,
-        selectColumns, openExportModal, performExport,
+        selectColumns, openExportModal, performExport: downloadHere, selectedRows, cancelExport,
     } = useExport({
         rows: () => sortedMembers.value,
         rowId: m => m.id,
@@ -151,6 +154,38 @@ export function useMemberListConfig(port: MemberListPort) {
         fileName: port.exportFileName,
         defaultColumns: ['firstName', 'lastName', 'email'],
     })
+
+    /**
+     * The chosen columns as the server names them, for the sheet it renders.
+     *
+     * <p>The rest of the export is built here from what the screen is holding, which cannot produce a
+     * PDF and has no business deciding what a reader may see. So that one asks the server, naming the
+     * people and the columns and letting it cut them down to what this reader may actually read.
+     */
+    function chosenServerColumns(): MemberTableColumn[] {
+        const chosen: MemberTableColumn[] = [{kind: 'BUILTIN', key: 'name', fieldId: null}]
+        for (const column of exportColumns.value) {
+            if (!selectedColumns.value.has(column.key)) continue
+            if (column.key === 'groups') chosen.push({kind: 'BUILTIN', key: 'groups', fieldId: null})
+            if (column.key === 'email') chosen.push({kind: 'BUILTIN', key: 'email', fieldId: null})
+            if (column.key.startsWith('field:')) {
+                chosen.push({kind: 'PROFILE_FIELD', key: null, fieldId: Number(column.key.slice(6))})
+            }
+        }
+        return chosen
+    }
+
+    /** Hands the export to whoever can make it: the sheet to the server, everything else to the screen. */
+    async function performExport(format: ExportFormatName = 'csv') {
+        if (format !== 'pdf') {
+            downloadHere(format)
+            return
+        }
+        const memberIds = selectedRows.value.map(member => member.id)
+        const file = await memberTable.exportMemberTable(memberIds, chosenServerColumns(), 'pdf')
+        saveBlob(file, `${port.exportFileName ?? 'export'}.pdf`)
+        cancelExport()
+    }
 
     /** Opens a person's screen, or does nothing where this reader has no such screen to open. */
     function navigateTo(routeName: string | undefined, member: StationMember, event: Event) {

@@ -180,6 +180,7 @@ import dev.chojo.ember.feature.members.route.ManagedMemberRoutes;
 import dev.chojo.ember.feature.members.route.MemberGroupRoutes;
 import dev.chojo.ember.feature.members.route.MemberImportRoutes;
 import dev.chojo.ember.feature.members.route.MemberRoutes;
+import dev.chojo.ember.feature.members.route.MemberTableRoutes;
 import dev.chojo.ember.feature.members.route.ProfileFieldChangeRoutes;
 import dev.chojo.ember.feature.members.route.ProfileFieldRoutes;
 import dev.chojo.ember.feature.members.route.RegistrationCodeRoutes;
@@ -337,6 +338,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(AttendanceRoutes.class);
         routesBinder.addBinding().to(InventoryRoutes.class);
         routesBinder.addBinding().to(ProfileFieldRoutes.class);
+        routesBinder.addBinding().to(MemberTableRoutes.class);
         routesBinder.addBinding().to(DocumentRoutes.class);
         routesBinder.addBinding().to(MailImportRoutes.class);
         routesBinder.addBinding().to(AdminMonitoringCountRoutes.class);

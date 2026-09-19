@@ -2079,6 +2079,17 @@ export default {
         noMailServer: 'Diese Instanz hat keinen Mailserver eingerichtet und versendet keine '
             + 'Einrichtungs-Mails. Gib den Einrichtungs-Link selbst weiter.',
     },
+    memberTable: {
+        menu: 'Ansicht',
+        asTable: 'Als Tabelle anzeigen',
+        asCards: 'Als Karten anzeigen',
+        export: 'Exportieren',
+        exportHint: 'Es wird genau das ausgegeben, was hier steht.',
+        format: 'Format',
+        csv: 'Tabelle (CSV)',
+        pdf: 'Blatt (PDF)',
+        nobody: 'Auf dieser Liste steht niemand.',
+    },
     membersList: {
         accountPending: 'Konto noch nicht eingerichtet - die Person hat sich noch kein Passwort gesetzt.',
         accountPendingExpires: 'Der zugesendete Link ist gültig bis {date}.',
@@ -2129,6 +2140,7 @@ export default {
             format: 'Format',
             formatCsv: 'CSV-Datei',
             formatValues: 'Semikolongetrennte Werte',
+            formatPdf: 'Blatt zum Mitnehmen (PDF)',
             valuesHint: 'Nur bei einer einzelnen Spalte verfügbar.',
             submit: 'Exportieren',
             colFirstName: 'Vorname',

@@ -21,15 +21,20 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
+import dev.chojo.ember.feature.members.entity.MemberTable;
+import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.MemberTableRenderer;
+import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -48,9 +53,12 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -81,7 +89,13 @@ public class EventRegistrationRoutes implements Routes {
     private final AttendanceService attendanceService;
     private final MemberIdentityFactory memberIdentityFactory;
     private final EventRegistrationFieldService registrationFieldService;
+    private static final Logger log = LoggerFactory.getLogger(EventRegistrationRoutes.class);
+    private static final DateTimeFormatter DAY_STAMP = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
     private final RegistrationAnswerReminder answerReminder;
+    private final EventMemberTableService eventMemberTableService;
+    private final MemberTableService memberTableService;
+    private final MemberTableRenderer memberTableRenderer;
     private final StationRepository stationRepository;
 
     @Inject
@@ -97,6 +111,9 @@ public class EventRegistrationRoutes implements Routes {
             MemberIdentityFactory memberIdentityFactory,
             EventRegistrationFieldService registrationFieldService,
             RegistrationAnswerReminder answerReminder,
+            EventMemberTableService eventMemberTableService,
+            MemberTableService memberTableService,
+            MemberTableRenderer memberTableRenderer,
             StationRepository stationRepository) {
         this.crudService = crudService;
         this.stationRepository = stationRepository;
@@ -110,6 +127,9 @@ public class EventRegistrationRoutes implements Routes {
         this.memberIdentityFactory = memberIdentityFactory;
         this.registrationFieldService = registrationFieldService;
         this.answerReminder = answerReminder;
+        this.eventMemberTableService = eventMemberTableService;
+        this.memberTableService = memberTableService;
+        this.memberTableRenderer = memberTableRenderer;
     }
 
     @Override
@@ -141,6 +161,21 @@ public class EventRegistrationRoutes implements Routes {
                 StationPermission.EVENT_EDIT);
         routes.put(
                 prefix + "/events/registrations/{id}/fields", this::updateRegistrationFields, StationPermission.USER);
+
+        routes.get(
+                prefix + "/events/{eventId}/registration-table/columns",
+                this::tableColumns,
+                StationPermission.EVENT_REGISTRATION);
+        routes.post(
+                prefix + "/events/{eventId}/registration-table", this::drawTable, StationPermission.EVENT_REGISTRATION);
+        routes.post(
+                prefix + "/events/{eventId}/registration-table/export.csv",
+                this::exportTableCsv,
+                StationPermission.EVENT_REGISTRATION);
+        routes.post(
+                prefix + "/events/{eventId}/registration-table/export.pdf",
+                this::exportTablePdf,
+                StationPermission.EVENT_REGISTRATION);
 
         routes.get(prefix + "/events/{eventId}/registrations", this::listRegistrations, StationPermission.USER);
         routes.post(prefix + "/events/{eventId}/register", this::register, StationPermission.USER);
@@ -525,6 +560,85 @@ public class EventRegistrationRoutes implements Routes {
         boolean manages = stationMemberService.findManaged(session.member().id()).stream()
                 .anyMatch(m -> m.id() == registration.memberId());
         if (!manages) throw new ForbiddenResponse("You do not manage this member");
+    }
+
+    /**
+     * The columns somebody may put on this appointment's table: the station's own questions, and the
+     * appointment's.
+     */
+    private void tableColumns(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int eventId = pathInt(ctx, "eventId");
+        requireOwnedEvent(crudService, eventId, session);
+        var questions = eventMemberTableService.offerableQuestions(eventId, readsHiddenAnswers(session));
+        ctx.json(new TableColumnsResponse(
+                memberTableService.offerableColumns(session.stationId(), session.permissions()),
+                questions.entrySet().stream()
+                        .map(entry -> new QuestionColumn(entry.getKey(), entry.getValue()))
+                        .toList()));
+    }
+
+    private void drawTable(Context ctx) {
+        ctx.json(tableOf(ctx));
+    }
+
+    private void exportTableCsv(Context ctx) {
+        var session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow(NotFoundResponse::new);
+        ctx.contentType("text/csv");
+        ctx.header("Content-Disposition", "attachment; filename=\"anmeldungen.csv\"");
+        ctx.result(memberTableRenderer.toCsv(tableOf(ctx), station));
+    }
+
+    private void exportTablePdf(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int eventId = pathInt(ctx, "eventId");
+        var event = requireOwnedEvent(crudService, eventId, session);
+        var station = stationRepository.findById(session.stationId()).orElseThrow(NotFoundResponse::new);
+        var table = tableOf(ctx);
+        try {
+            var pdf = memberTableRenderer.toPdf(
+                    table,
+                    station,
+                    event.name(),
+                    tableDate(ctx).format(DAY_STAMP),
+                    NameParts.of(session.account()).official());
+            ctx.contentType("application/pdf");
+            ctx.header("Content-Disposition", "attachment; filename=\"anmeldungen.pdf\"");
+            ctx.result(pdf);
+        } catch (Exception e) {
+            log.error("Failed to render the registration table of event {}", eventId, e);
+            throw new BadRequestResponse("This list cannot be turned into a sheet");
+        }
+    }
+
+    private MemberTable tableOf(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int eventId = pathInt(ctx, "eventId");
+        var event = requireOwnedEvent(crudService, eventId, session);
+        var station = stationRepository.findById(event.stationId()).orElseThrow(NotFoundResponse::new);
+        var req = ctx.bodyAsClass(RegistrationTableRequest.class);
+        var columns = req.columns() == null
+                ? List.<MemberTableColumn>of()
+                : req.columns().stream().filter(MemberTableColumn::isWellFormed).toList();
+        return eventMemberTableService.table(
+                station, eventId, tableDate(ctx), columns, session.permissions(), readsHiddenAnswers(session));
+    }
+
+    /**
+     * Which day the table is about. A registration belongs to one occurrence, so a table without a
+     * day would be a table of every evening at once.
+     */
+    private LocalDate tableDate(Context ctx) {
+        var req = ctx.bodyAsClass(RegistrationTableRequest.class);
+        if (req.date() == null || req.date().isBlank()) {
+            throw new BadRequestResponse("A table of who is coming needs the day it is about");
+        }
+        return LocalDate.parse(req.date());
+    }
+
+    private boolean readsHiddenAnswers(UserSession session) {
+        return session.hasPermission(StationPermission.EVENT_EDIT);
     }
 
     private void listRegistrations(Context ctx) {
@@ -914,4 +1028,21 @@ public class EventRegistrationRoutes implements Routes {
      * A member's resolved display name and identity for registration and absence responses.
      */
     private record MemberDisplay(String name, MemberIdentity identity) {}
+
+    /**
+     * What may go on this appointment's table.
+     *
+     * @param member    what the station knows about a person, already cut to this reader
+     * @param questions what this appointment asked, minus anything kept from the room
+     */
+    public record TableColumnsResponse(List<MemberTable.MemberTableHeader> member, List<QuestionColumn> questions) {}
+
+    /** One of an appointment's own questions, offered as a column. */
+    public record QuestionColumn(int fieldId, String label) {}
+
+    /**
+     * @param date    the day the table is about, because a registration belongs to one
+     * @param columns the columns asked for, which may name more than this reader may read
+     */
+    public record RegistrationTableRequest(String date, List<MemberTableColumn> columns) {}
 }

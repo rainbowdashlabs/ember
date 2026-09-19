@@ -23,7 +23,7 @@ export interface ExportColumn<T> extends ExportFieldOption {
     value?: (row: T) => string
 }
 
-export type ExportFormatName = 'csv' | 'values'
+export type ExportFormatName = 'csv' | 'values' | 'pdf'
 
 function escapeCsv(value: string): string {
     if (value.includes(';') || value.includes('"') || value.includes('\n')) {

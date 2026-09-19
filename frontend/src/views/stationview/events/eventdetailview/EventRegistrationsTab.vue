@@ -50,6 +50,14 @@ const {t} = useI18n()
 const {canManageEvents, hasPermission} = useSession()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
+/**
+ * Whether the table of who is coming is offered at all.
+ *
+ * <p>Only to whoever handles the registrations. A member's number on the register, their age and
+ * where they live are confidential whichever columns somebody picks, so the permission comes first
+ * and the field scopes cut what is left.
+ */
+
 const registrations = ref<EventRegistrationEntry[]>([])
 const registrationStats = ref<MemberRegistrationStats[]>([])
 const federatedRegs = ref<FederatedEventRegistration[]>([])
@@ -437,6 +445,7 @@ onMounted(loadRegistrations)
         :registration-stats="registrationStats"
         :unregistered-members="unregisteredMembers"
         :registration-fields="registrationFields"
+        :effective-date="effectiveDate"
         v-model:manual-register-member-id="manualRegisterMemberId"
         @accept="acceptRegistration"
         @deny="denyRegistration"
@@ -451,6 +460,7 @@ onMounted(loadRegistrations)
         />
       </template>
     </RegistrationsPanel>
+
 
     <RegistrationFieldsModal
         v-model="showEditAnswers"
