@@ -3,10 +3,33 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {getItem, setItem} from '@/api/storage'
+
 /** Which columns of one table a reader turned on or off, by column key. Unnamed columns keep their default. */
 export type ColumnChoices = Record<string, boolean>
 
-const PREFIX = 'tableColumns:'
+/**
+ * The one stored value holding every table's choices, by table.
+ *
+ * <p>One value rather than one per table, so the disclosure names it once and a table added later
+ * is covered by the consent already given instead of asking for a new one.
+ */
+const STORAGE_KEY = 'table_columns'
+
+function isChoices(value: unknown): value is ColumnChoices {
+    return !!value && typeof value === 'object' && !Array.isArray(value)
+        && Object.values(value).every(shown => typeof shown === 'boolean')
+}
+
+function readAll(): Record<string, ColumnChoices> {
+    try {
+        const parsed: unknown = JSON.parse(getItem(STORAGE_KEY) ?? '{}')
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+        return Object.fromEntries(Object.entries(parsed).filter(([, choices]) => isChoices(choices)))
+    } catch {
+        return {}
+    }
+}
 
 /**
  * The columns a reader chose for one table, as this browser remembers them.
@@ -18,21 +41,16 @@ const PREFIX = 'tableColumns:'
  * @param table names the table, including whatever it belongs to, such as the station
  */
 export function loadColumnChoices(table: string): ColumnChoices {
-    if (typeof window === 'undefined') return {}
-    try {
-        const parsed: unknown = JSON.parse(window.localStorage.getItem(PREFIX + table) ?? '{}')
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
-        return Object.fromEntries(Object.entries(parsed).filter(([, shown]) => typeof shown === 'boolean'))
-    } catch {
-        return {}
-    }
+    return readAll()[table] ?? {}
 }
 
-/** Remembers the columns a reader chose for one table. A browser refusing to store them loses nothing else. */
+/**
+ * Remembers the columns a reader chose for one table, where the reader allowed storing such
+ * comforts. Without that the choice holds until the page is left.
+ */
 export function saveColumnChoices(table: string, choices: ColumnChoices) {
-    if (typeof window === 'undefined') return
     try {
-        window.localStorage.setItem(PREFIX + table, JSON.stringify(choices))
+        setItem(STORAGE_KEY, JSON.stringify({...readAll(), [table]: choices}))
     } catch {
         return
     }

@@ -54,7 +54,10 @@ function names(table: DataTableApi<Person>): string[] {
 }
 
 describe('useDataTable', () => {
-    beforeEach(() => localStorage.clear())
+    beforeEach(() => {
+        localStorage.clear()
+        localStorage.setItem('storage_consent', 'accepted')
+    })
 
     it('sorts dates by day rather than by the words shown', () => {
         const table = tableOf()
@@ -143,6 +146,21 @@ describe('useDataTable', () => {
 
         expect(tableOf('remembered').visibleColumns.map(column => column.key)).toContain('groups')
         expect(tableOf('elsewhere').visibleColumns.map(column => column.key)).not.toContain('groups')
+    })
+
+    it('keeps every table in the one stored value', () => {
+        tableOf('first').toggleColumn('groups')
+        tableOf('second').toggleColumn('shoe')
+
+        const keys = Object.keys(localStorage).filter(key => key !== 'storage_consent')
+        expect(keys).toEqual(['table_columns'])
+    })
+
+    it('remembers nothing where comfort storage was declined', () => {
+        localStorage.setItem('storage_scopes', 'FUNCTIONAL')
+        tableOf('declined').toggleColumn('groups')
+
+        expect(localStorage.getItem('table_columns')).toBeNull()
     })
 
     it('follows the state it is handed, such as another tab', async () => {
