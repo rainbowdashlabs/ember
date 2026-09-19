@@ -6,10 +6,18 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import type {MemberCheckSummary} from '@/api/inventoryCheck'
-import DataTable from '@/components/table/DataTable.vue'
-import Th from '@/components/table/Th.vue'
-import MemberCheckRow from './MemberCheckRow.vue'
+import MemberName from '@/components/avatar/MemberName.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
+import RecordTable from '@/components/table/RecordTable.vue'
+import MemberStatusBadge from './MemberStatusBadge.vue'
+import MemberRowActions from './MemberRowActions.vue'
+import {isLockedByMe, isLockedByOther} from './memberHelpers'
+import {useMemberCheckTable} from './useMemberCheckTable'
 
+/**
+ * The members of the open tab, when each was last checked and by whom, with the button that starts
+ * or continues a check. Every column sorts and filters from its header.
+ */
 const props = defineProps<{
   members: MemberCheckSummary[]
   currentMemberId: number | undefined
@@ -21,24 +29,29 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+const table = useMemberCheckTable(() => props.members, () => props.currentMemberId)
 </script>
 
 <template>
-  <DataTable class="hidden sm:block">
-    <template #head>
-      <Th>{{ t('inventory.check.member') }}</Th>
-      <Th>{{ t('inventory.check.lastChecked') }}</Th>
-      <Th>{{ t('inventory.check.checkedBy') }}</Th>
-      <Th>{{ t('inventory.check.status') }}</Th>
-      <th class="px-3 py-2"></th>
+  <RecordTable :table="table" test-id="member-check-table">
+    <template #cell-name="{row}">
+      <span class="font-medium"><MemberName :identity="row.identity"/></span>
     </template>
-    <MemberCheckRow
-        v-for="member in members"
-        :key="member.memberId"
-        :member="member"
-        :current-member-id="currentMemberId"
-        @start-check="emit('start-check', $event)"
-        @view-last-check="emit('view-last-check', $event)"
-    />
-  </DataTable>
+    <template #cell-status="{row}">
+      <MemberStatusBadge :current-member-id="props.currentMemberId" :member="row"/>
+    </template>
+    <template #actions="{row}">
+      <MemberRowActions
+          :locked-by-me="isLockedByMe(row, props.currentMemberId)"
+          :locked-by-other="isLockedByOther(row, props.currentMemberId)"
+          :member="row"
+          @start-check="emit('start-check', $event)"
+          @view-last-check="emit('view-last-check', $event)"
+      />
+    </template>
+    <template #empty>
+      <EmptyState>{{ t('inventory.check.noMembers') }}</EmptyState>
+    </template>
+  </RecordTable>
 </template>

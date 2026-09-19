@@ -13,11 +13,11 @@ import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import FormerMembersTable from './formerview/FormerMembersTable.vue'
 import ReactivateModal from './formerview/ReactivateModal.vue'
+import { memberDisplayName } from './listview/useMemberData'
 import type { StationMember } from '@/api/types'
 import { stationMembers } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useConfirmAction } from '@/composables/useConfirmAction'
-import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 
@@ -26,14 +26,6 @@ const { config: members, loading, error, reload: loadData } = useConfigPanel<Sta
   fetch: () => stationMembers.listFormerMembers(),
 })
 const success = ref('')
-
-function memberDisplayName(m: StationMember): string {
-  return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
-}
-
-function formatFormerDate(dateStr?: string | null): string {
-  return formatDate(dateStr) || '–'
-}
 
 const {
   show: showReactivateModal,
@@ -66,8 +58,6 @@ const {
         <FormerMembersTable
           v-if="members.length > 0"
           :members="members"
-          :member-display-name="memberDisplayName"
-          :format-date="formatFormerDate"
           @reactivate="openReactivate"
         />
 

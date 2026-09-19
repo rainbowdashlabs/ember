@@ -22,6 +22,11 @@ import {RouterLink} from 'vue-router'
 import StoragePresetPanel from './adminstorageview/StoragePresetPanel.vue'
 import StorageStationTable from './adminstorageview/StorageStationTable.vue'
 import {
+  StorageStatus,
+  storageStatusOfPercent,
+  type StorageStatusName,
+} from './adminstorageview/storagestationtable/storageStatus'
+import {
   applyPreset,
   createPreset,
   deletePreset,
@@ -76,8 +81,18 @@ const {
 onMounted(reload)
 
 const totalUsage = computed(() => stations.value.reduce((s, st) => s + st.totalBytes, 0))
-const stationsWarning = computed(() => stations.value.filter(s => s.quotaUsedPercent >= 80 && s.quotaUsedPercent < 95).length)
-const stationsFull = computed(() => stations.value.filter(s => s.quotaUsedPercent >= 95).length)
+function stationsIn(status: StorageStatusName): number {
+  return stations.value.filter(s => storageStatusOfPercent(s.quotaUsedPercent) === status).length
+}
+
+const stationsWarning = computed(() => stationsIn(StorageStatus.WARNING))
+const stationsFull = computed(() => stationsIn(StorageStatus.FULL))
+
+const BAR_COLORS: Record<StorageStatusName, string> = {
+  [StorageStatus.OK]: '#73CEFF',
+  [StorageStatus.WARNING]: '#ffdd1b',
+  [StorageStatus.FULL]: '#ec2929',
+}
 
 const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
 
@@ -105,7 +120,7 @@ const topStationsChart = computed(() => {
       type: 'bar',
       data: top.map(s => ({
         value: s.totalBytes,
-        itemStyle: {color: s.quotaUsedPercent >= 95 ? '#ec2929' : s.quotaUsedPercent >= 80 ? '#ffdd1b' : '#73CEFF'},
+        itemStyle: {color: BAR_COLORS[storageStatusOfPercent(s.quotaUsedPercent)]},
       })),
     }],
   }
@@ -146,7 +161,6 @@ const categoryPieChart = computed(() => {
     <Spinner v-if="loading" size="lg"/>
     <Alert v-else-if="error" variant="error">{{ error }}</Alert>
     <template v-else>
-      <!-- Summary -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <NeutralContainer class="text-center">
           <StatValue>{{ formatBytes(totalUsage) }}</StatValue>
@@ -166,7 +180,6 @@ const categoryPieChart = computed(() => {
         </NeutralContainer>
       </div>
 
-      <!-- Charts -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <NeutralContainer>
           <SectionHeader>{{ t('storageMonitoring.stationOverview') }}</SectionHeader>
@@ -177,8 +190,6 @@ const categoryPieChart = computed(() => {
           <VChart v-if="stations.length > 0" :option="categoryPieChart" autoresize style="height: 300px"/>
         </NeutralContainer>
       </div>
-
-      <!-- Actions -->
       <div class="flex flex-wrap gap-2 mb-6">
         <PrimaryButton :disabled="reconciling" @click="handleRecalculateAll">
           <font-awesome-icon :icon="['fas', 'arrows-rotate']" class="mr-1"/>

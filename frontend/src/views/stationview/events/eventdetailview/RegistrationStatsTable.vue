@@ -6,10 +6,22 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import RegistrationStatsRow from './registrationstatstable/RegistrationStatsRow.vue'
-import type {EventRegistrationField} from '@/api/events'
-import type {EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
+import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
+import RecordTable from '@/components/table/RecordTable.vue'
+import type {EventRegistrationEntry, EventRegistrationField, MemberRegistrationStats} from '@/api/events'
+import {useDataTable} from '@/composables/useDataTable'
+import RegistrationStatsMember from './registrationstatstable/RegistrationStatsMember.vue'
+import {registrationStatsColumns, SCORE_KEY, type RankedRegistration} from './registrationstatstable/registrationStatsColumns'
 
+/**
+ * The sign-ups ranked by how strong a claim each member has to a place: the highest score first,
+ * which a reader may resort or filter by any column.
+ */
 const props = defineProps<{
   fields?: EventRegistrationField[]
   registrations: EventRegistrationEntry[]
@@ -27,47 +39,63 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const sortedRegistrations = computed(() => {
-  return [...props.registrations].sort((a, b) => {
-    const sa = props.stats.find(s => s.memberId === a.memberId)
-    const sb = props.stats.find(s => s.memberId === b.memberId)
-    return (sb?.fairnessScore ?? 0) - (sa?.fairnessScore ?? 0)
-  })
+const statsByMember = computed(() => new Map(props.stats.map(stats => [stats.memberId, stats])))
+
+const rows = computed<RankedRegistration[]>(() => props.registrations.map(registration => ({
+  registration,
+  stats: statsByMember.value.get(registration.memberId) ?? null,
+})))
+
+const table = useDataTable<RankedRegistration>({
+  id: 'registration-stats',
+  rows,
+  columns: computed(() => registrationStatsColumns(t)),
+  rowKey: row => row.registration.id,
+  sort: {key: SCORE_KEY, direction: 'desc'},
 })
 
-function getStats(memberId: number): MemberRegistrationStats | undefined {
-  return props.stats.find(s => s.memberId === memberId)
+/** The colour the ranking is read by: the ones with the strongest claim to a place stand out. */
+function scoreClass(row: RankedRegistration): string {
+  if (row.stats?.priority === 'HIGH') return 'font-bold text-success'
+  if (row.stats?.priority === 'MEDIUM') return 'font-bold text-info'
+  return 'font-bold'
 }
 </script>
 
 <template>
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm border-collapse">
-      <thead v-if="stats.length > 0">
-      <tr class="border-b border-(--border) text-left text-xs text-(--text-muted) uppercase">
-        <th class="p-2">{{ t('registrationStats.member') }}</th>
-        <th class="p-2 text-center">{{ t('registrationStats.score') }}</th>
-        <th class="p-2 text-center">{{ t('registrationStats.accepted') }}</th>
-        <th class="p-2 text-center">{{ t('registrationStats.denied') }}</th>
-        <th class="p-2 text-center">{{ t('registrationStats.rate') }}</th>
-        <th class="p-2 text-center">{{ t('eventsRegistrations.date') }}</th>
-        <th v-if="showActions" class="p-2"></th>
-      </tr>
-      </thead>
-      <tbody>
-      <RegistrationStatsRow
-          v-for="reg in sortedRegistrations"
-          :key="reg.id"
-          :registration="reg"
-          :fields="fields"
-          :stats="getStats(reg.memberId)"
-          :show-actions="showActions"
-          :can-edit-answers="canEditAnswers"
-          @accept="emit('accept', $event)"
-          @deny="emit('deny', $event)"
-          @edit-answers="emit('editAnswers', $event)"
-      />
-      </tbody>
-    </table>
+  <div class="space-y-2">
+    <div class="flex justify-end">
+      <TableColumnPicker :table="table"/>
+    </div>
+    <RecordTable :table="table" plain test-id="registration-stats-table">
+      <template #cell-member="{row}">
+        <RegistrationStatsMember
+            :can-edit-answers="canEditAnswers ?? false"
+            :fields="fields ?? []"
+            :registration="row.registration"
+            @edit-answers="emit('editAnswers', $event)"
+        />
+      </template>
+      <template #cell-score="{row, text}">
+        <span :class="scoreClass(row)">{{ text }}</span>
+      </template>
+      <template #cell-accepted="{text}">
+        <SuccessBadge v-if="text">{{ text }}</SuccessBadge>
+      </template>
+      <template #cell-denied="{row, text}">
+        <ErrorBadge v-if="(row.stats?.denied ?? 0) > 0">{{ text }}</ErrorBadge>
+        <template v-else>{{ text }}</template>
+      </template>
+      <template v-if="showActions" #actions="{row}">
+        <ButtonRow pair align="end">
+          <PrimaryButton :icon="['fas', 'check']" @click="emit('accept', row.registration.id)">
+            {{ t('eventsRegistrations.accept') }}
+          </PrimaryButton>
+          <ErrorButton :icon="['fas', 'xmark']" @click="emit('deny', row.registration.id)">
+            {{ t('eventsRegistrations.deny') }}
+          </ErrorButton>
+        </ButtonRow>
+      </template>
+    </RecordTable>
   </div>
 </template>

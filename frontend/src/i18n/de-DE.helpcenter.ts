@@ -1496,7 +1496,7 @@ volumes:
             searchDates: 'Datumsspalten filtern über ganze Jahre und Monate, die sich bis auf den Tag aufklappen lassen, dazu ein Zeitraum „Ab" (einschließlich) und „Vor" (ausschließlich). Bei einem Geburtsdatum steht hinter dem Datum das aktuelle Alter, und der Filter grenzt zusätzlich nach aktuellem Alter und nach Kalenderalter ein, dem Alter am 31. Dezember: „Mindestens" schließt den Wert ein, „Unter" schließt ihn aus.',
             searchSave: 'Häufig genutzte Filter kannst du speichern und später mit einem Klick wieder laden.',
             columnsTitle: 'Spalten anpassen',
-            columnsText: 'Klicke auf Spalten, um zusätzliche Profilfelder als Spalten in der Tabelle anzuzeigen.',
+            columnsText: 'Klicke auf Spalten, um zusätzliche Profilfelder als Spalten in der Tabelle anzuzeigen. Dein Browser merkt sich die Auswahl, für jeden Reiter getrennt. Jede Spalte filtert passend zu ihrem Inhalt: Zahlen über einen Bereich, Auswahlfelder über ihre Optionen, Daten über Jahre, Monate und Tage.',
             exportTitle: 'Export',
             exportText: 'Du kannst die Mitgliederliste als CSV-Datei exportieren. Wähle die Mitglieder und Spalten aus, die du exportieren möchtest.',
             tip: 'Klicke auf einen Namen, um die Detailseite des Mitglieds zu öffnen.',
@@ -1748,11 +1748,13 @@ volumes:
             createNoFlow: 'Gibt es für die Kombination keinen hinterlegten Ablauf, sagt der letzte Schritt das und '
                 + 'verlinkt die Abläufe in den Einstellungen. Ohne Ablauf lässt sich nichts starten.',
             filterTitle: 'Liste eingrenzen und sortieren',
-            filterText: 'Über der Liste stehen ein Suchfeld für Name, Teil und Kennzeichnung sowie Filter für Art, '
-                + 'Status, Inventar und „wer ist dran". Die Filter wirken zusammen, du kannst also alle offenen '
-                + 'Helm-Tausche zeigen lassen, bei denen der Verband dran ist.',
-            filterOrderText: 'Voreingestellt stehen die Zeilen oben, bei denen jemand hier etwas tun kann. Eine '
-                + 'andere Sortierung wählst du über die Liste neben den Filtern.',
+            filterText: 'Über der Liste steht ein Suchfeld für Name, Teil und Kennzeichnung. Gefiltert wird über das '
+                + 'Filter-Symbol einer Spaltenüberschrift: „Worum es geht" nach Inventar, „Art" nach der Art des '
+                + 'Vorgangs und „Schritt" nach Status, nach wem dran ist und nach dem erreichten Schritt. Die Filter '
+                + 'wirken zusammen, du kannst also alle offenen Helm-Tausche zeigen lassen, bei denen der Verband dran ist.',
+            filterOrderText: 'Voreingestellt stehen die Zeilen oben, bei denen jemand hier etwas tun kann. Ein '
+                + 'Klick auf das Sortier-Symbol einer Spaltenüberschrift sortiert nach dieser Spalte, ein zweiter '
+                + 'dreht die Reihenfolge um.',
             filterExportText: 'Der Export als PDF beginnt mit den Zeilen, die die Filter übrig lassen: alle sind '
                 + 'angehakt, und du nimmst die Haken weg, die nicht mit sollen. Zusätzliche Profilfelder lassen sich '
                 + 'dazunehmen, bevor du herunterlädst.',
@@ -1883,7 +1885,7 @@ volumes:
                 + 'Stelle: jemand müsste laut Vorgabe etwas haben, hat aber nichts eingetragen.',
             step4: 'Klicke auf Prüfung abschließen.',
             sortTitle: 'Sortierung',
-            sortText: 'Klicke auf das Sortier-Symbol, um zwischen alphabetischer Sortierung und Sortierung nach letztem Prüfdatum zu wechseln.',
+            sortText: 'Klicke auf das Sortier-Symbol einer Spaltenüberschrift, um nach dieser Spalte zu sortieren, etwa nach Name oder letztem Prüfdatum. Mit dem Filter-Symbol daneben grenzt du die Liste ein, zum Beispiel auf Mitglieder, die noch nie geprüft wurden.',
             sortLabel: 'Sortierung ändern',
             lastCheckTitle: 'Letzte Prüfung ansehen',
             lastCheckText: 'Klicke auf das Augen-Symbol neben einem Mitglied, um die Ergebnisse der letzten Prüfung einzusehen.',

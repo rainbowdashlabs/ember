@@ -27,18 +27,51 @@ export interface MemberStatus {
     mandated: boolean
 }
 
+/** Everything the two-factor audit log records. */
+export const TwoFactorEvent = {
+    ENROLLED: 'ENROLLED',
+    REMOVED: 'REMOVED',
+    LOGIN_VERIFIED: 'LOGIN_VERIFIED',
+    STEPUP_VERIFIED: 'STEPUP_VERIFIED',
+    BACKUP_CODE_USED: 'BACKUP_CODE_USED',
+    BACKUP_CODE_REGENERATED: 'BACKUP_CODE_REGENERATED',
+    ADMIN_RESET: 'ADMIN_RESET',
+    TRUSTED_DEVICE_ADDED: 'TRUSTED_DEVICE_ADDED',
+    TRUSTED_DEVICE_REVOKED: 'TRUSTED_DEVICE_REVOKED',
+    POLICY_CHANGED: 'POLICY_CHANGED',
+    PASSKEY_SIGN_IN: 'PASSKEY_SIGN_IN',
+    PASSKEY_ENROLLED_VIA_DEVICE_CODE: 'PASSKEY_ENROLLED_VIA_DEVICE_CODE',
+    PASSKEY_CODE_ISSUED: 'PASSKEY_CODE_ISSUED',
+    PASSWORD_LOGIN_DISABLED: 'PASSWORD_LOGIN_DISABLED',
+    PASSWORD_LOGIN_ENABLED: 'PASSWORD_LOGIN_ENABLED',
+    PASSWORD_RETIRED: 'PASSWORD_RETIRED',
+    STEPUP_FAILED: 'STEPUP_FAILED',
+    SIGNED_IN_VIA_DEVICE_CODE: 'SIGNED_IN_VIA_DEVICE_CODE',
+    STEPUP_VIA_DEVICE_CODE: 'STEPUP_VIA_DEVICE_CODE',
+    DEVICE_REQUEST_APPROVED: 'DEVICE_REQUEST_APPROVED',
+} as const
+
+export type TwoFactorEventName = (typeof TwoFactorEvent)[keyof typeof TwoFactorEvent]
+
+/** The second factors an account can hold. */
+export const TwoFactorKind = {
+    TOTP: 'TOTP',
+    WEBAUTHN: 'WEBAUTHN',
+    BACKUP_CODES: 'BACKUP_CODES',
+} as const
+
+export type TwoFactorKindName = (typeof TwoFactorKind)[keyof typeof TwoFactorKind]
+
 export interface AuditEntry {
     id: number
     accountId: number
     actorId: number | null
-    event: string
-    factorKind: string | null
+    event: TwoFactorEventName
+    factorKind: TwoFactorKindName | null
     userAgent: string | null
     country: string | null
     createdAt: string
 }
-
-// -- Station-admin scope --
 
 export async function listStationPolicies(): Promise<TwoFactorPolicy[]> {
     const res = await client.get<{ policies: TwoFactorPolicy[] }>('/station/2fa/policies')
@@ -67,8 +100,6 @@ export async function listAssignableUserTypes(): Promise<string[]> {
     const res = await client.get<{ userTypes: string[] }>('/station/2fa/user-types')
     return res.data.userTypes
 }
-
-// -- Instance-admin scope --
 
 export async function listInstancePolicies(): Promise<TwoFactorPolicy[]> {
     const res = await client.get<{ policies: TwoFactorPolicy[] }>('/admin/2fa/policies')

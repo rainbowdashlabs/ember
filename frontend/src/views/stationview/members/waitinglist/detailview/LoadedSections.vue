@@ -46,8 +46,7 @@ export interface DetailActions {
   onNavigateToEntry: (id: number) => void
   onNavigateToMember: (id: number) => void
   onDeleteEntry: (entry: WaitingListEntryWithScore) => void
-  onToggleField: (id: number) => void
-  onToggleFieldMenu: () => void
+  onSetFields: (ids: number[], visible: boolean) => void
   onAddEntry: () => void
   onCreateInvite: () => void
   onDeleteInvite: (id: number) => void
@@ -62,8 +61,6 @@ defineProps<{
   invites: WaitingListInvite[]
   entryGroups: EntryGroups
   visibleFieldIds: Set<number>
-  isMobile: boolean
-  showFieldToggle: boolean
   permissions: DetailPermissions
   actions: DetailActions
 }>()
@@ -93,8 +90,6 @@ defineProps<{
     :entries="entryGroups.waiting"
     :fields="fields"
     :visible-field-ids="visibleFieldIds"
-    :is-mobile="isMobile"
-    :show-field-toggle="showFieldToggle"
     :readonly="!permissions.canEdit"
     :can-add="permissions.canAdd"
     @invite="actions.onInvite"
@@ -102,8 +97,7 @@ defineProps<{
     @move-to-testing="actions.onMoveToTesting"
     @navigate-to-entry="actions.onNavigateToEntry"
     @delete-entry="actions.onDeleteEntry"
-    @toggle-field="actions.onToggleField"
-    @toggle-field-menu="actions.onToggleFieldMenu"
+    @set-fields="actions.onSetFields"
     @add-entry="actions.onAddEntry"
   />
 

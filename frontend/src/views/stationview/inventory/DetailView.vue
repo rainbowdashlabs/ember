@@ -68,6 +68,7 @@ function itemAssignedName(item: InventoryItem): string {
 const itemTable = useItemTable({
   inventoryId: () => inventoryId.value,
   items: () => items.value,
+  sizes: () => detail.value?.sizes ?? [],
   hasSizes: () => detail.value?.hasSizes ?? false,
   isMixed: () => detail.value?.inventoryType === InventoryTypes.MIXED,
   sizeLabel: itemSizeLabel,

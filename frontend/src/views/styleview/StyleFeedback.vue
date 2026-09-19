@@ -16,6 +16,7 @@ import ProgressBar from '@/components/feedback/ProgressBar.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import Popover from '@/components/feedback/Popover.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 
@@ -91,5 +92,15 @@ const modalOpen = ref(false)
       <SubHeader>Modal Title</SubHeader>
       <MutedText tag="p" size="sm" class="mt-2">This is an example modal dialog with some content.</MutedText>
     </Modal>
+  </section>
+
+  <section class="space-y-4">
+    <SectionHeader>Popover</SectionHeader>
+    <Popover class="inline-block" label="Popover" panel-class="p-3 min-w-48" role="dialog">
+      <template #trigger="{toggle, triggerAttrs}">
+        <PrimaryButton v-bind="triggerAttrs" @click="toggle">Open Popover</PrimaryButton>
+      </template>
+      <MutedText size="sm">Closes on a press outside, on escape, or when focus leaves it.</MutedText>
+    </Popover>
   </section>
 </template>

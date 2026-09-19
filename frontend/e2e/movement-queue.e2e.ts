@@ -5,7 +5,8 @@
  */
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
-import {setMovementFilter} from './fixtures/movementFilter'
+import {MovementFilterColumn, setMovementFilter} from './fixtures/movementFilter'
+import {movementRow} from './fixtures/movementRow'
 
 /**
  * Where a movement says it stands, and what may move it.
@@ -92,7 +93,7 @@ test.describe('Movement queue', () => {
         const stepsBefore = await answered(page, headers, id)
 
         await page.goto('/station/inventory/movements')
-        const row = page.locator(`[data-movement="${id}"]`)
+        const row = movementRow(page, id)
         await expect(row).toBeVisible({timeout: 15000})
         await expect(row.getByTestId('movement-step'),
             'the row says what is true of the world, not what is being waited on').toHaveText(before.reached)
@@ -138,8 +139,8 @@ test.describe('Movement queue', () => {
             .toBe('CANCELLED')
 
         await page.goto('/station/inventory/movements')
-        await setMovementFilter(page, 'movement-filter-state', [])
-        const row = page.locator(`[data-movement="${id}"]`)
+        await setMovementFilter(page, MovementFilterColumn.STEP, [])
+        const row = movementRow(page, id)
         await expect(row, 'which the queue shows once the ticks stop keeping it to what is still running')
             .toBeVisible({timeout: 15000})
         await expect(row.getByTestId('movement-state')).toHaveText('Abgebrochen')
@@ -171,7 +172,7 @@ test.describe('Movement queue', () => {
                 .not.toBe('WITH_MEMBER')
 
             await page.goto('/station/inventory/movements')
-            const row = page.locator(`[data-movement="${id}"]`)
+            const row = movementRow(page, id)
             await expect(row).toBeVisible({timeout: 15000})
 
             await row.getByTestId('movement-correct').click()

@@ -2,8 +2,27 @@
 
 ## v26.18.3
 
+### Improvements
+
+- **A table's column list closes on its own.** It stayed open until its button was pressed again; it now closes on a press anywhere else on the page or on escape. A row's menu also closes when the menu of another row is opened.
+- **The column list shows all or none at once.** Two buttons at its top show or hide every column, and a long list spreads over several columns instead of running off the screen.
+- **Table filters match what a column holds.** Every column of the member list, an inventory's pieces and an appointment's sign-ups offers the filter its contents call for: dates by day, birth dates also by age, numbers by a range, and choices by their names. Sorting follows the same rule, so numbers and days come out in order and choices in the order they were set up.
+- **Tables remember their columns.** Where you allowed storing conveniences, the columns chosen for a table are still chosen on the next visit in the same browser, and the member list keeps its own choice for each tab. The privacy notice lists this once for every table, so it asks for your consent again one time.
+- **Tables sort and filter on a phone too.** On a small screen the rows are cards showing the chosen columns, with a sort and a filter control above them.
+- **More station lists sort and filter by every column.** The movement queue, borrowed gear, inventory checks, the inventory overview, the inventory member list, waiting lists, registration statistics, former members, two-factor status, feed usage and the board backlog and archive work like the member list: every column header sorts and filters, and the longer ones let you choose their columns.
+- **The association and administration lists follow.** The association's member list, storage, movements and gear out at stations, and the administration's applications, two-factor log, API status, data tracking, mail log and beacon figures sort and filter from every column header and let you choose their columns.
+- **Applications awaiting a confirmed address say so.** An application whose address has not been confirmed yet no longer shows as waiting like the others, so the two can be told apart and filtered.
+- **Beacon figures show accounts and stations.** Two columns that were collected but never shown can be switched on in the column list.
+
+### Changes
+
+- **Sorting and filtering moved into the column headers.** The sort list and filter buttons of the movement queue, the sort buttons of borrowed gear and the sort toggle of inventory checks are gone; the column headers sort and filter instead, and the movement queue filters its items by inventory and its step column by state, whose turn it is and the step reached by name. The inventory member list forgets the columns chosen before this release once.
+
 ### Fixes
 
+- **Sign-ups sorted by a date came out of order.** In the table of an appointment's sign-ups, a date column sorted the days as text, so 2 January came before 15 December of the year before. It now sorts by the day.
+- **A saved member filter forgot the questions left open.** A saved filter asking for people who had not answered a question came back without that condition when chosen again. It now comes back complete.
+- **Grouped inventory ignored the table controls.** Where an inventory's pieces are grouped by kind, choosing columns and sorting or filtering from a column header had no effect. They now apply to every group.
 - **Guardians could not open an event's files.** For an event shown only to certain members, a guardian saw it through the children they look after but was refused its files. The files are now handed to a guardian whenever one of their children may see the event.
 - **Downloads did nothing on an iPhone.** Pressing a download button on an iPhone or iPad could leave the file unsaved without any message, most of all in the browser built into other apps. The file now opens the share sheet, from where it can be saved to Files or sent on.
 

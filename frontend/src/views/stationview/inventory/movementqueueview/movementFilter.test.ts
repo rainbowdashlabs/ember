@@ -5,7 +5,7 @@
  */
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
-import {hasMoved, lastMovedAt, naturalDirection} from './movementFilter'
+import {hasMoved, lastMovedAt, queueOrder} from './movementFilter'
 import type {Movement} from '@/api/movements'
 
 function movement(over: Partial<Movement>): Movement {
@@ -57,16 +57,16 @@ describe('lastMovedAt', () => {
     })
 })
 
-describe('naturalDirection', () => {
-    it('starts both dates at the newest', () => {
-        expect(naturalDirection('created')).toBe('desc')
-        expect(naturalDirection('modified')).toBe('desc')
-    })
+describe('queueOrder', () => {
+    it('puts the rows we can act on first, the oldest of them first, and the finished ones last', () => {
+        const rows = [
+            movement({id: 4, currentStepActor: 'OWNER'}),
+            movement({id: 5, state: 'DONE', currentStepActor: null}),
+            movement({id: 3, currentStepActor: 'MEMBER'}),
+            movement({id: 1, currentStepActor: 'STATION', actionable: true, createdAt: '2026-09-05T10:00:00Z'}),
+            movement({id: 2, currentStepActor: 'STATION', actionable: true, createdAt: '2026-08-01T10:00:00Z'}),
+        ]
 
-    it('starts every other column at the top of its own order', () => {
-        expect(naturalDirection('turn')).toBe('asc')
-        expect(naturalDirection('member')).toBe('asc')
-        expect(naturalDirection('inventory')).toBe('asc')
-        expect(naturalDirection('purpose')).toBe('asc')
+        expect(rows.toSorted(queueOrder).map(row => row.id)).toEqual([2, 1, 3, 4, 5])
     })
 })

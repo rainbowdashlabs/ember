@@ -8,16 +8,23 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import TableHeaderCell from '@/components/typography/TableHeaderCell.vue'
+import RecordTable from '@/components/table/RecordTable.vue'
+import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
 import type {MemberStatus} from '@/api/twoFactorAdmin'
+import {useDataTable} from '@/composables/useDataTable'
+import {userTypeOptions} from '@/views/stationview/members/listview/memberColumns'
 
+/**
+ * Who of the station has a second factor, with the ones it is required of but who have none
+ * counted apart. The table sorts and filters by each column, the status among them.
+ */
 const props = defineProps<{
   members: MemberStatus[]
-  userTypeLabel: (name: string) => string
 }>()
 
 const emit = defineEmits<{
@@ -26,9 +33,52 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
+const TwoFactorStatus = {
+  ENROLLED: 'ENROLLED',
+  MANDATED_GAP: 'MANDATED_GAP',
+  OPTIONAL: 'OPTIONAL',
+} as const
+
+/** Where a member stands: set up, required but missing, or free to go without. */
+function twoFactorStatusOf(member: MemberStatus): string {
+  if (member.enrolled) return TwoFactorStatus.ENROLLED
+  return member.mandated ? TwoFactorStatus.MANDATED_GAP : TwoFactorStatus.OPTIONAL
+}
+
 const enrolledCount = computed(() => props.members.filter(m => m.enrolled).length)
 const mandatedCount = computed(() => props.members.filter(m => m.mandated).length)
-const mandatedNotEnrolled = computed(() => props.members.filter(m => m.mandated && !m.enrolled).length)
+const mandatedNotEnrolled = computed(() =>
+    props.members.filter(m => twoFactorStatusOf(m) === TwoFactorStatus.MANDATED_GAP).length)
+
+const columns = computed<TableColumn<MemberStatus>[]>(() => [
+  {key: 'name', label: t('twoFactor.admin.col.name'), type: ColumnTypes.TEXT, value: m => `${m.firstName} ${m.lastName}`.trim()},
+  {key: 'email', label: t('twoFactor.admin.col.email'), type: ColumnTypes.TEXT, value: m => m.email},
+  {
+    key: 'userType',
+    label: t('twoFactor.admin.col.userType'),
+    type: ColumnTypes.ENUM,
+    value: m => m.userType,
+    options: userTypeOptions(),
+  },
+  {
+    key: 'status',
+    label: t('twoFactor.admin.col.status'),
+    type: ColumnTypes.ENUM,
+    value: twoFactorStatusOf,
+    options: [
+      {value: TwoFactorStatus.MANDATED_GAP, label: t('twoFactor.admin.statusMandatedGap')},
+      {value: TwoFactorStatus.OPTIONAL, label: t('twoFactor.admin.statusOptional')},
+      {value: TwoFactorStatus.ENROLLED, label: t('twoFactor.admin.statusEnrolled')},
+    ],
+  },
+])
+
+const table = useDataTable<MemberStatus>({
+  id: 'station-two-factor-members',
+  rows: () => props.members,
+  columns,
+  rowKey: m => m.memberId,
+})
 </script>
 
 <template>
@@ -41,38 +91,24 @@ const mandatedNotEnrolled = computed(() => props.members.filter(m => m.mandated 
         {{ t('twoFactor.admin.gapCount', {n: mandatedNotEnrolled}) }}
       </ErrorBadge>
     </div>
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="text-left text-(--text-muted)">
-            <TableHeaderCell>{{ t('twoFactor.admin.col.name') }}</TableHeaderCell>
-            <TableHeaderCell>{{ t('twoFactor.admin.col.email') }}</TableHeaderCell>
-            <TableHeaderCell>{{ t('twoFactor.admin.col.userType') }}</TableHeaderCell>
-            <TableHeaderCell>{{ t('twoFactor.admin.col.status') }}</TableHeaderCell>
-            <TableHeaderCell>{{ t('twoFactor.admin.col.actions') }}</TableHeaderCell>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="m in props.members" :key="m.memberId" class="border-t border-(--border)">
-            <td class="py-2 pr-3">{{ m.firstName }} {{ m.lastName }}</td>
-            <td class="py-2 pr-3 text-(--text-muted)">{{ m.email }}</td>
-            <td class="py-2 pr-3">{{ props.userTypeLabel(m.userType) }}</td>
-            <td class="py-2 pr-3">
-              <SuccessBadge v-if="m.enrolled">{{ t('twoFactor.admin.statusEnrolled') }}</SuccessBadge>
-              <ErrorBadge v-else-if="m.mandated">{{ t('twoFactor.admin.statusMandatedGap') }}</ErrorBadge>
-              <InfoBadge v-else>{{ t('twoFactor.admin.statusOptional') }}</InfoBadge>
-            </td>
-            <td class="py-2 pr-3">
-              <ErrorButton v-if="m.enrolled" compact @click="emit('reset', m)">
-                {{ t('twoFactor.admin.reset') }}
-              </ErrorButton>
-            </td>
-          </tr>
-          <tr v-if="props.members.length === 0">
-            <td colspan="5" class="py-4 text-(--text-muted) text-center">{{ t('twoFactor.admin.noMembers') }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <RecordTable :table="table" plain test-id="two-factor-members-table">
+      <template #cell-email="{text}">
+        <span class="text-(--text-muted)">{{ text }}</span>
+      </template>
+      <template #cell-status="{row, text}">
+        <SuccessBadge v-if="row.enrolled">{{ text }}</SuccessBadge>
+        <ErrorBadge v-else-if="row.mandated">{{ text }}</ErrorBadge>
+        <InfoBadge v-else>{{ text }}</InfoBadge>
+      </template>
+      <template #actions-head>{{ t('twoFactor.admin.col.actions') }}</template>
+      <template #actions="{row}">
+        <ErrorButton v-if="row.enrolled" compact @click="emit('reset', row)">
+          {{ t('twoFactor.admin.reset') }}
+        </ErrorButton>
+      </template>
+      <template #empty>
+        <MutedText tag="p" size="sm" class="text-center">{{ t('twoFactor.admin.noMembers') }}</MutedText>
+      </template>
+    </RecordTable>
   </NeutralContainer>
 </template>

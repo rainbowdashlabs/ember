@@ -3,51 +3,48 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {listFields, type InventoryFieldDefinition} from '@/api/inventoryFields'
 import {inventoryItemTags} from '@/api/inventoryTags'
-import {ItemOwner, type InventoryItem} from '@/api/inventory'
-import type { ColumnPickerOption } from '@/components/table/columns'
-import { byValue, useSortable } from '@/composables/useSortable'
-import { formatDate } from '@/util/format'
-import { matchesDateFilter, splitDateTokens } from '@/util/dateFilter'
+import type {InventoryItem, InventorySize} from '@/api/inventory'
+import {ColumnTypes, toCellValue, type CellValue, type TableColumn} from '@/components/table/tableColumn'
+import { useDataTable } from '@/composables/useDataTable'
+import {itemOwnerOptions} from '@/util/inventoryType'
 import { parseItemMetadata, type ParsedItemMetadata } from '../detailview/itemMetadata'
-
-export interface ItemTableColumn {
-  key: string
-  label: string
-}
 
 export interface ItemTableOptions {
   inventoryId: () => number
   items: () => InventoryItem[]
+  sizes: () => InventorySize[]
   hasSizes: () => boolean
   isMixed: () => boolean
   sizeLabel: (item: InventoryItem) => string
   assignedName: (item: InventoryItem) => string
 }
 
-const FIELD_PREFIX = 'field:'
+export const FIELD_PREFIX = 'field:'
 
+/** What the holder column can be narrowed to: who holds a piece, and whether it is put away. */
+const HOLDING = {
+  ASSIGNED: 'assigned',
+  NOT_ASSIGNED: 'notAssigned',
+  STORED: 'stored',
+  NOT_STORED: 'notStored',
+} as const
+
+/**
+ * The pieces of one inventory as a table: its fixed columns, one per custom field, and the tags
+ * where anything wears one.
+ *
+ * <p>The fields say what they hold, so a date field filters by day, a choice by its options and a
+ * number by a range, without anybody wiring that per field.
+ */
 export function useItemTable(options: ItemTableOptions) {
   const { t } = useI18n()
 
   const fieldDefs = ref<InventoryFieldDefinition[]>([])
   const tagNamesByItem = ref<Map<number, string[]>>(new Map())
-  const searchText = ref('')
-  const hiddenKeys = ref<Set<string>>(new Set())
-  const extraKeys = ref<Set<string>>(new Set())
-  const columnMultiFilters = ref<Map<string, Set<string>>>(new Map())
-  const columnEmptyFilters = ref<Set<string>>(new Set())
-
-  const filterModalOpen = ref(false)
-  const filterModalColumn = ref('name')
-  const filterModalLabel = ref('')
-  const filterModalValues = ref<string[]>([])
-  const filterModalSelected = ref<Set<string>>(new Set())
-  const filterModalIncludeEmpty = ref(false)
-  const filterModalKind = ref<'text' | 'date'>('text')
 
   /**
    * The words the things here wear, read again whenever the list of things is.
@@ -79,223 +76,96 @@ export function useItemTable(options: ItemTableOptions) {
   /** Whether anything here wears a tag at all, which is what makes the column worth a column. */
   const anyTags = computed(() => [...tagNamesByItem.value.values()].some(names => names.length > 0))
 
-  const defaultColumns = computed<ItemTableColumn[]>(() => [
-    { key: 'name', label: t('inventory.edit.colName') },
-    { key: 'internalId', label: t('inventory.edit.colId') },
-    ...(options.hasSizes() ? [{ key: 'size', label: t('inventory.edit.colSize') }] : []),
-    ...(options.isMixed() ? [{ key: 'owner', label: t('inventory.edit.colOwner') }] : []),
-    ...(anyTags.value ? [{ key: 'tags', label: t('inventory.tag.column') }] : []),
-    { key: 'assigned', label: t('inventory.edit.colAssigned') },
-  ])
-
-  const fieldColumns = computed<ItemTableColumn[]>(() =>
-    fieldDefs.value.map(def => ({ key: FIELD_PREFIX + def.key, label: def.label })))
-
-  const visibleColumns = computed<ItemTableColumn[]>(() => [
-    ...defaultColumns.value.filter(c => !hiddenKeys.value.has(c.key)),
-    ...fieldColumns.value.filter(c => extraKeys.value.has(c.key)),
-  ])
-
-  const visibleFieldColumns = computed<ItemTableColumn[]>(() =>
-    fieldColumns.value.filter(c => extraKeys.value.has(c.key)))
-
-  const pickerOptions = computed<ColumnPickerOption[]>(() => [
-    ...defaultColumns.value
-      .filter(c => c.key !== 'name' && c.key !== 'internalId')
-      .map(c => ({ key: c.key, label: c.label, visible: !hiddenKeys.value.has(c.key) })),
-    ...fieldColumns.value.map(c => ({ key: c.key, label: c.label, visible: extraKeys.value.has(c.key) })),
-  ])
-
-  function isColumnVisible(key: string): boolean {
-    return visibleColumns.value.some(c => c.key === key)
-  }
-
-  function toggleColumn(key: string | number) {
-    const columnKey = String(key)
-    const target = columnKey.startsWith(FIELD_PREFIX) ? extraKeys : hiddenKeys
-    const next = new Set(target.value)
-    if (next.has(columnKey)) { next.delete(columnKey) } else { next.add(columnKey) }
-    target.value = next
-  }
-
   const metadataById = computed(() => {
     const map = new Map<number, ParsedItemMetadata>()
     for (const item of options.items()) map.set(item.id, parseItemMetadata(item.metadata))
     return map
   })
 
-  function fieldValue(item: InventoryItem, fieldKey: string): string {
-    const def = fieldDefs.value.find(d => d.key === fieldKey)
-    const entry = metadataById.value.get(item.id)?.fields[fieldKey]
-    if (!def || entry === undefined || entry.value === undefined || entry.value === null) return ''
-    const value = entry.value
-    const config = def.config
-    switch (config.kind) {
-      case 'DATE': return formatDate(String(value))
-      case 'ENUM': return config.options.find(o => o.value === value)?.label ?? String(value)
-      case 'BOOLEAN': return value ? config.trueLabel : config.falseLabel
-      case 'NUMBER': return config.unit ? `${value} ${config.unit}` : String(value)
-      default: return String(value)
-    }
-  }
-
-  function ownerLabel(item: InventoryItem): string {
-    if (item.ownerKind === ItemOwner.STATION) return t('inventory.edit.ownerStation')
-    if (item.ownerKind === ItemOwner.CLUSTER) return t('inventory.edit.ownerCluster')
-    if (item.ownerKind === ItemOwner.PARTNER_STATION) return t('inventory.edit.ownerPartner')
-    return ''
-  }
-
-  function columnValue(item: InventoryItem, key: string): string {
-    switch (key) {
-      case 'name': return item.name ?? ''
-      case 'internalId': return item.internalId ?? ''
-      case 'size': return options.sizeLabel(item)
-      case 'owner': return ownerLabel(item)
-      case 'tags': return itemTagNames(item).join(', ')
-      case 'assigned': return item.assignedTo ? options.assignedName(item) : ''
-      default: return fieldValue(item, key.slice(FIELD_PREFIX.length))
-    }
-  }
-
   function itemTagNames(item: InventoryItem): string[] {
     return tagNamesByItem.value.get(item.id) ?? []
   }
 
-  /** Whether a column holds dates, which filter by day rather than by display string. */
-  function isDateColumn(key: string): boolean {
-    if (!key.startsWith(FIELD_PREFIX)) return false
-    const def = fieldDefs.value.find(d => d.key === key.slice(FIELD_PREFIX.length))
-    return def?.config.kind === 'DATE'
+  function rawFieldValue(item: InventoryItem, fieldKey: string): CellValue {
+    return toCellValue(metadataById.value.get(item.id)?.fields[fieldKey]?.value)
   }
 
-  /** The stored value, undressed: the date filter speaks ISO, not the formatted display. */
-  function rawFieldValue(item: InventoryItem, fieldKey: string): string {
-    const entry = metadataById.value.get(item.id)?.fields[fieldKey]
-    if (entry === undefined || entry.value === undefined || entry.value === null) return ''
-    return String(entry.value)
+  function fieldColumn(def: InventoryFieldDefinition): TableColumn<InventoryItem> {
+    const base = {
+      key: FIELD_PREFIX + def.key,
+      label: def.label,
+      value: (item: InventoryItem) => rawFieldValue(item, def.key),
+      defaultVisible: false,
+    }
+    const config = def.config
+    switch (config.kind) {
+      case 'DATE': return {...base, type: ColumnTypes.DATE}
+      case 'ENUM': return {...base, type: ColumnTypes.ENUM, options: config.options}
+      case 'BOOLEAN': return {...base, type: ColumnTypes.BOOLEAN, booleanLabels: {yes: config.trueLabel, no: config.falseLabel}}
+      case 'NUMBER': return {
+        ...base,
+        type: ColumnTypes.NUMBER,
+        display: item => {
+          const value = rawFieldValue(item, def.key)
+          if (value === null || value === undefined || value === '') return ''
+          return config.unit ? `${value} ${config.unit}` : String(value)
+        },
+      }
+      default: return {...base, type: ColumnTypes.TEXT}
+    }
   }
 
-  function assignedStatuses(item: InventoryItem): string[] {
+  function holdingOf(item: InventoryItem): string[] {
     return [
-      item.assignedTo ? t('inventory.edit.filterAssigned') : t('inventory.edit.filterNotAssigned'),
-      item.containerId ? t('inventory.edit.filterInStorage') : t('inventory.edit.filterNotInStorage'),
+      item.assignedTo ? HOLDING.ASSIGNED : HOLDING.NOT_ASSIGNED,
+      item.containerId ? HOLDING.STORED : HOLDING.NOT_STORED,
     ]
   }
 
-  function filterValues(item: InventoryItem, key: string): string[] {
-    if (key === 'assigned') return assignedStatuses(item)
-    if (key === 'tags') return itemTagNames(item)
-    const value = isDateColumn(key)
-      ? rawFieldValue(item, key.slice(FIELD_PREFIX.length))
-      : columnValue(item, key)
-    return value ? [value] : []
-  }
+  const sizeOptions = computed(() => options.sizes().map(size => ({value: String(size.id), label: size.label ?? ''})))
 
-  function distinctValues(key: string): string[] {
-    if (key === 'assigned') {
-      return [
-        t('inventory.edit.filterAssigned'),
-        t('inventory.edit.filterNotAssigned'),
-        t('inventory.edit.filterInStorage'),
-        t('inventory.edit.filterNotInStorage'),
-      ]
-    }
-    const values = new Set<string>()
-    for (const item of options.items()) {
-      for (const value of filterValues(item, key)) {
-        if (value) values.add(value)
-      }
-    }
-    return [...values].sort()
-  }
+  const ownerOptions = computed(() => itemOwnerOptions(t))
 
-  const searchedItems = computed(() => {
-    const query = searchText.value.trim().toLowerCase()
-    if (!query) return options.items()
-    return options.items().filter(item =>
-      ['name', 'internalId', 'size', 'assigned'].some(key => columnValue(item, key).toLowerCase().includes(query)))
+  const holdingOptions = computed(() => [
+    {value: HOLDING.ASSIGNED, label: t('inventory.edit.filterAssigned')},
+    {value: HOLDING.NOT_ASSIGNED, label: t('inventory.edit.filterNotAssigned')},
+    {value: HOLDING.STORED, label: t('inventory.edit.filterInStorage')},
+    {value: HOLDING.NOT_STORED, label: t('inventory.edit.filterNotInStorage')},
+  ])
+
+  const columns = computed<TableColumn<InventoryItem>[]>(() => [
+    {key: 'name', label: t('inventory.edit.colName'), type: ColumnTypes.TEXT, value: item => item.name, pinned: true},
+    {key: 'internalId', label: t('inventory.edit.colId'), type: ColumnTypes.TEXT, value: item => item.internalId, pinned: true},
+    ...(options.hasSizes() ? [{
+      key: 'size', label: t('inventory.edit.colSize'), type: ColumnTypes.ENUM,
+      value: (item: InventoryItem) => item.sizeId == null ? null : String(item.sizeId), options: sizeOptions.value,
+    }] : []),
+    ...(options.isMixed() ? [{
+      key: 'owner', label: t('inventory.edit.colOwner'), type: ColumnTypes.ENUM,
+      value: (item: InventoryItem) => item.ownerKind, options: ownerOptions.value,
+    }] : []),
+    ...(anyTags.value ? [{
+      key: 'tags', label: t('inventory.tag.column'), type: ColumnTypes.TEXT, value: itemTagNames,
+    }] : []),
+    {
+      key: 'assigned', label: t('inventory.edit.colAssigned'), type: ColumnTypes.ENUM,
+      value: holdingOf, options: holdingOptions.value,
+      display: options.assignedName,
+      sortValue: item => options.assignedName(item) || null,
+    },
+    ...fieldDefs.value.map(fieldColumn),
+  ])
+
+  const table = useDataTable<InventoryItem>({
+    id: () => `inventory-items:${options.inventoryId()}`,
+    rows: options.items,
+    columns,
+    rowKey: item => item.id,
+    searchText: item => `${options.sizeLabel(item)} ${options.assignedName(item)}`,
+    sort: {key: 'name'},
   })
 
-  const matchingItems = computed(() => {
-    let list = searchedItems.value
-    for (const [key, selectedValues] of columnMultiFilters.value) {
-      if (selectedValues.size === 0) continue
-      const includeEmpty = columnEmptyFilters.value.has(key)
-      const dateTokens = isDateColumn(key) ? splitDateTokens(selectedValues) : null
-      list = list.filter(item => {
-        const values = filterValues(item, key)
-        if (values.length === 0 || values.every(v => !v)) return includeEmpty
-        if (dateTokens) return values.some(v => matchesDateFilter(v, dateTokens))
-        return values.some(v => selectedValues.has(v))
-      })
-    }
-    for (const key of columnEmptyFilters.value) {
-      if ((columnMultiFilters.value.get(key)?.size ?? 0) > 0) continue
-      list = list.filter(item => {
-        const values = filterValues(item, key)
-        return values.length === 0 || values.every(v => !v)
-      })
-    }
-    return list
-  })
-
-  const {sorted: filteredItems, toggle: toggleSort, icon: sortIcon} = useSortable<InventoryItem, string>({
-    items: matchingItems,
-    initialKey: 'name',
-    comparators: key => byValue(item => columnValue(item, key)),
-  })
-
-  function hasActiveFilter(key: string): boolean {
-    const multi = columnMultiFilters.value.get(key)
-    if (multi && multi.size > 0) return true
-    return columnEmptyFilters.value.has(key)
-  }
-
-  function openFilterModal(key: string, label: string) {
-    filterModalColumn.value = key
-    filterModalLabel.value = label
-    filterModalKind.value = isDateColumn(key) ? 'date' : 'text'
-    filterModalValues.value = distinctValues(key)
-    filterModalSelected.value = new Set(columnMultiFilters.value.get(key) ?? [])
-    filterModalIncludeEmpty.value = columnEmptyFilters.value.has(key)
-    filterModalOpen.value = true
-  }
-
-  function applyColumnFilter(selected: Set<string>, includeEmpty: boolean) {
-    const key = filterModalColumn.value
-    const newMap = new Map(columnMultiFilters.value)
-    if (selected.size > 0) { newMap.set(key, selected) } else { newMap.delete(key) }
-    columnMultiFilters.value = newMap
-    const newEmpty = new Set(columnEmptyFilters.value)
-    if (includeEmpty) { newEmpty.add(key) } else { newEmpty.delete(key) }
-    columnEmptyFilters.value = newEmpty
-  }
-
-  return reactive({
-    fieldDefs,
-    searchText,
-    filteredItems,
-    visibleColumns,
-    itemTagNames,
-    anyTags,
-    visibleFieldColumns,
-    pickerOptions,
-    isColumnVisible,
-    toggleColumn,
-    columnValue,
-    sortIcon,
-    toggleSort,
-    hasActiveFilter,
-    openFilterModal,
-    applyColumnFilter,
-    filterModalOpen,
-    filterModalLabel,
-    filterModalValues,
-    filterModalSelected,
-    filterModalIncludeEmpty,
-    filterModalKind,
-  })
+  return {table, itemTagNames}
 }
 
 export type ItemTableApi = ReturnType<typeof useItemTable>

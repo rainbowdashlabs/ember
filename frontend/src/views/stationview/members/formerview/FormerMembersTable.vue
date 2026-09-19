@@ -4,18 +4,21 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import DataTable from '@/components/table/DataTable.vue'
-import Th from '@/components/table/Th.vue'
-import Td from '@/components/table/Td.vue'
-import TRow from '@/components/table/TRow.vue'
+import RecordTable from '@/components/table/RecordTable.vue'
+import { ColumnTypes, type TableColumn } from '@/components/table/tableColumn'
 import type { StationMember } from '@/api/types'
+import { useDataTable } from '@/composables/useDataTable'
+import { memberNameColumn } from '../listview/memberColumns'
 
-defineProps<{
+/**
+ * The people who have left the station, sortable and filterable by name, address and leaving day.
+ * The ones who left most recently come first.
+ */
+const props = defineProps<{
   members: StationMember[]
-  memberDisplayName: (m: StationMember) => string
-  formatDate: (d?: string | null) => string
 }>()
 
 defineEmits<{
@@ -23,25 +26,31 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+const columns = computed<TableColumn<StationMember>[]>(() => [
+  memberNameColumn(t),
+  { key: 'email', label: t('membersList.colEmail'), type: ColumnTypes.TEXT, value: member => member.email },
+  { key: 'formerAt', label: t('formerMembers.colFormerAt'), type: ColumnTypes.DATE, value: member => member.formerAt },
+])
+
+const table = useDataTable<StationMember>({
+  id: 'former-members',
+  rows: () => props.members,
+  columns,
+  rowKey: member => member.id,
+  sort: { key: 'formerAt', direction: 'desc' },
+})
 </script>
 
 <template>
-  <DataTable>
-    <template #head>
-      <Th>{{ t('membersList.colName') }}</Th>
-      <Th>{{ t('membersList.colEmail') }}</Th>
-      <Th>{{ t('formerMembers.colFormerAt') }}</Th>
-      <th class="px-3 py-2"></th>
+  <RecordTable :table="table" test-id="former-members-table">
+    <template #cell-name="{text}">
+      <span class="font-medium text-(--text-muted)">{{ text }}</span>
     </template>
-    <TRow v-for="member in members" :key="member.id">
-      <Td class="font-medium text-(--text-muted)">{{ memberDisplayName(member) }}</Td>
-      <Td muted>{{ member.email ?? '' }}</Td>
-      <Td muted>{{ formatDate(member.formerAt) }}</Td>
-      <Td align="right">
-        <PrimaryButton :icon="['fas', 'user-check']" @click="$emit('reactivate', member)">
-          {{ t('formerMembers.reactivate') }}
-        </PrimaryButton>
-      </Td>
-    </TRow>
-  </DataTable>
+    <template #actions="{row}">
+      <PrimaryButton :icon="['fas', 'user-check']" @click="$emit('reactivate', row)">
+        {{ t('formerMembers.reactivate') }}
+      </PrimaryButton>
+    </template>
+  </RecordTable>
 </template>

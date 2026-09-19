@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
 import dev.chojo.ember.feature.members.entity.MemberTable;
+import dev.chojo.ember.feature.members.entity.MemberTableCellType;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -574,7 +575,10 @@ public class EventRegistrationRoutes implements Routes {
         ctx.json(new TableColumnsResponse(
                 memberTableService.offerableColumns(session.stationId(), session.permissions()),
                 questions.entrySet().stream()
-                        .map(entry -> new QuestionColumn(entry.getKey(), entry.getValue()))
+                        .map(entry -> new QuestionColumn(
+                                entry.getKey(),
+                                entry.getValue().label(),
+                                entry.getValue().type()))
                         .toList()));
     }
 
@@ -1038,7 +1042,7 @@ public class EventRegistrationRoutes implements Routes {
     public record TableColumnsResponse(List<MemberTable.MemberTableHeader> member, List<QuestionColumn> questions) {}
 
     /** One of an appointment's own questions, offered as a column. */
-    public record QuestionColumn(int fieldId, String label) {}
+    public record QuestionColumn(int fieldId, String label, MemberTableCellType type) {}
 
     /**
      * @param date    the day the table is about, because a registration belongs to one

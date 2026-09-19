@@ -310,12 +310,12 @@
       }
     },
     {
-      "key": "inv-members-visible-ids",
+      "key": "table_columns",
       "necessity": "COMFORT",
       "retention": "UNTIL_CLEARED",
       "purpose": {
-        "de": "Welche Mitglieder Sie in der Materialübersicht eingeblendet haben.",
-        "en": "Which members you have shown in the inventory overview."
+        "de": "Welche Spalten Sie in den Tabellen eingeblendet haben, je Tabelle und Wache.",
+        "en": "Which columns you have shown in the tables, per table and station."
       }
     }
   ]

@@ -8,7 +8,8 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import {InventoryTypes} from '@/api/inventory'
+import {InventoryTypes, ItemOwner} from '@/api/inventory'
+import {enumOptions, type ColumnOption} from '@/components/table/tableColumn'
 
 /**
  * Translation function shape compatible with the {@code t} returned by
@@ -62,4 +63,9 @@ export function itemOwnerLabel(t: InventoryTypeTranslator, ownerKind?: string | 
     if (ownerKind === 'STATION') return t('inventory.edit.ownerStation')
     if (ownerKind === 'PARTNER_STATION') return t('inventory.edit.ownerPartner')
     return t('inventory.edit.ownerCluster')
+}
+
+/** Every owner a piece can have, each by its name. */
+export function itemOwnerOptions(t: InventoryTypeTranslator): ColumnOption[] {
+    return enumOptions(Object.values(ItemOwner), owner => itemOwnerLabel(t, owner))
 }

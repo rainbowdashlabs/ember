@@ -13,21 +13,24 @@ import Alert from '@/components/feedback/Alert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import MemberListHeader from './memberlistview/MemberListHeader.vue'
 import MemberListBody from './memberlistview/MemberListBody.vue'
+import MemberListFilters from './memberlistview/MemberListFilters.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import { inventory, stationMembers, memberGroups, userTags } from '@/api'
 import type { Inventory, InventoryItem } from '@/api/inventory'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { useMemberFilter } from '@/composables/useMemberFilter'
-import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useDataTable } from '@/composables/useDataTable'
 import { useInventoryMemberExport } from './memberlistview/useInventoryMemberExport'
+import { inventoryIdOfColumn, inventoryMemberColumns, NAME_KEY } from './memberlistview/inventoryMemberColumns'
+import { memberDisplayName } from '@/views/stationview/members/listview/useMemberData'
+import { itemLabel, type ItemLabelParts } from './memberlistview/itemLabel'
 import { getItem, setItem } from '@/api/storage'
 
 const routes = useInventoryRoutes()
 
 const { t } = useI18n()
 const router = useRouter()
-const { isMobile } = useBreakpoint()
 
 const members = ref<StationMember[]>([])
 const inventories = ref<Inventory[]>([])
@@ -38,13 +41,10 @@ const tags = ref<UserTag[]>([])
 const memberGroupNames = ref<Map<number, string[]>>(new Map())
 const memberTagNames = ref<Map<number, string[]>>(new Map())
 const showEmpty = ref(false)
-const visibleInventoryIds = ref<Set<number>>(new Set())
 
 const showName = ref(getItem('inv-members-show-name') !== 'false')
 const showInternalId = ref(getItem('inv-members-show-internal-id') === 'true')
 const showSize = ref(getItem('inv-members-show-size') !== 'false')
-
-const filterText = ref('')
 
 const memberItemMap = computed(() => {
   const map = new Map<number, Map<number, InventoryItem[]>>()
@@ -69,31 +69,45 @@ const {
     () => tags.value,
 )
 
-function memberDisplayName(m: StationMember): string {
-  return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
-}
-
-const filteredMembers = computed(() => {
-  let result = applyMemberFilter(members.value)
-  if (!showEmpty.value) {
-    result = result.filter(m => memberItemMap.value.has(m.id))
-  }
-  const q = filterText.value.toLowerCase().trim()
-  if (q) {
-    result = result.filter(m =>
-        memberDisplayName(m).toLowerCase().includes(q)
-        || (m.email ?? '').toLowerCase().includes(q))
-  }
-  return result.sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
+const candidates = computed(() => {
+  const result = applyMemberFilter(members.value)
+  return showEmpty.value ? result : result.filter(m => memberItemMap.value.has(m.id))
 })
 
-const displayedInventories = computed(() => inventories.value.filter(inv => visibleInventoryIds.value.has(inv.id)))
+const parts = computed<ItemLabelParts>(() => ({
+  showName: showName.value,
+  showInternalId: showInternalId.value,
+  showSize: showSize.value,
+  sizeMap: sizeMap.value,
+}))
 
-function toggleInventory(invId: number) {
-  const s = new Set(visibleInventoryIds.value)
-  if (s.has(invId)) s.delete(invId); else s.add(invId)
-  visibleInventoryIds.value = s
+function memberInventoryItems(memberId: number, inventoryId: number): InventoryItem[] {
+  return memberItemMap.value.get(memberId)?.get(inventoryId) ?? []
 }
+
+function formatItemLabel(item: InventoryItem): string {
+  return itemLabel(item, parts.value)
+}
+
+const table = useDataTable<StationMember>({
+  id: 'inventory-members',
+  rows: candidates,
+  columns: computed(() => inventoryMemberColumns({
+    t,
+    inventories: inventories.value,
+    itemsFor: memberInventoryItems,
+    label: formatItemLabel,
+  })),
+  rowKey: member => member.id,
+  sort: {key: NAME_KEY},
+  searchText: member => member.email ?? '',
+})
+
+const visibleInventoryIds = computed(() => new Set(table.visibleColumns
+  .map(column => inventoryIdOfColumn(column.key))
+  .filter((id): id is number => id !== null)))
+
+const displayedInventories = computed(() => inventories.value.filter(inv => visibleInventoryIds.value.has(inv.id)))
 
 const {loading, error} = useAsyncLoader(async () => {
   const [mems, invs, grps, tgs] = await Promise.all([
@@ -106,17 +120,6 @@ const {loading, error} = useAsyncLoader(async () => {
   inventories.value = invs
   groups.value = grps
   tags.value = tgs
-
-  const storedIds = getItem('inv-members-visible-ids')
-  if (storedIds) {
-    try {
-      const parsed = JSON.parse(storedIds) as number[]
-      const validIds = new Set(invs.map(i => i.id))
-      visibleInventoryIds.value = new Set(parsed.filter(id => validIds.has(id)))
-    } catch { visibleInventoryIds.value = new Set(invs.map(i => i.id)) }
-  } else {
-    visibleInventoryIds.value = new Set(invs.map(i => i.id))
-  }
 
   const [allItemsRes, allSizesRes, groupDetails, tagDetails] = await Promise.all([
     inventory.listAllItems(),
@@ -149,12 +152,11 @@ const {loading, error} = useAsyncLoader(async () => {
   memberTagNames.value = tNames
 })
 
-watch(visibleInventoryIds, ids => setItem('inv-members-visible-ids', JSON.stringify([...ids])))
 watch(showName, v => setItem('inv-members-show-name', String(v)))
 watch(showInternalId, v => setItem('inv-members-show-internal-id', String(v)))
 watch(showSize, v => setItem('inv-members-show-size', String(v)))
 
-watch(filteredMembers, list => {
+watch(() => table.rows, list => {
   if (!exportMode.value) return
   if (selectedForExport.value.size === 0) return
   const visibleIds = new Set(list.map(m => m.id))
@@ -166,21 +168,6 @@ watch(filteredMembers, list => {
   }
   if (changed) selectedForExport.value = next
 })
-
-function formatItemLabel(item: InventoryItem): string {
-  const parts: string[] = []
-  if (showName.value && item.name) parts.push(item.name)
-  if (showInternalId.value && item.internalId) parts.push(`(${item.internalId})`)
-  if (showSize.value && item.sizeId) {
-    const label = sizeMap.value.get(item.sizeId)
-    if (label) parts.push(label)
-  }
-  return parts.join(' ') || item.name || '-'
-}
-
-function memberInventoryItems(memberId: number, inventoryId: number): InventoryItem[] {
-  return memberItemMap.value.get(memberId)?.get(inventoryId) ?? []
-}
 
 const {
   exportMode,
@@ -197,7 +184,7 @@ const {
   exportCsv,
   exportPdf,
 } = useInventoryMemberExport(
-  filteredMembers,
+  () => table.rows,
   displayedInventories,
   visibleInventoryIds,
   {showName, showInternalId, showSize},
@@ -221,7 +208,7 @@ function goToMember(memberId: number) {
         :export-mode="exportMode"
         :exporting="exporting"
         :selected-count="selectedForExport.size"
-        :has-members="filteredMembers.length > 0"
+        :has-members="table.rows.length > 0"
         @enter-export="enterExportMode"
         @cancel-export="cancelExport"
         @export-csv="exportCsv"
@@ -231,31 +218,27 @@ function goToMember(memberId: number) {
       <Alert v-if="error || exportError" variant="error">{{ error || exportError }}</Alert>
 
       <AsyncSection :loading="loading">
-        <SearchInput v-model="filterText" :placeholder="t('membersList.filter')" autofocus />
+        <SearchInput v-model="table.search" :placeholder="t('membersList.filter')" autofocus />
 
-        <MemberListBody
+        <MemberListFilters
           v-model:show-empty="showEmpty"
+          v-model:show-name="showName"
+          v-model:show-internal-id="showInternalId"
+          v-model:show-size="showSize"
           :groups="groups"
           :tags="tags"
-          :inventories="inventories"
-          :displayed-inventories="displayedInventories"
-          :visible-inventory-ids="visibleInventoryIds"
-          :show-name="showName"
-          :show-internal-id="showInternalId"
-          :show-size="showSize"
+          :table="table"
+          @filter="onFilter"
+        />
+
+        <MemberListBody
+          :table="table"
+          :parts="parts"
           :export-mode="exportMode"
           :all-fields="allFields"
           :selected-export-fields="selectedExportFields"
-          :filtered-members="filteredMembers"
           :selected-for-export="selectedForExport"
-          :is-mobile="isMobile"
-          :member-item-map="memberItemMap"
-          :size-map="sizeMap"
-          @update:show-name="showName = $event"
-          @update:show-internal-id="showInternalId = $event"
-          @update:show-size="showSize = $event"
-          @filter="onFilter"
-          @toggle-inventory="toggleInventory"
+          :items-for="memberInventoryItems"
           @toggle-export-field="toggleExportField"
           @go-to-member="goToMember"
           @toggle-export-selection="toggleExportSelection"

@@ -6,11 +6,14 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.members.entity.MemberTable;
+import dev.chojo.ember.feature.members.entity.MemberTableCellType;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.MemberTablePeople;
+import dev.chojo.ember.feature.members.entity.MemberTableQuestion;
 import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.station.entity.Station;
 import jakarta.inject.Inject;
@@ -56,16 +59,31 @@ public class EventMemberTableService {
      *
      * @param eventId            the appointment
      * @param readsHiddenAnswers whether this reader may see the questions kept for whoever runs it
-     * @return the questions, by id and label
+     * @return the questions, by id
      */
-    public Map<Integer, String> offerableQuestions(int eventId, boolean readsHiddenAnswers) {
+    public Map<Integer, MemberTableQuestion> offerableQuestions(int eventId, boolean readsHiddenAnswers) {
         var hidden = registrationFieldService.hiddenFieldIds(eventId, readsHiddenAnswers);
-        var labels = new LinkedHashMap<Integer, String>();
+        var questions = new LinkedHashMap<Integer, MemberTableQuestion>();
         for (var field : registrationFieldService.findByEvent(eventId)) {
             if (hidden.contains(field.id())) continue;
-            labels.put(field.id(), field.name());
+            questions.put(field.id(), new MemberTableQuestion(field.name(), cellTypeOf(field.fieldType())));
         }
-        return labels;
+        return questions;
+    }
+
+    /**
+     * What an answer to a question of this kind holds in the table.
+     *
+     * <p>A choice and a named member stay text: the table writes the answer as it was given.
+     */
+    static MemberTableCellType cellTypeOf(EventFieldType type) {
+        if (type == null) return MemberTableCellType.TEXT;
+        return switch (type) {
+            case NUMBER -> MemberTableCellType.NUMBER;
+            case DATE -> MemberTableCellType.DATE;
+            case BOOLEAN -> MemberTableCellType.BOOLEAN;
+            default -> MemberTableCellType.TEXT;
+        };
     }
 
     /**

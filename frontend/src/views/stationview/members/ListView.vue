@@ -30,6 +30,7 @@ const port: MemberListPort = {
   canExport: computed(() => hasPermission(StationPermission.MEMBER_EXPORT)),
   canEdit: computed(() => canEditMemberAccounts()),
   exportFileName: 'mitglieder',
+  tableId: 'members',
 }
 
 const config = useMemberListConfig(port)

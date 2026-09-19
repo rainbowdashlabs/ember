@@ -4,29 +4,21 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
-import {useI18n} from 'vue-i18n'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import {StorageStatus, type StorageStatusName} from './storageStatus'
 
-const props = defineProps<{
-  usesOwnBackend: boolean
-  quotaUsedPercent: number
+/** How full a station's room is, as a badge in the colour of the state, or a dash where it has none. */
+defineProps<{
+  status: StorageStatusName | null
+  label: string
 }>()
-
-const {t} = useI18n()
-
-const status = computed(() => {
-  if (props.quotaUsedPercent >= 95) return 'full'
-  if (props.quotaUsedPercent >= 80) return 'warning'
-  return 'ok'
-})
 </script>
 
 <template>
-  <span v-if="usesOwnBackend" class="text-xs text-(--text-muted)">-</span>
-  <SuccessBadge v-else-if="status === 'ok'">OK</SuccessBadge>
-  <InfoBadge v-else-if="status === 'warning'">{{ t('storageMonitoring.warning') }}</InfoBadge>
-  <ErrorBadge v-else>{{ t('storageMonitoring.full') }}</ErrorBadge>
+  <span v-if="status === null" class="text-xs text-(--text-muted)">-</span>
+  <SuccessBadge v-else-if="status === StorageStatus.OK">{{ label }}</SuccessBadge>
+  <InfoBadge v-else-if="status === StorageStatus.WARNING">{{ label }}</InfoBadge>
+  <ErrorBadge v-else>{{ label }}</ErrorBadge>
 </template>

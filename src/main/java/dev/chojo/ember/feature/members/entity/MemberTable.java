@@ -21,10 +21,11 @@ import java.util.List;
 public record MemberTable(List<MemberTableHeader> columns, List<MemberTableRow> rows) {
 
     /**
-     * A column as the reader sees it: what it is called, and what it points at so a screen can tell
-     * two identically named questions apart.
+     * A column as the reader sees it: what it is called, what it points at so a screen can tell two
+     * identically named questions apart, and what its cells hold.
      */
-    public record MemberTableHeader(String label, MemberTableColumnKind kind, String key, Integer fieldId) {}
+    public record MemberTableHeader(
+            String label, MemberTableColumnKind kind, String key, Integer fieldId, MemberTableCellType type) {}
 
     /** One person's row, in the same order as the columns. */
     public record MemberTableRow(int memberId, List<String> values) {}

@@ -2,8 +2,27 @@
 
 ## v26.18.3
 
+### Verbesserungen
+
+- **Die Spaltenauswahl einer Tabelle schließt sich von selbst.** Sie blieb offen, bis ihr Knopf noch einmal gedrückt wurde; jetzt schließt sie sich bei einem Klick irgendwo sonst auf der Seite oder mit Escape. Auch das Menü einer Zeile schließt sich, sobald das einer anderen Zeile geöffnet wird.
+- **Die Spaltenauswahl blendet alle oder keine auf einmal ein.** Zwei Knöpfe oben darin zeigen oder verbergen alle Spalten, und eine lange Liste verteilt sich auf mehrere Spalten, statt über den Bildschirm hinauszulaufen.
+- **Tabellenfilter passen zum Inhalt der Spalte.** Jede Spalte der Mitgliederliste, der Stücke eines Inventars und der Anmeldungen zu einem Termin bietet den Filter an, den ihr Inhalt verlangt: Daten nach Tag, Geburtsdaten zusätzlich nach Alter, Zahlen über einen Bereich und Auswahlfelder über ihre Namen. Sortiert wird nach derselben Regel, sodass Zahlen und Tage in der richtigen Reihenfolge stehen und Auswahlfelder in der, in der sie angelegt wurden.
+- **Tabellen merken sich ihre Spalten.** Wo du das Speichern von Komfort-Einstellungen erlaubt hast, sind die für eine Tabelle gewählten Spalten beim nächsten Besuch im selben Browser noch gewählt, und die Mitgliederliste merkt sich die Auswahl für jeden Reiter einzeln. Die Datenschutzerklärung führt das einmal für alle Tabellen auf und fragt deshalb einmalig erneut nach deiner Zustimmung.
+- **Tabellen sortieren und filtern auch auf dem Handy.** Auf einem kleinen Bildschirm sind die Zeilen Karten mit den gewählten Spalten, darüber stehen eine Sortierung und ein Filter.
+- **Weitere Listen der Wache sortieren und filtern nach jeder Spalte.** Die Warteschlange der Bewegungen, geliehene Ausrüstung, Inventarprüfungen, die Inventarübersicht, die Mitgliederliste im Inventar, Wartelisten, die Anmeldestatistik, ehemalige Mitglieder, der Stand der Zwei-Faktor-Anmeldung, die Nutzung der Kalender-Feeds sowie Backlog und Archiv der Boards funktionieren wie die Mitgliederliste: Jede Spaltenüberschrift sortiert und filtert, und bei den längeren lassen sich die Spalten wählen.
+- **Die Listen des Verbands und der Administration ziehen nach.** Die Mitgliederliste des Verbands, der Speicher, die Bewegungen und die Ausrüstung auf den Wachen sowie in der Administration die Bewerbungen, das Zwei-Faktor-Protokoll, der API-Status, die Datenverfolgung, das Mail-Protokoll und die Beacon-Zahlen sortieren und filtern über jede Spaltenüberschrift und lassen ihre Spalten wählen.
+- **Bewerbungen mit unbestätigter Adresse sagen das.** Eine Bewerbung, deren Adresse noch nicht bestätigt ist, erscheint nicht mehr als wartend wie die anderen, sodass sich beide unterscheiden und filtern lassen.
+- **Die Beacon-Zahlen zeigen Konten und Wachen.** Zwei Spalten, die erfasst, aber nie angezeigt wurden, lassen sich in der Spaltenauswahl einschalten.
+
+### Änderungen
+
+- **Sortieren und Filtern sind in die Spaltenüberschriften gewandert.** Die Sortierliste und die Filterknöpfe der Bewegungen, die Sortierknöpfe der geliehenen Ausrüstung und der Sortierschalter der Inventarprüfungen sind weg; stattdessen sortieren und filtern die Spaltenüberschriften, und die Bewegungen filtern ihre Stücke nach Inventar und ihre Schritt-Spalte nach Status, nach wem dran ist und nach dem erreichten Schritt beim Namen. Die Mitgliederliste im Inventar vergisst einmalig die vor dieser Version gewählten Spalten.
+
 ### Fehlerbehebungen
 
+- **Nach einem Datum sortierte Anmeldungen standen durcheinander.** In der Tabelle der Anmeldungen zu einem Termin sortierte eine Datumsspalte die Tage als Text, sodass der 2. Januar vor dem 15. Dezember des Vorjahres stand. Sie sortiert jetzt nach dem Tag.
+- **Ein gespeicherter Mitgliederfilter vergaß die offenen Fragen.** Ein gespeicherter Filter nach Personen, die eine Frage nicht beantwortet hatten, kam beim erneuten Auswählen ohne diese Bedingung zurück. Jetzt kommt er vollständig zurück.
+- **Gruppiertes Inventar ignorierte die Tabellensteuerung.** Wo die Stücke eines Inventars nach Art gruppiert sind, hatten Spaltenauswahl sowie Sortieren und Filtern über eine Spaltenüberschrift keine Wirkung. Jetzt gelten sie für jede Gruppe.
 - **Erziehungsberechtigte konnten die Dateien eines Termins nicht öffnen.** Bei einem Termin, der nur bestimmten Mitgliedern angezeigt wird, sahen Erziehungsberechtigte ihn über ihre Kinder, bekamen seine Dateien aber verweigert. Die Dateien stehen ihnen jetzt offen, sobald eines ihrer Kinder den Termin sehen darf.
 - **Downloads taten auf dem iPhone nichts.** Ein Druck auf einen Download-Knopf auf iPhone oder iPad konnte ohne jede Meldung ins Leere gehen, vor allem im Browser, der in andere Apps eingebaut ist. Die Datei öffnet jetzt das Teilen-Menü, von wo aus sie sich in Dateien sichern oder weitergeben lässt.
 

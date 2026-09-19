@@ -7,9 +7,11 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.MemberTable;
+import dev.chojo.ember.feature.members.entity.MemberTableCellType;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.MemberTableColumnKind;
 import dev.chojo.ember.feature.members.entity.MemberTablePeople;
+import dev.chojo.ember.feature.members.entity.MemberTableQuestion;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.RichMember;
@@ -70,12 +72,16 @@ public class MemberTableService {
     public List<MemberTable.MemberTableHeader> offerableColumns(int stationId, Set<StationPermission> permissions) {
         var offered = new ArrayList<MemberTable.MemberTableHeader>();
         for (var builtin : Builtin.values()) {
-            offered.add(
-                    new MemberTable.MemberTableHeader(builtin.label, MemberTableColumnKind.BUILTIN, builtin.key, null));
+            offered.add(new MemberTable.MemberTableHeader(
+                    builtin.label, MemberTableColumnKind.BUILTIN, builtin.key, null, builtin.type));
         }
         for (var field : readableFields(stationId, permissions).values()) {
             offered.add(new MemberTable.MemberTableHeader(
-                    field.name(), MemberTableColumnKind.PROFILE_FIELD, null, field.id()));
+                    field.name(),
+                    MemberTableColumnKind.PROFILE_FIELD,
+                    null,
+                    field.id(),
+                    MemberTableCellType.of(field.fieldType())));
         }
         return offered;
     }
@@ -87,8 +93,8 @@ public class MemberTableService {
      * @param people         who the table is about, and what the naming screen knows beyond that
      * @param requested      the columns asked for, which may name more than this reader may read
      * @param permissions    the reader's own permissions, already expanded
-     * @param questionLabels what an appointment calls each of its own questions, by question id, and
-     *                       empty where the table is not drawn for one
+     * @param questions      an appointment's own questions, by question id, and empty where the table
+     *                       is not drawn for one
      * @return the table, carrying only the columns that survived
      */
     public MemberTable build(
@@ -96,16 +102,16 @@ public class MemberTableService {
             MemberTablePeople people,
             List<MemberTableColumn> requested,
             Set<StationPermission> permissions,
-            Map<Integer, String> questionLabels) {
+            Map<Integer, MemberTableQuestion> questions) {
         var readable = readableFields(station.id(), permissions);
         var kept = new ArrayList<MemberTableColumn>();
         var headers = new ArrayList<MemberTable.MemberTableHeader>();
         for (var column : requested) {
             if (!column.isWellFormed()) continue;
-            var label = labelOf(column, readable, questionLabels);
-            if (label == null) continue;
+            var header = headerOf(column, readable, questions);
+            if (header == null) continue;
             kept.add(column);
-            headers.add(new MemberTable.MemberTableHeader(label, column.kind(), column.key(), column.fieldId()));
+            headers.add(header);
         }
 
         var members = membersById(station.id());
@@ -138,16 +144,29 @@ public class MemberTableService {
         return byId;
     }
 
-    private String labelOf(
-            MemberTableColumn column, Map<Integer, ProfileField> readable, Map<Integer, String> questionLabels) {
+    /** The header a requested column is drawn under, or null where this reader may not have it. */
+    private MemberTable.MemberTableHeader headerOf(
+            MemberTableColumn column,
+            Map<Integer, ProfileField> readable,
+            Map<Integer, MemberTableQuestion> questions) {
         return switch (column.kind()) {
-            case BUILTIN -> Builtin.labelOf(column.key());
+            case BUILTIN -> {
+                var builtin = Builtin.of(column.key());
+                yield builtin == null ? null : headerOf(column, builtin.label, builtin.type);
+            }
             case PROFILE_FIELD -> {
                 var field = readable.get(column.fieldId());
-                yield field == null ? null : field.name();
+                yield field == null ? null : headerOf(column, field.name(), MemberTableCellType.of(field.fieldType()));
             }
-            case REGISTRATION_FIELD -> questionLabels.get(column.fieldId());
+            case REGISTRATION_FIELD -> {
+                var question = questions.get(column.fieldId());
+                yield question == null ? null : headerOf(column, question.label(), question.type());
+            }
         };
+    }
+
+    private MemberTable.MemberTableHeader headerOf(MemberTableColumn column, String label, MemberTableCellType type) {
+        return new MemberTable.MemberTableHeader(label, column.kind(), column.key(), column.fieldId(), type);
     }
 
     private Map<Integer, RichMember> membersById(int stationId) {
@@ -302,25 +321,27 @@ public class MemberTableService {
      * door in front of the table is what decides whether they may see the person.
      */
     private enum Builtin {
-        NAME("name", "Name"),
-        MEMBER_TYPE("memberType", "Benutzertyp"),
-        GROUPS("groups", "Gruppen"),
-        TAGS("tags", "Tags"),
-        EMAIL("email", "E-Mail"),
-        JOIN_DATE("joinDate", "Eintritt"),
-        REGISTRATION_STATUS("registrationStatus", "Anmeldung");
+        NAME("name", "Name", MemberTableCellType.TEXT),
+        MEMBER_TYPE("memberType", "Benutzertyp", MemberTableCellType.ENUM),
+        GROUPS("groups", "Gruppen", MemberTableCellType.TEXT),
+        TAGS("tags", "Tags", MemberTableCellType.TEXT),
+        EMAIL("email", "E-Mail", MemberTableCellType.TEXT),
+        JOIN_DATE("joinDate", "Eintritt", MemberTableCellType.DATE),
+        REGISTRATION_STATUS("registrationStatus", "Anmeldung", MemberTableCellType.ENUM);
 
         private final String key;
         private final String label;
+        private final MemberTableCellType type;
 
-        Builtin(String key, String label) {
+        Builtin(String key, String label, MemberTableCellType type) {
             this.key = key;
             this.label = label;
+            this.type = type;
         }
 
-        static String labelOf(String key) {
+        static Builtin of(String key) {
             for (var builtin : values()) {
-                if (builtin.key.equals(key)) return builtin.label;
+                if (builtin.key.equals(key)) return builtin;
             }
             return null;
         }

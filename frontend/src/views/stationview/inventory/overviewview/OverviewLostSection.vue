@@ -4,74 +4,61 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import {computed} from 'vue'
+import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MemberInventoryLink from '@/components/inventory/MemberInventoryLink.vue'
-import DataTable from '@/components/table/DataTable.vue'
-import Th from '@/components/table/Th.vue'
-import Td from '@/components/table/Td.vue'
-import TRow from '@/components/table/TRow.vue'
-import { useBreakpoint } from '@/composables/useBreakpoint'
-import { inventoryTypeBadge, inventoryTypeLabel as toInventoryTypeLabel } from '@/util/inventoryType'
-import type { LostItem } from './types'
-import { formatDate } from '@/util/format'
+import RecordTable from '@/components/table/RecordTable.vue'
+import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
+import {useDataTable} from '@/composables/useDataTable'
+import InventoryTypeCell from './InventoryTypeCell.vue'
+import {INVENTORY_TYPE_KEY, inventoryTypeColumn} from './inventoryTypeColumn'
+import type {LostItem} from './types'
 
-const { t } = useI18n()
-const { isMobile } = useBreakpoint()
-
-defineProps<{
+/** The pieces reported lost, as the inventory overview shows them: what, out of which kind, and on whom. */
+const props = defineProps<{
   items: LostItem[]
 }>()
 
-function inventoryTypeLabel(type?: string | null): string {
-  return toInventoryTypeLabel(t, type)
-}
+const {t} = useI18n()
+
+const columns = computed<TableColumn<LostItem>[]>(() => [
+  {key: 'item', label: t('inventory.overview.colItem'), type: ColumnTypes.TEXT, value: lost => lost.item.name},
+  inventoryTypeColumn<LostItem>(t, lost => lost.inventoryType),
+  {key: 'member', label: t('inventory.overview.colOwner'), type: ColumnTypes.TEXT, value: lost => lost.ownerName},
+  {key: 'lostAt', label: t('inventory.overview.colLostSince'), type: ColumnTypes.DATE, value: lost => lost.item.lostAt},
+])
+
+const table = useDataTable<LostItem>({
+  id: 'inventory-overview-lost',
+  rows: () => props.items,
+  columns,
+  rowKey: lost => lost.item.id,
+  searchText: lost => `${lost.item.internalId ?? ''} ${lost.sizeName}`,
+})
 </script>
 
 <template>
   <div class="space-y-3">
     <SubHeader>{{ t('inventory.overview.lost') }}</SubHeader>
-    <div v-if="isMobile" class="space-y-2">
-      <NeutralContainer v-for="a in items" :key="a.item.id" class="space-y-1">
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-medium">{{ a.item.name }}</span>
-          <ErrorBadge>{{ formatDate(a.item.lostAt) }}</ErrorBadge>
-        </div>
-        <div class="flex items-center gap-2">
-          <component :is="inventoryTypeBadge(a.inventoryType)">{{ inventoryTypeLabel(a.inventoryType) }}</component>
-          <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
-          <MutedText v-if="a.item.internalId">{{ a.item.internalId }}</MutedText>
-        </div>
-        <MutedText tag="div"><MemberInventoryLink :identity="a.ownerIdentity" :member-id="a.item.assignedTo"/></MutedText>
-      </NeutralContainer>
-    </div>
-    <DataTable v-else>
-      <template #head>
-        <Th>{{ t('inventory.overview.colItem') }}</Th>
-        <Th>{{ t('inventory.overview.colType') }}</Th>
-        <Th>{{ t('inventory.overview.colOwner') }}</Th>
-        <Th>{{ t('inventory.overview.colLostSince') }}</Th>
+    <RecordTable :table="table" test-id="overview-lost">
+      <template #cell-item="{row, text}">
+        <span class="font-medium">{{ text }}</span>
+        <SizeBadge lost>{{ row.sizeName || t('common.unisize') }}</SizeBadge>
+        <MutedText v-if="row.item.internalId" tag="div">{{ row.item.internalId }}</MutedText>
       </template>
-      <TRow v-for="a in items" :key="a.item.id">
-        <Td>
-          <div class="font-medium">
-            {{ a.item.name }}
-            <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
-          </div>
-          <MutedText v-if="a.item.internalId" tag="div">{{ a.item.internalId }}</MutedText>
-        </Td>
-        <Td>
-          <component :is="inventoryTypeBadge(a.inventoryType)">{{ inventoryTypeLabel(a.inventoryType) }}</component>
-        </Td>
-        <Td><MemberInventoryLink :identity="a.ownerIdentity" :member-id="a.item.assignedTo"/></Td>
-        <Td>
-          <ErrorBadge>{{ formatDate(a.item.lostAt) }}</ErrorBadge>
-        </Td>
-      </TRow>
-    </DataTable>
+      <template #[`cell-${INVENTORY_TYPE_KEY}`]="{row, text}">
+        <InventoryTypeCell :text="text" :type="row.inventoryType"/>
+      </template>
+      <template #cell-member="{row}">
+        <MemberInventoryLink :identity="row.ownerIdentity" :member-id="row.item.assignedTo"/>
+      </template>
+      <template #cell-lostAt="{text}">
+        <ErrorBadge v-if="text">{{ text }}</ErrorBadge>
+      </template>
+    </RecordTable>
   </div>
 </template>

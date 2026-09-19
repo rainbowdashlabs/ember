@@ -40,7 +40,7 @@ export interface ItemLabelOptions {
  * @param formatItemLabel      renders one item exactly as the table does
  */
 export function useInventoryMemberExport(
-  filteredMembers: Ref<StationMember[]>,
+  filteredMembers: () => readonly StationMember[],
   displayedInventories: Ref<Inventory[]>,
   visibleInventoryIds: Ref<Set<number>>,
   labelOptions: ItemLabelOptions,
@@ -57,7 +57,7 @@ export function useInventoryMemberExport(
 
   async function enter() {
     exportMode.value = true
-    selectedMemberIds.value = new Set(filteredMembers.value.map(m => m.id))
+    selectedMemberIds.value = new Set(filteredMembers().map(m => m.id))
     selectedFieldIds.value = new Set()
     try {
       allFields.value = await profileFields.listFields()
@@ -87,9 +87,9 @@ export function useInventoryMemberExport(
   }
 
   function toggleSelectAll() {
-    selectedMemberIds.value = selectedMemberIds.value.size === filteredMembers.value.length
+    selectedMemberIds.value = selectedMemberIds.value.size === filteredMembers().length
       ? new Set()
-      : new Set(filteredMembers.value.map(m => m.id))
+      : new Set(filteredMembers().map(m => m.id))
   }
 
   /**
@@ -97,7 +97,7 @@ export function useInventoryMemberExport(
    * spreadsheet software in this locale needs both to open it as a table.
    */
   function exportCsv() {
-    const selected = filteredMembers.value.filter(m => selectedMemberIds.value.has(m.id))
+    const selected = filteredMembers().filter(m => selectedMemberIds.value.has(m.id))
     const headers = [t('membersList.colName'), ...displayedInventories.value.map(inv => inv.name ?? '')]
 
     const rows = selected.map(member => [

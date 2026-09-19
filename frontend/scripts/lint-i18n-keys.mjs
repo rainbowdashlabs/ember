@@ -242,6 +242,18 @@ const ENUM_BACKED_SECTIONS = [
         enumFile: 'src/main/java/dev/chojo/ember/feature/notifications/entity/NotificationType.java',
         prefix: 'notification.typeLabel',
     },
+    {
+        enumFile: 'src/main/java/dev/chojo/ember/feature/twofactor/entity/TwoFactorEvent.java',
+        prefix: 'twoFactor.admin.audit.events',
+    },
+    {
+        enumFile: 'src/main/java/dev/chojo/ember/feature/twofactor/entity/TwoFactorKind.java',
+        prefix: 'twoFactor.admin.audit.factors',
+    },
+    {
+        enumFile: 'src/main/java/dev/chojo/ember/feature/mail/entity/MailDeliveryStatus.java',
+        prefix: 'mailDashboard.delivery',
+    },
 ]
 
 /**

@@ -13,14 +13,12 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { boards, stationMembers } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardTicket } from '@/api/boards'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { formatDate } from '@/util/format'
-import { priorityIcon, priorityColor } from '@/util/ticketPriority'
-import Td from '@/components/table/Td.vue'
+import TicketTable from './tickettable/TicketTable.vue'
+import { useTicketTable } from './tickettable/useTicketTable'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -36,10 +34,16 @@ const {loading, error} = useAsyncLoader(async () => {
     board.value = b
     members.value = m
     if (b.backlogLaneId) {
-        tickets.value = t.filter(tk => tk.laneId === b.backlogLaneId).sort((a, b) => a.position - b.position)
+        tickets.value = t.filter(tk => tk.laneId === b.backlogLaneId)
     }
 })
 
+const table = useTicketTable({
+    id: 'board-backlog',
+    shortKey: () => board.value?.shortKey ?? '',
+    tickets,
+    members,
+})
 </script>
 
 <template>
@@ -56,34 +60,7 @@ const {loading, error} = useAsyncLoader(async () => {
             </div>
 
             <EmptyState v-if="tickets.length === 0">{{ t('boards.noTickets') }}</EmptyState>
-
-            <table v-else class="w-full text-sm">
-                <thead>
-                    <tr class="text-left text-xs text-(--text-muted) uppercase border-b border-(--border)">
-                        <th class="py-2 pr-3">ID</th>
-                        <th class="py-2 pr-3 w-full">{{ t('boards.ticketTitle') }}</th>
-                        <th class="py-2 pr-3">{{ t('boards.priority') }}</th>
-                        <th class="py-2 pr-3">{{ t('boards.assignee') }}</th>
-                        <th class="py-2">{{ t('boards.dueDate') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="ticket in tickets" :key="ticket.id"
-                        class="border-b border-(--border) last:border-0 cursor-pointer hover:bg-primary/5"
-                        @click="router.push(`/station/boards/${board.shortKey}/tickets/${ticket.ticketNumber}`)">
-                        <Td dense muted class="font-mono whitespace-nowrap">{{ board.shortKey }}-{{ ticket.ticketNumber }}</Td>
-                        <td class="py-2 pr-3">{{ ticket.title }}</td>
-                        <td class="py-2 pr-3"><font-awesome-icon :icon="priorityIcon(ticket.priority)" :class="priorityColor(ticket.priority)" class="text-xs" /></td>
-                        <td class="py-2 pr-3">
-                            <div v-if="ticket.assignee" class="flex items-center gap-1">
-                                <UserAvatar :identity="ticket.assignee" size="sm" />
-                                <span class="text-xs whitespace-nowrap">{{ members.find(m => m.memberUid === ticket.assignee?.memberUid)?.name ?? '' }}</span>
-                            </div>
-                        </td>
-                        <td class="py-2 text-xs whitespace-nowrap">{{ formatDate(ticket.dueDate) }}</td>
-                    </tr>
-                </tbody>
-            </table>
+            <TicketTable v-else :short-key="board.shortKey" :table="table" />
         </template>
     </ViewContent>
 </template>

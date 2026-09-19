@@ -119,14 +119,6 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
     return memberTagsMap.value.get(memberId) ?? []
   }
 
-  function getColumnValues(m: StationMember, key: 'name' | 'groups' | 'tags' | number): string[] {
-    if (key === 'name') return [memberDisplayName(m)]
-    if (key === 'groups') return getMemberGroups(m.id)
-    if (key === 'tags') return getMemberTags(m.id)
-    const v = getFieldValueAsString(m.id, key)
-    return v ? [v] : []
-  }
-
   const {loading, error, reload} = useAsyncLoader(async () => {
     const {members: richMembers, fields: allFields, assignments: allAssignments, roles} = await source.load()
     fields.value = allFields
@@ -221,7 +213,6 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
     getMemberType,
     getMemberGroups,
     getMemberTags,
-    getColumnValues,
     reload,
     toggleExpand,
   }

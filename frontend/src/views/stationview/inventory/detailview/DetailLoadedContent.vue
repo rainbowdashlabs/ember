@@ -7,11 +7,10 @@
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import ItemsTable from '../ItemsTable.vue'
 import ItemsByArt from './ItemsByArt.vue'
 import type {InventoryArt} from '@/api/inventoryArts'
 import type { ItemTableApi } from '../itemtable/useItemTable'
-import ItemTableFilterModal from '../itemtable/ItemTableFilterModal.vue'
+import InventoryItemTable from '../itemtable/InventoryItemTable.vue'
 import ItemListControls from '../itemtable/ItemListControls.vue'
 import InventoryStatsPanel from './InventoryStatsPanel.vue'
 import LentOutTable from './LentOutTable.vue'
@@ -19,7 +18,7 @@ import LendingSharePanel from '@/components/lending/LendingSharePanel.vue'
 import ProcurementTable from './ProcurementTable.vue'
 import LostItemsTable from './LostItemsTable.vue'
 import FreeItemsGrid from './FreeItemsGrid.vue'
-import {InventoryTypes, isLendableInventory, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
+import {isLendableInventory, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
 import type { ProcurementEntry } from '@/api/procurement'
 import type { StationMember } from '@/api/types'
 import type { LentOutItem } from '@/api/lending'
@@ -52,7 +51,7 @@ type Permissions = {
   canTakeStock: boolean
 }
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   detail: InventoryDetail
   items: InventoryItem[]
   /** The kinds this drawer has been sorted into. Empty is the ordinary case and the flat list stays. */
@@ -80,6 +79,10 @@ defineEmits<InventoryItemActionEmits & {
 }>()
 
 const { t } = useI18n()
+
+function memberIdentity(memberId: number) {
+  return props.memberMap.get(memberId)?.identity
+}
 </script>
 
 <template>
@@ -112,7 +115,7 @@ const { t } = useI18n()
 
   <NeutralContainer v-if="items.length > 0 || permissions.canCreateItem" class="space-y-4">
     <ItemListControls
-      :table="itemTable"
+      :table="itemTable.table"
       :count="items.length"
       :show-quick-assign="permissions.canCreateItem && permissions.canQuickAssign"
       :show-intake="permissions.canCreateItem && permissions.canTakeStock"
@@ -124,11 +127,9 @@ const { t } = useI18n()
     />
     <ItemsByArt
       v-if="items.length > 0 && arts.length > 0"
-      :detail="detail"
-      :items="itemTable.filteredItems"
+      :items="itemTable"
       :arts="arts"
-      :member-map="memberMap"
-      :lent-out-items="lentOutItems"
+      :member-identity="memberIdentity"
       :lent-item-station-map="lentItemStationMap"
       :container-path-by-id="containerPathById"
       :show-actions="permissions.canEdit"
@@ -140,19 +141,13 @@ const { t } = useI18n()
       @history="$emit('history', $event)"
       @delete="$emit('delete', $event)"
     />
-    <ItemsTable
+    <InventoryItemTable
       v-else-if="items.length > 0"
-      :items="items"
-      :has-sizes="detail.hasSizes"
-      :sizes="detail.sizes"
-      :members="memberMap"
+      :items="itemTable"
+      :member-identity="memberIdentity"
       :show-actions="permissions.canEdit"
-      :show-history="true"
-      :inventory-type="detail.inventoryType ?? InventoryTypes.INTERNAL"
-      :lent-out-items="lentOutItems"
       :lent-item-map="lentItemStationMap"
       :container-path-by-id="containerPathById"
-      :table-api="itemTable"
       @assign="$emit('assign', $event)"
       @unassign="$emit('unassign', $event)"
       @edit="$emit('edit', $event)"
@@ -162,8 +157,6 @@ const { t } = useI18n()
       @delete="$emit('delete', $event)"
     />
   </NeutralContainer>
-
-  <ItemTableFilterModal :table="itemTable"/>
 
   <FreeItemsGrid
     v-if="permissions.canEdit"

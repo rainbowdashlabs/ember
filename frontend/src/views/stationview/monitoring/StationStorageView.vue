@@ -22,6 +22,11 @@ import {buildStorageCategoryLabeler, formatBytes} from '@/util/storage'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {errorMessage} from '@/util/apiError'
 import {darkThemeActive as isDark} from '@/util/themeState'
+import {
+  StorageStatus,
+  storageStatusOfPercent,
+  type StorageStatusName,
+} from '@/views/adminview/adminstorageview/storagestationtable/storageStatus'
 
 use([CanvasRenderer, BarChart, TitleComponent, TooltipComponent, GridComponent])
 
@@ -38,10 +43,14 @@ onMounted(loadData)
 
 const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
 
+const BAR_COLORS: Record<StorageStatusName, string> = {
+  [StorageStatus.OK]: 'bg-green-500',
+  [StorageStatus.WARNING]: 'bg-yellow-500',
+  [StorageStatus.FULL]: 'bg-red-500',
+}
+
 function barColor(percent: number) {
-  if (percent >= 95) return 'bg-red-500'
-  if (percent >= 80) return 'bg-yellow-500'
-  return 'bg-green-500'
+  return BAR_COLORS[storageStatusOfPercent(percent)]
 }
 
 const categoryLabel = buildStorageCategoryLabeler(t)
@@ -115,13 +124,10 @@ const chartOption = computed(() => {
         </div>
       </NeutralContainer>
 
-      <!-- Category chart -->
       <SectionHeader>{{ t('storageMonitoring.categoryBreakdown') }}</SectionHeader>
       <NeutralContainer class="mb-6">
         <VChart :option="chartOption" autoresize style="height: 300px"/>
       </NeutralContainer>
-
-      <!-- Category table -->
       <SectionHeader>{{ t('storageMonitoring.categoryDetails') }}</SectionHeader>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">

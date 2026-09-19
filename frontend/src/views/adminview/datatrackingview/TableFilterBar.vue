@@ -7,10 +7,9 @@
 import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
+import type {FilterContext, FilterStatus} from './trackingtable/useTrackingTable'
 
-type FilterContext = 'all' | 'transfer' | 'gdprExport' | 'gdprDeletion'
-type FilterStatus = 'all' | 'TRACKED' | 'IGNORED' | 'UNVERIFIED' | 'NEEDS_REVIEW'
-
+/** The search over the tracked tables and the toggles that narrow them by context and status. */
 const search = defineModel<string>('search', {required: true})
 const filterContext = defineModel<FilterContext>('filterContext', {required: true})
 const filterStatus = defineModel<FilterStatus>('filterStatus', {required: true})
@@ -45,5 +44,8 @@ const statusOptions: FilterStatus[] = ['all', 'TRACKED', 'IGNORED', 'UNVERIFIED'
     >
       {{ t(`adminDataTracking.filter.${opt}`) }}
     </SelectionToggleButton>
+    <div class="ml-auto">
+      <slot/>
+    </div>
   </div>
 </template>

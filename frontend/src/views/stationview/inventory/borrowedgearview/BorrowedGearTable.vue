@@ -4,58 +4,51 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import Td from '@/components/table/Td.vue'
-import Th from '@/components/table/Th.vue'
-import THead from '@/components/table/THead.vue'
-import TRow from '@/components/table/TRow.vue'
+import RecordTable from '@/components/table/RecordTable.vue'
+import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
 import type {BorrowedItem} from '@/api/inventory'
+import {byValue} from '@/composables/useSortable'
+import {useDataTable} from '@/composables/useDataTable'
 import {formatDate} from '@/util/format'
 
-type SortKey = 'owner' | 'name' | 'due'
-
-defineProps<{rows: BorrowedItem[]}>()
-
-const sortKey = defineModel<SortKey>('sortKey', {required: true})
+/**
+ * The gear borrowed from partner stations.
+ *
+ * <p>It opens sorted by the partner, which is the order the page exists for: with several partners
+ * the origin lives on the row rather than in a heading, so one partner's gear has to come together.
+ * Within one partner the pieces stand by name.
+ */
+const props = defineProps<{rows: BorrowedItem[]}>()
 
 const {t} = useI18n()
+
+const columns = computed<TableColumn<BorrowedItem>[]>(() => [
+  {key: 'name', label: t('inventory.borrowed.colName'), type: ColumnTypes.TEXT, value: row => row.item.name, pinned: true},
+  {key: 'internalId', label: t('inventory.borrowed.colId'), type: ColumnTypes.TEXT, value: row => row.item.internalId},
+  {key: 'owner', label: t('inventory.borrowed.colOwner'), type: ColumnTypes.TEXT, value: row => row.ownerStationName},
+  {
+    key: 'due', label: t('inventory.borrowed.colDue'), type: ColumnTypes.DATE, value: row => row.dueOn,
+    display: row => row.dueOn ? formatDate(row.dueOn) : t('inventory.borrowed.noDueDate'),
+  },
+])
+
+const table = useDataTable<BorrowedItem>({
+  id: 'inventory-borrowed',
+  rows: () => props.rows,
+  columns,
+  rowKey: row => row.item.id,
+  fallbackSort: byValue(row => row.item.name),
+  sort: {key: 'owner'},
+})
 </script>
 
 <template>
-    <NeutralContainer>
-        <div class="mb-3 flex flex-wrap items-center gap-2">
-            <SecondaryButton
-                v-for="key in (['owner', 'name', 'due'] as SortKey[])"
-                :key="key"
-                :class="sortKey === key ? 'ring-2 ring-primary' : ''"
-                @click="sortKey = key"
-            >
-                {{ t(`inventory.borrowed.sortBy.${key}`) }}
-            </SecondaryButton>
-        </div>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <THead>
-                        <Th>{{ t('inventory.borrowed.colName') }}</Th>
-                        <Th>{{ t('inventory.borrowed.colId') }}</Th>
-                        <Th>{{ t('inventory.borrowed.colOwner') }}</Th>
-                        <Th>{{ t('inventory.borrowed.colDue') }}</Th>
-                    </THead>
-                </thead>
-                <tbody>
-                    <TRow v-for="row in rows" :key="row.item.id">
-                        <Td>{{ row.item.name }}</Td>
-                        <Td muted>{{ row.item.internalId || '–' }}</Td>
-                        <Td><PrimaryBadge>{{ row.ownerStationName }}</PrimaryBadge></Td>
-                        <Td muted>{{ row.dueOn ? formatDate(row.dueOn) : t('inventory.borrowed.noDueDate') }}</Td>
-                    </TRow>
-                </tbody>
-            </table>
-        </div>
-    </NeutralContainer>
+  <RecordTable :table="table" test-id="borrowed-gear-table">
+    <template #cell-owner="{text}">
+      <PrimaryBadge>{{ text }}</PrimaryBadge>
+    </template>
+  </RecordTable>
 </template>

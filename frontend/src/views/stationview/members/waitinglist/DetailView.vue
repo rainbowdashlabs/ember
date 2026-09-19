@@ -21,7 +21,6 @@ import type {
 } from '@/api/waitingList'
 import {StationPermission, type MemberGroup} from '@/api/types'
 import { waitingList, memberGroups } from '@/api'
-import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -35,7 +34,6 @@ import { useEntryInvitation } from './detailview/useEntryInvitation'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { isMobile } = useBreakpoint()
 const { refresh: refreshSidebarCounts } = useSidebarCounts()
 const { hasPermission } = useSession()
 
@@ -72,7 +70,6 @@ const finishedEntries = computed(() =>
 )
 
 const visibleFieldIds = computed(() => new Set(list.value?.visibleFields ?? []))
-const showFieldToggle = ref(false)
 
 const entryGroups = computed(() => ({
   pending: pendingEntries.value,
@@ -102,8 +99,7 @@ const sectionActions = computed(() => ({
   onNavigateToEntry: navigateToEntry,
   onNavigateToMember: navigateToMember,
   onDeleteEntry: requestDeleteEntry,
-  onToggleField: toggleFieldVisibility,
-  onToggleFieldMenu: () => { showFieldToggle.value = !showFieldToggle.value },
+  onSetFields: setFieldsVisible,
   onAddEntry: navigateToCreateEntry,
   onCreateInvite: invite.openModal,
   onDeleteInvite: invite.remove,
@@ -129,11 +125,14 @@ const invite = useListInvites(listId, invites, error, flash)
 const transitions = useEntryTransitions(listId, entries, error)
 const invitation = useEntryInvitation(listId, entries, error)
 
-async function toggleFieldVisibility(fieldId: number) {
+/** Shows or hides questions as columns for everybody on this list, written as one change. */
+async function setFieldsVisible(fieldIds: number[], visible: boolean) {
   if (!list.value) return
   const current = new Set(list.value.visibleFields ?? [])
-  if (current.has(fieldId)) current.delete(fieldId)
-  else current.add(fieldId)
+  for (const fieldId of fieldIds) {
+    if (visible) current.add(fieldId)
+    else current.delete(fieldId)
+  }
   try {
     list.value = await waitingList.updateVisibleFields(listId.value, [...current])
   } catch {
@@ -225,8 +224,6 @@ function showErrorMessage(msg: string) {
         :invites="invites"
         :entry-groups="entryGroups"
         :visible-field-ids="visibleFieldIds"
-        :is-mobile="isMobile"
-        :show-field-toggle="showFieldToggle"
         :permissions="permissions"
         :actions="sectionActions"
       />

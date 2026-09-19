@@ -8,11 +8,14 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import ItemsTable from '../ItemsTable.vue'
-import {InventoryTypes, type InventoryDetail, type InventoryItem} from '@/api/inventory'
+import RecordCardControls from '@/components/table/RecordCardControls.vue'
+import TableFilterDialog from '@/components/table/TableFilterDialog.vue'
+import {useBreakpoint} from '@/composables/useBreakpoint'
+import type {InventoryItem} from '@/api/inventory'
 import type {InventoryArt} from '@/api/inventoryArts'
-import type {StationMember} from '@/api/types'
-import type {LentOutItem} from '@/api/lending'
+import type {MemberIdentity} from '@/api/types'
+import InventoryItemTable from '../itemtable/InventoryItemTable.vue'
+import type {ItemTableApi} from '../itemtable/useItemTable'
 import type {InventoryItemActionEmits} from '../itemEmits'
 
 /**
@@ -22,14 +25,15 @@ import type {InventoryItemActionEmits} from '../itemEmits'
  * come last under a plain heading of their own. That is not a gap waiting to be filled: most pieces
  * are written down by a path with nobody present to say what they are, and a station that never
  * sorts a drawer sees exactly the flat list it saw before.
+ *
+ * <p>Every block is a part of one table, so the columns, the sort and the filters chosen in any of
+ * them hold for all of them.
  */
 const props = withDefaults(
     defineProps<{
-      detail: InventoryDetail
-      items: InventoryItem[]
+      items: ItemTableApi
       arts: InventoryArt[]
-      memberMap: Map<number, StationMember>
-      lentOutItems: LentOutItem[]
+      memberIdentity: (memberId: number) => MemberIdentity | null | undefined
       lentItemStationMap: Map<number, string>
       containerPathById: Map<number, string>
       showActions?: boolean
@@ -37,72 +41,56 @@ const props = withDefaults(
     {showActions: false},
 )
 
-defineEmits<InventoryItemActionEmits>()
+const emit = defineEmits<InventoryItemActionEmits>()
 
 const {t} = useI18n()
+const {isMobile} = useBreakpoint()
+
+interface Block {
+  key: string | number
+  title: string
+  items: InventoryItem[]
+}
 
 /** One block per kind that actually holds something, in the order the inventory shows its kinds. */
-const groups = computed(() =>
-    props.arts
-        .map(art => ({art, items: props.items.filter(item => item.artId === art.id)}))
-        .filter(group => group.items.length > 0),
-)
-
-const loose = computed(() => props.items.filter(item => item.artId == null))
+const blocks = computed<Block[]>(() => {
+  const byArt = new Map<number | null, InventoryItem[]>()
+  for (const item of props.items.table.rows) {
+    const artId = item.artId ?? null
+    const bucket = byArt.get(artId)
+    if (bucket) bucket.push(item)
+    else byArt.set(artId, [item])
+  }
+  const kinds = props.arts.map(art => ({key: art.id, title: art.name, items: byArt.get(art.id) ?? []}))
+  const loose = {key: 'loose', title: t('inventory.art.looseTitle'), items: byArt.get(null) ?? []}
+  return [...kinds, loose].filter(block => block.items.length > 0)
+})
 </script>
 
 <template>
   <div class="space-y-6" data-testid="items-by-art">
-    <div v-for="group in groups" :key="group.art.id" class="space-y-2">
+    <RecordCardControls v-if="isMobile" :table="items.table"/>
+    <div v-for="block in blocks" :key="block.key" class="space-y-2">
       <div class="flex items-baseline gap-2">
-        <SubHeader>{{ group.art.name }}</SubHeader>
-        <MutedText size="sm">{{ t('inventory.art.groupCount', {count: group.items.length}) }}</MutedText>
+        <SubHeader>{{ block.title }}</SubHeader>
+        <MutedText size="sm">{{ t('inventory.art.groupCount', {count: block.items.length}) }}</MutedText>
       </div>
-      <ItemsTable
-          :items="group.items"
-          :has-sizes="detail.hasSizes"
-          :sizes="detail.sizes"
-          :members="memberMap"
-          :show-actions="showActions"
-          :show-history="true"
-          :inventory-type="detail.inventoryType ?? InventoryTypes.INTERNAL"
-          :lent-out-items="lentOutItems"
-          :lent-item-map="lentItemStationMap"
+      <InventoryItemTable
           :container-path-by-id="containerPathById"
-          @assign="$emit('assign', $event)"
-          @unassign="$emit('unassign', $event)"
-          @edit="$emit('edit', $event)"
-          @mark-lost="$emit('markLost', $event)"
-          @mark-found="$emit('markFound', $event)"
-          @history="$emit('history', $event)"
-          @delete="$emit('delete', $event)"
+          :items="items"
+          :lent-item-map="lentItemStationMap"
+          :member-identity="memberIdentity"
+          :show-actions="showActions"
+          :subset="block.items"
+          @assign="emit('assign', $event)"
+          @delete="emit('delete', $event)"
+          @edit="emit('edit', $event)"
+          @history="emit('history', $event)"
+          @mark-found="emit('markFound', $event)"
+          @mark-lost="emit('markLost', $event)"
+          @unassign="emit('unassign', $event)"
       />
     </div>
-
-    <div v-if="loose.length > 0" class="space-y-2">
-      <div class="flex items-baseline gap-2">
-        <SubHeader>{{ t('inventory.art.looseTitle') }}</SubHeader>
-        <MutedText size="sm">{{ t('inventory.art.groupCount', {count: loose.length}) }}</MutedText>
-      </div>
-      <ItemsTable
-          :items="loose"
-          :has-sizes="detail.hasSizes"
-          :sizes="detail.sizes"
-          :members="memberMap"
-          :show-actions="showActions"
-          :show-history="true"
-          :inventory-type="detail.inventoryType ?? InventoryTypes.INTERNAL"
-          :lent-out-items="lentOutItems"
-          :lent-item-map="lentItemStationMap"
-          :container-path-by-id="containerPathById"
-          @assign="$emit('assign', $event)"
-          @unassign="$emit('unassign', $event)"
-          @edit="$emit('edit', $event)"
-          @mark-lost="$emit('markLost', $event)"
-          @mark-found="$emit('markFound', $event)"
-          @history="$emit('history', $event)"
-          @delete="$emit('delete', $event)"
-      />
-    </div>
+    <TableFilterDialog :table="items.table"/>
   </div>
 </template>

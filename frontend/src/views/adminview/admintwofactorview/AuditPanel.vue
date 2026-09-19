@@ -4,19 +4,22 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import TableHeaderCell from '@/components/typography/TableHeaderCell.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
+import RecordTable from '@/components/table/RecordTable.vue'
 import AccountSearchPicker from '@/components/input/search/AccountSearchPicker.vue'
 import {twoFactorAdmin} from '@/api'
 import type {AccountSearchResult, AuditEntry} from '@/api/twoFactorAdmin'
-import {formatDateTime} from '@/util/format'
+import {useDataTable} from '@/composables/useDataTable'
 import {apiErrorMessage} from '@/util/apiError'
+import {auditColumns} from './auditColumns'
 
 const {t} = useI18n()
 
@@ -28,6 +31,19 @@ const auditHasMore = ref(false)
 const auditAccountFilter = ref<number | null>(null)
 const auditFilterUid = ref<string | null>(null)
 const error = ref('')
+
+/**
+ * The two-factor audit log, a page at a time, narrowed to one account where one is picked.
+ *
+ * <p>The table sorts and filters what has been loaded so far; loading more adds to it.
+ */
+const table = useDataTable<AuditEntry>({
+  id: 'admin-two-factor-audit',
+  perStation: false,
+  rows: audit,
+  columns: computed(() => auditColumns(t)),
+  rowKey: entry => entry.id,
+})
 
 defineExpose({reload: () => loadAudit(true)})
 
@@ -66,7 +82,6 @@ function onAuditUidUpdate(uid: string | null | undefined) {
   }
 }
 
-
 onMounted(() => loadAudit(true))
 </script>
 
@@ -84,38 +99,19 @@ onMounted(() => loadAudit(true))
             @update:model-value="onAuditUidUpdate"
         />
       </div>
+      <TableColumnPicker :table="table"/>
       <SecondaryButton :disabled="auditLoading" @click="loadAudit(true)">
         {{ t('common.refresh') }}
       </SecondaryButton>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="text-left text-(--text-muted)">
-            <TableHeaderCell>{{ t('twoFactor.admin.audit.col.when') }}</TableHeaderCell>
-            <TableHeaderCell>{{ t('twoFactor.admin.audit.col.account') }}</TableHeaderCell>
-            <TableHeaderCell>{{ t('twoFactor.admin.audit.col.actor') }}</TableHeaderCell>
-            <TableHeaderCell>{{ t('twoFactor.admin.audit.col.event') }}</TableHeaderCell>
-            <TableHeaderCell>{{ t('twoFactor.admin.audit.col.factor') }}</TableHeaderCell>
-            <TableHeaderCell>{{ t('twoFactor.admin.audit.col.country') }}</TableHeaderCell>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="e in audit" :key="e.id" class="border-t border-(--border)">
-            <td class="py-2 pr-3 text-(--text-muted) whitespace-nowrap">{{ formatDateTime(e.createdAt) }}</td>
-            <td class="py-2 pr-3 font-mono">{{ e.accountId }}</td>
-            <td class="py-2 pr-3 font-mono">{{ e.actorId ?? '-' }}</td>
-            <td class="py-2 pr-3">{{ e.event }}</td>
-            <td class="py-2 pr-3 text-(--text-muted)">{{ e.factorKind ?? '-' }}</td>
-            <td class="py-2 pr-3 text-(--text-muted)">{{ e.country ?? '-' }}</td>
-          </tr>
-          <tr v-if="!auditLoading && audit.length === 0">
-            <td colspan="6" class="py-4 text-(--text-muted) text-center">{{ t('twoFactor.admin.audit.empty') }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <RecordTable :table="table" plain test-id="two-factor-audit-table">
+      <template #cell-account="{text}"><span class="font-mono">{{ text }}</span></template>
+      <template #cell-actor="{text}"><span class="font-mono">{{ text }}</span></template>
+      <template #empty>
+        <EmptyState v-if="!auditLoading" compact>{{ t('twoFactor.admin.audit.empty') }}</EmptyState>
+      </template>
+    </RecordTable>
 
     <div v-if="auditHasMore" class="text-center">
       <SecondaryButton :disabled="auditLoading" @click="loadAudit(false)">
