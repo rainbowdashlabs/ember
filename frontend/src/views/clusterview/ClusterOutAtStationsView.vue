@@ -10,17 +10,17 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import RecordCardControls from '@/components/table/RecordCardControls.vue'
+import TableFilterDialog from '@/components/table/TableFilterDialog.vue'
 import InventoryTabs from './clusterinventoryview/InventoryTabs.vue'
+import OutStationFilter from './clusteroutatstationsview/OutStationFilter.vue'
+import OutStationGroup from './clusteroutatstationsview/OutStationGroup.vue'
+import {useOutItemTable} from './clusteroutatstationsview/useOutItemTable'
 import {clusterInventory} from '@/api'
 import type {ClusterItem} from '@/api/clusterInventory'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useBreakpoint} from '@/composables/useBreakpoint'
 
 /**
  * Where the association's gear is when it is not in the association's own store.
@@ -28,8 +28,11 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
  * <p>A custody query rather than an inventory one: the same rows the store shows, filtered to the
  * ones that have gone somewhere, and grouped by the station holding them. An item on its way reads as
  * in transit at both ends, which is the point of splitting the journey in two.
+ *
+ * <p>The blocks are parts of one table, so a sort or a filter chosen in one holds for every station.
  */
 const {t} = useI18n()
+const {isMobile} = useBreakpoint()
 
 const items = ref<ClusterItem[]>([])
 
@@ -53,11 +56,15 @@ function stationOf(item: ClusterItem): string {
  */
 const stations = computed(() => [...new Set(away.value.map(stationOf))].sort((a, b) => a.localeCompare(b)))
 
+const atChosenStation = computed(() =>
+    station.value ? away.value.filter(item => stationOf(item) === station.value) : away.value)
+
+const table = useOutItemTable(atChosenStation)
+
 const byStation = computed(() => {
   const groups = new Map<string, ClusterItem[]>()
-  for (const item of away.value) {
+  for (const item of table.rows) {
     const key = stationOf(item)
-    if (station.value && key !== station.value) continue
     const bucket = groups.get(key)
     if (bucket) bucket.push(item)
     else groups.set(key, [item])
@@ -74,38 +81,13 @@ const byStation = computed(() => {
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :message="error"/>
 
-      <template v-if="!loading">
-        <EmptyState v-if="away.length === 0">{{ t('clusterInventory.outEmpty') }}</EmptyState>
-
-        <div v-else class="space-y-1 max-w-xs">
-          <FieldLabel>{{ t('clusterInventory.stationFilter') }}</FieldLabel>
-          <SelectInput v-model="station" data-testid="out-station-filter">
-            <option value="">{{ t('clusterInventory.stationFilterAll') }}</option>
-            <option v-for="name in stations" :key="name" :value="name">{{ name }}</option>
-          </SelectInput>
-        </div>
-
-        <NeutralContainer v-for="[station, stationItems] in byStation" :key="station"
-                          data-testid="out-station-group" class="space-y-3">
-          <div class="flex items-center justify-between gap-3">
-            <SectionHeader>{{ station }}</SectionHeader>
-            <SecondaryBadge>{{ t('clusterInventory.itemCount', {count: stationItems.length}) }}</SecondaryBadge>
-          </div>
-
-          <div class="space-y-1">
-            <div v-for="item in stationItems" :key="item.id" data-testid="out-item"
-                 class="flex flex-wrap items-center justify-between gap-2 border-b border-(--border) py-1 last:border-0">
-              <span class="flex items-center gap-2 min-w-0">
-                <span class="font-medium truncate">{{ item.name }}</span>
-                <PrimaryBadge v-if="item.sizeLabel">{{ item.sizeLabel }}</PrimaryBadge>
-              </span>
-              <div class="flex items-center gap-2">
-                <MutedText v-if="item.holderName" size="sm">{{ item.holderName }}</MutedText>
-                <SecondaryBadge>{{ t(`clusterInventory.custody.${item.custody}`) }}</SecondaryBadge>
-              </div>
-            </div>
-          </div>
-        </NeutralContainer>
+      <EmptyState v-if="!loading && away.length === 0">{{ t('clusterInventory.outEmpty') }}</EmptyState>
+      <template v-else-if="!loading">
+        <OutStationFilter v-model="station" :stations="stations" :table="table"/>
+        <RecordCardControls v-if="isMobile" :table="table"/>
+        <OutStationGroup v-for="[name, stationItems] in byStation" :key="name" :items="stationItems" :station="name" :table="table"/>
+        <MutedText v-if="byStation.length === 0" size="sm" tag="p">{{ t('clusterInventory.outNoMatch') }}</MutedText>
+        <TableFilterDialog :table="table"/>
       </template>
     </div>
   </ViewContent>

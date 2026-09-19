@@ -5951,6 +5951,7 @@ export default {
         usage: 'Nutzung',
         quota: 'Kontingent',
         status: 'Status',
+        ok: 'OK',
         warning: 'Warnung',
         full: 'Voll',
         categoryBreakdown: 'Kategorie-Aufschlüsselung',
@@ -7406,6 +7407,14 @@ export default {
         },
         stationFilter: 'Wache',
         stationFilterAll: 'Alle Wachen',
+        outNoMatch: 'Nichts passt zu den gewählten Filtern.',
+        outColumn: {
+            name: 'Bezeichnung',
+            internalId: 'Kennung',
+            size: 'Größe',
+            holder: 'Getragen von',
+            custody: 'Verbleib',
+        },
         statsScope: 'Gezählt wird nur, was dem Verband gehört. Was eine Wache selbst gekauft hat, '
             + 'gehört ihr und steht hier nicht.',
     },
@@ -7413,6 +7422,7 @@ export default {
         hint: 'Hier stehen die Vorgänge, die auf einen Schritt warten, den nur der Verband bestätigen kann.',
         empty: 'Es wartet nichts auf euch.',
         unnamedStep: 'Schritt',
+        station: 'Wache',
         purpose: {
             EXCHANGE: 'Tausch',
             RETURN: 'Rückgabe',

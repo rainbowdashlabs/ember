@@ -5,18 +5,19 @@
  */
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
+import RecordTable from '@/components/table/RecordTable.vue'
 import InventoryTabs from './clusterinventoryview/InventoryTabs.vue'
+import {useClusterQueueTable} from './clustermovementqueueview/useClusterQueueTable'
 import {clusterInventory} from '@/api'
 import type {ClusterQueueEntry} from '@/api/clusterInventory'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {formatDate} from '@/util/format'
-import {useRouter} from 'vue-router'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -26,6 +27,8 @@ const {config: queue, loading, error} = useConfigPanel<ClusterQueueEntry[]>({
   fetch: () => clusterInventory.listQueue(),
 })
 
+const table = useClusterQueueTable(() => queue.value)
+
 /**
  * Opens the movement a step belongs to, which is where it is answered.
  *
@@ -33,8 +36,8 @@ const {config: queue, loading, error} = useConfigPanel<ClusterQueueEntry[]>({
  * is one: somebody sent something and is waiting on the association. There is no separate list of
  * exchanges to work, since the queue already is the work.
  */
-function open(movementId: number) {
-  void router.push({name: 'cluster-inventory-movement', params: {id: String(movementId)}})
+function open(entry: ClusterQueueEntry) {
+  void router.push({name: 'cluster-inventory-movement', params: {id: String(entry.movementId)}})
 }
 </script>
 
@@ -45,31 +48,21 @@ function open(movementId: number) {
 
       <FailureAlert :message="error"/>
 
-      <p class="text-sm text-(--text-muted)">{{ t('clusterMovements.hint') }}</p>
+      <div class="flex items-center justify-between gap-2">
+        <p class="text-sm text-(--text-muted)">{{ t('clusterMovements.hint') }}</p>
+        <ColumnPickerButton :options="table.pickerOptions" @toggle="table.toggleColumn"/>
+      </div>
 
       <Spinner v-if="loading" size="lg"/>
 
-      <template v-else>
-        <EmptyState v-if="queue.length === 0">{{ t('clusterMovements.empty') }}</EmptyState>
-        <div v-else class="space-y-2">
-          <NeutralContainer
-              v-for="entry in queue"
-              :key="entry.movementId"
-              class="flex flex-wrap items-center justify-between gap-3 cursor-pointer hover:border-primary transition-colors"
-              @click="open(entry.movementId)"
-          >
-            <div class="min-w-0">
-              <p class="font-medium truncate">{{ entry.stepLabel ?? t('clusterMovements.unnamedStep') }}</p>
-              <p class="text-sm text-(--text-muted) truncate">
-                {{ entry.stationName }}
-                <template v-if="entry.itemName"> · {{ entry.itemName }}</template>
-                · {{ formatDate(entry.createdAt) }}
-              </p>
-            </div>
-            <SecondaryBadge>{{ t(`clusterMovements.purpose.${entry.purpose}`) }}</SecondaryBadge>
-          </NeutralContainer>
-        </div>
-      </template>
+      <RecordTable v-else :table="table" clickable row-test-id="cluster-movement-row" test-id="cluster-movement-queue" @row-click="open">
+        <template #cell-purpose="{text}">
+          <SecondaryBadge>{{ text }}</SecondaryBadge>
+        </template>
+        <template #empty>
+          <EmptyState>{{ t('clusterMovements.empty') }}</EmptyState>
+        </template>
+      </RecordTable>
     </div>
   </ViewContent>
 </template>
