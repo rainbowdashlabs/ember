@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import {uploadFile} from './upload'
 import type {MessageResponse, SessionInfo} from './types'
 import {prepareImageUpload} from '@/util/imageUpload'
@@ -167,9 +168,9 @@ export async function getConsentChanges(): Promise<ConsentChangesResponse> {
     return res.data
 }
 
-export async function gdprExport(): Promise<Blob> {
+export async function gdprExport(): Promise<DocumentFile> {
     const res = await client.get('/session/gdpr-export', {responseType: 'blob'})
-    return res.data as Blob
+    return documentFrom(res, 'Datenauskunft.zip')
 }
 
 export async function getCrossStationDashboard(): Promise<CrossStationDashboard> {
@@ -177,7 +178,7 @@ export async function getCrossStationDashboard(): Promise<CrossStationDashboard>
     return res.data
 }
 
-export async function gdprExportManagedMember(memberId: number): Promise<Blob> {
+export async function gdprExportManagedMember(memberId: number): Promise<DocumentFile> {
     const res = await client.get(`/managed-members/${memberId}/gdpr-export`, {responseType: 'blob'})
-    return res.data as Blob
+    return documentFrom(res, 'Datenauskunft.zip')
 }

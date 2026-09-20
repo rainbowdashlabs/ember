@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.CsvWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -99,7 +100,7 @@ class MemberTableRendererTest {
                 List.of(builtin("name", "Name"), question("Schuhgröße")),
                 List.of(new MemberTable.MemberTableRow(1, List.of("Anna Beispiel", "39"))));
 
-        var csv = renderer.toCsv(table, stationSpeaking("de-DE"));
+        var csv = renderer.toCsv(table, stationSpeaking("de-DE"), CsvWriter.Separator.SEMICOLON);
 
         assertEquals("Name;Schuhgröße\nAnna Beispiel;39\n", csv);
     }
@@ -117,7 +118,7 @@ class MemberTableRendererTest {
                 List.of(builtin("name", "Name"), question("Notiz")),
                 List.of(new MemberTable.MemberTableRow(1, List.of("Beispiel; Anna", "=1+1"))));
 
-        var csv = renderer.toCsv(table, stationSpeaking("de-DE"));
+        var csv = renderer.toCsv(table, stationSpeaking("de-DE"), CsvWriter.Separator.SEMICOLON);
 
         assertTrue(csv.contains("\"Beispiel; Anna\""), "a cell holding the separator is quoted");
         assertTrue(csv.contains("'=1+1"), "and one that reads as a formula is not left as one");
@@ -130,7 +131,7 @@ class MemberTableRendererTest {
                 List.of(builtin("registrationStatus", "Anmeldung"), builtin("memberType", "Benutzertyp")),
                 List.of(new MemberTable.MemberTableRow(1, List.of("ACCEPTED", "TRIAL"))));
 
-        var csv = renderer.toCsv(table, stationSpeaking("de-DE"));
+        var csv = renderer.toCsv(table, stationSpeaking("de-DE"), CsvWriter.Separator.SEMICOLON);
 
         assertTrue(csv.contains("Bestätigt"), "the answer reads as a word");
         assertTrue(csv.contains("Probe"), "and so does the kind of member");
@@ -144,7 +145,7 @@ class MemberTableRendererTest {
                 List.of(builtin("registrationStatus", "Registration")),
                 List.of(new MemberTable.MemberTableRow(1, List.of("WITHDRAWN"))));
 
-        var csv = renderer.toCsv(table, stationSpeaking("en-GB"));
+        var csv = renderer.toCsv(table, stationSpeaking("en-GB"), CsvWriter.Separator.SEMICOLON);
 
         assertTrue(csv.contains("Withdrawn"));
     }
@@ -162,7 +163,7 @@ class MemberTableRendererTest {
                         new MemberTable.MemberTableRow(5, List.of("WITHDRAWN")),
                         new MemberTable.MemberTableRow(6, List.of("SOMETHING_ELSE"))));
 
-        var german = renderer.toCsv(table, stationSpeaking("de-DE"));
+        var german = renderer.toCsv(table, stationSpeaking("de-DE"), CsvWriter.Separator.SEMICOLON);
         assertTrue(german.contains("Bestätigt"));
         assertTrue(german.contains("Ausstehend"));
         assertTrue(german.contains("Abgelehnt"));
@@ -170,7 +171,7 @@ class MemberTableRendererTest {
         assertTrue(german.contains("Zurückgezogen"));
         assertTrue(german.contains("SOMETHING_ELSE"), "and one nobody has a word for is left as it came");
 
-        var english = renderer.toCsv(table, stationSpeaking("en-GB"));
+        var english = renderer.toCsv(table, stationSpeaking("en-GB"), CsvWriter.Separator.SEMICOLON);
         assertTrue(english.contains("Confirmed"));
         assertTrue(english.contains("Pending"));
         assertTrue(english.contains("Turned down"));
@@ -191,7 +192,7 @@ class MemberTableRendererTest {
                         new MemberTable.MemberTableRow(5, List.of("MANAGER")),
                         new MemberTable.MemberTableRow(6, List.of("SOMETHING_ELSE"))));
 
-        var german = renderer.toCsv(table, stationSpeaking("de-DE"));
+        var german = renderer.toCsv(table, stationSpeaking("de-DE"), CsvWriter.Separator.SEMICOLON);
         assertTrue(german.contains("Probe"));
         assertTrue(german.contains("Mitglied"));
         assertTrue(german.contains("Erziehungsberechtigter"));
@@ -199,7 +200,7 @@ class MemberTableRendererTest {
         assertTrue(german.contains("Manager"));
         assertTrue(german.contains("SOMETHING_ELSE"));
 
-        var english = renderer.toCsv(table, stationSpeaking("en-GB"));
+        var english = renderer.toCsv(table, stationSpeaking("en-GB"), CsvWriter.Separator.SEMICOLON);
         assertTrue(english.contains("Trial"));
         assertTrue(english.contains("Member"));
         assertTrue(english.contains("Guardian"));
@@ -212,7 +213,9 @@ class MemberTableRendererTest {
                 List.of(builtin("registrationStatus", "Anmeldung"), builtin("memberType", "Benutzertyp")),
                 List.of(new MemberTable.MemberTableRow(1, java.util.Arrays.asList("", "  "))));
 
-        assertEquals("Anmeldung;Benutzertyp\n;  \n", renderer.toCsv(table, stationSpeaking("de-DE")));
+        assertEquals(
+                "Anmeldung;Benutzertyp\n;\"  \"\n",
+                renderer.toCsv(table, stationSpeaking("de-DE"), CsvWriter.Separator.SEMICOLON));
     }
 
     /** An answer somebody gave is their own words and is never reworded, whatever it says. */
@@ -221,7 +224,7 @@ class MemberTableRendererTest {
         var table = new MemberTable(
                 List.of(question("Kommentar")), List.of(new MemberTable.MemberTableRow(1, List.of("ACCEPTED"))));
 
-        var csv = renderer.toCsv(table, stationSpeaking("de-DE"));
+        var csv = renderer.toCsv(table, stationSpeaking("de-DE"), CsvWriter.Separator.SEMICOLON);
 
         assertTrue(csv.contains("ACCEPTED"), "a question's answer is not a token to be translated");
     }
@@ -231,7 +234,7 @@ class MemberTableRendererTest {
     void anEmptyTableStillHasItsHeader() {
         var table = new MemberTable(List.of(builtin("name", "Name")), List.of());
 
-        assertEquals("Name\n", renderer.toCsv(table, stationSpeaking("de-DE")));
+        assertEquals("Name\n", renderer.toCsv(table, stationSpeaking("de-DE"), CsvWriter.Separator.SEMICOLON));
     }
 
     /**

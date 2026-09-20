@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.util.CsvWriter;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -202,6 +203,8 @@ public class AttendanceRoutes implements Routes {
         // Report export
         routes.get(prefix + "/attendance/report/preview", this::reportPreview, StationPermission.ATTENDANCE_EXPORT);
         routes.get(prefix + "/attendance/report/export", this::reportExport, StationPermission.ATTENDANCE_EXPORT);
+        routes.get(
+                prefix + "/attendance/report/export.csv", this::reportExportCsv, StationPermission.ATTENDANCE_EXPORT);
 
         // Saved report presets
         routes.get(prefix + "/attendance/report/presets", this::listPresets, StationPermission.ATTENDANCE_EXPORT);
@@ -949,8 +952,8 @@ public class AttendanceRoutes implements Routes {
             throw new NotFoundResponse();
         }
         ctx.contentType("application/pdf");
-        ctx.header("Content-Disposition", "attachment; filename=\"attendance-" + sessionId + ".pdf\"");
-        ctx.result(pdf.get());
+        ctx.header("Content-Disposition", pdf.get().contentDisposition());
+        ctx.result(pdf.get().bytes());
     }
 
     /**
@@ -1035,6 +1038,27 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
+    private void reportExportCsv(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var query = parseReportQuery(ctx);
+        String period = ctx.queryParamAsClass("period", String.class).getOrDefault("month");
+        var csv = reportService.exportReportCsv(
+                session.stationId(),
+                query.userTypes(),
+                query.groupIds(),
+                query.from(),
+                query.to(),
+                query.rounding(),
+                period,
+                CsvWriter.Separator.of(ctx.queryParam("separator")));
+        if (csv.isEmpty()) {
+            throw new NotFoundResponse();
+        }
+        ctx.contentType("text/csv");
+        ctx.header("Content-Disposition", csv.get().contentDisposition());
+        ctx.result(csv.get().bytes());
+    }
+
     private void reportExport(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var query = parseReportQuery(ctx);
@@ -1048,13 +1072,13 @@ public class AttendanceRoutes implements Routes {
                 query.to(),
                 query.rounding(),
                 generatedBy,
-                "year".equals(period));
+                period);
         if (pdf.isEmpty()) {
             throw new NotFoundResponse();
         }
         ctx.contentType("application/pdf");
-        ctx.header("Content-Disposition", "attachment; filename=\"attendance-report.pdf\"");
-        ctx.result(pdf.get());
+        ctx.header("Content-Disposition", pdf.get().contentDisposition());
+        ctx.result(pdf.get().bytes());
     }
 
     @OpenApi(

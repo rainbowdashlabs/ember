@@ -12,13 +12,15 @@ import Alert from '@/components/feedback/Alert.vue'
 import ReportPresetList from './reportview/ReportPresetList.vue'
 import ReportFilters from './reportview/ReportFilters.vue'
 import ReportPreview from './reportview/ReportPreview.vue'
+import ExportFormatModal from '@/components/documents/ExportFormatModal.vue'
+import type {ExportFormat, ExportSeparator} from '@/util/exportFormat'
 import {StationUserType, StationUserTypeLabels, type MemberGroup} from '@/api/types'
 import {attendance, memberGroups} from '@/api'
 import type {ReportData, ReportPreset} from '@/api/attendance'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {presentDocument} from '@/util/documentView'
+import {presentFile} from '@/util/documentFile'
 
 const {t} = useI18n()
 const {loaded} = useSession()
@@ -41,13 +43,17 @@ const selectedPeriod = ref('month')
 const selectedYear = ref(new Date().getFullYear())
 const selectedMonth = ref(new Date().getMonth())
 const selectedWeek = ref(currentIsoWeek())
+const selectedQuarter = ref(Math.floor(new Date().getMonth() / 3) + 1)
 const selectedRounding = ref('exact')
 
 const periodOptions = [
   {value: 'week', label: 'Woche'},
   {value: 'month', label: 'Monat'},
+  {value: 'quarter', label: 'Quartal'},
   {value: 'year', label: 'Jahr'},
 ]
+
+const quarterOptions = [1, 2, 3, 4]
 
 const roundingOptions = [
   {value: 'exact', label: 'Exakt (2 Dezimalstellen)'},
@@ -98,6 +104,9 @@ const timeRange = computed(() => {
     from.setHours(0, 0, 0, 0)
     to = new Date(from)
     to.setDate(from.getDate() + 7)
+  } else if (selectedPeriod.value === 'quarter') {
+    from = new Date(selectedYear.value, (selectedQuarter.value - 1) * 3, 1)
+    to = new Date(selectedYear.value, selectedQuarter.value * 3, 1)
   } else if (selectedPeriod.value === 'year') {
     from = new Date(selectedYear.value, 0, 1)
     to = new Date(selectedYear.value + 1, 0, 1)
@@ -133,11 +142,18 @@ const {running: previewing, error: previewError, run: runPreview, clearError: cl
   report.value = await attendance.reportPreview(buildParams())
 })
 
-const {running: exporting, error: exportError, run: runExport, clearError: clearExportError} = useAsyncAction(async () => {
-  const params = buildParams()
-  params.set('period', selectedPeriod.value)
-  presentDocument(await attendance.reportExport(params), 'attendance-report.pdf')
-})
+const showExportFormat = ref(false)
+
+const {running: exporting, error: exportError, run: runExport, clearError: clearExportError} = useAsyncAction(
+    async (format: ExportFormat, separator: ExportSeparator) => {
+      const params = buildParams()
+      params.set('period', selectedPeriod.value)
+      if (format === 'csv') params.set('separator', separator)
+      await presentFile(format === 'csv'
+          ? await attendance.reportExportCsv(params)
+          : await attendance.reportExport(params))
+      showExportFormat.value = false
+    })
 
 const displayError = computed(() => error.value || previewError.value || exportError.value)
 
@@ -148,11 +164,15 @@ function preview() {
   return runPreview()
 }
 
-function exportPdf() {
+function askExportFormat() {
   if (!canPreview.value) return
   error.value = ''
   clearPreviewError()
-  return runExport()
+  showExportFormat.value = true
+}
+
+function runChosenExport(format: ExportFormat, separator: ExportSeparator) {
+  return runExport(format, separator)
 }
 
 async function savePreset() {
@@ -218,6 +238,7 @@ watch(loaded, (isLoaded) => {
           v-model:selected-year="selectedYear"
           v-model:selected-month="selectedMonth"
           v-model:selected-week="selectedWeek"
+          v-model:selected-quarter="selectedQuarter"
           v-model:show-save-preset="showSavePreset"
           v-model:preset-name="presetName"
           :user-type-options="userTypeOptions"
@@ -227,6 +248,7 @@ watch(loaded, (isLoaded) => {
           :year-options="yearOptions"
           :month-options="monthOptions"
           :week-options="weekOptions"
+          :quarter-options="quarterOptions"
           :can-preview="canPreview"
           :previewing="previewing"
           :save-preset="savePreset"
@@ -236,7 +258,13 @@ watch(loaded, (isLoaded) => {
           v-if="report"
           :report="report"
           :exporting="exporting"
-          @export="exportPdf"
+          @export="askExportFormat"
+      />
+      <ExportFormatModal
+          v-model="showExportFormat"
+          :formats="['pdf', 'csv']"
+          :exporting="exporting"
+          @export="runChosenExport"
       />
     </template>
   </ViewContent>

@@ -24,6 +24,9 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.service.TestProtocolPdfService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService.SharedProtocolView;
+import dev.chojo.ember.util.DocumentName;
+import dev.chojo.ember.util.DocumentWord;
+import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -481,9 +484,7 @@ public class TestProtocolRoutes implements Routes {
             zos.close();
 
             ctx.contentType("application/zip");
-            ctx.header(
-                    "Content-Disposition",
-                    "attachment; filename=\"" + proto.name().replaceAll("[^a-zA-ZäöüÄÖÜß0-9 _-]", "") + ".zip\"");
+            ctx.header("Content-Disposition", protocolName(proto.name(), "zip", null));
             ctx.result(baos.toByteArray());
         } catch (Exception e) {
             log.error("Test protocol export failed", e);
@@ -517,7 +518,7 @@ public class TestProtocolRoutes implements Routes {
         var proto = service.findProtocol(run.protocolId()).orElseThrow(NotFoundResponse::new);
         byte[] pdf = pdfService.exportEvaluationTable(id, proto.name(), run.testDate());
         ctx.contentType("application/pdf");
-        ctx.header("Content-Disposition", "inline; filename=\"evaluation.pdf\"");
+        ctx.header("Content-Disposition", protocolName(proto.name(), "pdf", DocumentWord.EVALUATION.in("de")));
         ctx.result(pdf);
     }
 
@@ -528,8 +529,21 @@ public class TestProtocolRoutes implements Routes {
         var proto = service.findProtocol(run.protocolId()).orElseThrow(NotFoundResponse::new);
         byte[] pdf = pdfService.exportRunMember(runId, memberId, proto.name(), run.testDate());
         ctx.contentType("application/pdf");
-        ctx.header("Content-Disposition", "inline; filename=\"protocol.pdf\"");
+        ctx.header("Content-Disposition", protocolName(proto.name(), "pdf", resolveMemberNameForFile(memberId)));
         ctx.result(pdf);
+    }
+
+    /**
+     * What a protocol export is called: the protocol it belongs to, and whose or which part it is.
+     *
+     * <p>Written in German because these sheets are rendered from Typst built here rather than from a
+     * template chosen by the station's language, so there is only one language to be had. When those
+     * two exports join the templates, the language follows the same way as everywhere else.
+     */
+    private static String protocolName(String protocolName, String extension, String subject) {
+        String filename = DocumentName.of(
+                extension, DocumentWord.PROTOCOL.in("de"), DocumentName.part(protocolName), DocumentName.part(subject));
+        return SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, filename);
     }
 
     private record ProtocolListResponse(List<TestProtocol> protocols, List<SharedProtocolView> shared) {}

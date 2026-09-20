@@ -11,7 +11,9 @@ import type { ProfileField } from '@/api/profileFields'
 import type { Inventory, InventoryItem } from '@/api/inventory'
 import type { StationMember } from '@/api/types'
 import { useAsyncAction } from '@/composables/useAsyncAction'
-import {presentDocument} from '@/util/documentView'
+import {presentFile} from '@/util/documentFile'
+import {documentFrom} from '@/util/documentFile'
+import type {ExportFormat, ExportSeparator} from '@/util/exportFormat'
 
 /**
  * Options describing how an item should be labelled in the export, mirroring what the table
@@ -93,42 +95,25 @@ export function useInventoryMemberExport(
   }
 
   /**
-   * Builds the CSV in the browser. Written with a byte-order mark and semicolons because the
-   * spreadsheet software in this locale needs both to open it as a table.
+   * Asks the server for the list, printed or as a spreadsheet.
+   *
+   * <p>Both come from the same rows on the server rather than the sheet from there and the table from
+   * here, which is what used to let the two disagree about which columns a reader gets.
    */
-  function exportCsv() {
-    const selected = filteredMembers().filter(m => selectedMemberIds.value.has(m.id))
-    const headers = [t('membersList.colName'), ...displayedInventories.value.map(inv => inv.name ?? '')]
-
-    const rows = selected.map(member => [
-      memberDisplayName(member),
-      ...displayedInventories.value.map(inv => itemsFor(member.id, inv.id)
-        .map(item => {
-          const label = formatItemLabel(item)
-          return item.lostAt ? `${label} (${t('inventoryMembers.lost')})` : label
-        })
-        .join(', ')),
-    ])
-
-    const csv = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(';'))
-      .join('\n')
-    presentDocument(new Blob(['﻿' + csv], {type: 'text/csv;charset=utf-8'}), 'inventory-members.csv')
-    exportMode.value = false
-  }
-
-  const {running: exporting, error: exportError, run: exportPdf} = useAsyncAction(async () => {
-    const res = await client.post('/inventories/members/export', {
-      memberIds: [...selectedMemberIds.value],
-      inventoryIds: [...visibleInventoryIds.value],
-      extraFieldIds: [...selectedFieldIds.value],
-      showName: labelOptions.showName.value,
-      showInternalId: labelOptions.showInternalId.value,
-      showSize: labelOptions.showSize.value,
-    }, {responseType: 'blob'})
-    presentDocument(res.data as Blob, 'inventory-members.pdf')
-    exportMode.value = false
-  }, {formatError: () => t('common.error')})
+  const {running: exporting, error: exportError, run: runExport} = useAsyncAction(
+      async (format: ExportFormat, separator: ExportSeparator) => {
+        const query = format === 'csv' ? `?format=csv&separator=${separator}` : ''
+        const res = await client.post(`/inventories/members/export${query}`, {
+          memberIds: [...selectedMemberIds.value],
+          inventoryIds: [...visibleInventoryIds.value],
+          extraFieldIds: [...selectedFieldIds.value],
+          showName: labelOptions.showName.value,
+          showInternalId: labelOptions.showInternalId.value,
+          showSize: labelOptions.showSize.value,
+        }, {responseType: 'blob'})
+        await presentFile(documentFrom(res, `Mitglieder Inventar.${format}`))
+        exportMode.value = false
+      }, {formatError: () => t('common.error')})
 
   return {
     exportMode,
@@ -142,7 +127,6 @@ export function useInventoryMemberExport(
     toggleField,
     toggleMember,
     toggleSelectAll,
-    exportCsv,
-    exportPdf,
+    runExport,
   }
 }

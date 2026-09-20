@@ -19,7 +19,8 @@ import {useExport, type ExportColumn, type ExportFormatName} from '@/composables
 import {useDataTable} from '@/composables/useDataTable'
 import {memberTable} from '@/api'
 import type {MemberTableColumn} from '@/api/memberTable'
-import {presentDocument} from '@/util/documentView'
+import {presentFile} from '@/util/documentFile'
+import type {ExportSeparator} from '@/util/exportFormat'
 import {useMemberFilter} from '@/composables/useMemberFilter'
 
 /**
@@ -37,6 +38,14 @@ export interface MemberListPort {
     canEdit: ComputedRef<boolean>
     /** The name of the file an export produces, without an extension. */
     exportFileName: string
+    /**
+     * Whether the server may draw this list's spreadsheet.
+     *
+     * <p>The endpoint that draws it answers to a station's own right to export its members, which a
+     * reader on an association screen does not hold: they are granted the association's. Until there
+     * is a route that answers to theirs, their spreadsheet is written here as it always was.
+     */
+    serverSpreadsheet?: boolean
     /** Names the list where its chosen columns are remembered, one set per tab. */
     tableId: string
     /**
@@ -159,14 +168,21 @@ export function useMemberListConfig(port: MemberListPort) {
     }
 
     /** Hands the export to whoever can make it: the sheet to the server, everything else to the screen. */
-    async function performExport(format: ExportFormatName = 'csv') {
-        if (format !== 'pdf') {
-            exporting.performExport(format)
+    /**
+     * Hands the export to whoever can make it.
+     *
+     * <p>A spreadsheet and a sheet are both drawn on the server from one set of columns, so the two
+     * cannot say different things about the same people. The list of values stays here: it is
+     * something to paste rather than a document, and it never leaves the browser.
+     */
+    async function performExport(format: ExportFormatName = 'csv', separator: ExportSeparator = 'semicolon') {
+        if (format === 'values' || (format === 'csv' && port.serverSpreadsheet === false)) {
+            await exporting.performExport(format)
             return
         }
         const memberIds = exporting.selectedRows.value.map(member => member.id)
-        const file = await memberTable.exportMemberTable(memberIds, chosenServerColumns(), 'pdf')
-        presentDocument(file, `${port.exportFileName ?? 'export'}.pdf`)
+        await presentFile(
+            await memberTable.exportMemberTable(memberIds, chosenServerColumns(), format, separator))
         exporting.cancelExport()
     }
 

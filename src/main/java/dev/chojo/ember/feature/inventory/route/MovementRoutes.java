@@ -42,6 +42,7 @@ import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -353,7 +354,9 @@ public class MovementRoutes implements Routes {
         // Kept by the station that raised the report, wherever the reader is answering from
         byte[] data = lossReportService.read(movement.stationId(), document).orElseThrow(NotFoundResponse::new);
         ctx.contentType(document.mimeType());
-        ctx.header("Content-Disposition", "attachment; filename=\"" + document.fileName() + "\"");
+        ctx.header(
+                "Content-Disposition",
+                SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, document.fileName()));
         ctx.result(data);
     }
 
@@ -405,8 +408,8 @@ public class MovementRoutes implements Routes {
             throw new NotFoundResponse("No data to export");
         }
         ctx.contentType("application/pdf");
-        ctx.header("Content-Disposition", "attachment; filename=\"movements.pdf\"");
-        ctx.result(pdf.get());
+        ctx.header("Content-Disposition", pdf.get().contentDisposition());
+        ctx.result(pdf.get().bytes());
     }
 
     /**

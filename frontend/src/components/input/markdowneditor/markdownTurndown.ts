@@ -57,6 +57,11 @@ export function createMarkdownTurndown(): TurndownService {
     },
   })
 
+  turndown.addRule('table', {
+    filter: 'table',
+    replacement: (_content, node) => asMarkdownTable(turndown, node as HTMLElement),
+  })
+
   turndown.addRule('youtube', {
     filter: (node) => {
       const el = node as HTMLElement
@@ -77,4 +82,51 @@ export function createMarkdownTurndown(): TurndownService {
   })
 
   return turndown
+}
+
+/**
+ * Writes a table as a table.
+ *
+ * <p>Turndown knows nothing about tables and, left alone, throws the tags away and keeps the words
+ * inside them, so a table written in the editor came back as a run of plain text and the rows were
+ * gone for good. Markdown can express a table, so it is written as one.
+ *
+ * <p>Markdown's table needs a header row: where the table has none, an empty one is written so the
+ * rows below it survive, which is the point of the exercise.
+ */
+function asMarkdownTable(turndown: TurndownService, table: HTMLElement): string {
+    const rows = [...table.querySelectorAll('tr')]
+        .map(row => [...row.querySelectorAll('th, td')].map(cell => cellText(turndown, cell)))
+        .filter(cells => cells.length > 0)
+    if (rows.length === 0) return ''
+
+    const width = Math.max(...rows.map(cells => cells.length))
+    const hasHeader = table.querySelector('th') !== null
+    const header = hasHeader ? rows[0]! : Array<string>(width).fill('')
+    const body = hasHeader ? rows.slice(1) : rows
+
+    const lines = [line(header, width), line(Array<string>(width).fill('---'), width)]
+    for (const cells of body) lines.push(line(cells, width))
+    return `\n\n${lines.join('\n')}\n\n`
+}
+
+/**
+ * One cell, written so that it stays one cell.
+ *
+ * <p>A pipe would end the cell early and a line break would end the row, so both are made harmless.
+ * What is inside is still converted, because a bold word in a cell is worth keeping.
+ */
+function cellText(turndown: TurndownService, cell: Element): string {
+    return turndown
+        .turndown(cell.innerHTML)
+        .replace(/\|/g, '\\|')
+        .replace(/\s*\n\s*/g, ' ')
+        .trim()
+}
+
+/** A row, padded to the width of the widest one so the columns line up down the whole table. */
+function line(cells: string[], width: number): string {
+    const padded = [...cells]
+    while (padded.length < width) padded.push('')
+    return `| ${padded.join(' | ')} |`
 }

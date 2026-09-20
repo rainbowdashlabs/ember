@@ -2,15 +2,33 @@
 
 ## v26.18.4
 
+### Neue Funktionen
+
+- **Ungespeichertes bleibt euch erhalten.** Was ihr auf einer Seite, in einer Neuigkeit oder in einem Wissensdatenbank-Eintrag schreibt, bleibt im Browser, wenn ihr die Seite ohne Speichern verlasst, und wird euch beim nächsten Öffnen wieder angeboten. Ein Entwurf wird nach dem Speichern und nach einer Woche vergessen.
+
 ### Verbesserungen
 
 - **Dateien öffnen sich auf dem Handy, statt still nicht zu speichern.** Ein Dokument, ein Bild oder eine Aufnahme wird auf Handy und Tablet jetzt in der App selbst geöffnet, mit einem Knopf zum Speichern; eine Werteliste oder ein Archiv geht wie bisher an das Teilen-Menü. Downloads, die so lange brauchten, dass das Teilen-Menü nicht mehr aufging, endeten vorher im Nichts.
+- **Exporte heißen nach dem, was in ihnen steht.** Ein Bericht, eine Liste oder eine Anwesenheitsliste kommt als etwas wie `Anwesenheit - Januar 2026.pdf` an statt jedes Mal gleich zu heißen, sodass zwei davon nicht mehr als durchnummerierte Kopien nebeneinander liegen. Der Name folgt der Sprache, in der die Dokumente der Wache geschrieben werden.
+- **Tabellen öffnen sich so, wie euer Programm sie erwartet.** Ihr wählt beim Export zwischen Semikolon und Komma, und jede Tabelle trägt jetzt die Kennung, die Umlaute richtig statt als Buchstabensalat öffnet.
+- **Die Anwesenheit lässt sich je Quartal auswerten.** Der Bericht bietet das Quartal neben Woche, Monat und Jahr an.
+- **Der Anwesenheitsbericht ist auch als Tabelle zu haben.** Die Stunden zu jedem Namen lassen sich als Tabelle exportieren und nicht nur drucken, für alle, die sie anderswo weiterrechnen.
+- **Die Antworten eines Formulars lassen sich drucken.** Bisher gab es sie nur als Tabelle.
+- **Der Anwesenheitsbericht lässt weg, wer bei nichts war.** Mitglieder ohne Stunden und ohne Termine füllen die Übersicht nicht mehr mit leeren Zeilen, so wie es die Monatstabellen schon vorher gehalten haben.
+- **Ein Bild behält, was über es geschrieben wurde.** Wo eine Datei einen Alternativtext oder eine Bildunterschrift trägt, verwendet eine Seite beides, solange die Kachel nichts Eigenes dazu sagt.
 - **Listen lassen sich auf dem Handy leichter abarbeiten.** Was mit einer Zeile möglich ist, steht jetzt am Fuß ihrer Karte, jeder Knopf über die volle Breite, statt neben dem Titel eingequetscht. Auch die Spalten auf einer Karte haben mehr Luft zueinander.
 - **Der Text eines Termins wird in den Listen richtig dargestellt.** Unter Termine → Kommende und beim Anlegen einer Anwesenheit zeigte eine Beschreibung mit Überschriften, Hervorhebungen oder einer Aufzählung ihre rohen Zeichen, oder sie lief in voller Länge und schob den nächsten Termin vom Bildschirm. Sie wird jetzt so dargestellt, wie sie geschrieben wurde, und nach ein paar Zeilen abgeschnitten, so wie eine Neuigkeit schon vorher.
 - **Zwanzig neue Bilder für ein Ausrüstungsstück.** Hose, Stiefel, Turnschuhe, T-Shirt, Pullover, Kappe und Socke kommen zur Kleidung, Axt, Handlampe, Leiter, Pylone, Kanister, Schaufel, Rucksack, Fernglas, Rettungsring, Fahrzeug, Blaulicht, Lagerfeuer und Landkarte zur Ausrüstung. Die bisherigen Notlösungen heißen jetzt schlichter: aus den Fußspuren werden Sohlen, aus der Leiter wird die Poolleiter.
 
+### Änderungen
+
+- **Dokumente werden auf Deutsch geschrieben, solange nicht Englisch verlangt wird.** Eine Wache ohne eingestellte Sprache bekam ihre Berichte und Listen auf Englisch; jetzt bekommt sie sie auf Deutsch. Stellt die Sprache der Wache auf Englisch, um es beim Alten zu belassen.
+
 ### Fehlerbehebungen
 
+- **Eine im Baukasten geschriebene Tabelle ging verloren.** Wer im Texteditor eine Tabelle schrieb, speicherte nur die Wörter darin, sodass die Zeilen mit dem Speichern weg waren. Eine Tabelle bleibt jetzt eine Tabelle.
+- **Tabellenzellen waren viel breiter als ihr Inhalt.** Eine Tabelle richtete ihre Spalten nach der Zelle mit dem längsten Wort, und das Ziehen an einer Kante arbeitete dagegen. Die Spalten teilen sich die Breite jetzt gleichmäßig, im Editor wie auf der veröffentlichten Seite.
+- **Der Speichern-Knopf konnte außer Reichweite rutschen.** Wer genug in den Texteditor schrieb, schob ihn unter den unteren Rand des Fensters. Der Editor übernimmt das Geschriebene jetzt sofort und braucht keinen Knopf mehr.
 - **Eine Suche konnte dabei bleiben, dass es nichts zu finden gibt.** Wer in eine Auswahl für Arten, Inventare oder Ausrüstungsbilder tippte, bevor ihre Liste fertig geladen war, sah unter Umständen keine Treffer, auch nachdem alles angekommen war. Jetzt sucht sie erneut, sobald die Liste da ist.
 - **Eine Anwesenheitsliste zu einem Termin kam unausgefüllt an.** Wer eine öffnete, fand jeden Namen offen und musste erst am Termin nachsehen, wer zugesagt hatte. Eine Liste kommt jetzt mit allen Zusagen als anwesend an, und wo der Termin eine Anmeldung verlangte, mit allen ohne Zusage als abgemeldet.
 - **Wer jemanden von Hand auf eine Liste setzte, konnte ihn als abgemeldet eintragen.** Bei einer Liste zu einem wiederkehrenden Termin wurden die Antworten von heute gelesen statt die für den Abend, um den es geht. Jetzt entscheiden die Antworten für den Tag der Liste.

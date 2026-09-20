@@ -42,6 +42,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.CsvWriter;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -1320,7 +1321,8 @@ public class InventoryRoutes implements Routes {
         var body = ctx.bodyAsClass(MemberExportRequest.class);
         var account = session.account();
         String generatedBy = NameParts.of(account).official();
-        var pdf = inventoryExportService.exportPdf(
+        boolean asSpreadsheet = "csv".equalsIgnoreCase(ctx.queryParam("format"));
+        var document = inventoryExportService.export(
                 session.stationId(),
                 body.memberIds(),
                 body.inventoryIds(),
@@ -1328,13 +1330,14 @@ public class InventoryRoutes implements Routes {
                 generatedBy,
                 body.showName() != null ? body.showName() : true,
                 body.showInternalId() != null ? body.showInternalId() : false,
-                body.showSize() != null ? body.showSize() : true);
-        if (pdf.isPresent()) {
-            ctx.contentType("application/pdf");
-            ctx.result(pdf.get());
-        } else {
+                body.showSize() != null ? body.showSize() : true,
+                asSpreadsheet ? CsvWriter.Separator.of(ctx.queryParam("separator")) : null);
+        if (document.isEmpty()) {
             throw new BadRequestResponse("Export failed");
         }
+        ctx.contentType(asSpreadsheet ? "text/csv" : "application/pdf");
+        ctx.header("Content-Disposition", document.get().contentDisposition());
+        ctx.result(document.get().bytes());
     }
 
     // -- Request/Response records --

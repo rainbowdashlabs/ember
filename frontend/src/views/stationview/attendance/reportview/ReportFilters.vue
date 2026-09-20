@@ -25,6 +25,7 @@ const selectedPeriod = defineModel<string>('selectedPeriod', {required: true})
 const selectedYear = defineModel<number>('selectedYear', {required: true})
 const selectedMonth = defineModel<number>('selectedMonth', {required: true})
 const selectedWeek = defineModel<number>('selectedWeek', {required: true})
+const selectedQuarter = defineModel<number>('selectedQuarter', {required: true})
 const showSavePreset = defineModel<boolean>('showSavePreset', {required: true})
 const presetName = defineModel<string>('presetName', {required: true})
 
@@ -36,6 +37,7 @@ defineProps<{
   yearOptions: number[]
   monthOptions: { value: number; label: string }[]
   weekOptions: number[]
+  quarterOptions: number[]
   canPreview: boolean
   previewing: boolean
   savePreset: () => Promise<void>
@@ -62,14 +64,17 @@ const emit = defineEmits<{
         :year-options="yearOptions"
         :month-options="monthOptions"
         :week-options="weekOptions"
+        :quarter-options="quarterOptions"
         :selected-period="selectedPeriod"
         :selected-year="selectedYear"
         :selected-month="selectedMonth"
         :selected-week="selectedWeek"
+        :selected-quarter="selectedQuarter"
         @update:selected-period="selectedPeriod = $event"
         @update:selected-year="selectedYear = $event"
         @update:selected-month="selectedMonth = $event"
         @update:selected-week="selectedWeek = $event"
+        @update:selected-quarter="selectedQuarter = $event"
     />
     <ReportFilterActions
         v-model:show-save-preset="showSavePreset"

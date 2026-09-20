@@ -55,19 +55,19 @@ export function buildCsv<T>(rows: T[], columns: ExportColumn<T>[]): string {
  * @param fileName file name without extension; the extension follows the resolved format.
  * @param format   requested output format.
  */
-export function downloadExport<T>(
+export async function downloadExport<T>(
     rows: T[],
     columns: ExportColumn<T>[],
     fileName: string,
     format: ExportFormatName = 'csv',
-): void {
+): Promise<void> {
     const [singleColumn] = columns
     const asValues = format === 'values' && columns.length === 1 && singleColumn !== undefined
     const content = asValues
         ? rows.map(row => cellValue(row, singleColumn)).filter(v => v).join('; ')
         : buildCsv(rows, columns)
     const type = asValues ? 'text/plain;charset=utf-8' : 'text/csv;charset=utf-8'
-    presentDocument(new Blob([content], {type}), `${fileName}.${asValues ? 'txt' : 'csv'}`)
+    await presentDocument(new Blob([content], {type}), `${fileName}.${asValues ? 'txt' : 'csv'}`)
 }
 
 export interface UseExportOptions<T> {
@@ -153,10 +153,10 @@ export function useExport<T>(options: UseExportOptions<T>) {
         showExportModal.value = true
     }
 
-    function performExport(format: ExportFormatName = 'csv') {
+    async function performExport(format: ExportFormatName = 'csv') {
         const columns = options.columns().filter(c => selectedColumns.value.has(c.key))
         if (columns.length === 0) return
-        downloadExport(selectedRows.value, columns, options.fileName ?? 'export', format)
+        await downloadExport(selectedRows.value, columns, options.fileName ?? 'export', format)
         cancelExport()
     }
 

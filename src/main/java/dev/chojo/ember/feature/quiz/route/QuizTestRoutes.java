@@ -349,10 +349,10 @@ public class QuizTestRoutes implements Routes {
         int id = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, id);
         try {
-            byte[] pdf = pdfService.exportQuestionPdf(id);
+            var pdf = pdfService.exportQuestionPdf(id);
             ctx.contentType("application/pdf");
-            ctx.header("Content-Disposition", "attachment; filename=\"test-questions.pdf\"");
-            ctx.result(pdf);
+            ctx.header("Content-Disposition", pdf.contentDisposition());
+            ctx.result(pdf.bytes());
         } catch (Exception e) {
             log.error("PDF export failed for test {}", id, e);
             throw new InternalServerErrorResponse("Internal server error");
@@ -363,10 +363,10 @@ public class QuizTestRoutes implements Routes {
         int id = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, id);
         try {
-            byte[] pdf = pdfService.exportSolutionPdf(id);
+            var pdf = pdfService.exportSolutionPdf(id);
             ctx.contentType("application/pdf");
-            ctx.header("Content-Disposition", "attachment; filename=\"test-solutions.pdf\"");
-            ctx.result(pdf);
+            ctx.header("Content-Disposition", pdf.contentDisposition());
+            ctx.result(pdf.bytes());
         } catch (Exception e) {
             log.error("PDF solution export failed for test {}", id, e);
             throw new InternalServerErrorResponse("Internal server error");

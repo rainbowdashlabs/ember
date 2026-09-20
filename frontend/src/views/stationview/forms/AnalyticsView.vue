@@ -22,7 +22,8 @@ import {FormAnalyticsBase, type Form, type FormAnalytics, type FormAnalyticsBase
 import { formatAnswerDisplay } from '@/util/formAnswerDisplay'
 import type { ProfileField } from '@/api/profileFields'
 import { forms, profileFields, stationMembers } from '@/api'
-import { downloadExport, type ExportColumn } from '@/composables/useExport'
+import { presentFile } from '@/util/documentFile'
+import type { ExportFormat, ExportSeparator } from '@/util/exportFormat'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -110,90 +111,17 @@ function selectExportQuestions(ids: number[]) {
   exportQuestionIds.value = new Set(ids)
 }
 
-async function loadMemberFieldValues(): Promise<Map<number, Map<number, string>>> {
-  const values = new Map<number, Map<number, string>>()
-  if (exportFieldIds.value.size === 0) return values
-  for (const resp of responses.value) {
-    const memberId = resp.memberId
-    if (memberId === null || values.has(memberId)) continue
-    try {
-      const vals = await profileFields.getValues(memberId)
-      const memberValues = new Map<number, string>()
-      for (const v of vals) memberValues.set(v.fieldId, v.value ?? '')
-      values.set(memberId, memberValues)
-    } catch {
-      values.set(memberId, new Map())
-    }
-  }
-  return values
-}
-
-async function loadAllAnswers(): Promise<Map<number, FormAnswer[]>> {
-  const answers = new Map<number, FormAnswer[]>()
-  for (const resp of responses.value) {
-    try {
-      const detail = await forms.getResponseDetail(formId.value, resp.id, analyticsBase.value)
-      answers.set(resp.id, detail.answers)
-    } catch {
-      answers.set(resp.id, [])
-    }
-  }
-  return answers
-}
-
-function memberColumn(): ExportColumn<FormResponse> {
-  return {
-    key: 'member',
-    label: t('forms.analytics.exportMember'),
-    value: resp => {
-      const name = resp.memberId === null ? undefined : memberNames.value.get(resp.memberId)
-      return name ?? `#${resp.memberId}`
-    },
-  }
-}
-
-function questionColumns(allResponseAnswers: Awaited<ReturnType<typeof loadAllAnswers>>): ExportColumn<FormResponse>[] {
-  if (!analytics.value) return []
-  return analytics.value.questions
-    .filter(q => exportQuestionIds.value.has(q.questionId))
-    .map(q => ({
-      key: `question:${q.questionId}`,
-      label: q.title,
-      value: (resp: FormResponse) => {
-        const answer = (allResponseAnswers.get(resp.id) ?? []).find(a => a.questionId === q.questionId)
-        return formatAnswerDisplay(q.questionType, q.config, answer?.value ?? '')
-      },
-    }))
-}
-
-function fieldColumns(
-    memberFieldValues: Awaited<ReturnType<typeof loadMemberFieldValues>>): ExportColumn<FormResponse>[] {
-  return allFields.value
-    .filter(f => exportFieldIds.value.has(f.id))
-    .map(f => ({
-      key: `field:${f.id}`,
-      label: f.name ?? '',
-      value: (resp: FormResponse) => {
-        const raw = (resp.memberId === null ? undefined : memberFieldValues.get(resp.memberId)?.get(f.id)) ?? ''
-        try { return String(JSON.parse(raw)) } catch { return raw }
-      },
-    }))
-}
-
-async function performExport() {
-  if (!analytics.value) return
+/**
+ * Asks the server for the answers, printed or as a spreadsheet.
+ *
+ * <p>They used to be assembled here, which made this the one export with no server side at all and
+ * the one list that could not be printed. Both formats now come from the same rows as everything
+ * else.
+ */
+async function performExport(format: ExportFormat, separator: ExportSeparator) {
+  if (!formId.value) return
   showExportModal.value = false
-
-  const memberFieldValues = await loadMemberFieldValues()
-  const allResponseAnswers = await loadAllAnswers()
-
-  const columns: ExportColumn<FormResponse>[] = [
-    memberColumn(),
-    ...questionColumns(allResponseAnswers),
-    ...fieldColumns(memberFieldValues),
-  ]
-
-  downloadExport(responses.value, columns, `${form.value?.title ?? 'formular'}-export`)
+  await presentFile(await forms.exportResponses(formId.value, format, separator))
 }
 
 const { loading, error } = useAsyncLoader(async () => {

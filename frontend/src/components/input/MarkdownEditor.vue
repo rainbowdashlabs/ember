@@ -288,8 +288,15 @@ function applyVideo(url: string) {
 <style>
 .markdown-editor-content .tiptap { outline: none; min-height: 280px; }
 .markdown-editor-content .tiptap p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: var(--text-muted); pointer-events: none; height: 0; }
-.markdown-editor-content .tiptap table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-.markdown-editor-content .tiptap th, .markdown-editor-content .tiptap td { border: 1px solid var(--border); padding: 0.4em 0.6em; min-width: 80px; vertical-align: top; }
+/*
+ * A resizable table carries its column widths in a colgroup, and a browser only reads those under
+ * a fixed layout. Left on the default, it sized the columns by their contents instead: a cell came
+ * out far wider than the words in it, which reads as enormous padding, and dragging an edge fought
+ * the browser rather than moving anything. A minimum width on the cells fought the same fight and
+ * belongs to the column, not to what happens to be typed into it.
+ */
+.markdown-editor-content .tiptap table { border-collapse: collapse; table-layout: fixed; width: 100%; margin: 1em 0; }
+.markdown-editor-content .tiptap th, .markdown-editor-content .tiptap td { border: 1px solid var(--border); padding: 0.4em 0.6em; vertical-align: top; overflow-wrap: break-word; }
 .markdown-editor-content .tiptap th { font-weight: bold; background: var(--bg-accent); }
 .markdown-editor-content .tiptap .selectedCell { background: color-mix(in srgb, var(--primary) 15%, transparent); }
 .markdown-editor-content .tiptap mark { padding: 0.1em 0.2em; border-radius: 2px; }

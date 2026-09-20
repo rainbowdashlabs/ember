@@ -5,6 +5,7 @@
  */
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
+import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import type {MovementPurposeName, StepActorName} from './movements'
 import type {StationUserTypeName} from './types'
 
@@ -345,14 +346,14 @@ export interface SheetOptions {
     instanceUrl?: boolean
 }
 
-export async function exportPdf(sessionId: number, options: SheetOptions = {}): Promise<Blob> {
+export async function exportPdf(sessionId: number, options: SheetOptions = {}): Promise<DocumentFile> {
     const params: Record<string, string> = {}
     if (options.signature) params.signature = 'true'
     if (options.title !== undefined) params.title = options.title
     if (options.blankRows) params.blankRows = String(options.blankRows)
     if (options.instanceUrl !== undefined) params.instanceUrl = String(options.instanceUrl)
     const res = await client.get(`/attendance/sessions/${sessionId}/export`, {params, responseType: 'blob'})
-    return res.data as Blob
+    return documentFrom(res, 'Anwesenheitsliste.pdf')
 }
 
 // -- Report --
@@ -418,9 +419,15 @@ export async function reportPreview(params: URLSearchParams): Promise<ReportData
     return res.data
 }
 
-export async function reportExport(params: URLSearchParams): Promise<Blob> {
+export async function reportExport(params: URLSearchParams): Promise<DocumentFile> {
     const res = await client.get('/attendance/report/export', {params, responseType: 'blob'})
-    return res.data as Blob
+    return documentFrom(res, 'Anwesenheit.pdf')
+}
+
+/** The same summary as a spreadsheet, for a reader who has to add the hours up elsewhere. */
+export async function reportExportCsv(params: URLSearchParams): Promise<DocumentFile> {
+    const res = await client.get('/attendance/report/export.csv', {params, responseType: 'blob'})
+    return documentFrom(res, 'Anwesenheit.csv')
 }
 
 interface PresetRequest {

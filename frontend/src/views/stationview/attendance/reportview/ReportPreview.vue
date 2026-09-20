@@ -25,8 +25,13 @@ const emit = defineEmits<{
 
 <template>
   <div class="flex justify-end">
-    <PrimaryButton :icon="['fas', 'download']" :disabled="exporting" @click="emit('export')">
-      {{ exporting ? t('common.loading') : t('attendanceReport.exportPdf') }}
+    <PrimaryButton
+        :icon="['fas', 'download']"
+        :disabled="exporting"
+        data-testid="attendance-report-export"
+        @click="emit('export')"
+    >
+      {{ exporting ? t('common.loading') : t('common.export') }}
     </PrimaryButton>
   </div>
   <ReportSummaryTable

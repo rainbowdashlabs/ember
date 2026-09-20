@@ -5,6 +5,7 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
+import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import type {MemberIdentity, RestrictionSelection} from './types'
 
 export interface EventCategory {
@@ -655,9 +656,9 @@ export async function exportEventList(data: {
     columns?: { type: string; key?: string; fieldName?: string; label: string }[]
     from: string
     to: string
-}): Promise<Blob> {
+}): Promise<DocumentFile> {
     const res = await client.post('/events/export', data, {responseType: 'blob'})
-    return res.data as Blob
+    return documentFrom(res, 'Termine.pdf')
 }
 
 // -- Event Fields (per-event) --

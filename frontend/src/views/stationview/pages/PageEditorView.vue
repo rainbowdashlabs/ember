@@ -47,6 +47,9 @@ const rows = ref<RowEditData[]>([])
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 const pageId = computed(() => Number(route.params.id))
 
+/** Held so that a save can tell the editor its draft is no longer a rescue worth keeping. */
+const editor = ref<{draftSaved: () => void} | null>(null)
+
 const parentOptions = computed(() =>
     allPages.value.filter(p => p.id !== pageId.value),
 )
@@ -120,6 +123,7 @@ async function save() {
         page.value = updated
         rows.value = pageToRows(updated)
         hasUnsavedChanges.value = false
+        editor.value?.draftSaved()
         showToast(t('common.saved'), 'success')
     } catch (e) {
         error.value = t('common.error')
@@ -156,9 +160,11 @@ async function save() {
                 />
 
                 <ContentBlockEditor
+                    ref="editor"
                     v-model:rows="rows"
                     :station-uid="stationUid"
                     :preview="preview"
+                    :draft-key="`page:${stationUid}:${pageId}`"
                     @change="markDirty"
                 />
             </template>

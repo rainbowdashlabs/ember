@@ -33,6 +33,9 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.ProfileFieldScopes;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.util.DocumentName;
+import dev.chojo.ember.util.DocumentWord;
+import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
@@ -415,8 +418,15 @@ public class ManagedMemberRoutes implements Routes {
         int memberId = pathInt(ctx, "memberId");
         assertManages(session, memberId);
         var data = gdprExportService.exportMemberData(memberId);
+        String name = stationMemberRepository
+                .findById(memberId)
+                .map(StationMember::displayName)
+                .orElse("");
+        String filename = DocumentName.of("json", DocumentWord.DATA_EXPORT.in("de"), DocumentName.part(name));
         ctx.contentType("application/json");
-        ctx.header("Content-Disposition", "attachment; filename=\"gdpr-export-member-" + memberId + ".json\"");
+        ctx.header(
+                "Content-Disposition",
+                SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, filename));
         ctx.json(data);
     }
 

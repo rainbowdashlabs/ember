@@ -10,6 +10,12 @@ import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizTestSection;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.DocumentName;
+import dev.chojo.ember.util.DocumentWord;
+import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -32,15 +38,18 @@ public class QuizPdfService {
     private final QuizTestRepository testRepository;
     private final QuizCatalogRepository catalogRepository;
     private final QuizQuestionImageService imageService;
+    private final StationRepository stationRepository;
 
     @Inject
     public QuizPdfService(
             QuizTestRepository testRepository,
             QuizCatalogRepository catalogRepository,
-            QuizQuestionImageService imageService) {
+            QuizQuestionImageService imageService,
+            StationRepository stationRepository) {
         this.testRepository = testRepository;
         this.catalogRepository = catalogRepository;
         this.imageService = imageService;
+        this.stationRepository = stationRepository;
     }
 
     private static String extensionFor(String contentType) {
@@ -52,18 +61,37 @@ public class QuizPdfService {
         };
     }
 
-    public byte[] exportQuestionPdf(int testId) throws IOException, InterruptedException {
-        var data = buildExportData(testId);
-        var resources = new HashMap<String, byte[]>();
-        String typst = generateTypst(data.title, data.sections, data.totalMaxPoints, false, resources);
-        return TypstCompiler.compile(typst, resources);
+    public ExportedDocument exportQuestionPdf(int testId) throws IOException, InterruptedException {
+        return export(testId, false);
     }
 
-    public byte[] exportSolutionPdf(int testId) throws IOException, InterruptedException {
+    public ExportedDocument exportSolutionPdf(int testId) throws IOException, InterruptedException {
+        return export(testId, true);
+    }
+
+    /**
+     * A test as a sheet, either the questions to hand out or the answers to mark against.
+     *
+     * <p>The name carries the test's own, because a folder full of question sheets that all say
+     * "questions" tells whoever is printing them nothing at all.
+     */
+    private ExportedDocument export(int testId, boolean withAnswers) throws IOException, InterruptedException {
         var data = buildExportData(testId);
         var resources = new HashMap<String, byte[]>();
-        String typst = generateTypst(data.title, data.sections, data.totalMaxPoints, true, resources);
-        return TypstCompiler.compile(typst, resources);
+        String typst = generateTypst(data.title, data.sections, data.totalMaxPoints, withAnswers, resources);
+        String language = StationFormat.languageOf(stationOf(testId));
+        String filename = DocumentName.of(
+                "pdf",
+                DocumentName.part(data.title),
+                (withAnswers ? DocumentWord.ANSWERS : DocumentWord.QUESTIONS).in(language));
+        return new ExportedDocument(TypstCompiler.compile(typst, resources), filename);
+    }
+
+    private Station stationOf(int testId) {
+        return testRepository
+                .findById(testId)
+                .flatMap(test -> stationRepository.findById(test.stationId()))
+                .orElse(null);
     }
 
     private ExportData buildExportData(int testId) {

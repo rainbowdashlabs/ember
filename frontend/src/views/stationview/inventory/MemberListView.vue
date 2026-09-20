@@ -10,6 +10,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import ExportFormatModal from '@/components/documents/ExportFormatModal.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import MemberListHeader from './memberlistview/MemberListHeader.vue'
 import MemberListBody from './memberlistview/MemberListBody.vue'
@@ -181,8 +182,7 @@ const {
   toggleField: toggleExportField,
   toggleMember: toggleExportSelection,
   toggleSelectAll,
-  exportCsv,
-  exportPdf,
+  runExport,
 } = useInventoryMemberExport(
   () => table.rows,
   displayedInventories,
@@ -192,6 +192,8 @@ const {
   memberInventoryItems,
   formatItemLabel,
 )
+
+const showExportFormat = ref(false)
 
 function goToMember(memberId: number) {
   router.push({ name: routes.member, params: { memberId } })
@@ -211,8 +213,13 @@ function goToMember(memberId: number) {
         :has-members="table.rows.length > 0"
         @enter-export="enterExportMode"
         @cancel-export="cancelExport"
-        @export-csv="exportCsv"
-        @export-pdf="exportPdf"
+        @export="showExportFormat = true"
+      />
+      <ExportFormatModal
+          v-model="showExportFormat"
+          :formats="['csv', 'pdf']"
+          :exporting="exporting"
+          @export="runExport"
       />
 
       <Alert v-if="error || exportError" variant="error">{{ error || exportError }}</Alert>

@@ -16,6 +16,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {ExportFieldOption, ExportFormatName} from '@/composables/useExport'
+import ExportSeparatorField from '@/components/documents/ExportSeparatorField.vue'
+import type {ExportSeparator} from '@/util/exportFormat'
 
 const {t} = useI18n()
 
@@ -30,10 +32,11 @@ const props = defineProps<{
 const emit = defineEmits<{
   toggleColumn: [key: string]
   selectColumns: [keys: string[]]
-  export: [format: ExportFormatName]
+  export: [format: ExportFormatName, separator: ExportSeparator]
 }>()
 
 const format = ref<ExportFormatName>('csv')
+const separator = ref<ExportSeparator>('semicolon')
 
 const canExportValues = computed(() => props.selectedColumns.size === 1)
 
@@ -78,10 +81,12 @@ watch(canExportValues, (can) => {
         </MutedText>
       </div>
 
+      <ExportSeparatorField v-if="format === 'csv'" v-model="separator"/>
+
       <ButtonRow pair align="end">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :icon="['fas', 'download']" :disabled="selectedColumns.size === 0"
-                       data-testid="members-export-download" @click="emit('export', format)">
+                       data-testid="members-export-download" @click="emit('export', format, separator)">
           {{ t('membersList.export.submit') }}
         </PrimaryButton>
       </ButtonRow>

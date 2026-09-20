@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import type {InventoryTypeName, ItemCustodyName, ItemOwnerName} from './inventory'
 import type {MemberIdentity} from './types'
 
@@ -161,9 +162,9 @@ export interface LossReport {
 }
 
 /** The file attached to a report, fetched with the session so it can be handed to the reader. */
-export async function downloadDocument(movementId: number): Promise<Blob> {
+export async function downloadDocument(movementId: number): Promise<DocumentFile> {
     const res = await client.get(`/movements/${movementId}/document`, {responseType: 'blob'})
-    return res.data as Blob
+    return documentFrom(res, 'Dokument')
 }
 
 export interface CreateMovementRequest {
@@ -265,9 +266,9 @@ export async function correctMovement(id: number, data: CorrectMovementRequest):
 }
 
 /** The sheet for the shelf: a row per member, a column per inventory, the sizes in the cells. */
-export async function exportPdf(movementIds: number[], extraFieldIds: number[]): Promise<Blob> {
+export async function exportPdf(movementIds: number[], extraFieldIds: number[]): Promise<DocumentFile> {
     const res = await client.post('/movements/export', {movementIds, extraFieldIds}, {responseType: 'blob'})
-    return res.data as Blob
+    return documentFrom(res, 'Bewegungen.pdf')
 }
 
 /** Asks a member for every piece they hold, one chain per piece. */

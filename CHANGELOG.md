@@ -2,15 +2,33 @@
 
 ## v26.18.4
 
+### New Features
+
+- **Unsaved writing is kept for you.** What you write on a page, a news entry or a knowledge base article stays in your browser when you leave without saving, and is offered back when you return. A draft is forgotten once you save, and after a week.
+
 ### Improvements
 
 - **Files open on a phone instead of quietly not saving.** A document, a picture or a recording fetched on a phone or tablet now opens in the app itself, with a button to save it from there; a list of values or an archive is handed to the share sheet as before. Downloads that took long enough for the share sheet to be refused used to end in nothing at all.
+- **Exports are named after what they hold.** A report, list or sheet arrives as something like `Attendance - January 2026.pdf` instead of the same word every time, so two of them no longer sit side by side as numbered copies. The name follows the language the station's documents are written in.
+- **Spreadsheets open the way your software expects them to.** You choose between a semicolon and a comma when you ask for one, and every spreadsheet now carries the mark that makes umlauts open correctly instead of as rubbish.
+- **Attendance can be reported by quarter.** The report offers a quarter beside the week, the month and the year.
+- **The attendance report can be had as a spreadsheet.** The hours against each name can be exported as a table as well as printed, for anyone who has to add them up somewhere else.
+- **The answers to a form can be printed.** They could only be taken away as a spreadsheet before.
+- **The attendance report leaves out who was at nothing.** Members with no hours and no appointments no longer fill the summary with empty rows, which is what the monthly tables already did.
+- **A picture keeps the words written about it.** Where a file carries an alt text or a caption, a page showing it uses them unless that tile says something of its own.
 - **Lists are easier to work through on a phone.** What can be done with a row now stands at the foot of its card, each button across the full width, rather than squeezed in beside the title. The columns on a card have more room between them as well.
 - **An appointment's text reads properly in the lists.** Under Appointments → Upcoming and when starting an attendance sheet, a description written with headings, emphasis or a list showed its raw markings, or ran to its full length and pushed the next appointment off the screen. It is now formatted as it was written and cut off after a few lines, the way a news entry already was.
 - **Twenty more pictures for a piece of gear.** Trousers, boots, trainers, a t-shirt, a jumper, a cap and socks join the clothing, and an axe, a torch, a ladder, a cone, a jerrycan, a shovel, a rucksack, binoculars, a life ring, an engine, a blue light, a campfire and a map join the equipment. The old stand-ins keep their place under plainer names: the footprints are now Soles and the pool ladder is no longer just Ladder.
 
+### Changes
+
+- **Documents are written in German unless English is asked for.** A station that has set no language received its reports and sheets in English; it now receives them in German. Set the station's language to English to keep them as they were.
+
 ### Fixes
 
+- **A table written in a tile was lost.** Writing a table in the text editor stored only the words that were in it, so the rows were gone once the page was saved. A table is now kept as a table.
+- **Table cells were far wider than what they held.** A table sized its columns by whichever cell held the longest word, and dragging an edge fought it. The columns now share the width evenly, in the editor and on the published page alike.
+- **The save button could move out of reach.** Writing enough in the text editor pushed it past the bottom of the dialog. The editor now applies what you write as you write it and needs no button.
 - **A search could keep saying there was nothing to find.** Typing into a picker for kinds, inventories or gear pictures before its list had finished loading could leave it showing no results, even once everything had arrived. It now searches again as soon as the list is there.
 - **An attendance sheet for an appointment arrived unmarked.** Opening one left every name open, so whoever ran the evening first had to look up on the appointment who had said they were coming. A sheet now arrives with everybody who accepted marked present, and, where the appointment demanded a registration, everybody who did not accept marked as declined.
 - **Adding somebody to a sheet by hand could mark them as declined.** On a sheet for a repeating appointment, this read the answers given for today rather than for the evening the sheet is about, so somebody who had signed off for a different evening arrived as not coming. The answers for the sheet's own day now decide.

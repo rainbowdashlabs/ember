@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {documentFrom, type DocumentFile} from '@/util/documentFile'
+import type {ExportFormat, ExportSeparator} from '@/util/exportFormat'
 import {createCrudResource} from './crud'
 import type {MemberIdentity} from './types'
 
@@ -358,4 +360,22 @@ export async function getResponseDetail(
  */
 export async function acknowledgeContactResponse(formId: number, responseId: number): Promise<void> {
     await client.post(`/pages/forms/${formId}/responses/${responseId}/acknowledge`)
+}
+
+/**
+ * The answers to a form, as a spreadsheet or as a sheet.
+ *
+ * <p>Built on the server from the same columns for both, so a printed copy and a pasted one cannot
+ * say different things.
+ */
+export async function exportResponses(
+    formId: number,
+    format: ExportFormat,
+    separator: ExportSeparator = 'semicolon',
+): Promise<DocumentFile> {
+    const res = await client.get(`/forms/${formId}/responses/export`, {
+        params: format === 'csv' ? {format, separator} : {format},
+        responseType: 'blob',
+    })
+    return documentFrom(res, `Antworten.${format}`)
 }

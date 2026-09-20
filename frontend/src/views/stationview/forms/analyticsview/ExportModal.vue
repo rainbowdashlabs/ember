@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -15,6 +15,10 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import type { FormQuestionAnalytics } from '@/api/forms'
 import type { ProfileField } from '@/api/profileFields'
 import type { ExportFieldOption } from '@/composables/useExport'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import RadioInput from '@/components/input/toggle/RadioInput.vue'
+import ExportSeparatorField from '@/components/documents/ExportSeparatorField.vue'
+import type { ExportFormat, ExportSeparator } from '@/util/exportFormat'
 
 const modelValue = defineModel<boolean>({required: true})
 
@@ -29,10 +33,13 @@ const emit = defineEmits<{
   toggleQuestion: [id: number]
   toggleField: [id: number]
   selectQuestions: [ids: number[]]
-  export: []
+  export: [format: ExportFormat, separator: ExportSeparator]
 }>()
 
 const { t } = useI18n()
+
+const format = ref<ExportFormat>('csv')
+const separator = ref<ExportSeparator>('semicolon')
 
 const questionOptions = computed((): ExportFieldOption<number>[] =>
   props.questions.map(q => ({key: q.questionId, label: q.title})),
@@ -64,10 +71,30 @@ const fieldOptions = computed((): ExportFieldOption<number>[] =>
         @toggle="emit('toggleField', $event)"
       />
 
+      <div class="space-y-2">
+        <FieldLabel>{{ t('exportFormat.format') }}</FieldLabel>
+        <div class="flex items-center gap-4">
+          <FieldLabel inline class="cursor-pointer">
+            <RadioInput v-model="format" value="csv"/>
+            {{ t('exportFormat.csv') }}
+          </FieldLabel>
+          <FieldLabel inline class="cursor-pointer">
+            <RadioInput v-model="format" value="pdf"/>
+            {{ t('exportFormat.pdf') }}
+          </FieldLabel>
+        </div>
+      </div>
+
+      <ExportSeparatorField v-if="format === 'csv'" v-model="separator"/>
+
       <ButtonRow pair align="end">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :icon="['fas', 'file-csv']" :disabled="selectedQuestionIds.size === 0" @click="emit('export')">
-          {{ t('forms.analytics.exportCsv') }}
+        <PrimaryButton
+            :icon="['fas', 'download']"
+            :disabled="selectedQuestionIds.size === 0"
+            @click="emit('export', format, separator)"
+        >
+          {{ t('common.export') }}
         </PrimaryButton>
       </ButtonRow>
     </div>

@@ -68,6 +68,7 @@ const NECESSITY: Record<string, StorageNecessityName> = {
     'inv-members-show-size': StorageNecessity.COMFORT,
     'inv-members-show-internal-id': StorageNecessity.COMFORT,
     table_columns: StorageNecessity.COMFORT,
+    page_drafts: StorageNecessity.FUNCTIONAL,
 }
 
 export interface StoredLegalVersions {

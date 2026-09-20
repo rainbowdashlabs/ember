@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.media.service.ImageVariantService.ImageData;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
@@ -16,6 +17,10 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
+import dev.chojo.ember.util.DocumentName;
+import dev.chojo.ember.util.DocumentPeriod;
+import dev.chojo.ember.util.DocumentWord;
+import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -24,8 +29,10 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.text.Collator;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -34,6 +41,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -114,7 +122,7 @@ public class MovementExportService {
      * @param generatedBy   the name of the person generating the export
      * @return the PDF bytes, or empty if no data or rendering failed
      */
-    public Optional<byte[]> exportPdf(
+    public Optional<ExportedDocument> exportPdf(
             int stationId, List<Integer> movementIds, List<Integer> extraFieldIds, String generatedBy) {
         var station = stationRepository.findById(stationId).orElse(null);
         if (station == null) return Optional.empty();
@@ -233,14 +241,45 @@ public class MovementExportService {
                 inventoryOrder.stream().map(inventoryNames::get).toList());
         data.put("rows", rows);
 
-        // Render
         var logo = logoService.original(stationId).orElse(null);
         try {
-            return Optional.of(renderPdf(data, locale + "/exchange-export.typ", logo));
+            String filename = exportFileName(selectedExchanges, StationFormat.timezoneOf(station), locale);
+            return Optional.of(new ExportedDocument(renderPdf(data, locale + "/exchange-export.typ", logo), filename));
         } catch (Exception e) {
             log.error("Failed to export exchange PDF", e);
             return Optional.empty();
         }
+    }
+
+    /**
+     * What a queue export is called, which is whatever is in it.
+     *
+     * <p>A sheet of nothing but exchanges is an exchange sheet, and one holding exchanges and issues
+     * says both. The purposes are named in the order they are declared rather than the order the rows
+     * were picked, so the same selection always produces the same name.
+     *
+     * <p>All four purposes at once makes a name nobody reads, so that case is the word for the whole
+     * thing instead.
+     */
+    static String exportFileName(List<ItemMovement> movements, ZoneId zone, String locale) {
+        var present = movements.stream().map(ItemMovement::purpose).collect(Collectors.toSet());
+        var named = Arrays.stream(MovementPurpose.values())
+                .filter(present::contains)
+                .map(purpose -> wordFor(purpose).in(locale))
+                .toList();
+        String what = named.size() == MovementPurpose.values().length || named.isEmpty()
+                ? DocumentWord.MOVEMENTS.in(locale)
+                : String.join(" - ", named);
+        return DocumentName.of("pdf", what, DocumentPeriod.day(Instant.now(), zone));
+    }
+
+    private static DocumentWord wordFor(MovementPurpose purpose) {
+        return switch (purpose) {
+            case ISSUE -> DocumentWord.ISSUE;
+            case RETURN -> DocumentWord.RETURN;
+            case EXCHANGE -> DocumentWord.EXCHANGE;
+            case REQUEST -> DocumentWord.REQUEST;
+        };
     }
 
     private String formatFieldValue(String rawValue) {

@@ -22,8 +22,7 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'enter-export'): void
   (e: 'cancel-export'): void
-  (e: 'export-csv'): void
-  (e: 'export-pdf'): void
+  (e: 'export'): void
 }>()
 </script>
 
@@ -32,11 +31,12 @@ const emit = defineEmits<{
     <SubHeader>{{ t('inventoryMembers.title') }}</SubHeader>
     <ButtonRow align="end">
       <template v-if="exportMode">
-        <SecondaryButton :icon="['fas', 'download']" :disabled="exporting || selectedCount === 0" @click="emit('export-csv')">
-          CSV ({{ selectedCount }})
-        </SecondaryButton>
-        <SecondaryButton :icon="['fas', 'download']" :disabled="exporting || selectedCount === 0" @click="emit('export-pdf')">
-          {{ exporting ? t('common.loading') : 'PDF' }} ({{ selectedCount }})
+        <SecondaryButton
+            :icon="['fas', 'download']"
+            :disabled="exporting || selectedCount === 0"
+            @click="emit('export')"
+        >
+          {{ exporting ? t('common.loading') : t('common.export') }} ({{ selectedCount }})
         </SecondaryButton>
         <SecondaryButton @click="emit('cancel-export')">{{ t('common.cancel') }}</SecondaryButton>
       </template>

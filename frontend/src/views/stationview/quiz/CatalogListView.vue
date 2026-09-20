@@ -124,7 +124,7 @@ async function exportCatalog(catalog: QuizCatalog) {
   try {
     const data = await quiz.exportCatalog(catalog.id)
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    presentDocument(blob, `${catalog.name.replace(/\s+/g, '_')}.json`)
+    await presentDocument(blob, `${catalog.name.replace(/\s+/g, '_')}.json`)
   } catch {
     error.value = t('common.error')
   }
