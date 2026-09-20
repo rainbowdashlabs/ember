@@ -75,9 +75,13 @@ if (!phosphorImport) {
     process.exit(1)
 }
 
-// PhFireTruck → fire-truck, which is how a template names it. Two runs of capitals rather than one,
-// so that PhTShirt becomes t-shirt and not tshirt: AppIcon turns the name back into the component's
-// and tshirt would come back as PhTshirt, which nothing registered.
+/**
+ * PhFireTruck to fire-truck, which is how a file names it.
+ *
+ * Two runs of capitals rather than one, so that PhTShirt becomes t-shirt and not tshirt: AppIcon
+ * turns a name back into its component's, and tshirt would come back as PhTshirt, which nothing
+ * registered and nothing draws.
+ */
 function phVarToIconName(varName) {
     return varName
         .replace(/^Ph/, '')
@@ -100,8 +104,17 @@ function registrationHint(prefix, iconName) {
 
 // ── Check the gear catalogue, whose names never appear as a literal pair ────
 
-// The catalogue stores a name and `gearIconRef` builds the pair at runtime, so the scan below
-// cannot see these. Left unchecked, a kind drawn with an unregistered picture shows nothing at all.
+/**
+ * The line a match sits on, counted from the start of the file.
+ */
+function lineOf(content, index) {
+    return content.slice(0, index).split('\n').length
+}
+
+/**
+ * The catalogue stores a bare name and gearIconRef builds the pair at runtime, so the scan below
+ * never sees these. Left unchecked, a kind drawn with an unregistered picture shows nothing at all.
+ */
 const GEAR_ICONS_TS = join(SRC, 'util', 'gearIcons.ts')
 const gearContent = readFileSync(GEAR_ICONS_TS, 'utf-8')
 
