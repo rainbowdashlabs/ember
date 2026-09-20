@@ -28,7 +28,7 @@ import {useSessionFields} from './sessionview/useSessionFields'
 import {useSessionNotes} from './sessionview/useSessionNotes'
 import SessionContent from './sessionview/SessionContent.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import {presentDocument} from '@/util/documentView'
+import {presentFile} from '@/util/documentFile'
 import {localInputToInstant, timeOnDayOf} from '@/util/format'
 import {reportCaughtError} from '@/util/devErrorReporter'
 
@@ -361,7 +361,7 @@ const showExportOptions = ref(false)
 const {running: exporting, run: exportSheet} = useAsyncAction(async (options: SheetOptions) => {
   error.value = ''
   try {
-    presentDocument(await attendance.exportPdf(sessionId.value, options))
+    presentFile(await attendance.exportPdf(sessionId.value, options))
     showExportOptions.value = false
   } catch {
     error.value = t('common.error')

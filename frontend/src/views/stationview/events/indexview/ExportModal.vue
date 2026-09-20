@@ -13,7 +13,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {EventCategory} from '@/api/events'
 import {events} from '@/api'
-import {presentDocument} from '@/util/documentView'
+import {presentFile} from '@/util/documentFile'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import TimeRangeSection from './exportmodal/TimeRangeSection.vue'
 import CategoriesSection from './exportmodal/CategoriesSection.vue'
@@ -115,7 +115,7 @@ const {running: exporting, run: doExport} = useAsyncAction(async () => {
       fieldName: c.isExtra ? c.label : undefined,
       label: c.label,
     }))
-    presentDocument(await events.exportEventList({
+    presentFile(await events.exportEventList({
       categoryIds: [...exportCategoryIds.value],
       columns,
       from,

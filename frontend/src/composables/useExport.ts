@@ -5,7 +5,6 @@
  */
 import {computed, ref} from 'vue'
 import {presentDocument} from '@/util/documentView'
-import {documentOf} from '@/util/documentFile'
 
 /**
  * Selectable entry of an export field picker: a stable key plus the label shown to the user.
@@ -68,7 +67,7 @@ export function downloadExport<T>(
         ? rows.map(row => cellValue(row, singleColumn)).filter(v => v).join('; ')
         : buildCsv(rows, columns)
     const type = asValues ? 'text/plain;charset=utf-8' : 'text/csv;charset=utf-8'
-    presentDocument(documentOf(new Blob([content], {type}), `${fileName}.${asValues ? 'txt' : 'csv'}`))
+    presentDocument(new Blob([content], {type}), `${fileName}.${asValues ? 'txt' : 'csv'}`)
 }
 
 export interface UseExportOptions<T> {

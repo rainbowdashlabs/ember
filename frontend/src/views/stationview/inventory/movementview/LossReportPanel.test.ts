@@ -10,10 +10,10 @@ import {createI18n} from 'vue-i18n'
 import LossReportPanel from './LossReportPanel.vue'
 
 const downloadDocument = vi.fn()
-const presentDocument = vi.fn()
+const presentFile = vi.fn()
 
 vi.mock('@/api', () => ({movements: {downloadDocument: (id: number) => downloadDocument(id)}}))
-vi.mock('@/util/documentView', () => ({presentDocument: (file: unknown) => presentDocument(file)}))
+vi.mock('@/util/documentFile', () => ({presentFile: (file: unknown) => presentFile(file)}))
 
 /**
  * Where the evidence of a loss report reaches the reader.
@@ -41,7 +41,7 @@ function mountPanel(documentName: string | null) {
 describe('LossReportPanel', () => {
     beforeEach(() => {
         downloadDocument.mockReset()
-        presentDocument.mockReset()
+        presentFile.mockReset()
     })
 
     /** The name travels with the document from the server, so the panel adds nothing of its own. */
@@ -50,10 +50,10 @@ describe('LossReportPanel', () => {
         downloadDocument.mockResolvedValue(file)
 
         await mountPanel('verlust.pdf').get('[data-testid="loss-report-download"]').trigger('click')
-        await vi.waitFor(() => expect(presentDocument).toHaveBeenCalledOnce())
+        await vi.waitFor(() => expect(presentFile).toHaveBeenCalledOnce())
 
         expect(downloadDocument).toHaveBeenCalledWith(4)
-        expect(presentDocument).toHaveBeenCalledWith(file)
+        expect(presentFile).toHaveBeenCalledWith(file)
     })
 
     it('reports a refused download instead of handing anything over', async () => {
@@ -63,6 +63,6 @@ describe('LossReportPanel', () => {
         await panel.get('[data-testid="loss-report-download"]').trigger('click')
         await vi.waitFor(() => expect(panel.text()).toContain('common.error'))
 
-        expect(presentDocument).not.toHaveBeenCalled()
+        expect(presentFile).not.toHaveBeenCalled()
     })
 })

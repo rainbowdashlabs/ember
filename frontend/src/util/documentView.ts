@@ -3,11 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {readonly, ref} from 'vue'
-import {fileKindOf} from '@/util/fileKind'
+import {readonly, ref, shallowReadonly} from 'vue'
+import {canBeRead} from '@/util/fileKind'
 import {isHandheld} from '@/util/handheld'
-import {saveBlob} from '@/util/downloadAuthed'
-import type {DocumentFile} from '@/util/documentFile'
+import {SaveResult, saveBlob} from '@/util/saveBlob'
 
 /** A document the reader is looking at, held until they close it. */
 export interface ViewedDocument {
@@ -17,6 +16,7 @@ export interface ViewedDocument {
 }
 
 const viewed = ref<ViewedDocument | null>(null)
+const unsaved = ref<string | null>(null)
 
 /**
  * Hands a finished document to the reader, by whichever route that device actually has.
@@ -27,17 +27,33 @@ const viewed = ref<ViewedDocument | null>(null)
  * So the document is opened where it already is, in the page that built it, and the button to save it
  * stays there for anybody who wants it saved anyway.
  *
- * <p>A document nothing can draw, an archive of them for instance, is saved at either size, because
- * showing it is not on offer and pretending otherwise would only cost the reader a press.
+ * <p>Only what there is a viewer for is opened: a picture, a document with pages, a recording. A
+ * list of values or an archive is saved at either size, because showing a reader its bytes as words
+ * is not showing them the thing they asked for, and it costs them a press to get out of. What a
+ * file is gets read from its name as well as its type, since one a member uploaded often carries no
+ * type worth the name and would otherwise be taken for something nobody can draw.
  */
-export function presentDocument(document: DocumentFile) {
-    const {blob, filename} = document
-    const mimeType = blob.type
-    if (isHandheld() && fileKindOf(mimeType) !== 'other') {
+export async function presentDocument(blob: Blob, filename: string, mimeType = blob.type): Promise<void> {
+    if (isHandheld() && canBeRead(mimeType, filename)) {
         viewed.value = {blob, filename, mimeType}
         return
     }
-    saveBlob(blob, filename)
+    if (await saveBlob(blob, filename) === SaveResult.UNAVAILABLE) unsaved.value = filename
+}
+
+/**
+ * The file this device could neither show nor save, waiting to be reported once.
+ *
+ * <p>Held here rather than said here, because what to say is a sentence in a language and this knows
+ * nothing about either. The host beside the toasts reads it, tells the reader and clears it.
+ */
+export function getUnsavedDocument() {
+    return readonly(unsaved)
+}
+
+/** Forgets a reported failure, so the next one is reported in its turn. */
+export function clearUnsavedDocument() {
+    unsaved.value = null
 }
 
 /** Closes whatever is being read, which is what releases its bytes. */
@@ -45,7 +61,12 @@ export function closeDocument() {
     viewed.value = null
 }
 
-/** Read-only view of the document on screen; the host renders against this. */
+/**
+ * Read-only view of the document on screen; the host renders against this.
+ *
+ * <p>Shallow, so that the bytes stay a Blob. Made deeply read-only they become a shape that merely
+ * resembles one, and every reader of them has to swear to the compiler that it is a Blob after all.
+ */
 export function getViewedDocument() {
-    return readonly(viewed)
+    return shallowReadonly(viewed)
 }

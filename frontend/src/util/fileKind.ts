@@ -6,20 +6,56 @@
 /** What a file can be shown as, which decides both its tile and how it opens. */
 export type FileKind = 'image' | 'pdf' | 'video' | 'audio' | 'text' | 'other'
 
+/** What a name's ending says the file is, for the types worth reading on screen. */
+const BY_EXTENSION: Record<string, FileKind> = {
+    pdf: 'pdf',
+    png: 'image', jpg: 'image', jpeg: 'image', gif: 'image', webp: 'image', svg: 'image', avif: 'image',
+    mp4: 'video', webm: 'video', mov: 'video',
+    mp3: 'audio', wav: 'audio', ogg: 'audio', m4a: 'audio',
+    txt: 'text', csv: 'text', log: 'text', md: 'text',
+}
+
 /**
- * What kind of thing a file is, read off the type it was stored under.
+ * What kind of thing a file is, read off the type it was stored under and, failing that, its name.
  *
  * <p>The one place that answers it, so a tile, a preview and the decision whether to ask for a
  * picture at all cannot drift into three different opinions about the same file.
+ *
+ * <p>The name is asked only where the type says nothing, which is the common case for anything a
+ * member uploaded: a browser that offered no type, or a server falling back to the stream of bytes
+ * it could not name, both store {@code application/octet-stream}. Read from the type alone, a
+ * perfectly readable report is a thing nobody can draw, and it goes down the saving path on a phone
+ * that has nowhere to save it.
+ *
+ * @param mimeType the stored type, empty or generic where none was known
+ * @param fileName the stored name, consulted only where the type gives nothing away
  */
-export function fileKindOf(mimeType?: string | null): FileKind {
+export function fileKindOf(mimeType?: string | null, fileName?: string | null): FileKind {
     const mime = (mimeType ?? '').toLowerCase()
     if (mime.startsWith('image/')) return 'image'
     if (mime === 'application/pdf') return 'pdf'
     if (mime.startsWith('video/')) return 'video'
     if (mime.startsWith('audio/')) return 'audio'
     if (mime.startsWith('text/')) return 'text'
-    return 'other'
+    return kindOfName(fileName)
+}
+
+/** What a file is called, where what it was stored as gives nothing away. */
+function kindOfName(fileName?: string | null): FileKind {
+    const ending = (fileName ?? '').toLowerCase().split('.').pop() ?? ''
+    return BY_EXTENSION[ending] ?? 'other'
+}
+
+/**
+ * Whether a file is one the reader can actually put on screen.
+ *
+ * <p>A picture, a document with pages, a recording: things with a viewer behind them. Everything
+ * else is handed over to be saved, because opening it in the page would only show its bytes as
+ * words, and a reader who wanted an export as words did not want it as a document at all.
+ */
+export function canBeRead(mimeType?: string | null, fileName?: string | null): boolean {
+    const kind = fileKindOf(mimeType, fileName)
+    return kind === 'image' || kind === 'pdf' || kind === 'video' || kind === 'audio'
 }
 
 /**

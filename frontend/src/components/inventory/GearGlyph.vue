@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import AppIcon from '@/components/display/AppIcon.vue'
 import {computed} from 'vue'
 import {themeRevision} from '@/util/themeState'
 import {outlineFor, type GlyphSurface} from '@/util/glyphOutline'
@@ -56,7 +57,7 @@ const style = computed(() => {
 </script>
 
 <template>
-  <font-awesome-icon
+  <AppIcon
       :class="[sizeClass, props.glyph.color ? '' : 'text-(--text-muted)']"
       :icon="props.glyph.icon"
       :style="style"

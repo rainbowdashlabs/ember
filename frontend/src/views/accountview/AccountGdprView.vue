@@ -19,7 +19,7 @@ import {session as sessionApi, managedMembers as managedMembersApi} from '@/api'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {presentDocument} from '@/util/documentView'
+import {presentFile} from '@/util/documentFile'
 import GdprSection from '@/views/stationview/profile/settingsview/GdprSection.vue'
 import StorageConsentSection from '@/views/stationview/profile/settingsview/StorageConsentSection.vue'
 
@@ -36,12 +36,12 @@ const memberError = ref('')
 const showDeleteAccountModal = ref(false)
 
 const {running: exportingGdpr, error: exportError, run: exportOwnData} = useAsyncAction(async () => {
-  presentDocument(await sessionApi.gdprExport())
+  presentFile(await sessionApi.gdprExport())
 })
 
 async function exportManagedMemberData(memberId: number) {
   exportingMemberId.value = memberId; memberError.value = ''
-  try { presentDocument(await sessionApi.gdprExportManagedMember(memberId)) }
+  try { presentFile(await sessionApi.gdprExportManagedMember(memberId)) }
   catch { memberError.value = t('common.error') }
   finally { exportingMemberId.value = null }
 }

@@ -14,7 +14,7 @@ import DownloadButton from '@/components/button/DownloadButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {movements} from '@/api'
 import type {LossReport} from '@/api/movements'
-import {presentDocument} from '@/util/documentView'
+import {presentFile} from '@/util/documentFile'
 
 /**
  * What a report that a piece of gear is gone carries, read at both ends.
@@ -34,7 +34,7 @@ const error = ref('')
 async function download() {
   error.value = ''
   try {
-    presentDocument(await movements.downloadDocument(props.movementId))
+    presentFile(await movements.downloadDocument(props.movementId))
   } catch {
     error.value = t('common.error')
   }

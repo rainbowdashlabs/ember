@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import AppIcon from '@/components/display/AppIcon.vue'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useI18n} from 'vue-i18n'
 import PageHeader from '@/components/typography/PageHeader.vue'
@@ -49,8 +50,8 @@ const {t} = useI18n()
 
     <div class="flex items-center justify-between mb-4">
       <PageHeader>
-        <font-awesome-icon
-            :icon="['fas', props.kindById.get(props.detail.container.kindId ?? -1)?.icon ?? 'box']"
+        <AppIcon
+            :icon="props.kindById.get(props.detail.container.kindId ?? -1)?.icon ?? 'box'"
             class="mr-2 text-(--text-muted)"
         />
         {{ props.detail.container.name }}

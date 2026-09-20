@@ -11,7 +11,7 @@ import type { ProfileField } from '@/api/profileFields'
 import type { Inventory, InventoryItem } from '@/api/inventory'
 import type { StationMember } from '@/api/types'
 import { useAsyncAction } from '@/composables/useAsyncAction'
-import {presentDocument} from '@/util/documentView'
+import {presentFile} from '@/util/documentFile'
 import {documentFrom} from '@/util/documentFile'
 import type {ExportFormat, ExportSeparator} from '@/util/exportFormat'
 
@@ -111,7 +111,7 @@ export function useInventoryMemberExport(
           showInternalId: labelOptions.showInternalId.value,
           showSize: labelOptions.showSize.value,
         }, {responseType: 'blob'})
-        presentDocument(documentFrom(res, `Mitglieder Inventar.${format}`))
+        presentFile(documentFrom(res, `Mitglieder Inventar.${format}`))
         exportMode.value = false
       }, {formatError: () => t('common.error')})
 

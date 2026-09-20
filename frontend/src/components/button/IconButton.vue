@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import AppIcon from '@/components/display/AppIcon.vue'
+
 defineProps<{
   icon: string | string[]
   disabled?: boolean
@@ -25,7 +27,7 @@ defineEmits<{
       @click="$emit('click', $event)"
   >
     <slot>
-      <font-awesome-icon :icon="icon" class="h-4 w-4"/>
+      <AppIcon :icon="icon" class="h-4 w-4"/>
     </slot>
   </button>
 </template>

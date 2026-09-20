@@ -1,0 +1,190 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+// @vitest-environment happy-dom
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
+import {SAVED_BLOB_LIFETIME_MS, SaveResult, saveBlob} from './saveBlob'
+
+vi.mock('@/api/client', () => ({default: {}}))
+
+function pointer(kind: 'fine' | 'coarse') {
+    window.matchMedia = vi.fn((query: string) => ({matches: kind === 'fine' && query.includes('fine')})) as never
+}
+
+describe('saveBlob', () => {
+    beforeEach(() => {
+        vi.useFakeTimers()
+        URL.createObjectURL = vi.fn(() => 'blob:saved')
+        URL.revokeObjectURL = vi.fn()
+        pointer('fine')
+    })
+
+    afterEach(() => {
+        vi.restoreAllMocks()
+        vi.useRealTimers()
+    })
+
+    /**
+     * Safari on iOS reads the URL only after the click has returned, so revoking it in the same
+     * turn left the download button doing nothing on an iPhone.
+     */
+    it('keeps the URL alive after the click so a late reader still finds it', () => {
+        const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+        saveBlob(new Blob(['pdf']), 'handout.pdf')
+
+        expect(click).toHaveBeenCalledOnce()
+        expect(URL.revokeObjectURL).not.toHaveBeenCalled()
+        vi.advanceTimersByTime(SAVED_BLOB_LIFETIME_MS)
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:saved')
+    })
+
+    it('counts the download link as done at a desk, where it works', async () => {
+        vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+        expect(await saveBlob(new Blob(['pdf']), 'handout.pdf')).toBe(SaveResult.DONE)
+    })
+
+    it('names the file and leaves no link behind', () => {
+        let clicked: HTMLAnchorElement | null = null
+        vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+            clicked = this
+        })
+
+        saveBlob(new Blob(['pdf']), 'handout.pdf')
+
+        expect(clicked!.download).toBe('handout.pdf')
+        expect(document.querySelector('a[download]')).toBeNull()
+    })
+
+    describe('on an iPhone', () => {
+        const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 GSA/380.0'
+        let share: ReturnType<typeof vi.fn>
+        let click: ReturnType<typeof vi.spyOn>
+
+        beforeEach(() => {
+            vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(IPHONE)
+            share = vi.fn(() => Promise.resolve())
+            Object.defineProperty(navigator, 'share', {value: share, configurable: true})
+            Object.defineProperty(navigator, 'canShare', {value: vi.fn(() => true), configurable: true})
+            click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+        })
+
+        afterEach(() => {
+            Reflect.deleteProperty(navigator, 'share')
+            Reflect.deleteProperty(navigator, 'canShare')
+        })
+
+        /**
+         * A browser embedded in another app, the Google app's among them, ignores a download link to
+         * a blob, so a guardian pressing the download button of an event file saw nothing happen.
+         */
+        it('hands the file to the share sheet instead of a download link', async () => {
+            saveBlob(new Blob(['pdf'], {type: 'application/pdf'}), 'handout.pdf')
+            await vi.runAllTimersAsync()
+
+            const shared = share.mock.calls[0]?.[0].files[0] as File
+            expect(shared.name).toBe('handout.pdf')
+            expect(shared.type).toBe('application/pdf')
+            expect(click).not.toHaveBeenCalled()
+        })
+
+        it('does nothing more when the reader closes the share sheet', async () => {
+            share.mockRejectedValue(new DOMException('dismissed', 'AbortError'))
+
+            saveBlob(new Blob(['pdf']), 'handout.pdf')
+            await vi.runAllTimersAsync()
+
+            expect(click).not.toHaveBeenCalled()
+        })
+
+        it('falls back to the download link where the share sheet refuses', async () => {
+            share.mockRejectedValue(new DOMException('no gesture', 'NotAllowedError'))
+
+            saveBlob(new Blob(['pdf']), 'handout.pdf')
+            await vi.runAllTimersAsync()
+
+            expect(click).toHaveBeenCalledOnce()
+        })
+
+        /**
+         * A rejection does not always arrive as a DOMException this realm recognises. Read by type
+         * rather than by name, a reader who had just declined to save the file had it saved anyway.
+         */
+        it('reads a dismissal by its name, whatever the rejection was made of', async () => {
+            share.mockRejectedValue({name: 'AbortError', message: 'dismissed'})
+
+            const result = await saveBlob(new Blob(['pdf']), 'handout.pdf')
+
+            expect(result).toBe(SaveResult.DISMISSED)
+            expect(click).not.toHaveBeenCalled()
+        })
+
+        /**
+         * The download link is no answer here, so a caller has to be able to tell the reader rather
+         * than leave them pressing a button that does nothing and says nothing.
+         */
+        it('says the file could not be saved when neither route works', async () => {
+            share.mockRejectedValue(new DOMException('no gesture', 'NotAllowedError'))
+
+            const result = await saveBlob(new Blob(['pdf']), 'handout.pdf')
+
+            expect(result).toBe(SaveResult.UNAVAILABLE)
+        })
+
+        it('uses the download link where the file cannot be shared at all', async () => {
+            Object.defineProperty(navigator, 'canShare', {value: vi.fn(() => false), configurable: true})
+
+            await saveBlob(new Blob(['pdf']), 'handout.pdf')
+
+            expect(share).not.toHaveBeenCalled()
+            expect(click).toHaveBeenCalledOnce()
+        })
+    })
+
+    describe('on a device without a mouse', () => {
+        let share: ReturnType<typeof vi.fn>
+
+        beforeEach(() => {
+            pointer('coarse')
+            share = vi.fn(() => Promise.resolve())
+            Object.defineProperty(navigator, 'share', {value: share, configurable: true})
+            Object.defineProperty(navigator, 'canShare', {value: vi.fn(() => true), configurable: true})
+        })
+
+        afterEach(() => {
+            Reflect.deleteProperty(navigator, 'share')
+            Reflect.deleteProperty(navigator, 'canShare')
+        })
+
+        /**
+         * An Android browser that will not take bytes from the page navigates to the blob instead and
+         * draws nothing, which reached a reader as a blank tab where a report should have been.
+         */
+        it('hands the file to the share sheet although it is not an Apple device', async () => {
+            const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+            saveBlob(new Blob(['pdf'], {type: 'application/pdf'}), 'report.pdf')
+            await vi.runAllTimersAsync()
+
+            expect((share.mock.calls[0]?.[0].files[0] as File).name).toBe('report.pdf')
+            expect(click).not.toHaveBeenCalled()
+        })
+    })
+
+    it('keeps the download link on a mouse, where saving is what a reader expects', () => {
+        const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+        const share = vi.fn(() => Promise.resolve())
+        Object.defineProperty(navigator, 'share', {value: share, configurable: true})
+        Object.defineProperty(navigator, 'canShare', {value: vi.fn(() => true), configurable: true})
+
+        saveBlob(new Blob(['pdf']), 'report.pdf')
+
+        expect(share).not.toHaveBeenCalled()
+        expect(click).toHaveBeenCalledOnce()
+        Reflect.deleteProperty(navigator, 'share')
+        Reflect.deleteProperty(navigator, 'canShare')
+    })
+})

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onUnmounted, ref, watch} from 'vue'
+import {nextTick, onUnmounted, ref, watch} from 'vue'
 import type {PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask} from 'pdfjs-dist'
 
 /**
@@ -36,12 +36,42 @@ let pdfDoc: PDFDocumentProxy | null = null
 let loadingTask: PDFDocumentLoadingTask | null = null
 let renderTask: RenderTask | null = null
 let generation = 0
+let drawTicket = 0
+
+/**
+ * Whether a draw has been overtaken, either by another document or by a later page of this one.
+ *
+ * <p>The document alone is not enough to tell: turning two pages quickly starts two draws of the
+ * same document, and the page pdf.js already holds in memory answers before the page it has to
+ * fetch. Without a ticket of its own the slower draw paints over the newer one and the canvas ends
+ * on a page the pager is no longer showing.
+ */
+function overtaken(mine: number, ticket: number): boolean {
+    return mine !== generation || ticket !== drawTicket
+}
+
+/**
+ * Lets a running render finish letting go of the canvas.
+ *
+ * <p>Cancelling only asks it to stop: until its promise has settled, pdf.js still owns the canvas,
+ * and resizing it or starting a second render there fails the new render outright. Waiting is what
+ * makes a page turn during a draw safe.
+ */
+async function settleRender(): Promise<void> {
+    const running = renderTask
+    if (!running) return
+    running.cancel()
+    await running.promise.catch(() => undefined)
+    if (renderTask === running) renderTask = null
+}
 
 /**
  * The room a page is drawn into, measured from whatever holds the canvas.
  *
  * <p>Falls back to the window where the canvas has no laid-out parent to ask, which is what a
- * full-screen viewer amounts to anyway.
+ * full-screen viewer amounts to anyway. Whoever placed the canvas is given a tick to lay it out
+ * before the first page is measured, since a reader that reveals it on hearing the page count has
+ * not been drawn yet at the moment it says so, and a hidden parent measures nothing.
  */
 function available(): {width: number; height: number} {
     const parent = canvas.value?.parentElement
@@ -82,6 +112,8 @@ async function load() {
         loadingTask = task
         pdfDoc = doc
         emit('loaded', doc.numPages)
+        await nextTick()
+        if (mine !== generation) return
         await draw(mine)
     } catch (error) {
         if (mine === generation) emit('failed', error)
@@ -89,28 +121,34 @@ async function load() {
 }
 
 async function draw(mine: number) {
+    const ticket = ++drawTicket
     const canvasEl = canvas.value
     const context = canvasEl?.getContext('2d')
     if (!pdfDoc || !canvasEl || !context) return
 
     const wanted = Math.min(Math.max(props.page ?? 1, 1), pdfDoc.numPages)
     const page = await pdfDoc.getPage(wanted)
-    if (mine !== generation) return
+    if (overtaken(mine, ticket)) return
+
+    await settleRender()
+    if (overtaken(mine, ticket)) return
 
     const unscaled = page.getViewport({scale: 1})
     const room = available()
     const fit = Math.min(room.width / unscaled.width, room.height / unscaled.height)
     const viewport = page.getViewport({scale: fit * (props.scale ?? 1)})
 
-    renderTask?.cancel()
     canvasEl.width = viewport.width
     canvasEl.height = viewport.height
     context.clearRect(0, 0, canvasEl.width, canvasEl.height)
-    renderTask = page.render({canvas: canvasEl, canvasContext: context, viewport})
+    const task = page.render({canvas: canvasEl, canvasContext: context, viewport})
+    renderTask = task
     try {
-        await renderTask.promise
+        await task.promise
     } catch {
-        renderTask = null
+        void 0
+    } finally {
+        if (renderTask === task) renderTask = null
     }
 }
 

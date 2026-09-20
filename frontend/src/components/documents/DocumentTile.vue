@@ -8,9 +8,8 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {formatDate} from '@/util/format'
 import type {StationDocument} from '@/api/documents'
-import {formatSize} from '@/util/format'
+import {formatDate, formatSize} from '@/util/format'
 import {fileKindIcon} from '@/util/fileKind'
 
 /**

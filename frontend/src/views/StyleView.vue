@@ -16,6 +16,7 @@ import {contrastTextColor, ensureContrast} from '@/theme/contrast'
 import StylePrideText from '@/views/styleview/StylePrideText.vue'
 import StyleLayeredLogo from '@/views/styleview/StyleLayeredLogo.vue'
 import StyleTypography from '@/views/styleview/StyleTypography.vue'
+import StyleIcons from '@/views/styleview/StyleIcons.vue'
 import StyleButtons from '@/views/styleview/StyleButtons.vue'
 import StyleInputs from '@/views/styleview/StyleInputs.vue'
 import StyleBadges from '@/views/styleview/StyleBadges.vue'
@@ -82,6 +83,7 @@ watchEffect(() => {
       <StylePrideText/>
       <StyleLayeredLogo/>
       <StyleTypography/>
+      <StyleIcons/>
       <StyleButtons/>
       <StyleInputs/>
       <StyleBadges/>

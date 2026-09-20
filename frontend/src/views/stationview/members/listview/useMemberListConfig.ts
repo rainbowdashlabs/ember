@@ -19,7 +19,7 @@ import {useExport, type ExportColumn, type ExportFormatName} from '@/composables
 import {useDataTable} from '@/composables/useDataTable'
 import {memberTable} from '@/api'
 import type {MemberTableColumn} from '@/api/memberTable'
-import {presentDocument} from '@/util/documentView'
+import {presentFile} from '@/util/documentFile'
 import type {ExportSeparator} from '@/util/exportFormat'
 import {useMemberFilter} from '@/composables/useMemberFilter'
 
@@ -181,7 +181,7 @@ export function useMemberListConfig(port: MemberListPort) {
             return
         }
         const memberIds = exporting.selectedRows.value.map(member => member.id)
-        presentDocument(
+        presentFile(
             await memberTable.exportMemberTable(memberIds, chosenServerColumns(), format, separator))
         exporting.cancelExport()
     }

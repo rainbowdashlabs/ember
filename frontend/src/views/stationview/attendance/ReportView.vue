@@ -20,7 +20,7 @@ import type {ReportData, ReportPreset} from '@/api/attendance'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {presentDocument} from '@/util/documentView'
+import {presentFile} from '@/util/documentFile'
 
 const {t} = useI18n()
 const {loaded} = useSession()
@@ -149,7 +149,7 @@ const {running: exporting, error: exportError, run: runExport, clearError: clear
       const params = buildParams()
       params.set('period', selectedPeriod.value)
       if (format === 'csv') params.set('separator', separator)
-      presentDocument(format === 'csv'
+      presentFile(format === 'csv'
           ? await attendance.reportExportCsv(params)
           : await attendance.reportExport(params))
       showExportFormat.value = false

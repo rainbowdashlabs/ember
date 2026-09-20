@@ -5,6 +5,7 @@
  */
 import type {AxiosResponse} from 'axios'
 import {parseContentDispositionFilename} from '@/util/downloadAuthed'
+import {presentDocument} from '@/util/documentView'
 
 /** A finished document and the name it should reach the reader under. */
 export interface DocumentFile {
@@ -30,7 +31,12 @@ export function documentFrom(response: AxiosResponse, fallback: string): Documen
     }
 }
 
-/** A document built here rather than fetched, which names itself. */
-export function documentOf(blob: Blob, filename: string): DocumentFile {
-    return {blob, filename}
+/**
+ * Hands a fetched document to the reader under the name it arrived with.
+ *
+ * <p>The bytes and the name travel together from the server, so the two are handed over together
+ * rather than taken apart at every button that asks for a file.
+ */
+export function presentFile(document: DocumentFile): Promise<void> {
+    return presentDocument(document.blob, document.filename)
 }

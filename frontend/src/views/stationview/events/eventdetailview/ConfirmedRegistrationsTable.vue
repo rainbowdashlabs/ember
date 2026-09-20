@@ -23,7 +23,7 @@ import {StationPermission} from '@/api/types'
 import {userTypeOptions} from '@/views/stationview/members/listview/memberColumns'
 import {emptyTableState, useDataTable} from '@/composables/useDataTable'
 import {useSession} from '@/composables/useSession'
-import {presentDocument} from '@/util/documentView'
+import {presentFile} from '@/util/documentFile'
 import type {ExportSeparator} from '@/util/exportFormat'
 import RegistrationTableExport from './RegistrationTableExport.vue'
 import {columnOf, keyOf, readDrawnTable, tableColumnOf, type DrawnRow} from './registrationTableColumns'
@@ -172,7 +172,7 @@ watch(
  * written down either: the file is the whole list.
  */
 async function download(format: 'csv' | 'pdf', separator: ExportSeparator) {
-  presentDocument(
+  presentFile(
       await api.exportRegistrationTable(props.eventId, day.value, drawnColumns.value, format, separator))
   exporting.value = false
 }

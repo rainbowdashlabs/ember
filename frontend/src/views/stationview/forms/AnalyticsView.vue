@@ -22,7 +22,7 @@ import {FormAnalyticsBase, type Form, type FormAnalytics, type FormAnalyticsBase
 import { formatAnswerDisplay } from '@/util/formAnswerDisplay'
 import type { ProfileField } from '@/api/profileFields'
 import { forms, profileFields, stationMembers } from '@/api'
-import { presentDocument } from '@/util/documentView'
+import { presentFile } from '@/util/documentFile'
 import type { ExportFormat, ExportSeparator } from '@/util/exportFormat'
 
 const { t } = useI18n()
@@ -121,7 +121,7 @@ function selectExportQuestions(ids: number[]) {
 async function performExport(format: ExportFormat, separator: ExportSeparator) {
   if (!formId.value) return
   showExportModal.value = false
-  presentDocument(await forms.exportResponses(formId.value, format, separator))
+  presentFile(await forms.exportResponses(formId.value, format, separator))
 }
 
 const { loading, error } = useAsyncLoader(async () => {
