@@ -685,11 +685,13 @@ test.describe('Attendance', () => {
 
         await page.getByRole('button', {name: 'Vorschau'}).click()
 
-        const exportButton = page.getByRole('button', {name: 'PDF exportieren'})
+        const exportButton = page.getByTestId('attendance-report-export')
         await expect(exportButton).toBeVisible()
-
-        const download = page.waitForEvent('download')
         await exportButton.click()
+
+        await page.getByTestId('export-format-pdf').check()
+        const download = page.waitForEvent('download')
+        await page.getByTestId('export-format-submit').click()
 
         const file = await (await download).path()
         expect(file).toBeTruthy()

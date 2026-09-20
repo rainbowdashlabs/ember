@@ -140,7 +140,7 @@ test.describe('A table of people', () => {
         await managerPage.getByTestId('members-export-download').click()
         expect(
             (await download).suggestedFilename(),
-            'the sheet the server drew, for the people the screen was showing',
-        ).toBe('mitglieder.pdf')
+            'the sheet the server drew, named after what it holds and the day it was taken',
+        ).toMatch(/^Mitglieder - \d{4}-\d{2}-\d{2}\.pdf$/)
     })
 })

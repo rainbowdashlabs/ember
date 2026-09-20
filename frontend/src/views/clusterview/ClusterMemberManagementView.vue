@@ -44,6 +44,7 @@ const port: MemberListPort = {
   canExport: computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_EXPORT)),
   canEdit: computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER)),
   exportFileName: 'verbandsmitglieder',
+  serverSpreadsheet: false,
   tableId: 'cluster-members',
   stationLocalColumns: false,
   keeps: member => !stationUid.value || managed.value.get(member.id)?.stationUid === stationUid.value,

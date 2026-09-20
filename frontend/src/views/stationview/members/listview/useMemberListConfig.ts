@@ -38,6 +38,14 @@ export interface MemberListPort {
     canEdit: ComputedRef<boolean>
     /** The name of the file an export produces, without an extension. */
     exportFileName: string
+    /**
+     * Whether the server may draw this list's spreadsheet.
+     *
+     * <p>The endpoint that draws it answers to a station's own right to export its members, which a
+     * reader on an association screen does not hold: they are granted the association's. Until there
+     * is a route that answers to theirs, their spreadsheet is written here as it always was.
+     */
+    serverSpreadsheet?: boolean
     /** Names the list where its chosen columns are remembered, one set per tab. */
     tableId: string
     /**
@@ -168,7 +176,7 @@ export function useMemberListConfig(port: MemberListPort) {
      * something to paste rather than a document, and it never leaves the browser.
      */
     async function performExport(format: ExportFormatName = 'csv', separator: ExportSeparator = 'semicolon') {
-        if (format === 'values') {
+        if (format === 'values' || (format === 'csv' && port.serverSpreadsheet === false)) {
             exporting.performExport(format)
             return
         }
