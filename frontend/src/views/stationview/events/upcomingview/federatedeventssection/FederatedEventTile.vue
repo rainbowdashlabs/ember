@@ -10,10 +10,12 @@ import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
 import EventHeadline from '@/views/stationview/events/eventshared/EventHeadline.vue'
 import EventRegistrationActions from '@/views/stationview/events/eventshared/EventRegistrationActions.vue'
 import type {FederatedEvent, FederatedRegistration, RegistrationStatusName} from '@/api/events'
 import {formatTime} from '@/util/format'
+import {renderMarkdown} from '@/util/markdown'
 import type {AnswerablePerson, GivenAnswer} from '@/util/eventAnswers'
 
 const props = defineProps<{
@@ -84,7 +86,7 @@ function openDetail() {
           <InfoBadge v-if="fed.event.requiresRegistration">{{ t('eventsUpcoming.registrationRequired') }}</InfoBadge>
         </EventHeadline>
       </div>
-      <p v-if="fed.event.description" class="text-sm text-(--text-muted)">{{ fed.event.description }}</p>
+      <ProseExcerpt :html="renderMarkdown(fed.event.description)" max-height="max-h-32"/>
     </div>
 
     <EventRegistrationActions

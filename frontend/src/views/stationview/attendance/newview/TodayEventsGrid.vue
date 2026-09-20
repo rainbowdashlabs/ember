@@ -6,9 +6,11 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
+import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {StationEvent} from '@/api/events'
 import {formatTime} from '@/util/format'
+import {renderMarkdown} from '@/util/markdown'
 
 const props = defineProps<{
   events: StationEvent[]
@@ -33,7 +35,7 @@ const {t} = useI18n()
           <span class="font-semibold">{{ ev.name }}</span>
           <span class="text-sm">{{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
         </div>
-        <p v-if="ev.description" class="text-sm text-(--text-muted)">{{ ev.description }}</p>
+        <ProseExcerpt :html="renderMarkdown(ev.description)" max-height="max-h-32"/>
         <p class="text-xs text-(--text-muted)">
           {{ t('attendanceNew.template') }}: {{ props.templateName(ev.templateId!) }}
         </p>

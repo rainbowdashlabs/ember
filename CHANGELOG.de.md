@@ -2,9 +2,16 @@
 
 ## v26.18.4
 
+### Verbesserungen
+
+- **Listen lassen sich auf dem Handy leichter abarbeiten.** Was mit einer Zeile möglich ist, steht jetzt am Fuß ihrer Karte, jeder Knopf über die volle Breite, statt neben dem Titel eingequetscht. Auch die Spalten auf einer Karte haben mehr Luft zueinander.
+- **Der Text eines Termins wird in den Listen richtig dargestellt.** Unter Termine → Kommende und beim Anlegen einer Anwesenheit zeigte eine Beschreibung mit Überschriften, Hervorhebungen oder einer Aufzählung ihre rohen Zeichen, oder sie lief in voller Länge und schob den nächsten Termin vom Bildschirm. Sie wird jetzt so dargestellt, wie sie geschrieben wurde, und nach ein paar Zeilen abgeschnitten, so wie eine Neuigkeit schon vorher.
+
 ### Fehlerbehebungen
 
 - **Eine Suche konnte dabei bleiben, dass es nichts zu finden gibt.** Wer in eine Auswahl für Arten, Inventare oder Ausrüstungsbilder tippte, bevor ihre Liste fertig geladen war, sah unter Umständen keine Treffer, auch nachdem alles angekommen war. Jetzt sucht sie erneut, sobald die Liste da ist.
+- **Eine Anwesenheitsliste zu einem Termin kam unausgefüllt an.** Wer eine öffnete, fand jeden Namen offen und musste erst am Termin nachsehen, wer zugesagt hatte. Eine Liste kommt jetzt mit allen Zusagen als anwesend an, und wo der Termin eine Anmeldung verlangte, mit allen ohne Zusage als abgemeldet.
+- **Wer jemanden von Hand auf eine Liste setzte, konnte ihn als abgemeldet eintragen.** Bei einer Liste zu einem wiederkehrenden Termin wurden die Antworten von heute gelesen statt die für den Abend, um den es geht. Jetzt entscheiden die Antworten für den Tag der Liste.
 
 ## v26.18.3
 

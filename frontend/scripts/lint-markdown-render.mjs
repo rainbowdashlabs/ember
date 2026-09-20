@@ -38,8 +38,10 @@ const DECLARED = new Map([
     ['views/loginview/LegalModal.vue', 'legal document HTML rendered and sanitised by the backend'],
     ['views/reconsentview/PolicyChangeSection.vue', 'legal document HTML rendered and sanitised by the backend'],
     ['components/legal/LegalDocument.vue', 'legal document HTML rendered and sanitised by the backend'],
+    ['components/display/ProseExcerpt.vue',
+        'HTML handed down by whoever shows the excerpt, which renders it through the shared renderer '
+        + 'or takes it sanitised from the backend'],
     ['views/stationview/news/FederatedDetailView.vue', 'news HTML rendered and sanitised by the backend'],
-    ['views/stationview/news/newsshared/NewsExcerpt.vue', 'news HTML rendered and sanitised by the backend'],
     ['views/stationview/news/newsshared/NewsBody.vue', 'news HTML rendered and sanitised by the backend'],
     ['views/helpcenter/stationview/news/DetailHelp.vue', 'constant help text written in the file itself'],
     ['views/helpcenter/stationview/news/FederatedDetailHelp.vue', 'constant help text written in the file itself'],
