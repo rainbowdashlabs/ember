@@ -4,6 +4,7 @@
 
 ### Improvements
 
+- **Files open on a phone instead of quietly not saving.** A document, a picture or a recording fetched on a phone or tablet now opens in the app itself, with a button to save it from there; a list of values or an archive is handed to the share sheet as before. Downloads that took long enough for the share sheet to be refused used to end in nothing at all.
 - **Lists are easier to work through on a phone.** What can be done with a row now stands at the foot of its card, each button across the full width, rather than squeezed in beside the title. The columns on a card have more room between them as well.
 - **An appointment's text reads properly in the lists.** Under Appointments → Upcoming and when starting an attendance sheet, a description written with headings, emphasis or a list showed its raw markings, or ran to its full length and pushed the next appointment off the screen. It is now formatted as it was written and cut off after a few lines, the way a news entry already was.
 - **Twenty more pictures for a piece of gear.** Trousers, boots, trainers, a t-shirt, a jumper, a cap and socks join the clothing, and an axe, a torch, a ladder, a cone, a jerrycan, a shovel, a rucksack, binoculars, a life ring, an engine, a blue light, a campfire and a map join the equipment. The old stand-ins keep their place under plainer names: the footprints are now Soles and the pool ladder is no longer just Ladder.

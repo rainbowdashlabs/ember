@@ -9,7 +9,7 @@ import {closeDocument, getViewedDocument, presentDocument} from './documentView'
 
 const saveBlob = vi.fn()
 
-vi.mock('@/util/downloadAuthed', () => ({saveBlob: (blob: Blob, name: string) => saveBlob(blob, name)}))
+vi.mock('@/util/saveBlob', () => ({saveBlob: (blob: Blob, name: string) => saveBlob(blob, name)}))
 
 function pointer(kind: 'fine' | 'coarse') {
     window.matchMedia = vi.fn((query: string) => ({matches: kind === 'fine' && query.includes('fine')})) as never

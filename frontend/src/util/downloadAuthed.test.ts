@@ -4,156 +4,76 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 // @vitest-environment happy-dom
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
-import {SAVED_BLOB_LIFETIME_MS, saveBlob} from './downloadAuthed'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {downloadAuthed, parseContentDispositionFilename} from './downloadAuthed'
 
-vi.mock('@/api/client', () => ({default: {}}))
+const get = vi.fn()
+const presented = vi.fn()
 
-function pointer(kind: 'fine' | 'coarse') {
-    window.matchMedia = vi.fn((query: string) => ({matches: kind === 'fine' && query.includes('fine')})) as never
+vi.mock('@/api/client', () => ({default: {get: (url: string, options: unknown) => get(url, options)}}))
+vi.mock('@/util/documentView', () => ({
+    presentDocument: (blob: Blob, filename: string, mimeType?: string) => presented(blob, filename, mimeType),
+}))
+
+function answers(blob: Blob, headers: Record<string, string> = {}) {
+    get.mockResolvedValue({data: blob, headers})
 }
 
-describe('saveBlob', () => {
+/**
+ * What a download does with what it fetched.
+ *
+ * <p>It hands the bytes over rather than saving them itself, which is what lets a slow one work on a
+ * phone: the share sheet is granted only to a press the reader has just made, and a large file
+ * outlives the press that started it. Whoever it hands to decides between showing and saving.
+ */
+describe('downloadAuthed', () => {
     beforeEach(() => {
-        vi.useFakeTimers()
-        URL.createObjectURL = vi.fn(() => 'blob:saved')
-        URL.revokeObjectURL = vi.fn()
-        pointer('fine')
+        get.mockReset()
+        presented.mockReset()
     })
 
-    afterEach(() => {
-        vi.restoreAllMocks()
-        vi.useRealTimers()
+    it('hands what it fetched over to be shown or saved', async () => {
+        const blob = new Blob(['%PDF'])
+        answers(blob)
+
+        await downloadAuthed('/kb/files/42/original', 'handout.pdf')
+
+        expect(presented).toHaveBeenCalledWith(blob, 'handout.pdf', undefined)
     })
 
-    /**
-     * Safari on iOS reads the URL only after the click has returned, so revoking it in the same
-     * turn left the download button doing nothing on an iPhone.
-     */
-    it('keeps the URL alive after the click so a late reader still finds it', () => {
-        const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    /** The bytes of a download carry no type of their own, so the response has to say what it sent. */
+    it('takes the type from the response rather than from the bytes', async () => {
+        answers(new Blob(['%PDF']), {'content-type': 'application/pdf;charset=utf-8'})
 
-        saveBlob(new Blob(['pdf']), 'handout.pdf')
+        await downloadAuthed('/kb/files/42/original', 'handout.pdf')
 
-        expect(click).toHaveBeenCalledOnce()
-        expect(URL.revokeObjectURL).not.toHaveBeenCalled()
-        vi.advanceTimersByTime(SAVED_BLOB_LIFETIME_MS)
-        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:saved')
+        expect(presented).toHaveBeenCalledWith(expect.anything(), 'handout.pdf', 'application/pdf')
     })
 
-    it('names the file and leaves no link behind', () => {
-        let clicked: HTMLAnchorElement | null = null
-        vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
-            clicked = this
-        })
+    it('falls back to the name the response gives, and then to the address', async () => {
+        answers(new Blob(['x']), {'content-disposition': 'attachment; filename="Bericht 2026.pdf"'})
+        await downloadAuthed('/kb/files/42/original')
+        expect(presented.mock.calls[0]?.[1]).toBe('Bericht 2026.pdf')
 
-        saveBlob(new Blob(['pdf']), 'handout.pdf')
+        presented.mockReset()
+        answers(new Blob(['x']))
+        await downloadAuthed('/kb/files/42/original')
+        expect(presented.mock.calls[0]?.[1]).toBe('original')
+    })
+})
 
-        expect(clicked!.download).toBe('handout.pdf')
-        expect(document.querySelector('a[download]')).toBeNull()
+describe('parseContentDispositionFilename', () => {
+    it('prefers the encoded name, which is the one that carries umlauts', () => {
+        expect(parseContentDispositionFilename("attachment; filename*=UTF-8''Pr%C3%BCfung.pdf"))
+            .toBe('Prüfung.pdf')
     })
 
-    describe('on an iPhone', () => {
-        const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 GSA/380.0'
-        let share: ReturnType<typeof vi.fn>
-        let click: ReturnType<typeof vi.spyOn>
-
-        beforeEach(() => {
-            vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(IPHONE)
-            share = vi.fn(() => Promise.resolve())
-            Object.defineProperty(navigator, 'share', {value: share, configurable: true})
-            Object.defineProperty(navigator, 'canShare', {value: vi.fn(() => true), configurable: true})
-            click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
-        })
-
-        afterEach(() => {
-            Reflect.deleteProperty(navigator, 'share')
-            Reflect.deleteProperty(navigator, 'canShare')
-        })
-
-        /**
-         * A browser embedded in another app, the Google app's among them, ignores a download link to
-         * a blob, so a guardian pressing the download button of an event file saw nothing happen.
-         */
-        it('hands the file to the share sheet instead of a download link', async () => {
-            saveBlob(new Blob(['pdf'], {type: 'application/pdf'}), 'handout.pdf')
-            await vi.runAllTimersAsync()
-
-            const shared = share.mock.calls[0]?.[0].files[0] as File
-            expect(shared.name).toBe('handout.pdf')
-            expect(shared.type).toBe('application/pdf')
-            expect(click).not.toHaveBeenCalled()
-        })
-
-        it('does nothing more when the reader closes the share sheet', async () => {
-            share.mockRejectedValue(new DOMException('dismissed', 'AbortError'))
-
-            saveBlob(new Blob(['pdf']), 'handout.pdf')
-            await vi.runAllTimersAsync()
-
-            expect(click).not.toHaveBeenCalled()
-        })
-
-        it('falls back to the download link where the share sheet refuses', async () => {
-            share.mockRejectedValue(new DOMException('no gesture', 'NotAllowedError'))
-
-            saveBlob(new Blob(['pdf']), 'handout.pdf')
-            await vi.runAllTimersAsync()
-
-            expect(click).toHaveBeenCalledOnce()
-        })
-
-        it('uses the download link where the file cannot be shared at all', () => {
-            Object.defineProperty(navigator, 'canShare', {value: vi.fn(() => false), configurable: true})
-
-            saveBlob(new Blob(['pdf']), 'handout.pdf')
-
-            expect(share).not.toHaveBeenCalled()
-            expect(click).toHaveBeenCalledOnce()
-        })
+    it('reads the plain name where there is no encoded one', () => {
+        expect(parseContentDispositionFilename('attachment; filename="report.pdf"')).toBe('report.pdf')
     })
 
-    describe('on a device without a mouse', () => {
-        let share: ReturnType<typeof vi.fn>
-
-        beforeEach(() => {
-            pointer('coarse')
-            share = vi.fn(() => Promise.resolve())
-            Object.defineProperty(navigator, 'share', {value: share, configurable: true})
-            Object.defineProperty(navigator, 'canShare', {value: vi.fn(() => true), configurable: true})
-        })
-
-        afterEach(() => {
-            Reflect.deleteProperty(navigator, 'share')
-            Reflect.deleteProperty(navigator, 'canShare')
-        })
-
-        /**
-         * An Android browser that will not take bytes from the page navigates to the blob instead and
-         * draws nothing, which reached a reader as a blank tab where a report should have been.
-         */
-        it('hands the file to the share sheet although it is not an Apple device', async () => {
-            const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
-
-            saveBlob(new Blob(['pdf'], {type: 'application/pdf'}), 'report.pdf')
-            await vi.runAllTimersAsync()
-
-            expect((share.mock.calls[0]?.[0].files[0] as File).name).toBe('report.pdf')
-            expect(click).not.toHaveBeenCalled()
-        })
-    })
-
-    it('keeps the download link on a mouse, where saving is what a reader expects', () => {
-        const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
-        const share = vi.fn(() => Promise.resolve())
-        Object.defineProperty(navigator, 'share', {value: share, configurable: true})
-        Object.defineProperty(navigator, 'canShare', {value: vi.fn(() => true), configurable: true})
-
-        saveBlob(new Blob(['pdf']), 'report.pdf')
-
-        expect(share).not.toHaveBeenCalled()
-        expect(click).toHaveBeenCalledOnce()
-        Reflect.deleteProperty(navigator, 'share')
-        Reflect.deleteProperty(navigator, 'canShare')
+    it('answers nothing for a header that names no file', () => {
+        expect(parseContentDispositionFilename('attachment')).toBeNull()
+        expect(parseContentDispositionFilename(null)).toBeNull()
     })
 })

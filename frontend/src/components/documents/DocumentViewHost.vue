@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import FilePreviewModal from '@/components/documents/FilePreviewModal.vue'
 import {closeDocument, getViewedDocument} from '@/util/documentView'
-import {saveBlob} from '@/util/downloadAuthed'
+import {saveBlob} from '@/util/saveBlob'
 
 /**
  * The one place a finished document is read, sitting beside the toasts for the same reason they do.

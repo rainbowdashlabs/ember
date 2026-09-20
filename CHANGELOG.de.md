@@ -4,6 +4,7 @@
 
 ### Verbesserungen
 
+- **Dateien öffnen sich auf dem Handy, statt still nicht zu speichern.** Ein Dokument, ein Bild oder eine Aufnahme wird auf Handy und Tablet jetzt in der App selbst geöffnet, mit einem Knopf zum Speichern; eine Werteliste oder ein Archiv geht wie bisher an das Teilen-Menü. Downloads, die so lange brauchten, dass das Teilen-Menü nicht mehr aufging, endeten vorher im Nichts.
 - **Listen lassen sich auf dem Handy leichter abarbeiten.** Was mit einer Zeile möglich ist, steht jetzt am Fuß ihrer Karte, jeder Knopf über die volle Breite, statt neben dem Titel eingequetscht. Auch die Spalten auf einer Karte haben mehr Luft zueinander.
 - **Der Text eines Termins wird in den Listen richtig dargestellt.** Unter Termine → Kommende und beim Anlegen einer Anwesenheit zeigte eine Beschreibung mit Überschriften, Hervorhebungen oder einer Aufzählung ihre rohen Zeichen, oder sie lief in voller Länge und schob den nächsten Termin vom Bildschirm. Sie wird jetzt so dargestellt, wie sie geschrieben wurde, und nach ein paar Zeilen abgeschnitten, so wie eine Neuigkeit schon vorher.
 - **Zwanzig neue Bilder für ein Ausrüstungsstück.** Hose, Stiefel, Turnschuhe, T-Shirt, Pullover, Kappe und Socke kommen zur Kleidung, Axt, Handlampe, Leiter, Pylone, Kanister, Schaufel, Rucksack, Fernglas, Rettungsring, Fahrzeug, Blaulicht, Lagerfeuer und Landkarte zur Ausrüstung. Die bisherigen Notlösungen heißen jetzt schlichter: aus den Fußspuren werden Sohlen, aus der Leiter wird die Poolleiter.

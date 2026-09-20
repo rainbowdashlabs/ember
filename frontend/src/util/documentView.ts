@@ -6,7 +6,7 @@
 import {ref, shallowReadonly} from 'vue'
 import {canBeRead} from '@/util/fileKind'
 import {isHandheld} from '@/util/handheld'
-import {saveBlob} from '@/util/downloadAuthed'
+import {saveBlob} from '@/util/saveBlob'
 
 /** A document the reader is looking at, held until they close it. */
 export interface ViewedDocument {
