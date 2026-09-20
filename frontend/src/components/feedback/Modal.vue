@@ -40,6 +40,14 @@ const sizeClass = computed(() => {
   }
 })
 
+/**
+ * A dialog is as tall as the screen actually is, not as tall as the screen would be.
+ *
+ * <p>`vh` measures the viewport with the browser's own bars counted in, and does not move when an
+ * on-screen keyboard opens. A dialog sized that way keeps its full height while the keyboard takes
+ * the bottom third of the screen, so the button that answers it sits behind the keyboard the text
+ * field just summoned and cannot be pressed or scrolled to. `dvh` follows what is left.
+ */
 const dialog = ref<HTMLElement | null>(null)
 const layer = ref(baseDialogLayer)
 let claimed = false
@@ -119,7 +127,7 @@ function onKeydown(e: KeyboardEvent) {
             @keydown="onKeydown"
             :class="[
               'relative z-10 w-full mx-4 rounded-theme border border-bg-light-accent bg-bg-light p-6 shadow-xl dark:border-bg-dark-accent dark:bg-bg-dark',
-              'flex flex-col max-h-[90vh]',
+              'flex flex-col max-h-[90dvh]',
               sizeClass,
               props.mobileFull ? 'max-sm:h-full max-sm:mx-0 max-sm:rounded-none max-sm:border-0 max-sm:overflow-y-auto max-sm:flex max-sm:flex-col' : '',
             ]">

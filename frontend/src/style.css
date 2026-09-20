@@ -315,8 +315,15 @@ a:not(:has(button)):hover {
     margin: 0.25rem 0;
 }
 
+/*
+ * A table is laid out here the way the editor lays it out, so what was written is what is read.
+ * Markdown carries no column widths, so both share the columns out evenly; under the browser's own
+ * layout a published table would instead be sized by whichever cell happened to hold the longest
+ * word, and the same table would look different on the two sides of the save.
+ */
 .markdown-content table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     margin: 1rem 0;
     border: 1px solid var(--border);
@@ -327,6 +334,7 @@ a:not(:has(button)):hover {
     border: 1px solid var(--border);
     padding: 0.5rem 0.75rem;
     text-align: left;
+    overflow-wrap: break-word;
 }
 
 .markdown-content th {
