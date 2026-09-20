@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref, shallowReadonly} from 'vue'
-import {fileKindOf} from '@/util/fileKind'
+import {canBeRead} from '@/util/fileKind'
 import {isHandheld} from '@/util/handheld'
 import {saveBlob} from '@/util/downloadAuthed'
 
@@ -26,13 +26,14 @@ const viewed = ref<ViewedDocument | null>(null)
  * So the document is opened where it already is, in the page that built it, and the button to save it
  * stays there for anybody who wants it saved anyway.
  *
- * <p>A document nothing can draw, an archive of them for instance, is saved at either size, because
- * showing it is not on offer and pretending otherwise would only cost the reader a press. What it
- * is gets read from its name as well as its type, since a file a member uploaded often carries no
- * type worth the name and would otherwise be taken for one nobody can draw.
+ * <p>Only what there is a viewer for is opened: a picture, a document with pages, a recording. A
+ * list of values or an archive is saved at either size, because showing a reader its bytes as words
+ * is not showing them the thing they asked for, and it costs them a press to get out of. What a
+ * file is gets read from its name as well as its type, since one a member uploaded often carries no
+ * type worth the name and would otherwise be taken for something nobody can draw.
  */
 export function presentDocument(blob: Blob, filename: string, mimeType = blob.type) {
-    if (isHandheld() && fileKindOf(mimeType, filename) !== 'other') {
+    if (isHandheld() && canBeRead(mimeType, filename)) {
         viewed.value = {blob, filename, mimeType}
         return
     }

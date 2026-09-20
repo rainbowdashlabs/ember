@@ -60,12 +60,28 @@ describe('presentDocument', () => {
         expect(getViewedDocument().value).toBeNull()
     })
 
-    it('takes the kind from the bytes when it is not told one', () => {
+    /**
+     * A list of values is not a document to read: shown in the page it is its own bytes as words,
+     * and a reader who exported it wanted it in something that opens lists.
+     */
+    it('saves a list of values rather than showing it', () => {
+        pointer('coarse')
+        const blob = new Blob(['a,b'], {type: 'text/csv'})
+
+        presentDocument(blob, 'list.csv')
+
+        expect(saveBlob).toHaveBeenCalledWith(blob, 'list.csv')
+        expect(getViewedDocument().value).toBeNull()
+    })
+
+    /** The type a browser offers is often nothing at all, so the name has to answer for it. */
+    it('takes the kind from the name where the type says nothing', () => {
         pointer('coarse')
 
-        presentDocument(new Blob(['text'], {type: 'text/csv'}), 'list.csv')
+        presentDocument(new Blob(['%PDF'], {type: 'application/octet-stream'}), 'report.pdf')
 
-        expect(getViewedDocument().value).toMatchObject({mimeType: 'text/csv'})
+        expect(saveBlob).not.toHaveBeenCalled()
+        expect(getViewedDocument().value).toMatchObject({filename: 'report.pdf'})
     })
 
     it('lets go of the document when the reader closes it', () => {

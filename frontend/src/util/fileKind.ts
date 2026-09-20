@@ -47,6 +47,18 @@ function kindOfName(fileName?: string | null): FileKind {
 }
 
 /**
+ * Whether a file is one the reader can actually put on screen.
+ *
+ * <p>A picture, a document with pages, a recording: things with a viewer behind them. Everything
+ * else is handed over to be saved, because opening it in the page would only show its bytes as
+ * words, and a reader who wanted an export as words did not want it as a document at all.
+ */
+export function canBeRead(mimeType?: string | null, fileName?: string | null): boolean {
+    const kind = fileKindOf(mimeType, fileName)
+    return kind === 'image' || kind === 'pdf' || kind === 'video' || kind === 'audio'
+}
+
+/**
  * Whether asking the server for a picture of this file is worth a request.
  *
  * <p>Matched to what the server will answer: an image is its own picture and a document with pages
