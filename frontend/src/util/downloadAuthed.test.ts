@@ -9,11 +9,16 @@ import {SAVED_BLOB_LIFETIME_MS, saveBlob} from './downloadAuthed'
 
 vi.mock('@/api/client', () => ({default: {}}))
 
+function pointer(kind: 'fine' | 'coarse') {
+    window.matchMedia = vi.fn((query: string) => ({matches: kind === 'fine' && query.includes('fine')})) as never
+}
+
 describe('saveBlob', () => {
     beforeEach(() => {
         vi.useFakeTimers()
         URL.createObjectURL = vi.fn(() => 'blob:saved')
         URL.revokeObjectURL = vi.fn()
+        pointer('fine')
     })
 
     afterEach(() => {
@@ -106,5 +111,49 @@ describe('saveBlob', () => {
             expect(share).not.toHaveBeenCalled()
             expect(click).toHaveBeenCalledOnce()
         })
+    })
+
+    describe('on a device without a mouse', () => {
+        let share: ReturnType<typeof vi.fn>
+
+        beforeEach(() => {
+            pointer('coarse')
+            share = vi.fn(() => Promise.resolve())
+            Object.defineProperty(navigator, 'share', {value: share, configurable: true})
+            Object.defineProperty(navigator, 'canShare', {value: vi.fn(() => true), configurable: true})
+        })
+
+        afterEach(() => {
+            Reflect.deleteProperty(navigator, 'share')
+            Reflect.deleteProperty(navigator, 'canShare')
+        })
+
+        /**
+         * An Android browser that will not take bytes from the page navigates to the blob instead and
+         * draws nothing, which reached a reader as a blank tab where a report should have been.
+         */
+        it('hands the file to the share sheet although it is not an Apple device', async () => {
+            const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+            saveBlob(new Blob(['pdf'], {type: 'application/pdf'}), 'report.pdf')
+            await vi.runAllTimersAsync()
+
+            expect((share.mock.calls[0]?.[0].files[0] as File).name).toBe('report.pdf')
+            expect(click).not.toHaveBeenCalled()
+        })
+    })
+
+    it('keeps the download link on a mouse, where saving is what a reader expects', () => {
+        const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+        const share = vi.fn(() => Promise.resolve())
+        Object.defineProperty(navigator, 'share', {value: share, configurable: true})
+        Object.defineProperty(navigator, 'canShare', {value: vi.fn(() => true), configurable: true})
+
+        saveBlob(new Blob(['pdf']), 'report.pdf')
+
+        expect(share).not.toHaveBeenCalled()
+        expect(click).toHaveBeenCalledOnce()
+        Reflect.deleteProperty(navigator, 'share')
+        Reflect.deleteProperty(navigator, 'canShare')
     })
 })

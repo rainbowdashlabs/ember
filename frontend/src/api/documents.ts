@@ -112,10 +112,3 @@ export function contentUrl(documentId: number): string {
 export function thumbnailUrl(documentId: number, size = 256): string {
     return `/documents/${documentId}/thumbnail?size=${size}`
 }
-
-/** Whether the application can show the file itself rather than only offer it. */
-export function isPreviewable(mimeType: string): boolean {
-    return mimeType?.startsWith('image/')
-        || mimeType?.startsWith('text/')
-        || mimeType === 'application/pdf'
-}

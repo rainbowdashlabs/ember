@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from '@/api/client'
+import {isHandheld} from '@/util/handheld'
 
 /**
  * Extracts the filename from a Content-Disposition header value, honouring the RFC 5987
@@ -52,11 +53,12 @@ export const SAVED_BLOB_LIFETIME_MS = 40_000
 /**
  * Hands an already-materialised blob to the reader.
  *
- * On an iPhone or iPad the file goes to the system share sheet, from where it can be saved to Files,
- * opened in another app or sent on. A download link there does nothing inside the browsers apps
- * embed, such as the Google app's, and the share sheet works in all of them. Where the share sheet
- * refuses the file, the download link is the fallback; a reader closing the sheet has chosen, and
- * nothing more happens.
+ * On a phone or a tablet the file goes to the system share sheet, from where it can be saved, opened
+ * in another app or sent on. A download link there does nothing inside the browsers apps embed, such
+ * as the Google app's, and on Android it can leave a blank tab instead of a file, because a browser
+ * that will not take bytes from the page navigates to them and finds nothing it can draw. Where the
+ * share sheet refuses the file, the download link is the fallback; a reader closing the sheet has
+ * chosen, and nothing more happens.
  */
 export function saveBlob(blob: Blob, filename: string): void {
     const file = new File([blob], filename, {type: blob.type})
@@ -69,15 +71,9 @@ export function saveBlob(blob: Blob, filename: string): void {
     })
 }
 
-/** Whether this is an iPhone or iPad whose browser can put this file on the share sheet. */
+/** Whether this device wants the share sheet and its browser will put this file on it. */
 function sharesFilesInstead(file: File): boolean {
-    return isAppleTouchDevice() && typeof navigator.canShare === 'function' && navigator.canShare({files: [file]})
-}
-
-/** An iPhone or iPad, including an iPad that presents itself as a Mac. */
-function isAppleTouchDevice(): boolean {
-    const agent = navigator.userAgent
-    return /iPhone|iPad|iPod/.test(agent) || (agent.includes('Macintosh') && navigator.maxTouchPoints > 1)
+    return isHandheld() && typeof navigator.canShare === 'function' && navigator.canShare({files: [file]})
 }
 
 function isDismissal(error: unknown): boolean {

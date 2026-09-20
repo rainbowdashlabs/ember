@@ -4,13 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed, onMounted, onUnmounted, nextTick} from 'vue'
+import {ref, computed, onMounted, onUnmounted} from 'vue'
 import {useI18n} from 'vue-i18n'
-import IconButton from '@/components/button/IconButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import PdfCanvas from '@/components/documents/PdfCanvas.vue'
+import PresentationTopBar from './presentationviewer/PresentationTopBar.vue'
+import PresentationPager from './presentationviewer/PresentationPager.vue'
 import client from '@/api/client'
-import type {PDFDocumentLoadingTask, PDFDocumentProxy} from 'pdfjs-dist'
 
 const {t} = useI18n()
 const props = defineProps<{
@@ -19,15 +20,13 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ close: [] }>()
 
-const canvas = ref<HTMLCanvasElement | null>(null)
+const source = ref<ArrayBuffer | null>(null)
 const currentPage = ref(1)
 const totalPages = ref(0)
 const loading = ref(true)
 const errorMsg = ref('')
 const controlsVisible = ref(true)
 let hideTimeout: ReturnType<typeof setTimeout> | null = null
-let pdfDoc: PDFDocumentProxy | null = null
-let loadingTask: PDFDocumentLoadingTask | null = null
 
 function showControls() {
   controlsVisible.value = true
@@ -40,48 +39,32 @@ function resetHideTimer() {
 
 const canvasScale = computed(() => controlsVisible.value ? 0.9 : 1)
 
-async function loadPdf() {
+async function fetchDocument() {
   loading.value = true
   errorMsg.value = ''
   try {
-    const pdfjsLib = await import('pdfjs-dist')
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).href
     const res = await client.get<ArrayBuffer>(props.contentUrl, {responseType: 'arraybuffer'})
-    loadingTask = pdfjsLib.getDocument({data: new Uint8Array(res.data)})
-    pdfDoc = await loadingTask.promise
-    totalPages.value = pdfDoc.numPages
-    if (totalPages.value > 0) await renderPage(1)
-  } catch (e) {
-    console.error('PDF load failed', e)
-    errorMsg.value = 'Failed to load PDF'
+    source.value = res.data
+  } catch {
+    failed()
   }
+}
+
+function opened(pageCount: number) {
+  totalPages.value = pageCount
   loading.value = false
   resetHideTimer()
 }
 
-async function renderPage(num: number) {
-  if (!pdfDoc || !canvas.value) return
-  const page = await pdfDoc.getPage(num)
-  const canvasEl = canvas.value
-  const ctx = canvasEl.getContext('2d')
-  if (!ctx) return
-
-  const viewport = page.getViewport({scale: 1})
-  const scaleX = window.innerWidth / viewport.width
-  const scaleY = window.innerHeight / viewport.height
-  const scale = Math.min(scaleX, scaleY) * canvasScale.value
-  const scaledViewport = page.getViewport({scale})
-
-  canvasEl.width = scaledViewport.width
-  canvasEl.height = scaledViewport.height
-  ctx.clearRect(0, 0, canvasEl.width, canvasEl.height)
-  await page.render({canvas: canvasEl, canvasContext: ctx, viewport: scaledViewport}).promise
-  currentPage.value = num
+function failed() {
+  errorMsg.value = t('common.error')
+  loading.value = false
+  resetHideTimer()
 }
 
-async function goToPage(num: number) {
+function goToPage(num: number) {
   if (num < 1 || num > totalPages.value) return
-  await renderPage(num)
+  currentPage.value = num
 }
 function nextPage() { goToPage(currentPage.value + 1) }
 function prevPage() { goToPage(currentPage.value - 1) }
@@ -110,13 +93,11 @@ function handleTouchEnd(e: TouchEvent) {
 
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
-  nextTick(loadPdf)
+  fetchDocument()
 })
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
   if (hideTimeout) clearTimeout(hideTimeout)
-  pdfDoc = null
-  loadingTask?.destroy()
 })
 </script>
 
@@ -130,43 +111,35 @@ onUnmounted(() => {
         @touchstart="handleTouchStart"
         @touchend="handleTouchEnd"
     >
-      <!-- Top bar -->
-      <div
-          class="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-2 bg-black/60 text-white z-10 transition-opacity duration-300"
-          :class="controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'"
-      >
-        <span class="text-sm truncate">{{ title }}</span>
-        <div class="flex items-center gap-4">
-          <span v-if="totalPages > 0" class="text-sm">{{ currentPage }} / {{ totalPages }}</span>
-          <IconButton :icon="['fas', 'xmark']" :label="t('common.close')" class="!text-white" @click.stop="emit('close')"/>
-        </div>
-      </div>
-
-      <!-- Content -->
-      <Spinner v-if="loading" size="lg" class="text-white"/>
-      <Alert v-else-if="errorMsg" variant="error" class="m-4">{{ errorMsg }}</Alert>
-      <canvas v-show="!loading && !errorMsg" ref="canvas"
-              class="transition-all duration-300"
-              :class="controlsVisible ? 'max-w-[95vw] max-h-[90vh]' : 'max-w-[100vw] max-h-[100vh]'"
+      <PresentationTopBar
+          :title="title"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :visible="controlsVisible"
+          @close="emit('close')"
       />
 
-      <!-- Navigation buttons -->
-      <div
+      <Spinner v-if="loading" size="lg" class="text-white"/>
+      <Alert v-else-if="errorMsg" variant="error" class="m-4">{{ errorMsg }}</Alert>
+      <PdfCanvas
+          v-show="!loading && !errorMsg"
+          :source="source"
+          :page="currentPage"
+          :scale="canvasScale"
+          class="transition-all duration-300"
+          :class="controlsVisible ? 'max-w-[95vw] max-h-[90vh]' : 'max-w-[100vw] max-h-[100vh]'"
+          @loaded="opened"
+          @failed="failed"
+      />
+
+      <PresentationPager
           v-if="!loading && totalPages > 1"
-          class="absolute bottom-4 flex items-center gap-4 transition-opacity duration-300"
-          :class="controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'"
-      >
-        <IconButton
-            :icon="['fas', 'chevron-left']" :label="t('common.previous')"
-            class="!text-white !bg-white/20 !p-3 rounded-full" :disabled="currentPage <= 1"
-            @click.stop="prevPage"
-        />
-        <IconButton
-            :icon="['fas', 'chevron-right']" :label="t('common.next')"
-            class="!text-white !bg-white/20 !p-3 rounded-full" :disabled="currentPage >= totalPages"
-            @click.stop="nextPage"
-        />
-      </div>
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :visible="controlsVisible"
+          @previous="prevPage"
+          @next="nextPage"
+      />
     </div>
   </Teleport>
 </template>

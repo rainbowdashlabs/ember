@@ -33,8 +33,17 @@ export function canHavePicture(mimeType?: string | null): boolean {
     return kind === 'image' || kind === 'pdf'
 }
 
-/** The icon standing in for a file that has no picture of its own. */
+/**
+ * The icon standing in for a file that has no picture of its own.
+ *
+ * <p>A few types are worth telling apart more finely than they are worth drawing differently: a
+ * spreadsheet and a log file are both text on screen, and a reader scanning a list of names still
+ * wants to see which is which.
+ */
 export function fileKindIcon(mimeType?: string | null): string[] {
+    const mime = (mimeType ?? '').toLowerCase()
+    if (mime.startsWith('text/csv')) return ['fas', 'file-csv']
+    if (mime.includes('presentation')) return ['fas', 'file-powerpoint']
     switch (fileKindOf(mimeType)) {
         case 'image':
             return ['fas', 'image']

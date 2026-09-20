@@ -10,17 +10,17 @@ import {createI18n} from 'vue-i18n'
 import LossReportPanel from './LossReportPanel.vue'
 
 const downloadDocument = vi.fn()
-const saveBlob = vi.fn()
+const presentDocument = vi.fn()
 
 vi.mock('@/api', () => ({movements: {downloadDocument: (id: number) => downloadDocument(id)}}))
-vi.mock('@/util/downloadAuthed', () => ({saveBlob: (blob: Blob, name: string) => saveBlob(blob, name)}))
+vi.mock('@/util/documentView', () => ({presentDocument: (blob: Blob, name: string) => presentDocument(blob, name)}))
 
 /**
  * Where the evidence of a loss report reaches the reader.
  *
  * <p>The panel used to write out its own download link and revoke the object URL in the same turn,
- * which left the button doing nothing on an iPhone. The shared hand-off is the only path that offers
- * the share sheet there, so what matters is that the panel calls it rather than how it saves.
+ * which left the button doing nothing on a phone. The shared hand-off is the only path that knows
+ * whether to save the document or open it, so what matters is that the panel calls it at all.
  */
 
 const i18n = createI18n({
@@ -41,27 +41,27 @@ function mountPanel(documentName: string | null) {
 describe('LossReportPanel', () => {
     beforeEach(() => {
         downloadDocument.mockReset()
-        saveBlob.mockReset()
+        presentDocument.mockReset()
     })
 
-    it('hands the fetched document to the shared save', async () => {
+    it('hands the fetched document to the shared hand-off', async () => {
         const blob = new Blob(['evidence'])
         downloadDocument.mockResolvedValue(blob)
 
         await mountPanel('verlust.pdf').get('[data-testid="loss-report-download"]').trigger('click')
-        await vi.waitFor(() => expect(saveBlob).toHaveBeenCalledOnce())
+        await vi.waitFor(() => expect(presentDocument).toHaveBeenCalledOnce())
 
         expect(downloadDocument).toHaveBeenCalledWith(4)
-        expect(saveBlob).toHaveBeenCalledWith(blob, 'verlust.pdf')
+        expect(presentDocument).toHaveBeenCalledWith(blob, 'verlust.pdf')
     })
 
-    it('reports a refused download instead of saving anything', async () => {
+    it('reports a refused download instead of handing anything over', async () => {
         downloadDocument.mockRejectedValue(new Error('denied'))
 
         const panel = mountPanel('verlust.pdf')
         await panel.get('[data-testid="loss-report-download"]').trigger('click')
         await vi.waitFor(() => expect(panel.text()).toContain('common.error'))
 
-        expect(saveBlob).not.toHaveBeenCalled()
+        expect(presentDocument).not.toHaveBeenCalled()
     })
 })

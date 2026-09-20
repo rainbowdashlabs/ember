@@ -121,7 +121,7 @@ describe('EventAttachmentsPanel', () => {
 
         const preview = view.findComponent(FilePreviewModal)
         expect(preview.exists()).toBe(true)
-        expect(preview.props('url')).toBe('/events/12/attachments/5/file')
+        expect(preview.props('source')).toBe('/events/12/attachments/5/file')
         expect(downloadAuthed).not.toHaveBeenCalled()
     })
 

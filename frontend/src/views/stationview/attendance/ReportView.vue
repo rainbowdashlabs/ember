@@ -18,7 +18,7 @@ import type {ReportData, ReportPreset} from '@/api/attendance'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {saveBlob} from '@/util/downloadAuthed'
+import {presentDocument} from '@/util/documentView'
 
 const {t} = useI18n()
 const {loaded} = useSession()
@@ -136,7 +136,7 @@ const {running: previewing, error: previewError, run: runPreview, clearError: cl
 const {running: exporting, error: exportError, run: runExport, clearError: clearExportError} = useAsyncAction(async () => {
   const params = buildParams()
   params.set('period', selectedPeriod.value)
-  saveBlob(await attendance.reportExport(params), 'attendance-report.pdf')
+  presentDocument(await attendance.reportExport(params), 'attendance-report.pdf')
 })
 
 const displayError = computed(() => error.value || previewError.value || exportError.value)
