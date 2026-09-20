@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import AppIcon from './AppIcon.vue'
+
 /**
  * Accent-coloured leading icon for feature and bullet rows. Sibling of `MutedIcon`: same prop
  * shape, fixed box, aligned with the first line of the text it introduces.
@@ -14,5 +16,5 @@ defineProps<{
 </script>
 
 <template>
-  <font-awesome-icon :icon="icon" class="h-4 w-4 text-primary mt-0.5 shrink-0"/>
+  <AppIcon :icon="icon" class="h-4 w-4 text-primary mt-0.5 shrink-0"/>
 </template>

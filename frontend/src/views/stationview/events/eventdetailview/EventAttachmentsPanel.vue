@@ -96,7 +96,7 @@ watch(() => props.eventId, load)
 
     <FilePreviewModal
         v-if="previewed"
-        :url="events.eventAttachmentUrl(eventId, previewed.id)"
+        :source="events.eventAttachmentUrl(eventId, previewed.id)"
         :title="nameOf(previewed)"
         :mime-type="previewed.mimeType"
         @close="previewed = null"

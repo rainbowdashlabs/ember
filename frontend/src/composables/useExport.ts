@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref} from 'vue'
-import {saveBlob} from '@/util/downloadAuthed'
+import {presentDocument} from '@/util/documentView'
 
 /**
  * Selectable entry of an export field picker: a stable key plus the label shown to the user.
@@ -46,9 +46,9 @@ export function buildCsv<T>(rows: T[], columns: ExportColumn<T>[]): string {
 }
 
 /**
- * Builds the export document for the given rows and columns and saves it to disk. The
- * {@code values} format joins the cells of a single column into one semicolon separated list
- * and falls back to CSV whenever more than one column is exported.
+ * Builds the export document for the given rows and columns and hands it to the reader, saved at a
+ * desk and opened in the hand. The {@code values} format joins the cells of a single column into one
+ * semicolon separated list and falls back to CSV whenever more than one column is exported.
  *
  * @param rows     rows to export, in output order.
  * @param columns  columns to export, in output order.
@@ -67,7 +67,7 @@ export function downloadExport<T>(
         ? rows.map(row => cellValue(row, singleColumn)).filter(v => v).join('; ')
         : buildCsv(rows, columns)
     const type = asValues ? 'text/plain;charset=utf-8' : 'text/csv;charset=utf-8'
-    saveBlob(new Blob([content], {type}), `${fileName}.${asValues ? 'txt' : 'csv'}`)
+    presentDocument(new Blob([content], {type}), `${fileName}.${asValues ? 'txt' : 'csv'}`)
 }
 
 export interface UseExportOptions<T> {

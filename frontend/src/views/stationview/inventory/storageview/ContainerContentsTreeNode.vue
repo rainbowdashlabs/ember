@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import AppIcon from '@/components/display/AppIcon.vue'
 import {computed, ref} from 'vue'
 import TreeNodeButton from '@/components/button/TreeNodeButton.vue'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
@@ -43,7 +44,7 @@ const hasContent = computed(() => childContainers.value.length > 0 || items.valu
         </TreeNodeButton>
       </span>
       <span v-else class="w-4 h-4" />
-      <font-awesome-icon :icon="['fas', kind?.icon ?? 'box']" class="w-4 text-(--text-muted)" />
+      <AppIcon :icon="kind?.icon ?? 'box'" class="w-4 text-(--text-muted)" />
       <span class="font-medium">{{ container.name }}</span>
       <span v-if="container.internalId" class="text-xs text-(--text-muted)">{{ container.internalId }}</span>
       <span v-if="hasContent" class="ml-auto text-xs text-(--text-muted)">

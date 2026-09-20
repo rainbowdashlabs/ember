@@ -8,6 +8,7 @@ import { boards } from '@/api'
 import type { BoardTicketAttachment } from '@/api/boards'
 import { useAuthImages } from '@/composables/useAuthImage'
 import { downloadAuthed } from '@/util/downloadAuthed'
+import { fileKindIcon, fileKindOf } from '@/util/fileKind'
 
 /**
  * Previewing a ticket's attachments without leaving the ticket.
@@ -34,27 +35,30 @@ export function useAttachmentPreview(
   const shown = ref(false)
   const index = ref(0)
 
-  function isImage(contentType: string) {
-    return contentType.startsWith('image/')
+  function isImage(att: BoardTicketAttachment) {
+    return fileKindOf(att.contentType) === 'image'
   }
 
-  function isPdf(contentType: string) {
-    return contentType === 'application/pdf'
+  function isPdf(att: BoardTicketAttachment) {
+    return fileKindOf(att.contentType) === 'pdf'
   }
 
-  function isCsv(fileName: string) {
-    return fileName.toLowerCase().endsWith('.csv')
+  /**
+   * Whether this is a spreadsheet, which is the one kind drawn as a table rather than as itself.
+   *
+   * <p>The name is asked as well as the type, because a browser uploading a spreadsheet often calls
+   * it something else entirely and the file would then be read as a wall of commas.
+   */
+  function isCsv(att: BoardTicketAttachment) {
+    return att.contentType.startsWith('text/csv') || att.originalName.toLowerCase().endsWith('.csv')
   }
 
   function canPreview(att: BoardTicketAttachment) {
-    return isImage(att.contentType) || isPdf(att.contentType) || isCsv(att.originalName)
+    return isImage(att) || isPdf(att) || isCsv(att)
   }
 
   function fileIcon(att: BoardTicketAttachment): string[] {
-    if (isImage(att.contentType)) return ['fas', 'image']
-    if (isPdf(att.contentType)) return ['fas', 'file-pdf']
-    if (isCsv(att.originalName) || att.contentType.startsWith('text/')) return ['fas', 'file-lines']
-    return ['fas', 'file']
+    return isCsv(att) ? ['fas', 'file-csv'] : fileKindIcon(att.contentType)
   }
 
   function attachmentUrl(attachmentId: number): string {
@@ -63,7 +67,7 @@ export function useAttachmentPreview(
 
   async function loadThumbnails() {
     for (const att of attachments.value) {
-      if (isImage(att.contentType) && !srcFor(att.id)) {
+      if (isImage(att) && !srcFor(att.id)) {
         await loadBlob(att.id, attachmentUrl(att.id))
       }
     }
@@ -98,12 +102,12 @@ export function useAttachmentPreview(
     csv.value = null
     url.value = null
     shown.value = true
-    if (isImage(att.contentType) || isPdf(att.contentType)) {
+    if (isImage(att) || isPdf(att)) {
       if (!srcFor(att.id)) await loadBlob(att.id, attachmentUrl(att.id))
       url.value = srcFor(att.id)
       return
     }
-    if (isCsv(att.originalName)) {
+    if (isCsv(att)) {
       csv.value = parseCsv(
         await boards.getAttachmentText(boardKey.value, ticketNumber.value, att.id))
     }

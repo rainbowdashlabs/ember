@@ -219,7 +219,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
             <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 <div v-for="att in attachments" :key="att.id" class="relative group rounded-lg border border-(--border) overflow-hidden bg-(--bg-accent) cursor-pointer" style="aspect-ratio: 3/4" @click="canPreview(att) ? openPreview(att) : handleDownload(att)">
                     <!-- Image thumbnail -->
-                    <img v-if="isImage(att.contentType) && srcFor(att.id)" :src="srcFor(att.id) ?? undefined" :alt="att.originalName" class="w-full h-full object-contain" />
+                    <img v-if="isImage(att) && srcFor(att.id)" :src="srcFor(att.id) ?? undefined" :alt="att.originalName" class="w-full h-full object-contain" />
                     <!-- File type icon fallback -->
                     <div v-else class="w-full h-full flex items-center justify-center">
                         <font-awesome-icon :icon="fileIcon(att)" class="text-3xl text-(--text-muted)" />

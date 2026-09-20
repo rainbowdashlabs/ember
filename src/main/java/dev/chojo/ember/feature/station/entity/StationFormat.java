@@ -44,12 +44,16 @@ public final class StationFormat {
      * The language a station's documents are built in, which is German or English and nothing else,
      * because those are the two every template ships in.
      *
+     * <p>English is asked for, never arrived at: a station that has said nothing about its language
+     * gets German, which is the language of the people using this and of the interface they pressed
+     * the button in. A station wanting its documents in English says so by setting its locale.
+     *
      * @param station the station, or {@code null} when it could not be loaded
      * @return {@code de} or {@code en}
      */
     public static String languageOf(Station station) {
-        if (station != null && station.locale() != null && station.locale().startsWith("de")) return "de";
-        return "en";
+        if (station == null || station.locale() == null) return "de";
+        return station.locale().startsWith("en") ? "en" : "de";
     }
 
     /**

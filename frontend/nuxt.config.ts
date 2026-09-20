@@ -41,6 +41,7 @@ export default defineNuxtConfig({
         '@fortawesome/free-brands-svg-icons',
         '@fortawesome/free-solid-svg-icons',
         '@fortawesome/vue-fontawesome',
+        '@phosphor-icons/vue',
       ],
     },
     publicAssets: [

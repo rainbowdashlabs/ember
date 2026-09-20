@@ -26,7 +26,7 @@ import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {emptyTableState, useDataTable} from '@/composables/useDataTable'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import {saveBlob} from '@/util/downloadAuthed'
+import {presentDocument} from '@/util/documentView'
 import {useExport} from '@/composables/useExport'
 
 /**
@@ -106,7 +106,7 @@ async function downloadPdf() {
         exportFlow.selectedRows.value.map(row => row.id),
         [...exportFlow.selectedColumns.value].map(Number),
     )
-    saveBlob(blob, 'movements.pdf')
+    presentDocument(blob, 'movements.pdf')
     exportFlow.cancelExport()
   } catch {
     exportError.value = t('common.error')

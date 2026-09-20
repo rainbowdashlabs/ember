@@ -8,9 +8,9 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {formatDate} from '@/util/format'
 import type {StationDocument} from '@/api/documents'
-import {formatSize, iconFor} from './documentIcon'
+import {formatDate, formatSize} from '@/util/format'
+import {fileKindIcon} from '@/util/fileKind'
 
 /**
  * One document as the store shows it: the picture of it where there is one, its title, and the
@@ -28,7 +28,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const icon = computed(() => iconFor(props.document.mimeType))
+const icon = computed(() => fileKindIcon(props.document.mimeType))
 </script>
 
 <template>
@@ -40,7 +40,7 @@ const icon = computed(() => iconFor(props.document.mimeType))
   >
     <div class="aspect-[4/3] bg-bg-light-accent/40 dark:bg-bg-dark-accent/40 flex items-center justify-center overflow-hidden">
       <img v-if="props.thumbnail" :src="props.thumbnail" :alt="props.document.title" class="h-full w-full object-cover"/>
-      <font-awesome-icon v-else :icon="['fas', icon]" class="h-10 w-10 text-(--text-muted)"/>
+      <font-awesome-icon v-else :icon="icon" class="h-10 w-10 text-(--text-muted)"/>
     </div>
     <div class="p-3 space-y-1">
       <div class="font-medium text-sm truncate" :title="props.document.title">{{ props.document.title }}</div>

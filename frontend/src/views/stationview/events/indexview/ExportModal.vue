@@ -13,7 +13,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {EventCategory} from '@/api/events'
 import {events} from '@/api'
-import {saveBlob} from '@/util/downloadAuthed'
+import {presentDocument} from '@/util/documentView'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import TimeRangeSection from './exportmodal/TimeRangeSection.vue'
 import CategoriesSection from './exportmodal/CategoriesSection.vue'
@@ -121,7 +121,7 @@ const {running: exporting, run: doExport} = useAsyncAction(async () => {
       from,
       to,
     })
-    saveBlob(blob, 'events.pdf')
+    presentDocument(blob, 'events.pdf')
     modelValue.value = false
   } catch {
     emit('error', t('common.error'))

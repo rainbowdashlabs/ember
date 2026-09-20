@@ -11,7 +11,7 @@ import type { ProfileField } from '@/api/profileFields'
 import type { Inventory, InventoryItem } from '@/api/inventory'
 import type { StationMember } from '@/api/types'
 import { useAsyncAction } from '@/composables/useAsyncAction'
-import { saveBlob } from '@/util/downloadAuthed'
+import {presentDocument} from '@/util/documentView'
 
 /**
  * Options describing how an item should be labelled in the export, mirroring what the table
@@ -113,7 +113,7 @@ export function useInventoryMemberExport(
     const csv = [headers, ...rows]
       .map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(';'))
       .join('\n')
-    saveBlob(new Blob(['﻿' + csv], {type: 'text/csv;charset=utf-8'}), 'inventory-members.csv')
+    presentDocument(new Blob(['﻿' + csv], {type: 'text/csv;charset=utf-8'}), 'inventory-members.csv')
     exportMode.value = false
   }
 
@@ -126,7 +126,7 @@ export function useInventoryMemberExport(
       showInternalId: labelOptions.showInternalId.value,
       showSize: labelOptions.showSize.value,
     }, {responseType: 'blob'})
-    saveBlob(res.data as Blob, 'inventory-members.pdf')
+    presentDocument(res.data as Blob, 'inventory-members.pdf')
     exportMode.value = false
   }, {formatError: () => t('common.error')})
 

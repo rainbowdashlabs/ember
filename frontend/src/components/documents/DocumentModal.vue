@@ -16,9 +16,8 @@ import TagPicker from '@/components/input/TagPicker.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import DocumentPreview from './DocumentPreview.vue'
-import {formatSize} from './documentIcon'
-import {formatDate} from '@/util/format'
+import FileView from '@/components/documents/FileView.vue'
+import {formatDate, formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {contentUrl, type StationDocument} from '@/api/documents'
 import type {StationMember} from '@/api/types'
@@ -96,7 +95,11 @@ async function download() {
         <DeleteButton v-if="props.canEdit" @click="emit('remove', props.document)"/>
       </div>
 
-      <DocumentPreview :document="props.document"/>
+      <FileView
+          :source="contentUrl(props.document.id)"
+          :title="props.document.title"
+          :mime-type="props.document.mimeType"
+      />
 
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">

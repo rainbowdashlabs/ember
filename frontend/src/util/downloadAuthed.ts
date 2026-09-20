@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from '@/api/client'
+import {presentDocument} from '@/util/documentView'
 
 /**
  * Extracts the filename from a Content-Disposition header value, honouring the RFC 5987
@@ -19,13 +20,18 @@ export function parseContentDispositionFilename(header?: string | null): string 
 }
 
 /**
- * Downloads a resource from an authenticated API endpoint and saves it to
- * disk under the given filename.
+ * Fetches a file from an authenticated endpoint and hands it to the reader.
  *
- * The request is sent through the shared axios client so the
- * {@code Authorization} header and {@code X-Station-Id} header are applied
- * automatically. The response body is materialised as a {@link Blob} and
- * exposed to the browser via a temporary object URL, see {@link saveBlob}.
+ * <p>The request goes through the shared axios client, so the {@code Authorization} and
+ * {@code X-Station-Id} headers are applied for it. What happens to the bytes afterwards is
+ * {@link presentDocument}'s to decide: saved at a desk, and in the hand opened where there is a
+ * viewer for them.
+ *
+ * <p>Handing them over rather than saving them directly is what makes a slow download work on a
+ * phone at all. Saving asks the system for its share sheet, and the system grants that only to a
+ * press the reader has just made: by the time a large file has arrived, the press it began with has
+ * expired, the sheet is refused, and the fallback is the download link that does nothing there. The
+ * reader's own save button asks again from a fresh press, with the bytes already in hand.
  *
  * @param url      relative API path (e.g. {@code /kb/files/42/original}).
  * @param filename name suggested to the browser's save dialog; when omitted, the name
@@ -38,67 +44,6 @@ export async function downloadAuthed(url: string, filename?: string): Promise<vo
         ?? parseContentDispositionFilename(res.headers['content-disposition'] as string | undefined)
         ?? url.split('/').pop()
         ?? 'download'
-    saveBlob(res.data as Blob, resolved)
-}
-
-/**
- * How long a saved blob's object URL outlives the click that saves it.
- *
- * Safari on iOS reads the URL only after the click has returned, so a URL revoked at once leaves it
- * nothing to save and the button silently does nothing.
- */
-export const SAVED_BLOB_LIFETIME_MS = 40_000
-
-/**
- * Hands an already-materialised blob to the reader.
- *
- * On an iPhone or iPad the file goes to the system share sheet, from where it can be saved to Files,
- * opened in another app or sent on. A download link there does nothing inside the browsers apps
- * embed, such as the Google app's, and the share sheet works in all of them. Where the share sheet
- * refuses the file, the download link is the fallback; a reader closing the sheet has chosen, and
- * nothing more happens.
- */
-export function saveBlob(blob: Blob, filename: string): void {
-    const file = new File([blob], filename, {type: blob.type})
-    if (!sharesFilesInstead(file)) {
-        clickDownloadLink(blob, filename)
-        return
-    }
-    navigator.share({files: [file]}).catch((error: unknown) => {
-        if (!isDismissal(error)) clickDownloadLink(blob, filename)
-    })
-}
-
-/** Whether this is an iPhone or iPad whose browser can put this file on the share sheet. */
-function sharesFilesInstead(file: File): boolean {
-    return isAppleTouchDevice() && typeof navigator.canShare === 'function' && navigator.canShare({files: [file]})
-}
-
-/** An iPhone or iPad, including an iPad that presents itself as a Mac. */
-function isAppleTouchDevice(): boolean {
-    const agent = navigator.userAgent
-    return /iPhone|iPad|iPod/.test(agent) || (agent.includes('Macintosh') && navigator.maxTouchPoints > 1)
-}
-
-function isDismissal(error: unknown): boolean {
-    return error instanceof DOMException && error.name === 'AbortError'
-}
-
-/**
- * Saves a blob through a temporary object URL, revoked once the browser has had
- * {@link SAVED_BLOB_LIFETIME_MS} to read it.
- */
-function clickDownloadLink(blob: Blob, filename: string): void {
-    const blobUrl = URL.createObjectURL(blob)
-    try {
-        const anchor = document.createElement('a')
-        anchor.href = blobUrl
-        anchor.download = filename
-        anchor.rel = 'noopener'
-        document.body.appendChild(anchor)
-        anchor.click()
-        anchor.remove()
-    } finally {
-        setTimeout(() => URL.revokeObjectURL(blobUrl), SAVED_BLOB_LIFETIME_MS)
-    }
+    const type = (res.headers['content-type'] as string | undefined) ?? ''
+    presentDocument(res.data as Blob, resolved, type.split(';')[0]?.trim() || undefined)
 }

@@ -10,6 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {mediaFileUrl, type StationFile} from '@/api/media'
 import {formatSize} from '@/util/format'
+import {fileKindOf} from '@/util/fileKind'
 
 const props = defineProps<{
     file: StationFile | null
@@ -27,14 +28,7 @@ const previewUrl = computed(() => {
     return f?.contentHash && props.stationUid ? mediaFileUrl(props.stationUid, f.contentHash) : ''
 })
 
-const previewKind = computed<'image' | 'video' | 'audio' | 'pdf' | 'other'>(() => {
-    const m = props.file?.mimeType ?? ''
-    if (m.startsWith('image/')) return 'image'
-    if (m.startsWith('video/')) return 'video'
-    if (m.startsWith('audio/')) return 'audio'
-    if (m === 'application/pdf') return 'pdf'
-    return 'other'
-})
+const previewKind = computed(() => fileKindOf(props.file?.mimeType, props.file?.fileName))
 
 </script>
 

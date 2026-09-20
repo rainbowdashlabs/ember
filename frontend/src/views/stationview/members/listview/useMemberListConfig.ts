@@ -19,7 +19,7 @@ import {useExport, type ExportColumn, type ExportFormatName} from '@/composables
 import {useDataTable} from '@/composables/useDataTable'
 import {memberTable} from '@/api'
 import type {MemberTableColumn} from '@/api/memberTable'
-import {saveBlob} from '@/util/downloadAuthed'
+import {presentDocument} from '@/util/documentView'
 import {useMemberFilter} from '@/composables/useMemberFilter'
 
 /**
@@ -166,7 +166,7 @@ export function useMemberListConfig(port: MemberListPort) {
         }
         const memberIds = exporting.selectedRows.value.map(member => member.id)
         const file = await memberTable.exportMemberTable(memberIds, chosenServerColumns(), 'pdf')
-        saveBlob(file, `${port.exportFileName ?? 'export'}.pdf`)
+        presentDocument(file, `${port.exportFileName ?? 'export'}.pdf`)
         exporting.cancelExport()
     }
 
