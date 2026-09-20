@@ -128,3 +128,21 @@ describe('EntitySearchPicker keyboard', () => {
         expect(slotted.findAll('[role="option"]').length).toBe(3)
     })
 })
+
+describe('EntitySearchPicker with a list still loading', () => {
+    it('asks again for what was typed once the rows arrive', async () => {
+        const wrapper = picker({searchFn: () => Promise.resolve([])})
+        const input = wrapper.find('input')
+        await input.trigger('focusin')
+        await input.setValue('helm')
+        await new Promise(resolve => setTimeout(resolve, 300))
+        expect(wrapper.findAll('[role="option"]')).toHaveLength(0)
+
+        await wrapper.setProps({
+            searchFn: (q: string) => Promise.resolve(GEAR.filter(g => g.name.toLowerCase().includes(q.toLowerCase()))),
+        })
+
+        await vi.waitUntil(() => wrapper.findAll('[role="option"]').length > 0)
+        expect(wrapper.findAll('[role="option"]').map(row => row.text()).join()).toContain('Helme')
+    })
+})

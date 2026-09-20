@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.18.4
+
+### Fixes
+
+- **A search could keep saying there was nothing to find.** Typing into a picker for kinds, inventories or gear pictures before its list had finished loading could leave it showing no results, even once everything had arrived. It now searches again as soon as the list is there.
+
 ## v26.18.3
 
 ### Improvements

@@ -33,16 +33,22 @@ export function matchesWords(text: string, query: string): boolean {
  * <p>The list is capped, because a typeahead offering four hundred rows is the dropdown it
  * replaced.
  *
+ * <p>The search is a new one whenever the list changes. A list is often still loading when somebody
+ * starts typing, and a picker that searched the empty list once would go on saying there is nothing
+ * to find after the rows have arrived; handed a new search, the picker asks again.
+ *
  * @param entries    the rows to search
  * @param textOf     everything about a row that a word may match, joined
- * @returns a search function for a search picker
+ * @returns a search function for a search picker, renewed with the list
  */
 export function listSearch<T>(
     entries: ComputedRef<T[]> | Ref<T[]>,
     textOf: (entry: T) => string,
-): (query: string) => Promise<T[]> {
-    return async (query: string) =>
-        entries.value.filter(entry => matchesWords(textOf(entry), query)).slice(0, RESULT_LIMIT)
+): ComputedRef<(query: string) => Promise<T[]>> {
+    return computed(() => {
+        const rows = entries.value
+        return async (query: string) => rows.filter(entry => matchesWords(textOf(entry), query)).slice(0, RESULT_LIMIT)
+    })
 }
 
 /**

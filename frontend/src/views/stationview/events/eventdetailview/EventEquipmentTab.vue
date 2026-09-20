@@ -48,8 +48,7 @@ const thisEveningOnly = ref(false)
 const missingTotal = computed(() => needs.coverage.value.reduce((sum, line) => sum + line.missing, 0))
 
 onMounted(async () => {
-  await needs.loadCoverage()
-  if (props.canEdit) await needs.loadPickers()
+  await Promise.all([needs.loadCoverage(), props.canEdit ? needs.loadPickers() : Promise.resolve()])
 })
 
 watch(date, () => needs.loadCoverage())

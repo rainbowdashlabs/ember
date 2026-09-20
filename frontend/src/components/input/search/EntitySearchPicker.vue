@@ -124,6 +124,16 @@ watch(query, q => {
     scheduleSearch(q)
 })
 
+/**
+ * A new search means what it searches has changed, most often a list that finished loading after
+ * somebody had already typed. Whatever stands in the box is asked again, or the answer from before
+ * the rows arrived would stay on screen.
+ */
+watch(() => props.searchFn, () => {
+    if (!open.value || hasSelection.value) return
+    void runSearch(query.value)
+})
+
 watch(highlight, () => {
     const row = panelRef.value?.querySelector<HTMLElement>(`[data-row-index="${highlight.value}"]`)
     row?.scrollIntoView({block: 'nearest'})
