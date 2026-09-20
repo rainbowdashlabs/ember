@@ -9,9 +9,15 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.checklist.entity.ChecklistCell;
 import dev.chojo.ember.feature.checklist.entity.ChecklistColumn;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
+import dev.chojo.ember.util.CsvWriter;
+import dev.chojo.ember.util.DocumentName;
+import dev.chojo.ember.util.DocumentPeriod;
+import dev.chojo.ember.util.DocumentWord;
+import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -60,7 +66,7 @@ public class ChecklistExportService {
         this.apiConfig = apiConfig;
     }
 
-    public String exportCsv(int checklistId) {
+    public ExportedDocument exportCsv(int checklistId, CsvWriter.Separator separator) {
         var checklist = checklistService.findById(checklistId).orElseThrow();
         var columns = checklistService.findColumns(checklistId);
         var entries = checklistService.findEntries(checklistId, false);
@@ -68,33 +74,59 @@ public class ChecklistExportService {
         ZoneId zone = StationFormat.timezoneOf(
                 stationRepository.findById(checklist.stationId()).orElse(null));
 
-        var sb = new StringBuilder();
-        sb.append(csvField("Member")).append(',').append(csvField("Updated at"));
-        for (var column : columns) {
-            sb.append(',').append(csvField(column.label()));
-            sb.append(',').append(csvField(column.label() + " - Note"));
-        }
-        sb.append('\n');
+        var station = stationOf(checklist.stationId());
+        String language = StationFormat.languageOf(station);
+        boolean english = "en".equals(language);
 
+        var headers = new ArrayList<String>();
+        headers.add(DocumentWord.MEMBERS.in(language));
+        headers.add(english ? "Updated at" : "Zuletzt geändert");
+        for (var column : columns) {
+            headers.add(column.label());
+            headers.add(column.label() + " " + (english ? "note" : "Notiz"));
+        }
+
+        var rows = new ArrayList<List<String>>(entries.size());
         for (var entry : entries) {
             String name = memberNameResolver.official(entry.memberId());
-            sb.append(csvField(name != null ? name : "#" + entry.memberId()));
-            var latestUpdate = latestUpdateForEntry(cells, entry.id(), zone);
-            sb.append(',').append(csvField(latestUpdate));
+            var cellValues = new ArrayList<String>(headers.size());
+            cellValues.add(name != null ? name : "#" + entry.memberId());
+            cellValues.add(latestUpdateForEntry(cells, entry.id(), zone));
             for (var column : columns) {
                 var cell = cells.get(cellKey(entry.id(), column.id()));
-                String checkedValue = cell != null && cell.checked() ? "yes" : "no";
-                String noteValue = cell != null && cell.note() != null ? cell.note() : "";
-                sb.append(',').append(csvField(checkedValue));
-                sb.append(',').append(csvField(noteValue));
+                cellValues.add(yesOrNo(cell != null && cell.checked(), english));
+                cellValues.add(cell != null && cell.note() != null ? cell.note() : "");
             }
-            sb.append('\n');
+            rows.add(List.copyOf(cellValues));
         }
+
         log.info("Exported checklist {} as CSV ({} entries)", checklist.id(), entries.size());
-        return sb.toString();
+        return ExportedDocument.ofText(
+                CsvWriter.write(headers, rows, separator), exportFileName(checklist.name(), station, "csv"));
     }
 
-    public byte[] exportPdf(int checklistId, String generatedBy) throws IOException, InterruptedException {
+    /** A ticked box reads as a word rather than a token, in the language the rest of the file is in. */
+    private static String yesOrNo(boolean checked, boolean english) {
+        if (english) return checked ? "yes" : "no";
+        return checked ? "ja" : "nein";
+    }
+
+    /** A checklist is named after itself, and dated because it is a snapshot of a moving thing. */
+    private String exportFileName(String checklistName, Station station, String extension) {
+        String language = StationFormat.languageOf(station);
+        return DocumentName.of(
+                extension,
+                DocumentName.part(checklistName).isEmpty()
+                        ? DocumentWord.CHECKLIST.in(language)
+                        : DocumentName.part(checklistName),
+                DocumentPeriod.day(Instant.now(), StationFormat.timezoneOf(station)));
+    }
+
+    private Station stationOf(int stationId) {
+        return stationRepository.findById(stationId).orElse(null);
+    }
+
+    public ExportedDocument exportPdf(int checklistId, String generatedBy) throws IOException, InterruptedException {
         var checklist = checklistService.findById(checklistId).orElseThrow();
         var station = stationRepository.findById(checklist.stationId()).orElseThrow();
         var columns = checklistService.findColumns(checklistId);
@@ -145,7 +177,7 @@ public class ChecklistExportService {
                 checklist.id(),
                 entries.size(),
                 columns.size());
-        return pdf;
+        return new ExportedDocument(pdf, exportFileName(checklist.name(), station, "pdf"));
     }
 
     /**

@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.members.entity.MemberTableColumnKind;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.CsvWriter;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -45,27 +46,26 @@ public class MemberTableRenderer {
     /**
      * The table as a spreadsheet reads it.
      *
-     * <p>Semicolons, because the values are written for German readers and a decimal comma inside a
-     * comma separated cell turns one column into two the moment somebody opens it.
-     *
-     * @param table the drawn table
+     * @param table     the drawn table
+     * @param station   the station it belongs to, which decides the language its values are worded in
+     * @param separator what the reader asked for between the cells
      * @return the whole file
      */
-    public String toCsv(MemberTable table, Station station) {
+    public String toCsv(MemberTable table, Station station, CsvWriter.Separator separator) {
         var language = StationFormat.languageOf(station);
-        var out = new StringBuilder();
-        out.append(String.join(
-                ";", table.columns().stream().map(c -> cell(c.label())).toList()));
-        out.append('\n');
-        for (var row : table.rows()) {
-            var cells = new ArrayList<String>(row.values().size());
-            for (int i = 0; i < row.values().size(); i++) {
-                cells.add(cell(worded(table.columns().get(i), row.values().get(i), language)));
-            }
-            out.append(String.join(";", cells));
-            out.append('\n');
-        }
-        return out.toString();
+        var headers = table.columns().stream()
+                .map(MemberTable.MemberTableHeader::label)
+                .toList();
+        var rows = table.rows().stream()
+                .map(row -> {
+                    var cells = new ArrayList<String>(row.values().size());
+                    for (int i = 0; i < row.values().size(); i++) {
+                        cells.add(worded(table.columns().get(i), row.values().get(i), language));
+                    }
+                    return List.copyOf(cells);
+                })
+                .toList();
+        return CsvWriter.write(headers, rows, separator);
     }
 
     /**

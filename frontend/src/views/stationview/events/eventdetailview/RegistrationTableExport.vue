@@ -14,17 +14,20 @@ import RadioInput from '@/components/input/toggle/RadioInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import ExportSeparatorField from '@/components/documents/ExportSeparatorField.vue'
+import type {ExportSeparator} from '@/util/exportFormat'
 
 /** Asks which kind of file the table of sign-ups should be taken away as. */
 const open = defineModel<boolean>({required: true})
 
 const emit = defineEmits<{
-  download: [format: 'csv' | 'pdf']
+  download: [format: 'csv' | 'pdf', separator: ExportSeparator]
 }>()
 
 const {t} = useI18n()
 
 const format = ref<'csv' | 'pdf'>('csv')
+const separator = ref<ExportSeparator>('semicolon')
 </script>
 
 <template>
@@ -45,9 +48,14 @@ const format = ref<'csv' | 'pdf'>('csv')
           </FieldLabel>
         </div>
       </div>
+      <ExportSeparatorField v-if="format === 'csv'" v-model="separator"/>
       <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :icon="['fas', 'download']" data-testid="registration-table-download" @click="emit('download', format)">
+        <PrimaryButton
+            :icon="['fas', 'download']"
+            data-testid="registration-table-download"
+            @click="emit('download', format, separator)"
+        >
           {{ t('memberTable.export') }}
         </PrimaryButton>
       </ButtonRow>

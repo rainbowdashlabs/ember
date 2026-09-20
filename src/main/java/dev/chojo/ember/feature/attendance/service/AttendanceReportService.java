@@ -20,6 +20,11 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.util.CsvWriter;
+import dev.chojo.ember.util.DocumentName;
+import dev.chojo.ember.util.DocumentPeriod;
+import dev.chojo.ember.util.DocumentWord;
+import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -37,6 +42,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -111,6 +118,12 @@ public class AttendanceReportService {
     /**
      * Builds an attendance report with member summaries, session data, and monthly breakdowns.
      * Filters members by role or group and aggregates hours within the given time range.
+     *
+     * <p>A member who was at nothing in the period is left out rather than listed with a nought. The
+     * monthly tables have always done this; the overall one used to list every member of the chosen
+     * groups, so the same report contradicted itself on the same page and a reader scrolled past
+     * empty rows to find the people who had actually been there. Preview and printout are built from
+     * these same rows, so both say the same thing.
      */
     public ReportData buildReport(
             int stationId,
@@ -228,15 +241,16 @@ public class AttendanceReportService {
             }
         }
 
-        // Build overall member summaries
         var memberSummaries = new ArrayList<MemberSummary>();
         for (int memberId : memberIds) {
-            String name = resolveMemberName(memberId, memberNames);
+            double hours = memberTotalHours.getOrDefault(memberId, 0.0);
+            int attended = memberSessionCount.getOrDefault(memberId, 0);
+            if (hours == 0 && attended == 0) continue;
             memberSummaries.add(new MemberSummary(
                     memberId,
-                    name,
-                    memberTotalHours.getOrDefault(memberId, 0.0),
-                    memberSessionCount.getOrDefault(memberId, 0),
+                    resolveMemberName(memberId, memberNames),
+                    hours,
+                    attended,
                     memberPresentCount.getOrDefault(memberId, 0)));
         }
         memberSummaries.sort((a, b) -> a.name().compareToIgnoreCase(b.name()));
@@ -270,7 +284,7 @@ public class AttendanceReportService {
      *
      * @return the PDF bytes, or empty if generation fails
      */
-    public Optional<byte[]> exportReportPdf(
+    public Optional<ExportedDocument> exportReportPdf(
             int stationId,
             List<StationUserType> userTypes,
             List<Integer> groupIds,
@@ -278,7 +292,7 @@ public class AttendanceReportService {
             Instant to,
             String rounding,
             String generatedBy,
-            boolean isYearReport) {
+            String period) {
         var report = buildReport(stationId, userTypes, groupIds, from, to, rounding);
         ZoneId zone = resolveTimezone(stationId);
 
@@ -306,7 +320,6 @@ public class AttendanceReportService {
                         .toList());
         data.put("sessions", report.sessions().stream().map(this::sessionToMap).toList());
 
-        // Station info
         var station = stationRepository.findById(stationId).orElse(null);
         data.put("stationName", station != null ? station.name() : "");
         data.put("generatedBy", generatedBy != null ? generatedBy : "");
@@ -318,13 +331,81 @@ public class AttendanceReportService {
         try {
             var logo = stationRepository.findLogo(stationId);
             String locale = StationFormat.languageOf(station);
-            String templateName =
-                    locale + "/" + (isYearReport ? "attendance-report-year.typ" : "attendance-report-period.typ");
-            return Optional.of(renderPdf(data, templateName, logo.orElse(null)));
+            String templateName = locale + "/"
+                    + ("year".equals(period) ? "attendance-report-year.typ" : "attendance-report-period.typ");
+            String filename = reportFileName(period, from, zone, locale, report.filterLabel());
+            return Optional.of(new ExportedDocument(renderPdf(data, templateName, logo.orElse(null)), filename));
         } catch (Exception e) {
             log.error("Failed to export attendance report PDF", e);
             return Optional.empty();
         }
+    }
+
+    /**
+     * The same summary as a spreadsheet, for a reader who has to add the hours up somewhere else.
+     *
+     * <p>The rows are the ones the preview shows and the printout prints, so the three cannot
+     * disagree: a member left out of one is left out of all of them. The per-session detail below the
+     * summary is deliberately not here, because what this is for is the total against a name.
+     */
+    public Optional<ExportedDocument> exportReportCsv(
+            int stationId,
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            Instant from,
+            Instant to,
+            String rounding,
+            String period,
+            CsvWriter.Separator separator) {
+        var report = buildReport(stationId, userTypes, groupIds, from, to, rounding);
+        var station = stationRepository.findById(stationId).orElse(null);
+        String locale = StationFormat.languageOf(station);
+        ZoneId zone = resolveTimezone(stationId);
+
+        var headers = List.of(
+                DocumentWord.MEMBERS.in(locale),
+                "en".equals(locale) ? "Sessions" : "Termine",
+                "en".equals(locale) ? "Hours" : "Stunden");
+        var hoursFormat = hoursFormatFor(locale);
+        var rows = report.members().stream()
+                .map(member -> List.of(
+                        member.name(),
+                        String.valueOf(member.sessionCount()),
+                        hoursFormat.format(member.totalHours())))
+                .toList();
+
+        String filename = reportFileName(period, from, zone, locale, report.filterLabel())
+                .replaceAll("\\.pdf$", ".csv");
+        return Optional.of(ExportedDocument.ofText(CsvWriter.write(headers, rows, separator), filename));
+    }
+
+    /**
+     * Hours are written the way the station's own language writes a number.
+     *
+     * <p>Seven and a half is {@code 7,5} in German and {@code 7.5} in English, and a spreadsheet
+     * reads a number it does not recognise as text, which is the difference between a column that
+     * adds up and one that does not.
+     */
+    private static DecimalFormat hoursFormatFor(String locale) {
+        Locale numbers = "en".equals(locale) ? Locale.ENGLISH : Locale.GERMANY;
+        return new DecimalFormat("0.0", DecimalFormatSymbols.getInstance(numbers));
+    }
+
+    /**
+     * What a reader finds this report called in their downloads folder.
+     *
+     * <p>Reads {@code Anwesenheit - Jugend - Januar 2026.pdf}: what it is, whose it is, and when it
+     * covers. The filter goes in only where it names one thing, because a report covering several
+     * groups is about all of them and a name carrying only the first would say something the document
+     * does not.
+     */
+    static String reportFileName(String period, Instant from, ZoneId zone, String locale, String filterLabel) {
+        String oneFilter = filterLabel != null && !filterLabel.contains(",") ? filterLabel : "";
+        return DocumentName.of(
+                "pdf",
+                DocumentWord.ATTENDANCE.in(locale),
+                DocumentName.part(DocumentWord.forUserType(oneFilter, locale)),
+                DocumentPeriod.of(period, from, zone, locale));
     }
 
     // -- Presets --

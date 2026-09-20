@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.quiz.service.QuizFederationService.SharedQuizCata
 import dev.chojo.ember.feature.quiz.service.QuizImportService;
 import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvMappings;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
+import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -298,7 +299,10 @@ public class QuizCatalogRoutes implements Routes {
         var template = QuizCatalogTemplate.byFormat(ctx.pathParam("format"));
         if (template == null) throw new NotFoundResponse();
         ctx.contentType(template.contentType())
-                .header("Content-Disposition", "attachment; filename=\"" + template.fileName() + "\"")
+                .header(
+                        "Content-Disposition",
+                        SafeContentDisposition.build(
+                                SafeContentDisposition.Disposition.ATTACHMENT, template.fileName()))
                 .result(template.read());
     }
 

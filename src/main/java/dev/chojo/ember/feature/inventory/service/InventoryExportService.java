@@ -16,6 +16,11 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.util.CsvWriter;
+import dev.chojo.ember.util.DocumentName;
+import dev.chojo.ember.util.DocumentPeriod;
+import dev.chojo.ember.util.DocumentWord;
+import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -30,6 +35,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -78,7 +84,12 @@ public class InventoryExportService {
      * @param showSize       whether to show size labels
      * @return the PDF bytes, or empty if no data or rendering failed
      */
-    public Optional<byte[]> exportPdf(
+    /**
+     * The member list with their gear, printed or as a spreadsheet.
+     *
+     * @param separator what goes between the cells of a spreadsheet, or {@code null} for the printout
+     */
+    public Optional<ExportedDocument> export(
             int stationId,
             List<Integer> memberIds,
             List<Integer> inventoryIds,
@@ -86,7 +97,8 @@ public class InventoryExportService {
             String generatedBy,
             boolean showName,
             boolean showInternalId,
-            boolean showSize) {
+            boolean showSize,
+            CsvWriter.Separator separator) {
         var station = stationRepository.findById(stationId).orElse(null);
         if (station == null) return Optional.empty();
 
@@ -204,14 +216,59 @@ public class InventoryExportService {
         data.put("inventoryColumns", inventoryColumns);
         data.put("rows", rows);
 
-        // Render
+        String filename = DocumentName.of(
+                separator == null ? "pdf" : "csv",
+                DocumentWord.MEMBER_INVENTORY.in(locale),
+                DocumentPeriod.day(Instant.now(), zone));
+
+        if (separator != null) {
+            return Optional.of(ExportedDocument.ofText(
+                    asSpreadsheet(inventoryColumns, extraFieldNames, rows, locale, separator), filename));
+        }
+
         StationLogo logo = stationRepository.findLogo(stationId).orElse(null);
         try {
-            return Optional.of(renderPdf(data, locale + "/inventory-members.typ", logo));
+            return Optional.of(new ExportedDocument(renderPdf(data, locale + "/inventory-members.typ", logo), filename));
         } catch (Exception e) {
             log.error("Failed to export inventory members PDF", e);
             return Optional.empty();
         }
+    }
+
+    /**
+     * The same rows as the sheet, written for a spreadsheet.
+     *
+     * <p>Built from what the printout is built from rather than assembled a second time, which is
+     * what stops the two saying different things about the same member. A member holding several
+     * pieces out of one inventory has them in one cell, because a column is an inventory and splitting
+     * it would put the same member on two rows.
+     */
+    private static String asSpreadsheet(
+            List<String> inventoryColumns,
+            List<String> extraFieldNames,
+            List<Map<String, Object>> rows,
+            String locale,
+            CsvWriter.Separator separator) {
+        var headers = new ArrayList<String>();
+        headers.add(DocumentWord.MEMBERS.in(locale));
+        headers.addAll(extraFieldNames);
+        headers.addAll(inventoryColumns);
+
+        var lines = new ArrayList<List<String>>(rows.size());
+        for (var row : rows) {
+            var cells = new ArrayList<String>(headers.size());
+            cells.add(String.valueOf(row.get("name")));
+            @SuppressWarnings("unchecked")
+            var extras = (List<String>) row.get("extraFieldValues");
+            cells.addAll(extras);
+            @SuppressWarnings("unchecked")
+            var items = (List<List<ItemEntry>>) row.get("items");
+            for (var perInventory : items) {
+                cells.add(perInventory.stream().map(ItemEntry::label).collect(Collectors.joining(", ")));
+            }
+            lines.add(List.copyOf(cells));
+        }
+        return CsvWriter.write(headers, lines, separator);
     }
 
     private String formatFieldValue(String rawValue) {

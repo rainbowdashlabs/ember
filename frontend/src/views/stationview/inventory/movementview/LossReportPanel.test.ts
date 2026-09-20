@@ -13,7 +13,7 @@ const downloadDocument = vi.fn()
 const presentDocument = vi.fn()
 
 vi.mock('@/api', () => ({movements: {downloadDocument: (id: number) => downloadDocument(id)}}))
-vi.mock('@/util/documentView', () => ({presentDocument: (blob: Blob, name: string) => presentDocument(blob, name)}))
+vi.mock('@/util/documentView', () => ({presentDocument: (file: unknown) => presentDocument(file)}))
 
 /**
  * Where the evidence of a loss report reaches the reader.
@@ -44,15 +44,16 @@ describe('LossReportPanel', () => {
         presentDocument.mockReset()
     })
 
+    /** The name travels with the document from the server, so the panel adds nothing of its own. */
     it('hands the fetched document to the shared hand-off', async () => {
-        const blob = new Blob(['evidence'])
-        downloadDocument.mockResolvedValue(blob)
+        const file = {blob: new Blob(['evidence']), filename: 'verlust.pdf'}
+        downloadDocument.mockResolvedValue(file)
 
         await mountPanel('verlust.pdf').get('[data-testid="loss-report-download"]').trigger('click')
         await vi.waitFor(() => expect(presentDocument).toHaveBeenCalledOnce())
 
         expect(downloadDocument).toHaveBeenCalledWith(4)
-        expect(presentDocument).toHaveBeenCalledWith(blob, 'verlust.pdf')
+        expect(presentDocument).toHaveBeenCalledWith(file)
     })
 
     it('reports a refused download instead of handing anything over', async () => {

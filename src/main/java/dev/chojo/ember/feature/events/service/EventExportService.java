@@ -16,6 +16,10 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.util.DocumentName;
+import dev.chojo.ember.util.DocumentPeriod;
+import dev.chojo.ember.util.DocumentWord;
+import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -71,7 +75,7 @@ public class EventExportService {
         this.apiConfig = apiConfig;
     }
 
-    public Optional<byte[]> exportPdf(
+    public Optional<ExportedDocument> exportPdf(
             int stationId,
             List<Integer> categoryIds,
             List<ExportColumn> columns,
@@ -91,7 +95,7 @@ public class EventExportService {
         // Expand recurring events into individual occurrences
         var expandedEvents = expandEvents(allEvents, from, to, breaks, zone);
 
-        String language = resolveLocalePrefix(station);
+        String language = StationFormat.languageOf(station);
         var catGroups = new ArrayList<CategoryGroup>();
 
         for (var cat : eventCategories) {
@@ -126,8 +130,11 @@ public class EventExportService {
 
         try {
             var logo = stationRepository.findLogo(stationId);
-            String locale = resolveLocalePrefix(station);
-            return Optional.of(renderPdf(data, locale + "/event-list.typ", logo.orElse(null)));
+            String locale = StationFormat.languageOf(station);
+            String filename =
+                    DocumentName.of("pdf", DocumentWord.EVENTS.in(locale), spanLabel(from, to, zone, locale));
+            return Optional.of(
+                    new ExportedDocument(renderPdf(data, locale + "/event-list.typ", logo.orElse(null)), filename));
         } catch (Exception e) {
             log.error("Failed to export event list PDF for station {}", stationId, e);
             return Optional.empty();
@@ -273,11 +280,29 @@ public class EventExportService {
         return dayOfWeek >= 0 && dayOfWeek < names.length ? names[dayOfWeek] : "";
     }
 
-    private String resolveLocalePrefix(Station station) {
-        if (station != null && station.locale() != null && station.locale().startsWith("en")) {
-            return "en";
+
+    /**
+     * How the chosen days are said in the name.
+     *
+     * <p>A whole month or a whole year is called what a reader calls it. Anything else is the two days
+     * themselves, which is the only honest thing to say about a span that is not a period.
+     *
+     * <p>The last day is accepted both as the last day covered and as the first day after, because a
+     * range is written both ways and a name must not depend on which.
+     */
+    static String spanLabel(LocalDate from, LocalDate to, ZoneId zone, String locale) {
+        Instant start = from.atStartOfDay(zone).toInstant();
+        if (covers(from, to, from.plusMonths(1)) && from.getDayOfMonth() == 1) {
+            return DocumentPeriod.of("month", start, zone, locale);
         }
-        return "de";
+        if (covers(from, to, from.plusYears(1)) && from.getDayOfYear() == 1) {
+            return DocumentPeriod.of("year", start, zone, locale);
+        }
+        return DocumentPeriod.day(start, zone) + " - " + DocumentPeriod.day(to.atStartOfDay(zone).toInstant(), zone);
+    }
+
+    private static boolean covers(LocalDate from, LocalDate to, LocalDate exclusiveEnd) {
+        return !from.isAfter(to) && (to.equals(exclusiveEnd) || to.equals(exclusiveEnd.minusDays(1)));
     }
 
     private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)

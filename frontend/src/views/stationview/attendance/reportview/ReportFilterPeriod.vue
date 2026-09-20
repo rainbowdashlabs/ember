@@ -15,12 +15,14 @@ defineProps<{
   yearOptions: number[]
   monthOptions: { value: number; label: string }[]
   weekOptions: number[]
+  quarterOptions: number[]
 }>()
 
 const selectedPeriod = defineModel<string>('selectedPeriod', {required: true})
 const selectedYear = defineModel<number>('selectedYear', {required: true})
 const selectedMonth = defineModel<number>('selectedMonth', {required: true})
 const selectedWeek = defineModel<number>('selectedWeek', {required: true})
+const selectedQuarter = defineModel<number>('selectedQuarter', {required: true})
 </script>
 
 <template>
@@ -47,6 +49,16 @@ const selectedWeek = defineModel<number>('selectedWeek', {required: true})
       <FieldLabel>{{ t('attendanceReport.week') }}</FieldLabel>
       <SelectInput :model-value="String(selectedWeek)" class="w-full" @update:model-value="selectedWeek = Number($event)">
         <option v-for="w in weekOptions" :key="w" :value="String(w)">KW {{ w }}</option>
+      </SelectInput>
+    </div>
+    <div v-if="selectedPeriod === 'quarter'" class="space-y-1">
+      <FieldLabel>{{ t('attendanceReport.quarter') }}</FieldLabel>
+      <SelectInput
+          :model-value="String(selectedQuarter)"
+          class="w-full"
+          @update:model-value="selectedQuarter = Number($event)"
+      >
+        <option v-for="q in quarterOptions" :key="q" :value="String(q)">Q{{ q }}</option>
       </SelectInput>
     </div>
   </div>

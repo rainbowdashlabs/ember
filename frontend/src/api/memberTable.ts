@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {documentFrom, type DocumentFile} from '@/util/documentFile'
+import type {ExportSeparator} from '@/util/exportFormat'
 
 /** Where a chosen column draws its values from. */
 export type MemberTableColumnKind = 'BUILTIN' | 'PROFILE_FIELD' | 'REGISTRATION_FIELD'
@@ -120,19 +122,30 @@ export async function drawRegistrationTable(
  * screen cannot disagree about which columns this reader may see.
  */
 export async function exportMemberTable(
-    memberIds: number[], columns: MemberTableColumn[], format: 'csv' | 'pdf',
-): Promise<Blob> {
-    const res = await client.post(`/member-table/export.${format}`, {memberIds, columns}, {responseType: 'blob'})
-    return res.data as Blob
+    memberIds: number[],
+    columns: MemberTableColumn[],
+    format: 'csv' | 'pdf',
+    separator: ExportSeparator = 'semicolon',
+): Promise<DocumentFile> {
+    const res = await client.post(
+        `/member-table/export.${format}`,
+        {memberIds, columns},
+        {responseType: 'blob', params: format === 'csv' ? {separator} : undefined},
+    )
+    return documentFrom(res, `Mitglieder.${format}`)
 }
 
 export async function exportRegistrationTable(
-    eventId: number, date: string, columns: MemberTableColumn[], format: 'csv' | 'pdf',
-): Promise<Blob> {
+    eventId: number,
+    date: string,
+    columns: MemberTableColumn[],
+    format: 'csv' | 'pdf',
+    separator: ExportSeparator = 'semicolon',
+): Promise<DocumentFile> {
     const res = await client.post(
         `/events/${eventId}/registration-table/export.${format}`,
         {date, columns},
-        {responseType: 'blob'},
+        {responseType: 'blob', params: format === 'csv' ? {separator} : undefined},
     )
-    return res.data as Blob
+    return documentFrom(res, `Anmeldungen.${format}`)
 }

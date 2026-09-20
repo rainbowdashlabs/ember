@@ -20,6 +20,7 @@ import {useDataTable} from '@/composables/useDataTable'
 import {memberTable} from '@/api'
 import type {MemberTableColumn} from '@/api/memberTable'
 import {presentDocument} from '@/util/documentView'
+import type {ExportSeparator} from '@/util/exportFormat'
 import {useMemberFilter} from '@/composables/useMemberFilter'
 
 /**
@@ -159,14 +160,21 @@ export function useMemberListConfig(port: MemberListPort) {
     }
 
     /** Hands the export to whoever can make it: the sheet to the server, everything else to the screen. */
-    async function performExport(format: ExportFormatName = 'csv') {
-        if (format !== 'pdf') {
+    /**
+     * Hands the export to whoever can make it.
+     *
+     * <p>A spreadsheet and a sheet are both drawn on the server from one set of columns, so the two
+     * cannot say different things about the same people. The list of values stays here: it is
+     * something to paste rather than a document, and it never leaves the browser.
+     */
+    async function performExport(format: ExportFormatName = 'csv', separator: ExportSeparator = 'semicolon') {
+        if (format === 'values') {
             exporting.performExport(format)
             return
         }
         const memberIds = exporting.selectedRows.value.map(member => member.id)
-        const file = await memberTable.exportMemberTable(memberIds, chosenServerColumns(), 'pdf')
-        presentDocument(file, `${port.exportFileName ?? 'export'}.pdf`)
+        presentDocument(
+            await memberTable.exportMemberTable(memberIds, chosenServerColumns(), format, separator))
         exporting.cancelExport()
     }
 

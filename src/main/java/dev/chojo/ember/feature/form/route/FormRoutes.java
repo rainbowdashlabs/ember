@@ -27,11 +27,16 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.form.service.FormResponseExportService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.CsvWriter;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
+import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -68,15 +73,21 @@ public class FormRoutes implements Routes {
     private final FormService formService;
     private final StationMemberService stationMemberService;
     private final FormAnalyticsAssembler analyticsAssembler;
+    private final FormResponseExportService exportService;
+    private final StationRepository stationRepository;
 
     @Inject
     public FormRoutes(
             FormService formService,
             StationMemberService stationMemberService,
-            FormAnalyticsAssembler analyticsAssembler) {
+            FormAnalyticsAssembler analyticsAssembler,
+            FormResponseExportService exportService,
+            StationRepository stationRepository) {
         this.formService = formService;
         this.stationMemberService = stationMemberService;
         this.analyticsAssembler = analyticsAssembler;
+        this.exportService = exportService;
+        this.stationRepository = stationRepository;
     }
 
     /**
@@ -125,6 +136,7 @@ public class FormRoutes implements Routes {
 
         // Analytics
         routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, StationPermission.POLL_VIEW_RESULTS);
+        routes.get(prefix + "/forms/{id}/responses/export", this::exportResponses, StationPermission.POLL_VIEW_RESULTS);
         routes.get(prefix + "/forms/{id}/responses", this::listResponses, StationPermission.POLL_VIEW_RESULTS);
         routes.get(
                 prefix + "/forms/{id}/responses/{responseId}",
@@ -713,6 +725,28 @@ public class FormRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedForm(id, session);
         ctx.json(analyticsAssembler.buildAnalytics(id));
+    }
+
+    /** The answers as a spreadsheet or as a sheet, which until now could only be had as the former. */
+    private void exportResponses(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        var form = requireOwnedForm(id, session);
+        var station = stationRepository.findById(session.stationId()).orElseThrow(NotFoundResponse::new);
+        boolean asSpreadsheet = !"pdf".equalsIgnoreCase(ctx.queryParam("format"));
+        try {
+            var document = exportService.export(
+                    id,
+                    form.title(),
+                    station,
+                    NameParts.of(session.account()).official(),
+                    asSpreadsheet ? CsvWriter.Separator.of(ctx.queryParam("separator")) : null);
+            ctx.contentType(asSpreadsheet ? "text/csv" : "application/pdf");
+            ctx.header("Content-Disposition", document.contentDisposition());
+            ctx.result(document.bytes());
+        } catch (Exception e) {
+            throw new InternalServerErrorResponse("Export failed");
+        }
     }
 
     @OpenApi(

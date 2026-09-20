@@ -23,6 +23,10 @@ import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.util.DocumentName;
+import dev.chojo.ember.util.DocumentPeriod;
+import dev.chojo.ember.util.DocumentWord;
+import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -99,11 +103,27 @@ public class AttendanceExportService {
         }
     }
 
-    public Optional<byte[]> exportSessionPdf(int sessionId, String generatedBy) {
+    public Optional<ExportedDocument> exportSessionPdf(int sessionId, String generatedBy) {
         return exportSessionPdf(sessionId, generatedBy, SheetOptions.PLAIN);
     }
 
-    public Optional<byte[]> exportSessionPdf(int sessionId, String generatedBy, SheetOptions options) {
+    /**
+     * What a sheet is called: the evening it is for, and the day it falls on.
+     *
+     * <p>The title the reader typed for this export wins over the session's own, because it is the
+     * more recent thing they said about what this sheet is. Where neither says anything, the day
+     * carries the name on its own.
+     */
+    static String sheetFileName(AttendanceSession session, String chosenTitle, ZoneId zone, String locale) {
+        String title = chosenTitle != null && !chosenTitle.isBlank() ? chosenTitle : session.title();
+        return DocumentName.of(
+                "pdf",
+                DocumentWord.ATTENDANCE_SHEET.in(locale),
+                DocumentName.part(title),
+                DocumentPeriod.day(session.startTime(), zone));
+    }
+
+    public Optional<ExportedDocument> exportSessionPdf(int sessionId, String generatedBy, SheetOptions options) {
         var session = attendanceRepository.findSessionById(sessionId);
         if (session.isEmpty()) return Optional.empty();
 
@@ -140,7 +160,9 @@ public class AttendanceExportService {
         try {
             var logo = stationRepository.findLogo(stationId);
             String locale = StationFormat.languageOf(station);
-            return Optional.of(renderPdf(data, locale + "/attendance.typ", logo.orElse(null)));
+            String filename = sheetFileName(session.get(), options.title(), zone, locale);
+            return Optional.of(
+                    new ExportedDocument(renderPdf(data, locale + "/attendance.typ", logo.orElse(null)), filename));
         } catch (Exception e) {
             log.error("Failed to export attendance PDF for session {}", sessionId, e);
             return Optional.empty();

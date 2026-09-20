@@ -102,11 +102,10 @@ async function downloadPdf() {
   exporting.value = true
   exportError.value = ''
   try {
-    const blob = await movements.exportPdf(
+    presentDocument(await movements.exportPdf(
         exportFlow.selectedRows.value.map(row => row.id),
         [...exportFlow.selectedColumns.value].map(Number),
-    )
-    presentDocument(blob, 'movements.pdf')
+    ))
     exportFlow.cancelExport()
   } catch {
     exportError.value = t('common.error')

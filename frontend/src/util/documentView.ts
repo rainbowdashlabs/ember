@@ -7,6 +7,7 @@ import {readonly, ref} from 'vue'
 import {fileKindOf} from '@/util/fileKind'
 import {isHandheld} from '@/util/handheld'
 import {saveBlob} from '@/util/downloadAuthed'
+import type {DocumentFile} from '@/util/documentFile'
 
 /** A document the reader is looking at, held until they close it. */
 export interface ViewedDocument {
@@ -29,7 +30,9 @@ const viewed = ref<ViewedDocument | null>(null)
  * <p>A document nothing can draw, an archive of them for instance, is saved at either size, because
  * showing it is not on offer and pretending otherwise would only cost the reader a press.
  */
-export function presentDocument(blob: Blob, filename: string, mimeType = blob.type) {
+export function presentDocument(document: DocumentFile) {
+    const {blob, filename} = document
+    const mimeType = blob.type
     if (isHandheld() && fileKindOf(mimeType) !== 'other') {
         viewed.value = {blob, filename, mimeType}
         return

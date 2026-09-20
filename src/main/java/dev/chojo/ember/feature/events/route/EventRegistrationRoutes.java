@@ -37,8 +37,13 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.CsvWriter;
+import dev.chojo.ember.util.DocumentName;
+import dev.chojo.ember.util.DocumentWord;
+import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -588,10 +593,23 @@ public class EventRegistrationRoutes implements Routes {
 
     private void exportTableCsv(Context ctx) {
         var session = UserSession.from(ctx);
+        var event = requireOwnedEvent(crudService, pathInt(ctx, "eventId"), session);
         var station = stationRepository.findById(session.stationId()).orElseThrow(NotFoundResponse::new);
         ctx.contentType("text/csv");
-        ctx.header("Content-Disposition", "attachment; filename=\"anmeldungen.csv\"");
-        ctx.result(memberTableRenderer.toCsv(tableOf(ctx), station));
+        ctx.header("Content-Disposition", registrationsName(station, event.name(), ctx, "csv"));
+        ctx.result(memberTableRenderer.toCsv(
+                tableOf(ctx), station, CsvWriter.Separator.of(ctx.queryParam("separator"))));
+    }
+
+    /** A registration list belongs to one appointment on one day, and says both. */
+    private String registrationsName(Station station, String eventName, Context ctx, String extension) {
+        String language = StationFormat.languageOf(station);
+        String filename = DocumentName.of(
+                extension,
+                DocumentWord.REGISTRATIONS.in(language),
+                DocumentName.part(eventName),
+                tableDate(ctx).format(DAY_STAMP));
+        return SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, filename);
     }
 
     private void exportTablePdf(Context ctx) {
@@ -608,7 +626,7 @@ public class EventRegistrationRoutes implements Routes {
                     tableDate(ctx).format(DAY_STAMP),
                     NameParts.of(session.account()).official());
             ctx.contentType("application/pdf");
-            ctx.header("Content-Disposition", "attachment; filename=\"anmeldungen.pdf\"");
+            ctx.header("Content-Disposition", registrationsName(station, event.name(), ctx, "pdf"));
             ctx.result(pdf);
         } catch (Exception e) {
             log.error("Failed to render the registration table of event {}", eventId, e);

@@ -115,13 +115,12 @@ const {running: exporting, run: doExport} = useAsyncAction(async () => {
       fieldName: c.isExtra ? c.label : undefined,
       label: c.label,
     }))
-    const blob = await events.exportEventList({
+    presentDocument(await events.exportEventList({
       categoryIds: [...exportCategoryIds.value],
       columns,
       from,
       to,
-    })
-    presentDocument(blob, 'events.pdf')
+    }))
     modelValue.value = false
   } catch {
     emit('error', t('common.error'))

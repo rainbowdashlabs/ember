@@ -619,8 +619,8 @@ public class EventRoutes implements Routes {
             throw new InternalServerErrorResponse("PDF generation failed");
         }
         ctx.contentType("application/pdf");
-        ctx.header("Content-Disposition", "attachment; filename=\"events.pdf\"");
-        ctx.result(pdf.get());
+        ctx.header("Content-Disposition", pdf.get().contentDisposition());
+        ctx.result(pdf.get().bytes());
     }
 
     public record EventRequest(

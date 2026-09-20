@@ -17,7 +17,13 @@ import dev.chojo.ember.feature.members.repository.MemberTablePresetRepository;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.CsvWriter;
+import dev.chojo.ember.util.DocumentName;
+import dev.chojo.ember.util.DocumentPeriod;
+import dev.chojo.ember.util.DocumentWord;
+import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -26,6 +32,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -100,9 +107,10 @@ public class MemberTableRoutes implements Routes {
     }
 
     private void exportCsv(Context ctx) {
+        var station = stationOf(ctx);
         ctx.contentType("text/csv");
-        ctx.header("Content-Disposition", "attachment; filename=\"mitglieder.csv\"");
-        ctx.result(renderer.toCsv(tableOf(ctx), stationOf(ctx)));
+        ctx.header("Content-Disposition", memberListName(station, "csv"));
+        ctx.result(renderer.toCsv(tableOf(ctx), station, CsvWriter.Separator.of(ctx.queryParam("separator"))));
     }
 
     private void exportPdf(Context ctx) {
@@ -111,11 +119,21 @@ public class MemberTableRoutes implements Routes {
         try {
             var pdf = renderer.toPdf(table, station, "Mitgliederliste", "", generatedBy(ctx));
             ctx.contentType("application/pdf");
-            ctx.header("Content-Disposition", "attachment; filename=\"mitglieder.pdf\"");
+            ctx.header("Content-Disposition", memberListName(station, "pdf"));
             ctx.result(pdf);
         } catch (Exception e) {
             throw new BadRequestResponse("This list cannot be turned into a sheet");
         }
+    }
+
+    /** A member list is a snapshot, so the day it was taken is what tells two of them apart. */
+    private static String memberListName(Station station, String extension) {
+        String language = StationFormat.languageOf(station);
+        String filename = DocumentName.of(
+                extension,
+                DocumentWord.MEMBERS.in(language),
+                DocumentPeriod.day(Instant.now(), StationFormat.timezoneOf(station)));
+        return SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, filename);
     }
 
     private MemberTable tableOf(Context ctx) {

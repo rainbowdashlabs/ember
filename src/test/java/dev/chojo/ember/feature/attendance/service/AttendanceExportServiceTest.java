@@ -66,7 +66,7 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
     private static byte[] export(AttendanceExportService.SheetOptions options) {
         var pdf = service.exportSessionPdf(sessionId, "Max Mustermann", options);
         assertTrue(pdf.isPresent(), "the sheet was rendered");
-        return pdf.get();
+        return pdf.get().bytes();
     }
 
     @Test

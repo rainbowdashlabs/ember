@@ -103,7 +103,7 @@ class QuizPdfExportTest {
         var backend = new LocalStorageBackend();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         var imageService = new QuizQuestionImageService(new ImageVariantService(storage), stationRepo);
-        pdfService = new QuizPdfService(testRepo, catalogRepo, imageService);
+        pdfService = new QuizPdfService(testRepo, catalogRepo, imageService, stationRepo);
     }
 
     @Test
@@ -235,7 +235,7 @@ class QuizPdfExportTest {
         testService.activateTest(test.id());
 
         // Export question PDF
-        byte[] questionPdf = pdfService.exportQuestionPdf(test.id());
+        byte[] questionPdf = pdfService.exportQuestionPdf(test.id()).bytes();
         assertNotNull(questionPdf);
         assertTrue(questionPdf.length > 100, "Question PDF should have content");
         // Check PDF magic bytes
@@ -245,7 +245,7 @@ class QuizPdfExportTest {
         assertEquals('F', (char) questionPdf[3]);
 
         // Export solution PDF
-        byte[] solutionPdf = pdfService.exportSolutionPdf(test.id());
+        byte[] solutionPdf = pdfService.exportSolutionPdf(test.id()).bytes();
         assertNotNull(solutionPdf);
         assertTrue(solutionPdf.length > 100, "Solution PDF should have content");
         assertEquals('%', (char) solutionPdf[0]);

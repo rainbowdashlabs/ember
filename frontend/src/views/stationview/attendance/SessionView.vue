@@ -361,7 +361,7 @@ const showExportOptions = ref(false)
 const {running: exporting, run: exportSheet} = useAsyncAction(async (options: SheetOptions) => {
   error.value = ''
   try {
-    presentDocument(await attendance.exportPdf(sessionId.value, options), `attendance-${sessionId.value}.pdf`)
+    presentDocument(await attendance.exportPdf(sessionId.value, options))
     showExportOptions.value = false
   } catch {
     error.value = t('common.error')

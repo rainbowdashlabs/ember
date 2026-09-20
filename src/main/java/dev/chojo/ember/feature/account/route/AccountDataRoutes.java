@@ -14,12 +14,20 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.util.DocumentName;
+import dev.chojo.ember.util.DocumentPeriod;
+import dev.chojo.ember.util.DocumentWord;
+import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 /**
  * Routes covering the personal-data lifecycle of the current account: the GDPR data export and
@@ -58,8 +66,24 @@ public class AccountDataRoutes implements Routes {
         String locale = ctx.queryParam("locale");
         byte[] zipData = gdprExportService.exportAccountDataAsZip(session.accountId(), locale);
         ctx.contentType("application/zip");
-        ctx.header("Content-Disposition", "attachment; filename=\"gdpr-export.zip\"");
+        ctx.header("Content-Disposition", dataExportName(session, locale));
         ctx.result(zipData);
+    }
+
+    /**
+     * What a person's own data is called when they ask for a copy of it.
+     *
+     * <p>Their name is in it, because the usual reason for asking is to hand the file to somebody
+     * else, and a folder of files all called the same thing helps nobody.
+     */
+    private static String dataExportName(UserSession session, String locale) {
+        String language = "en".equals(locale) ? "en" : "de";
+        String filename = DocumentName.of(
+                "zip",
+                DocumentWord.DATA_EXPORT.in(language),
+                DocumentName.part(NameParts.of(session.account()).official()),
+                DocumentPeriod.day(Instant.now(), ZoneOffset.UTC));
+        return SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, filename);
     }
 
     /**

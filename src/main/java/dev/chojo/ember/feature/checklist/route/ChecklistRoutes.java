@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.util.CsvWriter;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -441,12 +442,10 @@ public class ChecklistRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void exportCsv(Context ctx) {
         var checklist = loadOwned(ctx);
-        String csv = exportService.exportCsv(checklist.id());
+        var csv = exportService.exportCsv(checklist.id(), CsvWriter.Separator.of(ctx.queryParam("separator")));
         ctx.contentType("text/csv");
-        ctx.header(
-                "Content-Disposition",
-                "attachment; filename=\"" + filename(checklist.name(), checklist.id()) + ".csv\"");
-        ctx.result(csv);
+        ctx.header("Content-Disposition", csv.contentDisposition());
+        ctx.result(csv.bytes());
     }
 
     @OpenApi(
@@ -462,12 +461,10 @@ public class ChecklistRoutes implements Routes {
         var account = session.account();
         String generatedBy = NameParts.of(account).official();
         try {
-            byte[] pdf = exportService.exportPdf(checklist.id(), generatedBy);
+            var pdf = exportService.exportPdf(checklist.id(), generatedBy);
             ctx.contentType("application/pdf");
-            ctx.header(
-                    "Content-Disposition",
-                    "attachment; filename=\"" + filename(checklist.name(), checklist.id()) + ".pdf\"");
-            ctx.result(pdf);
+            ctx.header("Content-Disposition", pdf.contentDisposition());
+            ctx.result(pdf.bytes());
         } catch (IOException e) {
             log.error("Failed to render checklist PDF for {}", checklist.id(), e);
             throw new InternalServerErrorResponse("Failed to render PDF");
@@ -691,13 +688,6 @@ public class ChecklistRoutes implements Routes {
         return label.trim();
     }
 
-    private static String filename(String name, int id) {
-        String sanitised =
-                name == null ? "" : name.replaceAll("[^A-Za-z0-9_-]+", "_").replaceAll("_+", "_");
-        if (sanitised.isBlank()) sanitised = "checklist";
-        if (sanitised.length() > 40) sanitised = sanitised.substring(0, 40);
-        return sanitised + "-" + id;
-    }
 
     /**
      * Compact summary returned by the list endpoint.
