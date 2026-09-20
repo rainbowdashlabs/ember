@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import AppIcon from '@/components/display/AppIcon.vue'
+
 defineProps<{
   disabled?: boolean
   fullWidth?: boolean
@@ -27,7 +29,7 @@ defineEmits<{
       class="inline-flex items-center whitespace-nowrap rounded-theme font-medium transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:brightness-100"
       @click="$emit('click', $event)"
   >
-    <font-awesome-icon v-if="icon" :icon="icon" class="mr-1"/>
+    <AppIcon v-if="icon" :icon="icon" class="mr-1"/>
     <slot/>
   </button>
 </template>

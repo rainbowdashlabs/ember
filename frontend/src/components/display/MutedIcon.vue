@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import AppIcon from './AppIcon.vue'
+
 /**
  * Muted leading icon. The `xs`/`sm`/`md` sizes pin the icon to a fixed box, `inline` lets it
  * scale with the surrounding text instead so it lines up with adjacent labels.
@@ -15,7 +17,7 @@ defineProps<{
 </script>
 
 <template>
-  <font-awesome-icon
+  <AppIcon
       :icon="icon"
       :class="{
         'h-2.5 w-2.5': size === 'xs',
