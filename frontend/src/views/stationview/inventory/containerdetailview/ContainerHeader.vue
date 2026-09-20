@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {gearIconRef} from '@/util/gearIcons'
 import AppIcon from '@/components/display/AppIcon.vue'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useI18n} from 'vue-i18n'
@@ -52,7 +51,7 @@ const {t} = useI18n()
     <div class="flex items-center justify-between mb-4">
       <PageHeader>
         <AppIcon
-            :icon="gearIconRef(props.kindById.get(props.detail.container.kindId ?? -1)?.icon)"
+            :icon="props.kindById.get(props.detail.container.kindId ?? -1)?.icon ?? 'box'"
             class="mr-2 text-(--text-muted)"
         />
         {{ props.detail.container.name }}

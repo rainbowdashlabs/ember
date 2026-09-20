@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {gearIconRef} from '@/util/gearIcons'
 import AppIcon from '@/components/display/AppIcon.vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -75,7 +74,7 @@ const {t} = useI18n()
                   class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
                   @click="emit('openContainer', c.id)"
               >
-                <AppIcon :icon="gearIconRef(props.kindById.get(c.kindId ?? -1)?.icon)" class="w-4 text-(--text-muted)" />
+                <AppIcon :icon="props.kindById.get(c.kindId ?? -1)?.icon ?? 'box'" class="w-4 text-(--text-muted)" />
                 <span class="font-medium">{{ c.name }}</span>
                 <span v-if="c.internalId" class="text-xs text-(--text-muted)">{{ c.internalId }}</span>
               </li>

@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {gearIconRef} from '@/util/gearIcons'
 import AppIcon from '@/components/display/AppIcon.vue'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {computed, onMounted, ref} from 'vue'
@@ -192,7 +191,7 @@ onMounted(load)
                 class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
                 @click="openContainer(c)"
             >
-              <AppIcon :icon="gearIconRef(kindById.get(c.kindId ?? -1)?.icon)" class="w-4 text-(--text-muted)" />
+              <AppIcon :icon="kindById.get(c.kindId ?? -1)?.icon ?? 'box'" class="w-4 text-(--text-muted)" />
               <span class="font-medium">{{ c.name }}</span>
               <span v-if="c.internalId" class="text-xs text-(--text-muted)">{{ c.internalId }}</span>
               <span class="ml-auto text-xs text-(--text-muted)">{{ t('inventory.storage.searchKindContainer') }}</span>

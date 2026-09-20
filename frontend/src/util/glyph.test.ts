@@ -9,12 +9,12 @@ import {glyphFor} from './glyph'
 
 describe('glyphFor', () => {
     it('takes the kind first, then the inventory', () => {
-        expect(glyphFor({artIcon: 'walkie-talkie', inventoryIcon: 'box'}).icon).toEqual(['fas', 'walkie-talkie'])
-        expect(glyphFor({inventoryIcon: 'helmet-safety'}).icon).toEqual(['fas', 'helmet-safety'])
+        expect(glyphFor({artIcon: 'walkie-talkie', inventoryIcon: 'box'}).icon).toEqual('walkie-talkie')
+        expect(glyphFor({inventoryIcon: 'helmet-safety'}).icon).toEqual('helmet-safety')
     })
 
     it('reads an already resolved row as itself', () => {
-        expect(glyphFor({icon: 'shirt', color: '#2563eb'})).toEqual({icon: ['fas', 'shirt'], color: '#2563eb'})
+        expect(glyphFor({icon: 'shirt', color: '#2563eb'})).toEqual({icon: 'shirt', color: '#2563eb'})
     })
 
     /**
@@ -23,15 +23,15 @@ describe('glyphFor', () => {
      */
     it('lets a kind carry a colour on the inventory shape', () => {
         expect(glyphFor({artColor: '#15803d', inventoryIcon: 'radio', inventoryColor: '#0f766e'})).toEqual({
-            icon: ['fas', 'radio'],
+            icon: 'radio',
             color: '#15803d',
         })
     })
 
     it('falls back to a cube for a stock and a box for a collection', () => {
-        expect(glyphFor({homogeneous: true}).icon).toEqual(['fas', 'cube'])
-        expect(glyphFor({homogeneous: false}).icon).toEqual(['fas', 'box'])
-        expect(glyphFor({}).icon).toEqual(['fas', 'cube'])
+        expect(glyphFor({homogeneous: true}).icon).toEqual('cube')
+        expect(glyphFor({homogeneous: false}).icon).toEqual('box')
+        expect(glyphFor({}).icon).toEqual('cube')
     })
 
     it('has no colour when nobody chose one', () => {
@@ -40,6 +40,6 @@ describe('glyphFor', () => {
     })
 
     it('reads a blank name as nothing chosen', () => {
-        expect(glyphFor({icon: '  ', artIcon: '', inventoryIcon: 'tent'}).icon).toEqual(['fas', 'tent'])
+        expect(glyphFor({icon: '  ', artIcon: '', inventoryIcon: 'tent'}).icon).toEqual('tent')
     })
 })

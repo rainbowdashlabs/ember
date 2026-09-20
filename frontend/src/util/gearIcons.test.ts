@@ -9,7 +9,8 @@ import {findIconDefinition, library, type IconDefinition} from '@fortawesome/fon
 import * as solid from '@fortawesome/free-solid-svg-icons'
 import * as phosphor from '@phosphor-icons/vue'
 import de from '@/i18n/de-DE'
-import {GEAR_ICONS, gearIcon, gearIconRef} from './gearIcons'
+import {GEAR_ICONS, gearIcon} from './gearIcons'
+import {iconSetOf, phosphorComponentOf} from './iconName'
 
 type Translations = Record<string, unknown>
 
@@ -31,7 +32,7 @@ describe('the catalogue of gear pictures', () => {
         )
         library.add(...definitions)
 
-        const missing = GEAR_ICONS.filter(icon => gearIconRef(icon.name)[0] === 'fas').filter(
+        const missing = GEAR_ICONS.filter(icon => iconSetOf(icon.name).set === 'fas').filter(
             icon => !findIconDefinition({prefix: 'fas', iconName: icon.name as never}),
         )
 
@@ -39,16 +40,14 @@ describe('the catalogue of gear pictures', () => {
     })
 
     /**
-     * The same guard for the second set, and with it the round trip that only bites there: the
-     * stored name is turned back into a component name, so a picture whose capitals do not survive
-     * the journey (PhTShirt through t-shirt and back) resolves to nothing a template can draw.
+     * The same guard for the second set, and with it the round trip that only bites there. The
+     * naming is the app's own, so a picture whose capitals do not survive the journey (PhTShirt
+     * through t-shirt and back) is caught here rather than drawn as nothing.
      */
     it('offers only Phosphor pictures the package exports, under names that survive the round trip', () => {
-        const missing = GEAR_ICONS.filter(icon => gearIconRef(icon.name)[0] === 'ph').filter(icon => {
-            const name = gearIconRef(icon.name)[1]
-            const component = `Ph${name.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('')}`
-            return !(component in phosphor)
-        })
+        const missing = GEAR_ICONS.filter(icon => iconSetOf(icon.name).set === 'ph').filter(
+            icon => !(phosphorComponentOf(iconSetOf(icon.name).name) in phosphor),
+        )
 
         expect(missing.map(icon => icon.name)).toEqual([])
     })

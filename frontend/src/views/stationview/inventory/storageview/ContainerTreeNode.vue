@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {gearIconRef} from '@/util/gearIcons'
 import AppIcon from '@/components/display/AppIcon.vue'
 import {computed} from 'vue'
 import TreeNodeButton from '@/components/button/TreeNodeButton.vue'
@@ -38,7 +37,7 @@ const matchesSearch = computed(() => {
         :class="matchesSearch ? '' : 'opacity-60'"
         @click="emit('open', container)"
     >
-      <AppIcon :icon="gearIconRef(kind?.icon)" class="w-4 text-(--text-muted)" />
+      <AppIcon :icon="kind?.icon ?? 'box'" class="w-4 text-(--text-muted)" />
       <span class="font-medium">{{ container.name }}</span>
       <span v-if="container.internalId" class="text-xs text-(--text-muted)">{{ container.internalId }}</span>
       <span v-if="kind" class="ml-auto text-xs text-(--text-muted)">{{ kind.label }}</span>

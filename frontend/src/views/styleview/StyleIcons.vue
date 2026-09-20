@@ -9,6 +9,7 @@ import AppIcon from '@/components/display/AppIcon.vue'
 import AccentIcon from '@/components/display/AccentIcon.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 </script>
@@ -17,8 +18,9 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
   <section class="space-y-4">
     <SubHeader>Icons</SubHeader>
     <p class="text-sm text-(--text-muted)">
-      The two sets side by side. The prefix picks one: <code>fas</code> and <code>fab</code> are
-      FontAwesome, <code>ph</code> is Phosphor, drawn at its fill weight so the two match.
+      Beide Sätze nebeneinander. Das Präfix entscheidet: <code>fas</code> und <code>fab</code> sind
+      FontAwesome, <code>ph</code> ist Phosphor, gezeichnet im Gewicht <code>fill</code>, damit beide
+      zusammenpassen.
     </p>
 
     <div class="flex flex-wrap gap-6 items-center">
@@ -41,14 +43,17 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
     </div>
 
     <p class="text-sm text-(--text-muted)">
-      Every component that takes an icon takes either set, because they all draw it the same way.
+      Jede Komponente mit einem Icon nimmt beide Sätze, weil alle es auf demselben Weg zeichnen.
     </p>
 
+    <ButtonRow>
+      <PrimaryButton :icon="['ph', 'fire-truck']">Fahrzeug raus</PrimaryButton>
+      <SecondaryButton :icon="['fas', 'truck-medical']">Rettungswagen raus</SecondaryButton>
+    </ButtonRow>
+
     <div class="flex flex-wrap gap-3 items-center">
-      <PrimaryButton :icon="['ph', 'fire-truck']">Engine out</PrimaryButton>
-      <SecondaryButton :icon="['fas', 'truck-medical']">Ambulance out</SecondaryButton>
-      <IconButton :icon="['ph', 'siren']" label="Siren"/>
-      <IconButton :icon="['fas', 'bell']" label="Bell"/>
+      <IconButton :icon="['ph', 'siren']" label="Blaulicht"/>
+      <IconButton :icon="['fas', 'bell']" label="Glocke"/>
     </div>
 
     <div class="flex flex-wrap gap-4 items-center text-sm">
@@ -59,7 +64,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
     </div>
 
     <p class="text-sm text-(--text-muted)">
-      What Phosphor was added for: the gear a station stocks that FontAwesome's free tier does not draw.
+      Wofür Phosphor dazugekommen ist: die Ausrüstung einer Wache, die FontAwesome frei nicht zeichnet.
     </p>
 
     <div class="flex flex-wrap gap-4 items-center text-sm">

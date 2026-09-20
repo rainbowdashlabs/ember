@@ -3,6 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {iconSetOf} from './iconName'
+
 /**
  * Which part of a station's gear a picture belongs to, so the picker can group a long list.
  */
@@ -28,33 +30,8 @@ export interface GearIcon {
     group: GearIconGroup
 }
 
-/** What marks a stored name as Phosphor's rather than FontAwesome's. */
-const PHOSPHOR_PREFIX = 'ph:'
-
-/** The picture drawn where a kind names none, and where it names one nobody can draw. */
-const FALLBACK = 'box'
-
 function entry(name: string, group: GearIconGroup, aliases: string[] = []): GearIcon {
-    const bare = name.startsWith(PHOSPHOR_PREFIX) ? name.slice(PHOSPHOR_PREFIX.length) : name
-    return {name, labelKey: `inventory.icons.${bare}`, aliases, group}
-}
-
-/**
- * A stored name as the icon components want it.
- *
- * <p>The set travels in the stored value rather than being looked up, so a picture keeps rendering
- * after the catalogue stops offering it: a station chose it once and the column keeps what it was
- * given. Looking the set up would have turned every such picture into a FontAwesome name that draws
- * nothing.
- *
- * @param name what the kind or inventory stored, empty where it stored nothing
- * @return the prefix and name for {@code AppIcon}
- */
-export function gearIconRef(name: string | null | undefined): [string, string] {
-    const stored = name || FALLBACK
-    return stored.startsWith(PHOSPHOR_PREFIX)
-        ? ['ph', stored.slice(PHOSPHOR_PREFIX.length)]
-        : ['fas', stored]
+    return {name, labelKey: `inventory.icons.${iconSetOf(name).name}`, aliases, group}
 }
 
 /**

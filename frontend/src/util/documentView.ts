@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {readonly, ref} from 'vue'
+import {ref, shallowReadonly} from 'vue'
 import {fileKindOf} from '@/util/fileKind'
 import {isHandheld} from '@/util/handheld'
 import {saveBlob} from '@/util/downloadAuthed'
@@ -44,7 +44,12 @@ export function closeDocument() {
     viewed.value = null
 }
 
-/** Read-only view of the document on screen; the host renders against this. */
+/**
+ * Read-only view of the document on screen; the host renders against this.
+ *
+ * <p>Shallow, so that the bytes stay a Blob. Made deeply read-only they become a shape that merely
+ * resembles one, and every reader of them has to swear to the compiler that it is a Blob after all.
+ */
 export function getViewedDocument() {
-    return readonly(viewed)
+    return shallowReadonly(viewed)
 }

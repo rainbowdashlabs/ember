@@ -19,14 +19,14 @@ const viewed = getViewedDocument()
 
 function save() {
   const document = viewed.value
-  if (document) saveBlob(document.blob as Blob, document.filename)
+  if (document) saveBlob(document.blob, document.filename)
 }
 </script>
 
 <template>
   <FilePreviewModal
       v-if="viewed"
-      :source="(viewed.blob as Blob)"
+      :source="viewed.blob"
       :title="viewed.filename"
       :mime-type="viewed.mimeType"
       @close="closeDocument"
