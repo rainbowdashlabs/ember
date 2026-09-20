@@ -26,9 +26,35 @@ export const MovementFilterColumn = {
  * @param column the heading of the column, one of {@link MovementFilterColumn}
  */
 export async function setMovementFilter(page: Page, column: string, entries: string[]): Promise<void> {
-    await page.getByRole('button', {name: `Filtern: ${column}`, exact: true}).click()
+    await openColumnFilter(page, column)
     const dialog = page.getByTestId('column-filter')
     await dialog.getByRole('button', {name: 'Keine', exact: true}).click()
     for (const entry of entries) await dialog.getByLabel(entry, {exact: true}).check()
     await dialog.getByTestId('column-filter-apply').click()
+}
+
+/**
+ * Opens one column's filter, from wherever the width at hand keeps it.
+ *
+ * <p>A table carries a filter button in every column heading. A phone has no headings: the rows are
+ * cards, and the same filters hang in a menu above them. Both ways open the one dialog, so only the
+ * way in differs, and a story that narrows a column reads the same in either project.
+ *
+ * <p>Which of the two is there has to be waited for rather than asked: the queue is still loading
+ * when a story reaches this, and asking a heading that has not been drawn yet whether it is visible
+ * answers no on a desktop as surely as on a phone.
+ *
+ * @param page   the page the queue is on
+ * @param column the heading of the column, which the menu names as well
+ */
+async function openColumnFilter(page: Page, column: string): Promise<void> {
+    const heading = page.getByRole('button', {name: `Filtern: ${column}`, exact: true})
+    const menu = page.getByTestId('record-card-filters-trigger')
+    await heading.or(menu).first().waitFor()
+    if (await heading.isVisible()) {
+        await heading.click()
+        return
+    }
+    await menu.click()
+    await page.getByTestId('record-card-filters').getByRole('button', {name: column, exact: true}).click()
 }

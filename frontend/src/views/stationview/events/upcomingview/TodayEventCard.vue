@@ -9,8 +9,10 @@ import type {RouteLocationRaw} from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
 import type {EventField, StationEvent} from '@/api/events'
+import {renderMarkdown} from '@/util/markdown'
 
 defineProps<{
   event: StationEvent
@@ -34,7 +36,7 @@ const {t} = useI18n()
       <MutedIcon v-if="event.restricted" :icon="['fas', 'lock']" class="ml-1"/>
       <span class="text-sm">{{ formatTime(event.startTime) }} – {{ formatTime(event.endTime) }}</span>
     </div>
-    <p v-if="event.description" class="text-sm text-(--text-muted)">{{ event.description }}</p>
+    <ProseExcerpt :html="renderMarkdown(event.description)" max-height="max-h-32"/>
     <div v-if="overviewFields.length" class="flex flex-wrap gap-3 text-xs">
       <span v-for="f in overviewFields" :key="f.id" class="text-(--text-muted)">
         <span class="font-medium">{{ f.name }}:</span>

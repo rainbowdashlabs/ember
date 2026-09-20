@@ -13,12 +13,13 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import EventHeadline from '../eventshared/EventHeadline.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
 import EventRegistrationActions from '../eventshared/EventRegistrationActions.vue'
 import type {EventCategory, EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
-import {markdownSnippet} from '@/util/markdown'
+import {renderMarkdown} from '@/util/markdown'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 
 const props = defineProps<{
@@ -75,9 +76,7 @@ const containerClass = computed(() => [
         <p v-if="restrictionNote" class="text-xs text-(--text-muted) mt-0.5" data-testid="upcoming-event-restriction-note">
           <font-awesome-icon :icon="['fas', 'lock']" class="mr-1"/>{{ restrictionNote }}
         </p>
-        <p v-if="event.description" class="text-sm text-(--text-muted) mt-0.5">
-          {{ markdownSnippet(event.description) }}
-        </p>
+        <ProseExcerpt :html="renderMarkdown(event.description)" class="mt-0.5" max-height="max-h-32"/>
         <div v-if="overviewFields.length" class="flex flex-wrap gap-3 text-xs mt-1">
           <span v-for="f in overviewFields" :key="f.id" class="text-(--text-muted)"><span class="font-medium">{{ f.name }}:</span> <EventFieldValue :field-type="f.fieldType" :value="f.value"/></span>
         </div>

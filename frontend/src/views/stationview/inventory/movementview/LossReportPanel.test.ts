@@ -1,0 +1,67 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+// @vitest-environment happy-dom
+import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {mount} from '@vue/test-utils'
+import {createI18n} from 'vue-i18n'
+import LossReportPanel from './LossReportPanel.vue'
+
+const downloadDocument = vi.fn()
+const saveBlob = vi.fn()
+
+vi.mock('@/api', () => ({movements: {downloadDocument: (id: number) => downloadDocument(id)}}))
+vi.mock('@/util/downloadAuthed', () => ({saveBlob: (blob: Blob, name: string) => saveBlob(blob, name)}))
+
+/**
+ * Where the evidence of a loss report reaches the reader.
+ *
+ * <p>The panel used to write out its own download link and revoke the object URL in the same turn,
+ * which left the button doing nothing on an iPhone. The shared hand-off is the only path that offers
+ * the share sheet there, so what matters is that the panel calls it rather than how it saves.
+ */
+
+const i18n = createI18n({
+    legacy: false,
+    locale: 'de-DE',
+    missingWarn: false,
+    fallbackWarn: false,
+    messages: {'de-DE': {}},
+})
+
+function mountPanel(documentName: string | null) {
+    return mount(LossReportPanel, {
+        props: {movementId: 4, report: {documentName}},
+        global: {plugins: [i18n]},
+    })
+}
+
+describe('LossReportPanel', () => {
+    beforeEach(() => {
+        downloadDocument.mockReset()
+        saveBlob.mockReset()
+    })
+
+    it('hands the fetched document to the shared save', async () => {
+        const blob = new Blob(['evidence'])
+        downloadDocument.mockResolvedValue(blob)
+
+        await mountPanel('verlust.pdf').get('[data-testid="loss-report-download"]').trigger('click')
+        await vi.waitFor(() => expect(saveBlob).toHaveBeenCalledOnce())
+
+        expect(downloadDocument).toHaveBeenCalledWith(4)
+        expect(saveBlob).toHaveBeenCalledWith(blob, 'verlust.pdf')
+    })
+
+    it('reports a refused download instead of saving anything', async () => {
+        downloadDocument.mockRejectedValue(new Error('denied'))
+
+        const panel = mountPanel('verlust.pdf')
+        await panel.get('[data-testid="loss-report-download"]').trigger('click')
+        await vi.waitFor(() => expect(panel.text()).toContain('common.error'))
+
+        expect(saveBlob).not.toHaveBeenCalled()
+    })
+})

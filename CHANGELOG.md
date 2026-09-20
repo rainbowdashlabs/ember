@@ -2,9 +2,17 @@
 
 ## v26.18.4
 
+### Improvements
+
+- **Lists are easier to work through on a phone.** What can be done with a row now stands at the foot of its card, each button across the full width, rather than squeezed in beside the title. The columns on a card have more room between them as well.
+- **An appointment's text reads properly in the lists.** Under Appointments → Upcoming and when starting an attendance sheet, a description written with headings, emphasis or a list showed its raw markings, or ran to its full length and pushed the next appointment off the screen. It is now formatted as it was written and cut off after a few lines, the way a news entry already was.
+
 ### Fixes
 
 - **A search could keep saying there was nothing to find.** Typing into a picker for kinds, inventories or gear pictures before its list had finished loading could leave it showing no results, even once everything had arrived. It now searches again as soon as the list is there.
+- **An attendance sheet for an appointment arrived unmarked.** Opening one left every name open, so whoever ran the evening first had to look up on the appointment who had said they were coming. A sheet now arrives with everybody who accepted marked present, and, where the appointment demanded a registration, everybody who did not accept marked as declined.
+- **Adding somebody to a sheet by hand could mark them as declined.** On a sheet for a repeating appointment, this read the answers given for today rather than for the evening the sheet is about, so somebody who had signed off for a different evening arrived as not coming. The answers for the sheet's own day now decide.
+- **A loss report's document did not save on an iPhone.** The download that opens the share sheet reached every button but this one, so pressing it on an iPhone or iPad could leave the file unsaved. It now goes the same way as the rest.
 
 ## v26.18.3
 

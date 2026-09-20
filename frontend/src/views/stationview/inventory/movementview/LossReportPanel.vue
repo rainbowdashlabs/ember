@@ -14,6 +14,7 @@ import DownloadButton from '@/components/button/DownloadButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {movements} from '@/api'
 import type {LossReport} from '@/api/movements'
+import {saveBlob} from '@/util/downloadAuthed'
 
 /**
  * What a report that a piece of gear is gone carries, read at both ends.
@@ -34,12 +35,7 @@ async function download() {
   error.value = ''
   try {
     const blob = await movements.downloadDocument(props.movementId)
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = props.report.documentName ?? 'document'
-    link.click()
-    URL.revokeObjectURL(url)
+    saveBlob(blob, props.report.documentName ?? 'document')
   } catch {
     error.value = t('common.error')
   }
