@@ -3,10 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {ref, shallowReadonly} from 'vue'
+import {readonly, ref, shallowReadonly} from 'vue'
 import {canBeRead} from '@/util/fileKind'
 import {isHandheld} from '@/util/handheld'
-import {saveBlob} from '@/util/saveBlob'
+import {SaveResult, saveBlob} from '@/util/saveBlob'
 
 /** A document the reader is looking at, held until they close it. */
 export interface ViewedDocument {
@@ -16,6 +16,7 @@ export interface ViewedDocument {
 }
 
 const viewed = ref<ViewedDocument | null>(null)
+const unsaved = ref<string | null>(null)
 
 /**
  * Hands a finished document to the reader, by whichever route that device actually has.
@@ -32,12 +33,27 @@ const viewed = ref<ViewedDocument | null>(null)
  * file is gets read from its name as well as its type, since one a member uploaded often carries no
  * type worth the name and would otherwise be taken for something nobody can draw.
  */
-export function presentDocument(blob: Blob, filename: string, mimeType = blob.type) {
+export async function presentDocument(blob: Blob, filename: string, mimeType = blob.type): Promise<void> {
     if (isHandheld() && canBeRead(mimeType, filename)) {
         viewed.value = {blob, filename, mimeType}
         return
     }
-    saveBlob(blob, filename)
+    if (await saveBlob(blob, filename) === SaveResult.UNAVAILABLE) unsaved.value = filename
+}
+
+/**
+ * The file this device could neither show nor save, waiting to be reported once.
+ *
+ * <p>Held here rather than said here, because what to say is a sentence in a language and this knows
+ * nothing about either. The host beside the toasts reads it, tells the reader and clears it.
+ */
+export function getUnsavedDocument() {
+    return readonly(unsaved)
+}
+
+/** Forgets a reported failure, so the next one is reported in its turn. */
+export function clearUnsavedDocument() {
+    unsaved.value = null
 }
 
 /** Closes whatever is being read, which is what releases its bytes. */

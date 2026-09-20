@@ -7799,6 +7799,7 @@ export default {
     files: {
         noPreview: 'Für diesen Dateityp gibt es keine Vorschau. Lade sie herunter, um sie anzusehen.',
         truncated: 'Die Vorschau zeigt nur den Anfang der Datei. Lade sie herunter, um alles zu lesen.',
+        saveUnavailable: 'Diese Datei ließ sich auf dem Gerät nicht sichern. Öffne die Seite in Safari oder Chrome und versuche es dort noch einmal.',
     },
     common: {
         send: 'Abschicken',

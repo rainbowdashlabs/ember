@@ -4,9 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {watch} from 'vue'
+import {useI18n} from 'vue-i18n'
 import FilePreviewModal from '@/components/documents/FilePreviewModal.vue'
-import {closeDocument, getViewedDocument} from '@/util/documentView'
-import {saveBlob} from '@/util/saveBlob'
+import {clearUnsavedDocument, closeDocument, getUnsavedDocument, getViewedDocument} from '@/util/documentView'
+import {SaveResult, saveBlob} from '@/util/saveBlob'
+import {showToast} from '@/util/toast'
 
 /**
  * The one place a finished document is read, sitting beside the toasts for the same reason they do.
@@ -15,12 +18,24 @@ import {saveBlob} from '@/util/saveBlob'
  * modal of its own to show it in. One host means a new export needs no markup at all: it hands the
  * document over and this draws it.
  */
-const viewed = getViewedDocument()
+const {t} = useI18n()
 
-function save() {
+const viewed = getViewedDocument()
+const unsaved = getUnsavedDocument()
+
+async function save() {
   const document = viewed.value
-  if (document) saveBlob(document.blob, document.filename)
+  if (!document) return
+  if (await saveBlob(document.blob, document.filename) === SaveResult.UNAVAILABLE) {
+    showToast(t('files.saveUnavailable'), 'error')
+  }
 }
+
+watch(unsaved, filename => {
+  if (!filename) return
+  showToast(t('files.saveUnavailable'), 'error')
+  clearUnsavedDocument()
+})
 </script>
 
 <template>

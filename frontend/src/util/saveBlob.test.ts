@@ -5,7 +5,7 @@
  */
 // @vitest-environment happy-dom
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
-import {SAVED_BLOB_LIFETIME_MS, saveBlob} from './saveBlob'
+import {SAVED_BLOB_LIFETIME_MS, SaveResult, saveBlob} from './saveBlob'
 
 vi.mock('@/api/client', () => ({default: {}}))
 
@@ -39,6 +39,12 @@ describe('saveBlob', () => {
         expect(URL.revokeObjectURL).not.toHaveBeenCalled()
         vi.advanceTimersByTime(SAVED_BLOB_LIFETIME_MS)
         expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:saved')
+    })
+
+    it('counts the download link as done at a desk, where it works', async () => {
+        vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+        expect(await saveBlob(new Blob(['pdf']), 'handout.pdf')).toBe(SaveResult.DONE)
     })
 
     it('names the file and leaves no link behind', () => {
@@ -103,10 +109,35 @@ describe('saveBlob', () => {
             expect(click).toHaveBeenCalledOnce()
         })
 
-        it('uses the download link where the file cannot be shared at all', () => {
+        /**
+         * A rejection does not always arrive as a DOMException this realm recognises. Read by type
+         * rather than by name, a reader who had just declined to save the file had it saved anyway.
+         */
+        it('reads a dismissal by its name, whatever the rejection was made of', async () => {
+            share.mockRejectedValue({name: 'AbortError', message: 'dismissed'})
+
+            const result = await saveBlob(new Blob(['pdf']), 'handout.pdf')
+
+            expect(result).toBe(SaveResult.DISMISSED)
+            expect(click).not.toHaveBeenCalled()
+        })
+
+        /**
+         * The download link is no answer here, so a caller has to be able to tell the reader rather
+         * than leave them pressing a button that does nothing and says nothing.
+         */
+        it('says the file could not be saved when neither route works', async () => {
+            share.mockRejectedValue(new DOMException('no gesture', 'NotAllowedError'))
+
+            const result = await saveBlob(new Blob(['pdf']), 'handout.pdf')
+
+            expect(result).toBe(SaveResult.UNAVAILABLE)
+        })
+
+        it('uses the download link where the file cannot be shared at all', async () => {
             Object.defineProperty(navigator, 'canShare', {value: vi.fn(() => false), configurable: true})
 
-            saveBlob(new Blob(['pdf']), 'handout.pdf')
+            await saveBlob(new Blob(['pdf']), 'handout.pdf')
 
             expect(share).not.toHaveBeenCalled()
             expect(click).toHaveBeenCalledOnce()
