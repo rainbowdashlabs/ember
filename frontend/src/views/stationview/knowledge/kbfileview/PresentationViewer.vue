@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed, onMounted, onUnmounted} from 'vue'
+import {ref, onMounted, onUnmounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -37,7 +37,6 @@ function resetHideTimer() {
   hideTimeout = setTimeout(() => { controlsVisible.value = false }, 2500)
 }
 
-const canvasScale = computed(() => controlsVisible.value ? 0.9 : 1)
 
 async function fetchDocument() {
   loading.value = true
@@ -125,7 +124,6 @@ onUnmounted(() => {
           v-show="!loading && !errorMsg"
           :source="source"
           :page="currentPage"
-          :scale="canvasScale"
           class="transition-all duration-300"
           :class="controlsVisible ? 'max-w-[95vw] max-h-[90vh]' : 'max-w-[100vw] max-h-[100vh]'"
           @loaded="opened"

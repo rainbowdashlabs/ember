@@ -28,7 +28,7 @@ const previewUrl = computed(() => {
     return f?.contentHash && props.stationUid ? mediaFileUrl(props.stationUid, f.contentHash) : ''
 })
 
-const previewKind = computed(() => fileKindOf(props.file?.mimeType))
+const previewKind = computed(() => fileKindOf(props.file?.mimeType, props.file?.fileName))
 
 </script>
 

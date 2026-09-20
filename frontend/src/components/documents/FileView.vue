@@ -43,7 +43,7 @@ const truncated = ref(false)
 const loading = ref(false)
 const failed = ref(false)
 
-const kind = computed(() => fileKindOf(props.mimeType))
+const kind = computed(() => fileKindOf(props.mimeType, props.title))
 
 function revoke() {
   if (objectUrl.value) {
@@ -68,6 +68,7 @@ async function load() {
   const mine = ++current
   revoke()
   text.value = null
+  truncated.value = false
   pdfBytes.value = null
   pageCount.value = 0
   page.value = 1

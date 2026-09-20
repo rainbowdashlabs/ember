@@ -27,10 +27,12 @@ const viewed = ref<ViewedDocument | null>(null)
  * stays there for anybody who wants it saved anyway.
  *
  * <p>A document nothing can draw, an archive of them for instance, is saved at either size, because
- * showing it is not on offer and pretending otherwise would only cost the reader a press.
+ * showing it is not on offer and pretending otherwise would only cost the reader a press. What it
+ * is gets read from its name as well as its type, since a file a member uploaded often carries no
+ * type worth the name and would otherwise be taken for one nobody can draw.
  */
 export function presentDocument(blob: Blob, filename: string, mimeType = blob.type) {
-    if (isHandheld() && fileKindOf(mimeType) !== 'other') {
+    if (isHandheld() && fileKindOf(mimeType, filename) !== 'other') {
         viewed.value = {blob, filename, mimeType}
         return
     }

@@ -2279,7 +2279,6 @@ export default {
         hide: 'Vor dem Mitglied verbergen',
         hideHint: 'Nur wer Mitgliederdokumente einsehen darf, sieht das Dokument dann noch.',
         hidden: 'Verborgen',
-        noPreview: 'Für diesen Dateityp gibt es keine Vorschau. Lade sie herunter, um sie anzusehen.',
         boundMembers: 'Gehört zu',
         boundToNobody: 'Keinem Mitglied zugeordnet.',
         bind: 'Zuordnen',
