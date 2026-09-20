@@ -18,6 +18,8 @@ import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
+import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
@@ -352,7 +354,9 @@ public class AttendanceService {
         // The appointment's own answers stand above the defaults the sheet and the appointment carry
         if (eventId != null) takeEventFieldValues(session.id(), eventId, false);
 
-        enterExpectedMembers(session.id(), expectedFor(templateId, audience), new HashSet<>());
+        var expected = expectedFor(templateId, audience);
+        enterExpectedMembers(session.id(), expected, new HashSet<>());
+        if (eventId != null) applyRegistrations(session.id(), eventId, expected);
         enterMembersNamedInAutoAttendFields(session.id(), templateId);
 
         return session;
@@ -499,6 +503,67 @@ public class AttendanceService {
                             : AttendanceEntry.AttendanceStatus.UNCONFIRMED,
                     AttendanceEntry.EntrySource.EXPECTED);
         }
+    }
+
+    /**
+     * Writes what the appointment's answers make of the sheet.
+     *
+     * <p>Read for the day the sheet is about rather than for today, because a repeating appointment
+     * is answered per occurrence: a sheet opened for another evening was filled from the answers to
+     * a different one.
+     *
+     * <p>Only a row nobody has decided yet is written, so a mark taken during the evening outlives
+     * the answer given before it.
+     *
+     * @param sessionId the sheet being filled
+     * @param eventId   the appointment it was made from
+     * @param expected  whom the sheet expects, which bounds whose answer is read
+     */
+    private void applyRegistrations(int sessionId, int eventId, Set<Integer> expected) {
+        var event = eventRepository.findById(eventId).orElse(null);
+        if (event == null) return;
+        var sessionDate = dateOf(sessionId);
+        var answers = eventRegistrationRepository.findByEventAndDate(eventId, sessionDate).stream()
+                .collect(Collectors.toMap(
+                        EventRegistration::memberId, EventRegistration::status, (earlier, later) -> later));
+
+        for (int memberId : expected) {
+            var status = attendanceFor(answers.get(memberId), event.requiresRegistration());
+            if (status == null) continue;
+            if (status == AttendanceEntry.AttendanceStatus.PRESENT && attendanceRepository.isAbsent(memberId)) {
+                status = AttendanceEntry.AttendanceStatus.ABSENT;
+            }
+            var entry = attendanceRepository.findEntry(sessionId, memberId).orElse(null);
+            if (entry == null) {
+                if (!hadJoinedBy(sessionDate, memberId)) continue;
+                attendanceRepository.createEntry(sessionId, memberId, status, AttendanceEntry.EntrySource.EXPECTED);
+            } else if (entry.status() == AttendanceEntry.AttendanceStatus.UNCONFIRMED) {
+                attendanceRepository.updateEntryStatus(entry.id(), status);
+            }
+        }
+    }
+
+    /**
+     * What an answer to the appointment makes of a row on the sheet.
+     *
+     * <p>Where the appointment demanded an answer, everybody who did not accept is declined: whether
+     * they said no, took it back, were refused, are still waiting or never answered at all, the
+     * evening already knows they are not coming. Leaving those rows open is what made a prepared
+     * sheet no better than an empty one, since whoever ran the evening had to look every silence up
+     * on the appointment.
+     *
+     * <p>Where no answer was demanded, silence settles nothing and only what was answered is written.
+     *
+     * @param answer   what the member answered, null where they never did
+     * @param demanded whether the appointment asked everybody to answer
+     * @return the status to write, or null to leave the row as it stands
+     */
+    private static AttendanceEntry.AttendanceStatus attendanceFor(RegistrationStatus answer, boolean demanded) {
+        if (answer == RegistrationStatus.ACCEPTED) return AttendanceEntry.AttendanceStatus.PRESENT;
+        if (answer == RegistrationStatus.DECLINED || answer == RegistrationStatus.WITHDRAWN) {
+            return AttendanceEntry.AttendanceStatus.DECLINED;
+        }
+        return demanded ? AttendanceEntry.AttendanceStatus.DECLINED : null;
     }
 
     /**
@@ -785,13 +850,12 @@ public class AttendanceService {
      * - Members of the template's groups → put on the sheet if they are not on it yet
      * - Answers on the event → written into the sheet fields they are tied to, where the sheet is empty
      * - ACCEPTED registrations → PRESENT (or ABSENT if member has active absence)
-     * - DECLINED registrations → DECLINED
+     * - Anything else, where the event asked everybody to answer → DECLINED
      * - Members with active absence who already have PRESENT status → updated to ABSENT
      * - Members from autoAttend fields → added as PRESENT at the end
      *
-     * <p>Only the template's groups put anybody on a sheet. An answer given to the event settles what
-     * an entry says, and an answer nobody gave settles nothing, so whom the event was open to has no
-     * say here at all.
+     * <p>Only the template's groups put anybody on a sheet, so whom the event was open to has no say
+     * here at all.
      */
     public List<AttendanceEntry> syncFromEvent(int sessionId) {
         var session = attendanceRepository.findSessionById(sessionId);
@@ -807,41 +871,12 @@ public class AttendanceService {
         var expected = expectedMembers(session.get().templateId());
         enterExpectedMembers(sessionId, expected, existingMemberIds);
 
-        // Sync from event registrations
         if (session.get().eventId() != null) {
             int eventId = session.get().eventId();
             takeEventFieldValues(sessionId, eventId, true);
-            LocalDate today = LocalDate.now();
-            var registrations = eventRegistrationRepository.findByEventAndDate(eventId, today);
-
-            for (var reg : registrations) {
-                if (!expected.contains(reg.memberId())) continue;
-                var status =
-                        switch (reg.status()) {
-                            case ACCEPTED -> AttendanceEntry.AttendanceStatus.PRESENT;
-                            case DECLINED -> AttendanceEntry.AttendanceStatus.DECLINED;
-                            default -> null;
-                        };
-                if (status == null) continue;
-                if (status == AttendanceEntry.AttendanceStatus.PRESENT
-                        && attendanceRepository.isAbsent(reg.memberId())) {
-                    status = AttendanceEntry.AttendanceStatus.ABSENT;
-                }
-                var entry = attendanceRepository
-                        .findEntry(sessionId, reg.memberId())
-                        .orElse(null);
-                if (entry == null) {
-                    attendanceRepository.createEntry(
-                            sessionId, reg.memberId(), status, AttendanceEntry.EntrySource.EXPECTED);
-                    existingMemberIds.add(reg.memberId());
-                } else if (entry.status() == AttendanceEntry.AttendanceStatus.UNCONFIRMED) {
-                    // Only what nobody has decided yet: a mark taken on the day outlives the answer
-                    attendanceRepository.updateEntryStatus(entry.id(), status);
-                }
-            }
+            applyRegistrations(sessionId, eventId, expected);
         }
 
-        // Sync absence status for existing PRESENT/UNCONFIRMED entries
         existingEntries = attendanceRepository.findEntries(sessionId);
         for (var entry : existingEntries) {
             if ((entry.status() == AttendanceEntry.AttendanceStatus.PRESENT
@@ -969,15 +1004,17 @@ public class AttendanceService {
     }
 
     /**
-     * Checks if a member has declined the event linked to this session.
+     * Whether the member said they were not coming to the evening the sheet is about.
+     *
+     * <p>Asked of the sheet's own day, since a repeating appointment is answered once per occurrence.
+     * Silence is not an answer here: somebody entered by hand is entered because they turned up.
      */
     private boolean isDeclinedForSession(int sessionId, int memberId) {
         var session = attendanceRepository.findSessionById(sessionId);
         if (session.isEmpty() || session.get().eventId() == null) return false;
 
-        LocalDate today = LocalDate.now();
         return eventRegistrationRepository
-                .findNotAttendingMemberIds(session.get().eventId(), today)
+                .findNotAttendingMemberIds(session.get().eventId(), dateOf(sessionId))
                 .contains(memberId);
     }
 }

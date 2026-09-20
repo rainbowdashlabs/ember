@@ -195,6 +195,11 @@ class AttendanceServiceTest extends RepositoryTestBase {
         return service.createSession(templateId, start, end, eventId, title, null);
     }
 
+    /** The day an occasion falls on, which is the day its registrations are answered for. */
+    private static LocalDate dayOf(StationEvent event) {
+        return LocalDate.ofInstant(event.startTime(), ZoneOffset.UTC);
+    }
+
     @Test
     @Order(20)
     void createSession() {
@@ -875,7 +880,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var template = service.createTemplate(station.id(), "Sync Vorlage");
         service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
 
-        eventRegistrationRepo.create(event.id(), member2.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(event.id(), member2.id(), dayOf(event), RegistrationStatus.ACCEPTED, null);
 
         var session = openSheet(template.id(), null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -917,7 +922,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         var strangerAccount = accountRepo.create("attend-stranger@test.com", "Fremd", "Ling");
         var stranger = stationMemberRepo.create(station.id(), strangerAccount.id());
-        eventRegistrationRepo.create(event.id(), stranger.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(event.id(), stranger.id(), dayOf(event), RegistrationStatus.ACCEPTED, null);
 
         var session = openSheet(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -958,7 +963,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var template = service.createTemplate(station.id(), "Absage Vorlage");
         service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
 
-        eventRegistrationRepo.create(event.id(), member3.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
+        eventRegistrationRepo.create(event.id(), member3.id(), dayOf(event), RegistrationStatus.DECLINED, null);
 
         var session = openSheet(template.id(), null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -1003,7 +1008,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var absence = service.createAbsence(
                 member.id(), LocalDate.now().minusDays(1), LocalDate.now().plusDays(1), "Sick", null);
 
-        eventRegistrationRepo.create(event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(event.id(), member.id(), dayOf(event), RegistrationStatus.ACCEPTED, null);
 
         var session = openSheet(template.id(), null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -1212,7 +1217,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        eventRegistrationRepo.create(event.id(), member7.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
+        eventRegistrationRepo.create(event.id(), member7.id(), dayOf(event), RegistrationStatus.DECLINED, null);
 
         var session = openSheet(templateId, null, null, event.id(), null);
 
@@ -1393,12 +1398,20 @@ class AttendanceServiceTest extends RepositoryTestBase {
         memberGroupRepo.delete(group.id());
     }
 
+    /**
+     * An answer still waiting for a manager is not an acceptance, so an occasion that demanded one
+     * counts it as a no.
+     */
     @Test
     @Order(65)
-    void syncFromEventWithPendingRegistrationSkipped() {
-        // PENDING registration status should be skipped (not ACCEPTED or DECLINED)
+    void aPendingAnswerToADemandedRegistrationIsDeclined() {
         var account9 = accountRepo.create("attend-pending@test.com", "Pending", "User");
         var member9 = stationMemberRepo.create(station.id(), account9.id());
+
+        var group = memberGroupRepo.create(station.id(), "Pending Gruppe");
+        memberGroupRepo.addMember(group.id(), member9.id());
+        var template = service.createTemplate(station.id(), "Pending Vorlage");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
 
         var event = eventRepo.create(
                 station.id(),
@@ -1408,7 +1421,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 Instant.now().plus(9, ChronoUnit.DAYS),
                 Instant.now().plus(9, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
-                templateId,
+                template.id(),
                 true,
                 null,
                 false,
@@ -1418,17 +1431,182 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        eventRegistrationRepo.create(event.id(), member9.id(), LocalDate.now(), RegistrationStatus.PENDING, null);
+        eventRegistrationRepo.create(event.id(), member9.id(), dayOf(event), RegistrationStatus.PENDING, null);
 
-        var session = openSheet(templateId, null, null, event.id(), null);
+        var session = openSheet(template.id(), null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
-        // PENDING status should NOT create an entry (only ACCEPTED or DECLINED do)
-        assertFalse(entries.stream().anyMatch(e -> e.memberId() == member9.id()));
+        assertTrue(entries.stream()
+                .anyMatch(
+                        e -> e.memberId() == member9.id() && e.status() == AttendanceEntry.AttendanceStatus.DECLINED));
 
         service.deleteSession(session.id());
+        service.deleteTemplate(template.id());
+        memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(member9.id());
         accountRepo.delete(account9.id());
+    }
+
+    /**
+     * A sheet opened for an occasion that demanded an answer arrives filled in: whoever accepted is
+     * present, and whoever never answered is declined, so nobody has to look the answers up.
+     */
+    @Test
+    @Order(65)
+    void aSheetFromADemandedRegistrationArrivesFilledIn() {
+        var comingAccount = accountRepo.create("attend-coming@test.com", "Kommt", "Mit");
+        var coming = stationMemberRepo.create(station.id(), comingAccount.id());
+        var silentAccount = accountRepo.create("attend-silent@test.com", "Sagt", "Nichts");
+        var silent = stationMemberRepo.create(station.id(), silentAccount.id());
+
+        var group = memberGroupRepo.create(station.id(), "Vorfüll Gruppe");
+        memberGroupRepo.addMember(group.id(), coming.id());
+        memberGroupRepo.addMember(group.id(), silent.id());
+        var template = service.createTemplate(station.id(), "Vorfüll Vorlage");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+
+        var event = eventRepo.create(
+                station.id(),
+                "Anmeldepflichtiger Abend",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(10, ChronoUnit.DAYS),
+                Instant.now().plus(10, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
+                template.id(),
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        eventRegistrationRepo.create(event.id(), coming.id(), dayOf(event), RegistrationStatus.ACCEPTED, null);
+
+        var session = openSheet(template.id(), null, null, event.id(), null);
+        var entries = service.findEntries(session.id());
+        assertEquals(
+                AttendanceEntry.AttendanceStatus.PRESENT,
+                entries.stream()
+                        .filter(e -> e.memberId() == coming.id())
+                        .findFirst()
+                        .orElseThrow()
+                        .status());
+        assertEquals(
+                AttendanceEntry.AttendanceStatus.DECLINED,
+                entries.stream()
+                        .filter(e -> e.memberId() == silent.id())
+                        .findFirst()
+                        .orElseThrow()
+                        .status());
+
+        service.deleteSession(session.id());
+        service.deleteTemplate(template.id());
+        memberGroupRepo.delete(group.id());
+        eventRepo.delete(event.id());
+        stationMemberRepo.delete(coming.id());
+        stationMemberRepo.delete(silent.id());
+        accountRepo.delete(comingAccount.id());
+        accountRepo.delete(silentAccount.id());
+    }
+
+    /** Where an occasion asked nobody to answer, saying nothing leaves the row open. */
+    @Test
+    @Order(65)
+    void silenceSettlesNothingWhereNoAnswerWasDemanded() {
+        var quietAccount = accountRepo.create("attend-quiet@test.com", "Ohne", "Pflicht");
+        var quiet = stationMemberRepo.create(station.id(), quietAccount.id());
+
+        var group = memberGroupRepo.create(station.id(), "Freiwillig Gruppe");
+        memberGroupRepo.addMember(group.id(), quiet.id());
+        var template = service.createTemplate(station.id(), "Freiwillig Vorlage");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+
+        var event = eventRepo.create(
+                station.id(),
+                "Abend ohne Anmeldung",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(11, ChronoUnit.DAYS),
+                Instant.now().plus(11, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
+                template.id(),
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        var session = openSheet(template.id(), null, null, event.id(), null);
+        var entries = service.findEntries(session.id());
+        assertEquals(
+                AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                entries.stream()
+                        .filter(e -> e.memberId() == quiet.id())
+                        .findFirst()
+                        .orElseThrow()
+                        .status());
+
+        service.deleteSession(session.id());
+        service.deleteTemplate(template.id());
+        memberGroupRepo.delete(group.id());
+        eventRepo.delete(event.id());
+        stationMemberRepo.delete(quiet.id());
+        accountRepo.delete(quietAccount.id());
+    }
+
+    /** An answer given for another day of a repeating occasion has nothing to say about this sheet. */
+    @Test
+    @Order(65)
+    void answersAreReadForTheDayTheSheetIsAbout() {
+        var otherDayAccount = accountRepo.create("attend-otherday@test.com", "Anderer", "Tag");
+        var otherDay = stationMemberRepo.create(station.id(), otherDayAccount.id());
+
+        var group = memberGroupRepo.create(station.id(), "Tagesgruppe");
+        memberGroupRepo.addMember(group.id(), otherDay.id());
+        var template = service.createTemplate(station.id(), "Tagesvorlage");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+
+        var event = eventRepo.create(
+                station.id(),
+                "Abend an einem anderen Tag",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(12, ChronoUnit.DAYS),
+                Instant.now().plus(12, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
+                template.id(),
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        eventRegistrationRepo.create(
+                event.id(), otherDay.id(), dayOf(event).minusDays(7), RegistrationStatus.ACCEPTED, null);
+
+        var session = openSheet(template.id(), null, null, event.id(), null);
+        var entries = service.findEntries(session.id());
+        assertEquals(
+                AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                entries.stream()
+                        .filter(e -> e.memberId() == otherDay.id())
+                        .findFirst()
+                        .orElseThrow()
+                        .status());
+
+        service.deleteSession(session.id());
+        service.deleteTemplate(template.id());
+        memberGroupRepo.delete(group.id());
+        eventRepo.delete(event.id());
+        stationMemberRepo.delete(otherDay.id());
+        accountRepo.delete(otherDayAccount.id());
     }
 
     @Test
