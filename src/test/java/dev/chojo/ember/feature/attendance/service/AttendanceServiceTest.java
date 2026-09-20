@@ -195,9 +195,17 @@ class AttendanceServiceTest extends RepositoryTestBase {
         return service.createSession(templateId, start, end, eventId, title, null);
     }
 
-    /** The day an occasion falls on, which is the day its registrations are answered for. */
-    private static LocalDate dayOf(StationEvent event) {
-        return LocalDate.ofInstant(event.startTime(), ZoneOffset.UTC);
+    /**
+     * The day an occasion falls on, which is the day its registrations are answered for.
+     *
+     * <p>Read in the station's own timezone, because that is the calendar the sheet is put on. Read
+     * in the server's, an evening late enough in the day was registered for one date and looked up
+     * under the next.
+     */
+    private LocalDate dayOf(StationEvent event) {
+        return LocalDate.ofInstant(
+                event.startTime(),
+                StationFormat.timezoneOf(stationRepo.findById(event.stationId()).orElseThrow()));
     }
 
     @Test
