@@ -6,6 +6,7 @@
 
 - **Lists are easier to work through on a phone.** What can be done with a row now stands at the foot of its card, each button across the full width, rather than squeezed in beside the title. The columns on a card have more room between them as well.
 - **An appointment's text reads properly in the lists.** Under Appointments → Upcoming and when starting an attendance sheet, a description written with headings, emphasis or a list showed its raw markings, or ran to its full length and pushed the next appointment off the screen. It is now formatted as it was written and cut off after a few lines, the way a news entry already was.
+- **Twenty more pictures for a piece of gear.** Trousers, boots, trainers, a t-shirt, a jumper, a cap and socks join the clothing, and an axe, a torch, a ladder, a cone, a jerrycan, a shovel, a rucksack, binoculars, a life ring, an engine, a blue light, a campfire and a map join the equipment. The old stand-ins keep their place under plainer names: the footprints are now Soles and the pool ladder is no longer just Ladder.
 
 ### Fixes
 
@@ -13,6 +14,7 @@
 - **An attendance sheet for an appointment arrived unmarked.** Opening one left every name open, so whoever ran the evening first had to look up on the appointment who had said they were coming. A sheet now arrives with everybody who accepted marked present, and, where the appointment demanded a registration, everybody who did not accept marked as declined.
 - **Adding somebody to a sheet by hand could mark them as declined.** On a sheet for a repeating appointment, this read the answers given for today rather than for the evening the sheet is about, so somebody who had signed off for a different evening arrived as not coming. The answers for the sheet's own day now decide.
 - **A loss report's document did not save on an iPhone.** The download that opens the share sheet reached every button but this one, so pressing it on an iPhone or iPad could leave the file unsaved. It now goes the same way as the rest.
+- **Exports did nothing on an Android phone.** Pressing a download button could leave a blank tab and no file at all, most of all in a browser built into another app. A report, list or sheet now opens on screen where it can be read, and can still be saved or shared from there.
 
 ## v26.18.3
 

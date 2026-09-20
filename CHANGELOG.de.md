@@ -6,6 +6,7 @@
 
 - **Listen lassen sich auf dem Handy leichter abarbeiten.** Was mit einer Zeile möglich ist, steht jetzt am Fuß ihrer Karte, jeder Knopf über die volle Breite, statt neben dem Titel eingequetscht. Auch die Spalten auf einer Karte haben mehr Luft zueinander.
 - **Der Text eines Termins wird in den Listen richtig dargestellt.** Unter Termine → Kommende und beim Anlegen einer Anwesenheit zeigte eine Beschreibung mit Überschriften, Hervorhebungen oder einer Aufzählung ihre rohen Zeichen, oder sie lief in voller Länge und schob den nächsten Termin vom Bildschirm. Sie wird jetzt so dargestellt, wie sie geschrieben wurde, und nach ein paar Zeilen abgeschnitten, so wie eine Neuigkeit schon vorher.
+- **Zwanzig neue Bilder für ein Ausrüstungsstück.** Hose, Stiefel, Turnschuhe, T-Shirt, Pullover, Kappe und Socke kommen zur Kleidung, Axt, Handlampe, Leiter, Pylone, Kanister, Schaufel, Rucksack, Fernglas, Rettungsring, Fahrzeug, Blaulicht, Lagerfeuer und Landkarte zur Ausrüstung. Die bisherigen Notlösungen heißen jetzt schlichter: aus den Fußspuren werden Sohlen, aus der Leiter wird die Poolleiter.
 
 ### Fehlerbehebungen
 
@@ -13,6 +14,7 @@
 - **Eine Anwesenheitsliste zu einem Termin kam unausgefüllt an.** Wer eine öffnete, fand jeden Namen offen und musste erst am Termin nachsehen, wer zugesagt hatte. Eine Liste kommt jetzt mit allen Zusagen als anwesend an, und wo der Termin eine Anmeldung verlangte, mit allen ohne Zusage als abgemeldet.
 - **Wer jemanden von Hand auf eine Liste setzte, konnte ihn als abgemeldet eintragen.** Bei einer Liste zu einem wiederkehrenden Termin wurden die Antworten von heute gelesen statt die für den Abend, um den es geht. Jetzt entscheiden die Antworten für den Tag der Liste.
 - **Das Dokument einer Verlustmeldung ließ sich auf dem iPhone nicht sichern.** Der Download, der das Teilen-Menü öffnet, erreichte jeden Knopf außer diesem, sodass die Datei auf einem iPhone oder iPad ungesichert bleiben konnte. Jetzt geht er denselben Weg wie die anderen.
+- **Exporte taten auf einem Android-Handy nichts.** Wer dort auf einen Download-Knopf drückte, bekam unter Umständen nur einen leeren Tab und keine Datei, vor allem in einem Browser, der in einer anderen App steckt. Ein Bericht, eine Liste oder eine Anwesenheitsliste öffnet sich jetzt zum Lesen auf dem Bildschirm und lässt sich von dort weiter sichern oder teilen.
 
 ## v26.18.3
 

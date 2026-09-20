@@ -7,8 +7,9 @@
 import {describe, expect, it} from 'vitest'
 import {findIconDefinition, library, type IconDefinition} from '@fortawesome/fontawesome-svg-core'
 import * as solid from '@fortawesome/free-solid-svg-icons'
+import * as phosphor from '@phosphor-icons/vue'
 import de from '@/i18n/de-DE'
-import {GEAR_ICONS, gearIcon} from './gearIcons'
+import {GEAR_ICONS, gearIcon, gearIconRef} from './gearIcons'
 
 type Translations = Record<string, unknown>
 
@@ -24,15 +25,30 @@ describe('the catalogue of gear pictures', () => {
      * The one test that earns its keep: a picture nobody registered renders as an empty square at a
      * station, and nothing in a build notices. This does.
      */
-    it('offers only pictures the icon library knows', () => {
+    it('offers only FontAwesome pictures the icon library knows', () => {
         const definitions = Object.values(solid).filter(
             (entry): entry is IconDefinition => typeof entry === 'object' && entry !== null && 'iconName' in entry,
         )
         library.add(...definitions)
 
-        const missing = GEAR_ICONS.filter(
+        const missing = GEAR_ICONS.filter(icon => gearIconRef(icon.name)[0] === 'fas').filter(
             icon => !findIconDefinition({prefix: 'fas', iconName: icon.name as never}),
         )
+
+        expect(missing.map(icon => icon.name)).toEqual([])
+    })
+
+    /**
+     * The same guard for the second set, and with it the round trip that only bites there: the
+     * stored name is turned back into a component name, so a picture whose capitals do not survive
+     * the journey (PhTShirt through t-shirt and back) resolves to nothing a template can draw.
+     */
+    it('offers only Phosphor pictures the package exports, under names that survive the round trip', () => {
+        const missing = GEAR_ICONS.filter(icon => gearIconRef(icon.name)[0] === 'ph').filter(icon => {
+            const name = gearIconRef(icon.name)[1]
+            const component = `Ph${name.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('')}`
+            return !(component in phosphor)
+        })
 
         expect(missing.map(icon => icon.name)).toEqual([])
     })

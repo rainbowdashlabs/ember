@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {gearIconRef} from '@/util/gearIcons'
+import AppIcon from '@/components/display/AppIcon.vue'
 import {computed, ref, watch} from 'vue'
 import TreeNodeButton from '@/components/button/TreeNodeButton.vue'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
@@ -59,7 +61,7 @@ function select() {
         </TreeNodeButton>
       </span>
       <span v-else class="w-5 h-5 inline-block" />
-      <font-awesome-icon :icon="['fas', kind?.icon ?? 'box']" class="w-4 text-(--text-muted)" />
+      <AppIcon :icon="gearIconRef(kind?.icon)" class="w-4 text-(--text-muted)" />
       <span class="font-medium truncate">{{ container.name }}</span>
       <span v-if="container.internalId" class="text-xs text-(--text-muted) truncate">{{ container.internalId }}</span>
       <span v-if="kind" class="ml-auto text-xs text-(--text-muted) truncate">{{ kind.label }}</span>

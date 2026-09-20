@@ -3,10 +3,12 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {gearIconRef} from './gearIcons'
+
 /**
  * The picture a row of gear is drawn with, resolved and ready to render.
  *
- * @property icon  the FontAwesome prefix and name, always present
+ * @property icon  the set's prefix and the name in it, always present
  * @property color the colour it is drawn in, or null for the muted neutral
  */
 export interface Glyph {
@@ -66,5 +68,5 @@ export function glyphFor(source: GlyphSource): Glyph {
     const icon = firstNamed(source.icon, source.artIcon, source.inventoryIcon)
         ?? (source.homogeneous === false ? COLLECTION_FALLBACK : STOCK_FALLBACK)
     const color = firstNamed(source.color, source.artColor, source.inventoryColor)
-    return {icon: ['fas', icon], color}
+    return {icon: gearIconRef(icon), color}
 }
