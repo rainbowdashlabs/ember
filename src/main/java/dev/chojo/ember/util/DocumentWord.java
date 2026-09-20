@@ -16,7 +16,6 @@ package dev.chojo.ember.util;
  * second vocabulary, and a reader would have to learn which of the two the download folder speaks.
  */
 public enum DocumentWord {
-
     ATTENDANCE("Anwesenheit", "Attendance"),
     ATTENDANCE_SHEET("Anwesenheitsliste", "Attendance Sheet"),
     EVENTS("Termine", "Events"),

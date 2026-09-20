@@ -40,8 +40,7 @@ class CsvWriterTest {
     /** A cell holding the separator would otherwise become two columns. */
     @Test
     void aCellMayHoldTheSeparatorItself() {
-        String csv = CsvWriter.write(
-                List.of("Name"), List.of(List.of("Müller; Anna")), CsvWriter.Separator.SEMICOLON);
+        String csv = CsvWriter.write(List.of("Name"), List.of(List.of("Müller; Anna")), CsvWriter.Separator.SEMICOLON);
 
         assertEquals("Name\n\"Müller; Anna\"\n", csv);
     }
@@ -56,16 +55,15 @@ class CsvWriterTest {
     /** A short row still has to line up with the header, or the columns shift from there on. */
     @Test
     void aRowShorterThanTheHeaderIsFilledOut() {
-        String csv = CsvWriter.write(
-                List.of("A", "B", "C"), List.of(List.of("1")), CsvWriter.Separator.SEMICOLON);
+        String csv = CsvWriter.write(List.of("A", "B", "C"), List.of(List.of("1")), CsvWriter.Separator.SEMICOLON);
 
         assertEquals("A;B;C\n1;;\n", csv);
     }
 
     @Test
     void aMissingCellIsAnEmptyOneRatherThanTheWordNull() {
-        String csv = CsvWriter.write(
-                List.of("A", "B"), List.of(Arrays.asList("1", null)), CsvWriter.Separator.SEMICOLON);
+        String csv =
+                CsvWriter.write(List.of("A", "B"), List.of(Arrays.asList("1", null)), CsvWriter.Separator.SEMICOLON);
 
         assertEquals("A;B\n1;\n", csv);
     }

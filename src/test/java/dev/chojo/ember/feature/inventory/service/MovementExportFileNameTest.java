@@ -77,24 +77,7 @@ class MovementExportFileNameTest {
 
     private static ItemMovement movementWith(MovementPurpose purpose) {
         return new ItemMovement(
-                1,
-                1,
-                purpose,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
+                1, 1, purpose, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
                 false);
     }
 }

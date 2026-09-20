@@ -542,10 +542,7 @@ public class TestProtocolRoutes implements Routes {
      */
     private static String protocolName(String protocolName, String extension, String subject) {
         String filename = DocumentName.of(
-                extension,
-                DocumentWord.PROTOCOL.in("de"),
-                DocumentName.part(protocolName),
-                DocumentName.part(subject));
+                extension, DocumentWord.PROTOCOL.in("de"), DocumentName.part(protocolName), DocumentName.part(subject));
         return SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, filename);
     }
 

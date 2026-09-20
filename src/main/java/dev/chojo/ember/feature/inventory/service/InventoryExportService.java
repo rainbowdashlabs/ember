@@ -228,7 +228,8 @@ public class InventoryExportService {
 
         StationLogo logo = stationRepository.findLogo(stationId).orElse(null);
         try {
-            return Optional.of(new ExportedDocument(renderPdf(data, locale + "/inventory-members.typ", logo), filename));
+            return Optional.of(
+                    new ExportedDocument(renderPdf(data, locale + "/inventory-members.typ", logo), filename));
         } catch (Exception e) {
             log.error("Failed to export inventory members PDF", e);
             return Optional.empty();

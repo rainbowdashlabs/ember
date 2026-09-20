@@ -31,6 +31,8 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -42,8 +44,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -369,13 +369,11 @@ public class AttendanceReportService {
         var hoursFormat = hoursFormatFor(locale);
         var rows = report.members().stream()
                 .map(member -> List.of(
-                        member.name(),
-                        String.valueOf(member.sessionCount()),
-                        hoursFormat.format(member.totalHours())))
+                        member.name(), String.valueOf(member.sessionCount()), hoursFormat.format(member.totalHours())))
                 .toList();
 
-        String filename = reportFileName(period, from, zone, locale, report.filterLabel())
-                .replaceAll("\\.pdf$", ".csv");
+        String filename =
+                reportFileName(period, from, zone, locale, report.filterLabel()).replaceAll("\\.pdf$", ".csv");
         return Optional.of(ExportedDocument.ofText(CsvWriter.write(headers, rows, separator), filename));
     }
 

@@ -282,7 +282,6 @@ public class MovementExportService {
         };
     }
 
-
     private String formatFieldValue(String rawValue) {
         if (rawValue == null) return "";
         String val = rawValue.trim();

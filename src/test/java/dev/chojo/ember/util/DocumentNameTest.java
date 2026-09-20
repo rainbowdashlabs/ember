@@ -33,8 +33,7 @@ class DocumentNameTest {
     /** A caller may pass a part it does not always have without asking whether it has one. */
     @Test
     void partsThatAreNotThereAreLeftOut() {
-        assertEquals("Anwesenheit - Januar 2026.pdf",
-                DocumentName.of("pdf", "Anwesenheit", null, "  ", "Januar 2026"));
+        assertEquals("Anwesenheit - Januar 2026.pdf", DocumentName.of("pdf", "Anwesenheit", null, "  ", "Januar 2026"));
     }
 
     @Test

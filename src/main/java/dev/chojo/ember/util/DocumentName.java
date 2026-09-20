@@ -104,7 +104,9 @@ public final class DocumentName {
     private static final String REFUSED = "/\\:*?\"<>|";
 
     private static String collapse(String input) {
-        return String.join(" ", Arrays.stream(input.split("\\s+")).filter(s -> !s.isEmpty()).toList());
+        return String.join(
+                " ",
+                Arrays.stream(input.split("\\s+")).filter(s -> !s.isEmpty()).toList());
     }
 
     /** Cuts an over-long part on a word boundary, falling back to a hard cut for a single long word. */

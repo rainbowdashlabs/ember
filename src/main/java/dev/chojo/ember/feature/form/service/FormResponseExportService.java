@@ -99,7 +99,10 @@ public class FormResponseExportService {
 
             var values = new ArrayList<String>(columns.size());
             values.add(nameOf(response.memberId(), language));
-            values.add(response.submittedAt() == null ? "" : SUBMITTED_AT.format(response.submittedAt().atZone(zone)));
+            values.add(
+                    response.submittedAt() == null
+                            ? ""
+                            : SUBMITTED_AT.format(response.submittedAt().atZone(zone)));
             for (var question : questions) {
                 values.add(answers.getOrDefault(question.id(), ""));
             }

@@ -688,7 +688,6 @@ public class ChecklistRoutes implements Routes {
         return label.trim();
     }
 
-
     /**
      * Compact summary returned by the list endpoint.
      */

@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
-import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
@@ -131,8 +130,7 @@ public class EventExportService {
         try {
             var logo = stationRepository.findLogo(stationId);
             String locale = StationFormat.languageOf(station);
-            String filename =
-                    DocumentName.of("pdf", DocumentWord.EVENTS.in(locale), spanLabel(from, to, zone, locale));
+            String filename = DocumentName.of("pdf", DocumentWord.EVENTS.in(locale), spanLabel(from, to, zone, locale));
             return Optional.of(
                     new ExportedDocument(renderPdf(data, locale + "/event-list.typ", logo.orElse(null)), filename));
         } catch (Exception e) {
@@ -280,7 +278,6 @@ public class EventExportService {
         return dayOfWeek >= 0 && dayOfWeek < names.length ? names[dayOfWeek] : "";
     }
 
-
     /**
      * How the chosen days are said in the name.
      *
@@ -298,7 +295,8 @@ public class EventExportService {
         if (covers(from, to, from.plusYears(1)) && from.getDayOfYear() == 1) {
             return DocumentPeriod.of("year", start, zone, locale);
         }
-        return DocumentPeriod.day(start, zone) + " - " + DocumentPeriod.day(to.atStartOfDay(zone).toInstant(), zone);
+        return DocumentPeriod.day(start, zone) + " - "
+                + DocumentPeriod.day(to.atStartOfDay(zone).toInstant(), zone);
     }
 
     private static boolean covers(LocalDate from, LocalDate to, LocalDate exclusiveEnd) {
