@@ -36,12 +36,12 @@ const memberError = ref('')
 const showDeleteAccountModal = ref(false)
 
 const {running: exportingGdpr, error: exportError, run: exportOwnData} = useAsyncAction(async () => {
-  presentFile(await sessionApi.gdprExport())
+  await presentFile(await sessionApi.gdprExport())
 })
 
 async function exportManagedMemberData(memberId: number) {
   exportingMemberId.value = memberId; memberError.value = ''
-  try { presentFile(await sessionApi.gdprExportManagedMember(memberId)) }
+  try { await presentFile(await sessionApi.gdprExportManagedMember(memberId)) }
   catch { memberError.value = t('common.error') }
   finally { exportingMemberId.value = null }
 }

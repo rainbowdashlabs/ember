@@ -149,7 +149,7 @@ const {running: exporting, error: exportError, run: runExport, clearError: clear
       const params = buildParams()
       params.set('period', selectedPeriod.value)
       if (format === 'csv') params.set('separator', separator)
-      presentFile(format === 'csv'
+      await presentFile(format === 'csv'
           ? await attendance.reportExportCsv(params)
           : await attendance.reportExport(params))
       showExportFormat.value = false

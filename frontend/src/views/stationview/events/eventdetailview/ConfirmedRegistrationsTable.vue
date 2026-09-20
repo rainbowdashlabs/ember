@@ -172,7 +172,7 @@ watch(
  * written down either: the file is the whole list.
  */
 async function download(format: 'csv' | 'pdf', separator: ExportSeparator) {
-  presentFile(
+  await presentFile(
       await api.exportRegistrationTable(props.eventId, day.value, drawnColumns.value, format, separator))
   exporting.value = false
 }

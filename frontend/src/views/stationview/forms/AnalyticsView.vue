@@ -121,7 +121,7 @@ function selectExportQuestions(ids: number[]) {
 async function performExport(format: ExportFormat, separator: ExportSeparator) {
   if (!formId.value) return
   showExportModal.value = false
-  presentFile(await forms.exportResponses(formId.value, format, separator))
+  await presentFile(await forms.exportResponses(formId.value, format, separator))
 }
 
 const { loading, error } = useAsyncLoader(async () => {

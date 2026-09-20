@@ -177,11 +177,11 @@ export function useMemberListConfig(port: MemberListPort) {
      */
     async function performExport(format: ExportFormatName = 'csv', separator: ExportSeparator = 'semicolon') {
         if (format === 'values' || (format === 'csv' && port.serverSpreadsheet === false)) {
-            exporting.performExport(format)
+            await exporting.performExport(format)
             return
         }
         const memberIds = exporting.selectedRows.value.map(member => member.id)
-        presentFile(
+        await presentFile(
             await memberTable.exportMemberTable(memberIds, chosenServerColumns(), format, separator))
         exporting.cancelExport()
     }

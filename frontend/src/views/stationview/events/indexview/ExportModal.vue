@@ -115,7 +115,7 @@ const {running: exporting, run: doExport} = useAsyncAction(async () => {
       fieldName: c.isExtra ? c.label : undefined,
       label: c.label,
     }))
-    presentFile(await events.exportEventList({
+    await presentFile(await events.exportEventList({
       categoryIds: [...exportCategoryIds.value],
       columns,
       from,

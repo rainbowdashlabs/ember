@@ -102,7 +102,7 @@ async function downloadPdf() {
   exporting.value = true
   exportError.value = ''
   try {
-    presentFile(await movements.exportPdf(
+    await presentFile(await movements.exportPdf(
         exportFlow.selectedRows.value.map(row => row.id),
         [...exportFlow.selectedColumns.value].map(Number),
     ))

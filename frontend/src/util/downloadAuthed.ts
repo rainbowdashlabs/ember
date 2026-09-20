@@ -45,5 +45,5 @@ export async function downloadAuthed(url: string, filename?: string): Promise<vo
         ?? url.split('/').pop()
         ?? 'download'
     const type = (res.headers['content-type'] as string | undefined) ?? ''
-    presentDocument(res.data as Blob, resolved, type.split(';')[0]?.trim() || undefined)
+    await presentDocument(res.data as Blob, resolved, type.split(';')[0]?.trim() || undefined)
 }

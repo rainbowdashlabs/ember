@@ -34,7 +34,7 @@ const error = ref('')
 async function download() {
   error.value = ''
   try {
-    presentFile(await movements.downloadDocument(props.movementId))
+    await presentFile(await movements.downloadDocument(props.movementId))
   } catch {
     error.value = t('common.error')
   }

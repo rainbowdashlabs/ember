@@ -111,7 +111,7 @@ export function useInventoryMemberExport(
           showInternalId: labelOptions.showInternalId.value,
           showSize: labelOptions.showSize.value,
         }, {responseType: 'blob'})
-        presentFile(documentFrom(res, `Mitglieder Inventar.${format}`))
+        await presentFile(documentFrom(res, `Mitglieder Inventar.${format}`))
         exportMode.value = false
       }, {formatError: () => t('common.error')})
 
