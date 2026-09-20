@@ -130,7 +130,11 @@ function label(userType: string): string {
       <template v-if="contentMode === ContentMode.RICH">
         <!-- The instance's own library: a system notice is read in every station, so its pictures
              cannot come out of one of them. -->
-        <ContentBlockEditor v-model:rows="rows" :station-uid="INSTANCE_MEDIA_SCOPE"/>
+        <ContentBlockEditor
+            v-model:rows="rows"
+            :station-uid="INSTANCE_MEDIA_SCOPE"
+            :draft-key="`system-news:${props.entry?.id ?? 'new'}`"
+        />
       </template>
       <template v-else>
         <MarkdownEditor

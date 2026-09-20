@@ -21,6 +21,8 @@ const rows = defineModel<RowEditData[]>('rows', {required: true})
 defineProps<{
   mode: ContentModeName
   stationUid: string
+  /** Names this entry so its unsaved writing is told apart from another's. */
+  draftKey?: string
 }>()
 
 const emit = defineEmits<{
@@ -41,7 +43,7 @@ const {t} = useI18n()
       <FieldLabel>{{ t('news.content') }}</FieldLabel>
 
       <template v-if="mode === ContentMode.RICH">
-        <ContentBlockEditor v-model:rows="rows" :station-uid="stationUid"/>
+        <ContentBlockEditor v-model:rows="rows" :station-uid="stationUid" :draft-key="draftKey"/>
       </template>
 
       <template v-else>

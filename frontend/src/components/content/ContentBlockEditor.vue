@@ -11,6 +11,8 @@ import AddRowDialog from '@/components/content/blockeditor/AddRowDialog.vue'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {CellContentType, type SaveRowRequest, type SaveCellRequest} from '@/api/pageManage'
 import {usePageClipboard} from '@/composables/usePageClipboard'
+import {useContentDraft} from '@/composables/useContentDraft'
+import ContentDraftBanner from '@/components/content/ContentDraftBanner.vue'
 
 /**
  * The block editor, without anything page-specific around it.
@@ -22,15 +24,32 @@ import {usePageClipboard} from '@/composables/usePageClipboard'
  */
 const rows = defineModel<RowEditData[]>('rows', {required: true})
 
-defineProps<{
+const props = defineProps<{
   stationUid: string
   /** Read-only render of what the reader will see. */
   preview?: boolean
+  /**
+   * What is being written, so its draft can be told from another's.
+   *
+   * <p>Left out where a draft would make no sense, a preview for one. Whoever opens the editor
+   * names the thing: a page, a news entry, an article.
+   */
+  draftKey?: string
 }>()
 
 const emit = defineEmits<{
   (e: 'change'): void
 }>()
+
+const {draft, forget, restore} = useContentDraft(() => props.draftKey, rows, () => props.preview === true)
+
+/**
+ * Lets whoever owns the saving say when a draft has served its purpose.
+ *
+ * <p>Only the caller knows that the real save went through, and a draft kept past that is a rescue
+ * offered for work that is no longer in danger.
+ */
+defineExpose({draftSaved: forget})
 
 const {pasteRow, hasClipboard, clipboardType} = usePageClipboard()
 
@@ -108,6 +127,12 @@ function insertRow(row: RowEditData, atIndex?: number) {
 
 <template>
   <div class="space-y-4">
+    <ContentDraftBanner
+        v-if="draft"
+        :saved-at="draft.savedAt"
+        @restore="restore"
+        @discard="forget"
+    />
     <AddRowDivider
         v-if="!preview"
         :has-clipboard="hasClipboard"

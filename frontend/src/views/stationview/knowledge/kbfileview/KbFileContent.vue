@@ -63,6 +63,7 @@ async function downloadOther() {
           v-if="editing"
           v-model:rows="blockRows"
           :station-uid="stationUid"
+          :draft-key="`kb-file:${stationUid}:${file.id}`"
           @change="emit('contentInput')"
       />
       <NeutralContainer v-else>

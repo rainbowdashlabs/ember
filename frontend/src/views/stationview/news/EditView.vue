@@ -9,7 +9,6 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SaveButton from '@/components/button/SaveButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -25,6 +24,7 @@ import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import type {PageRow, SaveRowRequest, SaveCellRequest} from '@/api/pageManage'
 import {markdownAsSingleBlock} from '@/util/blockSwitch'
 import AttachmentsPanel from './editview/AttachmentsPanel.vue'
+import EditActions from './editview/EditActions.vue'
 import {useNewsAttachments} from './editview/useNewsAttachments'
 import AudiencePanels from './editview/AudiencePanels.vue'
 import { useSession } from '@/composables/useSession'
@@ -251,6 +251,11 @@ const { loading, error, reload } = useAsyncLoader(async () => {
   }
 }, {autoLoad: false})
 
+/** Back to the list, which is where both the cancel and the back button go. */
+function leave() {
+  return router.push({name: newsRoutes.list})
+}
+
 async function save() {
   if (!title.value.trim()) return
   if (contentMode.value === ContentMode.SIMPLE && !contentMarkdown.value.trim()) return
@@ -312,7 +317,7 @@ watch(loaded, (isLoaded) => {
       :subtitle="t('pages.news-create.subtitle')"
   >
     <div class="space-y-6">
-      <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: newsRoutes.list })">
+      <SecondaryButton :icon="['fas', 'chevron-left']" @click="leave">
         {{ t('common.back') }}
       </SecondaryButton>
 
@@ -328,6 +333,7 @@ watch(loaded, (isLoaded) => {
             v-model:rows="rows"
             :mode="contentMode"
             :station-uid="stationUid"
+            :draft-key="`news:${stationUid}:${newsId ?? 'new'}`"
             @enable-blocks="enableBlocks"
         />
         <AttachmentsPanel
@@ -354,10 +360,7 @@ watch(loaded, (isLoaded) => {
             :can-federate="canFederateNews()"
         />
 
-        <div class="flex justify-end gap-3">
-          <SecondaryButton @click="router.push({ name: newsRoutes.list })">{{ t('common.cancel') }}</SecondaryButton>
-          <SaveButton :disabled="!canSave" :action="save"/>
-        </div>
+        <EditActions :can-save="canSave" :save="save" @cancel="leave"/>
       </template>
     </div>
   </ViewContent>
