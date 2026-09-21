@@ -39,11 +39,12 @@ const userTypeOptions = computed(() =>
 const groupOptions = computed(() =>
     groups.value.map(g => ({value: String(g.id), label: g.name ?? ''})),
 )
+const today = currentPointInTime()
 const selectedPeriod = ref('month')
-const selectedYear = ref(new Date().getFullYear())
-const selectedMonth = ref(new Date().getMonth())
-const selectedWeek = ref(currentIsoWeek())
-const selectedQuarter = ref(Math.floor(new Date().getMonth() / 3) + 1)
+const selectedYear = ref(today.year)
+const selectedMonth = ref(today.month)
+const selectedWeek = ref(today.week)
+const selectedQuarter = ref(today.quarter)
 const selectedRounding = ref('exact')
 
 const periodOptions = [
@@ -72,6 +73,16 @@ const monthOptions = [
   {value: 6, label: 'Juli'}, {value: 7, label: 'August'}, {value: 8, label: 'September'},
   {value: 9, label: 'Oktober'}, {value: 10, label: 'November'}, {value: 11, label: 'Dezember'},
 ]
+
+function currentPointInTime() {
+  const now = new Date()
+  return {
+    year: now.getFullYear(),
+    month: now.getMonth(),
+    week: currentIsoWeek(),
+    quarter: Math.floor(now.getMonth() / 3) + 1,
+  }
+}
 
 function currentIsoWeek(): number {
   const d = new Date()
@@ -181,8 +192,8 @@ async function savePreset() {
   try {
     await attendance.createPreset({
       name: presetName.value,
-      roleName: selectedUserTypes.value.join(',') || undefined,
-      groupId: selectedGroupIds.value.length > 0 ? Number(selectedGroupIds.value[0]) : null,
+      userTypes: [...selectedUserTypes.value],
+      groupIds: selectedGroupIds.value.map(Number),
       period: selectedPeriod.value,
       rounding: selectedRounding.value,
     })
@@ -195,11 +206,21 @@ async function savePreset() {
   }
 }
 
+/**
+ * Restores the filter a preset was saved with. Groups deleted since are left out, and the point in
+ * time is always the current one, because a saved filter is a question asked again about now.
+ */
 function applyPreset(preset: ReportPreset) {
-  selectedUserTypes.value = preset.roleName ? preset.roleName.split(',').filter(Boolean) : []
-  selectedGroupIds.value = preset.groupId ? [String(preset.groupId)] : []
+  const knownGroupIds = new Set(groupOptions.value.map(g => g.value))
+  selectedUserTypes.value = [...preset.userTypes]
+  selectedGroupIds.value = preset.groupIds.map(String).filter(id => knownGroupIds.has(id))
   selectedPeriod.value = preset.period
   selectedRounding.value = preset.rounding
+  const now = currentPointInTime()
+  selectedYear.value = now.year
+  selectedMonth.value = now.month
+  selectedWeek.value = now.week
+  selectedQuarter.value = now.quarter
 }
 
 async function removePreset(id: number) {

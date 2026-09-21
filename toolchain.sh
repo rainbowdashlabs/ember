@@ -166,6 +166,7 @@ Backend
   be-coverage           Coverage gate only (needs a prior test run)
   be-report             Generate the full JaCoCo report
   be-javadoc            Build the javadoc on its own; be-verify runs it too
+  be-wrapper <version>  Move the Gradle wrapper to a version, e.g. be-wrapper 9.7.1
   be-federation-version Regenerate the federation contract version
   be-data-tracking      Refresh data_tracking.json from the live DB schema (testcontainer)
 
@@ -443,6 +444,7 @@ case "$cmd" in
     be-coverage)   cd "$ROOT"; run ./gradlew jacocoCoverageCheck "$@" ;;
     be-report)     cd "$ROOT"; run ./gradlew jacocoFullReport "$@" ;;
     be-javadoc)    cd "$ROOT"; run ./gradlew javadoc "$@" ;;
+    be-wrapper)    cd "$ROOT"; run ./gradlew wrapper --gradle-version "$@" ;;
     be-federation-version) cd "$ROOT"; run ./gradlew generateFederationVersion "$@" ;;
     be-data-tracking)      cd "$ROOT"; run ./gradlew refreshDataTracking spotlessJsonApply "$@" ;;
 

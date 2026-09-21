@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import type {MemberGroup} from '@/api/types'
+import {StationUserTypeLabels, type MemberGroup} from '@/api/types'
 import type {ReportPreset} from '@/api/attendance'
 
 const props = defineProps<{
@@ -18,13 +18,13 @@ const emit = defineEmits<{
   remove: [id: number]
 }>()
 
+/** The preset's name, followed by every user type and every group it selects that still exists. */
 function presetLabel(preset: ReportPreset): string {
-  const parts: string[] = []
-  if (preset.roleName) parts.push(preset.roleName)
-  if (preset.groupId) {
-    const g = props.groups.find(g => g.id === preset.groupId)
-    parts.push(g?.name ?? 'Gruppe')
-  }
+  const types = preset.userTypes.map(type => StationUserTypeLabels[type] ?? type)
+  const groups = preset.groupIds
+      .map(id => props.groups.find(g => g.id === id)?.name)
+      .filter((name): name is string => !!name)
+  const parts = [...types, ...groups]
   return parts.length > 0 ? `${preset.name} (${parts.join(', ')})` : preset.name
 }
 </script>

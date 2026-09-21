@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:6a56d1c087f7f8dec6781d4dd27926ef56f4bb3224c7878953429e3b43f1c8d3",
-  "generatedAt": "2026-09-18T21:58:01Z",
+  "schemaHash": "sha256:7225064bbdc8b65315be5df7c5d16dbaeba8885baa0407030cc9fa74ed952cf7",
+  "generatedAt": "2026-09-21T10:37:43Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -1259,7 +1259,7 @@
     "attendance_report_preset": {
       "feature": "attendance",
       "scope": "STATION",
-      "tableHash": "sha256:ec15384d607ff964fc733589f75d0b5339c2c548986f3fba219216fa71193237",
+      "tableHash": "sha256:3c00bcdcfbb0882ba868df4909d31bc8513a73fc68637afd52eb6215659340e3",
       "columns": [
         {
           "name": "id",
@@ -1283,20 +1283,6 @@
           "description": "Preset name."
         },
         {
-          "name": "role_name",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Filter by role name. NULL for no role filter."
-        },
-        {
-          "name": "group_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "Filter by group. NULL for no group filter."
-        },
-        {
           "name": "period",
           "type": "text",
           "nullable": false,
@@ -1309,15 +1295,23 @@
           "nullable": false,
           "verified": true,
           "description": "Time rounding mode: exact, 15min, 30min, hour."
+        },
+        {
+          "name": "user_types",
+          "type": "_text",
+          "nullable": false,
+          "verified": true,
+          "description": "Every user type the saved filter selects, by name. Empty when the filter selects none."
+        },
+        {
+          "name": "group_ids",
+          "type": "_int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Every group the saved filter selects. Not a foreign key, so deleting a group keeps the preset; an identifier that no longer resolves is ignored when the preset is shown or applied."
         }
       ],
       "foreignKeys": [
-        {
-          "column": "group_id",
-          "refTable": "member_group",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
         {
           "column": "station_id",
           "refTable": "station",

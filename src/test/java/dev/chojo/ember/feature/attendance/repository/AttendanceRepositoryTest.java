@@ -369,25 +369,64 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     // -- Report Presets --
 
     private static int presetId;
+    private static MemberGroup presetGroupA;
+    private static MemberGroup presetGroupB;
 
     @Test
     @Order(43)
     void createPreset() {
-        var preset = attendanceRepo.createPreset(station.id(), "Weekly Report", null, null, "weekly", "none");
+        presetGroupA = memberGroupRepo.create(station.id(), "PresetGroupA");
+        presetGroupB = memberGroupRepo.create(station.id(), "PresetGroupB");
+        var preset = attendanceRepo.createPreset(
+                station.id(),
+                "Weekly Report",
+                List.of(StationUserType.MEMBER, StationUserType.TEAM),
+                List.of(presetGroupA.id(), presetGroupB.id()),
+                "week",
+                "exact");
         assertNotNull(preset);
         assertEquals("Weekly Report", preset.name());
+        assertEquals(List.of(StationUserType.MEMBER, StationUserType.TEAM), preset.userTypes());
+        assertEquals(List.of(presetGroupA.id(), presetGroupB.id()), preset.groupIds());
         presetId = preset.id();
     }
 
     @Test
     @Order(44)
-    void findPresets() {
-        var presets = attendanceRepo.findPresets(station.id());
-        assertTrue(presets.stream().anyMatch(p -> p.id() == presetId));
+    void findPresetsReadsEveryUserTypeAndGroupBack() {
+        var preset = attendanceRepo.findPresets(station.id()).stream()
+                .filter(p -> p.id() == presetId)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(List.of(StationUserType.MEMBER, StationUserType.TEAM), preset.userTypes());
+        assertEquals(List.of(presetGroupA.id(), presetGroupB.id()), preset.groupIds());
+        assertEquals("week", preset.period());
+        assertEquals("exact", preset.rounding());
     }
 
     @Test
     @Order(45)
+    void deletingAGroupKeepsThePresetThatNamesIt() {
+        memberGroupRepo.delete(presetGroupA.id());
+        memberGroupRepo.delete(presetGroupB.id());
+        var preset = attendanceRepo.findPresets(station.id()).stream()
+                .filter(p -> p.id() == presetId)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(List.of(StationUserType.MEMBER, StationUserType.TEAM), preset.userTypes());
+    }
+
+    @Test
+    @Order(46)
+    void createPresetWithoutSelectionStoresEmptyLists() {
+        var preset = attendanceRepo.createPreset(station.id(), "Empty", List.of(), List.of(), "month", "exact");
+        assertTrue(preset.userTypes().isEmpty());
+        assertTrue(preset.groupIds().isEmpty());
+        assertTrue(attendanceRepo.deletePreset(preset.id()));
+    }
+
+    @Test
+    @Order(47)
     void deletePreset() {
         assertTrue(attendanceRepo.deletePreset(presetId));
         assertTrue(attendanceRepo.findPresets(station.id()).stream().noneMatch(p -> p.id() == presetId));

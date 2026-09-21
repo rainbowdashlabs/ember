@@ -33,6 +33,7 @@ defineProps<{
       <FieldLabel>{{ t('attendanceReport.userTypes') }}</FieldLabel>
       <MultiSelectDropdown
           v-model="selectedUserTypes"
+          data-testid="attendance-report-user-types"
           :options="userTypeOptions"
           :placeholder="t('attendanceReport.selectUserTypes')"
       />
@@ -41,6 +42,7 @@ defineProps<{
       <FieldLabel>{{ t('attendanceReport.groups') }}</FieldLabel>
       <MultiSelectDropdown
           v-model="selectedGroupIds"
+          data-testid="attendance-report-groups"
           :options="groupOptions"
           :placeholder="t('attendanceReport.selectGroups')"
       />

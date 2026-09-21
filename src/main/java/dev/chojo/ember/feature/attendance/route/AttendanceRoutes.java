@@ -1109,15 +1109,12 @@ public class AttendanceRoutes implements Routes {
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
         }
-        if (request.userType() == null && request.groupId() == null) {
-            throw new BadRequestResponse("userType or groupId is required");
-        }
         ctx.status(HttpStatus.CREATED)
                 .json(reportService.createPreset(
                         session.stationId(),
                         request.name(),
-                        request.userType(),
-                        request.groupId(),
+                        request.userTypes(),
+                        request.groupIds(),
                         request.period(),
                         request.rounding()));
     }
@@ -1454,10 +1451,10 @@ public class AttendanceRoutes implements Routes {
             LocalDate absentFrom, LocalDate absentUntil, String reason, List<Integer> memberIds) {}
 
     /**
-     * Request body for creating a report preset.
+     * Request body for creating a report preset. An unknown user type is refused as a bad request.
      */
     public record CreatePresetRequest(
-            String name, StationUserType userType, Integer groupId, String period, String rounding) {}
+            String name, List<StationUserType> userTypes, List<Integer> groupIds, String period, String rounding) {}
 
     /**
      * Absence response enriched with the creator's display name.

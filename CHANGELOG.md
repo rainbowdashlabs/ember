@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.18.5
+
+### Fixes
+
+- **Saving a filter on the attendance report did nothing.** Saving the filter under a name ended in a general error, and a filter saved earlier could come back without its user types or with only one of its groups. A saved filter now keeps every user type and every group it was saved with, and applies them to the current week, month, quarter or year.
+
 ## v26.18.4
 
 ### New Features

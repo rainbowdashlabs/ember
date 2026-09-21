@@ -7,6 +7,9 @@
   ],
   "timezone": "Europe/Berlin",
   "schedule": ["before 6am on monday"],
+  "constraints": {
+    "java": "25"
+  },
   "minimumReleaseAge": "14 days",
   "internalChecksFilter": "strict",
   "packageRules": [

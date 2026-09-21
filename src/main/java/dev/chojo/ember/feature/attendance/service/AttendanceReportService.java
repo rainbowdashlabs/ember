@@ -26,6 +26,7 @@ import dev.chojo.ember.util.DocumentPeriod;
 import dev.chojo.ember.util.DocumentWord;
 import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -46,6 +47,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -94,11 +96,26 @@ public class AttendanceReportService {
     }
 
     /**
-     * Creates a new report preset with the given filter configuration.
+     * Creates a new report preset holding every user type and every group the filter selects.
+     *
+     * <p>A missing list counts as an empty one, but a preset needs at least one user type or at
+     * least one group: a filter that selects nobody is not worth saving.
+     *
+     * @throws BadRequestResponse when the preset selects neither, or a list carries an empty entry
      */
     public AttendanceReportPreset createPreset(
-            int stationId, String name, StationUserType userType, Integer groupId, String period, String rounding) {
-        var preset = attendanceRepository.createPreset(stationId, name, userType, groupId, period, rounding);
+            int stationId,
+            String name,
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            String period,
+            String rounding) {
+        var types = presetSelection(userTypes);
+        var groups = presetSelection(groupIds);
+        if (types.isEmpty() && groups.isEmpty()) {
+            throw new BadRequestResponse("userTypes or groupIds is required");
+        }
+        var preset = attendanceRepository.createPreset(stationId, name, types, groups, period, rounding);
         log.info("Created attendance report preset {} for station {}", preset.id(), stationId);
         return preset;
     }
@@ -113,6 +130,14 @@ public class AttendanceReportService {
         }
         log.warn("Cannot delete attendance report preset: preset {} not found", id);
         return false;
+    }
+
+    private static <T> List<T> presetSelection(List<T> selection) {
+        if (selection == null) return List.of();
+        if (selection.stream().anyMatch(Objects::isNull)) {
+            throw new BadRequestResponse("A preset selection cannot contain an empty entry");
+        }
+        return selection.stream().distinct().toList();
     }
 
     /**
