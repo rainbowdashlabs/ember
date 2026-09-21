@@ -282,6 +282,52 @@ public class KnowledgeBaseFederationService {
     }
 
     /**
+     * What a partner says about one of its files, kept beside a favourite of it so its tile can be
+     * drawn without asking the partner every time.
+     *
+     * @throws NotFoundResponse when the partner does not share the file with this station
+     */
+    public PartnerEntry describePartnerFile(int stationId, UUID partnerStationUid, int fileId) {
+        return describe(stationId, partnerStationUid, getFederatedKbFile(stationId, partnerStationUid, fileId));
+    }
+
+    /** A partner file already fetched, described for keeping beside a favourite of it. */
+    public PartnerEntry describe(int stationId, UUID partnerStationUid, RemoteKbFile file) {
+        String fileType = file.fileType() == null ? null : file.fileType().name();
+        return new PartnerEntry(file.name(), fileType, partnerName(stationId, partnerStationUid));
+    }
+
+    /**
+     * What a partner says about one of its folders, kept beside a favourite of it.
+     *
+     * @throws NotFoundResponse when the partner does not share the folder with this station, or
+     *     not with a reader of this kind
+     */
+    public PartnerEntry describePartnerFolder(
+            int stationId, UUID partnerStationUid, int folderId, StationUserType readerUserType) {
+        var level = browseFederatedKbFolder(stationId, partnerStationUid, folderId, readerUserType);
+        var folder = level.trail().stream()
+                .filter(step -> step.remoteId() == folderId)
+                .findFirst()
+                .orElseThrow(NotFoundResponse::new);
+        return new PartnerEntry(folder.title(), null, folder.stationName());
+    }
+
+    private String partnerName(int stationId, UUID partnerStationUid) {
+        var partner = federationRepository
+                .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
+                .orElseThrow(NotFoundResponse::new);
+        return FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
+    }
+
+    /**
+     * A partner's entry as the partner described it.
+     *
+     * @param fileType the file's kind, {@code null} for a folder
+     */
+    public record PartnerEntry(String title, String fileType, String stationName) {}
+
+    /**
      * Renders a partner's knowledge-base file as a PDF, headed with the partner's name.
      *
      * @param localStationId    the reading station ID
@@ -346,8 +392,9 @@ public class KnowledgeBaseFederationService {
     }
 
     /**
-     * Copies a partner's knowledge-base file into the target station, keeping a source reference
-     * and carrying over the caller's favourite marking.
+     * Copies a partner's knowledge-base file into the target station, keeping a source reference.
+     * Whether the copy inherits the caller's favourite of the original is the favourites' own
+     * business, answered from that reference.
      *
      * @param fileId          the source file ID
      * @param targetStationId the station receiving the copy
@@ -371,9 +418,6 @@ public class KnowledgeBaseFederationService {
         var copied = knowledgeBaseService.createMarkdownFile(
                 targetStationId, null, source.name(), source.description(), content, createdBy);
         knowledgeBaseService.setSourceReference(copied.id(), source.id(), source.stationId());
-        if (knowledgeBaseService.isFavourite(createdBy, fileId)) {
-            knowledgeBaseService.addFavourite(createdBy, copied.id());
-        }
         log.info(
                 "KB file {} copied from file {} (station {}) into station {} by member {}",
                 copied.id(),

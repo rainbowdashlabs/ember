@@ -353,33 +353,6 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         knowledgeBaseRepo.purgeFile(other.id());
     }
 
-    // -- Favourites --
-
-    @Test
-    @Order(90)
-    void addAndFindFavourites() {
-        knowledgeBaseRepo.addFavourite(member.id(), fileId);
-        var favs = knowledgeBaseRepo.findFavourites(member.id());
-        assertFalse(favs.isEmpty());
-        assertTrue(favs.stream().anyMatch(f -> f.id() == fileId));
-        assertTrue(knowledgeBaseRepo.isFavourite(member.id(), fileId));
-    }
-
-    @Test
-    @Order(91)
-    void isFavouriteReturnsFalseWhenAbsent() {
-        assertFalse(knowledgeBaseRepo.isFavourite(member.id(), 99999));
-    }
-
-    @Test
-    @Order(92)
-    void removeFavourite() {
-        assertTrue(knowledgeBaseRepo.removeFavourite(member.id(), fileId));
-        assertFalse(knowledgeBaseRepo.isFavourite(member.id(), fileId));
-        // Remove again - should return false
-        assertFalse(knowledgeBaseRepo.removeFavourite(member.id(), fileId));
-    }
-
     // -- createFile with linkUrl --
 
     @Test

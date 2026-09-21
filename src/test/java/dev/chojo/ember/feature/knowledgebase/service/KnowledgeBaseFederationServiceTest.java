@@ -28,10 +28,12 @@ import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFavouriteTarget;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
+import dev.chojo.ember.feature.knowledgebase.repository.KbFavouriteRepository;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -614,18 +616,33 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
+    /** Copying a partner's file one keeps at hand must not lose it from the favourites. */
     @Test
     @Order(27)
     void copyKbFileKeepsFavouriteMarking() {
         var file = createFile(stationB.id(), "FavouriteSource");
         knowledgeBaseRepo.storeTextContent(file.id(), "# Fav");
-        knowledgeBaseRepo.addFavourite(member.id(), file.id());
+        var favouriteRepo = new KbFavouriteRepository();
+        var favourites = new KbFavouriteService(favouriteRepo, kbService, accessService, service, stationRepo);
+        favouriteRepo.addPartner(
+                member.id(),
+                KbFavouriteTarget.PARTNER_FILE,
+                stationB.uid(),
+                file.id(),
+                "FavouriteSource",
+                "MARKDOWN",
+                "Station B");
 
         var copied = service.copyKbFile(file.id(), station.id(), member.id());
-        assertTrue(knowledgeBaseRepo.isFavourite(member.id(), copied.id()));
+        favourites.carryOverToCopy(member.id(), copied.id());
 
-        knowledgeBaseRepo.removeFavourite(member.id(), copied.id());
-        knowledgeBaseRepo.removeFavourite(member.id(), file.id());
+        assertTrue(favouriteRepo
+                .findLocal(member.id(), KbFavouriteTarget.FILE, copied.id())
+                .isPresent());
+
+        favourites
+                .list(accessService.memberAccess(member.id(), StationUserType.MEMBER))
+                .forEach(favourite -> favourites.unmark(member.id(), favourite.id()));
         knowledgeBaseRepo.purgeFile(copied.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }

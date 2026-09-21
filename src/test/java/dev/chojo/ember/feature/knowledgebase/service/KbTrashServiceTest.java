@@ -11,9 +11,11 @@ import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFavouriteTarget;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.repository.KbFavouriteRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService.MemberAccess;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -99,7 +101,8 @@ class KbTrashServiceTest extends RepositoryTestBase {
     void aDeletedArticleLeavesTheListingTheSearchAndTheFavourites() {
         var article = file(null, "trash-searchable");
         contentService.initialiseMarkdown(article.id(), "Loeschbarer Hydrantenplan", member.id());
-        knowledgeBaseRepo.addFavourite(member.id(), article.id());
+        var favourites = new KbFavouriteRepository();
+        favourites.addLocal(member.id(), KbFavouriteTarget.FILE, article.id());
         assertFalse(searchService.search(station.id(), "Hydrantenplan").isEmpty());
 
         assertTrue(service.deleteFile(article.id(), member.id()));
@@ -107,8 +110,10 @@ class KbTrashServiceTest extends RepositoryTestBase {
         assertTrue(knowledgeBaseRepo.findFileById(article.id()).isEmpty());
         assertTrue(knowledgeBaseRepo.findFiles(station.id(), null).stream().noneMatch(f -> f.id() == article.id()));
         assertTrue(searchService.search(station.id(), "Hydrantenplan").isEmpty());
-        assertTrue(knowledgeBaseRepo.findFavourites(member.id()).stream().noneMatch(f -> f.id() == article.id()));
-        assertFalse(knowledgeBaseRepo.isFavourite(member.id(), article.id()));
+        assertTrue(favourites.findByMember(member.id()).stream().noneMatch(f -> f.entryId() == article.id()));
+        assertTrue(favourites
+                .findLocal(member.id(), KbFavouriteTarget.FILE, article.id())
+                .isEmpty());
         assertTrue(knowledgeBaseRepo.findDeletedFileById(article.id()).isPresent());
 
         service.purgeFile(article.id());

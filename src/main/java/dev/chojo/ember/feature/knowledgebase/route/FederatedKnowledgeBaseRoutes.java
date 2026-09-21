@@ -8,10 +8,10 @@ package dev.chojo.ember.feature.knowledgebase.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseCommentRoutes.CreateKbCommentRequest;
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseCommentRoutes.UpdateKbCommentRequest;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.FileContentResponse;
+import dev.chojo.ember.feature.knowledgebase.service.KbFavouriteService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.util.SafeContentDisposition;
@@ -25,9 +25,11 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.pathUuid;
+import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.readerUserType;
 
 /**
  * User-facing routes over content held by federation partners: browsing and reading their
@@ -38,10 +40,13 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
 public class FederatedKnowledgeBaseRoutes implements Routes {
 
     private final KnowledgeBaseFederationService federationService;
+    private final KbFavouriteService favourites;
 
     @Inject
-    public FederatedKnowledgeBaseRoutes(KnowledgeBaseFederationService federationService) {
+    public FederatedKnowledgeBaseRoutes(
+            KnowledgeBaseFederationService federationService, KbFavouriteService favourites) {
         this.federationService = federationService;
+        this.favourites = favourites;
     }
 
     private static String requireContent(String content) {
@@ -81,15 +86,6 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
                 StationPermission.LOGIN);
     }
 
-    /**
-     * The user type the reader holds at their own station, which is what an audience travelling with a
-     * share is matched against. A session with rights but no member row of its own matches nothing named.
-     */
-    private static StationUserType readerUserType(UserSession session) {
-        var member = session.member();
-        return member != null ? member.userType() : null;
-    }
-
     private void browseKb(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(federationService.browseFederatedKb(session.stationId(), readerUserType(session)));
@@ -101,10 +97,17 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
                 session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id"), readerUserType(session)));
     }
 
+    /**
+     * A partner's file, which is also the moment a favourite of it learns its current name: the
+     * partner has just answered for it, and a renamed file should not go on showing its old one.
+     */
     private void getFile(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(federationService.getFederatedKbFile(
-                session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id")));
+        UUID partner = pathUuid(ctx, "stationuid");
+        int fileId = pathInt(ctx, "id");
+        var file = federationService.getFederatedKbFile(session.stationId(), partner, fileId);
+        favourites.refreshPartnerFile(partner, fileId, federationService.describe(session.stationId(), partner, file));
+        ctx.json(file);
     }
 
     private void getFileContent(Context ctx) {
@@ -140,6 +143,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
         var session = UserSession.from(ctx);
         var copied = federationService.copyKbFile(
                 pathInt(ctx, "id"), session.stationId(), session.member().id());
+        favourites.carryOverToCopy(session.member().id(), copied.id());
         ctx.status(HttpStatus.CREATED).json(copied);
     }
 

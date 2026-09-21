@@ -217,24 +217,6 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(31)
-    void addAndRemoveFavourite() {
-        var favFile =
-                service.createMarkdownFile(station.id(), null, "Fav File", "For favourite test", "# Fav", member.id());
-
-        service.addFavourite(member.id(), favFile.id());
-        assertTrue(service.isFavourite(member.id(), favFile.id()));
-
-        var favs = service.findFavourites(member.id());
-        assertTrue(favs.stream().anyMatch(f -> f.id() == favFile.id()));
-
-        assertTrue(service.removeFavourite(member.id(), favFile.id()));
-        assertFalse(service.isFavourite(member.id(), favFile.id()));
-
-        trashService.deleteFile(favFile.id(), member.id());
-    }
-
-    @Test
     @Order(32)
     void setSourceReference() {
         var source = service.createMarkdownFile(station.id(), null, "SrcFile", "", "# Src", member.id());

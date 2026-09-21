@@ -70,7 +70,7 @@ export function useKbNavigation(routes: KbRoutes = STATION_KB_ROUTES) {
         }
     }
 
-    function navigateToFile(file: KbFileSummary) {
+    function navigateToFile(file: Pick<KbFileSummary, 'id'>) {
         router.push({name: routes.file, params: {id: file.id}})
     }
 

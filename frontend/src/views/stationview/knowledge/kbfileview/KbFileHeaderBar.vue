@@ -24,10 +24,13 @@ const props = defineProps<{
     /** Moving changes who is responsible for the article, so it asks for more than editing does. */
     canMove: boolean
     editing: boolean
+    /** Whether the reader keeps this file among their favourites. */
+    favourite: boolean
 }>()
 
 defineEmits<{
     back: []
+    toggleFavourite: []
     copyShareLink: []
     copyToStation: []
     openEditMetadata: []
@@ -80,6 +83,14 @@ const hasMenu = computed(() => canShareLink.value
         </SecondaryButton>
 
         <PageHeader class="flex-1 !mb-0">{{ file.name }}</PageHeader>
+
+        <IconButton
+            :icon="['fas', 'star']"
+            :label="favourite ? t('kb.removeFavourite') : t('kb.addFavourite')"
+            :class="favourite ? '!text-yellow-500' : '!text-[var(--text-muted)]'"
+            data-testid="kb-file-favourite"
+            @click="$emit('toggleFavourite')"
+        />
 
         <!--
           The share link keeps its own button although it is an action like the others: the whole

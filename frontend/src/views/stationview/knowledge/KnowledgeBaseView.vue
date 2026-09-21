@@ -32,7 +32,8 @@ import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {knowledgeBase} from '@/api'
 import {downloadAuthed} from '@/util/downloadAuthed'
-import {KbAccessLevel, levelCovers, type KbFolder, type KbFileSummary} from '@/api/knowledgeBase'
+import {KbAccessLevel, levelCovers, type FavouriteEntry, type KbFolder, type KbFileSummary} from '@/api/knowledgeBase'
+import {useKbFavourites} from '@/composables/useKbFavourites'
 
 const props = defineProps<{
   /** The pages this knowledge base is mounted on, which differ when an association opens its own. */
@@ -58,10 +59,28 @@ const {
     navigateToSharedFolder, sharedFolderId,
 } = navigation
 const {
-    currentFolder, breadcrumbs, favourites, favouriteIds, currentLevel, folderLevels, fileLevels,
-    loading, error, loadData, toggleFavourite, copySharedFile, sharedFolders,
+    currentFolder, breadcrumbs, currentLevel, folderLevels, fileLevels,
+    loading, error, loadData, copySharedFile, sharedFolders,
     publicIds, federatedIds, narrowIds, folderKey, fileKey, sharedTrail,
 } = browse
+const favourites = useKbFavourites()
+
+async function loadFavourites() {
+    try {
+        await favourites.load()
+    } catch {
+        error.value = t('common.error')
+    }
+}
+
+async function toggleFavourite(entry: FavouriteEntry, event?: MouseEvent) {
+    event?.stopPropagation()
+    try {
+        await favourites.toggle(entry)
+    } catch {
+        error.value = t('kb.favouriteUnavailable')
+    }
+}
 const {showFederated, filterStationId, filterTag, allKbTags, partnerStations, filteredFolders, filteredFiles, filteredSharedFiles, loadTags} = filters
 const {searchQuery, searchResults, searching, isSearching, filteredSearchResults, onSearchInput} = search
 const {shareCopied, copyShareLink} = useKbShareLink(currentFolder)
@@ -149,7 +168,6 @@ const {items, toSearchItems} = useKbItems(
         folderKey,
         fileKey,
         favourites,
-        favouriteIds,
         currentFolder,
         isFavouritesView,
         canManage: computed(() => canEditKnowledge()),
@@ -173,7 +191,7 @@ const {items, toSearchItems} = useKbItems(
         downloadFile,
         copySharedFile,
         openSharedFolder: navigateToSharedFolder,
-        removeFavourite: toggleFavourite,
+        toggleFavourite,
     },
 )
 
@@ -187,7 +205,7 @@ watch([folderParam, sharedFolderId], () => {
 })
 
 watch(loaded, (isLoaded) => {
-    if (isLoaded) { loadData(); loadTags(); loadFolderTree() }
+    if (isLoaded) { loadData(); loadTags(); loadFolderTree(); loadFavourites() }
 }, {immediate: true})
 </script>
 

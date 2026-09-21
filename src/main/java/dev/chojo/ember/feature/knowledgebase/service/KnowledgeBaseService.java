@@ -30,10 +30,11 @@ import java.util.stream.Collectors;
 
 /**
  * The folder and file tree of a station's knowledge base: creating entries of every kind, reading
- * and moving them around, and the per-member favourites and cross-references that sit on top.
+ * and moving them around, and the cross-references that sit on top.
  *
  * <p>What an entry <em>says</em> lives in {@link KbContentService}, who may see it in
- * {@link KbAccessService}, and the concerns specific to one kind of upload in
+ * {@link KbAccessService}, a member's favourites in {@link KbFavouriteService}, and the concerns
+ * specific to one kind of upload in
  * {@link KbPresentationService} and {@link KbLinkMetadataService}. Creating a file is the point
  * where those meet: the entry is written here, then handed to whichever of them owns the rest.
  */
@@ -439,51 +440,6 @@ public class KnowledgeBaseService {
     public void setRelatedFiles(int fileId, List<Integer> targetFileIds) {
         repository.setRelatedFiles(fileId, targetFileIds);
         log.info("KB file {} now points at {} related file(s)", fileId, targetFileIds.size());
-    }
-
-    /**
-     * Marks a file as a favourite of a member.
-     *
-     * @param memberId the member
-     * @param fileId   the file
-     */
-    public void addFavourite(int memberId, int fileId) {
-        repository.addFavourite(memberId, fileId);
-        log.debug("Member {} marked KB file {} as a favourite", memberId, fileId);
-    }
-
-    /**
-     * Drops a member's favourite mark from a file.
-     *
-     * @param memberId the member
-     * @param fileId   the file
-     * @return {@code true} when the file was a favourite
-     */
-    public boolean removeFavourite(int memberId, int fileId) {
-        boolean removed = repository.removeFavourite(memberId, fileId);
-        if (removed) log.debug("Member {} unmarked KB file {}", memberId, fileId);
-        return removed;
-    }
-
-    /**
-     * Lists the files a member marked as favourites.
-     *
-     * @param memberId the member
-     * @return the favourite files
-     */
-    public List<KbFile> findFavourites(int memberId) {
-        return repository.findFavourites(memberId);
-    }
-
-    /**
-     * Whether a member marked a file as a favourite.
-     *
-     * @param memberId the member
-     * @param fileId   the file
-     * @return {@code true} when the file is a favourite
-     */
-    public boolean isFavourite(int memberId, int fileId) {
-        return repository.isFavourite(memberId, fileId);
     }
 
     private static boolean isBlank(String value) {
