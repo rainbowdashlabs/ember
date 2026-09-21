@@ -12,8 +12,8 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import type {useKbNavigation} from './useKbNavigation'
 
 /**
- * Contents of the folder the browser currently shows: its subfolders, files,
- * federated files and favourites, plus the breadcrumb trail leading to it.
+ * Contents of the folder the browser currently shows: its subfolders, files and
+ * federated files, plus the breadcrumb trail leading to it.
  */
 export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
     const {t} = useI18n()
@@ -23,7 +23,6 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
     const files = ref<KbFileSummary[]>([])
     const sharedFiles = ref<SharedFileEntry[]>([])
     const sharedFolders = ref<SharedFolderEntry[]>([])
-    const favourites = ref<KbFileSummary[]>([])
     const breadcrumbs = ref<KbFolder[]>([])
     const currentLevel = ref<KbAccessLevelName | undefined>(undefined)
     const folderLevels = ref<Record<number, KbAccessLevelName>>({})
@@ -32,8 +31,6 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
     const publicIds = ref<Set<number>>(new Set())
     const federatedIds = ref<Set<number>>(new Set())
     const narrowIds = ref<Set<number>>(new Set())
-
-    const favouriteIds = computed(() => new Set(favourites.value.map(f => f.id)))
 
     const {loading, error, reload: loadData} = useAsyncLoader(async () => {
         if (navigation.isTrashView.value) {
@@ -51,7 +48,6 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
             currentLevel.value = undefined
             folders.value = []
             files.value = []
-            favourites.value = []
             breadcrumbs.value = []
             sharedFolders.value = level.folders.map(toSharedFolder)
             sharedFiles.value = level.files.map(toSharedFile)
@@ -61,11 +57,9 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
             currentFolder.value = null
             currentLevel.value = result.currentLevel
             folders.value = []
-            // TODO: favourites have no backend route yet, so this view is always empty.
             files.value = []
             sharedFiles.value = []
             sharedFolders.value = []
-            favourites.value = []
             breadcrumbs.value = []
         } else {
             const result = await knowledgeBase.browse(navigation.currentFolderId.value)
@@ -88,7 +82,6 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
                 ...(result.folderReach?.narrowly ?? []).map(id => folderKey(id)),
                 ...(result.fileReach?.narrowly ?? []).map(id => fileKey(id)),
             ])
-            favourites.value = []
             await buildBreadcrumbs()
 
             if (navigation.currentFolderId.value == null) {
@@ -155,24 +148,6 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
         breadcrumbs.value = crumbs
     }
 
-    async function toggleFavourite(file: KbFileSummary, event?: MouseEvent) {
-        if (event) event.stopPropagation()
-        try {
-            if (favouriteIds.value.has(file.id)) {
-                await knowledgeBase.removeFavourite(file.id)
-                favourites.value = favourites.value.filter(f => f.id !== file.id)
-                if (navigation.isFavouritesView.value) {
-                    files.value = files.value.filter(f => f.id !== file.id)
-                }
-            } else {
-                await knowledgeBase.addFavourite(file.id)
-                favourites.value = [...favourites.value, file]
-            }
-        } catch {
-            error.value = t('common.error')
-        }
-    }
-
     async function copySharedFile(fileId: number) {
         try {
             await federation.copyKbFile(fileId)
@@ -192,16 +167,13 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
         narrowIds,
         folderKey,
         fileKey,
-        favourites,
         breadcrumbs,
         currentLevel,
         folderLevels,
         fileLevels,
-        favouriteIds,
         loading,
         error,
         loadData,
-        toggleFavourite,
         copySharedFile,
     }
 }

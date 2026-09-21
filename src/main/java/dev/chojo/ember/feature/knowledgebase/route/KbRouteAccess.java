@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
@@ -28,6 +29,15 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 final class KbRouteAccess {
 
     private KbRouteAccess() {}
+
+    /**
+     * The user type the reader holds at their own station, which is what an audience travelling with a
+     * share is matched against. A session with rights but no member row of its own matches nothing named.
+     */
+    static StationUserType readerUserType(UserSession session) {
+        var member = session.member();
+        return member != null ? member.userType() : null;
+    }
 
     /**
      * Loads a knowledge-base file and asserts it belongs to the caller's station.

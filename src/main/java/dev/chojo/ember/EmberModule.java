@@ -159,6 +159,7 @@ import dev.chojo.ember.feature.inventory.route.RemoteInventoryTagRoutes;
 import dev.chojo.ember.feature.inventory.route.SelfCheckReviewRoutes;
 import dev.chojo.ember.feature.inventory.route.SelfCheckRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.FederatedKnowledgeBaseRoutes;
+import dev.chojo.ember.feature.knowledgebase.route.KbFavouriteRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseAccessRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseCommentRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseRoutes;
@@ -417,6 +418,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(KnowledgeBaseAccessRoutes.class);
         routesBinder.addBinding().to(KnowledgeBaseTagRoutes.class);
         routesBinder.addBinding().to(KnowledgeBaseCommentRoutes.class);
+        routesBinder.addBinding().to(KbFavouriteRoutes.class);
         routesBinder.addBinding().to(FederatedKnowledgeBaseRoutes.class);
         routesBinder.addBinding().to(RemoteKnowledgeBaseRoutes.class);
         routesBinder.addBinding().to(PublicKnowledgeBaseRoutes.class);

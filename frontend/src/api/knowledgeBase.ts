@@ -195,7 +195,6 @@ export async function browse(folderId?: number | null): Promise<BrowseResponse> 
 export interface FileResponse {
     file: KbFile
     lastEditedByName: string | null
-    isFavourite: boolean
     /** What the reader may do with this file. */
     accessLevel?: KbAccessLevelName
     /** The folder whose permission decided that, when one did. */
@@ -771,17 +770,48 @@ export function kbImageUrl(imageId: string, size = 1024): string {
 
 // -- Favourites --
 
-export async function listFavourites(): Promise<KbFile[]> {
-    const res = await client.get<KbFile[]>('/kb/favourites')
+/** What a favourite points at: a file or folder of this station, or one a partner shares. */
+export const KbFavouriteTarget = {
+    FILE: 'FILE',
+    FOLDER: 'FOLDER',
+    PARTNER_FILE: 'PARTNER_FILE',
+    PARTNER_FOLDER: 'PARTNER_FOLDER',
+} as const
+
+export type KbFavouriteTargetName = (typeof KbFavouriteTarget)[keyof typeof KbFavouriteTarget]
+
+/** Something that can be marked, named the way the server tells two favourites apart. */
+export interface FavouriteEntry {
+    target: KbFavouriteTargetName
+    entryId: number
+    /** The partner serving the entry, for the partner kinds only. */
+    partnerStationUid?: string | null
+}
+
+/**
+ * One of the reader's favourites. This station's entries carry their current name; a partner's
+ * carry the name, kind and partner name as the partner last gave them.
+ */
+export interface KbFavourite extends FavouriteEntry {
+    id: number
+    title: string
+    fileType: string | null
+    stationName: string | null
+    createdAt: string
+}
+
+export async function listFavourites(): Promise<KbFavourite[]> {
+    const res = await client.get<KbFavourite[]>('/kb/favourites')
     return res.data
 }
 
-export async function addFavourite(fileId: number): Promise<void> {
-    await client.post(`/kb/favourites/${fileId}`)
+export async function markFavourite(entry: FavouriteEntry): Promise<KbFavourite> {
+    const res = await client.post<KbFavourite>('/kb/favourites', entry)
+    return res.data
 }
 
-export async function removeFavourite(fileId: number): Promise<void> {
-    await client.delete(`/kb/favourites/${fileId}`)
+export async function unmarkFavourite(id: number): Promise<void> {
+    await client.delete(`/kb/favourites/${id}`)
 }
 
 // -- Search --

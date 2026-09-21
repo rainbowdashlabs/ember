@@ -1019,48 +1019,6 @@ public class KnowledgeBaseRepository {
         }
     }
 
-    // -- Favourites --
-
-    public void addFavourite(int memberId, int fileId) {
-        query("INSERT INTO kb_favourite(member_id, file_id) VALUES(:member_id, :file_id) ON CONFLICT DO NOTHING;")
-                .single(call().bind("member_id", memberId).bind("file_id", fileId))
-                .insert();
-    }
-
-    // Not yet exposed via routes - favourites UI not implemented
-    public boolean removeFavourite(int memberId, int fileId) {
-        return query("DELETE FROM kb_favourite WHERE member_id = :member_id AND file_id = :file_id;")
-                .single(call().bind("member_id", memberId).bind("file_id", fileId))
-                .delete()
-                .changed();
-    }
-
-    public List<KbFile> findFavourites(int memberId) {
-        return query("""
-                SELECT
-                    %s, %s
-                FROM
-                    kb_file f
-                        JOIN kb_favourite fav
-                        ON fav.file_id = f.id
-                WHERE fav.member_id = :member_id
-                  %s
-                ORDER BY fav.created_at DESC;""", FILE_COLUMNS, FILE_RESTRICTED, FILE_ALIVE)
-                .single(call().bind("member_id", memberId))
-                .map(KbFile.map())
-                .all();
-    }
-
-    public boolean isFavourite(int memberId, int fileId) {
-        return SqlSupport.exists("""
-                SELECT 1
-                FROM kb_favourite fav
-                    JOIN kb_file f ON f.id = fav.file_id
-                WHERE fav.member_id = :member_id
-                  AND fav.file_id = :file_id
-                  AND f.deleted_at IS NULL;""", call().bind("member_id", memberId).bind("file_id", fileId));
-    }
-
     public void setFolderTags(int folderId, List<String> tagNames, int stationId) {
         query("DELETE FROM kb_folder_tag WHERE folder_id = :folder_id;")
                 .single(call().bind("folder_id", folderId))

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:7225064bbdc8b65315be5df7c5d16dbaeba8885baa0407030cc9fa74ed952cf7",
-  "generatedAt": "2026-09-21T10:37:43Z",
+  "schemaHash": "sha256:1c752e281c3a19c5507795981a7f946c1a73550f205b4151a7a34a049c7a4a7d",
+  "generatedAt": "2026-09-21T12:04:59Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -13641,34 +13641,96 @@
     "kb_favourite": {
       "feature": "knowledgebase",
       "scope": "STATION",
-      "tableHash": "sha256:b589267b5386fc6af1943ea4becdd4f7ccb648a7cc137c5a8ac2cbf0f73a3c62",
+      "tableHash": "sha256:d86ec6e1e98f24e1c4890c85030ffdea04d27d7cc46fb7b3df330aff150fd767",
       "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
         {
           "name": "member_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "References the station member."
+          "description": "The member whose favourite this is."
+        },
+        {
+          "name": "target",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What is marked: FILE or FOLDER of this station, PARTNER_FILE or PARTNER_FOLDER of a partner station. Decides which of the pointing columns are set."
         },
         {
           "name": "file_id",
           "type": "int4",
-          "nullable": false,
+          "nullable": true,
           "verified": true,
-          "description": "References the KB file."
+          "description": "The file of this station, for a FILE favourite. The favourite goes when the file does."
+        },
+        {
+          "name": "folder_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The folder of this station, for a FOLDER favourite. The favourite goes when the folder does."
+        },
+        {
+          "name": "partner_station_uid",
+          "type": "uuid",
+          "nullable": true,
+          "verified": true,
+          "description": "The partner station sharing the entry, for a partner favourite."
+        },
+        {
+          "name": "partner_entry_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The file or folder id on the partner station, for a partner favourite."
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The partner entry's name as the partner last gave it, so the tile can be drawn without asking the partner. Empty for this station's entries, whose name is read live."
+        },
+        {
+          "name": "file_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The partner file's kind as the partner last gave it. Empty otherwise."
+        },
+        {
+          "name": "station_name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The partner station's name as it last gave it. Empty for this station's entries."
         },
         {
           "name": "created_at",
           "type": "timestamptz",
           "nullable": false,
           "verified": true,
-          "description": "When the favourite was added."
+          "description": "When the member marked it, which orders the list newest first."
         }
       ],
       "foreignKeys": [
         {
           "column": "file_id",
           "refTable": "kb_file",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "folder_id",
+          "refTable": "kb_folder",
           "refColumn": "id",
           "onDelete": "CASCADE"
         },
@@ -13693,10 +13755,16 @@
         ]
       },
       "gdprDeletion": {
-        "status": "IGNORED",
-        "reason": "User favourites — pending detailed review"
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          }
+        ]
       },
-      "description": "User bookmarks/favourites for KB files."
+      "description": "What one member marked in the wiki to reach quickly: a file or a folder of this station, or one a partner station shares. Only that member sees it."
     },
     "kb_file": {
       "feature": "knowledgebase",

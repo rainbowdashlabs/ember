@@ -13,6 +13,8 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import KbFileHeaderBar from '@/views/stationview/knowledge/kbfileview/KbFileHeaderBar.vue'
+import KbPartnerGoneNotice from '@/views/stationview/knowledge/kbfileview/KbPartnerGoneNotice.vue'
+import {useKbFileFavourite} from '@/views/stationview/knowledge/kbfileview/useKbFileFavourite'
 import KbFileDescription from '@/views/stationview/knowledge/kbfileview/KbFileDescription.vue'
 import KbTagsSection from '@/views/stationview/knowledge/kbfileview/KbTagsSection.vue'
 import KbRelatedFilesSection from '@/views/stationview/knowledge/kbfileview/KbRelatedFilesSection.vue'
@@ -330,8 +332,10 @@ async function handleReuploadFile(uploadFile: File) {
         error.value = t('common.error')
     }
 }
+const favourite = useKbFileFavourite(() => props.fileId, () => props.stationUid, error)
+
 watch(loaded, (isLoaded) => {
-    if (isLoaded) loadData()
+    if (isLoaded) { loadData(); favourite.load() }
 }, {immediate: true})
 
 watch(() => [props.fileId, props.stationUid], () => {
@@ -344,7 +348,11 @@ watch(() => [props.fileId, props.stationUid], () => {
         :title="isFederated ? t('pages.federated-kb-file.title') : t('pages.kb-file.title')"
         :subtitle="isFederated ? t('pages.federated-kb-file.subtitle') : t('pages.kb-file.subtitle')"
     >
-        <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+        <KbPartnerGoneNotice
+            v-if="isFederated && !file && !loading && favourite.marked.value"
+            @remove="favourite.toggle()"
+        />
+        <Alert v-else-if="error" variant="error" class="mb-4">{{ error }}</Alert>
         <Spinner v-if="loading"/>
 
         <template v-else-if="file">
@@ -356,7 +364,9 @@ watch(() => [props.fileId, props.stationUid], () => {
                 :can-edit="mayEdit"
                 :can-move="mayMove"
                 :editing="editing"
+                :favourite="favourite.marked.value"
                 @back="goBack"
+                @toggle-favourite="favourite.toggle()"
                 @copy-share-link="copyShareLink"
                 @copy-to-station="copyToStation"
                 @open-edit-metadata="showEditMetadataModal = true"

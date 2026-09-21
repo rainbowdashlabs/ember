@@ -3347,7 +3347,7 @@ volumes:
             eyesTitle: 'Die Augen auf den Kacheln',
             eyesText: 'Ein grünes Auge heißt: dieser Eintrag steht im öffentlichen Wiki. Ein gelbes heißt: er ist geteilt, aber nicht mit allen, also mit bestimmten Partnerwachen oder nur für bestimmte Rollen. Kein Auge heißt, dass ihn alle in eurer Wache sehen und sonst niemand. Ein Schloss sagt weiterhin, dass ihn nicht jede Rolle bei euch öffnen darf.',
             favouritesTitle: 'Favoriten',
-            favouritesText: 'Markiere Dateien als Favorit mit dem Stern-Symbol. Deine Favoriten findest du auf der Startseite des Wikis.',
+            favouritesText: 'Markiere Dateien und Ordner als Favorit mit dem Stern, in den Aktionen einer Kachel oder oben in einer geöffneten Datei. Das geht auch mit dem, was eine Partnerwache mit euch teilt. Deine Favoriten findest du im Ordner „Favoriten“ auf der Startseite des Wikis, und nur du siehst sie.',
             createMenuTitle: 'Inhalte erstellen (Verwalter)',
             createMenuText: 'Als Verwalter siehst du oben ein Menü zum Erstellen neuer Inhalte:',
             createFolder: 'Neuer Ordner - Erstelle einen Unterordner.',

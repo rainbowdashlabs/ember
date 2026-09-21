@@ -10,7 +10,10 @@ import {
     KbAccessLevel,
     KbFileType,
     levelCovers,
+    KbFavouriteTarget,
+    type FavouriteEntry,
     type KbAccessLevelName,
+    type KbFavourite,
     type KbFileSummary,
     type KbFolder,
     type SearchResult,
@@ -19,6 +22,23 @@ import {
 } from '@/api/knowledgeBase'
 import {fileIcon} from '@/util/kbFileIcon'
 import {isPdfExportable} from '@/util/kbFileExport'
+import type {KbFavourites} from '@/composables/useKbFavourites'
+
+function fileEntry(id: number): FavouriteEntry {
+    return {target: KbFavouriteTarget.FILE, entryId: id}
+}
+
+function folderEntry(id: number): FavouriteEntry {
+    return {target: KbFavouriteTarget.FOLDER, entryId: id}
+}
+
+function partnerEntry(
+    target: typeof KbFavouriteTarget.PARTNER_FILE | typeof KbFavouriteTarget.PARTNER_FOLDER,
+    partnerStationUid: string,
+    id: number,
+): FavouriteEntry {
+    return {target, entryId: id, partnerStationUid}
+}
 /**
  * The kinds of file a tile shows a picture of: a photograph scaled down, a PDF by its first page.
  *
@@ -98,7 +118,7 @@ export interface KbItem {
 
 interface KbItemHandlers {
     openFolder: (id: number) => void
-    openFile: (file: KbFileSummary) => void
+    openFile: (file: Pick<KbFileSummary, 'id'>) => void
     openFederatedFile: (stationUid: string, fileId: number) => void
     openFavourites: () => void
     editFolder: (folder: KbFolder) => void
@@ -113,7 +133,7 @@ interface KbItemHandlers {
     downloadFile: (file: KbFileSummary) => void
     copySharedFile: (id: number) => void
     openSharedFolder: (stationUid: string, folderId: number) => void
-    removeFavourite: (file: KbFileSummary, event?: MouseEvent) => void
+    toggleFavourite: (entry: FavouriteEntry, event?: MouseEvent) => void
 }
 
 interface KbItemSources {
@@ -129,8 +149,7 @@ interface KbItemSources {
     narrowIds: Ref<Set<number>>
     folderKey: (id: number) => number
     fileKey: (id: number) => number
-    favourites: Ref<KbFileSummary[]>
-    favouriteIds: Ref<Set<number>>
+    favourites: Pick<KbFavourites, 'favourites' | 'isFavourite'>
     currentFolder: Ref<KbFolder | null>
     isFavouritesView: Ref<boolean>
     canManage: Ref<boolean>
@@ -206,20 +225,26 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
         }]
     }
 
-    function fileActions(file: KbFileSummary): KbItemAction[] {
-        const actions: KbItemAction[] = [...pdfAction(file, true), ...downloadAction(file)]
-        if (sources.isFavouritesView.value) {
-            actions.push({
-                key: 'unfavourite',
-                icon: ['fas', 'star'],
-                label: t('kb.removeFavourite'),
-                onHover: true,
-                class: '!text-yellow-500',
-                iconClass: 'text-yellow-500',
-                run: (event) => handlers.removeFavourite(file, event),
-            })
-            return actions
+    /** Marking an entry as a favourite, or taking the mark off one that has it. */
+    function favouriteAction(entry: FavouriteEntry): KbItemAction {
+        const marked = sources.favourites.isFavourite(entry)
+        return {
+            key: 'favourite',
+            icon: ['fas', 'star'],
+            label: marked ? t('kb.removeFavourite') : t('kb.addFavourite'),
+            onHover: true,
+            class: marked ? '!text-yellow-500' : undefined,
+            iconClass: marked ? 'text-yellow-500' : undefined,
+            run: (event) => handlers.toggleFavourite(entry, event),
         }
+    }
+
+    function fileActions(file: KbFileSummary): KbItemAction[] {
+        const actions: KbItemAction[] = [
+            ...pdfAction(file, true),
+            ...downloadAction(file),
+            favouriteAction(fileEntry(file.id)),
+        ]
         const level = sources.fileLevels.value[file.id]
         if (sources.canManage.value && levelCovers(level, KbAccessLevel.WRITE)) {
             actions.push({
@@ -271,11 +296,9 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             typeLabel: fileTypeLabel(file.fileType),
             updatedAt: file.updatedAt,
             restricted: file.restricted === true,
-            favourite: sources.favouriteIds.value.has(file.id),
+            favourite: sources.favourites.isFavourite(fileEntry(file.id)),
             shared: reachOf(sources.fileKey(file.id)),
-            levelLabel: sources.isFavouritesView.value
-                ? undefined
-                : levelLabel(sources.fileLevels.value[file.id]),
+            levelLabel: levelLabel(sources.fileLevels.value[file.id]),
             open: () => handlers.openFile(file),
             actions: fileActions(file),
         }
@@ -298,6 +321,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
 
     function toSharedFolderItem(shared: SharedFolderEntry): KbItem {
         const stationUid = shared.sourceStationUid
+        const entry = stationUid ? partnerEntry(KbFavouriteTarget.PARTNER_FOLDER, stationUid, shared.id) : null
         return {
             key: 'shared-folder-' + stationUid + '-' + shared.id,
             icon: ['fas', 'folder'],
@@ -307,14 +331,15 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             typeLabel: t('kb.typeFolder'),
             stationName: shared.stationName,
             restricted: false,
-            favourite: false,
+            favourite: entry ? sources.favourites.isFavourite(entry) : false,
             open: stationUid ? () => handlers.openSharedFolder(stationUid, shared.id) : undefined,
-            actions: [],
+            actions: entry ? [favouriteAction(entry)] : [],
         }
     }
 
     function toSharedItem(shared: SharedFileEntry): KbItem {
         const stationUid = shared.sourceStationUid
+        const entry = stationUid ? partnerEntry(KbFavouriteTarget.PARTNER_FILE, stationUid, shared.file.id) : null
         return {
             key: 'shared-' + stationUid + '-' + shared.file.id,
             icon: fileIcon(shared.file),
@@ -324,7 +349,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             typeLabel: fileTypeLabel(shared.file.fileType),
             stationName: shared.stationName,
             restricted: false,
-            favourite: false,
+            favourite: entry ? sources.favourites.isFavourite(entry) : false,
             open: stationUid ? () => handlers.openFederatedFile(stationUid, shared.file.id) : undefined,
             actions: [
                 {
@@ -334,9 +359,57 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
                     onHover: true,
                     run: () => handlers.copySharedFile(shared.file.id),
                 },
+                ...(entry ? [favouriteAction(entry)] : []),
             ],
         }
     }
+
+    /**
+     * A tile of the favourites view, drawn from the favourite itself: this station's entries under
+     * their current name, a partner's under the name the partner last gave, and each opened the way
+     * it opens from its own listing.
+     */
+    function toFavouriteItem(favourite: KbFavourite): KbItem {
+        const folder = favourite.target === KbFavouriteTarget.FOLDER
+            || favourite.target === KbFavouriteTarget.PARTNER_FOLDER
+        const fileType = favourite.fileType ?? undefined
+        const pictured = favourite.target === KbFavouriteTarget.FILE && PICTURED_TYPES.has(favourite.fileType ?? '')
+        return {
+            key: 'favourite-' + favourite.id,
+            icon: folder ? ['fas', 'folder'] : fileIcon({fileType}),
+            iconClass: folder ? 'text-[var(--accent)]' : 'text-[var(--primary)]',
+            picture: pictured ? knowledgeBase.filePictureUrl(favourite.entryId) : undefined,
+            title: favourite.title,
+            typeLabel: folder ? t('kb.typeFolder') : fileTypeLabel(fileType),
+            stationName: favourite.stationName ?? undefined,
+            restricted: false,
+            favourite: true,
+            open: () => openFavourite(favourite),
+            actions: [favouriteAction(favourite)],
+        }
+    }
+
+    function openFavourite(favourite: KbFavourite) {
+        const partner = favourite.partnerStationUid
+        switch (favourite.target) {
+            case KbFavouriteTarget.FILE:
+                return handlers.openFile({id: favourite.entryId})
+            case KbFavouriteTarget.FOLDER:
+                return handlers.openFolder(favourite.entryId)
+            case KbFavouriteTarget.PARTNER_FILE:
+                return partner ? handlers.openFederatedFile(partner, favourite.entryId) : undefined
+            case KbFavouriteTarget.PARTNER_FOLDER:
+                return partner ? handlers.openSharedFolder(partner, favourite.entryId) : undefined
+        }
+    }
+
+    /** The favourites view lists folders before files, the way every folder does. */
+    const favouriteItems = computed<KbItem[]>(() => {
+        const all = sources.favourites.favourites.value
+        const isFolder = (favourite: KbFavourite) => favourite.target === KbFavouriteTarget.FOLDER
+            || favourite.target === KbFavouriteTarget.PARTNER_FOLDER
+        return [...all.filter(isFolder), ...all.filter(favourite => !isFolder(favourite))].map(toFavouriteItem)
+    })
 
     /**
      * Editing needs write, deleting needs manage - the same levels the server enforces, so the
@@ -397,17 +470,18 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             shared: reachOf(sources.folderKey(folder.id)),
             updatedAt: folder.updatedAt,
             restricted: folder.restricted === true,
-            favourite: false,
+            favourite: sources.favourites.isFavourite(folderEntry(folder.id)),
             levelLabel: levelLabel(sources.folderLevels.value[folder.id]),
             open: () => handlers.openFolder(folder.id),
-            actions: folderActions(folder),
+            actions: [favouriteAction(folderEntry(folder.id)), ...folderActions(folder)],
         }
     }
 
     const favouritesItem = computed<KbItem | null>(() => {
+        const count = sources.favourites.favourites.value.length
         const showFavouritesFolder = !sources.currentFolder.value
             && !sources.isFavouritesView.value
-            && sources.favourites.value.length > 0
+            && count > 0
         if (!showFavouritesFolder) return null
         return {
             key: 'favourites',
@@ -417,13 +491,14 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             typeLabel: t('kb.typeFolder'),
             restricted: false,
             favourite: false,
-            countLabel: `${sources.favourites.value.length} ${t('kb.files')}`,
+            countLabel: t('kb.entryCount', {count}),
             open: () => handlers.openFavourites(),
             actions: [],
         }
     })
 
     const items: ComputedRef<KbItem[]> = computed(() => {
+        if (sources.isFavouritesView.value) return favouriteItems.value
         const result: KbItem[] = []
         if (favouritesItem.value) result.push(favouritesItem.value)
         result.push(...sources.folders.value.map(toFolderItem))

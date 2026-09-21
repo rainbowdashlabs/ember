@@ -4,6 +4,7 @@
 
 ### New Features
 
+- **Favourites in the knowledge base.** Any file or folder, including what a partner station shares, can be marked with the star on its tile or at the top of an open file, and is then found in the Favourites folder at the start of the knowledge base. Only you see your favourites.
 - **The knowledge base shows what its files are.** A picture or a PDF now shows itself on its tile, the picture scaled down and the PDF by its first page, so a folder of sheets can be told apart without opening each one. Files that were already there get their picture the first time somebody opens their folder.
 
 ### Improvements

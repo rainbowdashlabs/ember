@@ -4,6 +4,7 @@
 
 ### Neue Funktionen
 
+- **Favoriten in der Wissensdatenbank.** Jede Datei und jeder Ordner, auch was eine Partnerwache mit euch teilt, lässt sich mit dem Stern auf der Kachel oder oben in einer geöffneten Datei markieren und findet sich dann im Ordner Favoriten am Anfang der Wissensdatenbank. Favoriten sieht nur, wer sie gesetzt hat.
 - **Die Wissensdatenbank zeigt, was ihre Dateien sind.** Ein Bild oder ein PDF zeigt sich jetzt auf seiner Kachel, das Bild verkleinert und das PDF mit seiner ersten Seite, sodass sich ein Ordner voller Blätter auseinanderhalten lässt, ohne jedes einzeln zu öffnen. Dateien, die schon da waren, bekommen ihr Bild, wenn jemand ihren Ordner das erste Mal öffnet.
 
 ### Verbesserungen
