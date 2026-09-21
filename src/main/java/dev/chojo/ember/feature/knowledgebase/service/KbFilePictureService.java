@@ -15,6 +15,9 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,6 +41,9 @@ public class KbFilePictureService {
     private static final Logger log = LoggerFactory.getLogger(KbFilePictureService.class);
     private static final StorageCategory CATEGORY = StorageCategory.IMAGE_KB_FILE_PICTURE;
     private static final int PDF_DPI = 96;
+    private static final String PDF_TYPE = "application/pdf";
+    private static final byte[] PDF_SIGNATURE = "%PDF-".getBytes(StandardCharsets.US_ASCII);
+    private static final Set<String> UNTYPED = Set.of("application/octet-stream", "binary/octet-stream");
 
     private final ImageVariantService variants;
     private final KbFileStorageService files;
@@ -59,17 +65,18 @@ public class KbFilePictureService {
      */
     public void make(int stationId, int fileId, String mimeType, byte[] data) {
         unmakeable.remove(memo(stationId, fileId));
-        if (!FilePicture.exists(mimeType)) {
+        String type = pictureType(mimeType, data);
+        if (!FilePicture.exists(type)) {
             delete(stationId, fileId);
             return;
         }
         try {
-            var picture = FilePicture.of(mimeType, data, PDF_DPI);
+            var picture = FilePicture.of(type, data, PDF_DPI);
             if (picture.isEmpty()) {
                 unmakeable.add(memo(stationId, fileId));
                 return;
             }
-            variants.store(scope(stationId), CATEGORY, key(fileId), picture.get(), mimeType);
+            variants.store(scope(stationId), CATEGORY, key(fileId), picture.get(), type);
         } catch (Exception e) {
             unmakeable.add(memo(stationId, fileId));
             log.warn("No picture could be made of wiki file {} in station {}", fileId, stationId, e);
@@ -84,10 +91,40 @@ public class KbFilePictureService {
      */
     public Optional<ImageVariantService.ImageData> read(int stationId, int fileId, String mimeType, int size) {
         var existing = variants.read(scope(stationId), CATEGORY, key(fileId), size);
-        if (existing.isPresent() || !FilePicture.exists(mimeType)) return existing;
+        if (existing.isPresent() || !mayHavePicture(mimeType)) return existing;
         if (unmakeable.contains(memo(stationId, fileId))) return Optional.empty();
         files.read(stationId, fileId).ifPresent(file -> make(stationId, fileId, mimeType, file.data()));
         return variants.read(scope(stationId), CATEGORY, key(fileId), size);
+    }
+
+    /**
+     * What a picture is made from: the stored type where it names something, and what the bytes turn
+     * out to be where it names nothing.
+     *
+     * <p>A phone often uploads without saying what it sends, and the file is stored as a stream of
+     * bytes. The wiki still calls a {@code .jpg} a picture by its name, so its tile asks for one, and
+     * a type that says nothing must not be taken for proof that there is none. A declared type that
+     * says something else, a spreadsheet's, is believed.
+     */
+    static String pictureType(String storedType, byte[] data) {
+        if (!isUntyped(storedType)) return storedType;
+        var image = ImageVariantService.sniffImageMime(data);
+        if (image.isPresent()) return image.get();
+        return startsWith(data, PDF_SIGNATURE) ? PDF_TYPE : storedType;
+    }
+
+    /** Whether a file of this stored type may turn out to have a picture once its bytes are read. */
+    private static boolean mayHavePicture(String storedType) {
+        return FilePicture.exists(storedType) || isUntyped(storedType);
+    }
+
+    private static boolean isUntyped(String storedType) {
+        return storedType == null || storedType.isBlank() || UNTYPED.contains(storedType.toLowerCase(Locale.ROOT));
+    }
+
+    private static boolean startsWith(byte[] data, byte[] prefix) {
+        if (data.length < prefix.length) return false;
+        return Arrays.equals(data, 0, prefix.length, prefix, 0, prefix.length);
     }
 
     /** Removes every size of a file's picture. */

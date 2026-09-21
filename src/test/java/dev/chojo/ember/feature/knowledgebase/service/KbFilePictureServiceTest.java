@@ -128,6 +128,30 @@ class KbFilePictureServiceTest {
         Mockito.verify(files, Mockito.times(1)).read(STATION_ID, 6);
     }
 
+    /** A phone often uploads without naming what it sends, and the photograph is still a photograph. */
+    @Test
+    void aPhotographStoredWithoutATypeStillGetsAPicture() throws IOException {
+        files.store(STATION_ID, 8, photo(), "application/octet-stream");
+
+        assertTrue(pictures.read(STATION_ID, 8, "application/octet-stream", 256).isPresent());
+    }
+
+    @Test
+    void aPdfStoredWithoutATypeIsShownByItsFirstPage() throws IOException {
+        pictures.make(STATION_ID, 9, "application/octet-stream", onePagePdf());
+
+        assertTrue(pictures.read(STATION_ID, 9, "application/octet-stream", 256).isPresent());
+    }
+
+    /** Reading the bytes is how the untyped files that really are no pictures are told apart. */
+    @Test
+    void bytesWithoutATypeThatAreNoPictureGetNone() {
+        files.store(STATION_ID, 10, "just some bytes".getBytes(StandardCharsets.UTF_8), "application/octet-stream");
+
+        assertTrue(
+                pictures.read(STATION_ID, 10, "application/octet-stream", 256).isEmpty());
+    }
+
     @Test
     void deletingTheFileTakesItsPictureWithIt() throws IOException {
         byte[] photo = photo();
