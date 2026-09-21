@@ -100,6 +100,19 @@ fun testForks(): Int {
 }
 
 /**
+ * Keeps the architecture rules out of a suite that talks to a database.
+ *
+ * The rules run on ArchUnit's own JUnit engine, which Gradle's test name filters do not reach, so
+ * they ran in every suite, whatever it was meant to hold. Importing the codebase for them takes a few
+ * hundred megabytes of a fork's heap, and a fork that had already spent its heap on database tests
+ * ran out of memory halfway through the import. They run in the suites without a database instead,
+ * where nothing competes with them for the heap.
+ */
+fun JUnitPlatformOptions.withoutArchitectureRules() {
+    excludeEngines("archunit")
+}
+
+/**
  * Runs a git command in this checkout, or answers null where it cannot be run at all.
  *
  * A build has no business failing because the sources arrived without their history: a tarball, a
@@ -238,7 +251,10 @@ tasks {
         description = "Runs repository tests"
         testClassesDirs = sourceSets.test.get().output.classesDirs
         classpath = sourceSets.test.get().runtimeClasspath
-        useJUnitPlatform { excludeTags("locale") }
+        useJUnitPlatform {
+            excludeTags("locale")
+            withoutArchitectureRules()
+        }
         testLogging { events("passed", "skipped", "failed") }
         filter { includeTestsMatching("*.repository.*") }
         maxParallelForks = testForks()
@@ -249,7 +265,10 @@ tasks {
         description = "Runs service tests"
         testClassesDirs = sourceSets.test.get().output.classesDirs
         classpath = sourceSets.test.get().runtimeClasspath
-        useJUnitPlatform { excludeTags("locale") }
+        useJUnitPlatform {
+            excludeTags("locale")
+            withoutArchitectureRules()
+        }
         testLogging { events("passed", "skipped", "failed") }
         filter { includeTestsMatching("*.service.*") }
         maxParallelForks = testForks()
@@ -342,7 +361,10 @@ tasks {
         description = "Runs data tracking verification tests"
         testClassesDirs = sourceSets.test.get().output.classesDirs
         classpath = sourceSets.test.get().runtimeClasspath
-        useJUnitPlatform { excludeTags("locale") }
+        useJUnitPlatform {
+            excludeTags("locale")
+            withoutArchitectureRules()
+        }
         testLogging { events("passed", "skipped", "failed") }
         filter { includeTestsMatching("dev.chojo.ember.tracking.*") }
         maxParallelForks = 1
