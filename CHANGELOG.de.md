@@ -2,8 +2,18 @@
 
 ## v26.18.5
 
+### Neue Funktionen
+
+- **Die Wissensdatenbank zeigt, was ihre Dateien sind.** Ein Bild oder ein PDF zeigt sich jetzt auf seiner Kachel, das Bild verkleinert und das PDF mit seiner ersten Seite, sodass sich ein Ordner voller Blätter auseinanderhalten lässt, ohne jedes einzeln zu öffnen. Dateien, die schon da waren, bekommen ihr Bild, wenn jemand ihren Ordner das erste Mal öffnet.
+
+### Verbesserungen
+
+- **Dateien der Wissensdatenbank lassen sich von ihrer Kachel herunterladen.** Eine hochgeladene Datei bietet auf ihrer Kachel einen Knopf zum Herunterladen, so wie ein Eintrag schon sein PDF anbietet, und gibt die Datei genau so heraus, wie sie hochgeladen wurde.
+- **Bilder auf Seiten laden in der Größe, in der sie gezeigt werden.** Ein Banner, eine Galerie oder ein Bild auf einer Seite holt jetzt eine für die Seite passende Fassung statt des Fotos, wie es aufgenommen wurde, sodass Seiten schneller öffnen und auf dem Handy weniger Daten brauchen.
+
 ### Fehlerbehebungen
 
+- **Ein PDF in der installierten App zu speichern hinterließ ein leeres Fenster.** Unter Android ersetzte das Speichern eines PDFs in Ember, über Firefox auf dem Startbildschirm installiert, die Seite durch eine leere und speicherte nichts, und jede andere Datei meldete einen Fehler, obwohl das Speichern geklappt hatte. Ein PDF öffnet sich jetzt im Betrachter des Browsers, wo es gespeichert werden kann, und eine gespeicherte Datei gilt nicht mehr als gescheitert.
 - **Einen Filter im Anwesenheitsbericht zu speichern tat nichts.** Den Filter unter einem Namen zu speichern endete in einer allgemeinen Fehlermeldung, und ein früher gespeicherter Filter konnte ohne seine Mitgliedstypen oder mit nur einer seiner Gruppen zurückkommen. Ein gespeicherter Filter behält jetzt alle Mitgliedstypen und Gruppen, mit denen er gespeichert wurde, und wendet sie auf die aktuelle Woche, den aktuellen Monat, das Quartal oder das Jahr an.
 
 ## v26.18.4
