@@ -81,6 +81,26 @@ test.describe('Changelog', () => {
         await expect(versions.first()).toBeVisible()
 
         expect(outward, 'nothing is asked of GitHub').toEqual([])
-        await expect(page.getByTestId('changelog-current')).toBeVisible()
+    })
+
+    /**
+     * The running version is marked where the changelog lists it, and nowhere where it does not.
+     *
+     * <p>The version moves on right after a release, so between releases an instance runs a version
+     * the changelog has not reached yet. The story asks the instance which one it runs rather than
+     * assuming it was released.
+     */
+    test('the running version is marked when it has been released', async ({page}) => {
+        const config = await (await page.request.get('/api/v1/public/config')).json()
+        const running = String(config.version ?? '').trim().split(' ')[0]!.replace(/^v/, '')
+        const changelog = await (await page.request.get('/api/v1/public/changelog')).json()
+        const released = changelog.some((entry: {version: string}) => entry.version === running)
+
+        await page.goto('/patch-notes')
+        await expect(page.getByTestId('changelog-version').first()).toBeVisible()
+
+        const badge = page.getByTestId('changelog-current')
+        if (released) await expect(badge).toBeVisible()
+        else await expect(badge).toHaveCount(0)
     })
 })
