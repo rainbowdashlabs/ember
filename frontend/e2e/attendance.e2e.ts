@@ -699,6 +699,69 @@ test.describe('Attendance', () => {
     })
 
     /**
+     * A saved filter is a question asked again. The story saves one with two member types and two
+     * groups, and it has to be accepted, listed under everything it selects, and restore all of it
+     * once the page is opened afresh. Saving answered a general error for several releases because
+     * the page and the server disagreed on what a filter is called, which only the two together show.
+     */
+    test('a saved filter comes back with every member type and group', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const groupNames = [unique('Bericht A'), unique('Bericht B')]
+        const groupIds: number[] = []
+        for (const name of groupNames) {
+            const made = await page.request.post('/api/v1/groups', {headers, data: {name}})
+            expect(made.ok(), `the group ${name} was made`).toBeTruthy()
+            groupIds.push((await made.json()).id)
+        }
+        const presetName = unique('Filter')
+
+        try {
+            await page.goto('/station/attendance/report')
+
+            const userTypes = page.getByTestId('attendance-report-user-types')
+            await userTypes.getByRole('button', {name: 'Typen wählen'}).click()
+            await userTypes.getByRole('button', {name: 'Mitglied', exact: true}).click()
+            await userTypes.getByRole('button', {name: 'Team', exact: true}).click()
+            await page.getByText('Filter', {exact: true}).first().click()
+
+            const groups = page.getByTestId('attendance-report-groups')
+            await groups.getByRole('button', {name: 'Gruppen wählen'}).click()
+            for (const name of groupNames) await groups.getByRole('button', {name, exact: true}).click()
+            await page.getByText('Filter', {exact: true}).first().click()
+
+            await page.getByRole('button', {name: 'Filter speichern'}).click()
+            await page.getByPlaceholder('Name der Vorlage').fill(presetName)
+            await page.getByRole('button', {name: 'Speichern', exact: true}).click()
+
+            const listed = page.getByRole('button', {name: new RegExp(presetName)})
+            await expect(listed).toBeVisible()
+            for (const part of ['Mitglied', 'Team', ...groupNames]) await expect(listed).toContainText(part)
+
+            const saved = await page.request.get('/api/v1/attendance/report/presets', {headers})
+                .then(r => r.json())
+                .then((presets: {name: string; userTypes: string[]; groupIds: number[]}[]) =>
+                    presets.find(p => p.name === presetName))
+            expect(saved?.userTypes).toEqual(['MEMBER', 'TEAM'])
+            expect([...(saved?.groupIds ?? [])].sort()).toEqual([...groupIds].sort())
+
+            await page.reload()
+            await expect(userTypes.getByRole('button', {name: 'Typen wählen'})).toBeVisible()
+            await page.getByRole('button', {name: new RegExp(presetName)}).click()
+
+            await expect(userTypes.getByRole('button', {name: 'Mitglied, Team', exact: true})).toBeVisible()
+            const bothGroups = groups.getByRole('button').first()
+            for (const name of groupNames) await expect(bothGroups).toContainText(name)
+        } finally {
+            const presets = await page.request.get('/api/v1/attendance/report/presets', {headers})
+                .then(r => r.json()) as {id: number; name: string}[]
+            for (const preset of presets.filter(p => p.name === presetName)) {
+                await page.request.delete(`/api/v1/attendance/report/presets/${preset.id}`, {headers})
+            }
+            for (const id of groupIds) await page.request.delete(`/api/v1/groups/${id}`, {headers})
+        }
+    })
+
+    /**
      * A sheet handed out to be signed. The story opens one of its own, asks for the signature column
      * and room for people nobody expected, and takes the file: an export that renders nothing is a
      * download of no bytes, which is what the size says.

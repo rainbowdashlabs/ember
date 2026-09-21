@@ -1,5 +1,11 @@
 # Änderungsprotokoll
 
+## v26.18.5
+
+### Fehlerbehebungen
+
+- **Einen Filter im Anwesenheitsbericht zu speichern tat nichts.** Den Filter unter einem Namen zu speichern endete in einer allgemeinen Fehlermeldung, und ein früher gespeicherter Filter konnte ohne seine Mitgliedstypen oder mit nur einer seiner Gruppen zurückkommen. Ein gespeicherter Filter behält jetzt alle Mitgliedstypen und Gruppen, mit denen er gespeichert wurde, und wendet sie auf die aktuelle Woche, den aktuellen Monat, das Quartal oder das Jahr an.
+
 ## v26.18.4
 
 ### Neue Funktionen

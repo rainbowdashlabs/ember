@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.attendance.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -40,7 +41,7 @@ public class AttendanceRepository {
     private static final String ATTENDANCE_ENTRY_COLUMNS =
             "id, session_id, member_id, status, check_in, check_out, source";
     private static final String ATTENDANCE_REPORT_PRESET_COLUMNS =
-            "id, station_id, name, role_name, group_id, period, rounding";
+            "id, station_id, name, user_types, group_ids, period, rounding";
     private static final String MEMBER_ABSENCE_COLUMNS =
             "id, member_id, absent_from, absent_until, reason, created_at, created_by";
 
@@ -678,23 +679,28 @@ public class AttendanceRepository {
      *
      * @param stationId the station ID
      * @param name      preset display name
-     * @param userType  optional user-type filter
-     * @param groupId   optional group filter
+     * @param userTypes every user type the filter selects
+     * @param groupIds  every group the filter selects
      * @param period    time period granularity
      * @param rounding  hour rounding mode
      * @return the created preset
      */
     public AttendanceReportPreset createPreset(
-            int stationId, String name, StationUserType userType, Integer groupId, String period, String rounding) {
+            int stationId,
+            String name,
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            String period,
+            String rounding) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO attendance_report_preset(station_id, name, role_name, group_id, period, rounding)
-                VALUES(:station_id, :name, :role_name, :group_id, :period, :rounding)
+                INSERT INTO attendance_report_preset(station_id, name, user_types, group_ids, period, rounding)
+                VALUES(:station_id, :name, :user_types, :group_ids, :period, :rounding)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
-                        .bind("role_name", userType)
-                        .bind("group_id", groupId)
+                        .bind("user_types", userTypes.stream().map(Enum::name).toList(), PostgreSqlTypes.TEXT)
+                        .bind("group_ids", groupIds, PostgreSqlTypes.INTEGER)
                         .bind("period", period)
                         .bind("rounding", rounding),
                 AttendanceReportPreset.map(),
