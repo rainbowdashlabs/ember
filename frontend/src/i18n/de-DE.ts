@@ -1456,8 +1456,8 @@ export default {
             subtitle: '',
         },
         'public-knowledge-base': {
-            title: 'Wissensdatenbank',
-            subtitle: 'Öffentliche Wissensdatenbank',
+            title: 'Wiki',
+            subtitle: 'Öffentliches Wiki',
         },
         'public-station-calendar': {
             title: 'Kalender',
@@ -6284,7 +6284,7 @@ export default {
         feedRevokeConfirmTitle: 'Token widerrufen?',
         feedRevokeConfirmBody: 'Der Token wird gelöscht und alle abonnierten Reader liefern keine neuen Inhalte mehr aus. Du kannst jederzeit einen neuen Token erstellen.',
         gdprTitle: 'Datenauskunft (DSGVO)',
-        gdprHint: 'Lade eine vollständige Kopie aller deiner gespeicherten Daten herunter. Das ZIP-Archiv enthält dein Konto, deine Mitgliedschaft in jeder Station, sowie Anwesenheiten, Termine, Inventar, Umfragen und Wissensdatenbank-Dateien aus allen Stationen.',
+        gdprHint: 'Lade eine vollständige Kopie aller deiner gespeicherten Daten herunter. Das ZIP-Archiv enthält dein Konto, deine Mitgliedschaft in jeder Station, sowie Anwesenheiten, Termine, Inventar, Umfragen und Wiki-Dateien aus allen Stationen.',
         gdprExport: 'Vollständige Datenauskunft als ZIP herunterladen',
         gdprExportManaged: 'Daten von {name} als ZIP herunterladen',
         gdprManaged: 'Daten verwalteter Mitglieder',
@@ -9766,7 +9766,7 @@ export default {
             cropPreview: 'Vorschau',
             linkSearchPlaceholder: 'Seite suchen oder URL eingeben',
             linkPickCalendar: 'Veranstaltungskalender',
-            linkPickKb: 'Wissensdatenbank',
+            linkPickKb: 'Wiki',
             browse: 'Durchsuchen',
             browseFiles: 'Dateien durchsuchen',
             browseFilesSearch: 'Datei suchen…',
