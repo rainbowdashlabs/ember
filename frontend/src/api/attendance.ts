@@ -408,8 +408,8 @@ export interface ReportPreset {
     id: number
     stationId: string
     name: string
-    roleName?: string
-    groupId?: number | null
+    userTypes: StationUserTypeName[]
+    groupIds: number[]
     period: string
     rounding: string
 }
@@ -432,8 +432,8 @@ export async function reportExportCsv(params: URLSearchParams): Promise<Document
 
 interface PresetRequest {
     name: string
-    roleName?: string
-    groupId?: number | null
+    userTypes: string[]
+    groupIds: number[]
     period: string
     rounding: string
 }
