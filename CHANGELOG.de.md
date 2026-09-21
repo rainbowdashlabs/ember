@@ -1,5 +1,24 @@
 # Änderungsprotokoll
 
+## v26.18.6
+
+### Verbesserungen
+
+- **Bilder öffnen sich per Klick groß.** Ein Bild oder Galeriebild auf einer Seite oder in einem Artikel aus dem Seiten-Editor und das Foto einer Fundsache öffnen sich über den ganzen Bildschirm, ungeschnitten und mit ihrer Bildunterschrift. Escape oder ein Klick daneben schließt es wieder.
+- **Hinweisboxen, Zitate und Bildunterschriften heben sich im PDF der Wissensdatenbank ab.** Hinweisboxen und Zitate stehen in einem hinterlegten Kasten mit farbigem Balken an der Seite, und die Zeile unter einem Bild steht klein und mittig darunter als seine Bildunterschrift.
+
+### Änderungen
+
+- **Markdown-Dateien der Wissensdatenbank heißen jetzt Artikel.** Der Eintrag im Menü Neu und der Typ auf einer Kachel lauten „Artikel“ statt „Markdown-Datei“.
+
+### Fehlerbehebungen
+
+- **Bilder fehlten in PDFs der Wissensdatenbank.** Beim Speichern eines Artikels als PDF fiel jedes Bild weg, und es blieb höchstens sein Alternativtext stehen. Die eigenen Bilder der Wache werden jetzt mitgedruckt, passend zur Seite verkleinert oder in der Breite, die sie bekommen haben.
+- **Formatierungen gingen in PDFs der Wissensdatenbank verloren.** Farbiger Text, Markierungen und Unterstreichungen wurden als einfacher Text gedruckt, und eine Markierung behielt ihre Gleichheitszeichen. Jetzt erscheinen sie im Druck so wie im Artikel.
+- **Einem Bild in einem Artikel aus dem Seiten-Editor fehlte seine hinterlegte Beschreibung.** Sagte der Bildblock selbst nichts, erschienen Alternativtext und Beschreibung, die in der Mediathek am Bild gespeichert sind, weder im Artikel noch in seinem Suchtreffer oder PDF. Jetzt erscheinen sie, wie schon auf Seiten.
+- **Kacheln wurden auf breiten Bildschirmen sehr groß.** Auf einem großen Monitor blieb es in der Wissensdatenbank bei vier Spalten und im Fundbüro bei drei, sodass sich jede Kachel über einen großen Teil des Bildschirms zog. Die Zahl der Spalten wächst jetzt mit der Breite des Fensters.
+- **Fotos im Fundbüro wurden abgeschnitten.** Das Foto einer Fundsache wurde zugeschnitten, um seine Karte zu füllen, und konnte so den Gegenstand selbst verdecken. Jetzt ist das ganze Foto zu sehen, passend verkleinert.
+
 ## v26.18.5
 
 ### Neue Funktionen

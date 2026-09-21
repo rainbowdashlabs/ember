@@ -16,10 +16,15 @@ import ConfirmButton from '@/components/button/ConfirmButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
+import EnlargeableImage from '@/components/button/EnlargeableImage.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import StyleButtonsRows from '@/views/styleview/StyleButtonsRows.vue'
 
 const toggleStates = ref(new Set([1, 3]))
+
+const samplePicture = 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900">'
+    + '<rect width="1600" height="900" fill="#FF6421"/><circle cx="800" cy="450" r="300" fill="#73CEFF"/></svg>')
 </script>
 
 <template>
@@ -51,6 +56,15 @@ const toggleStates = ref(new Set([1, 3]))
                              @toggle="toggleStates.has(i) ? toggleStates.delete(i) : toggleStates.add(i)">
         Option {{ i }}
       </SelectionToggleButton>
+    </div>
+  </section>
+
+  <section class="space-y-4">
+    <SectionHeader>Enlargeable Image</SectionHeader>
+    <div class="max-w-xs">
+      <EnlargeableImage :src="samplePicture" alt="Beispielbild" caption="Bildunterschrift unter dem großen Bild">
+        <img :src="samplePicture" alt="Beispielbild" class="w-full h-32 object-cover rounded-lg"/>
+      </EnlargeableImage>
     </div>
   </section>
 

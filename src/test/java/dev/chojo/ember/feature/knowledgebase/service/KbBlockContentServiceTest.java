@@ -9,8 +9,11 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentMode;
+import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
+import dev.chojo.ember.feature.media.entity.StationFile;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -19,10 +22,13 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * A knowledge-base article built from blocks. Everything it keeps - search, the PDF export, the
@@ -41,6 +47,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
         service = new KbContentService(
                 knowledgeBaseRepo,
                 new ContentBlockService(contentContainerRepo),
+                noCellDescriptions(),
                 stationRepo,
                 mock(KbFileStorageService.class),
                 new KbSearchService(knowledgeBaseRepo, stationRepo));
@@ -157,6 +164,109 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
         } finally {
             knowledgeBaseRepo.purgeFile(id);
         }
+    }
+
+    @Test
+    void aPictureTheArticleSaysNothingAboutCarriesTheWordsOfItsFile() {
+        var media = mock(MediaLibraryService.class);
+        knowsPicture(media, "Das Wappen", "Am Tor der Wache");
+        var describing = describingService(media);
+        int id = createArticle("Text");
+        try {
+            describing.switchToRich(id);
+            describing.saveBlocks(id, List.of(pictureRow()), member.id());
+            var file = knowledgeBaseRepo.findFileById(id).orElseThrow();
+
+            var raw = (CellConfig.ImageConfig)
+                    describing.loadBlocks(file).getFirst().cells().getFirst().config();
+            var described = (CellConfig.ImageConfig) describing
+                    .describedBlocks(file)
+                    .getFirst()
+                    .cells()
+                    .getFirst()
+                    .config();
+            assertNull(raw.altText(), "the editor keeps what the author wrote, which was nothing");
+            assertEquals("Das Wappen", described.altText());
+            assertEquals("Am Tor der Wache", described.description());
+
+            String body = describing.getMarkdownContent(id).orElseThrow();
+            assertTrue(body.contains("![Das Wappen]("), body);
+            assertTrue(body.contains("Am Tor der Wache"), body);
+        } finally {
+            knowledgeBaseRepo.purgeFile(id);
+        }
+    }
+
+    @Test
+    void thePrintedTextMarksTheCaptionWhileTheStoredTextKeepsItPlain() {
+        var media = mock(MediaLibraryService.class);
+        knowsPicture(media, "Das Wappen", "Am Tor & <neu>");
+        var describing = describingService(media);
+        int rich = createArticle("Text");
+        int plain = createArticle("Nur *Text*");
+        try {
+            describing.switchToRich(rich);
+            describing.saveBlocks(rich, List.of(pictureRow()), member.id());
+
+            String printed = describing.printableMarkdown(
+                    knowledgeBaseRepo.findFileById(rich).orElseThrow());
+            assertTrue(printed.contains("<figcaption>Am Tor &amp; &lt;neu&gt;</figcaption>"), printed);
+            assertFalse(describing.getMarkdownContent(rich).orElseThrow().contains("figcaption"));
+
+            assertEquals(
+                    "Nur *Text*",
+                    describing.printableMarkdown(
+                            knowledgeBaseRepo.findFileById(plain).orElseThrow()));
+        } finally {
+            knowledgeBaseRepo.purgeFile(rich);
+            knowledgeBaseRepo.purgeFile(plain);
+        }
+    }
+
+    @Test
+    void theStoredTextCatchesUpWhenTheFileIsDescribedLaterWithoutANewVersion() {
+        var media = mock(MediaLibraryService.class);
+        knowsPicture(media, null, null);
+        var describing = describingService(media);
+        int id = createArticle("Text");
+        try {
+            describing.switchToRich(id);
+            describing.saveBlocks(id, List.of(pictureRow()), member.id());
+            int versions = describing.findVersions(id).size();
+
+            knowsPicture(media, "Später beschrieben", null);
+
+            assertTrue(describing.getMarkdownContent(id).orElseThrow().contains("![Später beschrieben]("));
+            assertTrue(
+                    knowledgeBaseRepo.readTextContent(id).orElseThrow().contains("![Später beschrieben]("),
+                    "reading stores the fresh text, so search catches up too");
+            assertEquals(versions, describing.findVersions(id).size(), "nobody edited the article");
+        } finally {
+            knowledgeBaseRepo.purgeFile(id);
+        }
+    }
+
+    private static KbContentService describingService(MediaLibraryService media) {
+        return new KbContentService(
+                knowledgeBaseRepo,
+                new ContentBlockService(contentContainerRepo),
+                new CellDescriptions(media),
+                stationRepo,
+                mock(KbFileStorageService.class),
+                new KbSearchService(knowledgeBaseRepo, stationRepo));
+    }
+
+    private static void knowsPicture(MediaLibraryService media, String alt, String description) {
+        var file = new StationFile(
+                1, 0, station.id(), "abc", "wappen.png", "image/png", 64, Instant.now(), alt, description, null);
+        when(media.findByHash(station.id(), "abc")).thenReturn(Optional.of(file));
+    }
+
+    private static ContentBlockService.RowData pictureRow() {
+        return row(
+                CellContentType.IMAGE,
+                "abc",
+                new CellConfig.ImageConfig(null, null, null, null, null, null, null, null, null, null, null));
     }
 
     @Test

@@ -87,7 +87,7 @@ async function createFolder(page: Page, name: string) {
 /** Creates a Markdown article in the listing currently open, which opens it. */
 async function createMarkdownFile(page: Page, name: string) {
     await openCreateMenu(page)
-    await page.getByText('Markdown-Datei').last().click()
+    await page.getByRole('button', {name: 'Artikel', exact: true}).last().click()
     await page.getByPlaceholder('Dateiname').fill(name)
     await page.getByRole('button', {name: 'Neue Datei'}).last().click()
     await page.waitForURL(/\/station\/knowledge\/file\/\d+/)
@@ -186,7 +186,7 @@ test.describe('Knowledge base', () => {
 
         await page.getByText(folder).click()
         await page.getByRole('button', {name: 'Neu'}).click()
-        await page.getByText('Markdown-Datei').last().click()
+        await page.getByRole('button', {name: 'Artikel', exact: true}).last().click()
         await page.getByPlaceholder('Dateiname').fill(file)
         await page.getByRole('button', {name: 'Neue Datei'}).click()
 

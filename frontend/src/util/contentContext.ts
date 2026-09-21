@@ -14,6 +14,12 @@ import {mediaFileUrl, mediaImageUrlAt} from '@/api/media'
 export const PAGE_WIDTH = 1024
 
 /**
+ * How wide a picture is asked for when a reader opens it large: the largest copy kept of any
+ * picture, so a full screen shows it sharp without fetching the photograph as it was taken.
+ */
+export const ENLARGED_WIDTH = 2048
+
+/**
  * Where a piece of block content is being read, which is everything the renderer needs to know
  * about its surroundings.
  *

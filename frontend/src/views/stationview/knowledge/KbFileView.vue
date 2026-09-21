@@ -73,6 +73,7 @@ const editing = ref(false)
 const editContent = ref('')
 const contentMode = ref<ContentModeName>(ContentMode.SIMPLE)
 const blockRows = ref<RowEditData[]>([])
+const readerRows = ref<PageRow[]>([])
 const textContent = ref('')
 const {
     fileTags, allStationTags, relatedFiles, backlinks, applyReferences,
@@ -195,9 +196,11 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
         markdownData.value = await knowledgeBase.getMarkdownHtml(file.value.id)
         editContent.value = markdownData.value.markdown
         contentMode.value = file.value.contentMode ?? ContentMode.SIMPLE
-        blockRows.value = contentMode.value === ContentMode.RICH
-            ? toEditRows((await knowledgeBase.getKbBlocks(file.value.id)).rows)
-            : []
+        const blocks = contentMode.value === ContentMode.RICH
+            ? await knowledgeBase.getKbBlocks(file.value.id)
+            : null
+        blockRows.value = blocks ? toEditRows(blocks.rows) : []
+        readerRows.value = blocks?.describedRows ?? []
     } else if (file.value.fileType === KbFileType.TEXT) {
         textContent.value = await knowledgeBase.getTextContent(file.value.id)
         editContent.value = textContent.value
@@ -272,6 +275,7 @@ async function enableBlocks() {
     const blocks = await knowledgeBase.enableKbBlocks(file.value.id)
     contentMode.value = blocks.contentMode
     blockRows.value = toEditRows(blocks.rows)
+    readerRows.value = blocks.describedRows
     hasUnsavedChanges.value = false
 }
 
@@ -291,6 +295,7 @@ async function saveContent() {
             }))
             const blocks = await knowledgeBase.saveKbBlocks(file.value.id, rows)
             blockRows.value = toEditRows(blocks.rows)
+            readerRows.value = blocks.describedRows
             markdownData.value = await knowledgeBase.getMarkdownHtml(file.value.id)
             hasUnsavedChanges.value = false
             editing.value = false
@@ -442,6 +447,7 @@ watch(() => [props.fileId, props.stationUid], () => {
                 :can-edit="mayEdit"
                 :content-mode="contentMode"
                 :station-uid="blockStationUid"
+                :reader-rows="readerRows"
                 v-model:edit-content="editContent"
                 v-model:block-rows="blockRows"
                 @content-input="onContentInput"

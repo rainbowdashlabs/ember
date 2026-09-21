@@ -8,9 +8,10 @@ import {computed} from 'vue'
 import {CellContentType, isLayoutKind, type ImageConfig, type LayoutKindName, type PageCell} from '@/api/pageManage'
 import CellLayoutRender from '@/components/content/blockeditor/CellLayoutRender.vue'
 import CellImagePreview from '@/components/content/blockeditor/CellImagePreview.vue'
+import EnlargeableImage from '@/components/button/EnlargeableImage.vue'
 import {renderPageMarkdown} from '@/util/markdown'
 import {isYoutubeUrl, youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
-import type {ContentRenderContext} from '@/util/contentContext'
+import {ENLARGED_WIDTH, type ContentRenderContext} from '@/util/contentContext'
 
 /**
  * One block, rendered.
@@ -57,14 +58,17 @@ function youtubeEmbedUrl(url: string): string | null {
          class="markdown-content"/>
 
     <figure v-else-if="cell.contentType === CellContentType.IMAGE && imageUrl" class="space-y-1">
-        <CellImagePreview
-            :src="imageUrl"
-            :alt="imageConfig.altText ?? ''"
-            :config="imageConfig"
-            :station-uid="context.stationUid"
-            :content-hash="cell.content"
-            :width-hint="context.widthHint"
-        />
+        <EnlargeableImage :src="context.imageUrl(cell.content, ENLARGED_WIDTH)"
+                          :alt="imageConfig.altText" :caption="imageConfig.description">
+            <CellImagePreview
+                :src="imageUrl"
+                :alt="imageConfig.altText ?? ''"
+                :config="imageConfig"
+                :station-uid="context.stationUid"
+                :content-hash="cell.content"
+                :width-hint="context.widthHint"
+            />
+        </EnlargeableImage>
         <figcaption v-if="imageConfig.description" class="text-xs text-(--text-muted) italic text-center">
             {{ imageConfig.description }}
         </figcaption>

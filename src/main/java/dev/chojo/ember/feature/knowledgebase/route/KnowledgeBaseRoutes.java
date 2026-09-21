@@ -767,7 +767,12 @@ public class KnowledgeBaseRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
-        ctx.json(new BlocksResponse(file.contentMode(), contentService.loadBlocks(file)));
+        ctx.json(blocksOf(file));
+    }
+
+    private BlocksResponse blocksOf(KbFile file) {
+        return new BlocksResponse(
+                file.contentMode(), contentService.loadBlocks(file), contentService.describedBlocks(file));
     }
 
     private void saveBlocks(Context ctx) {
@@ -779,7 +784,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var saved = contentService
                 .saveBlocks(id, request.toRowData(), session.member().id())
                 .orElseThrow(NotFoundResponse::new);
-        ctx.json(new BlocksResponse(saved.contentMode(), contentService.loadBlocks(saved)));
+        ctx.json(blocksOf(saved));
     }
 
     /**
@@ -791,7 +796,7 @@ public class KnowledgeBaseRoutes implements Routes {
         requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.WRITE);
         var switched = contentService.switchToRich(id).orElseThrow(NotFoundResponse::new);
-        ctx.json(new BlocksResponse(switched.contentMode(), contentService.loadBlocks(switched)));
+        ctx.json(blocksOf(switched));
     }
 
     private void getPdfExport(Context ctx) {
@@ -1214,8 +1219,13 @@ public class KnowledgeBaseRoutes implements Routes {
     /**
      * The blocks of an article, together with how it was written. A plain article answers with an
      * empty list rather than a 404, so the reader can ask before it knows which kind it has.
+     *
+     * <p>{@code rows} are the blocks as written, for the editor. {@code describedRows} are the same
+     * blocks as a reader sees them, with a picture the article says nothing about carrying the words
+     * of its media file. Keeping the two apart is what stops a save from writing those words into
+     * the article.
      */
-    public record BlocksResponse(ContentMode contentMode, List<ContentRow> rows) {}
+    public record BlocksResponse(ContentMode contentMode, List<ContentRow> rows, List<ContentRow> describedRows) {}
 
     /**
      * Request body for saving the blocks of a rich article.

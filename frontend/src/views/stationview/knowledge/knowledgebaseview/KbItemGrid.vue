@@ -25,7 +25,7 @@ function markable(item: KbItem): boolean {
 </script>
 
 <template>
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-3">
         <KbItemTile
             v-for="item in items"
             :key="item.key"

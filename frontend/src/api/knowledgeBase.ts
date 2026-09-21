@@ -24,9 +24,15 @@ export interface KbFolder {
     restricted?: boolean
 }
 
+/**
+ * The blocks of an article. `rows` are the blocks as written, for the editor; `describedRows` are
+ * the same blocks as a reader sees them, where a picture the article says nothing about carries the
+ * alt text and description of its media file.
+ */
 export interface KbBlocks {
     contentMode: ContentModeName
     rows: PageRow[]
+    describedRows: PageRow[]
 }
 
 export interface KbFile {

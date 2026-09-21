@@ -35,6 +35,7 @@ const props = defineProps<{
   canEdit: boolean
   contentMode: ContentModeName
   stationUid: string
+  readerRows: PageRow[]
 }>()
 
 const editContent = defineModel<string>('editContent', {required: true})
@@ -67,7 +68,7 @@ async function downloadOther() {
           @change="emit('contentInput')"
       />
       <NeutralContainer v-else>
-        <ContentBlocks v-if="blockRows.length" :rows="(blockRows as unknown as PageRow[])" :context="blockContext"/>
+        <ContentBlocks v-if="readerRows.length" :rows="readerRows" :context="blockContext"/>
         <p v-else class="text-[var(--text-muted)]">{{ t('kb.noContent') }}</p>
       </NeutralContainer>
     </template>

@@ -65,7 +65,7 @@ function doImportDocument() { closeDropdown(); emit('importDocument') }
                     {{ t('kb.newFolder') }}
                 </DropdownMenuItem>
                 <DropdownMenuItem :icon="['fas', 'file-lines']" @click="doCreateMarkdown">
-                    {{ t('kb.newMarkdownFile') }}
+                    {{ t('kb.newArticle') }}
                 </DropdownMenuItem>
                 <DropdownMenuItem :icon="['fas', 'upload']" @click="doUpload">
                     {{ t('kb.uploadFile') }}

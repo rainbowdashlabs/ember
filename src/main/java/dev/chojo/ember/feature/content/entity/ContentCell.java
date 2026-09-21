@@ -29,4 +29,12 @@ public record ContentCell(
                     CellConfig.parse(type, row.getString("config")));
         };
     }
+
+    public ContentCell withContent(String content) {
+        return new ContentCell(id, rowId, sortOrder, widthPercent, contentType, content, config);
+    }
+
+    public ContentCell withConfig(CellConfig config) {
+        return new ContentCell(id, rowId, sortOrder, widthPercent, contentType, content, config);
+    }
 }

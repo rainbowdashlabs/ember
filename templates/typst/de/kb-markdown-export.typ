@@ -33,6 +33,26 @@
   radius: 3pt,
   width: 100%,
 )
+#show quote.where(block: true): it => block(
+  width: 100%,
+  inset: (left: 10pt, rest: 8pt),
+  stroke: (left: 2pt + rgb("#c71100")),
+  fill: luma(248),
+  it.body,
+)
+#let picture-max-height = 9cm
+#let fit-picture(it) = layout(region => {
+  let natural = measure(it)
+  if natural.width == 0pt or natural.height == 0pt { return it }
+  let scale = calc.min(1, region.width / natural.width, picture-max-height / natural.height)
+  align(center, block(width: natural.width * scale, breakable: false, it))
+})
+#let caption(body) = block(
+  width: 100%,
+  above: 0.5em,
+  below: 1.2em,
+  align(center, text(size: 8.5pt, fill: luma(90), style: "italic", body)),
+)
 
 #align(center)[
   #text(size: 14pt, weight: "bold")[#data.fileName]
@@ -49,8 +69,11 @@
 
 // The body is the Typst markup pandoc produced from the file's Markdown. It is evaluated rather
 // than included so the helpers pandoc expects resolve in this document's scope.
-#eval(
-  read("body.typ"),
-  mode: "markup",
-  scope: (horizontalrule: line(length: 100%, stroke: 0.5pt + luma(180))),
-)
+#[
+  #show image: fit-picture
+  #eval(
+    read("body.typ"),
+    mode: "markup",
+    scope: (horizontalrule: line(length: 100%, stroke: 0.5pt + luma(180)), caption: caption),
+  )
+]

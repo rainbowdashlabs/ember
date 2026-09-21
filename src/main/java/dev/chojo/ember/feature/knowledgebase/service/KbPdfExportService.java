@@ -31,8 +31,12 @@ import java.util.Map;
  * that the other exports use.
  *
  * <p>Markdown goes through pandoc, which turns it into the Typst markup the template evaluates, so
- * headings, lists, tables and code blocks survive. Plain text is handed over line by line instead,
- * because nothing in it should be read as markup in the first place.
+ * headings, lists, tables and code blocks survive. The station's own pictures are placed next to
+ * the document first, so they print too. Plain text is handed over line by line instead, because
+ * nothing in it should be read as markup in the first place.
+ *
+ * <p>A rich article arrives here as the markdown projection of its blocks, read fresh at export
+ * time, so the PDF shows what the article shows today.
  */
 @Singleton
 public class KbPdfExportService {
@@ -40,6 +44,7 @@ public class KbPdfExportService {
     private static final DateTimeFormatter PDF_DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     private final KbContentService contentService;
+    private final KbPdfPictures pictures;
     private final StationRepository stationRepository;
     private final StationLogoService logoService;
     private final Api apiConfig;
@@ -47,10 +52,12 @@ public class KbPdfExportService {
     @Inject
     public KbPdfExportService(
             KbContentService contentService,
+            KbPdfPictures pictures,
             StationRepository stationRepository,
             StationLogoService logoService,
             Api apiConfig) {
         this.contentService = contentService;
+        this.pictures = pictures;
         this.stationRepository = stationRepository;
         this.logoService = logoService;
         this.apiConfig = apiConfig;
@@ -85,7 +92,7 @@ public class KbPdfExportService {
                 new ExportSource(
                         file.name(),
                         file.description(),
-                        contentService.getMarkdownContent(file.id()).orElse(""),
+                        contentService.printableMarkdown(file),
                         file.fileType() == KbFileType.MARKDOWN),
                 station != null ? station.name() : "",
                 station,
@@ -106,7 +113,7 @@ public class KbPdfExportService {
                 new ExportSource(
                         file.name(),
                         file.description(),
-                        contentService.getMarkdownContent(file.id()).orElse(""),
+                        contentService.printableMarkdown(file),
                         file.fileType() == KbFileType.MARKDOWN),
                 station.name(),
                 station,
@@ -130,8 +137,12 @@ public class KbPdfExportService {
         return render(source, partnerStationName, localStation, null, generatedBy);
     }
 
+    /**
+     * @param homeStationId the station whose logo and pictures the document may carry, or
+     *                      {@code null} for a partner's file, which carries neither
+     */
     private byte[] render(
-            ExportSource source, String stationName, Station station, Integer logoStationId, String generatedBy)
+            ExportSource source, String stationName, Station station, Integer homeStationId, String generatedBy)
             throws IOException, InterruptedException {
         var data = new LinkedHashMap<String, Object>();
         data.put("stationName", stationName == null ? "" : stationName);
@@ -144,19 +155,25 @@ public class KbPdfExportService {
         data.put("fileDescription", source.description() == null ? "" : source.description());
 
         Map<String, String> resources = Map.of();
+        Map<String, byte[]> files = Map.of();
         if (source.markdown()) {
-            resources = Map.of("body.typ", PandocConverter.markdownToTypst(source.content()));
+            var placed = homeStationId != null
+                    ? pictures.place(homeStationId, source.content())
+                    : new KbPdfPictures.Placed(source.content(), Map.of());
+            resources = Map.of("body.typ", PandocConverter.markdownToTypst(placed.markdown()));
+            files = placed.pictures();
         } else {
             data.put("lines", List.of(source.content().replace("\r\n", "\n").split("\n", -1)));
         }
 
-        var logo = logoStationId != null ? logoService.original(logoStationId).orElse(null) : null;
+        var logo = homeStationId != null ? logoService.original(homeStationId).orElse(null) : null;
         byte[] pdf = TypstCompiler.compileTemplate(
                 data,
                 StationFormat.languageOf(station)
                         + (source.markdown() ? "/kb-markdown-export.typ" : "/kb-text-export.typ"),
                 logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null,
-                resources);
+                resources,
+                files);
         log.info("Rendered '{}' as PDF ({} bytes)", source.fileName(), pdf.length);
         return pdf;
     }

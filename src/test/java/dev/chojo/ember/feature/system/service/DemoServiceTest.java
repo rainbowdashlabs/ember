@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.cluster.service.ClusterApplicationService;
 import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
 import dev.chojo.ember.feature.cluster.service.ClusterContentService;
 import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
@@ -207,6 +208,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var kbContentService = new KbContentService(
                 knowledgeBaseRepo,
                 new ContentBlockService(contentContainerRepo),
+                noCellDescriptions(),
                 stationRepo,
                 kbFileStorage,
                 kbSearchService);
@@ -477,6 +479,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         pageRepo,
                         new ContentBlockService(contentContainerRepo),
                         demoMediaLibrary,
+                        new CellDescriptions(demoMediaLibrary),
                         stationMemberRepo,
                         avatarService),
                 demoMediaLibrary,

@@ -14,6 +14,7 @@ import tools.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 /**
  * Blocks written out as markdown.
@@ -41,15 +42,30 @@ public final class ContentProjection {
      *                caller knows whether that is the public route or the authenticated one
      */
     public static String toMarkdown(List<ContentRow> rows, Function<String, String> fileUrl) {
+        return toMarkdown(rows, fileUrl, UnaryOperator.identity());
+    }
+
+    /**
+     * The same, with the line under each picture passed through {@code caption}, for a reader that
+     * sets captions apart from the text around them. Markdown has no caption of its own, so the
+     * stored projection leaves the line as a plain paragraph; the PDF export marks it.
+     *
+     * @param caption turns the line under a picture into what the result should hold for it
+     */
+    public static String toMarkdown(
+            List<ContentRow> rows, Function<String, String> fileUrl, UnaryOperator<String> caption) {
+        var target = new Target(fileUrl, caption);
         var blocks = new ArrayList<String>();
         for (var row : rows) {
             for (var cell : row.cells()) {
-                String block = cellToMarkdown(cell, fileUrl);
+                String block = cellToMarkdown(cell, target);
                 if (!block.isBlank()) blocks.add(block.strip());
             }
         }
         return String.join("\n\n", blocks);
     }
+
+    private record Target(Function<String, String> fileUrl, UnaryOperator<String> caption) {}
 
     /**
      * The same content with the markup taken off, for the places that want words rather than
@@ -79,15 +95,15 @@ public final class ContentProjection {
                 .strip();
     }
 
-    private static String cellToMarkdown(ContentCell cell, Function<String, String> fileUrl) {
+    private static String cellToMarkdown(ContentCell cell, Target target) {
         String content = cell.content() == null ? "" : cell.content();
         var config = cell.config();
         return switch (cell.contentType()) {
             case MARKDOWN, EMPTY -> content;
-            case IMAGE -> image(content, config, fileUrl);
-            case IMAGE_GALLERY -> gallery(config, fileUrl);
-            case HERO_BANNER -> heroBanner(config, fileUrl);
-            case PAST_EVENT_RECAP -> pastEventRecap(config, fileUrl);
+            case IMAGE -> image(content, config, target);
+            case IMAGE_GALLERY -> gallery(config, target);
+            case HERO_BANNER -> heroBanner(config, target.fileUrl());
+            case PAST_EVENT_RECAP -> pastEventRecap(config, target.fileUrl());
             case CALLOUT -> callout(content, config);
             case QUOTE -> quote(content, config);
             case CODE_BLOCK -> codeBlock(content, config);
@@ -109,12 +125,12 @@ public final class ContentProjection {
             case COUNTDOWN -> countdown(config);
             case DIVIDER -> "---";
             case SPACER -> "";
-            case NESTED_ROWS -> nestedRows(config, fileUrl);
+            case NESTED_ROWS -> nestedRows(config, target);
             default -> "";
         };
     }
 
-    private static String image(String hash, CellConfig config, Function<String, String> fileUrl) {
+    private static String image(String hash, CellConfig config, Target target) {
         if (hash == null || hash.isBlank()) return "";
         String alt = "";
         String caption = "";
@@ -122,20 +138,28 @@ public final class ContentProjection {
             alt = orEmpty(image.altText());
             caption = orEmpty(image.description());
         }
-        String markdown = "![" + alt + "](" + fileUrl.apply(hash.trim()) + ")";
-        return caption.isBlank() ? markdown : markdown + "\n\n" + caption;
+        return picture(alt, target.fileUrl().apply(hash.trim()), caption, target);
     }
 
-    private static String gallery(CellConfig config, Function<String, String> fileUrl) {
+    private static String gallery(CellConfig config, Target target) {
         if (!(config instanceof CellConfig.ImageGalleryConfig gallery) || gallery.items() == null) return "";
         var out = new ArrayList<String>();
         for (var item : gallery.items()) {
             if (item.imageHash() == null || item.imageHash().isBlank()) continue;
-            String line = "![" + orEmpty(item.altText()) + "](" + fileUrl.apply(item.imageHash()) + ")";
-            if (!orEmpty(item.subtext()).isBlank()) line = line + "\n\n" + item.subtext();
-            out.add(line);
+            out.add(picture(
+                    orEmpty(item.altText()),
+                    target.fileUrl().apply(item.imageHash()),
+                    orEmpty(item.subtext()),
+                    target));
         }
         return String.join("\n\n", out);
+    }
+
+    private static String picture(String alt, String url, String caption, Target target) {
+        String markdown = "![" + alt + "](" + url + ")";
+        return caption.isBlank()
+                ? markdown
+                : markdown + "\n\n" + target.caption().apply(caption);
     }
 
     private static String heroBanner(CellConfig config, Function<String, String> fileUrl) {
@@ -297,7 +321,7 @@ public final class ContentProjection {
      * Nested rows carry their cells inside the config, so the projection recurses into them the
      * same way the reader's eye would: left to right, then down.
      */
-    private static String nestedRows(CellConfig config, Function<String, String> fileUrl) {
+    private static String nestedRows(CellConfig config, Target target) {
         if (!(config instanceof CellConfig.NestedRowsConfig nested) || nested.rows() == null) return "";
         var blocks = new ArrayList<String>();
         for (JsonNode row : nested.rows()) {
@@ -320,7 +344,7 @@ public final class ContentProjection {
                         type,
                         cell.path("content").isString() ? cell.path("content").asString() : "",
                         CellConfig.parse(type, cell.get("config")));
-                String block = cellToMarkdown(parsed, fileUrl);
+                String block = cellToMarkdown(parsed, target);
                 if (!block.isBlank()) blocks.add(block.strip());
             }
         }

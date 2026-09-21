@@ -52,6 +52,7 @@ class ClusterContentServiceTest extends RepositoryTestBase {
         var contentService = new KbContentService(
                 knowledgeBaseRepo,
                 new ContentBlockService(contentContainerRepo),
+                noCellDescriptions(),
                 stationRepo,
                 fileStorage,
                 searchService);
