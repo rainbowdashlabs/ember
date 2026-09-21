@@ -5,7 +5,7 @@
  */
 import {computed} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
-import type {KbFile} from '@/api/knowledgeBase'
+import type {KbFileSummary} from '@/api/knowledgeBase'
 
 /** Where the knowledge base is mounted: a station's own screens, or an association's. */
 export type KbRoutes = {browse: string; file: string; versions: string}
@@ -70,7 +70,7 @@ export function useKbNavigation(routes: KbRoutes = STATION_KB_ROUTES) {
         }
     }
 
-    function navigateToFile(file: KbFile) {
+    function navigateToFile(file: KbFileSummary) {
         router.push({name: routes.file, params: {id: file.id}})
     }
 

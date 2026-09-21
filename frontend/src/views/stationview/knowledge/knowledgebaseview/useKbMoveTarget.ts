@@ -5,7 +5,7 @@
  */
 import {ref} from 'vue'
 import {knowledgeBase} from '@/api'
-import type {KbFile, KbFolder, KbFolderTreeEntry} from '@/api/knowledgeBase'
+import type {KbFileSummary, KbFolder, KbFolderTreeEntry} from '@/api/knowledgeBase'
 
 /**
  * The folder tree a move picks from, and which entry is being moved.
@@ -19,7 +19,7 @@ export function useKbMoveTarget() {
     const folders = ref<KbFolderTreeEntry[]>([])
     const showMove = ref(false)
     const movingFolder = ref<KbFolder | null>(null)
-    const movingFile = ref<KbFile | null>(null)
+    const movingFile = ref<KbFileSummary | null>(null)
 
     async function reloadFolders() {
         try {
@@ -35,7 +35,7 @@ export function useKbMoveTarget() {
         showMove.value = true
     }
 
-    function moveFile(file: KbFile) {
+    function moveFile(file: KbFileSummary) {
         movingFolder.value = null
         movingFile.value = file
         showMove.value = true

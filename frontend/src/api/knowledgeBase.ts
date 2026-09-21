@@ -47,7 +47,7 @@ export interface KbFile {
     updatedAt: string
     sourceFileId: number | null
     sourceStationId: string | null
-    restricted?: boolean
+    restricted: boolean
     conversionStatus: string | null
     /** How a markdown article was written. A rich one is built from blocks. */
     contentMode: ContentModeName
@@ -122,12 +122,29 @@ export interface Reach {
     narrowly: number[]
 }
 
+/**
+ * A file as a folder's listing carries it: enough to draw its tile and decide what may be done with
+ * it, and nothing that would cost the listing a read per file.
+ *
+ * <p>Its own type rather than a {@link KbFile} with fields missing, because a listing typed as the
+ * whole file let a tile ask it for a stored type it never sends, and every tile quietly concluded
+ * it had no picture. Opening a file fetches the whole of it.
+ */
+export interface KbFileSummary {
+    id: number
+    stationId: string
+    folderId: number | null
+    name: string
+    description: string
+    fileType: string
+    updatedAt: string
+    restricted: boolean
+}
+
 export interface BrowseResponse {
     currentFolder: KbFolder | null
     folders: KbFolder[]
-    files: KbFile[]
-    sharedFiles: SharedFileEntry[]
-    favourites: KbFile[]
+    files: KbFileSummary[]
     /** What the reader may do in the folder being browsed, which decides what may be created in it. */
     currentLevel?: KbAccessLevelName
     /** What the reader may do with each folder, keyed by folder id. */
@@ -327,6 +344,21 @@ export async function updateMarkdownContent(id: number, content: string): Promis
  */
 export function originalFileUrl(id: number): string {
     return `/kb/files/${id}/original`
+}
+
+/**
+ * Where the file somebody uploaded is fetched back as it was uploaded.
+ *
+ * <p>A presentation is shown as the PDF it was converted to, so its own bytes live at a separate
+ * address; everything else is shown as itself and its content is the file.
+ */
+export function rawFileUrl(file: Pick<KbFile, 'id' | 'fileType'>): string {
+    return file.fileType === KbFileType.PRESENTATION ? originalFileUrl(file.id) : fileContentUrl(file.id)
+}
+
+/** The picture of a file at the longest side asked for, answered 404 where the file has none. */
+export function filePictureUrl(id: number, size = 512): string {
+    return `/kb/files/${id}/picture?size=${size}`
 }
 
 /**

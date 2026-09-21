@@ -13,23 +13,17 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.util.FilePicture;
 import dev.chojo.ember.util.PdfText;
 import dev.chojo.ember.util.sql.FullTextSearch;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.rendering.PDFRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
-
-import javax.imageio.ImageIO;
 
 /**
  * The documents kept for a station's members: their bytes, the picture a tile shows, and what
@@ -182,30 +176,13 @@ public class DocumentService {
      */
     private boolean storeThumbnail(StorageScope.Station scope, int documentId, String mimeType, byte[] data) {
         try {
-            byte[] picture = pictureOf(mimeType, data);
-            if (picture == null) return false;
-            images.store(scope, StorageCategory.MEMBER_DOCUMENTS, thumbnailKey(documentId), picture, "image/png");
+            var picture = FilePicture.of(mimeType, data, THUMBNAIL_DPI);
+            if (picture.isEmpty()) return false;
+            images.store(scope, StorageCategory.MEMBER_DOCUMENTS, thumbnailKey(documentId), picture.get(), "image/png");
             return true;
         } catch (Exception e) {
             log.warn("No picture could be made of document {}", documentId, e);
             return false;
-        }
-    }
-
-    private byte[] pictureOf(String mimeType, byte[] data) throws IOException {
-        if (mimeType != null && mimeType.startsWith("image/")) return data;
-        if ("application/pdf".equals(mimeType)) return firstPageOf(data);
-        return null;
-    }
-
-    /** The first page of a PDF as a picture, which is what makes a readable tile of it. */
-    private byte[] firstPageOf(byte[] pdf) throws IOException {
-        try (var document = Loader.loadPDF(pdf)) {
-            if (document.getNumberOfPages() == 0) return null;
-            BufferedImage page = new PDFRenderer(document).renderImageWithDPI(0, THUMBNAIL_DPI);
-            var out = new ByteArrayOutputStream();
-            ImageIO.write(page, "png", out);
-            return out.toByteArray();
         }
     }
 

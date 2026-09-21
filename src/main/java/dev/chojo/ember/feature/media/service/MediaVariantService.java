@@ -6,12 +6,11 @@
 package dev.chojo.ember.feature.media.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.util.FilePicture;
 import dev.chojo.ember.util.WebpEncoder;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import net.coobird.thumbnailator.Thumbnails;
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.rendering.PDFRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -162,18 +161,11 @@ public class MediaVariantService {
                     return read;
                 }
             }
-            if (rendersToPicture(mimeType)) return firstPageOf(bytes);
+            if (rendersToPicture(mimeType)) return FilePicture.firstPage(bytes, PDF_RENDER_DPI);
             return null;
         } catch (IOException e) {
             log.warn("Could not read a picture for variants station={} hash={}", stationId, contentHash, e);
             return null;
-        }
-    }
-
-    private static BufferedImage firstPageOf(byte[] bytes) throws IOException {
-        try (var document = Loader.loadPDF(bytes)) {
-            if (document.getNumberOfPages() == 0) return null;
-            return new PDFRenderer(document).renderImageWithDPI(0, PDF_RENDER_DPI);
         }
     }
 

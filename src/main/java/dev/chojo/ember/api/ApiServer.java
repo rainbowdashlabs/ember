@@ -326,6 +326,12 @@ public class ApiServer {
 
     /**
      * Creates the Javalin application, registers all middleware, routes, and plugins, then starts the server.
+     *
+     * <p>A development instance accepts every origin. A write from an origin the rule does not name is
+     * answered 400 after the handler has already done the work, so the file is uploaded, the row is
+     * written and the screen still reports a failure. A dev instance is reached from whichever address
+     * happens to be in front of it that afternoon, a tunnel to a phone among them, and naming the three
+     * ports it used to name meant every one of those read as a broken application.
      */
     public void start() {
         if (demoConfig.dev()) {
@@ -352,13 +358,7 @@ public class ApiServer {
                     rule.allowHost(origin);
                 }
                 if (demoConfig.dev()) {
-                    // The frontends a dev instance is asked from: the dev server, the second one
-                    // the cross-instance transfer harness runs, and the end-to-end suite's own.
-                    // An origin missing here is refused with 400 on every write, which reads as
-                    // the request being malformed rather than as the port being unknown.
-                    rule.allowHost("http://localhost:3000");
-                    rule.allowHost("http://localhost:3001");
-                    rule.allowHost("http://localhost:3010");
+                    rule.anyHost();
                 }
             }));
 

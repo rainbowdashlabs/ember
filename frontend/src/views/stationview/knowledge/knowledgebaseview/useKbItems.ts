@@ -11,7 +11,7 @@ import {
     KbFileType,
     levelCovers,
     type KbAccessLevelName,
-    type KbFile,
+    type KbFileSummary,
     type KbFolder,
     type SearchResult,
     type SharedFileEntry,
@@ -19,6 +19,22 @@ import {
 } from '@/api/knowledgeBase'
 import {fileIcon} from '@/util/kbFileIcon'
 import {isPdfExportable} from '@/util/kbFileExport'
+/**
+ * The kinds of file a tile shows a picture of: a photograph scaled down, a PDF by its first page.
+ *
+ * <p>Read off the kind rather than the stored type, because a folder's listing carries the kind of
+ * each file and not its type. Asked of a type the listing never sends, every tile concluded it had
+ * no picture and none was ever requested.
+ */
+const PICTURED_TYPES: ReadonlySet<string> = new Set([KbFileType.IMAGE, KbFileType.PDF])
+
+/** What a member uploaded as a file, rather than wrote, embedded or linked. */
+const UPLOADED_TYPES: ReadonlySet<string> = new Set([
+    KbFileType.PDF,
+    KbFileType.IMAGE,
+    KbFileType.PRESENTATION,
+    KbFileType.OTHER,
+])
 
 /**
  * One thing a reader can do to an item, rendered as an icon button wherever the item appears.
@@ -50,6 +66,11 @@ export interface KbItem {
     iconClass: string
     /** Folder images are served from an authenticated URL; the icon is the fallback. */
     imageUrl?: string
+    /**
+     * A picture of the file itself, drawn across the top of its tile. Served from an authenticated
+     * URL that answers 404 where no picture could be made, and the icon takes its place then.
+     */
+    picture?: string
     title: string
     description?: string
     /** The column the list view shows between description and date. */
@@ -77,26 +98,27 @@ export interface KbItem {
 
 interface KbItemHandlers {
     openFolder: (id: number) => void
-    openFile: (file: KbFile) => void
+    openFile: (file: KbFileSummary) => void
     openFederatedFile: (stationUid: string, fileId: number) => void
     openFavourites: () => void
     editFolder: (folder: KbFolder) => void
     shareFolder: (folder: KbFolder) => void
     moveFolder: (folder: KbFolder) => void
     deleteFolder: (folder: KbFolder) => void
-    editFile: (file: KbFile) => void
-    shareFile: (file: KbFile) => void
-    moveFile: (file: KbFile) => void
-    deleteFile: (file: KbFile) => void
-    exportFilePdf: (file: KbFile) => void
+    editFile: (file: KbFileSummary) => void
+    shareFile: (file: KbFileSummary) => void
+    moveFile: (file: KbFileSummary) => void
+    deleteFile: (file: KbFileSummary) => void
+    exportFilePdf: (file: KbFileSummary) => void
+    downloadFile: (file: KbFileSummary) => void
     copySharedFile: (id: number) => void
     openSharedFolder: (stationUid: string, folderId: number) => void
-    removeFavourite: (file: KbFile, event?: MouseEvent) => void
+    removeFavourite: (file: KbFileSummary, event?: MouseEvent) => void
 }
 
 interface KbItemSources {
     folders: Ref<KbFolder[]>
-    files: Ref<KbFile[]>
+    files: Ref<KbFileSummary[]>
     sharedFiles: Ref<SharedFileEntry[]>
     sharedFolders: Ref<SharedFolderEntry[]>
     /** The entries standing on the public wiki, keyed the way the browse keys them. */
@@ -107,7 +129,7 @@ interface KbItemSources {
     narrowIds: Ref<Set<number>>
     folderKey: (id: number) => number
     fileKey: (id: number) => number
-    favourites: Ref<KbFile[]>
+    favourites: Ref<KbFileSummary[]>
     favouriteIds: Ref<Set<number>>
     currentFolder: Ref<KbFolder | null>
     isFavouritesView: Ref<boolean>
@@ -158,7 +180,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
         return t('kb.accessLevels.read')
     }
 
-    function pdfAction(file: KbFile, onHover: boolean): KbItemAction[] {
+    function pdfAction(file: KbFileSummary, onHover: boolean): KbItemAction[] {
         if (!isPdfExportable(file.fileType)) return []
         return [{
             key: 'pdf',
@@ -169,8 +191,23 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
         }]
     }
 
-    function fileActions(file: KbFile): KbItemAction[] {
-        const actions: KbItemAction[] = pdfAction(file, true)
+    /**
+     * Taking an uploaded file away as it was uploaded. A written article offers its PDF instead,
+     * and a video or a link has no file to take.
+     */
+    function downloadAction(file: KbFileSummary): KbItemAction[] {
+        if (!UPLOADED_TYPES.has(file.fileType)) return []
+        return [{
+            key: 'download',
+            icon: ['fas', 'download'],
+            label: t('kb.downloadFile'),
+            onHover: true,
+            run: () => handlers.downloadFile(file),
+        }]
+    }
+
+    function fileActions(file: KbFileSummary): KbItemAction[] {
+        const actions: KbItemAction[] = [...pdfAction(file, true), ...downloadAction(file)]
         if (sources.isFavouritesView.value) {
             actions.push({
                 key: 'unfavourite',
@@ -223,11 +260,12 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
         return actions
     }
 
-    function toFileItem(file: KbFile): KbItem {
+    function toFileItem(file: KbFileSummary): KbItem {
         return {
             key: 'file-' + file.id,
             icon: fileIcon(file),
             iconClass: 'text-[var(--primary)]',
+            picture: PICTURED_TYPES.has(file.fileType) ? knowledgeBase.filePictureUrl(file.id) : undefined,
             title: file.name,
             description: file.description || undefined,
             typeLabel: fileTypeLabel(file.fileType),

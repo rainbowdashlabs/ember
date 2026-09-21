@@ -9,7 +9,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {knowledgeBase} from '@/api'
-import type {KbFile, KbFolder} from '@/api/knowledgeBase'
+import type {KbFileSummary, KbFolder} from '@/api/knowledgeBase'
 import {useSession} from '@/composables/useSession'
 import KbRestrictionsField from './KbRestrictionsField.vue'
 import KbPublicVisibilityField from './KbPublicVisibilityField.vue'
@@ -23,7 +23,7 @@ const {t} = useI18n()
 const {isKbPublic} = useSession()
 
 const props = defineProps<{
-    entry: KbFile | KbFolder | null
+    entry: KbFileSummary | KbFolder | null
     kind: 'files' | 'folders'
     /**
      * Whether this is an association's wiki, whose stations are the audience, rather than a station's own,

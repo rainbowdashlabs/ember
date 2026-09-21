@@ -402,6 +402,13 @@ services:
       - ember-dev-project-gradle:/home/gradle/project/.gradle
       - ./config:/home/gradle/project/config
       - ./data:/home/gradle/project/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/api/v1/public/config"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5m
+      start_interval: 5s
     depends_on:
       postgres:
         condition: service_healthy

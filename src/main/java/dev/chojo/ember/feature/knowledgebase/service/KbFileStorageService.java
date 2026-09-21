@@ -103,10 +103,13 @@ public class KbFileStorageService {
     }
 
     /**
-     * Removes the file and any sidecar variants (raw / gzipped / converted PDF).
+     * Removes the file and everything made from it: the raw and gzipped bytes, a converted PDF and
+     * the picture shown on its tile.
      */
     public void delete(int stationId, int fileId) {
-        storage.deletePrefix(stationScope(stationId), StorageCategory.KB_FILES, fileKey(fileId));
+        StorageScope.Station scope = stationScope(stationId);
+        storage.deletePrefix(scope, StorageCategory.KB_FILES, fileKey(fileId));
+        storage.deletePrefix(scope, StorageCategory.IMAGE_KB_FILE_PICTURE, KbFilePictureService.key(fileId));
         log.info("Deleted KB file {} for station {}", fileId, stationId);
     }
 

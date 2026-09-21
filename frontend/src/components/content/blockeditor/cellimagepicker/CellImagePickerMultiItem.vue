@@ -9,7 +9,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import {type GalleryItem} from '@/api/pageManage'
-import {mediaFileUrl, type StationFile} from '@/api/media'
+import {mediaImageSrcset, mediaImageUrlAt, type StationFile} from '@/api/media'
 
 defineProps<{
     item: GalleryItem
@@ -27,7 +27,8 @@ const {t} = useI18n()
 
 <template>
     <div class="flex items-stretch gap-2 rounded-theme border border-(--border) p-2 bg-bg-light dark:bg-bg-dark">
-        <img :src="mediaFileUrl(stationUid, item.imageHash)" alt=""
+        <img :src="mediaImageUrlAt(stationUid, item.imageHash, 96)"
+             :srcset="mediaImageSrcset(stationUid, item.imageHash, 96)" alt=""
              class="w-24 h-24 object-cover rounded shrink-0"/>
         <div class="flex-1 flex flex-col gap-1 min-w-0">
             <TextInput

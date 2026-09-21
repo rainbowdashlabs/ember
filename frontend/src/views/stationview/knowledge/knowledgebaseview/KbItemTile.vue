@@ -6,9 +6,9 @@
 <script setup lang="ts">
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
-import AuthImage from '@/components/display/AuthImage.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import KbItemActions from './KbItemActions.vue'
+import KbItemTileMedia from './KbItemTileMedia.vue'
 import KbReachEye from './KbReachEye.vue'
 import type {KbItem} from './useKbItems'
 
@@ -47,17 +47,7 @@ function onCheckboxClick(event: MouseEvent) {
         </div>
 
         <div class="flex flex-col items-center gap-2 p-2 text-center">
-            <AuthImage
-                v-if="item.imageUrl"
-                :src="item.imageUrl"
-                :alt="item.title"
-                class="w-8 h-8 rounded object-cover"
-            >
-                <template #error>
-                    <font-awesome-icon :icon="item.icon" class="text-2xl" :class="item.iconClass"/>
-                </template>
-            </AuthImage>
-            <font-awesome-icon v-else :icon="item.icon" class="text-2xl" :class="item.iconClass"/>
+            <KbItemTileMedia :item="item"/>
 
             <div class="flex items-center justify-center gap-1 w-full">
                 <span class="text-sm font-medium truncate">{{ item.title }}</span>
@@ -68,7 +58,6 @@ function onCheckboxClick(event: MouseEvent) {
                 />
             </div>
 
-            <StationBadge v-if="item.stationName" :station-name="item.stationName"/>
             <span
                 v-if="item.levelLabel"
                 class="text-[10px] text-[var(--text-muted)] border border-[var(--border)] rounded-full px-2 py-0.5"
@@ -82,8 +71,12 @@ function onCheckboxClick(event: MouseEvent) {
             </span>
         </div>
 
-        <div v-if="item.favourite" class="absolute top-1 left-1 flex gap-1">
-            <font-awesome-icon :icon="['fas', 'star']" class="text-xs text-yellow-500"/>
+        <div
+            v-if="item.favourite || item.stationName"
+            class="absolute top-1 left-1 flex max-w-[calc(100%-2.5rem)] items-center gap-1 overflow-hidden"
+        >
+            <font-awesome-icon v-if="item.favourite" :icon="['fas', 'star']" class="text-xs text-yellow-500"/>
+            <StationBadge v-if="item.stationName" :station-name="item.stationName"/>
         </div>
 
         <div class="absolute top-1 right-1">

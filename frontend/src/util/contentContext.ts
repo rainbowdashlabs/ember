@@ -6,6 +6,14 @@
 import {mediaFileUrl, mediaImageUrlAt} from '@/api/media'
 
 /**
+ * How wide a page of content is, which is as wide as anything drawn in it can be.
+ *
+ * <p>The reading column both a public page and a station page sit in, in CSS pixels. Whoever
+ * changes that column changes this.
+ */
+export const PAGE_WIDTH = 1024
+
+/**
  * Where a piece of block content is being read, which is everything the renderer needs to know
  * about its surroundings.
  *
@@ -23,7 +31,14 @@ export interface ContentRenderContext {
     fileUrl: (contentHash: string) => string
     /** The address of a media image at a given width, for picking a pre-generated variant. */
     imageUrl: (contentHash: string, width: number) => string
-    /** The widest an image gets on this surface, which is what a variant is chosen for. */
+    /**
+     * The widest an image gets on this surface, which is what a variant is chosen for.
+     *
+     * <p>The width a reader actually sees, not the width a screen could hold. A hint of twice the
+     * surface is not a sharper picture, it is the same picture at four times the bytes, and on a
+     * phone the bytes are the whole cost. The browser doubles it again for a dense screen, which is
+     * where the sharpness comes from.
+     */
     widthHint: number
     /** Used as the accessible name of an embedded player. */
     title: string
@@ -39,7 +54,7 @@ export function publicContentContext(stationUid: string, title = ''): ContentRen
         stationUid,
         fileUrl: hash => mediaFileUrl(stationUid, hash),
         imageUrl: (hash, width) => mediaImageUrlAt(stationUid, hash, width),
-        widthHint: 2048,
+        widthHint: PAGE_WIDTH,
         title,
     }
 }
@@ -55,7 +70,7 @@ export function internalContentContext(stationUid: string, title = ''): ContentR
         stationUid,
         fileUrl: hash => mediaFileUrl(stationUid, hash),
         imageUrl: (hash, width) => mediaImageUrlAt(stationUid, hash, width),
-        widthHint: 1024,
+        widthHint: PAGE_WIDTH,
         title,
     }
 }

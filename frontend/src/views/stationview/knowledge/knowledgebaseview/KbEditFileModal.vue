@@ -11,14 +11,14 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {knowledgeBase} from '@/api'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {KbFile} from '@/api/knowledgeBase'
+import type {KbFileSummary} from '@/api/knowledgeBase'
 import KbTagsEditor from './KbTagsEditor.vue'
 import {useKbEntryEditor} from './useKbEntryEditor'
 
 const {t} = useI18n()
 
 const props = defineProps<{
-    file: KbFile | null
+    file: KbFileSummary | null
 }>()
 
 const show = defineModel<boolean>('show', {required: true})
