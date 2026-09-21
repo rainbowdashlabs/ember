@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
 import dev.chojo.ember.feature.knowledgebase.service.KbBulkService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
+import dev.chojo.ember.feature.knowledgebase.service.KbFilePictureService;
 import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.knowledgebase.service.KbImageService;
 import dev.chojo.ember.feature.knowledgebase.service.KbMoveService;
@@ -88,6 +89,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private final KnowledgeBaseFederationService federationService;
     private final KbIconService iconService;
     private final KbImageService imageService;
+    private final KbFilePictureService pictureService;
     private final KbPdfExportService pdfExportService;
     private final KbMoveService moveService;
     private final KbBulkService bulkService;
@@ -105,6 +107,7 @@ public class KnowledgeBaseRoutes implements Routes {
             KnowledgeBaseFederationService federationService,
             KbIconService iconService,
             KbImageService imageService,
+            KbFilePictureService pictureService,
             KbPdfExportService pdfExportService,
             KbMoveService moveService,
             KbBulkService bulkService,
@@ -122,6 +125,7 @@ public class KnowledgeBaseRoutes implements Routes {
         this.federationService = federationService;
         this.iconService = iconService;
         this.imageService = imageService;
+        this.pictureService = pictureService;
         this.pdfExportService = pdfExportService;
         this.stationRepository = stationRepository;
     }
@@ -199,6 +203,7 @@ public class KnowledgeBaseRoutes implements Routes {
         routes.post(prefix + "/kb/files/link", this::createLinkFile, StationPermission.KNOWLEDGE_EDIT);
 
         routes.get(prefix + "/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
+        routes.get(prefix + "/kb/files/{id}/picture", this::getFilePicture, StationPermission.USER);
         routes.get(prefix + "/kb/files/{id}/html", this::getMarkdownHtml, StationPermission.USER);
         routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, StationPermission.KNOWLEDGE_EDIT);
         routes.get(prefix + "/kb/files/{id}/blocks", this::getBlocks, StationPermission.LOGIN);
@@ -640,20 +645,23 @@ public class KnowledgeBaseRoutes implements Routes {
         String folderIdStr = ctx.formParam("folderId");
         if (folderIdStr != null && !folderIdStr.isBlank()) folderId = Integer.parseInt(folderIdStr);
         requireWriteInFolder(ctx, folderId);
+        byte[] data;
         try (var content = file.content()) {
-            byte[] data = content.readAllBytes();
-            ctx.json(service.createUploadedFile(
-                    session.stationId(),
-                    folderId,
-                    name.trim(),
-                    description != null ? description : "",
-                    data,
-                    file.contentType(),
-                    session.member().id()));
+            data = content.readAllBytes();
         } catch (Exception e) {
             log.warn("Failed to read uploaded file for KB", e);
             throw new BadRequestResponse("Failed to read file");
         }
+        var created = service.createUploadedFile(
+                session.stationId(),
+                folderId,
+                name.trim(),
+                description != null ? description : "",
+                data,
+                file.contentType(),
+                session.member().id());
+        pictureService.make(session.stationId(), created.id(), created.mimeType(), data);
+        ctx.json(created);
     }
 
     private void importDocument(Context ctx) {
@@ -1048,6 +1056,24 @@ public class KnowledgeBaseRoutes implements Routes {
                 .filter(id -> !narrowly.contains(id))
                 .collect(Collectors.toSet());
         return new Reach(publicly, federated, narrowly);
+    }
+
+    /**
+     * The picture of a file, for a tile that shows what the file is rather than what kind it is.
+     *
+     * <p>Kept behind the same door as the file's own bytes: a picture of a sheet is still the sheet.
+     * A file with no picture answers 404, and the tile draws its icon instead.
+     */
+    private void getFilePicture(Context ctx) {
+        int id = pathInt(ctx, "id");
+        var file = requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
+        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(256);
+        var picture =
+                pictureService.read(file.stationId(), id, file.mimeType(), size).orElseThrow(NotFoundResponse::new);
+        ctx.contentType(picture.contentType());
+        ctx.header("Cache-Control", "private, max-age=300");
+        ctx.result(picture.data());
     }
 
     private void getFolderIcon(Context ctx) {

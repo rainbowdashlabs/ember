@@ -127,6 +127,20 @@ public enum StorageCategory {
             false,
             false,
             null),
+    /**
+     * The picture of a wiki file: the image scaled down, or a document's first page. Derived from
+     * the file and made again whenever it is missing, so it is not charged to the station, which
+     * already pays for the file it was made from.
+     */
+    IMAGE_KB_FILE_PICTURE(
+            "images/kb-file-pictures",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.UNTRACKED,
+            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
+            false,
+            false,
+            null),
     DOCUMENT(
             "documents",
             StorageScope.Kind.INSTANCE,

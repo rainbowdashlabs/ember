@@ -11,7 +11,7 @@ import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import DragList from '@/components/input/DragList.vue'
 import CellImagePickerMultiItem from './cellimagepicker/CellImagePickerMultiItem.vue'
 import {type GalleryItem} from '@/api/pageManage'
-import {mediaFileUrl, type StationFile} from '@/api/media'
+import {mediaImageSrcset, mediaImageUrlAt, type StationFile} from '@/api/media'
 import {moveWithin} from '@/util/reorder'
 
 const itemsModel = defineModel<GalleryItem[] | null>('items')
@@ -111,7 +111,8 @@ function swapAt(i: number, payload: {file: StationFile}) {
 
         <!-- Single-mode: one image preview -->
         <div v-if="!multi && items.length > 0" class="flex items-start gap-2">
-            <img :src="mediaFileUrl(stationUid, items[0]?.imageHash ?? '')" alt=""
+            <img :src="mediaImageUrlAt(stationUid, items[0]?.imageHash ?? '', 128)"
+                 :srcset="mediaImageSrcset(stationUid, items[0]?.imageHash ?? '', 128)" alt=""
                  class="w-32 h-32 object-cover rounded-theme border border-(--border)"/>
             <div class="flex flex-col gap-1">
                 <MediaBrowseButton

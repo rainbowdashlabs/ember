@@ -5,7 +5,7 @@
  */
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
-import {KbAccessLevel, levelCovers} from './knowledgeBase'
+import {KbAccessLevel, KbFileType, levelCovers, rawFileUrl} from './knowledgeBase'
 
 /**
  * One permission decision the interface reuses everywhere an action is offered, so it has to answer
@@ -30,5 +30,20 @@ describe('levelCovers', () => {
 
     it('treats an unreported level as no opinion', () => {
         expect(levelCovers(undefined, KbAccessLevel.MANAGE)).toBe(true)
+    })
+})
+
+/**
+ * A file taken away from a tile has to be the file that was uploaded, not what it is shown as: a
+ * presentation is shown as its converted PDF, and taking that instead would lose the slides.
+ */
+describe('rawFileUrl', () => {
+    it('fetches a presentation as the file that was uploaded', () => {
+        expect(rawFileUrl({id: 7, fileType: KbFileType.PRESENTATION})).toBe('/kb/files/7/original')
+    })
+
+    it('fetches everything else as its content, which is the file itself', () => {
+        expect(rawFileUrl({id: 7, fileType: KbFileType.PDF})).toBe('/kb/files/7/content')
+        expect(rawFileUrl({id: 7, fileType: KbFileType.IMAGE})).toBe('/kb/files/7/content')
     })
 })

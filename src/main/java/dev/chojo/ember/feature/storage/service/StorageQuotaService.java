@@ -393,6 +393,7 @@ public class StorageQuotaService {
                 quota.images().bytes();
             case MEDIA_FILES, MEDIA_IMAGES -> quota.pages().bytes();
             case MEMBER_DOCUMENTS, MOVEMENT_DOCUMENTS -> quota.kb().bytes();
+            case IMAGE_KB_FILE_PICTURE -> Long.MAX_VALUE;
             // A quota limits what one station may keep. What the instance holds is not any
             // station's to be charged for, so nothing here has a limit to look up.
             case IMAGE_AVATAR,

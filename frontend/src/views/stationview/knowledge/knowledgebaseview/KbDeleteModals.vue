@@ -14,7 +14,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {knowledgeBase} from '@/api'
-import type {DeleteImpact, KbFile, KbFolder} from '@/api/knowledgeBase'
+import type {DeleteImpact, KbFileSummary, KbFolder} from '@/api/knowledgeBase'
 
 /**
  * Asking before a delete, and saying what it really costs.
@@ -28,7 +28,7 @@ const showFile = defineModel<boolean>('showFile', {required: true})
 
 const props = defineProps<{
     folder: KbFolder | null
-    file: KbFile | null
+    file: KbFileSummary | null
 }>()
 
 const emit = defineEmits<{

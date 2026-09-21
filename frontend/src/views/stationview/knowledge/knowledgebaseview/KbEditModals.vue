@@ -7,7 +7,7 @@
 import {ref} from 'vue'
 import KbEditFolderModal from './KbEditFolderModal.vue'
 import KbEditFileModal from './KbEditFileModal.vue'
-import type {KbFile, KbFolder} from '@/api/knowledgeBase'
+import type {KbFileSummary, KbFolder} from '@/api/knowledgeBase'
 
 const emit = defineEmits<{
     saved: []
@@ -16,14 +16,14 @@ const emit = defineEmits<{
 const showFolder = ref(false)
 const folder = ref<KbFolder | null>(null)
 const showFile = ref(false)
-const file = ref<KbFile | null>(null)
+const file = ref<KbFileSummary | null>(null)
 
 function openFolder(target: KbFolder) {
     folder.value = target
     showFolder.value = true
 }
 
-function openFile(target: KbFile) {
+function openFile(target: KbFileSummary) {
     file.value = target
     showFile.value = true
 }

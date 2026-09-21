@@ -6,7 +6,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {federation, knowledgeBase} from '@/api'
-import type {KbAccessLevelName, KbFile, KbFolder, SharedFileEntry, SharedFolderEntry} from '@/api/knowledgeBase'
+import type {KbAccessLevelName, KbFileSummary, KbFolder, SharedFileEntry, SharedFolderEntry} from '@/api/knowledgeBase'
 import type {SharedContentItem} from '@/api/federation'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import type {useKbNavigation} from './useKbNavigation'
@@ -20,10 +20,10 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
 
     const currentFolder = ref<KbFolder | null>(null)
     const folders = ref<KbFolder[]>([])
-    const files = ref<KbFile[]>([])
+    const files = ref<KbFileSummary[]>([])
     const sharedFiles = ref<SharedFileEntry[]>([])
     const sharedFolders = ref<SharedFolderEntry[]>([])
-    const favourites = ref<KbFile[]>([])
+    const favourites = ref<KbFileSummary[]>([])
     const breadcrumbs = ref<KbFolder[]>([])
     const currentLevel = ref<KbAccessLevelName | undefined>(undefined)
     const folderLevels = ref<Record<number, KbAccessLevelName>>({})
@@ -61,10 +61,11 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
             currentFolder.value = null
             currentLevel.value = result.currentLevel
             folders.value = []
-            files.value = result.favourites ?? []
+            // TODO: favourites have no backend route yet, so this view is always empty.
+            files.value = []
             sharedFiles.value = []
             sharedFolders.value = []
-            favourites.value = result.favourites ?? []
+            favourites.value = []
             breadcrumbs.value = []
         } else {
             const result = await knowledgeBase.browse(navigation.currentFolderId.value)
@@ -87,7 +88,7 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
                 ...(result.folderReach?.narrowly ?? []).map(id => folderKey(id)),
                 ...(result.fileReach?.narrowly ?? []).map(id => fileKey(id)),
             ])
-            favourites.value = result.favourites ?? []
+            favourites.value = []
             await buildBreadcrumbs()
 
             if (navigation.currentFolderId.value == null) {
@@ -154,7 +155,7 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
         breadcrumbs.value = crumbs
     }
 
-    async function toggleFavourite(file: KbFile, event?: MouseEvent) {
+    async function toggleFavourite(file: KbFileSummary, event?: MouseEvent) {
         if (event) event.stopPropagation()
         try {
             if (favouriteIds.value.has(file.id)) {

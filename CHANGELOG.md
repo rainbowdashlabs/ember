@@ -5,9 +5,12 @@
 ### New Features
 
 - **Unsaved writing is kept for you.** What you write on a page, a news entry or a knowledge base article stays in your browser when you leave without saving, and is offered back when you return. A draft is forgotten once you save, and after a week.
+- **The knowledge base shows what its files are.** A picture or a PDF now shows itself on its tile, the picture scaled down and the PDF by its first page, so a folder of sheets can be told apart without opening each one. Files that were already there get their picture the first time somebody opens their folder.
 
 ### Improvements
 
+- **Files in the knowledge base can be downloaded from their tile.** An uploaded file offers a download button on its tile, the way an article already offers its PDF, and hands over the file exactly as it was uploaded.
+- **Pictures on pages load at the size they are shown.** A banner, a gallery or a picture on a page now fetches a copy sized for the page rather than the photograph as it was taken, so pages open faster and use less data on a phone.
 - **Files open on a phone instead of quietly not saving.** A document, a picture or a recording fetched on a phone or tablet now opens in the app itself, with a button to save it from there; a list of values or an archive is handed to the share sheet as before. Downloads that took long enough for the share sheet to be refused used to end in nothing at all.
 - **Exports are named after what they hold.** A report, list or sheet arrives as something like `Attendance - January 2026.pdf` instead of the same word every time, so two of them no longer sit side by side as numbered copies. The name follows the language the station's documents are written in.
 - **Spreadsheets open the way your software expects them to.** You choose between a semicolon and a comma when you ask for one, and every spreadsheet now carries the mark that makes umlauts open correctly instead of as rubbish.

@@ -32,7 +32,7 @@ import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {knowledgeBase} from '@/api'
 import {downloadAuthed} from '@/util/downloadAuthed'
-import {KbAccessLevel, levelCovers, type KbFolder, type KbFile} from '@/api/knowledgeBase'
+import {KbAccessLevel, levelCovers, type KbFolder, type KbFileSummary} from '@/api/knowledgeBase'
 
 const props = defineProps<{
   /** The pages this knowledge base is mounted on, which differ when an association opens its own. */
@@ -92,15 +92,23 @@ const {
     target: deleteFileTarget,
     request: confirmDeleteFile,
     confirm: handleDeleteFile,
-} = useConfirmAction<KbFile>({
+} = useConfirmAction<KbFileSummary>({
     onConfirm: f => knowledgeBase.deleteFile(f.id),
     onSuccess: () => loadData(),
     error,
 })
 
-async function exportFilePdf(file: KbFile) {
+async function exportFilePdf(file: KbFileSummary) {
     try {
         await downloadAuthed(knowledgeBase.pdfExportUrl(file.id), `${file.name}.pdf`)
+    } catch {
+        error.value = t('common.error')
+    }
+}
+
+async function downloadFile(file: KbFileSummary) {
+    try {
+        await downloadAuthed(knowledgeBase.rawFileUrl(file))
     } catch {
         error.value = t('common.error')
     }
@@ -162,6 +170,7 @@ const {items, toSearchItems} = useKbItems(
         moveFile: move.moveFile,
         deleteFile: confirmDeleteFile,
         exportFilePdf,
+        downloadFile,
         copySharedFile,
         openSharedFolder: navigateToSharedFolder,
         removeFavourite: toggleFavourite,

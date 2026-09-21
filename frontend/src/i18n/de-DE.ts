@@ -8943,6 +8943,7 @@ export default {
         typeFile: 'Datei',
         federatedContentUnavailable: 'Diese Datei einer Partnerwache lässt sich hier nicht anzeigen. Kopiere sie in deine Wache, um sie zu öffnen.',
         downloadPdf: 'Als PDF',
+        downloadFile: 'Herunterladen',
         itemActions: 'Aktionen',
         listView: 'Listenansicht',
         gridView: 'Kachelansicht',

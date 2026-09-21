@@ -48,7 +48,8 @@ public class StorageReconciliationService {
             StorageCategory.IMAGE_LOST_AND_FOUND,
             StorageCategory.IMAGE_QUIZ_QUESTION,
             StorageCategory.IMAGE_KB_ICON,
-            StorageCategory.IMAGE_KB_IMAGE);
+            StorageCategory.IMAGE_KB_IMAGE,
+            StorageCategory.IMAGE_KB_FILE_PICTURE);
 
     private final StorageUsageRepository usageRepository;
     private final StationRepository stationRepository;
@@ -115,6 +116,7 @@ public class StorageReconciliationService {
 
     private void reconcileCategory(int stationId, StorageScope.Station scope, StorageCategory category) {
         deleteOrphans(stationId, scope, category);
+        if (!category.tracksUsage()) return;
         long totalBytes = storage.sumSize(scope, category);
         int fileCount = storage.listKeys(scope, category, "").size();
         usageRepository.setUsage(stationId, category, totalBytes, fileCount);
@@ -186,6 +188,10 @@ public class StorageReconciliationService {
             case IMAGE_KB_ICON -> Optional.of(queryIdentitySet("""
                     SELECT 'folder-' || id::text AS identity
                       FROM kb_folder
+                     WHERE station_id = :station_id;""", stationId, "identity"));
+            case IMAGE_KB_FILE_PICTURE -> Optional.of(queryIdentitySet("""
+                    SELECT 'file-' || id::text AS identity
+                      FROM kb_file
                      WHERE station_id = :station_id;""", stationId, "identity"));
             default -> Optional.empty();
         };
