@@ -2,8 +2,13 @@
 
 ## v26.18.6
 
+### New Features
+
+- **Survey results by who answered.** The results of an internal survey can be filtered and grouped by the members' type, groups, tags, age and profile answers, so the youth group can be compared with the active members or the answers of the over-40s looked at on their own. Groups show side by side in their own colours, and the view can be bookmarked.
+
 ### Improvements
 
+- **Survey exports say who answered.** The spreadsheet or printout of an internal survey's answers now carries each member's type, groups and age beside their name.
 - **Pictures open large on a click.** A picture or gallery picture on a page or in an article written with the page editor, and the photo of a lost and found item, opens over the whole screen, uncropped and with its caption. Escape or a click beside it closes it again.
 - **Callouts, quotes and captions stand out in a wiki PDF.** Callouts and quotes print in a shaded box with a coloured bar at their side, and the line under a picture prints small and centred beneath it as its caption.
 

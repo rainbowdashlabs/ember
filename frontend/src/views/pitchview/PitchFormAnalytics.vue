@@ -15,6 +15,6 @@ defineProps<{
 </script>
 
 <template>
-  <ChartsTab :questions="analytics.questions"/>
+  <ChartsTab :questions="analytics.questions" :groups="analytics.groups"/>
   <MissingResponsesPanel v-if="analytics.missing.length" :members="analytics.missing"/>
 </template>

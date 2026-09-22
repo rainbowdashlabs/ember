@@ -6,9 +6,11 @@
 package dev.chojo.ember.feature.form.service;
 
 import dev.chojo.ember.feature.form.repository.FormRepository;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.MemberTable;
 import dev.chojo.ember.feature.members.entity.MemberTableCellType;
 import dev.chojo.ember.feature.members.entity.MemberTableColumnKind;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -26,6 +28,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * The answers to a form, as a spreadsheet or as a sheet.
@@ -45,13 +50,21 @@ public class FormResponseExportService {
     private final FormRepository formRepository;
     private final MemberNameResolver memberNameResolver;
     private final MemberTableRenderer renderer;
+    private final FormRespondents respondents;
+    private final MemberGroupRepository groups;
 
     @Inject
     public FormResponseExportService(
-            FormRepository formRepository, MemberNameResolver memberNameResolver, MemberTableRenderer renderer) {
+            FormRepository formRepository,
+            MemberNameResolver memberNameResolver,
+            MemberTableRenderer renderer,
+            FormRespondents respondents,
+            MemberGroupRepository groups) {
         this.formRepository = formRepository;
         this.memberNameResolver = memberNameResolver;
         this.renderer = renderer;
+        this.respondents = respondents;
+        this.groups = groups;
     }
 
     /**
@@ -76,22 +89,42 @@ public class FormResponseExportService {
         return new ExportedDocument(renderer.toPdf(table, station, formTitle, "", generatedBy), filename);
     }
 
-    /** One column per question, one row per submission, in the order the form asks and was answered. */
+    /**
+     * One column per question, one row per submission, in the order the form asks and was answered.
+     *
+     * <p>Where members answered, their user type, groups and age on the day of answering follow the
+     * name, so a spreadsheet can be pivoted by the same things the results view groups by. A form
+     * answered only without signing in has nobody to describe and leaves those columns out.
+     */
     private MemberTable tableOf(int formId, Station station) {
         String language = StationFormat.languageOf(station);
         var zone = StationFormat.timezoneOf(station);
         var questions = formRepository.findQuestions(formId);
         var responses = formRepository.findResponses(formId);
+        boolean describesMembers = responses.stream().anyMatch(response -> response.memberId() != null);
+        var described = describesMembers
+                ? respondents.ofResponses(station.id(), responses)
+                : List.<FormRespondents.Respondent>of();
+        Map<Integer, String> groupNames = describesMembers
+                ? groups.findByStation(station.id()).stream()
+                        .collect(Collectors.toMap(MemberGroup::id, MemberGroup::name))
+                : Map.of();
 
         var columns = new ArrayList<MemberTable.MemberTableHeader>();
         columns.add(column(DocumentWord.MEMBERS.in(language)));
+        if (describesMembers) {
+            columns.add(column(DocumentWord.MEMBER_TYPE.in(language)));
+            columns.add(column(DocumentWord.GROUPS.in(language)));
+            columns.add(column(DocumentWord.AGE.in(language)));
+        }
         columns.add(column("en".equals(language) ? "Submitted" : "Abgegeben"));
         for (var question : questions) {
             columns.add(column(question.title()));
         }
 
         var rows = new ArrayList<MemberTable.MemberTableRow>(responses.size());
-        for (var response : responses) {
+        for (int index = 0; index < responses.size(); index++) {
+            var response = responses.get(index);
             var answers = new LinkedHashMap<Integer, String>();
             for (var answer : formRepository.findAnswers(response.id())) {
                 answers.put(answer.questionId(), answer.value());
@@ -99,6 +132,19 @@ public class FormResponseExportService {
 
             var values = new ArrayList<String>(columns.size());
             values.add(nameOf(response.memberId(), language));
+            if (describesMembers) {
+                var respondent = described.get(index);
+                values.add(
+                        respondent.userType() == null
+                                ? ""
+                                : DocumentWord.forUserType(respondent.userType().name(), language));
+                values.add(respondent.groupIds().stream()
+                        .map(groupNames::get)
+                        .filter(Objects::nonNull)
+                        .sorted()
+                        .collect(Collectors.joining(", ")));
+                values.add(respondent.age() == null ? "" : String.valueOf(respondent.age()));
+            }
             values.add(
                     response.submittedAt() == null
                             ? ""

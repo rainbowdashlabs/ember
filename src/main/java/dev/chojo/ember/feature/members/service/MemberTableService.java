@@ -207,7 +207,7 @@ public class MemberTableService {
         if (field == null) return;
         var answers = new HashMap<Integer, String>();
         for (var value : profileFieldRepository.findValuesOfField(fieldId)) {
-            answers.put(value.memberId(), plain(value.value()));
+            answers.put(value.memberId(), value.plainValue());
         }
         into.put(fieldId, answers);
         var source = ageSourceOf(field, readable);
@@ -286,22 +286,6 @@ public class MemberTableService {
         } catch (Exception e) {
             return "";
         }
-    }
-
-    /**
-     * An answer as somebody wrote it, rather than as the database keeps it.
-     *
-     * <p>Answers are held as JSON, so a written answer comes back wearing its quotation marks and a
-     * sheet printed straight from them would show every name in quotes.
-     */
-    private String plain(String stored) {
-        if (stored == null) return null;
-        var trimmed = stored.strip();
-        if (trimmed.length() >= 2 && trimmed.startsWith("\"") && trimmed.endsWith("\"")) {
-            return trimmed.substring(1, trimmed.length() - 1).replace("\\\"", "\"");
-        }
-        if ("null".equals(trimmed)) return "";
-        return trimmed;
     }
 
     private String day(String stored) {

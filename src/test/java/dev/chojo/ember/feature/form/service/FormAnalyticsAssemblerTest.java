@@ -11,7 +11,14 @@ import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.ResultGroupDto;
+import dev.chojo.ember.feature.form.service.FormResultQuery.Dimension;
+import dev.chojo.ember.feature.form.service.FormResultQuery.Filter;
+import dev.chojo.ember.feature.form.service.FormResultQuery.Grouping;
+import dev.chojo.ember.feature.form.service.FormResultQuery.Match;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
+import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -22,8 +29,12 @@ import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.StringNode;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Period;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -51,7 +62,13 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
         var tagService = mock(UserTagService.class);
 
         formService = new FormService(formRepo, memberService, groupService, tagService, restrictionService, eventBus);
-        assembler = new FormAnalyticsAssembler(formService, stationMemberRepo, accountRepo, memberIdentityFactory);
+        assembler = new FormAnalyticsAssembler(
+                formService,
+                new FormRespondents(stationMemberRepo, memberGroupRepo, userTagRepo, profileFieldRepo, stationRepo),
+                new FormResultGrouping(memberGroupRepo, userTagRepo, profileFieldRepo),
+                stationMemberRepo,
+                accountRepo,
+                memberIdentityFactory);
 
         station = stationRepo.create("FormAssemblerStation");
         submitter = accountRepo.create("submitter@test.com", "Sam", "Submitter");
@@ -109,7 +126,77 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
         var qa = analytics.questions().getFirst();
         assertEquals(questionId, qa.questionId());
         assertEquals(FormQuestionType.TEXT, qa.questionType());
-        assertEquals(1, qa.values().size());
+
+        assertEquals(1, analytics.groups().size(), "an ungrouped view is one group of every response");
+        var everyone = analytics.groups().getFirst();
+        assertEquals(FormAnalyticsAssembler.ALL_RESPONSES, everyone.key());
+        assertEquals(1, everyone.responseCount());
+        assertEquals(List.of("Blue"), everyone.tallies().getFirst().values());
+        assertFalse(analytics.groupsOverlap());
+    }
+
+    /**
+     * The response was sent by a guardian for their child, so it is the child's group it counts in,
+     * and a filter on a group the child is not in leaves nothing, missing members included.
+     */
+    @Test
+    void resultsAreGroupedByTheMemberTheAnswerIsFor() {
+        var youth = memberGroupRepo.create(station.id(), "Jugend");
+        var parents = memberGroupRepo.create(station.id(), "Eltern");
+        memberGroupRepo.addMember(youth.id(), submitterMember.id());
+        memberGroupRepo.addMember(parents.id(), guardianMember.id());
+        try {
+            var grouped = assembler.buildAnalytics(
+                    formId, new FormResultQuery(null, new Grouping(Dimension.GROUP, null, null, null)));
+            assertEquals(
+                    List.of(String.valueOf(youth.id())),
+                    grouped.groups().stream().map(ResultGroupDto::key).toList());
+            assertEquals("Jugend", grouped.groups().getFirst().label());
+            assertEquals(
+                    List.of("Blue"),
+                    grouped.groups().getFirst().tallies().getFirst().values());
+            assertTrue(grouped.groupsOverlap());
+
+            var onlyParents = new Filter(null, List.of(parents.id()), Match.ANY, null, null, null, null, null);
+            var filtered = assembler.buildAnalytics(formId, new FormResultQuery(onlyParents, null));
+            assertEquals(0, filtered.totalResponses());
+            assertTrue(filtered.responseIds().isEmpty());
+        } finally {
+            memberGroupRepo.delete(youth.id());
+            memberGroupRepo.delete(parents.id());
+        }
+    }
+
+    /** Age is counted from the station's date-of-birth question to the day of answering. */
+    @Test
+    void ageComesFromTheDateOfBirth() {
+        var born = LocalDate.of(2010, 1, 1);
+        int age = Period.between(born, LocalDate.now()).getYears();
+        var field = profileFieldRepo.create(
+                station.id(),
+                "Geburtstag",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                false,
+                false,
+                null);
+        profileFieldRepo.setValue(submitterMember.id(), field.id(), StringNode.valueOf(born.toString()));
+        try {
+            var exactly = new Filter(null, null, null, null, null, null, age, age);
+            assertEquals(
+                    1,
+                    assembler
+                            .buildAnalytics(formId, new FormResultQuery(exactly, null))
+                            .totalResponses());
+
+            var grouped = assembler.buildAnalytics(
+                    formId, new FormResultQuery(null, new Grouping(Dimension.AGE, null, null, List.of(age))));
+            assertEquals(
+                    List.of(age + "+"),
+                    grouped.groups().stream().map(ResultGroupDto::key).toList());
+        } finally {
+            profileFieldRepo.delete(field.id());
+        }
     }
 
     @Test

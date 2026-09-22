@@ -40,7 +40,10 @@ public enum DocumentWord {
     MEMBER("Mitglied", "Member"),
     GUARDIAN("Erziehungsberechtigter", "Guardian"),
     TEAM("Team", "Team"),
-    MANAGER("Manager", "Manager");
+    MANAGER("Manager", "Manager"),
+    MEMBER_TYPE("Mitgliedsart", "Member type"),
+    GROUPS("Gruppen", "Groups"),
+    AGE("Alter", "Age");
 
     /**
      * What a kind of member is called, for a name built around one.

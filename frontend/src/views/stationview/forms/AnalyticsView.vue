@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -12,14 +12,13 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import TabBar from '@/components/navigation/TabBar.vue'
 import AnalyticsHeader from '@/views/stationview/forms/analyticsview/AnalyticsHeader.vue'
-import ChartsTab from '@/views/stationview/forms/analyticsview/ChartsTab.vue'
-import IndividualResponseTab from '@/views/stationview/forms/analyticsview/IndividualResponseTab.vue'
+import AnalyticsTabs from '@/views/stationview/forms/analyticsview/AnalyticsTabs.vue'
 import ExportModal from '@/views/stationview/forms/analyticsview/ExportModal.vue'
 import MissingResponsesPanel from '@/views/stationview/forms/analyticsview/MissingResponsesPanel.vue'
-import {FormAnalyticsBase, type Form, type FormAnalytics, type FormAnalyticsBaseName, type FormAnswer, type FormResponse} from '@/api/forms'
-import { formatAnswerDisplay } from '@/util/formAnswerDisplay'
+import ResultFilterBar from '@/views/stationview/forms/analyticsview/ResultFilterBar.vue'
+import {useResultView} from '@/views/stationview/forms/analyticsview/useResultView'
+import {FormAnalyticsBase, FormPurpose, type Form, type FormAnalytics, type FormAnalyticsBaseName, type FormAnswer, type FormResponse} from '@/api/forms'
 import type { ProfileField } from '@/api/profileFields'
 import { forms, profileFields, stationMembers } from '@/api'
 import { presentFile } from '@/util/documentFile'
@@ -40,18 +39,31 @@ const analytics = ref<FormAnalytics | null>(null)
 const responses = ref<FormResponse[]>([])
 const memberNames = ref<Map<number, string>>(new Map())
 const memberAccountIds = ref<Map<number, number>>(new Map())
-const activeTab = ref('charts')
 
-const tabs = computed(() => [
-  { key: 'charts', label: t('forms.analytics.tabCharts') },
-  { key: 'individual', label: t('forms.analytics.tabIndividual') },
-])
+/** Only an internal form is answered by signed-in members, so only its results can be grouped by them. */
+const groupable = computed(() => analyticsBase.value === FormAnalyticsBase.FORMS && form.value?.purpose === FormPurpose.INTERNAL)
+const view = useResultView(formId, groupable)
+
+/** What the charts, the missing members and the individual answers show: the narrowed view if any. */
+const shown = computed(() => view.narrowed.value ?? analytics.value)
+const visibleResponses = computed(() => {
+  const narrowed = view.narrowed.value
+  if (!narrowed) return responses.value
+  const ids = new Set(narrowed.responseIds)
+  return responses.value.filter(response => ids.has(response.id))
+})
+const groupNames = computed(() => (view.narrowed.value?.groups ?? []).map(view.groupName))
 
 const currentResponseIndex = ref(0)
 const currentAnswers = ref<FormAnswer[]>([])
 const loadingResponse = ref(false)
 
-const currentResponse = computed(() => responses.value[currentResponseIndex.value] ?? null)
+const currentResponse = computed(() => visibleResponses.value[currentResponseIndex.value] ?? null)
+
+watch(visibleResponses, () => {
+  currentResponseIndex.value = 0
+  void loadResponseAnswers()
+})
 
 async function loadResponseAnswers() {
   if (!currentResponse.value) return
@@ -71,7 +83,7 @@ function prevResponse() {
 }
 
 function nextResponse() {
-  if (currentResponseIndex.value < responses.value.length - 1) {
+  if (currentResponseIndex.value < visibleResponses.value.length - 1) {
     currentResponseIndex.value++
     loadResponseAnswers()
   }
@@ -148,6 +160,9 @@ const { loading, error } = useAsyncLoader(async () => {
   memberNames.value = names
   memberAccountIds.value = accountIds
 
+  await view.loadChoices()
+  await view.refresh()
+
   if (r.length > 0) {
     await loadResponseAnswers()
   }
@@ -171,42 +186,52 @@ const { loading, error } = useAsyncLoader(async () => {
           @back="router.push({ name: 'forms-list' })"
         />
 
+        <ResultFilterBar
+          v-if="groupable && analytics.totalResponses > 0"
+          v-model:filter="view.filter.value"
+          v-model:grouping="view.grouping.value"
+          :groups="view.groups.value"
+          :tags="view.tags.value"
+          :fields="view.groupableFields.value"
+          :matching="view.narrowed.value ? view.narrowed.value.totalResponses : null"
+          :querying="view.querying.value"
+          @reset="view.reset"
+        />
+
         <MissingResponsesPanel
-          v-if="form.forced && analytics.missingResponses.length > 0"
-          :members="analytics.missingResponses"
+          v-if="form.forced && shown && shown.missingResponses.length > 0"
+          :members="shown.missingResponses"
         />
 
         <EmptyState v-if="analytics.totalResponses === 0">{{ t('forms.analytics.noResponses') }}</EmptyState>
 
-        <template v-else>
-          <TabBar v-model="activeTab" :tabs="tabs" />
-          <ChartsTab v-if="activeTab === 'charts'" :questions="analytics.questions" />
-          <IndividualResponseTab
-            v-if="activeTab === 'individual'"
-            :responses="responses"
-            :current-response="currentResponse"
-            :current-response-index="currentResponseIndex"
-            :questions="analytics.questions"
-            :loading-response="loadingResponse"
-            :format-answer="formatAnswerDisplay"
-            :get-answer-for-question="getAnswerForQuestion"
-            @prev="prevResponse"
-            @next="nextResponse"
-          />
-        </template>
+        <AnalyticsTabs
+          v-else-if="shown"
+          :results="shown"
+          :grouped="!!(view.grouping.value && view.narrowed.value)"
+          :names="groupNames"
+          :series="view.series.value"
+          :responses="visibleResponses"
+          :current-response="currentResponse"
+          :current-response-index="currentResponseIndex"
+          :loading-response="loadingResponse"
+          :get-answer-for-question="getAnswerForQuestion"
+          @prev="prevResponse"
+          @next="nextResponse"
+        />
       </template>
-
-      <ExportModal
-        v-model="showExportModal"
-        :questions="analytics?.questions ?? []"
-        :fields="allFields"
-        :selected-question-ids="exportQuestionIds"
-        :selected-field-ids="exportFieldIds"
-        @toggle-question="toggleExportQuestion"
-        @toggle-field="toggleExportField"
-        @select-questions="selectExportQuestions"
-        @export="performExport"
-      />
     </div>
+
+    <ExportModal
+      v-model="showExportModal"
+      :questions="analytics?.questions ?? []"
+      :fields="allFields"
+      :selected-question-ids="exportQuestionIds"
+      :selected-field-ids="exportFieldIds"
+      @toggle-question="toggleExportQuestion"
+      @toggle-field="toggleExportField"
+      @select-questions="selectExportQuestions"
+      @export="performExport"
+    />
   </ViewContent>
 </template>

@@ -563,14 +563,19 @@ public class FormRepository {
     }
 
     /**
-     * Retrieves all answers submitted for a specific question across all responses. Useful for analytics.
+     * Retrieves every answer given to a form, each still carrying the response it belongs to, which
+     * is what lets results be counted per group of respondents.
      *
-     * @param questionId the question ID
-     * @return list of answers from all respondents
+     * @param formId the form ID
+     * @return all answers of all responses of the form
      */
-    public List<FormAnswer> findAllAnswersForQuestion(int questionId) {
-        return query("SELECT %s FROM form_answer WHERE question_id = :question_id;", ANSWER_COLUMNS)
-                .single(call().bind("question_id", questionId))
+    public List<FormAnswer> findAllAnswersForForm(int formId) {
+        return query("""
+                SELECT a.id, a.response_id, a.question_id, a.value
+                FROM form_answer a
+                JOIN form_response r ON r.id = a.response_id
+                WHERE r.form_id = :form_id;""")
+                .single(call().bind("form_id", formId))
                 .map(FormAnswer.map())
                 .all();
     }

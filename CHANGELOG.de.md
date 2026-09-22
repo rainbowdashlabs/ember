@@ -2,8 +2,13 @@
 
 ## v26.18.6
 
+### Neue Funktionen
+
+- **Umfrageergebnisse nach Mitgliedern auswerten.** Die Ergebnisse einer internen Umfrage lassen sich nach Mitgliedsart, Gruppen, Tags, Alter und Profilangaben filtern und aufteilen, etwa um die Jugend mit der Einsatzabteilung zu vergleichen oder nur die Antworten der über 40-Jährigen anzusehen. Die Gruppen stehen in eigenen Farben nebeneinander, und die Ansicht lässt sich als Lesezeichen speichern.
+
 ### Verbesserungen
 
+- **Umfrage-Exporte zeigen, wer geantwortet hat.** Die Tabelle oder der Ausdruck der Antworten einer internen Umfrage enthält jetzt neben dem Namen auch Mitgliedsart, Gruppen und Alter.
 - **Bilder öffnen sich per Klick groß.** Ein Bild oder Galeriebild auf einer Seite oder in einem Artikel aus dem Seiten-Editor und das Foto einer Fundsache öffnen sich über den ganzen Bildschirm, ungeschnitten und mit ihrer Bildunterschrift. Escape oder ein Klick daneben schließt es wieder.
 - **Hinweisboxen, Zitate und Bildunterschriften heben sich im PDF aus dem Wiki ab.** Hinweisboxen und Zitate stehen in einem hinterlegten Kasten mit farbigem Balken an der Seite, und die Zeile unter einem Bild steht klein und mittig darunter als seine Bildunterschrift.
 

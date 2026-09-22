@@ -248,9 +248,11 @@ class FormRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(31)
-    void findAllAnswersForQuestion() {
-        var answers = formRepo.findAllAnswersForQuestion(questionId);
+    void findAllAnswersForForm() {
+        var answers = formRepo.findAllAnswersForForm(formId);
         assertEquals(1, answers.size());
+        assertEquals(responseId, answers.getFirst().responseId());
+        assertTrue(formRepo.findAllAnswersForForm(99999).isEmpty());
     }
 
     @Test

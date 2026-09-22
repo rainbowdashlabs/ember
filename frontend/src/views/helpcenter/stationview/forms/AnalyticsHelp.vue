@@ -13,6 +13,7 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import DummyHeader from '@/views/helpcenter/stationview/forms/analyticshelp/DummyHeader.vue'
 import DummyChartsTab from '@/views/helpcenter/stationview/forms/analyticshelp/DummyChartsTab.vue'
 import DummyIndividualTab from '@/views/helpcenter/stationview/forms/analyticshelp/DummyIndividualTab.vue'
+import DummyGroupedResults from '@/views/helpcenter/stationview/forms/analyticshelp/DummyGroupedResults.vue'
 
 const {t} = useI18n()
 
@@ -40,6 +41,18 @@ const tabs = [
 
     <HelpSection :title="t('helpCenter.formsAnalytics.chartsTitle')">
       <p>{{ t('helpCenter.formsAnalytics.chartsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.formsAnalytics.groupingTitle')">
+      <p>{{ t('helpCenter.formsAnalytics.groupingText') }}</p>
+      <p>{{ t('helpCenter.formsAnalytics.groupingFilterText') }}</p>
+      <p>{{ t('helpCenter.formsAnalytics.groupingCompareText') }}</p>
+    </HelpSection>
+
+    <DummyGroupedResults/>
+
+    <HelpSection :title="t('helpCenter.formsAnalytics.groupingNotesTitle')">
+      <p>{{ t('helpCenter.formsAnalytics.groupingNotesText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.formsAnalytics.responsesTitle')">

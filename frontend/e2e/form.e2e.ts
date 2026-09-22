@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect} from './fixtures/auth'
+import type {Page} from '@playwright/test'
+import {test, expect, apiHeaders} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
 test.describe('Forms', () => {
@@ -79,6 +80,39 @@ test.describe('Forms', () => {
         await expect(page.getByText(/\d+ von \d+/)).toBeVisible()
     })
 
+    /**
+     * The results of an internal survey can be split by who answered. The manager opens one that has
+     * answers, groups its results by member type and switches to the table view, where the group of a
+     * type that answered stands as a column: the chart itself is drawn on a canvas and carries no text
+     * to read.
+     */
+    test('the results are grouped by who answered', async ({managerPage: page}) => {
+        const id = await answeredInternalForm(page)
+
+        await page.goto(`/station/forms/${id}/analytics`)
+        await page.locator('select').filter({has: page.locator('option', {hasText: 'Nicht gruppieren'})})
+            .selectOption('USER_TYPE')
+        await page.getByRole('button', {name: 'Als Tabelle'}).click()
+
+        await expect(page.locator('thead').getByText(/Probe|Mitglied|Erziehungsberechtigter|Team|Manager|Ohne Anmeldung/).first())
+            .toBeVisible()
+        await expect(page).toHaveURL(/view=/)
+    })
+
+    /** Grouping the results is reading them, which an ordinary member may not do. */
+    test('an ordinary member may not group the results', async ({memberPage: page}) => {
+        const headers = await apiHeaders(page)
+        const forms = await (await page.request.get('/api/v1/forms/available', {headers})).json()
+        const id = forms[0]?.id ?? 1
+
+        const response = await page.request.post(`/api/v1/forms/${id}/analytics/query`, {
+            headers,
+            data: {filter: null, groupBy: {by: 'USER_TYPE', only: [], bounds: []}},
+        })
+
+        expect(response.status(), await response.text()).toBe(403)
+    })
+
     /** A member is offered the forms their station has opened to them. */
     test('a member reaches the forms they may fill', async ({memberPage: page}) => {
         await page.goto('/station/forms')
@@ -87,3 +121,21 @@ test.describe('Forms', () => {
         await expect(page.getByRole('button', {name: 'Ausfüllen'}).first()).toBeVisible()
     })
 })
+
+/**
+ * An internal survey of the station that already has answers, found through the API.
+ *
+ * <p>Only an internal survey can be grouped by who answered, and the forms page lists contact forms
+ * among the internal ones, so the first form it offers is not necessarily one. The seeded surveys
+ * come with answers, which is why none is given here.
+ */
+async function answeredInternalForm(page: Page): Promise<number> {
+    const headers = await apiHeaders(page)
+    const forms = await (await page.request.get('/api/v1/forms?purpose=INTERNAL', {headers})).json() as {
+        id: number
+        responseCount?: number
+    }[]
+    const answered = forms.find(form => (form.responseCount ?? 0) > 0)
+    expect(answered, 'the seeded station has an answered internal survey').toBeTruthy()
+    return answered!.id
+}

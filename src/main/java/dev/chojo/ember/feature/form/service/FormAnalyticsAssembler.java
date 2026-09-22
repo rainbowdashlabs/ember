@@ -7,11 +7,14 @@ package dev.chojo.ember.feature.form.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
+import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.NotFoundResponse;
@@ -19,8 +22,11 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Builds the analytics + response listing DTOs shared between the auth-gated forms surface
@@ -36,6 +42,8 @@ import java.util.Optional;
 @Singleton
 public class FormAnalyticsAssembler {
     private final FormService formService;
+    private final FormRespondents formRespondents;
+    private final FormResultGrouping resultGrouping;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final MemberIdentityFactory memberIdentityFactory;
@@ -43,38 +51,101 @@ public class FormAnalyticsAssembler {
     @Inject
     public FormAnalyticsAssembler(
             FormService formService,
+            FormRespondents formRespondents,
+            FormResultGrouping resultGrouping,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             MemberIdentityFactory memberIdentityFactory) {
         this.formService = formService;
+        this.formRespondents = formRespondents;
+        this.resultGrouping = resultGrouping;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
     /**
-     * Aggregated analytics for a form, including per-question answer data and - for forms
-     * marked as required - the list of eligible members who have not yet submitted a response.
+     * Aggregated analytics for a form: its questions, the counted answers of every response as one
+     * group, and - for forms marked as required - the list of eligible members who have not yet
+     * submitted a response.
      */
     public FormAnalyticsDto buildAnalytics(int formId) {
-        var questions = formService.findQuestions(formId);
-        var questionAnalytics = questions.stream()
-                .map(q -> {
-                    var answers = formService.findAllAnswersForQuestion(q.id());
-                    var values = answers.stream().map(FormAnswer::value).toList();
-                    return new QuestionAnalyticsDto(q.id(), q.formQuestionType(), q.title(), q.config(), values);
-                })
-                .toList();
-        return new FormAnalyticsDto(
-                formId, formService.countResponses(formId), questionAnalytics, buildMissingResponses(formId));
+        return buildAnalytics(formId, null);
     }
 
-    private List<MemberIdentity> buildMissingResponses(int formId) {
-        var form = formService.findById(formId).orElse(null);
-        if (form == null || !form.forced()) return List.of();
-        return stationMemberRepository.findByStation(form.stationId()).stream()
-                .filter(m -> formService.canMemberAccess(formId, m.id()))
-                .filter(m -> !formService.hasResponded(formId, m.id()))
+    /**
+     * Analytics for the responses a query picks, counted per group of respondents.
+     *
+     * <p>The filter narrows everything the result holds: the counts, the responses it names, and the
+     * members still missing, so "who in the youth group has not answered" is one question. Without a
+     * filter or a grouping, nothing about the respondents is read at all.
+     *
+     * @param formId the form
+     * @param query  which respondents to count and how to group them; {@code null} counts everybody
+     *               as one group
+     * @return the analytics
+     */
+    public FormAnalyticsDto buildAnalytics(int formId, FormResultQuery query) {
+        var form = formService.findById(formId).orElseThrow(NotFoundResponse::new);
+        var questions = formService.findQuestions(formId);
+        var answers = formService.findAllAnswersForForm(formId);
+        var responses = formService.findResponses(formId);
+        var filter = query == null ? null : query.filter();
+        var grouping = query == null ? null : query.groupBy();
+
+        List<FormResultGrouping.Bucket> buckets;
+        Set<Integer> counted;
+        if (filter == null && grouping == null) {
+            counted = responses.stream().map(FormResponse::id).collect(Collectors.toCollection(LinkedHashSet::new));
+            buckets = List.of(new FormResultGrouping.Bucket(ALL_RESPONSES, "", counted));
+        } else {
+            var respondents = formRespondents.ofResponses(form.stationId(), responses).stream()
+                    .filter(respondent -> filter == null || filter.matches(respondent))
+                    .toList();
+            counted = respondents.stream()
+                    .map(FormRespondents.Respondent::id)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            buckets = grouping == null
+                    ? List.of(new FormResultGrouping.Bucket(ALL_RESPONSES, "", counted))
+                    : resultGrouping.split(form.stationId(), respondents, grouping);
+        }
+
+        var groups = buckets.stream()
+                .map(bucket -> new ResultGroupDto(
+                        bucket.key(),
+                        bucket.label(),
+                        bucket.ids().size(),
+                        FormResultTally.tally(questions, answers, bucket.ids())))
+                .toList();
+        return new FormAnalyticsDto(
+                formId,
+                counted.size(),
+                List.copyOf(counted),
+                questions.stream().map(QuestionInfoDto::of).toList(),
+                groups,
+                FormResultGrouping.overlaps(grouping),
+                buildMissingResponses(form, filter));
+    }
+
+    private List<MemberIdentity> buildMissingResponses(Form form, FormResultQuery.Filter filter) {
+        if (!form.forced()) return List.of();
+        var missing = stationMemberRepository.findByStation(form.stationId()).stream()
+                .filter(m -> formService.canMemberAccess(form.id(), m.id()))
+                .filter(m -> !formService.hasResponded(form.id(), m.id()))
+                .toList();
+        if (filter != null) {
+            var passing =
+                    formRespondents
+                            .ofMembers(
+                                    form.stationId(),
+                                    missing.stream().map(StationMember::id).toList())
+                            .stream()
+                            .filter(filter::matches)
+                            .map(FormRespondents.Respondent::id)
+                            .collect(Collectors.toSet());
+            missing = missing.stream().filter(m -> passing.contains(m.id())).toList();
+        }
+        return missing.stream()
                 .map(m -> memberIdentityFactory.local(m.stationId(), m.id()))
                 .toList();
     }
@@ -137,24 +208,48 @@ public class FormAnalyticsAssembler {
                 .orElse(null);
     }
 
+    /** The key of the one group that holds every response, which is what an ungrouped view shows. */
+    public static final String ALL_RESPONSES = "all";
+
     /**
      * Aggregated analytics payload - wire shape returned by the analytics endpoints.
+     *
+     * <p>{@code totalResponses} counts the responses the filter lets through, and {@code responseIds}
+     * names them, so the individual answers can follow the same filter. {@code questions} describes
+     * each question once; {@code groups} holds the counted answers, one entry per group of
+     * respondents. An ungrouped view is a single group holding every counted response.
+     * {@code groupsOverlap} says a respondent can count in more than one group, as with groups and
+     * tags, so the groups can add up to more responses than {@code totalResponses}.
      */
     public record FormAnalyticsDto(
             int formId,
             int totalResponses,
-            List<QuestionAnalyticsDto> questions,
+            List<Integer> responseIds,
+            List<QuestionInfoDto> questions,
+            List<ResultGroupDto> groups,
+            boolean groupsOverlap,
             List<MemberIdentity> missingResponses) {}
 
     /**
-     * Per-question analytics row carried inside {@link FormAnalyticsDto}.
+     * A question as the results view needs to know it: what it asks and how it is set up.
      */
-    public record QuestionAnalyticsDto(
-            int questionId,
-            FormQuestionType questionType,
-            String title,
-            FormQuestionConfig config,
-            List<String> values) {}
+    public record QuestionInfoDto(
+            int questionId, FormQuestionType questionType, String title, FormQuestionConfig config) {
+        static QuestionInfoDto of(FormQuestion question) {
+            return new QuestionInfoDto(question.id(), question.formQuestionType(), question.title(), question.config());
+        }
+    }
+
+    /**
+     * One group of respondents and what they answered.
+     *
+     * @param key           stable identifier of the group within this result
+     * @param label         what the group is called; empty for the group of every response
+     * @param responseCount how many responses belong to the group
+     * @param tallies       the counted answers, one per question in question order
+     */
+    public record ResultGroupDto(
+            String key, String label, int responseCount, List<FormResultTally.QuestionTally> tallies) {}
 
     /**
      * Listing entry for a single form response. {@code memberId} and {@code submittedBy} are
