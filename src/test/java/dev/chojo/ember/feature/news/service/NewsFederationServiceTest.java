@@ -83,6 +83,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         newsService = new NewsService(
                 newsRepo,
                 new ContentBlockService(contentContainerRepo),
+                noCellDescriptions(),
                 stationRepo,
                 restrictionService,
                 eventBus,

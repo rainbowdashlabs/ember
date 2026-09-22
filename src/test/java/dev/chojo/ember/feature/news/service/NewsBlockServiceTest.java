@@ -11,7 +11,10 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentMode;
+import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
+import dev.chojo.ember.feature.media.entity.StationFile;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -20,10 +23,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * A news entry built from blocks, and the projection that keeps everything downstream working.
@@ -39,6 +46,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
         service = new NewsService(
                 newsRepo,
                 new ContentBlockService(contentContainerRepo),
+                noCellDescriptions(),
                 stationRepo,
                 restrictionService,
                 new DomainEventBus(Set.of()),
@@ -258,5 +266,80 @@ class NewsBlockServiceTest extends RepositoryTestBase {
         assertTrue(
                 contentContainerRepo.findById(containerId).isEmpty(),
                 "the container is the owned side, so nothing else would ever clean it up");
+    }
+
+    @Test
+    void aPictureTheEntrySaysNothingAboutCarriesTheWordsOfItsFile() {
+        var media = mock(MediaLibraryService.class);
+        when(media.findByHash(station.id(), "abc")).thenReturn(Optional.of(picture("Die Halle", "Von außen")));
+        var describing = describingService(media);
+        int id = createEntry("Text");
+        try {
+            describing.switchToRich(id);
+            describing.saveBlocks(id, List.of(pictureRow()));
+            var news = newsRepo.findById(id).orElseThrow();
+
+            var raw = (CellConfig.ImageConfig)
+                    describing.loadBlocks(news).getFirst().cells().getFirst().config();
+            var described = (CellConfig.ImageConfig) describing
+                    .describedBlocks(news)
+                    .getFirst()
+                    .cells()
+                    .getFirst()
+                    .config();
+            assertNull(raw.altText(), "the editor keeps what the author wrote, which was nothing");
+            assertEquals("Die Halle", described.altText());
+            assertTrue(news.contentMarkdown().contains("![Die Halle]("), news.contentMarkdown());
+            assertTrue(news.contentMarkdown().contains("Von außen"), news.contentMarkdown());
+        } finally {
+            describing.delete(id);
+        }
+    }
+
+    @Test
+    void aSystemEntryLooksItsPicturesUpInTheInstanceLibrary() {
+        var media = mock(MediaLibraryService.class);
+        when(media.findByHash(null, "abc")).thenReturn(Optional.of(picture("Das Logo", null)));
+        var describing = describingService(media);
+        var entry = describing.createSystem("Neu in Ember", "Text", List.of(), false, false);
+        try {
+            describing.switchToRich(entry.id());
+            describing.saveBlocks(entry.id(), List.of(pictureRow()));
+            var news = newsRepo.findById(entry.id()).orElseThrow();
+
+            var described = (CellConfig.ImageConfig) describing
+                    .describedBlocks(news)
+                    .getFirst()
+                    .cells()
+                    .getFirst()
+                    .config();
+            assertEquals("Das Logo", described.altText());
+        } finally {
+            describing.delete(entry.id());
+        }
+    }
+
+    private static NewsService describingService(MediaLibraryService media) {
+        return new NewsService(
+                newsRepo,
+                new ContentBlockService(contentContainerRepo),
+                new CellDescriptions(media),
+                stationRepo,
+                restrictionService,
+                new DomainEventBus(Set.of()),
+                stationMemberRepo,
+                memberLookupService,
+                accountRepo);
+    }
+
+    private static StationFile picture(String alt, String description) {
+        return new StationFile(1, 0, null, "abc", "bild.png", "image/png", 64, Instant.now(), alt, description, null);
+    }
+
+    private static ContentBlockService.RowData pictureRow() {
+        return row(
+                CellContentType.IMAGE,
+                "abc",
+                new CellConfig.ImageConfig(null, null, null, null, null, null, null, null, null, null, null));
     }
 }

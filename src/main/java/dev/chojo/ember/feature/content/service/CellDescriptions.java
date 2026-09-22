@@ -27,7 +27,7 @@ import java.util.List;
  * different places, and the nearer word wins. Blank counts as unsaid: a field somebody opened and
  * left empty means they had nothing to add, not that the picture should go unnamed.
  *
- * <p>Every reader of blocks goes through this, pages and wiki articles alike, and so does every
+ * <p>Every reader of blocks goes through this, pages, wiki articles and news alike, and so does every
  * copy made of them: the stored text, the search index and the PDF. The editor alone reads the raw
  * cells, because saving what it shows would write the file's words into the cell for good.
  */
@@ -43,11 +43,12 @@ public class CellDescriptions {
     /**
      * Describes every cell of the given rows.
      *
-     * @param stationId the station whose media library the pictures live in
+     * @param stationId the station whose media library the pictures live in, or {@code null} for
+     *                  the instance's, which is where the pictures of a system news entry live
      * @param rows      the rows as stored
      * @return the rows with blank picture texts filled from their files
      */
-    public List<ContentRow> describe(int stationId, List<ContentRow> rows) {
+    public List<ContentRow> describe(Integer stationId, List<ContentRow> rows) {
         return rows.stream()
                 .map(row -> row.withCells(row.cells().stream()
                         .map(cell -> describe(stationId, cell))
@@ -58,11 +59,12 @@ public class CellDescriptions {
     /**
      * Describes a single cell. Cells without a picture of the media library come back unchanged.
      *
-     * @param stationId the station whose media library the pictures live in
+     * @param stationId the station whose media library the pictures live in, or {@code null} for
+     *                  the instance's
      * @param cell      the cell as stored
      * @return the cell with blank picture texts filled from their files
      */
-    public ContentCell describe(int stationId, ContentCell cell) {
+    public ContentCell describe(Integer stationId, ContentCell cell) {
         return switch (cell.config()) {
             case CellConfig.ImageConfig image -> cell.withConfig(describedImage(stationId, cell.content(), image));
             case CellConfig.ImageGalleryConfig gallery -> cell.withConfig(describedGallery(stationId, gallery));
@@ -70,7 +72,7 @@ public class CellDescriptions {
         };
     }
 
-    private CellConfig.ImageConfig describedImage(int stationId, String imageHash, CellConfig.ImageConfig image) {
+    private CellConfig.ImageConfig describedImage(Integer stationId, String imageHash, CellConfig.ImageConfig image) {
         var file = fileFor(stationId, imageHash);
         if (file == null) return image;
         return new CellConfig.ImageConfig(
@@ -87,7 +89,7 @@ public class CellDescriptions {
                 image.borderColor());
     }
 
-    private CellConfig.ImageGalleryConfig describedGallery(int stationId, CellConfig.ImageGalleryConfig gallery) {
+    private CellConfig.ImageGalleryConfig describedGallery(Integer stationId, CellConfig.ImageGalleryConfig gallery) {
         if (gallery.items() == null) return gallery;
         var described = gallery.items().stream()
                 .map(item -> {
@@ -103,7 +105,7 @@ public class CellDescriptions {
                 described, gallery.columns(), gallery.aspectMode(), gallery.maxItemHeightPx());
     }
 
-    private StationFile fileFor(int stationId, String imageHash) {
+    private StationFile fileFor(Integer stationId, String imageHash) {
         if (imageHash == null || imageHash.isBlank()) return null;
         return mediaLibrary.findByHash(stationId, imageHash.trim()).orElse(null);
     }
