@@ -60,6 +60,34 @@ class ContentProjectionTest {
     }
 
     @Test
+    void aReaderThatSetsCaptionsApartGetsEveryLineUnderAPictureMarked() {
+        var image = new CellConfig.ImageConfig(
+                null, "Das Fahrzeug", null, "Bei der Übung", null, null, null, null, null, null, null);
+        var gallery = new CellConfig.ImageGalleryConfig(
+                List.of(
+                        new CellConfig.GalleryItem("one", "Erstes", "Untertitel"),
+                        new CellConfig.GalleryItem("two", null, null)),
+                null,
+                null,
+                null);
+        var rows = List.of(new ContentRow(
+                0,
+                0,
+                0,
+                List.of(
+                        cell(CellContentType.IMAGE, "abc", image),
+                        cell(CellContentType.IMAGE_GALLERY, "", gallery),
+                        cell(CellContentType.MARKDOWN, "Fließtext", CellConfig.EMPTY))));
+
+        String out = ContentProjection.toMarkdown(rows, FILE_URL, line -> "[" + line + "]");
+
+        assertEquals(
+                "![Das Fahrzeug](/media/abc)\n\n[Bei der Übung]\n\n![Erstes](/media/one)\n\n[Untertitel]\n\n"
+                        + "![](/media/two)\n\nFließtext",
+                out);
+    }
+
+    @Test
     void aHeroBannerKeepsItsImageHeadlineAndCall() {
         var config = new CellConfig.HeroBannerConfig("hero", "Willkommen", "Bei uns", "Mehr", "https://example.org");
         String out = project(cell(CellContentType.HERO_BANNER, "", config));

@@ -323,8 +323,8 @@
       "necessity": "FUNCTIONAL",
       "retention": "UNTIL_CLEARED",
       "purpose": {
-        "de": "Noch nicht gespeicherte Änderungen an Seiten, Neuigkeiten und Wissensdatenbank-Einträgen, damit sie beim versehentlichen Verlassen der Seite nicht verloren gehen. Ein Entwurf wird nach einer Woche verworfen, ebenso beim Speichern; es werden höchstens zehn Entwürfe behalten.",
-        "en": "Changes to pages, news entries and knowledge base entries that have not been saved yet, so they are not lost when you leave the page by accident. A draft is discarded after a week, and when you save; at most ten drafts are kept."
+        "de": "Noch nicht gespeicherte Änderungen an Seiten, Neuigkeiten und Wiki-Einträgen, damit sie beim versehentlichen Verlassen der Seite nicht verloren gehen. Ein Entwurf wird nach einer Woche verworfen, ebenso beim Speichern; es werden höchstens zehn Entwürfe behalten.",
+        "en": "Changes to pages, news entries and wiki entries that have not been saved yet, so they are not lost when you leave the page by accident. A draft is discarded after a week, and when you save; at most ten drafts are kept."
       }
     }
   ]

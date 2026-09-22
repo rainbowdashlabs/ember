@@ -52,6 +52,20 @@ public final class TypstCompiler {
     public static byte[] compileTemplate(
             Map<String, Object> data, String templateName, StationLogo logo, Map<String, String> resources)
             throws IOException, InterruptedException {
+        return compileTemplate(data, templateName, logo, resources, Map.of());
+    }
+
+    /**
+     * The same, additionally writing {@code files} next to the template byte for byte, for what is
+     * not text: a picture the document shows with {@code image()}, say.
+     */
+    public static byte[] compileTemplate(
+            Map<String, Object> data,
+            String templateName,
+            StationLogo logo,
+            Map<String, String> resources,
+            Map<String, byte[]> files)
+            throws IOException, InterruptedException {
         Path tempDir = Files.createTempDirectory("typst-template-");
         try {
             Path templateSource = Path.of("templates", "typst", templateName);
@@ -69,6 +83,9 @@ public final class TypstCompiler {
             Files.writeString(templateDir.resolve("data.json"), Json.MAPPER.writeValueAsString(data));
             for (var entry : resources.entrySet()) {
                 Files.writeString(templateDir.resolve(entry.getKey()), entry.getValue());
+            }
+            for (var entry : files.entrySet()) {
+                Files.write(templateDir.resolve(entry.getKey()), entry.getValue());
             }
             Files.copy(templateSource, templateFile);
 

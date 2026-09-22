@@ -1,15 +1,34 @@
 # Changelog
 
+## v26.18.6
+
+### Improvements
+
+- **Pictures open large on a click.** A picture or gallery picture on a page or in an article written with the page editor, and the photo of a lost and found item, opens over the whole screen, uncropped and with its caption. Escape or a click beside it closes it again.
+- **Callouts, quotes and captions stand out in a wiki PDF.** Callouts and quotes print in a shaded box with a coloured bar at their side, and the line under a picture prints small and centred beneath it as its caption.
+
+### Changes
+
+- **Markdown files in the wiki are called articles.** The entry in the New menu and the type shown on a tile say "Article" instead of "Markdown file".
+
+### Fixes
+
+- **Pictures were missing from wiki PDFs.** Saving an article as a PDF left out every picture and showed at most its alt text. The station's own pictures now print, scaled to fit the page or at the width they were given.
+- **Formatting was lost in wiki PDFs.** Coloured text, highlights and underlining printed as plain text, and a highlight kept its equals signs. They now print as they look in the article.
+- **A picture in an article written with the page editor lacked its stored description.** When the picture block said nothing of its own, the alt text and description saved with the picture in the media library showed neither in the article nor in its search entry or PDF. They now do, as they already did on pages.
+- **Tiles grew very large on wide screens.** On a large monitor the wiki kept four columns and lost and found three, so each tile stretched across a large part of the screen. The number of columns now grows with the width of the window.
+- **Photos in lost and found were cut off.** An item's photo was cropped to fill its card, which could hide the item itself. The whole photo now shows, scaled down to fit.
+
 ## v26.18.5
 
 ### New Features
 
-- **Favourites in the knowledge base.** Any file or folder, including what a partner station shares, can be marked with the star on its tile or at the top of an open file, and is then found in the Favourites folder at the start of the knowledge base. Only you see your favourites.
-- **The knowledge base shows what its files are.** A picture or a PDF now shows itself on its tile, the picture scaled down and the PDF by its first page, so a folder of sheets can be told apart without opening each one. Files that were already there get their picture the first time somebody opens their folder.
+- **Favourites in the wiki.** Any file or folder, including what a partner station shares, can be marked with the star on its tile or at the top of an open file, and is then found in the Favourites folder at the start of the wiki. Only you see your favourites.
+- **The wiki shows what its files are.** A picture or a PDF now shows itself on its tile, the picture scaled down and the PDF by its first page, so a folder of sheets can be told apart without opening each one. Files that were already there get their picture the first time somebody opens their folder.
 
 ### Improvements
 
-- **Files in the knowledge base can be downloaded from their tile.** An uploaded file offers a download button on its tile, the way an article already offers its PDF, and hands over the file exactly as it was uploaded.
+- **Files in the wiki can be downloaded from their tile.** An uploaded file offers a download button on its tile, the way an article already offers its PDF, and hands over the file exactly as it was uploaded.
 - **Pictures on pages load at the size they are shown.** A banner, a gallery or a picture on a page now fetches a copy sized for the page rather than the photograph as it was taken, so pages open faster and use less data on a phone.
 
 ### Fixes
@@ -21,7 +40,7 @@
 
 ### New Features
 
-- **Unsaved writing is kept for you.** What you write on a page, a news entry or a knowledge base article stays in your browser when you leave without saving, and is offered back when you return. A draft is forgotten once you save, and after a week.
+- **Unsaved writing is kept for you.** What you write on a page, a news entry or a wiki article stays in your browser when you leave without saving, and is offered back when you return. A draft is forgotten once you save, and after a week.
 
 ### Improvements
 
@@ -532,7 +551,7 @@
 
 - **Mail credentials were written into the application log in plain text.** The whole configuration is recorded once when Ember starts, and the mail password, the API key and the two webhook secrets were spelled out in it; that log is kept in the database and can be read from the administration pages. They are now reported only as set or not set. Treat any mail password, API key or webhook secret this instance has used as compromised and replace it.
 - **The container printed every setting it was given, secrets included, each time it started.** The database password, the token pepper, the mail credentials, the storage encryption key and the second-factor key all appeared in the container log, and an instance that cannot reach its database restarts until it can, filling the log with copies of them. Those logs are what gets pasted into a bug report. Nothing is printed there now. Treat any of these values that an affected instance has used as compromised and replace them.
-- **Searching the knowledge base found articles the reader was not allowed to open.** Anybody who could sign in got the title, the description and an excerpt around the matching words of every article of their station, including the ones kept for the leadership or for a single group, and the same held for the articles a partner station had not shared. A search now answers only what the reader may actually open, and a partner is answered only what the station shares with it.
+- **Searching the wiki found articles the reader was not allowed to open.** Anybody who could sign in got the title, the description and an excerpt around the matching words of every article of their station, including the ones kept for the leadership or for a single group, and the same held for the articles a partner station had not shared. A search now answers only what the reader may actually open, and a partner is answered only what the station shares with it.
 
 ### Fixes
 
@@ -810,7 +829,7 @@
 - **A news entry can be written with the page editor.** An entry can be switched from the plain text field to rows and columns, with images beside the text, callouts, galleries and code blocks. The switch is one way: the text already written moves into a single block and nothing is lost, but an author who wants the plain field back writes a new entry.
 - **The instance can say something to every station at once.** Under Stations → System news an administrator writes a notice that appears in every station's own news list, from Ember rather than from anyone in the station, with a System badge beside it. It can be limited to certain member types, it notifies only when asked to, and correcting or withdrawing it does so everywhere at once.
 - **The instance keeps a library of its own.** Pictures and files used in a system notice belong to the instance rather than to one station, so a station clearing out its unused files cannot leave a notice with a broken picture. They are uploaded and picked while writing the notice, and served to every station that reads it.
-- **A knowledge-base article can be written the same way.** A markdown article switches to the page editor as a news entry does, which is what a training document with a diagram beside its explanation needs. Search, the PDF export and the version history keep working; old versions can be read but not restored, because what is stored is derived from the blocks.
+- **A wiki article can be written the same way.** A markdown article switches to the page editor as a news entry does, which is what a training document with a diagram beside its explanation needs. Search, the PDF export and the version history keep working; old versions can be read but not restored, because what is stored is derived from the blocks.
 - **A station decides how gear moves, in every direction it moves.** Under Inventory → Chains there is a chain for each way gear travels: issued by the body above into the store or straight to a member, handed back from the store or from a member, exchanged, and asked for. Each one is edited step by step, with steps renamed, reordered and removed: what a step is called, who confirms it, which of the two pieces it is about and where that piece is afterwards. Which chain applies follows the owner of the gear and who is at the other end, so one inventory holding both can reach different chains for different rows.
 - **Every chain begins with a request and ends with the person holding the gear confirming they have it.** A member sees what is on its way to them under Inventory → My equipment and confirms the receipt there, so what a station has handed over is recorded by the person who took it rather than claimed on their behalf. Where somebody never answers, a manager can still force the step with a note.
 - **Everything a member holds can be asked for at once.** One button on their equipment page starts a return for every piece they have, each on the chain that fits it: the station's own gear back to its store and the association's into the post.
@@ -821,7 +840,7 @@
 - **An association has its own members, and one of them can look after every station at once.** Who acts for the association is set there, by role, by grants of their own or through a group, all three separate from anything they hold at a station, and all three edited with the same permission picker a station edits its own members with. Nothing at a station makes somebody a member of the association above it, however senior they are there; belonging is always granted at the association, and it opens its pages and nothing it governs. Somebody trusted with it can also search and edit the people at every station under the association, except their own membership and any station's owner.
 - **An association can ask its own questions in every member's profile.** The fields it adds appear in the same form as the station's own, marked as the association's, and are read-only at the station unless the association says otherwise. Changes land in the one change history a profile already had, and the answers are cleared when a station leaves while the history stays.
 - **An association keeps its own gear and answers for it.** It sees every piece it owns and where each one is, and the steps of an exchange or a return that only it can confirm wait in a list of its own. An association that does not keep its gear here says so, and then its stations work exactly as they did before.
-- **An association can tell its stations something.** News it writes, appointments it makes and articles it files reach every member station, all with the association as the sender, and it writes them on the same screens a station writes its own with: folders, tags, versions and restrictions in the knowledge base, categories and registrations in the calendar, the page editor in both. Nothing is copied: the stations read what was written once, over the connection they already have.
+- **An association can tell its stations something.** News it writes, appointments it makes and articles it files reach every member station, all with the association as the sender, and it writes them on the same screens a station writes its own with: folders, tags, versions and restrictions in the wiki, categories and registrations in the calendar, the page editor in both. Nothing is copied: the stations read what was written once, over the connection they already have.
 - **Signing in with a username instead of an email address.** Under Account → Profile anyone can pick a name to sign in with, and the address keeps working alongside it. A guardian can give one to a member or trial member in their care under Profile → Managed profiles, which is what lets a child with no address of their own sign in at all: everything Ember would write to that member, the invitation to set a password included, goes to their guardians.
 - **The directory groups stations by their association.** Stations that answer to the same association appear under its name instead of scattered through the list, and everything else keeps its own place below. An association has no page of its own; only its stations do.
 - **Ember can be installed like an app.** Where the browser supports it, Ember goes onto the home screen or into the dock and opens in a window of its own, offered with a single button among your first steps. Browsers that make no such offer keep the written instructions for a bookmark.
@@ -847,7 +866,7 @@
 - **A household answers an event in one go.** Somebody who answers for more than one person, their own membership and their children, ticks who the answer is for instead of walking the same screen once per person. Where the event asks questions, each person gets their own tile, because the answers belong to the person and not to the household.
 - **An answer can be changed until registration closes.** Accepting and then finding you cannot come is now something you can say. After the deadline only whoever runs the event can change it, and coming back after declining means signing up again rather than getting the old place back.
 - **A question under a system notice reaches the instance.** Anyone may comment on a notice from the instance. A station sees the comments written in its own station, and the administrator sees all of them with the station each came from, so a question asked under a notice can be answered.
-- **Every text editor can insert a picture.** Where an editor only accepted a pasted address before, it now opens the media library to browse, search, upload and insert. News, board tickets, event descriptions, the knowledge base and the page editor all gain it at once.
+- **Every text editor can insert a picture.** Where an editor only accepted a pasted address before, it now opens the media library to browse, search, upload and insert. News, board tickets, event descriptions, the wiki and the page editor all gain it at once.
 - **Clearing out unused files leaves what members brought in.** A file nothing points at is still offered for removal, but one somebody uploaded themselves is kept: a picture can outlive the first place it was used.
 - **Gear kept for the body above a station finds its owner when the station joins one.** Equipment already recorded as belonging to the municipality or the association keeps its place, its size and whoever has it, and the association it now names sees it in the list of what it owns. Nothing is moved or recreated, and an exchange already under way carries on.
 - **The demo instance has an association over it.** The demo station now answers to one, alongside a station the association made itself, and it comes with people holding each of the association's roles, gear resting in every state a piece can be in, two questions in its members' profiles, and news, an article and an appointment of its own. A neighbouring station's request to join is still waiting, so the screen that answers them has something on it.
@@ -905,9 +924,9 @@
 - **Pages declare what they are allowed to load.** Every page now carries a content security policy: a script runs only when it comes from Ember itself and carries the one-time marker minted for that page, which an injected script cannot have. The policy is sent for observation and refuses nothing until an operator sets `NUXT_CSP_MODE` to `enforce`, so an upgrade cannot break an embedded map or video.
 - **Lending conversations were readable by the wrong partner.** The messages exchanged about borrowing equipment could be read by any partner station that asked for them by their address, not only by the two stations doing the borrowing. A partner is now answered only for the requests it is part of.
 - **A partner station could rewrite board comments anywhere on the instance.** Editing or deleting a comment on a shared board checked the board but never the comment, so a partner allowed to write on one board could change or remove any board comment the instance held, including those of stations it had never been paired with. A comment now has to belong to the ticket it is addressed on.
-- **A partner station could read what was never shared with it.** Asking for a knowledge-base article, a quiz catalogue or a test protocol by its address answered for anything the paired station held, shared or not, and a catalogue is answered together with the correct answers to its questions. A partner is now served only what the station actually shares with it.
+- **A partner station could read what was never shared with it.** Asking for a wiki article, a quiz catalogue or a test protocol by its address answered for anything the paired station held, shared or not, and a catalogue is answered together with the correct answers to its questions. A partner is now served only what the station actually shares with it.
 - **A board attachment was not tied to the ticket it was asked for.** Downloading or deleting a ticket attachment checked the board in the address but never the attachment itself, so a deletion could remove the record of an attachment belonging to another station. An attachment now has to belong to the ticket named in the address.
-- **A request could pull in a record from another station.** Adding someone to an attendance list, linking a ticket or a knowledge-base article to a board ticket, and swapping a question into a test each accepted a second record named in the request without asking where it belonged, so a name, a title or a question from another station could be drawn into the caller's own screen. All four now accept records of the caller's station only.
+- **A request could pull in a record from another station.** Adding someone to an attendance list, linking a ticket or a wiki article to a board ticket, and swapping a question into a test each accepted a second record named in the request without asking where it belonged, so a name, a title or a question from another station could be drawn into the caller's own screen. All four now accept records of the caller's station only.
 - **Reviewing profile changes reached other stations.** Someone charged with reviewing changes to member data could read and acknowledge the changes of a member in another station, which cleared them from the review that station relies on to notice edits to its own records. Reviewing is now limited to the members of the reviewer's station.
 - **Event template reminders were open to other stations.** The days before an event on which a template sends its reminders could be read, and silently changed, for any template on the instance, so someone elsewhere could decide when another station's members hear about their own events. Reminders now belong to the station the template does.
 - **Found items, lending blocks and board bookmarks could be removed by strangers.** A lost-and-found entry could be read and deleted from any station, a lending block holding equipment back from a partner could be lifted by another station, which quietly reopened that equipment for borrowing, and a bookmarked partner board could be removed from someone else's list. Each of these now belongs to the station or the member it was made in.
@@ -916,8 +935,8 @@
 - **Test protocols could be read and changed from another station.** Anyone holding a test protocol right in their own station could open, rewrite or delete another station's protocols, along with their test runs and the results of everyone in them, by addressing them directly. A protocol, section, item or run is now answered only for the station it belongs to, and a run is filled only with members of that station.
 - **A failed storage test said too much about the network.** Testing a station's storage connection answered with whatever the machine reported, which told a refused connection apart from a silent one and made the button a way to look around the network the server sits in. The test now reports a plain failure, and the detail goes to the server log where an operator can still read it.
 - **Answers from the server carry browser protections.** Every response now tells the browser not to guess what kind of content it holds, refuses to be displayed inside a frame on another site, and keeps the full address of the page from travelling along as a referrer; over HTTPS it also asks the browser to stay on HTTPS. Guessing the kind of content was how a file meant to be downloaded could still be treated as a web page and run.
-- **A saved link could make the server fetch anything.** Saving a knowledge-base link without a name or description had the server open that address to read what the page calls itself, including addresses reachable only from inside the network Ember runs in, and stored what it found where the member could read it. The lookup now goes to public addresses only, at every step of a redirect.
-- **Formatted text could carry a script.** Text written with formatting, such as an event or ticket description, a knowledge-base article, a page block or a profile field, was shown to readers exactly as it was written, so instructions hidden inside it ran in the browser of everyone who opened the page, visitors to a station's public site included. Formatted text is now cleaned before it is shown and keeps nothing but its formatting.
+- **A saved link could make the server fetch anything.** Saving a wiki link without a name or description had the server open that address to read what the page calls itself, including addresses reachable only from inside the network Ember runs in, and stored what it found where the member could read it. The lookup now goes to public addresses only, at every step of a redirect.
+- **Formatted text could carry a script.** Text written with formatting, such as an event or ticket description, a wiki article, a page block or a profile field, was shown to readers exactly as it was written, so instructions hidden inside it ran in the browser of everyone who opened the page, visitors to a station's public site included. Formatted text is now cleaned before it is shown and keeps nothing but its formatting.
 
 ### Fixes
 
@@ -1036,7 +1055,7 @@
 
 ### New Features
 
-- **Read and write permissions for the knowledge base.** A folder or file can now say what its audience may do with it, not only who sees it: read only, read and edit, or full access including deleting and publishing. A group can be given reading rights on a directory without being able to change anything in it.
+- **Read and write permissions for the wiki.** A folder or file can now say what its audience may do with it, not only who sees it: read only, read and edit, or full access including deleting and publishing. A group can be given reading rights on a directory without being able to change anything in it.
 - **Ask questions when someone registers for an event.** An event can ask everyone signing up for extra details - shirt size, number of guests, what they are bringing - as text, number, yes/no, date, choice or member. Each question can be mandatory and can start from a default value.
 - **Answers stand next to the registration.** The answers marked for the list appear beside the member's name in the registration list, and number questions get their total above it. Event templates carry their questions into every event created from them.
 
@@ -1058,15 +1077,15 @@
 - **You decide what stays in your browser, group by group.** Alongside the technically required values there are now two groups you allow or refuse separately: what individual features remember, and what your view settings remember. The choice is offered with the consent and can be changed later under Account → Data & account; taking a group back deletes its values at once.
 - **Privacy policy and terms are never blank.** If an instance has no documents of its own, the pages serve the ones Ember ships instead of an error, and the shipped set is laid down where the instance actually reads its documents from.
 - **The section on browser storage cannot fall out of date.** It is generated rather than written, so it can only be shown, hidden or moved. Both privacy policy and consent text pick it up, and a change to it prompts for consent again like any other change.
-- **The knowledge base only offers what you may actually do.** Editing, deleting and creating appear where your permission allows them, an entry you may only read is marked as read only, and a file you may only read names the folder that decided it. Existing stations notice nothing until they set their first permission.
+- **The wiki only offers what you may actually do.** Editing, deleting and creating appear where your permission allows them, an entry you may only read is marked as read only, and a file you may only read names the folder that decided it. Existing stations notice nothing until they set their first permission.
 - **Answers to registration questions are complete for the organisers.** Whoever may edit the event sees every answer including the notes, plus totals per question: numbers are added up and choices counted per option. A question can also be marked as belonging to the organisers, in which case it is neither asked of members nor visible to them.
 - **The public calendar of a station opens.** Visiting it shows the station's dates, and the subscription link for a calendar application is offered beside them.
 - **A station's public pages arrive complete.** The station name, its menu and its blog, wiki and calendar come with the page the server sends, so search engines and link previews see them.
 - **Public pages arrive complete.** The station directory and the imprint, privacy and terms pages carry their content in the page the server sends, so search engines and link previews see it. Visitors reach the same pages as before, a moment sooner.
-- **Files shared by partner stations open.** A shared file in the knowledge base opens like one of your own, both from the file list and from a search result, instead of only offering a copy. Text and Markdown files show their content and take comments; other formats still have to be copied into your station first.
+- **Files shared by partner stations open.** A shared file in the wiki opens like one of your own, both from the file list and from a search result, instead of only offering a copy. Text and Markdown files show their content and take comments; other formats still have to be copied into your station first.
 - **Question catalogues and test sheets shared by partner stations open.** A shared question catalogue shows its categories and question count, a shared test sheet its sections and points. Both can still be copied into your own station from the page.
-- **Knowledge base files save as PDF.** Markdown and text files can be downloaded as a PDF carrying the station name and logo - from the file, from the file list, from a file a partner station shares, and from a page on the public wiki. Headings, lists, tables, quotes and code blocks are kept; images are replaced by their description.
-- **Tile and list view of the knowledge base offer the same actions.** Removing a favourite is available in both views, and the buttons on every entry name what they do.
+- **Wiki files save as PDF.** Markdown and text files can be downloaded as a PDF carrying the station name and logo - from the file, from the file list, from a file a partner station shares, and from a page on the public wiki. Headings, lists, tables, quotes and code blocks are kept; images are replaced by their description.
+- **Tile and list view of the wiki offer the same actions.** Removing a favourite is available in both views, and the buttons on every entry name what they do.
 - **Guardians hand out access to the members in their care.** Under Profile → Managed profiles a guardian sets the email address of a member they look after and switches signing in on or off. Allowing it sends the invitation to set a password; refusing it ends the sessions that are open, and a new address does the same.
 - **Email falls back to another provider instead of getting stuck.** An instance can list further providers after its first one, each with the number of attempts it gets before the next takes over. A message the receiving side refuses because of the relay itself - a sending address on somebody's block list, for instance - moves straight to the next provider rather than being tried against the same refusal.
 - **Ember learns whether an email actually arrived.** A mail provider only confirms that it took the message; what happens afterwards - delivered, bounced, blocked - is now reported back and recorded against the email. Under Settings → Mailing there is an address to paste into the provider (for Brevo under Settings → Transactional emails → Webhook), and Ember generates the key it contains itself.
@@ -1078,9 +1097,9 @@
 
 ### Changes
 
-- **One menu for the actions on a knowledge base entry.** Editing, downloading and deleting an entry sit in a single menu instead of a row of icons. An entry offering only one action keeps that action as a plain button.
+- **One menu for the actions on a wiki entry.** Editing, downloading and deleting an entry sit in a single menu instead of a row of icons. An entry offering only one action keeps that action as a plain button.
 - **Quiz and examinations are named for what a station uses.** The shared menu entry reads "Quiz & Prüfungen" while both are switched on, and "Quiz" or "Prüfungen" when only one of them is. With both in use, the quiz pages and the examination pages sit in a section each instead of in one list of five.
-- **Shared knowledge base needs matching versions.** Partner stations still on the previous version pause knowledge-base sharing until both sides have updated. Every other federated feature keeps working in the meantime.
+- **Shared wiki needs matching versions.** Partner stations still on the previous version pause wiki sharing until both sides have updated. Every other federated feature keeps working in the meantime.
 
 ### Fixes
 
@@ -1096,7 +1115,7 @@
 - **Members see the events of their station.** Opening the events page shows the station's events for everyone, not only for those who also record attendance.
 - **The registration list of an event loads.** Opening an event and switching to its registrations shows who has signed up.
 - **Question catalogues shared by partner stations appear again.** The catalogue list shows what partner stations share instead of leaving the shared section empty.
-- **Filtering by partner station works across search and lists.** Picking a partner station in the knowledge base, catalogue or test sheet filters matches the entries from that station.
+- **Filtering by partner station works across search and lists.** Picking a partner station in the wiki, catalogue or test sheet filters matches the entries from that station.
 - **Switching off quiz or examinations clears the menu.** A station that switches off one of the two no longer keeps its pages in the sidebar.
 - **The member import reports what it did.** Finishing an import shows how many members and helpers were created, how many were linked to a group and how many profile fields were filled, plus anything the import had to point out - instead of an empty page.
 - **Chosen files are actually uploaded.** Picking a file - a wiki attachment or original, a folder icon, an avatar, a question or member import - sends the file itself, so the upload completes instead of failing as though no file had been chosen.
@@ -1139,17 +1158,17 @@
 - **Attendance field entries save immediately.** Yes/no, date, selection and member fields in an attendance session are stored as soon as they change, rather than after a short delay.
 - **Editing a form response works after new questions are added.** Opening a submitted response shows every question, including ones added after the response was sent.
 - **The public waiting list and public blog switches are saved.** Turning either on or off under Station → Federation keeps the setting.
-- **Replacing a presentation file works.** Uploading a new version of a presentation in the knowledge base replaces the stored file.
+- **Replacing a presentation file works.** Uploading a new version of a presentation in the wiki replaces the stored file.
 - **Saved member filters apply reliably.** Applying a saved filter on the member list works even when it was saved for a tab that is no longer available.
 - **Ordering questions in quiz training keep all their items.** Moving an entry in an ordering question no longer leaves a blank item behind.
 - **The feed notification switch shows its real state.** The feed channel under Account → Notifications reflects whether it is actually enabled.
 - **Attendance help pages open with the help center menu.** The attendance, attendance settings and attendance settings editing help pages show the help center navigation.
 - **Public station pages show their title in the header.** Pages under a station's public area display the page name in the header bar.
 - **The relocation notice highlights its menu entry.** Opening the page that announces a station's move marks the matching menu entry as active.
-- **Comments on a partner's knowledge base article can be deleted.** Removing your own comment on an article shared by a federation partner completes instead of failing.
+- **Comments on a partner's wiki article can be deleted.** Removing your own comment on an article shared by a federation partner completes instead of failing.
 - **Notifications for comments on partner news reach the right members.** Replies and mentions on a news article shared by a federation partner are delivered to the members of the station that owns the article.
-- **Knowledge base search accepts any input.** Searching for text made only of punctuation returns no results instead of failing with an error.
-- **Link previews stay clean when a page cannot be reached.** A link added to a knowledge base article keeps its address as the label instead of picking up the title of an error page.
+- **Wiki search accepts any input.** Searching for text made only of punctuation returns no results instead of failing with an error.
+- **Link previews stay clean when a page cannot be reached.** A link added to a wiki article keeps its address as the label instead of picking up the title of an error page.
 - **Uploads with unusual file names are accepted.** Files whose name is missing or whose extension is written in capitals are recognised by type instead of failing.
 - **The public forms and polls pages show their own titles.** Both pages display their own name in the header instead of the general forms title.
 - **Reordering board checklist items and partner board tickets works.** Dragging a checklist entry into a new position on a board ticket is saved, and so is moving a ticket within a lane on a board shared by a federation partner.
@@ -1243,7 +1262,7 @@
 
 ### Security
 
-- **Stricter cross-station isolation.** Every station-scoped resource - pages and their files, forms and responses, events and registrations, members and their profile data, notes, quiz catalogs and attempts, inventory, attendance, waiting lists, knowledge-base documents and boards - is now checked to belong to the signed-in user's own station before it can be read or changed, closing cases where a resource from another station could be reached by supplying its id.
+- **Stricter cross-station isolation.** Every station-scoped resource - pages and their files, forms and responses, events and registrations, members and their profile data, notes, quiz catalogs and attempts, inventory, attendance, waiting lists, wiki documents and boards - is now checked to belong to the signed-in user's own station before it can be read or changed, closing cases where a resource from another station could be reached by supplying its id.
 - **Two-factor sign-in is rate limited.** Repeated two-factor and step-up attempts are throttled per account and per address, and a login's pending two-factor challenge is invalidated after several wrong codes, so a stolen password can no longer be paired with unlimited guesses.
 - **Authenticator codes are single-use.** A time-based authenticator code can no longer be used more than once within its short validity window.
 - **Password resets clear remembered devices.** Resetting a password, and removing a second factor, now revoke every "remember this device" entry so a saved device can no longer skip the two-factor prompt afterwards.
@@ -1302,7 +1321,7 @@
 
 #### Station setup walkthrough
 
-- **Setup wizard at /station/setup.** Administrators of a freshly-created station land on a guided walkthrough that covers the address and pin on the map, module selection, member-type permissions, optional member groups, the station's own outbound mail relay, branding, federation visibility (public by default), a first event, an initial knowledge-base page, and member invites. The standard sidebar shows the steps with check marks for what is already done.
+- **Setup wizard at /station/setup.** Administrators of a freshly-created station land on a guided walkthrough that covers the address and pin on the map, module selection, member-type permissions, optional member groups, the station's own outbound mail relay, branding, federation visibility (public by default), a first event, an initial wiki page, and member invites. The standard sidebar shows the steps with check marks for what is already done.
 - **Pinned setup checklist on the dashboard.** While any step is still open, the dashboard shows a checklist with direct links into the wizard. It disappears once an administrator clicks the finish page to mark setup complete.
 - **Member invites by email.** Administrators can invite people by email from the wizard or from the regular members screen. Each recipient gets a single-use link, lands on /invite/<token>, sets a password, and joins the station without the administrator having to create an account first. Invites carry the recipient's name, member type, optional group, and optional guardians; pending invites can be revoked.
 - **Roster CSV import in the invite step.** The invite step hands off to the existing member-import screen with full column-mapping (name, email, groups, guardians, profile fields) and preview, then lands back in the wizard once the import is done.
@@ -1314,7 +1333,7 @@
 - **Page image storage roughly halved for new uploads.** Each page image now keeps the uploaded original plus a WebP rendition at each configured width. The redundant original-format resizes are no longer generated; existing stations keep their old files until those images are re-uploaded.
 - **Transfer progress shows a stable file total.** The per-category file count on the transfer progress page now reflects the full number of files up front instead of climbing as new pages of work are discovered.
 - **Two uploads at a time in the page files browser.** Dropping a batch of files into the page files browser uploads two in parallel instead of strictly one after the other, roughly halving the wall-clock time for typical batches.
-- **Storage reconciliation also removes orphan files.** The daily reconciliation now deletes files on disk whose owning record is gone (page files, knowledge-base files, lost-and-found, quiz question, and knowledge-base folder icons), so deleted content no longer keeps consuming disk space until the station is rebuilt. Knowledge-base inline images and board attachments are intentionally left alone for now.
+- **Storage reconciliation also removes orphan files.** The daily reconciliation now deletes files on disk whose owning record is gone (page files, wiki files, lost-and-found, quiz question, and wiki folder icons), so deleted content no longer keeps consuming disk space until the station is rebuilt. Knowledge-base inline images and board attachments are intentionally left alone for now.
 - **Deleting a station also removes accounts that have nothing else to belong to.** When a station is deleted, accounts that were only connected to that station and are not instance administrators are removed alongside it. The same cleanup runs when a cross-instance transfer fails part-way, so half-imported accounts are no longer left as ghost rows.
 
 ### Fixes
@@ -1432,7 +1451,7 @@
 
 #### Page Editor Cell Types
 
-- **Many new cell types** - callout, quote, divider, spacer, accordion, PDF, file download, countdown, partner stations, stats counter, tabs, achievements, image gallery, KB article, news teaser, page link, map, address card, member spotlight, hero banner, external link card, blog signup, audio embed, poll embed, forms CTA, code block, member list, and a nested-rows layout primitive that lets cells be split or wrapped in place.
+- **Many new cell types** - callout, quote, divider, spacer, accordion, PDF, file download, countdown, partner stations, stats counter, tabs, achievements, image gallery, wiki article, news teaser, page link, map, address card, member spotlight, hero banner, external link card, blog signup, audio embed, poll embed, forms CTA, code block, member list, and a nested-rows layout primitive that lets cells be split or wrapped in place.
 - **Cut, copy, paste between cells**, with a paste-here shortcut in the empty-cell chooser.
 
 #### Public Quiz Teaser
@@ -1479,8 +1498,8 @@
 - **Bearer tokens hashed at rest.** Session cookies, password-reset codes, email-verification codes and station-delete codes are now stored hashed with a server-side pepper. A database-only leak no longer yields usable tokens - the attacker also needs the server secret.
 - **Breaking on upgrade.** The migration removes the plaintext token columns. Every active session and pending recovery link is invalidated; users sign in again once, and pending password-reset / email-verification / station-delete emails have to be re-requested.
 - **New required production secret: `auth.tokenPepper`.** Generated automatically on first boot if not already configured. Demo / dev runs fall back to a fixed placeholder.
-- **Markdown is sanitised before display.** KB articles, station pages and legal documents pass through a strict HTML allow-list. Scripts, inline event handlers, `javascript:` URLs, cross-origin iframes and off-allow-list images are stripped; legal documents additionally forbid images and iframes.
-- **Uploaded files served with a safe content type.** User uploads (KB files, KB presentations, board ticket attachments, public page files) are only served with their declared content type if it's PNG, JPEG, WebP, GIF or PDF; everything else falls back to `application/octet-stream`. Download filenames are sanitised so a crafted upload name cannot inject extra response headers.
+- **Markdown is sanitised before display.** wiki articles, station pages and legal documents pass through a strict HTML allow-list. Scripts, inline event handlers, `javascript:` URLs, cross-origin iframes and off-allow-list images are stripped; legal documents additionally forbid images and iframes.
+- **Uploaded files served with a safe content type.** User uploads (wiki files, wiki presentations, board ticket attachments, public page files) are only served with their declared content type if it's PNG, JPEG, WebP, GIF or PDF; everything else falls back to `application/octet-stream`. Download filenames are sanitised so a crafted upload name cannot inject extra response headers.
 - **Federation signatures bind method, path and recipient.** A captured signature can no longer be replayed against a different endpoint, peer or HTTP method. Senders include a per-request nonce; receivers reject duplicates inside the timestamp window.
 - **Breaking on upgrade for federation.** The federation protocol revision bumps automatically; unfixed peers will fail signature verification until both sides are upgraded. Coordinate the upgrade with each partner.
 - **Auth endpoints rate-limited.** Login, forgot-password, resend-verification, register, verify-email, set-password, change-password, confirm-email-change and refresh all have leaky-bucket limits per IP and (when the request carries an identity) per email or account. Exhausting a bucket returns `429 Too Many Requests` with a `Retry-After` header.
@@ -1589,7 +1608,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 #### Backend-driven Search
 
 - The upcoming-events search bar now hits the backend (debounced 250 ms, case-insensitive) instead of filtering the already-loaded page.
-- A new prominent `SearchInput` component (primary-color border, magnifying-glass prefix, clear button) replaces 11 page-level search bars (events, help center, board tickets, procedures, protocols, KB, lending offers, quiz catalogs, …).
+- A new prominent `SearchInput` component (primary-color border, magnifying-glass prefix, clear button) replaces 11 page-level search bars (events, help center, board tickets, procedures, protocols, wiki, lending offers, quiz catalogs, …).
 
 #### Other Improvements
 
@@ -1612,8 +1631,8 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 #### Bug Fixes
 
 - Lost-and-found, board ticket, and news notifications now deep-link to the correct page (previously fell back to the dashboard).
-- Self-edit on comments now works correctly across news, knowledge base, and events.
-- KB tag filter actually filters (was a no-op for search results and missing entirely for browse mode).
+- Self-edit on comments now works correctly across news, wiki, and events.
+- Wiki tag filter actually filters (was a no-op for search results and missing entirely for browse mode).
 - Quick-check skipping no longer leaves the process hung with nothing rendered.
 - Attendance config pages reappear (a `.gitignore` overmatch had been silently dropping them from VCS, so demo deploys 404'd).
 - `PAGE_EDIT` / `PAGE_MANAGER` permissions are now actually grantable.
@@ -1627,7 +1646,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **Recurring events** - new `event-detail-date` route (`/station/events/{id}/{date}`); nullable `event_comment.event_date`; `RemoteCommentRequest` federation payload carries `eventDate` (backwards compatible with peers that omit it).
 - **Typed date fields** - `LocalDate` instead of `String` on comment / reminder payloads (Jackson ISO `yyyy-MM-dd`).
 - **Permission model cleanup** - `api.roles` → `api.auth` package rename (~160 import sites). `RoleValidation` → `PermissionValidation`, `RolesTest` → `PermissionsTest`. Frontend: `RoleSelector.vue` deleted, `RoleStep.vue` → `UserTypeStep.vue`, `RolesHelp.vue` → `PermissionsHelp.vue`; matching i18n key sweep.
-- **`MemberIdentity.sameMember(other)` helper** - UID-only equality for ownership checks; adopted in news / event / KB comment routes and their federation variants. Fixes self-edit when DB-loaded vs. session-enriched identities are compared.
+- **`MemberIdentity.sameMember(other)` helper** - UID-only equality for ownership checks; adopted in news / event / wiki comment routes and their federation variants. Fixes self-edit when DB-loaded vs. session-enriched identities are compared.
 - **`StationIdModule` deserializer added** - previously serializer-only, so round-tripped UUID strings on `int` fields blew up with `InvalidFormatException`. `partnerStationId` added to the field-name set.
 - **Bulk-friendly registration lookup** - `EventRepository.findRegistrationsByMembers(Collection<Integer>)` collapses N queries into 1 for guardian iCal feeds.
 - **Schema migrations** - patch_11 (`station_event.updated_at`), patch_12 (`feed_metric_daily`, `feed_user_agent_stat`, `event_comment.event_date`, `EXCHANGED` → `DONE` rewrite, `news_view` table, `PAGE_EDIT` / `PAGE_MANAGER` backfill). `data_tracking.json` refreshed and verified.
@@ -1643,7 +1662,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 ### New Features
 
 #### Storage Monitoring & Quota System
-- **Per-station storage tracking** - tracks file storage usage across 5 categories: KB files, board attachments, page images, avatars, and other images
+- **Per-station storage tracking** - tracks file storage usage across 5 categories: wiki files, board attachments, page images, avatars, and other images
 - **Quota enforcement** - configurable per-category and total storage limits with rejection on exceed (HTTP 413)
 - **Quota presets** - reusable named profiles (e.g. Small, Standard, Premium) that can be applied to stations in bulk
 - **Per-station overrides** - stations can have custom quotas or use instance defaults from config
@@ -1716,8 +1735,8 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **Reactive save** - federation settings now auto-save on change (debounced 600ms) instead of requiring a save button
 - **Save indicator** - shows "Speichern…" spinner and "Gespeichert" checkmark
 
-#### Knowledge Base: Presentation Support
-- **Presentation uploads** - upload PowerPoint (.pptx, .ppt) and OpenDocument (.odp) presentations to the knowledge base
+#### Wiki: Presentation Support
+- **Presentation uploads** - upload PowerPoint (.pptx, .ppt) and OpenDocument (.odp) presentations to the wiki
 - **Automatic PDF conversion** - presentations are converted to PDF server-side via LibreOffice headless for in-browser viewing
 - **Async conversion** - upload returns immediately, conversion runs in the background with status tracking (pending/success/failed)
 - **Presentation mode** - full-screen slide-by-slide viewer for PDFs and presentations using pdf.js, with keyboard/click/swipe navigation and slide counter
@@ -1748,7 +1767,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **robots.txt** - crawl rules allowing public pages (`/discovery`, `/public/`, `/helpcenter/`) and blocking private routes (`/station/`, `/admin/`, `/api/`)
 - **Canonical URLs** - `useCanonical` composable adds `<link rel="canonical">` and `og:url` to all public pages
 - **Open Graph & Twitter cards** - all public pages include OG tags (title, description, type, image, locale, site_name) and Twitter card meta
-- **Structured data (JSON-LD)** - `SoftwareApplication` on homepage, `Organization` on station pages, `Event` on public calendar (enables rich results), `BreadcrumbList` on KB navigation
+- **Structured data (JSON-LD)** - `SoftwareApplication` on homepage, `Organization` on station pages, `Event` on public calendar (enables rich results), `BreadcrumbList` on wiki navigation
 - **SearchAction schema** - sitelinks search box on discovery page
 - **Google optimizations** - `max-image-preview:large`, `max-snippet:-1`, `max-video-preview:-1` for richer search result previews
 - **Google Search Console** - optional `NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION` env var for site verification
@@ -1762,7 +1781,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **FK-flattened lookups** - `lookups` array on `TableEntry` adds joined fields like `account_email` to exported rows; the importer resolves them back to local FK ids
 - **Output shape per table** - `SINGLE` for one-row-per-station tables (`station`), `FLAT` for enum-only tables (`station_disabled_module`); the wire format is keyed by DB table name
 - **Account migration** - accounts/credentials transfer via `customScope` through `station_member`; existing target accounts (matched by email) are linked as-is, new accounts are created with `force_password_change=TRUE`
-- **Federation state transfer** - every federation table (`federation_partner`, capability, share configs across boards/inventory/KB/protocol/quiz, event/news federation) now transfers with the station; the private key column transfers too so partners keep recognising the station post-migration
+- **Federation state transfer** - every federation table (`federation_partner`, capability, share configs across boards/inventory/wiki/protocol/quiz, event/news federation) now transfers with the station; the private key column transfers too so partners keep recognising the station post-migration
 - **Metadata-driven GDPR export** - `GenericGdprExporter` builds queries from `gdprExport.identityColumns` matching the requested identity type (`ACCOUNT_ID`/`MEMBER_ID`/`MEMBER_UID`). `GdprExportService` shrank from ~470 hand-coded lines to a thin orchestrator; output keyed by DB table name (`accountTables`, `memberTables`, `memberUidTables`)
 - **Metadata-driven GDPR deletion** - `GenericGdprDeleter` honours each `gdprDeletion` strategy (`DELETE_EXPLICIT`, `NULL`, `ANONYMIZE` with type-derived sentinels - zero-UUID, `"Gelöscht"`, NULL for nullable int - and `CASCADE`/`RETAIN`/`RETAIN_UNLINKED`/`NOT_APPLICABLE` no-ops with audit logs). UPDATEs run before DELETEs across all tables; DELETEs in reverse-topological order
 - **Dev-mode admin panel** - `/admin/data-tracking` view available only when `Demo.dev()` is true (frontend tree-shakes via `import.meta.env.DEV`). Color-coded status badges, summary dashboard, search by table name / column name / description, batch status changes, per-column verified toggles, multi-select dropdowns for `ignoredColumns`, fully editable GDPR deletion strategies, foreign-key chips with key icons, dangling-reference audit banner that flags MEMBER_ID identity columns without an FK to `station_member`, CASCADE chip warnings when the FK parent's effective strategy isn't actually a deletion
@@ -1775,7 +1794,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **Type-safe API responses** - replaced ~50 `Map.of()` API responses across routes, services, and export classes with typed Java records for compile-time safety
 - **CI retry** - test jobs (repository, service, other) retry once on failure; Docker push steps retry up to 3 times for transient registry errors
 - **CI coverage job** - no longer re-runs all tests; skips the default `test` task since coverage data is downloaded from artifacts
-- **FileInput component** - new reusable styled file picker component replacing raw `<input type="file">` elements across the knowledge base
+- **FileInput component** - new reusable styled file picker component replacing raw `<input type="file">` elements across the wiki
 - **Frontend Docker image** - replaced `nixos/nix:latest` with `node:24-alpine` for dramatically faster builds (no nix-shell overhead)
 - **Inventory item status** - item detail now shows "Zugewiesen" (assigned) or "Verfügbar" (available) instead of generic "Aktiv"
 - **Inventory member avatars** - member names in inventory edit view now display with avatars via MemberName component
@@ -1807,7 +1826,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **CLI cleanup** - removed `DataTrackingReviewer`/`Prompter`/`ReviewCli`/`BackfillCli`/`TransferMetadataBackfillCli` and their gradle tasks; the dev admin panel covers their use cases. Kept `refreshDataTracking` since the frontend can't read live PG schema
 
 #### Storage Monitoring Backend
-- **`StorageCategory` enum** - `KB_FILES`, `BOARD_ATTACHMENTS`, `PAGE_IMAGES`, `AVATARS`, `IMAGES`
+- **`StorageCategory` enum** - `wiki_FILES`, `BOARD_ATTACHMENTS`, `PAGE_IMAGES`, `AVATARS`, `IMAGES`
 - **`StorageUsageRepository`** - delta updates, absolute sets, per-station/category queries
 - **`StorageQuotaPresetRepository`** - preset CRUD, apply-to-station, reset quotas, station preset name lookup
 - **`StorageQuotaService`** - quota checking, per-file/image size limits, delta tracking, warning threshold detection
@@ -1828,7 +1847,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 
 #### Sitemap
 - **Jackson XML serialization** - replaced manual XML string concatenation with typed records and Jackson `XmlMapper`
-- **`lastmod` dates** - KB files and pages include W3C Datetime `lastmod` from `updatedAt`; index URLs derive `lastmod` from their most recent child
+- **`lastmod` dates** - wiki files and pages include W3C Datetime `lastmod` from `updatedAt`; index URLs derive `lastmod` from their most recent child
 - **Caffeine caching** - sitemap responses cached in-memory for 6 hours
 
 #### Station Applications
@@ -1919,7 +1938,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **`MentionType` enum** - replaces raw strings for bulk mention types (`GROUP`, `EVENT`, `REGISTERED`, `DECLINED`)
 - **`BulkMentionedInComment` domain event** - new event type resolved by `BulkMentionedInCommentHandler` to individual member notifications
 - **`COMMENT_MENTION` notification type** - separate from `NEWS_COMMENT`, with `CommentMention` params and own locale key
-- **KB comment events moved to service** - domain event publishing for KB comments moved from `KnowledgeBaseRoutes` to `KnowledgeBaseService`
+- **Wiki comment events moved to service** - domain event publishing for wiki comments moved from `KnowledgeBaseRoutes` to `KnowledgeBaseService`
 - **`NewsService` resolves author name** - derives author name from `MemberIdentity` via account lookup instead of requiring callers to pass it
 - **Event date validation** - backend derives event date for one-time events from `startTime` and validates day-of-week for recurring events
 - **Restriction-filtered completions** - `/station-members/completions` accepts optional `restrictionType` and `entityId` params to filter by entity visibility
@@ -1941,7 +1960,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **Weblinks** - add external URLs to tickets
 - **File attachments** - upload files to tickets with tile-based preview grid; image thumbnails, PDF viewer, and CSV table preview in a fullscreen overlay with keyboard navigation (arrow keys)
 - **Labels** - color-coded labels per board with multi-select dropdown, inline creation, and label filter on the board and archived views
-- **Knowledge base links** - link KB pages to tickets with title search and folder path display
+- **Wiki links** - link wiki pages to tickets with title search and folder path display
 - **Comments** - threaded comments using CommentThread component with @mentions, reply, edit, delete
 - **Watch/unwatch** - subscribe to ticket changes and receive notifications
 - **Activity feed** - interleaved timeline of comments, lane transitions, and history entries (priority changes, label assignments, title/description/due date changes, field changes) with rich formatting (lane color pills, priority icons, label badges)
@@ -2005,7 +2024,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 #### Federated Comments
 - **Event comments** - comment on events shared by federation partners; comments show the author's station badge
 - **News comments** - comment on news posts shared by partners with full threading support
-- **Knowledge base comments** - threaded comments on KB files with federation support and soft-delete
+- **Wiki comments** - threaded comments on wiki files with federation support and soft-delete
 
 #### News Federation
 - **Per-post sharing** - choose which news posts to share with partners: all partners or specific ones
@@ -2056,8 +2075,8 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - Fixed role hierarchy not applied in board access checks (MANAGER not matching TEAM restrictions)
 - Fixed file download throwing unauthorized (switched from direct URL to authenticated blob download)
 - Fixed `createTicket` CTE missing `attachment_count` column causing runtime error
-- Fixed KB link `folderPath` showing double `/` for root-level files
-- Fixed KB links not loading on initial ticket detail page load
+- Fixed wiki link `folderPath` showing double `/` for root-level files
+- Fixed wiki links not loading on initial ticket detail page load
 - Fixed checklist progress bar invisible (undefined CSS variable)
 - Fixed lane top border using undefined `--accent` variable
 
@@ -2073,7 +2092,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 #### Backend Architecture
 - **18 new entity records** with RowMapping: Board, BoardLane, BoardField, BoardFieldConfig, BoardTicket, BoardTicketLink, LinkType, BoardTicketTransition, BoardChecklistItem, BoardComment, BoardWeblink, BoardTicketAttachment, BoardTicketFieldValue, BoardTicketWatcher, BoardTicketHistory, BoardLabel, BoardTicketKbLink, TicketPriority
 - **BoardRepository** - CRUD for boards, lanes, fields, labels, access restrictions, backlog management
-- **BoardTicketRepository** - CRUD for tickets, links, checklist, comments, weblinks, attachments, field values, watchers, history, KB links, activity feed (UNION ALL query)
+- **BoardTicketRepository** - CRUD for tickets, links, checklist, comments, weblinks, attachments, field values, watchers, history, wiki links, activity feed (UNION ALL query)
 - **BoardService** - access control with role hierarchy expansion via `Roles.expand()`, label management, backlog toggle
 - **BoardTicketService** - ticket lifecycle, lane_assignee auto-assignment on move, @mention parsing in comments, watcher notifications, history logging for all changes
 - **BoardRoutes / BoardTicketRoutes** - 50+ REST endpoints
@@ -2085,7 +2104,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 #### Frontend Architecture
 - **15 new views**: BoardOverviewView, BoardListView, BoardView, TicketDetailView, BoardSettingsView, BacklogView, ArchivedView + 5 help center pages
 - **7 new components**: TicketTile, TicketChecklist, TicketActivity, TicketLinksSection, LabelSelectInput, ColorInput, DragList (reused)
-- **boards.ts API** - 40+ functions for all board, ticket, label, attachment, KB link, and history operations
+- **boards.ts API** - 40+ functions for all board, ticket, label, attachment, wiki link, and history operations
 - **Authenticated file handling** - blob download/preview via axios instead of direct URLs
 
 #### Permission Architecture
@@ -2106,7 +2125,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - `QuizCatalogRepository.findQuestionsByIds()` batch query for enriched attempt detail
 
 #### Test Coverage
-- **Board repository tests** - 20+ tests covering tickets, lanes, labels, attachments, field values, weblinks, search, history, backlog, KB links
+- **Board repository tests** - 20+ tests covering tickets, lanes, labels, attachments, field values, weblinks, search, history, backlog, wiki links
 - **Board service tests** - 25+ tests covering CRUD, access control with role hierarchy, labels, backlog, field values, attachments, comments, watchers, move/reorder/link operations
 - **JaCoCo exclusion** - DueDateReminderChecker, EventReminderChecker excluded (daemon pattern)
 - All coverage thresholds met: 95% repositories, 90% services, 80% handlers
@@ -2142,14 +2161,14 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **Remote registration** - register for events at partner stations
 - Partner station events shown on the upcoming events page
 
-#### Federated Knowledge Base
-- **Shared KB browsing** - browse files and folders from partner stations
+#### Federated Wiki
+- **Shared wiki browsing** - browse files and folders from partner stations
 - **Federated search** - search queries partner stations in parallel
 - **Partner filter** - show only content from a specific partner
 
 #### Public Calendar & Station View
 - **Public calendar** - expose an event calendar for visitors without an account
-- **Public station page** - unified public view with calendar and knowledge base tabs
+- **Public station page** - unified public view with calendar and wiki tabs
 - Event fields can be marked as public or internal
 
 #### Event Categories
@@ -2197,8 +2216,8 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - Fixed @mentions not matching between frontend and backend
 - Fixed deleting a comment removing all replies - now soft-deletes
 - Fixed news author being notified on every comment instead of only on replies
-- Fixed KB share links pointing to the wrong URL
-- Fixed federated KB files navigating to a non-existent local file
+- Fixed wiki share links pointing to the wrong URL
+- Fixed federated wiki files navigating to a non-existent local file
 - Fixed absences section visible to non-managers on event detail
 - Fixed past event registrations appearing on the dashboard
 - Fixed modal component warnings
@@ -2232,7 +2251,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - Parallel CI test jobs (`testRepositories`, `testServices`, `testOther`)
 - Coverage verification across parallel CI jobs
 - Javadoc verification in CI
-- Comprehensive service test suite (attendance, auth, batch events, comments, consent, federation, fields, templates, feeds, forms, KB, notes, profiles, quiz, registrations, applications, protocols, settings)
+- Comprehensive service test suite (attendance, auth, batch events, comments, consent, federation, fields, templates, feeds, forms, wiki, notes, profiles, quiz, registrations, applications, protocols, settings)
 - Database patch 5: public columns for stations, categories, events, fields, boards, problem reports, feed tracking
 
 ---
@@ -2252,11 +2271,11 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **Registration stats panel** - fairness statistics for event registration acceptance/denial decisions (accepted/denied ratio per member)
 
 #### Federation System
-- **Multi-station federation** - connect with other stations to share content (Knowledge Base, Quiz catalogs, Test Protocols)
+- **Multi-station federation** - connect with other stations to share content (Wiki, Quiz catalogs, Test Protocols)
 - **Partnership management** - create, suspend, resume, or end federation partnerships
 - **Capability configuration** - control which content types can be shared per direction (import/export) per partner
 - **Cross-instance federation** - RSA-signed HTTP communication between separate Ember instances
-- **Shared content browsing** - browse KB files, quiz catalogs, and protocols shared by partners
+- **Shared content browsing** - browse wiki files, quiz catalogs, and protocols shared by partners
 - **One-click content copy** - copy federated content to your own station
 - **Metadata caching** - browse federated content even when remote instance is temporarily unavailable
 - **Webhook notifications** - real-time change notification between federated instances
@@ -2280,10 +2299,10 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **Pair requests** - discovery codes create pending requests that target station must accept/decline
 - **Pair request management** - view and accept/decline incoming federation requests
 
-#### Public Knowledge Base
-- **Public KB mode** - OFF, ALLOW_ALL, or DENY_ALL per station
+#### Public Wiki
+- **Public wiki mode** - OFF, ALLOW_ALL, or DENY_ALL per station
 - **Per-file/folder visibility override** - override the global mode for individual items
-- **Public browsing** - unauthenticated access to browse, read, and search public KB content
+- **Public browsing** - unauthenticated access to browse, read, and search public wiki content
 - **Public file viewer** - rendered markdown, PDF download, image display, YouTube embeds
 - **Full-text search** - PostgreSQL tsvector search on public content with snippets
 
@@ -2314,11 +2333,11 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 #### GDPR Export Improvements
 - **ZIP format** - data export downloads as ZIP instead of plain JSON
 - **PDF summary** - human-readable Typst-generated PDF with account info, memberships, inventory
-- **User files included** - KB files created by the user bundled in the ZIP
+- **User files included** - wiki files created by the user bundled in the ZIP
 
 #### Station Export/Import
 - **UUID preservation** - station UUID preserved during transfer (federation codes survive)
-- **Knowledge base export** - KB folders, files, content, and version history in station transfer
+- **Wiki export** - wiki folders, files, content, and version history in station transfer
 - **Logo export** - station logo transferred as base64
 
 ### Improvements
@@ -2328,10 +2347,10 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **Convention linting** - automated checks for raw HTML elements, CSS class count, repeated patterns, file size
 - **Help center linting** - validates every route has a corresponding help article
 - **Icon linting** - verifies all FontAwesome icons are properly registered
-- **View decomposition** - large views split into focused sub-components (Attendance, Inventory, Members, Quiz, Knowledge Base)
+- **View decomposition** - large views split into focused sub-components (Attendance, Inventory, Members, Quiz, Wiki)
 - **Style guide** - updated `/style` page showcasing all base components
 
-#### Knowledge Base
+#### Wiki
 - **Edit modals** - improved file/folder editing with restrictions, tags, and public visibility
 
 #### Attendance
@@ -2365,7 +2384,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 ### Security & Technical
 
 - **Station-scoped access enforcement** - all entity read/write operations now validate that the authenticated user belongs to the correct station, preventing cross-station data access even with a valid session
-- **Repository hardening** - queries now consistently filter by station ID to prevent unauthorized cross-station reads (Events, News, Members, Forms, Inventory, Knowledge Base, Attendance, Groups, Tags, Waiting List, Federation)
+- **Repository hardening** - queries now consistently filter by station ID to prevent unauthorized cross-station reads (Events, News, Members, Forms, Inventory, Wiki, Attendance, Groups, Tags, Waiting List, Federation)
 - **RSA-2048 signing** - federation requests cryptographically signed
 - **Station UUIDs** - external identifiers prevent enumeration
 - **Role hierarchy enforcement** - database-level transitive permission checking
@@ -2414,13 +2433,13 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 
 ### New Features
 
-#### Knowledge Base (Lernsammlung)
+#### Wiki (Lernsammlung)
 
 - **Rich text editor** (Tiptap-based) with full WYSIWYG formatting: bold, italic, underline, strikethrough, headings (H1–H3), bullet/ordered lists, blockquotes, code blocks, tables, horizontal rules, colored text, highlighted text
 - **Editor refactored** into self-contained sub-components: `EditorToolbar`, `EditorTableBar`, `EditorLinkDialog`, `EditorImageDialog`, `EditorVideoDialog`, `EditorBubbleMenu`, `ImageNodeView`
 - **Image support**: upload images or insert from URL, with resizable width controls directly below each image in the editor
 - **Video embedding**: YouTube, Vimeo, PeerTube, Dailymotion - auto-detects provider and generates correct embed URL
-- **Link dialog**: Confluence-style floating panel with KB file search by title, folder path display, and inline text editing. Replaces native `prompt()` dialogs
+- **Link dialog**: Confluence-style floating panel with wiki file search by title, folder path display, and inline text editing. Replaces native `prompt()` dialogs
 - **Link tooltip**: hovering on a link shows URL, edit button, open-in-new-tab button, and unlink button
 - **Table editing**: contextual toolbar for adding/removing rows and columns, sticky below the app header for long documents
 - **Raw markdown toggle**: switch between rich text and raw markdown view
@@ -2428,7 +2447,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **Word document import**: upload `.docx`, `.odt`, `.rtf`, `.html` files - automatically converted to markdown via pandoc
 - **PDF text extraction**: uploaded PDFs are indexed for full-text search using Apache PDFBox
 - **Search improvements**: prefix matching (e.g. "Notr" matches "Notruf"), highlighted snippets with yellow `<mark>` tags, markdown/HTML stripped from snippet text
-- **Related files**: "further reading" links between KB files with add/remove UI on file detail page
+- **Related files**: "further reading" links between wiki files with add/remove UI on file detail page
 - **File detail view**: shows last edit time and editor name, editable description, leaves edit mode after saving
 - **Tags**: case-insensitive tag autocomplete on files and folders
 - **Folder icons**: upload custom icons for folders, displayed in grid and list views. Icon updates now persist correctly in the database
@@ -2437,7 +2456,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **Binary file storage on disk**: PDFs, images, and other binary files stored in `data/kb-files/` instead of the database. Dropped `content BYTEA` column from `kb_file_content`
 - **Link entries**: open in new tab instead of iframe embed
 - **YouTube metadata**: fetches video title/author via oEmbed API for search indexing
-- **Formatting showcase**: demo file in KB root showing all supported editor formatting
+- **Formatting showcase**: demo file in wiki root showing all supported editor formatting
 
 #### Quiz System
 
@@ -2479,7 +2498,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **NotFoundContent/NotFoundView**: 404 pages with branding
 - **FormulaInput component**: formula editor for waiting list scoring
 - **Style guide updated**: SelectionToggleButton and DropdownMenuItem added to `/style`
-- **Help center**: added pages for Knowledge Base editor, admin settings; updated existing pages
+- **Help center**: added pages for Wiki editor, admin settings; updated existing pages
 
 ### Infrastructure
 

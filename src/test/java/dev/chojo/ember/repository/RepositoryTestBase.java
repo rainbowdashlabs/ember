@@ -44,6 +44,7 @@ import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
 import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
+import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
@@ -119,6 +120,7 @@ import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
 import dev.chojo.ember.feature.media.repository.MediaFileRepository;
 import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
@@ -634,6 +636,14 @@ public abstract class RepositoryTestBase {
                 itemCustodyService,
                 itemMovementService,
                 selfCheckNotifications);
+    }
+
+    /**
+     * Cell descriptions over a media library that knows no file, for tests that never show a
+     * picture and so have nothing to describe.
+     */
+    protected static CellDescriptions noCellDescriptions() {
+        return new CellDescriptions(mock(MediaLibraryService.class));
     }
 
     /**

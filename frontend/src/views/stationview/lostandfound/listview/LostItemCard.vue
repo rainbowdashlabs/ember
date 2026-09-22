@@ -11,6 +11,7 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import EnlargeableImage from '@/components/button/EnlargeableImage.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import type {LostAndFoundItem} from '@/api/lostAndFound'
 import {formatDate} from '@/util/format'
@@ -47,10 +48,11 @@ const canRelease = computed(() => props.canManage
 <template>
   <NeutralContainer class="space-y-3" data-testid="lost-item-card"
                     :class="{'opacity-60': item.claimedBy && !canManage}">
-    <img v-if="imageSrc"
-         :src="imageSrc"
-         :alt="item.description ?? t('lostAndFound.noDescription')"
-         class="w-full h-48 object-cover rounded-lg"/>
+    <EnlargeableImage v-if="imageSrc" :src="imageSrc" :alt="item.description" :caption="item.description">
+      <img :src="imageSrc"
+           :alt="item.description ?? t('lostAndFound.noDescription')"
+           class="w-full h-48 object-contain bg-(--bg-accent) rounded-lg"/>
+    </EnlargeableImage>
     <div v-else class="w-full h-48 bg-(--bg-accent) rounded-lg flex flex-col items-center justify-center gap-2"
          data-testid="item-placeholder">
       <font-awesome-icon :icon="item.hasImage ? ['fas', 'triangle-exclamation'] : ['fas', 'box-open']"

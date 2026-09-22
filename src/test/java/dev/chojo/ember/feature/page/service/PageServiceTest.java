@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -67,7 +68,12 @@ class PageServiceTest extends RepositoryTestBase {
                 new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())));
         blocks = new ContentBlockService(contentContainerRepo);
         service = new PageService(
-                pageRepo, blocks, media, stationMemberRepo, new AvatarService(new ImageVariantService(storageService)));
+                pageRepo,
+                blocks,
+                media,
+                new CellDescriptions(media),
+                stationMemberRepo,
+                new AvatarService(new ImageVariantService(storageService)));
         station = stationRepo.create("PageServiceStation");
         account = accountRepo.create("page-svc@test.com", "Page", "Author");
         member = stationMemberRepo.create(station.id(), account.id());

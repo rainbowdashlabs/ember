@@ -99,6 +99,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         contentService = new KbContentService(
                 knowledgeBaseRepo,
                 new ContentBlockService(contentContainerRepo),
+                noCellDescriptions(),
                 stationRepo,
                 fileStorage,
                 searchService);

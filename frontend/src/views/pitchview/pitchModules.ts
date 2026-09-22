@@ -595,7 +595,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                         filters: {search: 'Schlauch', select: {label: 'Wache', value: 'Alle Partnerwachen'}},
                         rows: [
                             {
-                                name: 'Schlauchpflege', meta: ['Ausbildung', 'Markdown'],
+                                name: 'Schlauchpflege', meta: ['Ausbildung', 'Artikel'],
                                 badges: [{text: 'eigene Wache', tone: 'secondary'}],
                             },
                             {
@@ -603,7 +603,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                 badges: [{text: 'Talbach', tone: 'info'}],
                             },
                             {
-                                name: 'Ablaufplan Übung', meta: ['Übungen', 'Markdown'],
+                                name: 'Ablaufplan Übung', meta: ['Übungen', 'Artikel'],
                                 badges: [{text: 'Kreis Musterland', tone: 'info'}],
                             },
                         ],

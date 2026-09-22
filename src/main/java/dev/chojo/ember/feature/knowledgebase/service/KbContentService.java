@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.content.service.ContentProjection;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -27,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 
 /**
  * What a knowledge-base file says: its stored text body, the binary payload behind an upload, the
@@ -41,6 +43,7 @@ public class KbContentService {
 
     private final KnowledgeBaseRepository repository;
     private final ContentBlockService blocks;
+    private final CellDescriptions descriptions;
     private final StationRepository stationRepository;
     private final KbFileStorageService fileStorage;
     private final KbSearchService searchService;
@@ -49,24 +52,81 @@ public class KbContentService {
     public KbContentService(
             KnowledgeBaseRepository repository,
             ContentBlockService blocks,
+            CellDescriptions descriptions,
             StationRepository stationRepository,
             KbFileStorageService fileStorage,
             KbSearchService searchService) {
         this.repository = repository;
         this.blocks = blocks;
+        this.descriptions = descriptions;
         this.stationRepository = stationRepository;
         this.fileStorage = fileStorage;
         this.searchService = searchService;
     }
 
     /**
-     * Reads the stored text body of a file.
+     * Reads the text body of a file.
+     *
+     * <p>A rich article's body is projected from its blocks again on every read, and stored when it
+     * came out different. The projection also carries what the media library says about each
+     * picture, and that can change without anybody touching the article, so the stored copy would
+     * otherwise keep the old words until the next edit. No version is recorded for that refresh,
+     * because nobody edited the article.
      *
      * @param fileId the file to read
      * @return the body, or empty when the file has none
      */
     public Optional<String> getMarkdownContent(int fileId) {
-        return repository.readTextContent(fileId);
+        var stored = repository.readTextContent(fileId);
+        return repository
+                .findFileById(fileId)
+                .filter(KbContentService::isRich)
+                .map(file -> refreshedProjection(file, stored.orElse("")))
+                .or(() -> stored);
+    }
+
+    private String refreshedProjection(KbFile file, String stored) {
+        String projected = project(file);
+        if (!projected.equals(stored)) {
+            storeText(file.id(), projected);
+            log.info("Refreshed the stored text of rich KB file {}", file.id());
+        }
+        return projected;
+    }
+
+    /**
+     * The body of a file as the PDF export prints it. A rich article is projected from its blocks
+     * with the line under each picture marked as a caption, which the stored text cannot carry
+     * because markdown has no caption of its own. Any other file prints its stored text.
+     *
+     * @param file the file to print
+     * @return the markdown to print
+     */
+    public String printableMarkdown(KbFile file) {
+        if (!isRich(file)) return getMarkdownContent(file.id()).orElse("");
+        return project(file, KbContentService::markedCaption);
+    }
+
+    private static String markedCaption(String caption) {
+        String escaped = caption.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replaceAll("\\s*\\R\\s*", " ");
+        return "<figcaption>" + escaped + "</figcaption>";
+    }
+
+    private String project(KbFile file) {
+        return project(file, UnaryOperator.identity());
+    }
+
+    private String project(KbFile file, UnaryOperator<String> caption) {
+        var stationUid = stationRepository.resolveUid(file.stationId());
+        return ContentProjection.toMarkdown(
+                describedBlocks(file), hash -> "/api/v1/public/media/" + stationUid + "/" + hash, caption);
+    }
+
+    private static boolean isRich(KbFile file) {
+        return file.contentMode() == ContentMode.RICH && file.containerId() != null;
     }
 
     /**
@@ -205,6 +265,15 @@ public class KbContentService {
     }
 
     /**
+     * The blocks of a rich article as a reader sees them: a picture the article says nothing about
+     * carries what its media file says. Only for reading; the editor gets {@link #loadBlocks}, or
+     * saving would write the file's words into the article for good.
+     */
+    public List<ContentRow> describedBlocks(KbFile file) {
+        return descriptions.describe(file.stationId(), loadBlocks(file));
+    }
+
+    /**
      * Saves the blocks of a rich article and stores the projection of them as the article's body.
      *
      * <p>It goes through the same store as a hand-written body, so the search index, the version
@@ -219,11 +288,7 @@ public class KbContentService {
         }
 
         blocks.save(file.containerId(), rows, ContentBlockService.Scope.ARTICLE);
-
-        var stationUid = stationRepository.resolveUid(file.stationId());
-        String markdown = ContentProjection.toMarkdown(
-                blocks.loadRows(file.containerId()), hash -> "/api/v1/public/media/" + stationUid + "/" + hash);
-        updateMarkdownContent(fileId, markdown, updatedBy);
+        updateMarkdownContent(fileId, project(file), updatedBy);
         return repository.findFileById(fileId);
     }
 

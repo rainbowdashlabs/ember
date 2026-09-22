@@ -34,6 +34,7 @@ class KbContentServiceTest extends RepositoryTestBase {
         service = new KbContentService(
                 knowledgeBaseRepo,
                 new ContentBlockService(contentContainerRepo),
+                noCellDescriptions(),
                 stationRepo,
                 fileStorage,
                 new KbSearchService(knowledgeBaseRepo, stationRepo));

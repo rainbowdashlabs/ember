@@ -186,7 +186,7 @@ const displayError = computed(() =>
           :empty-message="t('lostAndFound.empty')"
           :loading="loading"
       >
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-4">
           <LostItemCard v-for="item in items" :key="item.id" :item="item"
                         :image-src="srcFor(item.id) ?? undefined"
                         :my-member-id="myMemberId()" :managed-member-ids="managedIds"

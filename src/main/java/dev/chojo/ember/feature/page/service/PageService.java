@@ -9,8 +9,8 @@ import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentCell;
+import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
-import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.StationPage;
@@ -38,6 +38,7 @@ public class PageService {
     private final PageRepository pageRepository;
     private final ContentBlockService blocks;
     private final MediaLibraryService mediaLibrary;
+    private final CellDescriptions descriptions;
     private final StationMemberRepository stationMemberRepository;
     private final AvatarService avatarService;
 
@@ -46,11 +47,13 @@ public class PageService {
             PageRepository pageRepository,
             ContentBlockService blocks,
             MediaLibraryService mediaLibrary,
+            CellDescriptions descriptions,
             StationMemberRepository stationMemberRepository,
             AvatarService avatarService) {
         this.pageRepository = pageRepository;
         this.blocks = blocks;
         this.mediaLibrary = mediaLibrary;
+        this.descriptions = descriptions;
         this.stationMemberRepository = stationMemberRepository;
         this.avatarService = avatarService;
     }
@@ -307,22 +310,8 @@ public class PageService {
     }
 
     private ContentCell renderCell(int stationId, ContentCell cell) {
-        if (cell.contentType() == CellContentType.IMAGE && cell.config() instanceof CellConfig.ImageConfig image) {
-            return withConfig(cell, describedImage(stationId, cell.content(), image));
-        }
-        if (cell.contentType() == CellContentType.IMAGE_GALLERY
-                && cell.config() instanceof CellConfig.ImageGalleryConfig gallery) {
-            return withConfig(cell, describedGallery(stationId, gallery));
-        }
         if (cell.contentType() == CellContentType.MARKDOWN) {
-            return new ContentCell(
-                    cell.id(),
-                    cell.rowId(),
-                    cell.sortOrder(),
-                    cell.widthPercent(),
-                    cell.contentType(),
-                    Markdown.toHtml(cell.content()),
-                    cell.config());
+            return cell.withContent(Markdown.toHtml(cell.content()));
         }
         if (cell.contentType() == CellContentType.MEMBER_LIST_SPOTLIGHT
                 && cell.config() instanceof CellConfig.MemberListConfig officers) {
@@ -334,96 +323,17 @@ public class PageService {
                     officers.sortBy(),
                     officers.memberDescriptions(),
                     officers.memberOrder());
-            return new ContentCell(
-                    cell.id(),
-                    cell.rowId(),
-                    cell.sortOrder(),
-                    cell.widthPercent(),
-                    cell.contentType(),
-                    cell.content(),
-                    new CellConfig.MemberListConfig(
-                            officers.title(),
-                            officers.source(),
-                            officers.sortBy(),
-                            officers.showUserType(),
-                            officers.showTag(),
-                            officers.memberDescriptions(),
-                            officers.memberOrder(),
-                            resolved));
+            return cell.withConfig(new CellConfig.MemberListConfig(
+                    officers.title(),
+                    officers.source(),
+                    officers.sortBy(),
+                    officers.showUserType(),
+                    officers.showTag(),
+                    officers.memberDescriptions(),
+                    officers.memberOrder(),
+                    resolved));
         }
-        return cell;
-    }
-
-    /**
-     * What a picture is called, where the tile showing it has not said.
-     *
-     * <p>A file is described once, where it lives: its alt text for whoever cannot see it, and the
-     * line that goes under it. A tile that says nothing about either should show what the file says
-     * rather than nothing at all, which is how a picture ended up on a public page with no alt text
-     * even though somebody had written one.
-     *
-     * <p>A tile that does say something keeps saying it. The same picture means different things in
-     * different places, and the nearer word wins.
-     */
-    private CellConfig.ImageConfig describedImage(int stationId, String imageHash, CellConfig.ImageConfig image) {
-        var file = fileFor(stationId, imageHash);
-        if (file == null) return image;
-        return new CellConfig.ImageConfig(
-                image.imageFit(),
-                spokenFor(image.altText(), file.defaultAltText()),
-                image.maxHeight(),
-                spokenFor(image.description(), file.defaultDescription()),
-                image.cropTop(),
-                image.cropRight(),
-                image.cropBottom(),
-                image.cropLeft(),
-                image.borderRadiusPercent(),
-                image.borderWidthPx(),
-                image.borderColor());
-    }
-
-    /** The same for a gallery, where every picture is its own file and carries its own words. */
-    private CellConfig.ImageGalleryConfig describedGallery(int stationId, CellConfig.ImageGalleryConfig gallery) {
-        if (gallery.items() == null) return gallery;
-        var described = gallery.items().stream()
-                .map(item -> {
-                    var file = fileFor(stationId, item.imageHash());
-                    if (file == null) return item;
-                    return new CellConfig.GalleryItem(
-                            item.imageHash(),
-                            spokenFor(item.altText(), file.defaultAltText()),
-                            spokenFor(item.subtext(), file.defaultDescription()));
-                })
-                .toList();
-        return new CellConfig.ImageGalleryConfig(
-                described, gallery.columns(), gallery.aspectMode(), gallery.maxItemHeightPx());
-    }
-
-    /**
-     * The tile's own word where it has one, and the file's otherwise.
-     *
-     * <p>Blank counts as unsaid: a field somebody opened and left empty means they had nothing to
-     * add, not that the picture should go unnamed.
-     */
-    /** The file a hash names, or nothing where a tile holds no picture yet. */
-    private StationFile fileFor(int stationId, String imageHash) {
-        if (imageHash == null || imageHash.isBlank()) return null;
-        return mediaLibrary.findByHash(stationId, imageHash.trim()).orElse(null);
-    }
-
-    private static String spokenFor(String ownWord, String fileWord) {
-        return ownWord != null && !ownWord.isBlank() ? ownWord : fileWord;
-    }
-
-    private static ContentCell withConfig(ContentCell cell, CellConfig config) {
-        return new ContentCell(
-                cell.id(),
-                cell.rowId(),
-                cell.sortOrder(),
-                cell.widthPercent(),
-                cell.contentType(),
-                cell.content(),
-                config);
+        return descriptions.describe(stationId, cell);
     }
 
     // --- Internal helpers ---

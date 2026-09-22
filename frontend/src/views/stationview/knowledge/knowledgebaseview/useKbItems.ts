@@ -169,7 +169,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
     function fileTypeLabel(fileType: string | undefined): string {
         switch (fileType) {
             case KbFileType.MARKDOWN:
-                return 'Markdown'
+                return t('kb.typeArticle')
             case KbFileType.PDF:
                 return 'PDF'
             case KbFileType.TEXT:

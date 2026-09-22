@@ -57,7 +57,7 @@ test.describe('Media library', () => {
     test('a picture inserted into an article survives being rendered', async ({managerPage: page}) => {
         await page.goto('/station/knowledge')
         await page.getByRole('button', {name: 'Neu'}).click()
-        await page.getByText('Markdown-Datei').last().click()
+        await page.getByRole('button', {name: 'Artikel', exact: true}).last().click()
         await page.getByPlaceholder('Dateiname').fill(unique('Bildartikel'))
         await page.getByRole('button', {name: 'Neue Datei'}).click()
         await page.waitForURL(/\/station\/knowledge\/file\/\d+/)

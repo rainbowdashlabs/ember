@@ -22,15 +22,18 @@ import java.util.List;
 public final class PandocConverter {
     private static final Logger log = LoggerFactory.getLogger(PandocConverter.class);
     private static final String PANDOC_BIN = System.getenv().getOrDefault("PANDOC_BIN", "pandoc");
-    private static final Path STRIP_IMAGES_FILTER = Path.of("templates", "pandoc", "strip-images.lua");
+    private static final Path PRINT_FILTER = Path.of("templates", "pandoc", "print-markdown.lua");
 
     private PandocConverter() {}
 
     /**
      * Converts Markdown into a Typst markup fragment that can be embedded in a Typst document.
      *
-     * <p>Images are replaced by their alternative text: they point at authenticated URLs that the
-     * Typst compiler cannot fetch, and an unreachable image aborts the whole render.
+     * <p>Only images whose source is a local name like {@code img-1.webp} survive, which is how a
+     * caller hands over pictures it has placed next to the document. Every other image is replaced
+     * by its alternative text: it points at a URL the Typst compiler cannot fetch, and an
+     * unreachable image aborts the whole render. The formatting the article editor writes as HTML
+     * (coloured text, highlights, underlining, a picture's caption) becomes its Typst equivalent.
      *
      * @param markdown the markdown source
      * @return the Typst markup fragment
@@ -44,10 +47,10 @@ public final class PandocConverter {
             Files.writeString(inputFile, markdown);
 
             var command = new ArrayList<String>(List.of(PANDOC_BIN, "-f", "gfm", "-t", "typst", "--wrap=none"));
-            if (Files.isRegularFile(STRIP_IMAGES_FILTER)) {
-                command.add("--lua-filter=" + STRIP_IMAGES_FILTER);
+            if (Files.isRegularFile(PRINT_FILTER)) {
+                command.add("--lua-filter=" + PRINT_FILTER);
             } else {
-                log.warn("Pandoc image filter missing at {}; images may break the render", STRIP_IMAGES_FILTER);
+                log.warn("Pandoc print filter missing at {}; images may break the render", PRINT_FILTER);
             }
             command.addAll(List.of(inputFile.toString(), "-o", outputFile.toString()));
 

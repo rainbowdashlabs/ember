@@ -7,7 +7,8 @@
 import {computed} from 'vue'
 import {type ImageGalleryConfig} from '@/api/pageManage'
 import {mediaImageSrcset, mediaImageUrlAt} from '@/api/media'
-import {PAGE_WIDTH} from '@/util/contentContext'
+import {ENLARGED_WIDTH, PAGE_WIDTH} from '@/util/contentContext'
+import EnlargeableImage from '@/components/button/EnlargeableImage.vue'
 
 const props = defineProps<{
     config: ImageGalleryConfig
@@ -32,17 +33,23 @@ const itemWidth = computed(() => {
         : PAGE_WIDTH / columns.value
     return Math.max(SMALLEST_WIDTH, Math.round(drawn))
 })
+
+function enlarged(imageHash: string): string {
+    return props.stationUid ? mediaImageUrlAt(props.stationUid, imageHash, ENLARGED_WIDTH) : ''
+}
 </script>
 
 <template>
     <div v-if="config.aspectMode === 'PRESERVE'" class="flex flex-wrap justify-center items-end gap-2">
         <figure v-for="(item, gi) in config.items ?? []" :key="item.imageHash + '-' + gi"
                 class="inline-flex flex-col items-center gap-1 shrink-0">
-            <img :src="stationUid ? mediaImageUrlAt(stationUid, item.imageHash, itemWidth) : ''"
-                 :srcset="stationUid ? mediaImageSrcset(stationUid, item.imageHash, itemWidth) : undefined"
-                 :alt="item.altText ?? ''" :title="item.altText ?? ''"
-                 :style="{height: `${config.maxItemHeightPx ?? 300}px`, width: 'auto'}"
-                 class="rounded block" loading="lazy"/>
+            <EnlargeableImage :src="enlarged(item.imageHash)" :alt="item.altText" :caption="item.subtext">
+                <img :src="stationUid ? mediaImageUrlAt(stationUid, item.imageHash, itemWidth) : ''"
+                     :srcset="stationUid ? mediaImageSrcset(stationUid, item.imageHash, itemWidth) : undefined"
+                     :alt="item.altText ?? ''" :title="item.altText ?? ''"
+                     :style="{height: `${config.maxItemHeightPx ?? 300}px`, width: 'auto'}"
+                     class="rounded block" loading="lazy"/>
+            </EnlargeableImage>
             <figcaption v-if="item.subtext"
                         class="text-xs text-(--text-muted) text-center break-words"
                         style="width: 0; min-width: 100%;">
@@ -52,10 +59,12 @@ const itemWidth = computed(() => {
     </div>
     <div v-else :class="`grid grid-cols-${columns} gap-2`">
         <figure v-for="(item, gi) in config.items ?? []" :key="item.imageHash + '-' + gi" class="space-y-1">
-            <img :src="stationUid ? mediaImageUrlAt(stationUid, item.imageHash, itemWidth) : ''"
-                 :srcset="stationUid ? mediaImageSrcset(stationUid, item.imageHash, itemWidth) : undefined"
-                 :alt="item.altText ?? ''" :title="item.altText ?? ''"
-                 class="w-full aspect-square object-cover rounded" loading="lazy"/>
+            <EnlargeableImage :src="enlarged(item.imageHash)" :alt="item.altText" :caption="item.subtext">
+                <img :src="stationUid ? mediaImageUrlAt(stationUid, item.imageHash, itemWidth) : ''"
+                     :srcset="stationUid ? mediaImageSrcset(stationUid, item.imageHash, itemWidth) : undefined"
+                     :alt="item.altText ?? ''" :title="item.altText ?? ''"
+                     class="w-full aspect-square object-cover rounded" loading="lazy"/>
+            </EnlargeableImage>
             <figcaption v-if="item.subtext" class="text-xs text-(--text-muted) text-center">
                 {{ item.subtext }}
             </figcaption>
