@@ -176,7 +176,14 @@ public class MediaLibraryService {
         return fileRepository.findById(fileId);
     }
 
-    public Optional<StationFile> findByHash(int stationId, String contentHash) {
+    /**
+     * The file a content hash names in a library.
+     *
+     * @param stationId   the station whose library to look in, or {@code null} for the instance's
+     * @param contentHash the hash the file is addressed by
+     * @return the file, or empty where that library holds none by this hash
+     */
+    public Optional<StationFile> findByHash(Integer stationId, String contentHash) {
         return fileRepository.findByStationAndHash(stationId, contentHash);
     }
 

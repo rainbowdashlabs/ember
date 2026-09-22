@@ -170,6 +170,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var newsService = new NewsService(
                 newsRepo,
                 new ContentBlockService(contentContainerRepo),
+                noCellDescriptions(),
                 stationRepo,
                 restrictionService,
                 noOpBus,

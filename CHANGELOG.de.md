@@ -15,7 +15,7 @@
 
 - **Bilder fehlten in PDFs aus dem Wiki.** Beim Speichern eines Artikels als PDF fiel jedes Bild weg, und es blieb höchstens sein Alternativtext stehen. Die eigenen Bilder der Wache werden jetzt mitgedruckt, passend zur Seite verkleinert oder in der Breite, die sie bekommen haben.
 - **Formatierungen gingen in PDFs aus dem Wiki verloren.** Farbiger Text, Markierungen und Unterstreichungen wurden als einfacher Text gedruckt, und eine Markierung behielt ihre Gleichheitszeichen. Jetzt erscheinen sie im Druck so wie im Artikel.
-- **Einem Bild in einem Artikel aus dem Seiten-Editor fehlte seine hinterlegte Beschreibung.** Sagte der Bildblock selbst nichts, erschienen Alternativtext und Beschreibung, die in der Mediathek am Bild gespeichert sind, weder im Artikel noch in seinem Suchtreffer oder PDF. Jetzt erscheinen sie, wie schon auf Seiten.
+- **Bildern in Artikeln und Neuigkeiten aus dem Seiten-Editor fehlte ihre hinterlegte Beschreibung.** Sagte der Bildblock selbst nichts, erschienen Alternativtext und Beschreibung, die in der Mediathek am Bild gespeichert sind, weder im Artikel oder in der Neuigkeit noch in Suchtreffer, Vorschau oder PDF. Jetzt erscheinen sie, wie schon auf Seiten.
 - **Kacheln wurden auf breiten Bildschirmen sehr groß.** Auf einem großen Monitor blieb es im Wiki bei vier Spalten und im Fundbüro bei drei, sodass sich jede Kachel über einen großen Teil des Bildschirms zog. Die Zahl der Spalten wächst jetzt mit der Breite des Fensters.
 - **Fotos im Fundbüro wurden abgeschnitten.** Das Foto einer Fundsache wurde zugeschnitten, um seine Karte zu füllen, und konnte so den Gegenstand selbst verdecken. Jetzt ist das ganze Foto zu sehen, passend verkleinert.
 

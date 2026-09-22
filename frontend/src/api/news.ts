@@ -58,8 +58,13 @@ export interface NewsEntry {
     viewedByMe: boolean
     attachments: NewsAttachment[]
     contentMode: ContentModeName
-    /** The blocks of a rich entry. Empty for a plain one, and on list responses. */
+    /** The blocks of a rich entry as written, for the editor. Empty for a plain one, and on list responses. */
     rows: PageRow[]
+    /**
+     * The same blocks as a reader sees them, where a picture the entry says nothing about carries
+     * the alt text and description of its media file.
+     */
+    describedRows: PageRow[]
     /**
      * Whether the instance published this to every station at once. Such an entry belongs to no
      * station, carries no author, and is shown as coming from Ember itself.

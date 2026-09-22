@@ -15,7 +15,7 @@
 
 - **Pictures were missing from wiki PDFs.** Saving an article as a PDF left out every picture and showed at most its alt text. The station's own pictures now print, scaled to fit the page or at the width they were given.
 - **Formatting was lost in wiki PDFs.** Coloured text, highlights and underlining printed as plain text, and a highlight kept its equals signs. They now print as they look in the article.
-- **A picture in an article written with the page editor lacked its stored description.** When the picture block said nothing of its own, the alt text and description saved with the picture in the media library showed neither in the article nor in its search entry or PDF. They now do, as they already did on pages.
+- **Pictures in articles and news written with the page editor lacked their stored description.** When the picture block said nothing of its own, the alt text and description saved with the picture in the media library showed neither in the article or news entry nor in its search entry, preview or PDF. They now do, as they already did on pages.
 - **Tiles grew very large on wide screens.** On a large monitor the wiki kept four columns and lost and found three, so each tile stretched across a large part of the screen. The number of columns now grows with the width of the window.
 - **Photos in lost and found were cut off.** An item's photo was cropped to fill its card, which could hide the item itself. The whole photo now shows, scaled down to fit.
 

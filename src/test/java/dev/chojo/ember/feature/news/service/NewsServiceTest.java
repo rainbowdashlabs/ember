@@ -38,6 +38,7 @@ class NewsServiceTest extends RepositoryTestBase {
         service = new NewsService(
                 newsRepo,
                 new ContentBlockService(contentContainerRepo),
+                noCellDescriptions(),
                 stationRepo,
                 restrictionService,
                 new DomainEventBus(Set.of()),
@@ -379,6 +380,7 @@ class NewsServiceTest extends RepositoryTestBase {
         var notifyingService = new NewsService(
                 newsRepo,
                 new ContentBlockService(contentContainerRepo),
+                noCellDescriptions(),
                 stationRepo,
                 restrictionService,
                 new DomainEventBus(Set.of()) {

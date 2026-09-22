@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.content.service.ContentProjection;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -63,6 +64,7 @@ public class NewsService {
 
     private final NewsRepository newsRepository;
     private final ContentBlockService blocks;
+    private final CellDescriptions descriptions;
     /**
      * What a system entry is shown as having been written by. The instance is not a member of any
      * station, so there is no identity to resolve and no avatar to draw: the product's own name
@@ -81,6 +83,7 @@ public class NewsService {
     public NewsService(
             NewsRepository newsRepository,
             ContentBlockService blocks,
+            CellDescriptions descriptions,
             StationRepository stationRepository,
             RestrictionService restrictionService,
             DomainEventBus eventBus,
@@ -89,6 +92,7 @@ public class NewsService {
             AccountRepository accountRepository) {
         this.newsRepository = newsRepository;
         this.blocks = blocks;
+        this.descriptions = descriptions;
         this.stationRepository = stationRepository;
         this.restrictionService = restrictionService;
         this.eventBus = eventBus;
@@ -378,6 +382,16 @@ public class NewsService {
     }
 
     /**
+     * The blocks of a rich entry as a reader sees them: a picture the entry says nothing about
+     * carries what its media file says. A system entry's pictures live in the instance library,
+     * which is where they are looked up. Only for reading; the editor gets {@link #loadBlocks}, or
+     * saving would write the file's words into the entry for good.
+     */
+    public List<ContentRow> describedBlocks(News news) {
+        return descriptions.describe(news.systemEntry() ? null : news.stationId(), loadBlocks(news));
+    }
+
+    /**
      * Saves the blocks of a rich entry and rewrites the stored text from them.
      *
      * <p>The projection runs on every save, including a save that only reorders blocks: a stale
@@ -399,7 +413,7 @@ public class NewsService {
                 ? MediaLibraryService.INSTANCE_SCOPE
                 : String.valueOf(stationRepository.resolveUid(news.stationId()));
         String markdown = ContentProjection.toMarkdown(
-                blocks.loadRows(news.containerId()), hash -> "/api/v1/public/media/" + mediaScope + "/" + hash);
+                describedBlocks(news), hash -> "/api/v1/public/media/" + mediaScope + "/" + hash);
         newsRepository.update(id, news.title(), markdown, Markdown.toHtml(markdown));
         log.info("News {} blocks saved and projected ({} rows)", id, rows.size());
         return newsRepository.findById(id);

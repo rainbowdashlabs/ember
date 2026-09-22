@@ -108,7 +108,7 @@ watch(() => route.params.id, reload)
 
         <NewsBody
             :mode="entry.contentMode"
-            :rows="entry.rows ?? []"
+            :rows="entry.describedRows ?? []"
             :html="entry.contentHtml"
             :context="internalContentContext(mediaScope, entry.title)"
         />

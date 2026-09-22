@@ -407,8 +407,9 @@ public class NewsRoutes implements Routes {
         int commentCount = newsService.countComments(news.id());
         int viewCount = newsService.countViews(news.id());
         var attachments = attachmentService.list(news.id());
-        List<ContentRow> rows =
-                withBlocks && news.contentMode() == ContentMode.RICH ? newsService.loadBlocks(news) : List.of();
+        boolean blocksWanted = withBlocks && news.contentMode() == ContentMode.RICH;
+        List<ContentRow> rows = blocksWanted ? newsService.loadBlocks(news) : List.of();
+        List<ContentRow> describedRows = blocksWanted ? newsService.describedBlocks(news) : List.of();
         boolean viewedByMe = newsService.hasViewed(news.id(), viewerMemberId);
         return new NewsResponse(
                 news.id(),
@@ -431,6 +432,7 @@ public class NewsRoutes implements Routes {
                 attachments,
                 news.contentMode(),
                 rows,
+                describedRows,
                 news.systemEntry());
     }
 
@@ -808,7 +810,7 @@ public class NewsRoutes implements Routes {
                 news.publishedAt(),
                 attachmentService.list(news.id()),
                 news.contentMode(),
-                newsService.loadBlocks(news)));
+                newsService.describedBlocks(news)));
     }
 
     /**
@@ -843,6 +845,11 @@ public class NewsRoutes implements Routes {
 
     /**
      * API response representing a news article with resolved author information.
+     *
+     * <p>{@code rows} are the blocks as written, for the editor. {@code describedRows} are the same
+     * blocks as a reader sees them, with a picture the entry says nothing about carrying the words
+     * of its media file. Keeping the two apart is what stops a save from writing those words into
+     * the entry.
      */
     public record NewsResponse(
             int id,
@@ -865,6 +872,7 @@ public class NewsRoutes implements Routes {
             List<NewsAttachment> attachments,
             ContentMode contentMode,
             List<ContentRow> rows,
+            List<ContentRow> describedRows,
             boolean systemEntry) {}
 
     /**
