@@ -108,22 +108,26 @@ test.describe('Forms', () => {
  *
  * <p>A story that reads results answers a form itself first, so it depends on nothing but itself:
  * a form nobody has answered has nothing to read, and which of the seeded forms carries an answer
- * is up to whoever ran before. A form may insist on a choice as well, and refuses to be sent while
- * one is missing, so the first choice is picked where there is one.
+ * is up to whoever ran before. Another story may have answered the first form already, which turns
+ * its button from filling in to editing, so either is taken: going by "fill in" alone would land on
+ * whichever form comes next. The form's own questions decide what is given: a written answer where
+ * it asks for one, and the first choice where it insists on a choice.
  */
 async function answerTheFirstForm(page: Page): Promise<string | undefined> {
     await page.goto('/station/forms')
-    await page.getByRole('button', {name: 'Ausfüllen'}).first().click()
+    await page.getByRole('button', {name: /Ausfüllen|Antwort bearbeiten/}).first().click()
     await page.waitForURL(/\/station\/forms\/(\d+)\/fill/)
     const id = page.url().match(/forms\/(\d+)/)?.[1]
 
+    const send = page.getByRole('button', {name: /Absenden|Aktualisieren/})
+    await expect(send).toBeVisible()
+
     const field = page.getByRole('textbox').first()
-    await expect(field).toBeVisible()
-    await field.fill(unique('Antwort'))
+    if (await field.count() > 0) await field.fill(unique('Antwort'))
 
     const options = page.getByTestId('choice-option')
     if (await options.count() > 0) await options.first().click()
 
-    await page.getByRole('button', {name: /Absenden|Aktualisieren/}).click()
+    await send.click()
     return id
 }
