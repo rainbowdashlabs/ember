@@ -182,6 +182,10 @@ test.describe('Members', () => {
      * <p>Somebody of its own, rather than whoever the menu happens to offer first: the seeded people
      * are shared with every other story, and one of them marking that person former took the row this
      * story was waiting for off the page.
+     *
+     * <p>Picking the member shows them at once and saves in the background, so the story waits for
+     * that save before reloading: a reload that comes first cuts the save off, and nobody carries the
+     * tag afterwards.
      */
     test('a tag is created and a member carries it', async ({managerPage: page}) => {
         const tag = unique('Tag')
@@ -195,7 +199,10 @@ test.describe('Members', () => {
         await expect(page.getByText(tag).first()).toBeVisible()
         await page.getByText(tag).first().click()
 
+        const saved = page.waitForResponse(res =>
+            res.request().method() === 'PUT' && /\/tags\/\d+\/members$/.test(new URL(res.url()).pathname))
         await pickMemberByName(page, surname)
+        await saved
 
         await page.reload()
         await page.getByText(tag).first().click()

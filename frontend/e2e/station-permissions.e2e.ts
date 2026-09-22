@@ -21,6 +21,10 @@ test.describe('Permissions', () => {
      * <p>Somebody of this story's own goes in, rather than whoever the menu offers first: the seeded
      * people are shared with every story running beside it, and one of them marking that person former
      * took the row this story was waiting for off the page.
+     *
+     * <p>Picking the member shows them at once and saves in the background, so the story waits for
+     * that save before reloading: a reload that comes first cuts the save off, and the group is left
+     * empty.
      */
     test('a member is put into a group', async ({managerPage: page}) => {
         const group = unique('Gruppe')
@@ -32,7 +36,10 @@ test.describe('Permissions', () => {
         await page.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
         await page.getByText(group).first().click()
 
+        const saved = page.waitForResponse(res =>
+            res.request().method() === 'PUT' && /\/groups\/\d+\/members$/.test(new URL(res.url()).pathname))
         await pickMemberByName(page, surname)
+        await saved
 
         await page.reload()
         await page.getByText(group).first().click()
