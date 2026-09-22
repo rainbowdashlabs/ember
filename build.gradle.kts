@@ -175,6 +175,7 @@ val releaseTags = tasks.register("releaseTags") {
 tasks {
     withType<Test>().configureEach {
         environment("TESTCONTAINERS_RYUK_DISABLED", "true")
+        maxHeapSize = "1g"
     }
 
     withType<JavaCompile>().configureEach {
