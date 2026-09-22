@@ -48,7 +48,25 @@ test.describe('Forms', () => {
      * the one somebody goes to when they want to know what a particular person wrote.
      */
     test('the answers to a form are read by whoever owns it', async ({managerPage: page}) => {
-        const id = await answerTheFirstForm(page)
+        const answer = unique('Antwort')
+
+        // The manager answers a form of the station and then reads that answer back, so the story
+        // depends on nothing but itself: a form nobody has answered has nothing to read, and which
+        // of the seeded forms carries an answer is up to whoever ran before.
+        await page.goto('/station/forms')
+        await page.getByRole('button', {name: 'Ausfüllen'}).first().click()
+        await page.waitForURL(/\/station\/forms\/(\d+)\/fill/)
+        const id = page.url().match(/forms\/(\d+)/)?.[1]
+
+        const field = page.getByRole('textbox').first()
+        await expect(field).toBeVisible()
+        await field.fill(answer)
+
+        // A form may insist on a choice as well, and it refuses to be sent while one is missing.
+        const options = page.getByTestId('choice-option')
+        if (await options.count() > 0) await options.first().click()
+
+        await page.getByRole('button', {name: /Absenden|Aktualisieren/}).click()
 
         await page.goto(`/station/forms/${id}/analytics`)
 
@@ -63,19 +81,20 @@ test.describe('Forms', () => {
     })
 
     /**
-     * The results of an internal form can be split by who answered. The manager answers a form,
-     * groups its results by member type and switches to the table view, where the group of their
-     * own type stands as a column: the chart itself is drawn on a canvas and carries no text to read.
+     * The results of an internal survey can be split by who answered. The manager opens one that has
+     * answers, groups its results by member type and switches to the table view, where the group of a
+     * type that answered stands as a column: the chart itself is drawn on a canvas and carries no text
+     * to read.
      */
     test('the results are grouped by who answered', async ({managerPage: page}) => {
-        const id = await answerTheFirstForm(page)
+        const id = await answeredInternalForm(page)
 
         await page.goto(`/station/forms/${id}/analytics`)
         await page.locator('select').filter({has: page.locator('option', {hasText: 'Nicht gruppieren'})})
             .selectOption('USER_TYPE')
         await page.getByRole('button', {name: 'Als Tabelle'}).click()
 
-        await expect(page.locator('thead').getByText(/Probe|Mitglied|Erziehungsberechtigter|Team|Manager/).first())
+        await expect(page.locator('thead').getByText(/Probe|Mitglied|Erziehungsberechtigter|Team|Manager|Ohne Anmeldung/).first())
             .toBeVisible()
         await expect(page).toHaveURL(/view=/)
     })
@@ -104,30 +123,19 @@ test.describe('Forms', () => {
 })
 
 /**
- * Answers the first form the station offers and returns its id.
+ * An internal survey of the station that already has answers, found through the API.
  *
- * <p>A story that reads results answers a form itself first, so it depends on nothing but itself:
- * a form nobody has answered has nothing to read, and which of the seeded forms carries an answer
- * is up to whoever ran before. Another story may have answered the first form already, which turns
- * its button from filling in to editing, so either is taken: going by "fill in" alone would land on
- * whichever form comes next. The form's own questions decide what is given: a written answer where
- * it asks for one, and the first choice where it insists on a choice.
+ * <p>Only an internal survey can be grouped by who answered, and the forms page lists contact forms
+ * among the internal ones, so the first form it offers is not necessarily one. The seeded surveys
+ * come with answers, which is why none is given here.
  */
-async function answerTheFirstForm(page: Page): Promise<string | undefined> {
-    await page.goto('/station/forms')
-    await page.getByRole('button', {name: /Ausfüllen|Antwort bearbeiten/}).first().click()
-    await page.waitForURL(/\/station\/forms\/(\d+)\/fill/)
-    const id = page.url().match(/forms\/(\d+)/)?.[1]
-
-    const send = page.getByRole('button', {name: /Absenden|Aktualisieren/})
-    await expect(send).toBeVisible()
-
-    const field = page.getByRole('textbox').first()
-    if (await field.count() > 0) await field.fill(unique('Antwort'))
-
-    const options = page.getByTestId('choice-option')
-    if (await options.count() > 0) await options.first().click()
-
-    await send.click()
-    return id
+async function answeredInternalForm(page: Page): Promise<number> {
+    const headers = await apiHeaders(page)
+    const forms = await (await page.request.get('/api/v1/forms?purpose=INTERNAL', {headers})).json() as {
+        id: number
+        responseCount?: number
+    }[]
+    const answered = forms.find(form => (form.responseCount ?? 0) > 0)
+    expect(answered, 'the seeded station has an answered internal survey').toBeTruthy()
+    return answered!.id
 }
