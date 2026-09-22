@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {Form, FormQuestion, FormQuestionAnalytics} from '@/api/forms'
+import type {Form, FormQuestion, FormQuestionInfo, FormResultGroup} from '@/api/forms'
 import type {MemberIdentity} from '@/api/types'
 import type {PitchForm, PitchFormAnalytics} from './pitchTypes'
 
@@ -67,26 +67,26 @@ export const FORM_FILL: PitchForm = {
     },
 }
 
-function values(entries: unknown[]): string[] {
-    return entries.map(entry => JSON.stringify(entry))
-}
-
-const ANALYTICS: FormQuestionAnalytics[] = [
+const QUESTIONS: FormQuestionInfo[] = [
     {
         questionId: 1, questionType: 'CHOICE', title: 'Woran hast du teilgenommen?',
         config: {options: ['Zeltlager', 'Berufsfeuerwehrtag', 'Kreisjugendtag'], allowOther: true},
-        values: values([
-            {selected: [0]}, {selected: [0, 1]}, {selected: [0, 2]}, {selected: [1]},
-            {selected: [0, 1, 2]}, {selected: [0]}, {selected: [2]}, {selected: [0], other: 'Übungsdienst'},
-        ]),
     },
     {
         questionId: 2, questionType: 'RATING', title: 'Wie hat dir das Lager insgesamt gefallen?',
         config: {scale: 5},
-        values: values([{rating: 5}, {rating: 4}, {rating: 5}, {rating: 3}, {rating: 4}, {rating: 5},
-            {rating: 4}, {rating: 2}, {rating: 5}, {rating: 4}]),
     },
 ]
+
+const EVERYONE: FormResultGroup = {
+    key: 'all',
+    label: '',
+    responseCount: 10,
+    tallies: [
+        {questionId: 1, answerCount: 8, optionCounts: [6, 3, 3], otherCount: 1},
+        {questionId: 2, answerCount: 10, ratingCounts: [0, 1, 1, 4, 4]},
+    ],
+}
 
 const MISSING: MemberIdentity[] = [
     {stationUid: 'wache', memberUid: 'm-jonas', name: 'Jonas Behr'},
@@ -94,4 +94,4 @@ const MISSING: MemberIdentity[] = [
     {stationUid: 'wache', memberUid: 'm-timo', name: 'Timo Reich'},
 ]
 
-export const FORM_ANALYTICS_DATA: PitchFormAnalytics = {questions: ANALYTICS, missing: MISSING}
+export const FORM_ANALYTICS_DATA: PitchFormAnalytics = {questions: QUESTIONS, groups: [EVERYONE], missing: MISSING}

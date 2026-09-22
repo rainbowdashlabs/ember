@@ -175,19 +175,57 @@ export interface FormResponseDetail {
     answers: FormAnswer[]
 }
 
+/**
+ * The results of a form, counted on the server.
+ *
+ * `questions` describes each question once; `groups` holds the counted answers per group of
+ * respondents. An ungrouped view is a single group holding every response. `groupsOverlap` says a
+ * respondent can count in more than one group, so the groups can add up to more than the total.
+ */
 export interface FormAnalytics {
     formId: number
+    /** The responses the filter lets through; every response without a filter. */
     totalResponses: number
-    questions: FormQuestionAnalytics[]
+    /** The ids of those responses, so the individual answers can follow the filter. */
+    responseIds: number[]
+    questions: FormQuestionInfo[]
+    groups: FormResultGroup[]
+    groupsOverlap: boolean
     missingResponses: MemberIdentity[]
 }
 
-export interface FormQuestionAnalytics {
+/** A question as the results view knows it: what it asks and how it is set up. */
+export interface FormQuestionInfo {
     questionId: number
     questionType: string
     title: string
     config: Record<string, unknown>
-    values: string[]
+}
+
+/** One group of respondents and what they answered, one tally per question in question order. */
+export interface FormResultGroup {
+    key: string
+    /** What the group is called; empty for the group of every response. */
+    label: string
+    responseCount: number
+    tallies: FormQuestionTally[]
+}
+
+/**
+ * The counted answers to one question. Only the fields of the question's kind are present: option
+ * counts and "other" answers for a choice, counts from one star up for a rating, a score per option
+ * for a ranking, an average per statement for a Likert grid (null where nobody rated it), and the
+ * answers themselves for text and date questions.
+ */
+export interface FormQuestionTally {
+    questionId: number
+    answerCount: number
+    optionCounts?: number[]
+    otherCount?: number
+    ratingCounts?: number[]
+    rankingScores?: number[]
+    statementAverages?: (number | null)[]
+    values?: string[]
 }
 
 // -- Form CRUD --
@@ -328,6 +366,71 @@ export const FormAnalyticsBase = {
     PAGE_FORMS: '/pages/forms',
 } as const
 export type FormAnalyticsBaseName = (typeof FormAnalyticsBase)[keyof typeof FormAnalyticsBase]
+
+/** Whether a member has to be in one of several groups or tags, or in all of them. */
+export const ResultMatch = {
+    ANY: 'ANY',
+    ALL: 'ALL',
+} as const
+export type ResultMatchName = (typeof ResultMatch)[keyof typeof ResultMatch]
+
+/** What the results of a form can be grouped by. */
+export const ResultDimension = {
+    USER_TYPE: 'USER_TYPE',
+    GROUP: 'GROUP',
+    TAG: 'TAG',
+    FIELD: 'FIELD',
+    AGE: 'AGE',
+} as const
+export type ResultDimensionName = (typeof ResultDimension)[keyof typeof ResultDimension]
+
+/**
+ * A condition on one profile field: the answers that count for a choice or yes/no field, or a
+ * range for a number field.
+ */
+export interface ResultFieldCondition {
+    fieldId: number
+    values?: string[]
+    from?: number | null
+    to?: number | null
+}
+
+/**
+ * Which respondents count. Conditions on different attributes must all hold; within groups and tags
+ * the match decides between any of them and all of them.
+ */
+export interface ResultFilter {
+    userTypes: string[]
+    groupIds: number[]
+    groupMatch: ResultMatchName
+    tagIds: number[]
+    tagMatch: ResultMatchName
+    fields: ResultFieldCondition[]
+    ageFrom: number | null
+    ageTo: number | null
+}
+
+/**
+ * How to split respondents into groups. `only` limits the grouping to chosen group keys, to compare a
+ * few; `bounds` are where the brackets start when grouping by age or a number field.
+ */
+export interface ResultGrouping {
+    by: ResultDimensionName
+    fieldId?: number | null
+    only: string[]
+    bounds: number[]
+}
+
+export interface FormResultQuery {
+    filter: ResultFilter | null
+    groupBy: ResultGrouping | null
+}
+
+/** The results of an internal form, filtered and grouped by who answered. */
+export async function queryAnalytics(formId: number, query: FormResultQuery): Promise<FormAnalytics> {
+    const res = await client.post<FormAnalytics>(`/forms/${formId}/analytics/query`, query)
+    return res.data
+}
 
 export async function getAnalytics(
     formId: number,

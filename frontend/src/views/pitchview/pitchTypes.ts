@@ -10,7 +10,7 @@ import type {CheckResult} from '@/api/inventoryCheck'
 import type {CheckEntry} from '@/composables/useMemberCheck'
 import type {CheckRow} from '@/views/stationview/attendance/sessionview/useCheckMode'
 import type {EvaluationResponse, TestProtocolItem, TestProtocolSection} from '@/api/protocol'
-import type {Form, FormQuestion, FormQuestionAnalytics} from '@/api/forms'
+import type {Form, FormQuestion, FormQuestionInfo, FormResultGroup} from '@/api/forms'
 import type {PageRow, StationPage} from '@/api/pageManage'
 import type {UserSettings} from '@/api/userSettings'
 import type {ActiveSession} from '@/api/session'
@@ -222,7 +222,8 @@ export interface PitchForm {
 
 /** The evaluation of a form: the charts per question, and who has not answered yet. */
 export interface PitchFormAnalytics {
-    questions: FormQuestionAnalytics[]
+    questions: FormQuestionInfo[]
+    groups: FormResultGroup[]
     missing: MemberIdentity[]
 }
 

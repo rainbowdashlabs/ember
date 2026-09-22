@@ -14,9 +14,11 @@ import jakarta.inject.Singleton;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -132,6 +134,27 @@ public class MemberGroupRepository {
             colors.put(row.getKey(), row.getValue());
         }
         return colors;
+    }
+
+    /**
+     * The groups each of these members belongs to, in one query for the whole list.
+     *
+     * @param memberIds the members
+     * @return member id to the ids of their groups, holding only members in at least one group
+     */
+    public Map<Integer, Set<Integer>> findGroupIdsOfMembers(Collection<Integer> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) return Map.of();
+        Map<Integer, Set<Integer>> groups = new HashMap<>();
+        for (var entry : query("""
+                SELECT member_id, group_id
+                FROM member_group_entry
+                WHERE member_id = ANY(:member_ids);""")
+                .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("member_id"), row.getInt("group_id")))
+                .all()) {
+            groups.computeIfAbsent(entry.getKey(), _ -> new HashSet<>()).add(entry.getValue());
+        }
+        return groups;
     }
 
     /**

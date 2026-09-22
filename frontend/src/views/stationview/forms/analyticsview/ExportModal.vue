@@ -12,7 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { FormQuestionAnalytics } from '@/api/forms'
+import type { FormQuestionInfo } from '@/api/forms'
 import type { ProfileField } from '@/api/profileFields'
 import type { ExportFieldOption } from '@/composables/useExport'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -23,7 +23,7 @@ import type { ExportFormat, ExportSeparator } from '@/util/exportFormat'
 const modelValue = defineModel<boolean>({required: true})
 
 const props = defineProps<{
-  questions: FormQuestionAnalytics[]
+  questions: FormQuestionInfo[]
   fields: ProfileField[]
   selectedQuestionIds: Set<number>
   selectedFieldIds: Set<number>

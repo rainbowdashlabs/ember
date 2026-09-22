@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalytics
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntryDto;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.ResponseDetailDto;
 import dev.chojo.ember.feature.form.service.FormResponseExportService;
+import dev.chojo.ember.feature.form.service.FormResultQuery;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -136,6 +137,7 @@ public class FormRoutes implements Routes {
 
         // Analytics
         routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, StationPermission.POLL_VIEW_RESULTS);
+        routes.post(prefix + "/forms/{id}/analytics/query", this::queryAnalytics, StationPermission.POLL_VIEW_RESULTS);
         routes.get(prefix + "/forms/{id}/responses/export", this::exportResponses, StationPermission.POLL_VIEW_RESULTS);
         routes.get(prefix + "/forms/{id}/responses", this::listResponses, StationPermission.POLL_VIEW_RESULTS);
         routes.get(
@@ -725,6 +727,31 @@ public class FormRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedForm(id, session);
         ctx.json(analyticsAssembler.buildAnalytics(id));
+    }
+
+    /**
+     * The results of an internal form, filtered and grouped by who answered: their user type,
+     * groups, tags, age and profile answers.
+     *
+     * <p>Only internal forms can be counted this way. A contact form or public poll is answered
+     * without signing in, so there is nobody behind the answers to look up.
+     */
+    @OpenApi(
+            path = "/api/v1/forms/{id}/analytics/query",
+            methods = HttpMethod.POST,
+            summary = "Get form analytics filtered and grouped by respondent",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormResultQuery.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormAnalyticsDto.class)))
+    private void queryAnalytics(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        var form = requireOwnedForm(id, session);
+        if (form.purpose() != FormPurpose.INTERNAL) {
+            throw new BadRequestResponse("Only the results of an internal form can be grouped by who answered");
+        }
+        ctx.json(analyticsAssembler.buildAnalytics(id, ctx.bodyAsClass(FormResultQuery.class)));
     }
 
     /** The answers as a spreadsheet or as a sheet, which until now could only be had as the former. */

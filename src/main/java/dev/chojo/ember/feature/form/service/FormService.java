@@ -503,13 +503,13 @@ public class FormService {
     // -- Answers --
 
     /**
-     * Retrieves all answers submitted for a specific question across all responses. Useful for analytics.
+     * Retrieves every answer given to a form, each carrying the response it belongs to.
      *
-     * @param questionId the question ID
-     * @return list of answers from all respondents
+     * @param formId the form ID
+     * @return all answers of all responses of the form
      */
-    public List<FormAnswer> findAllAnswersForQuestion(int questionId) {
-        return repository.findAllAnswersForQuestion(questionId);
+    public List<FormAnswer> findAllAnswersForForm(int formId) {
+        return repository.findAllAnswersForForm(formId);
     }
 
     /**

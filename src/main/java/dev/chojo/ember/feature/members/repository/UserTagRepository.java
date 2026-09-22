@@ -13,9 +13,11 @@ import jakarta.inject.Singleton;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -127,6 +129,27 @@ public class UserTagRepository {
                 .map(row -> Map.entry(row.getInt("member_id"), UserTag.map().map(row)))
                 .all()) {
             tags.put(row.getKey(), row.getValue());
+        }
+        return tags;
+    }
+
+    /**
+     * The tags each of these members carries, in one query for the whole list.
+     *
+     * @param memberIds the members
+     * @return member id to the ids of their tags, holding only members with at least one tag
+     */
+    public Map<Integer, Set<Integer>> findTagIdsOfMembers(Collection<Integer> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) return Map.of();
+        Map<Integer, Set<Integer>> tags = new HashMap<>();
+        for (var entry : query("""
+                SELECT member_id, tag_id
+                FROM user_tag_entry
+                WHERE member_id = ANY(:member_ids);""")
+                .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("member_id"), row.getInt("tag_id")))
+                .all()) {
+            tags.computeIfAbsent(entry.getKey(), _ -> new HashSet<>()).add(entry.getValue());
         }
         return tags;
     }

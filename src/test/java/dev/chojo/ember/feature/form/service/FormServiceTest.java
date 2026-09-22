@@ -255,9 +255,8 @@ class FormServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(26)
-    void findAllAnswersForQuestion() {
-        var qs = service.findQuestions(formId);
-        var answers = service.findAllAnswersForQuestion(qs.getFirst().id());
+    void findAllAnswersForForm() {
+        var answers = service.findAllAnswersForForm(formId);
         assertFalse(answers.isEmpty());
     }
 
