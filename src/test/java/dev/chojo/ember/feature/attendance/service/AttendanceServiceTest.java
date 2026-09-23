@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -548,6 +549,60 @@ class AttendanceServiceTest extends RepositoryTestBase {
             service.deleteSession(today.id());
         } finally {
             service.deleteSession(lastWeek.id());
+            eventRepo.delete(weekly.id());
+        }
+    }
+
+    /**
+     * A sheet taken for another of a series' days is written for that day.
+     *
+     * <p>The day used to be whichever one the button was pressed on, because nothing carried it:
+     * somebody opening next Tuesday's list on a Thursday got a sheet dated Thursday, and the
+     * appointment it belonged to never had one.
+     */
+    @Test
+    @Order(50)
+    void aSheetMayBeTakenForAnotherDayOfTheSeries() {
+        Instant configuredLongAgo = Instant.parse("2024-09-04T18:00:00Z");
+        var weekly = eventRepo.create(
+                station.id(),
+                "Übungsabend",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                3,
+                configuredLongAgo,
+                configuredLongAgo.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var zone = ZoneId.of(station.timezone() == null ? "UTC" : station.timezone());
+        LocalDate wanted = LocalDate.now(zone).with(java.time.temporal.TemporalAdjusters.next(DayOfWeek.WEDNESDAY));
+        try {
+            var sheet = service.createSession(templateId, null, null, weekly.id(), null, null, null, wanted);
+            try {
+                assertEquals(
+                        wanted,
+                        sheet.startTime().atZone(zone).toLocalDate(),
+                        "the sheet belongs to the day it was asked for");
+
+                var found = service.findSessionForEvent(weekly.id(), wanted);
+                assertTrue(found.isPresent(), "and the appointment finds it on that day");
+                assertEquals(sheet.id(), found.get().id());
+
+                assertTrue(
+                        service.findSessionForEvent(weekly.id(), wanted.plusWeeks(1))
+                                .isEmpty(),
+                        "while the week after still has none");
+            } finally {
+                service.deleteSession(sheet.id());
+            }
+        } finally {
             eventRepo.delete(weekly.id());
         }
     }

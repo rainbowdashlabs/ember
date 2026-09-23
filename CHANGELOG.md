@@ -15,6 +15,8 @@
 
 ### Fixes
 
+- **Attendance could only be taken on the day itself.** The entry for it appeared on an appointment only while today was the date on screen, so a list written up the morning after, or prepared the evening before, had no way in at all. It now offers whichever date the page is showing, and the sheet belongs to that date.
+- **Rarer appointments never reached the upcoming list.** The list looked four weeks ahead, so an appointment that comes round once a quarter or once a year was missing from it entirely, although the calendar beside it showed the same appointment as soon as you paged forward. The list now looks as far ahead as it needs to fill the page.
 - **Attendance for a repeating appointment was recorded on the wrong date.** Starting the attendance for a weekly appointment dated the sheet to the first date of the series and reopened that same sheet on every later date. Each date now gets its own sheet, dated to the day it covers.
 - **Only one device at a time could sign in where an address is shared.** In an office or a hall where everybody reaches the internet through one connection, the second device waiting for approval was refused and then waited for ever without saying why. Every device and every account now has its own allowance.
 - **Being asked to slow down looked like a general failure.** A screen that was told it was trying too often showed the same message as any other error and advised fetching a new code, which used up another attempt. It now says that too many attempts were made and waits instead of asking again straight away.

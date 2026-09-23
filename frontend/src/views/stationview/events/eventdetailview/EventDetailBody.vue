@@ -79,10 +79,15 @@ const router = useRouter()
  */
 const attendanceSessionId = ref<number | null>(null)
 
+/**
+ * Whether a sheet could be taken for the date on screen.
+ *
+ * <p>Any date it has, and not only today's. A sheet is written up after the fact as often as during
+ * it, and one prepared before an appointment is how somebody walks in with the list already
+ * printed; offering it on today alone left both with no way in at all.
+ */
 const canTakeAttendance = computed(() =>
-    props.canManageAttendance
-    && props.event.templateId != null
-    && props.effectiveDate === stationToday(stationTimezone.value))
+    props.canManageAttendance && props.event.templateId != null && props.effectiveDate != null)
 
 watch(() => [props.eventId, props.effectiveDate] as const, async () => {
   attendanceSessionId.value = null
@@ -101,10 +106,13 @@ function toAttendance() {
     router.push({name: 'attendance-session', params: {id: attendanceSessionId.value}})
     return
   }
-  router.push({
-    name: 'attendance-new',
-    query: {templateId: String(props.event.templateId), eventId: String(props.eventId)},
-  })
+  const query: Record<string, string> = {
+    templateId: String(props.event.templateId),
+    eventId: String(props.eventId),
+  }
+  // The day travels, or the sheet is written for whichever day the button happened to be pressed.
+  if (props.effectiveDate) query.date = props.effectiveDate
+  router.push({name: 'attendance-new', query})
 }
 
 /**

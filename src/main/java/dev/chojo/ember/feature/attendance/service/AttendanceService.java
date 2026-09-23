@@ -291,13 +291,9 @@ public class AttendanceService {
      */
     public AttendanceSession createSession(
             int templateId, Instant startTime, Instant endTime, Integer eventId, String title, Integer countedMinutes) {
-        return createSession(templateId, startTime, endTime, eventId, title, countedMinutes, null);
+        return createSession(templateId, startTime, endTime, eventId, title, countedMinutes, null, null);
     }
 
-    /**
-     * @param audience whom to enter instead of the template's own groups, null or naming nobody
-     *     where the template decides as it always has
-     */
     public AttendanceSession createSession(
             int templateId,
             Instant startTime,
@@ -306,6 +302,26 @@ public class AttendanceService {
             String title,
             Integer countedMinutes,
             SessionAudience audience) {
+        return createSession(templateId, startTime, endTime, eventId, title, countedMinutes, audience, null);
+    }
+
+    /**
+     * @param audience whom to enter instead of the template's own groups, null or naming nobody
+     *     where the template decides as it always has
+     * @param eventDate which day of a repeating appointment the sheet is for, null where the sheet
+     *     stands on its own or the caller already worked the times out. A series is one row that
+     *     comes round again and again, so without this a sheet taken for next Tuesday would be
+     *     written for today, which is the day the caller happened to ask on
+     */
+    public AttendanceSession createSession(
+            int templateId,
+            Instant startTime,
+            Instant endTime,
+            Integer eventId,
+            String title,
+            Integer countedMinutes,
+            SessionAudience audience,
+            LocalDate eventDate) {
         requireUsableSpan(startTime, endTime);
         requireUsableCountedMinutes(countedMinutes);
         // Determine title and default times from the linked event
@@ -321,9 +337,12 @@ public class AttendanceService {
                     resolvedTitle = event.name();
                 }
                 if (resolvedStart == null || resolvedEnd == null) {
-                    var span = event.occurrenceOn((startTime != null ? startTime : Instant.now())
-                            .atZone(zone)
-                            .toLocalDate());
+                    LocalDate day = eventDate != null
+                            ? eventDate
+                            : (startTime != null ? startTime : Instant.now())
+                                    .atZone(zone)
+                                    .toLocalDate();
+                    var span = event.occurrenceOn(day);
                     if (span.isPresent()) {
                         if (resolvedStart == null) resolvedStart = span.get().start();
                         if (resolvedEnd == null) resolvedEnd = span.get().end();

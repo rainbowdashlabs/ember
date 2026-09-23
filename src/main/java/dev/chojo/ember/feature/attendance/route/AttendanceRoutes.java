@@ -593,7 +593,8 @@ public class AttendanceRoutes implements Routes {
                         request.eventId(),
                         request.title(),
                         request.countedMinutes(),
-                        request.audience()));
+                        request.audience(),
+                        request.eventDate()));
     }
 
     @OpenApi(
@@ -1409,6 +1410,8 @@ public class AttendanceRoutes implements Routes {
      *     null where the sheet's own times decide
      * @param audience whom to enter on this one sheet, null where the template's own groups decide
      *     as they always have
+     * @param eventDate which day of a repeating appointment this sheet is for, null where the sheet
+     *     stands on its own or the times are given outright
      */
     public record SessionRequest(
             Instant startTime,
@@ -1416,7 +1419,8 @@ public class AttendanceRoutes implements Routes {
             Integer eventId,
             String title,
             Integer countedMinutes,
-            SessionAudience audience) {}
+            SessionAudience audience,
+            LocalDate eventDate) {}
 
     /**
      * Detailed session response including fields and attendance entries.

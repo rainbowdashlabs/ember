@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -1107,13 +1108,56 @@ class EventServicesTest extends RepositoryTestBase {
         assertTrue(occurrences.size() <= 2);
     }
 
+    /**
+     * An appointment that comes round rarely still reaches the list.
+     *
+     * <p>The list used to expand a fixed four weeks and slice what came out, so a yearly appointment
+     * eleven months away had no date inside the window and was simply absent, while the calendar
+     * showed it the moment somebody paged forward to its month. The walk asks day by day instead and
+     * stops when the page is full, so how far ahead the date lies no longer decides whether it
+     * exists.
+     */
+    @Test
+    @Order(122)
+    void findUpcomingOccurrencesReachesARareAppointment() {
+        var farAhead = Instant.now().plus(200, ChronoUnit.DAYS);
+        var yearly = crudService.create(
+                station.id(),
+                "Jahreshauptversammlung",
+                "desc",
+                StationEvent.EventType.YEARLY,
+                null,
+                farAhead,
+                farAhead.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        try {
+            var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 1000, 0);
+            assertTrue(
+                    occurrences.stream().anyMatch(o -> o.event().id() == yearly.id()),
+                    "an appointment two hundred days out is still upcoming");
+        } finally {
+            crudService.delete(yearly.id());
+        }
+    }
+
     @Test
     @Order(123)
     void findUpcomingOccurrencesWithOffset() {
         var all = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         if (all.size() > 1) {
-            var offsetResults = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 1);
-            assertEquals(all.size() - 1, offsetResults.size());
+            // Compared by what comes back rather than by how much of it. The list no longer runs out
+            // after a fixed stretch of time, so a page asked for past the first is simply full again.
+            var offsetResults =
+                    occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, all.size() - 1, 1);
+            assertEquals(all.subList(1, all.size()), offsetResults);
         }
     }
 
@@ -1228,35 +1272,47 @@ class EventServicesTest extends RepositoryTestBase {
         var breakStation = stationRepo.create("BreakStation");
         var breakBreak = breakService.create(breakStation.id(), "Full Break", breakStart, breakEnd);
 
-        var start = Instant.now().plus(1, ChronoUnit.DAYS);
-        var end = start.plus(2, ChronoUnit.HOURS);
-        int dow = stationToday().plusDays(1).getDayOfWeek().getValue();
+        // Undone whatever happens: a break left behind covers today, and every later story that
+        // asks what is on today then finds nothing and fails for a reason of this story's making.
+        try {
+            var start = Instant.now().plus(1, ChronoUnit.DAYS);
+            var end = start.plus(2, ChronoUnit.HOURS);
+            int dow = stationToday().plusDays(1).getDayOfWeek().getValue();
 
-        crudService.create(
-                breakStation.id(),
-                "Break Recurring",
-                "desc",
-                StationEvent.EventType.RECURRING,
-                dow,
-                start,
-                end,
-                null,
-                false,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null);
+            crudService.create(
+                    breakStation.id(),
+                    "Break Recurring",
+                    "desc",
+                    StationEvent.EventType.RECURRING,
+                    dow,
+                    start,
+                    end,
+                    null,
+                    false,
+                    null,
+                    false,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
 
-        var occurrences = occurrenceService.findUpcomingOccurrences(breakStation.id(), null, null, null, null, 100, 0);
-        // Recurring events during break should not appear
-        assertTrue(occurrences.stream().noneMatch(o -> o.event().name().equals("Break Recurring")));
+            var occurrences =
+                    occurrenceService.findUpcomingOccurrences(breakStation.id(), null, null, null, null, 100, 0);
+            var itsDates = occurrences.stream()
+                    .filter(o -> o.event().name().equals("Break Recurring"))
+                    .map(UpcomingEventOccurrence::date)
+                    .toList();
 
-        breakService.delete(brk.id());
-        breakService.delete(breakBreak.id());
-        stationRepo.delete(breakStation.id());
+            assertTrue(
+                    itsDates.stream().noneMatch(on -> !on.isBefore(breakStart) && !on.isAfter(breakEnd)),
+                    "a break silences every date it covers");
+            assertFalse(itsDates.isEmpty(), "and the appointment comes back on the far side of it");
+        } finally {
+            breakService.delete(brk.id());
+            breakService.delete(breakBreak.id());
+            stationRepo.delete(breakStation.id());
+        }
     }
 
     /**
