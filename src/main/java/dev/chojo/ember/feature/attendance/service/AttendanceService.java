@@ -243,6 +243,36 @@ public class AttendanceService {
     }
 
     /**
+     * The sheet an appointment has on one of its days, where somebody has already opened one.
+     *
+     * @param eventId the appointment
+     * @param day     the day to look on, null for the station's today
+     * @return the sheet, or empty where that day has none
+     */
+    public Optional<AttendanceSession> findSessionForEvent(int eventId, LocalDate day) {
+        var event = eventRepository.findById(eventId).orElse(null);
+        if (event == null) return Optional.empty();
+        var zone = timezoneOf(event.stationId());
+        LocalDate on = day != null ? day : LocalDate.now(zone);
+        return sheetOfDay(eventId, on.atStartOfDay(zone).toInstant(), zone);
+    }
+
+    /**
+     * The sheet an appointment already has on the day a new one would run.
+     *
+     * <p>A repeating appointment is one row that comes round again and again, so its sheets are told
+     * apart by their day: asked for the appointment alone, the first date's sheet came back for
+     * every date after it.
+     */
+    private Optional<AttendanceSession> sheetOfDay(int eventId, Instant start, ZoneId zone) {
+        LocalDate day = start.atZone(zone).toLocalDate();
+        return attendanceRepository.findSessionByEventOnDay(
+                eventId,
+                day.atStartOfDay(zone).toInstant(),
+                day.plusDays(1).atStartOfDay(zone).toInstant());
+    }
+
+    /**
      * Opens a sheet, or hands back the one an appointment already has.
      *
      * <p>What the caller sends decides the time frame. Where it sends none, an appointment's own
@@ -278,25 +308,22 @@ public class AttendanceService {
             SessionAudience audience) {
         requireUsableSpan(startTime, endTime);
         requireUsableCountedMinutes(countedMinutes);
-        if (eventId != null) {
-            var existing = attendanceRepository.findSessionByEventId(eventId);
-            if (existing.isPresent()) {
-                return existing.get();
-            }
-        }
-
         // Determine title and default times from the linked event
         String resolvedTitle = title;
         Instant resolvedStart = startTime;
         Instant resolvedEnd = endTime;
+        ZoneId zone = ZoneId.systemDefault();
         if (eventId != null) {
             var event = eventRepository.findById(eventId).orElse(null);
             if (event != null) {
+                zone = timezoneOf(event.stationId());
                 if (resolvedTitle == null || resolvedTitle.isBlank()) {
                     resolvedTitle = event.name();
                 }
                 if (resolvedStart == null || resolvedEnd == null) {
-                    var span = event.occurrenceOn(LocalDate.now(timezoneOf(event.stationId())));
+                    var span = event.occurrenceOn((startTime != null ? startTime : Instant.now())
+                            .atZone(zone)
+                            .toLocalDate());
                     if (span.isPresent()) {
                         if (resolvedStart == null) resolvedStart = span.get().start();
                         if (resolvedEnd == null) resolvedEnd = span.get().end();
@@ -312,6 +339,13 @@ public class AttendanceService {
         if (resolvedStart == null) resolvedStart = Instant.now();
         if (resolvedEnd == null || !resolvedEnd.isAfter(resolvedStart)) {
             resolvedEnd = resolvedStart.plus(DEFAULT_SESSION_LENGTH);
+        }
+
+        if (eventId != null) {
+            var existing = sheetOfDay(eventId, resolvedStart, zone);
+            if (existing.isPresent()) {
+                return existing.get();
+            }
         }
 
         var session = attendanceRepository.createSession(
@@ -366,14 +400,14 @@ public class AttendanceService {
      * Writes what the appointment answered into the sheet fields its questions are tied to.
      *
      * <p>Taken again whenever the sheet is filled in from its appointment, because the answer is
-     * often given after the sheet was opened: whoever runs the evening enters it on the appointment,
-     * and until then there was nothing to carry over.
+     * often given after the sheet was opened: whoever runs the appointment enters it there, and
+     * until then there was nothing to carry over.
      *
      * @param sessionId        the sheet being filled
      * @param eventId          the appointment it was made from
      * @param keepWhatIsFilled leaves a field that already says something alone, which is what filling
      *                         an open sheet in wants: what stands on it was written by somebody
-     *                         looking at the evening itself, and the appointment must not undo that
+     *                         looking at the occurrence itself, and the appointment must not undo that
      */
     private void takeEventFieldValues(int sessionId, int eventId, boolean keepWhatIsFilled) {
         Set<Integer> filled = keepWhatIsFilled
@@ -426,7 +460,7 @@ public class AttendanceService {
      *
      * <p>The template is the only thing that decides who belongs on a sheet. An event the sheet was
      * made from asks its own question of its own people, and whom it was open to says nothing about
-     * who is expected at the evening itself.
+     * who is expected at the appointment itself.
      *
      * @param templateId the template the sheet was made from
      * @return the members of the template's groups, without those who have left
@@ -509,10 +543,10 @@ public class AttendanceService {
      * Writes what the appointment's answers make of the sheet.
      *
      * <p>Read for the day the sheet is about rather than for today, because a repeating appointment
-     * is answered per occurrence: a sheet opened for another evening was filled from the answers to
+     * is answered per occurrence: a sheet opened for another date was filled from the answers to
      * a different one.
      *
-     * <p>Only a row nobody has decided yet is written, so a mark taken during the evening outlives
+     * <p>Only a row nobody has decided yet is written, so a mark taken during the appointment outlives
      * the answer given before it.
      *
      * @param sessionId the sheet being filled
@@ -548,9 +582,9 @@ public class AttendanceService {
      *
      * <p>Where the appointment demanded an answer, everybody who did not accept is declined: whether
      * they said no, took it back, were refused, are still waiting or never answered at all, the
-     * evening already knows they are not coming. Leaving those rows open is what made a prepared
-     * sheet no better than an empty one, since whoever ran the evening had to look every silence up
-     * on the appointment.
+     * appointment already knows they are not coming. Leaving those rows open is what made a prepared
+     * sheet no better than an empty one, since whoever ran the appointment had to look every silence
+     * up on it.
      *
      * <p>Where no answer was demanded, silence settles nothing and only what was answered is written.
      *
@@ -660,7 +694,7 @@ public class AttendanceService {
      * Writes what a sheet says in its own fields.
      *
      * <p>What is written is measured against the question it answers, and what is left blank is not:
-     * a sheet is filled in through the evening and saved as it goes, so demanding every required
+     * a sheet is filled in through the appointment and saved as it goes, so demanding every required
      * answer at every save would refuse the sheet itself.
      *
      * @throws BadRequestResponse naming the field and what is wrong with the answer
@@ -695,11 +729,11 @@ public class AttendanceService {
     // -- Entries --
 
     /**
-     * Whether the member had joined the station by the evening the sheet is about.
+     * Whether the member had joined the station by the date the sheet is about.
      *
      * <p>A member entered afterwards was not there, so recording them would invent a presence and
-     * would count towards the trial evenings of somebody who had not started. A member with no join
-     * date carries no restriction: that is the state of every member entered before the field
+     * would count towards the trial appointments of somebody who had not started. A member with no
+     * join date carries no restriction: that is the state of every member entered before the field
      * existed, and refusing them would empty the sheets of every station that has not filled it in.
      *
      * @param sessionId the sheet being written
@@ -764,12 +798,12 @@ public class AttendanceService {
     }
 
     /**
-     * The evening a sheet is about, as a date.
+     * The day a sheet is about, as a date.
      *
      * <p>Read in the station's own timezone, which is how the report already decides which day and
-     * which month a sheet belongs to. Reading it anywhere else lets the two disagree over an evening
-     * near midnight, and a member left off a sheet the report still counts them on is worse than
-     * either answer on its own.
+     * which month a sheet belongs to. Reading it anywhere else lets the two disagree over a sheet
+     * that starts near midnight, and a member left off a sheet the report still counts them on is
+     * worse than either answer on its own.
      *
      * @param sessionId the sheet
      * @return its date, or the furthest date there is where the sheet is unknown, so nobody is
@@ -788,7 +822,7 @@ public class AttendanceService {
     }
 
     /**
-     * Whether the member had joined the station by the given evening.
+     * Whether the member had joined the station by the given date.
      *
      * <p>Takes the date rather than the sheet so that filling a whole sheet in reads the station and
      * its timezone once instead of once a member.
@@ -896,8 +930,8 @@ public class AttendanceService {
      * Marks everybody named in a field that attends by itself as present.
      *
      * <p>A field marked that way says that whoever stands in it was there: the leader of the
-     * evening, the people on the equipment, whoever the sheet names in that way. Somebody already on
-     * the sheet is moved to present rather than entered a second time.
+     * appointment, the people on the equipment, whoever the sheet names in that way. Somebody
+     * already on the sheet is moved to present rather than entered a second time.
      *
      * <p>Run when the sheet is opened as well as when it is filled in from its appointment, because
      * an appointment's answer is carried into such a field the moment the sheet is made. Only
@@ -1004,7 +1038,7 @@ public class AttendanceService {
     }
 
     /**
-     * Whether the member said they were not coming to the evening the sheet is about.
+     * Whether the member said they were not coming to the appointment the sheet is about.
      *
      * <p>Asked of the sheet's own day, since a repeating appointment is answered once per occurrence.
      * Silence is not an answer here: somebody entered by hand is entered because they turned up.

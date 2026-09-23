@@ -29,10 +29,15 @@ const props = defineProps<{
   effectiveDate: string | null
   /** What the event is called a kind of, shown beside its name. Absent where it has no category. */
   categoryName?: string
+  /** The sheet this occurrence already has, which is opened rather than taken again. */
+  attendanceSessionId?: number | null
+  /** Whether a sheet could be taken for this occurrence: the reader may, and it is today's. */
+  canTakeAttendance?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'cancel'): void
+  (e: 'attendance'): void
 }>()
 
 const {t} = useI18n()
@@ -48,7 +53,11 @@ const repeatEnd = computed(() => {
   return ''
 })
 
-const hasMenu = computed(() => props.canWriteNews || (props.canManageEvents && !props.event.cancelled))
+/** Whether the menu offers anything about the sheet of this occurrence. */
+const hasAttendance = computed(() => props.attendanceSessionId != null || props.canTakeAttendance === true)
+
+const hasMenu = computed(() =>
+    props.canWriteNews || hasAttendance.value || (props.canManageEvents && !props.event.cancelled))
 
 function goBack() {
   router.push({name: props.canManageEvents ? 'events' : 'events-upcoming'})
@@ -61,7 +70,7 @@ function goEdit() {
 /**
  * Opens the news editor on a draft written from this appointment.
  *
- * <p>The appointment and the evening travel in the address, so the editor reads both from the
+ * <p>The appointment and the date travel in the address, so the editor reads both from the
  * server rather than trusting a handover, and so a reload does not lose the draft. Which occurrence
  * matters: announcing a weekly Tuesday without saying which one is exactly the mistake that gets
  * made when the date is retyped by hand.
@@ -99,6 +108,10 @@ function announce() {
         <DropdownMenuItem v-if="canWriteNews" :icon="['fas', 'bullhorn']" data-testid="event-announce"
                           @click="announce">
           {{ t('events.announceAsNews') }}
+        </DropdownMenuItem>
+        <DropdownMenuItem v-if="hasAttendance" :icon="['fas', 'clipboard-user']" data-testid="event-attendance"
+                          @click="emit('attendance')">
+          {{ attendanceSessionId ? t('events.openAttendance') : t('events.takeAttendance') }}
         </DropdownMenuItem>
         <DropdownMenuItem v-if="canManageEvents && !event.cancelled" :icon="['fas', 'ban']" destructive
                           @click="emit('cancel')">

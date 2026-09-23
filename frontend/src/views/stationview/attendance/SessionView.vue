@@ -29,6 +29,7 @@ import {useSessionNotes} from './sessionview/useSessionNotes'
 import SessionContent from './sessionview/SessionContent.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {presentFile} from '@/util/documentFile'
+import {useSessionEventLink} from './sessionview/useSessionEventLink'
 import {localInputToInstant, timeOnDayOf} from '@/util/format'
 import {reportCaughtError} from '@/util/devErrorReporter'
 
@@ -372,11 +373,13 @@ function goBack() {
   router.push({name: 'attendance-past'})
 }
 
+const {openEvent} = useSessionEventLink(session)
+
 /**
  * Throws the whole attendance away, once it has been asked about.
  *
  * <p>Everything taken on it goes with it, which is why it is asked about: a sheet opened for the
- * wrong evening is undone here, and one filled in for the right one is not.
+ * wrong appointment is undone here, and one filled in for the right one is not.
  */
 async function removeSession() {
   error.value = ''
@@ -430,6 +433,7 @@ watch(loaded, (isLoaded) => {
         :event-end-time="eventEndTime"
         :spans-days="spansDays"
         @back="goBack"
+        @open-event="openEvent"
         @export="showExportOptions = true"
         @sync="syncFromEvent"
         @start-check-mode="startCheckMode"
