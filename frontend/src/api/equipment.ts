@@ -16,7 +16,7 @@ export const DEFAULT_LEAD_MINUTES = 24 * 60
 export interface EquipmentNeed {
     id: number
     eventId: number
-    /** Null where the line holds for the whole series, set where one evening says something of its own. */
+    /** Null where the line holds for the whole series, set where one date says something of its own. */
     eventDate: string | null
     itemId: number | null
     artId: number | null
@@ -39,7 +39,7 @@ export interface EquipmentClaim {
     firm: boolean
 }
 
-/** One line of an appointment's needs, answered for one evening. */
+/** One line of an appointment's needs, answered for one date. */
 export interface NeedCoverage {
     need: EquipmentNeed
     label: string
@@ -55,7 +55,7 @@ export interface NeedCoverage {
     covered: boolean
 }
 
-/** A piece that went out for one evening. */
+/** A piece that went out for one date. */
 export interface EquipmentHandover {
     id: number
     needId: number

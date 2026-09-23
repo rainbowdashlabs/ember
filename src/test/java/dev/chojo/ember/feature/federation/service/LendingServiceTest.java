@@ -1218,7 +1218,7 @@ class LendingServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * What the station's own evening needs is not on offer, even though no piece has been picked for
+     * What the station's own appointment needs is not on offer, even though no piece has been picked for
      * it: a loose claim takes a count out of the drawer all the same.
      */
     @Test

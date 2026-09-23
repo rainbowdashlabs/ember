@@ -30,10 +30,10 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * What an appointment needs, written once for the series and answered per evening.
+ * What an appointment needs, written once for the series and answered per date.
  *
  * <p>Writing a line takes the same permission as editing the appointment, because a need is part of
- * planning the evening rather than a second kind of stock: what it says about the gear is a note,
+ * planning the appointment rather than a second kind of stock: what it says about the gear is a note,
  * and nothing here reserves, holds or moves anything.
  */
 @Singleton
@@ -89,7 +89,7 @@ public class EquipmentNeedService {
      *
      * @param eventId      the appointment
      * @param stationId    the station it belongs to
-     * @param eventDate    the one evening the line speaks for, or {@code null} for the whole series
+     * @param eventDate    the one date the line speaks for, or {@code null} for the whole series
      * @param target       what the line asks for
      * @param quantity     how many pieces
      * @param leadMinutes  how long before the appointment the gear goes
@@ -168,10 +168,10 @@ public class EquipmentNeedService {
     }
 
     /**
-     * Records that a piece went out for one evening, which is where a loose claim becomes a firm one.
+     * Records that a piece went out for one date, which is where a loose claim becomes a firm one.
      *
      * @param needId    the line
-     * @param eventDate the evening
+     * @param eventDate the date
      * @param itemId    the piece
      * @param handedBy  the member recording it, or {@code null}
      * @return the recorded handover
@@ -203,10 +203,10 @@ public class EquipmentNeedService {
     }
 
     /**
-     * The pieces that went out for one evening.
+     * The pieces that went out for one date.
      *
      * @param eventId the appointment
-     * @param date    the evening
+     * @param date    the date
      * @return the handovers
      */
     public List<EquipmentHandover> handovers(int eventId, LocalDate date) {
@@ -214,7 +214,7 @@ public class EquipmentNeedService {
     }
 
     /**
-     * What one evening of an appointment needs, and how much of it is answered.
+     * What one date of an appointment needs, and how much of it is answered.
      *
      * <p>The line is the question and where the gear comes from is part of the answer: the station's
      * own free stock, what a partner has already sent, and what has been asked for and not arrived.
@@ -228,8 +228,8 @@ public class EquipmentNeedService {
      * planning, and refusing the second one does not remove the conflict.
      *
      * @param eventId the appointment
-     * @param date    the evening
-     * @return one answer per line that holds for that evening
+     * @param date    the date
+     * @return one answer per line that holds for that date
      */
     public List<NeedCoverage> coverage(int eventId, LocalDate date) {
         StationEvent event = eventService

@@ -29,7 +29,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * The appointment itself is named only at the requesting station, for counting what a need has.
  *
  * @param eventId   the appointment at the requesting station, or {@code null}
- * @param eventDate the evening of that appointment, or {@code null}
+ * @param eventDate the date of that appointment, or {@code null}
  * @param occasion  what the request is for, as the owning station reads it
  */
 public record LendingRequest(

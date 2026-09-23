@@ -61,7 +61,7 @@ function resolve(options: {
 }
 
 describe('useSignupMemberSet', () => {
-  it('holds only the people who took a place on the evening in view', () => {
+  it('holds only the people who took a place on the date in view', () => {
     const set = resolve({
       registrations: [
         signup(1, RegistrationStatus.ACCEPTED, TUESDAY),
@@ -132,6 +132,6 @@ describe('useSignupMemberSet', () => {
 
     expect(set.value.memberIds).toEqual([1])
     date.value = NEXT_TUESDAY
-    expect(set.value.memberIds, 'the next evening is a different set').toEqual([2])
+    expect(set.value.memberIds, 'the next date is a different set').toEqual([2])
   })
 })

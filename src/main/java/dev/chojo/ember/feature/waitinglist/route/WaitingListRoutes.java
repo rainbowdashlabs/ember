@@ -337,7 +337,7 @@ public class WaitingListRoutes implements Routes {
     }
 
     /**
-     * The evening the page is about, written exactly as the mail wrote it.
+     * The appointment the page is about, written exactly as the mail wrote it.
      *
      * <p>The page is the invitation rather than a window into the station: somebody holding the link
      * was deliberately invited, and an answer given without knowing the occasion is not an answer
@@ -772,7 +772,7 @@ public class WaitingListRoutes implements Routes {
     }
 
     /**
-     * The evening an invitation names, checked against the station that is inviting.
+     * The appointment an invitation names, checked against the station that is inviting.
      *
      * <p>An appointment repeats, so the date travels with it and an invitation naming an appointment
      * without one is refused rather than silently meaning every occurrence there has ever been.
@@ -1013,7 +1013,7 @@ public class WaitingListRoutes implements Routes {
             PublicAnswerResponse answer) {}
 
     /**
-     * The evening the entry is invited to, as the page has to show it.
+     * The appointment the entry is invited to, as the page has to show it.
      *
      * @param eventId         the appointment, sent back with the answer so it names what it answers
      * @param date            the one date of it, in {@code YYYY-MM-DD}, sent back for the same reason
@@ -1117,7 +1117,7 @@ public class WaitingListRoutes implements Routes {
     public record GuardianRequest(String firstname, String lastname, String email, String phone) {}
 
     /**
-     * The evening an invitation is about.
+     * The appointment an invitation is about.
      *
      * @param eventId     the appointment, or null to invite without naming one
      * @param date        the one date of it, as {@code YYYY-MM-DD}, required whenever an appointment is named

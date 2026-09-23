@@ -32,7 +32,7 @@ import java.util.Locale;
  * What an invitation to come and look says, and writing it to whoever can be written to.
  *
  * <p>The page behind the entry link shows the same thing, so both ask this rather than each working
- * the evening out for itself. An answer given without knowing the occasion is not an answer worth
+ * the appointment out for itself. An answer given without knowing the occasion is not an answer worth
  * collecting, and "the date does not suit" in particular is about a date that has to be on screen.
  *
  * <p><b>Where "wo" comes from.</b> An appointment has no place of its own. A station that wants one
@@ -63,7 +63,8 @@ public class WaitlistInvitationMessage {
      * @param entry      the entry being invited
      * @param guardians  whoever answers for them, written to in preference to the entry itself
      * @param station    the station doing the inviting, which decides the language and the zone
-     * @param invitation the evening they are asked to, or {@code null} for an invitation naming none
+     * @param invitation the appointment they are asked to, or {@code null} for an invitation naming
+     *                   none
      */
     public void send(
             WaitingListEntry entry,
@@ -85,7 +86,7 @@ public class WaitlistInvitationMessage {
     }
 
     /**
-     * What the invitation can say about the evening, all of it already written out for a reader.
+     * What the invitation can say about the appointment, all of it already written out for a reader.
      *
      * <p>An invitation whose appointment has since been deleted describes nothing rather than
      * failing: the person still has to be told they are invited.

@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
  * What has to happen to held stock when an appointment stops happening.
  *
  * <p>Cancelling is the common case: it is the moment held stock must be released and requests sent to
- * a partner withdrawn, because the evening they were for is not going to happen and the partner has
+ * a partner withdrawn, because the appointment they were for is not going to happen and the partner has
  * no other way of learning that.
  *
  * <p>It lives in the write path rather than in a domain event handler on purpose. Dispatch is
@@ -55,7 +55,7 @@ public class EquipmentReleaseService {
      * Withdraws what an appointment has asked of a partner, leaving its lines standing.
      *
      * <p>What a cancellation does: the appointment is still there and may be reinstated, so its lines
-     * are worth keeping, but nothing should stay held at a partner over an evening that is off.
+     * are worth keeping, but nothing should stay held at a partner over a date that is off.
      *
      * @param eventId   the appointment
      * @param stationId the station it belongs to

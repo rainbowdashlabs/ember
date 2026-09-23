@@ -37,7 +37,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
- * What the invitation mail can say about the evening, and who it goes to.
+ * What the invitation mail can say about the appointment, and who it goes to.
  */
 class WaitlistInvitationMessageTest extends RepositoryTestBase {
 
@@ -116,7 +116,7 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
     }
 
     @Test
-    void theMailCarriesTheEveningItIsAbout() {
+    void theMailCarriesTheAppointmentItIsAbout() {
         var event = appointment("Dienstabend");
         var invited = entry("Kind", "kind@test.com");
 
@@ -149,7 +149,7 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
     }
 
     @Test
-    void anInvitationWithoutAnEveningSaysNothingAboutOne() {
+    void anInvitationWithoutAnAppointmentSaysNothingAboutOne() {
         var invited = entry("Kind", "kind@test.com");
 
         message.send(invited, List.of(), station, null);

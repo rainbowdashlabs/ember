@@ -14,16 +14,16 @@ import java.time.LocalDate;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * A piece that actually went out for one evening of an appointment.
+ * A piece that actually went out for one date of an appointment.
  *
  * <p>The only claim on stock that is written down. Everything still merely planned is derived from
  * the recurrence rule when somebody asks, which is why there is no horizon to choose, no job to refill
- * one, and nothing to clean up when a series is thinned: a series that no longer produces an evening
+ * one, and nothing to clean up when a series is thinned: a series that no longer produces an occurrence
  * no longer produces its claim either. So the database holds a record of what happened and computes
  * what is planned, which is the right way round.
  *
  * @param needId     the line the piece was handed over against
- * @param eventDate  the evening it went out for
+ * @param eventDate  the date it went out for
  * @param itemId     the piece
  * @param claimFrom  when it left
  * @param claimTo    when it is due back

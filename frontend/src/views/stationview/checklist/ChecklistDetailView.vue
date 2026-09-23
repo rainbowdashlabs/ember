@@ -132,7 +132,7 @@ const frozenMemberSet = computed(() => {
 })
 
 /**
- * Whether this list is tied to one evening of an appointment rather than to a description of
+ * Whether this list is tied to one date of an appointment rather than to a description of
  * people. The reference is cleared when the appointment is deleted, so a list that used to follow
  * one keeps every row and simply stops saying that it follows anything.
  */

@@ -26,7 +26,7 @@ import java.time.LocalDate;
  * @param target    what it holds, or {@code null} where it holds everything the station has
  * @param label     what to call it on screen: the appointment, the partner, the reason for a block
  * @param eventId   the appointment behind the claim, or {@code null}
- * @param eventDate the evening the claim is for, or {@code null}
+ * @param eventDate the date the claim is for, or {@code null}
  * @param quantity  how many pieces it takes
  * @param from      when the gear goes
  * @param to        when it is back

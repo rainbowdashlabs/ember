@@ -218,7 +218,7 @@ public class ProcedureRoutes implements Routes {
     }
 
     /**
-     * What has already been prepared for one evening of one appointment, so a second press of the
+     * What has already been prepared for one date of one appointment, so a second press of the
      * button that made it offers the list rather than a copy of it.
      */
     private void listProceduresForOccurrence(Context ctx) {
@@ -418,7 +418,7 @@ public class ProcedureRoutes implements Routes {
     /**
      * @param eventId   the appointment the procedure is being prepared for, or {@code null}
      * @param eventDate the one occurrence of that appointment. Both are recorded only when both are
-     *                  given: an appointment without a date names every evening it has ever had
+     *                  given: an appointment without a date names every occurrence it has ever had
      */
     public record CreateProcedureRequest(
             Integer templateId,

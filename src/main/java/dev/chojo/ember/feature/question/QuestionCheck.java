@@ -51,7 +51,7 @@ public final class QuestionCheck {
      * Whether what was answered is one the question takes, without asking whether it had to be
      * answered at all.
      *
-     * <p>What a half-filled sheet wants. An attendance sheet is written on through the evening and
+     * <p>What a half-filled sheet wants. An attendance sheet is written on through the appointment and
      * saved as it goes, so demanding every required answer at every save would refuse the sheet
      * itself; what it can still say is that a date is a date.
      *

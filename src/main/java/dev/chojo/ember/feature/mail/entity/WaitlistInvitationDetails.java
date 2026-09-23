@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.mail.entity;
 
 /**
- * What an invitation mail says about the evening somebody is asked to come to.
+ * What an invitation mail says about the appointment somebody is asked to come to.
  *
  * <p>Everything is already a piece of text: the mail is the last stop, and a date the reader has to
  * make sense of is a date somebody chose how to write. Any field may be blank, and a blank one is

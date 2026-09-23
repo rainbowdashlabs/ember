@@ -28,7 +28,7 @@ vi.mock('@/composables/useSidebarCounts', () => ({
     useSidebarCounts: () => ({refresh: () => undefined}),
 }))
 
-const evening = '2026-09-04'
+const date = '2026-09-04'
 const appointment = {id: 4, stationId: '1', name: 'Übungsabend'} as StationEvent
 
 const child = {key: 11, name: 'Mira'}
@@ -67,7 +67,7 @@ describe('useEventAnswer', () => {
         const answer = answerWith(error)
         registerForEvent.mockRejectedValueOnce(new Error('nope'))
 
-        await answer.registerFor(appointment, evening, [child, sibling])
+        await answer.registerFor(appointment, date, [child, sibling])
         await answer.confirmAnswerPrompt([{key: child.key, fields: []}, {key: sibling.key, fields: []}])
 
         expect(registerForEvent, 'both were asked for').toHaveBeenCalledTimes(2)
@@ -78,7 +78,7 @@ describe('useEventAnswer', () => {
         const error = ref('')
         const answer = answerWith(error)
 
-        await answer.registerFor(appointment, evening, [child, sibling])
+        await answer.registerFor(appointment, date, [child, sibling])
         await answer.confirmAnswerPrompt([{key: child.key, fields: []}, {key: sibling.key, fields: []}])
 
         expect(error.value).toBe('')
@@ -89,7 +89,7 @@ describe('useEventAnswer', () => {
         const answer = answerWith(error)
         declineEvent.mockRejectedValueOnce(new Error('nope'))
 
-        await answer.declineFor(appointment, evening, [child, sibling])
+        await answer.declineFor(appointment, date, [child, sibling])
         await answer.confirmAnswerPrompt([{key: child.key, fields: []}, {key: sibling.key, fields: []}])
 
         expect(declineEvent).toHaveBeenCalledTimes(2)
@@ -101,11 +101,11 @@ describe('useEventAnswer', () => {
         const error = ref('')
         const answer = answerWith(error)
         registerForEvent.mockRejectedValueOnce(new Error('nope'))
-        await answer.registerFor(appointment, evening, [child])
+        await answer.registerFor(appointment, date, [child])
 
         expect(error.value).not.toBe('')
 
-        await answer.registerFor(appointment, evening, [child])
+        await answer.registerFor(appointment, date, [child])
 
         expect(error.value).toBe('')
     })
@@ -125,7 +125,7 @@ describe('useEventAnswer', () => {
         const error = ref('')
         const answer = answerWith(error)
 
-        await answer.registerFor(appointment, evening, [child])
+        await answer.registerFor(appointment, date, [child])
 
         expect(answer.answerPrompt.value).toBeNull()
         expect(registerForEvent).toHaveBeenCalledTimes(1)

@@ -25,8 +25,8 @@ import java.util.Optional;
  * What the demo station's appointments need, so the panel has something to say on the first look.
  *
  * <p>Two shapes, because they read differently. The weekly Übung asks for four of a kind and gets
- * them, which is the ordinary evening. The Kreiswettbewerb asks for more radios than the station has,
- * which is what the borrowing screen exists for.
+ * them, which is the ordinary appointment. The Kreiswettbewerb asks for more radios than the station
+ * has, which is what the borrowing screen exists for.
  *
  * <p>It runs after the inventory and the appointments both exist, which is what the band says.
  */

@@ -21,7 +21,7 @@ const props = defineProps<{
    */
   frozen?: boolean
   /**
-   * Whether this list follows one evening of an appointment.
+   * Whether this list follows one date of an appointment.
    *
    * <p>Then refreshing does bring people in, namely whoever has taken a place since the list was
    * last looked at, and that is worth saying because "follows" invites the stronger reading that

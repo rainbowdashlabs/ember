@@ -154,15 +154,15 @@ test.describe('Waiting lists', () => {
     })
 
     /**
-     * The whole of the first contact: a station invites somebody to one evening, they answer from
+     * The whole of the first contact: a station invites somebody to one occurrence, they answer from
      * the link in the mail without signing in, and the answer is back on the entry the station is
      * looking at. Nothing is created along the way, and nobody is signed up for the appointment.
      *
-     * The evening is picked out of what is coming up, so it is an appointment and one date of it.
+     * The occurrence is picked out of what is coming up, so it is an appointment and one date of it.
      * The link the answer is given from is the entry's own and needs no session, which is the whole
      * point: somebody with no interest will not walk through an account just to say no.
      */
-    test('an invitation names an evening and is answered from the entry link', async ({managerPage: page, page: visitor}) => {
+    test('an invitation names an occurrence and is answered from the entry link', async ({managerPage: page, page: visitor}) => {
         const surname = `Einladung-${Date.now()}`
 
         await page.goto('/station/members/waiting-lists')

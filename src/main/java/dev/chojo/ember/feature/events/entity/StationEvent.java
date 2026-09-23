@@ -145,8 +145,8 @@ public record StationEvent(
      *
      * <p>The zone is asked for rather than assumed because a yearly appointment is the day and month
      * its first one fell on, and which day that was depends on where the station is. Read in UTC, an
-     * evening that starts at midnight in Berlin belongs to the day before, so its anniversary was
-     * quietly the wrong one for every station east of Greenwich.
+     * appointment that starts at midnight in Berlin belongs to the day before, so its anniversary
+     * was quietly the wrong one for every station east of Greenwich.
      *
      * @param date the calendar date to test, worked out on the station's own clock
      * @param zone the station's clock, which is the one the date came from

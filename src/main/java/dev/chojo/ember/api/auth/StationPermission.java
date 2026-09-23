@@ -146,8 +146,8 @@ public enum StationPermission implements RouteRole {
      * Allows reading the internal side of an event without being able to change anything: the
      * material it needs and the files kept back from the room.
      *
-     * <p>Whoever runs an evening needs to read what it takes to run it, and that is not the same as
-     * being allowed to write the evening or to keep the station's equipment. Granted by
+     * <p>Whoever runs an appointment needs to read what it takes to run it, and that is not the same
+     * as being allowed to write the appointment or to keep the station's equipment. Granted by
      * {@link #EVENT_EDIT}, because somebody who may write an event can obviously read it.
      */
     EVENT_INTERNAL,

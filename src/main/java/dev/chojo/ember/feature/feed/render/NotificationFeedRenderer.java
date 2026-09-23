@@ -161,9 +161,10 @@ public class NotificationFeedRenderer {
      * One moment, written in the clock of the station it belongs to.
      *
      * <p>Never the machine's: a feed is rendered on a server that is almost always in UTC, so an
-     * evening from 09:00 to 16:00 in Berlin was read by the people who go to it as 07:00 to 14:00.
-     * The reader's own clock is not knowable here either, and would be the wrong answer anyway,
-     * since an evening happens at the station rather than wherever somebody reads about it.
+     * appointment from 09:00 to 16:00 in Berlin was read by the people who go to it as 07:00 to
+     * 14:00. The reader's own clock is not knowable here either, and would be the wrong answer
+     * anyway, since an appointment happens at the station rather than wherever somebody reads about
+     * it.
      */
     private static String formatInstant(Instant instant, String locale, ZoneId zone) {
         var fmt = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)

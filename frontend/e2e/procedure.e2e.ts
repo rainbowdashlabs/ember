@@ -114,7 +114,7 @@ test.describe('Procedures', () => {
     })
 
     /**
-     * The preparation for an evening starts from who is coming to it.
+     * The preparation for an appointment starts from who is coming to it.
      *
      * <p>The sign-ups are arranged through the endpoints, because the story is about what the menu
      * in the sign-ups tab does and not about three people clicking a button. What it asserts is the
@@ -173,7 +173,7 @@ test.describe('Procedures', () => {
 
         await expect(page.getByText(people[0]!.name).first(), 'the first place holder is on it').toBeVisible()
         await expect(page.getByText(people[1]!.name).first(), 'the second place holder is on it').toBeVisible()
-        await expect(page.getByTestId('procedure-appointment-link'), 'and it leads back to the evening')
+        await expect(page.getByTestId('procedure-appointment-link'), 'and it leads back to the appointment')
             .toBeVisible()
 
         const detail = await page.request.get(`/api/v1/procedures/${procedureId}`, {headers})

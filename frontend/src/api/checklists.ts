@@ -59,7 +59,7 @@ export interface ChecklistRestrictionDto {
 }
 
 /**
- * The one evening a list follows, when it follows one at all.
+ * The one occurrence a list follows, when it follows one at all.
  *
  * <p>The date belongs to it as much as the appointment does: sign-ups are kept per appointment and
  * date, so a weekly Dienst named without one would mean every Tuesday there has ever been.

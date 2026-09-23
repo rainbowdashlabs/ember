@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
  * Who an event template says its appointments are for, and who may know about them.
  *
  * <p>Neither audience is a restriction on the template: nobody attends a template. They are what
- * every appointment written from it starts with, so that a station running one evening for the
+ * every appointment written from it starts with, so that a station whose appointments are for the
  * youngest group does not pick that group again on every date of the year. Applying the template
  * copies both onto the appointment, and from there they are the appointment's own and can be changed
  * without touching the template.

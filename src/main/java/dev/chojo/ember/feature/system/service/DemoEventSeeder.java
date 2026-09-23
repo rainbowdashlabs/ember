@@ -99,8 +99,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
 
     /**
      * Who the drills of the youth fire brigade are for: the young people, the team running them and
-     * whoever manages the station. A guardian belongs to the evening put on for guardians, not to the
-     * Saturday drill, and a demo that restricts nothing never shows that the setting exists.
+     * whoever manages the station. A guardian belongs to the appointment put on for guardians, not to
+     * the Saturday drill, and a demo that restricts nothing never shows that the setting exists.
      */
     private static final StationUserType[] JUGENDFEUERWEHR = {
         StationUserType.MEMBER, StationUserType.TEAM, StationUserType.MANAGER

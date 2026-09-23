@@ -99,7 +99,7 @@ class AttendanceReportServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void anEveningWithoutAWorthOfItsOwnCountsItsClock() {
+    void anAppointmentWithoutAWorthOfItsOwnCountsItsClock() {
         int sessionId = sheet("Clock", FRIDAY, FRIDAY.plus(4, ChronoUnit.HOURS), null, null, null);
 
         var line = lineOf(sessionId, report());
@@ -115,7 +115,7 @@ class AttendanceReportServiceTest extends RepositoryTestBase {
      * report prints those times rather than the sheet's.
      */
     @Test
-    void anEveningWithoutAWorthOfItsOwnCountsPastItsOwnEnds() {
+    void anAppointmentWithoutAWorthOfItsOwnCountsPastItsOwnEnds() {
         int sessionId = sheet(
                 "Cleanup",
                 FRIDAY,
@@ -133,9 +133,12 @@ class AttendanceReportServiceTest extends RepositoryTestBase {
         assertTrue(entry.checkOut().toLocalTime().isAfter(line.endTime()));
     }
 
-    /** The same evening carrying a worth of its own caps it again, which is what that field is for. */
+    /**
+     * The same appointment carrying a worth of its own caps it again, which is what that field is
+     * for.
+     */
     @Test
-    void aWorthOfItsOwnStillCapsAnEveningSomebodyStayedPast() {
+    void aWorthOfItsOwnStillCapsAnAppointmentSomebodyStayedPast() {
         int sessionId = sheet(
                 "Cleanup counted",
                 FRIDAY,
@@ -148,7 +151,7 @@ class AttendanceReportServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void aCountedEveningGivesItsWorthToWhoeverStayed() {
+    void aCountedAppointmentGivesItsWorthToWhoeverStayed() {
         int sessionId = sheet("Counted", FRIDAY, FRIDAY.plus(4, ChronoUnit.HOURS), 180, null, null);
 
         var line = lineOf(sessionId, report());

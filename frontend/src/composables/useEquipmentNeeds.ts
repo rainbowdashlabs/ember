@@ -15,7 +15,7 @@ import {apiErrorMessage} from '@/util/apiError'
 const MINUTES_PER_HOUR = 60
 
 /**
- * What an appointment needs, read for one evening and written for the series or for that evening.
+ * What an appointment needs, read for one date and written for the series or for that date.
  *
  * <p>The pickers need the station's own gear, which is loaded once: every inventory, every piece in
  * them and every kind of every mixed inventory, so one picker covers the lot.
@@ -80,7 +80,7 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
     quantity: number
     leadHours: number
     trailHours: number
-    thisEveningOnly: boolean
+    thisDateOnly: boolean
   }) {
     saving.value = true
     saveError.value = ''
@@ -92,7 +92,7 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
         quantity: payload.kind === 'item' ? 1 : payload.quantity,
         leadMinutes: payload.leadHours * MINUTES_PER_HOUR,
         trailMinutes: payload.trailHours * MINUTES_PER_HOUR,
-        eventDate: payload.thisEveningOnly ? date.value : null,
+        eventDate: payload.thisDateOnly ? date.value : null,
       })
       await loadCoverage()
       return true

@@ -118,7 +118,7 @@ function asLocalInput(moment: Date): string {
  * Opens a sheet from the first template offered, answering the step that asks when it runs.
  *
  * <p>The step is prefilled with the current time and the length the template last ran for, so the
- * ordinary evening is one further click and nothing has to be typed here.
+ * ordinary appointment is one further click and nothing has to be typed here.
  */
 /**
  * Presses the export, wherever the toolbar is keeping it, until the dialog is actually open.
@@ -202,9 +202,9 @@ test.describe('Attendance', () => {
      * session nobody was ever entered in offers no buttons at all.
      *
      * A sheet closes on its own once it is older than the span the instance allows, and the seeded
-     * evenings with absences sit at that edge: which side of it they are on depends on the hour the
+     * dates with absences sit at that edge: which side of it they are on depends on the hour the
      * suite happens to run. So the sheet is opened again where it has frozen, which is what a
-     * manager correcting an old evening does anyway, rather than the story passing before dinner
+     * manager correcting an old sheet does anyway, rather than the story passing before dinner
      * and failing after it.
      */
     test('a member is marked present in a session', async ({managerPage: page}) => {
@@ -270,7 +270,7 @@ test.describe('Attendance', () => {
 
     /**
      * A field that attends by itself names people who were there, and an appointment can answer it
-     * before the evening starts. Opening the sheet has to put them on it as present: they stood in
+     * before it starts. Opening the sheet has to put them on it as present: they stood in
      * the field with no row at all until somebody pressed the button that fills the sheet in from
      * its appointment, which is not something anybody does before taking an attendance.
      */
@@ -534,7 +534,7 @@ test.describe('Attendance', () => {
     })
 
     /**
-     * A sheet that anybody may still change months later is not a record of the evening. Age closes
+     * A sheet that anybody may still change months later is not a record of the appointment. Age closes
      * one on its own, which a story cannot wait for, so this walks the other way in: whoever manages
      * attendance closes it on purpose, which is the same state by a different route.
      *
@@ -562,7 +562,7 @@ test.describe('Attendance', () => {
     })
 
     /**
-     * An evening starts by opening a session from the template it belongs to, and what it has to
+     * An appointment starts by opening a session from the template it belongs to, and what it has to
      * bring with it is the people: a session listing nobody cannot record anybody.
      */
     test('a session is opened from a template and lists its members', async ({managerPage: page}) => {
@@ -574,7 +574,7 @@ test.describe('Attendance', () => {
     })
 
     /**
-     * Sessions are not closed by hand - an evening simply ends, and what makes it findable
+     * Sessions are not closed by hand - an appointment simply ends, and what makes it findable
      * afterwards is the past list. The story opens one and looks for it there.
      */
     test('a session that was opened is found again among the past ones', async ({managerPage: page}) => {

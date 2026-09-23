@@ -162,16 +162,16 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     }
 
     /**
-     * A sheet filled in weeks after the evening it records is an ordinary thing, and it is the only
-     * case where when the evening was and when somebody wrote it down disagree. Ordering by the
-     * writing put such a sheet among this week's while it showed a date from July.
+     * A sheet filled in weeks after the appointment it records is an ordinary thing, and it is the
+     * only case where when the appointment was and when somebody wrote it down disagree. Ordering by
+     * the writing put such a sheet among this week's while it showed a date from July.
      *
-     * <p>The old evening is written down last here, and that order is the whole test: created the
+     * <p>The old appointment is written down last here, and that order is the whole test: created the
      * other way round the two orderings agree and this would pass against the very bug it is for.
      */
     @Test
     @Order(24)
-    void theSummariesReadNewestEveningFirstEvenWhenOneWasWrittenDownLate() {
+    void theSummariesReadNewestAppointmentFirstEvenWhenOneWasWrittenDownLate() {
         Instant recent = Instant.now().minus(1, ChronoUnit.DAYS);
         int yesterday = attendanceRepo
                 .createSession(templateId, recent, recent.plus(2, ChronoUnit.HOURS), null, "Yesterday", null)
@@ -186,7 +186,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
 
         assertTrue(
                 ids.indexOf(yesterday) < ids.indexOf(backDated),
-                "the evening from yesterday comes before the one from two months ago, "
+                "the appointment from yesterday comes before the one from two months ago, "
                         + "however recently either was written down");
 
         var stored =
@@ -194,7 +194,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertEquals(
                 longAgo.truncatedTo(ChronoUnit.SECONDS),
                 stored.startTime().truncatedTo(ChronoUnit.SECONDS),
-                "and it carries the evening's own date, which is what the list shows");
+                "and it carries the appointment's own date, which is what the list shows");
         assertTrue(
                 stored.createdAt().isAfter(stored.startTime()),
                 "the two really do disagree here, or this test would prove nothing");

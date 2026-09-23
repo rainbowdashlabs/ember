@@ -12,12 +12,12 @@ import Alert from '@/components/feedback/Alert.vue'
 /**
  * How many pieces there are, and a word where somebody has asked for more of them than exist.
  *
- * <p>The count is what the station has, not what is free on one evening. A line is written for a
- * whole series of evenings, so there is no single evening a free count could be taken over; what is
- * free on a given evening stands beside the line in the
- * panel that answers for that evening, with the appointments it collides with named.
+ * <p>The count is what the station has, not what is free on one date. A line is written for a
+ * whole series of dates, so there is no single date a free count could be taken over; what is
+ * free on a given date stands beside the line in the
+ * panel that answers for that date, with the appointments it collides with named.
  *
- * <p>Asking for too much is reported and never refused. Planning is writing down: two evenings may
+ * <p>Asking for too much is reported and never refused. Planning is writing down: two appointments may
  * both want the last trailer, and a dialogue that will not record the second one does not remove the
  * conflict, it hides it until the Saturday.
  */

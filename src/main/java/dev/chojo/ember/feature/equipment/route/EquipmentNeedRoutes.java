@@ -37,11 +37,11 @@ import java.util.List;
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
- * What an appointment needs, and what actually went out for one evening.
+ * What an appointment needs, and what actually went out for one date.
  *
  * <p>Two permissions meet here and neither was written for this before. Reading a line takes
  * {@code INVENTORY_READ}, because it is a statement about the station's gear. Writing one takes
- * {@code EVENT_EDIT}, because it is part of planning the evening: nothing here reserves, holds or
+ * {@code EVENT_EDIT}, because it is part of planning the appointment: nothing here reserves, holds or
  * moves anything, so no third permission is minted. Borrowing what a line still misses takes
  * {@code INVENTORY_LENDING_REQUEST}, where lending already asks for it.
  */
@@ -58,10 +58,10 @@ public class EquipmentNeedRoutes implements Routes {
     }
 
     /**
-     * What an evening needs is read by whoever keeps the equipment and by whoever runs the evening.
-     * Until the second right existed, somebody who ran events without keeping the inventory could
-     * not read the material of their own evening at all. Writing it stays with whoever writes the
-     * event.
+     * What an appointment needs is read by whoever keeps the equipment and by whoever runs the
+     * appointment. Until the second right existed, somebody who ran events without keeping the
+     * inventory could not read the material of their own appointment at all. Writing it stays with
+     * whoever writes the event.
      */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
@@ -122,7 +122,7 @@ public class EquipmentNeedRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/events/{eventId}/equipment/coverage",
             methods = HttpMethod.GET,
-            summary = "Read what one evening needs against what is there",
+            summary = "Read what one date needs against what is there",
             description =
                     "Answers per line how much of it the station has free, how much is here on loan and how much has been asked for and not arrived. An over-claim is reported with the appointments involved rather than being prevented.",
             tags = {"Events"},
@@ -141,7 +141,7 @@ public class EquipmentNeedRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/events/{eventId}/equipment/handovers",
             methods = HttpMethod.GET,
-            summary = "List the pieces that went out for one evening",
+            summary = "List the pieces that went out for one date",
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
             queryParams = @OpenApiParam(name = "date", type = String.class, required = true),
@@ -242,7 +242,7 @@ public class EquipmentNeedRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/events/{eventId}/equipment/{needId}/handovers",
             methods = HttpMethod.POST,
-            summary = "Record that a piece went out for one evening",
+            summary = "Record that a piece went out for one date",
             description = "Where a loose claim becomes a firm one: the line gains the pieces that actually went.",
             tags = {"Events"},
             pathParams = {
@@ -302,7 +302,7 @@ public class EquipmentNeedRoutes implements Routes {
     }
 
     /**
-     * @param eventDate the one evening the line speaks for, or {@code null} for the whole series
+     * @param eventDate the one date the line speaks for, or {@code null} for the whole series
      */
     public record NeedRequest(
             Integer itemId,

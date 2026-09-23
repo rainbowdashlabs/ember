@@ -259,10 +259,10 @@ public class ProcedureRepository {
     }
 
     /**
-     * Every procedure prepared for one evening of one appointment, newest first.
+     * Every procedure prepared for one date of one appointment, newest first.
      *
      * <p>This is what stops a second press of the same button making a second list for the same
-     * evening: the caller is offered what is already there instead.
+     * date: the caller is offered what is already there instead.
      *
      * @param stationId the station the appointment belongs to
      * @param eventId   the appointment

@@ -20,11 +20,11 @@ import {DEFAULT_LEAD_MINUTES} from '@/api/equipment'
 
 const props = defineProps<{
   eventId: number
-  /** The evening the panel answers for, which is what a claim can hold stock over. */
+  /** The date the panel answers for, which is what a claim can hold stock over. */
   effectiveDate: string | null
   recurring: boolean
   canEdit: boolean
-  /** Whether the reader may ask for gear, which is a right over the gear and not over the evening. */
+  /** Whether the reader may ask for gear, which is a right over the gear and not over the appointment. */
   canBorrow: boolean
 }>()
 
@@ -43,7 +43,7 @@ const inventoryId = ref('')
 const quantity = ref(1)
 const leadHours = ref(DEFAULT_LEAD_MINUTES / 60)
 const trailHours = ref(DEFAULT_LEAD_MINUTES / 60)
-const thisEveningOnly = ref(false)
+const thisDateOnly = ref(false)
 
 const missingTotal = computed(() => needs.coverage.value.reduce((sum, line) => sum + line.missing, 0))
 
@@ -59,11 +59,11 @@ function openModal() {
   artId.value = ''
   inventoryId.value = ''
   quantity.value = 1
-  thisEveningOnly.value = false
+  thisDateOnly.value = false
   showModal.value = true
 }
 
-/** Carries the appointment and the evening into the browser, which is what the request is for. */
+/** Carries the appointment and the date into the browser, which is what the request is for. */
 function borrow() {
   router.push({path: '/station/inventory/lending/collect', query: {eventId: props.eventId, date: props.effectiveDate}})
 }
@@ -77,7 +77,7 @@ async function submit() {
     quantity: quantity.value,
     leadHours: leadHours.value,
     trailHours: trailHours.value,
-    thisEveningOnly: thisEveningOnly.value,
+    thisDateOnly: thisDateOnly.value,
   })
   if (done) showModal.value = false
 }
@@ -129,7 +129,7 @@ async function submit() {
         v-model:quantity="quantity"
         v-model:lead-hours="leadHours"
         v-model:trail-hours="trailHours"
-        v-model:this-evening-only="thisEveningOnly"
+        v-model:this-date-only="thisDateOnly"
         :inventories="needs.inventories.value"
         :items="needs.items.value"
         :arts="needs.arts.value"

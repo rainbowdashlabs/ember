@@ -12,10 +12,10 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 /**
  * Inviting somebody to come and look, which is the one transition with something to fill in.
  *
- * It is the station's first message of its own accord, so it carries the evening it is about: an
+ * It is the station's first message of its own accord, so it carries the occasion it is about: an
  * appointment, the one date of it, and the time the person is asked to be there. Nobody is signed
  * up from any of that. They have not joined anything, so putting them on the attendee list would
- * make them part of an evening they never agreed to.
+ * make them part of an appointment they never agreed to.
  *
  * @param listId  the list being worked on
  * @param entries the entry list, reloaded once the invitation has gone out

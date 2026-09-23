@@ -59,7 +59,7 @@ class EquipmentOccurrenceWindowsTest {
     }
 
     @Test
-    void anEveningTakesTheClockTimeOfTheSeries() {
+    void anOccurrenceTakesTheClockTimeOfTheSeries() {
         var recurring = event(at(DAY, 19, 30), at(DAY, 21, 0), StationEvent.EventType.RECURRING);
         LocalDate later = DAY.plusWeeks(3);
         assertEquals(at(later, 19, 30), EquipmentOccurrenceWindows.startOf(recurring, later));
@@ -67,7 +67,7 @@ class EquipmentOccurrenceWindowsTest {
     }
 
     @Test
-    void anEveningRunningPastMidnightEndsTheFollowingDay() {
+    void anOccurrenceRunningPastMidnightEndsTheFollowingDay() {
         var late = event(at(DAY, 22, 0), at(DAY, 2, 0), StationEvent.EventType.RECURRING);
         assertEquals(at(DAY.plusDays(1), 2, 0), EquipmentOccurrenceWindows.endOf(late, DAY));
     }

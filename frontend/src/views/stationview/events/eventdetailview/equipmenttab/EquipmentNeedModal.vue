@@ -29,13 +29,13 @@ const inventoryId = defineModel<string>('inventoryId', {required: true})
 const quantity = defineModel<number>('quantity', {required: true})
 const leadHours = defineModel<number>('leadHours', {required: true})
 const trailHours = defineModel<number>('trailHours', {required: true})
-const thisEveningOnly = defineModel<boolean>('thisEveningOnly', {required: true})
+const thisDateOnly = defineModel<boolean>('thisDateOnly', {required: true})
 
 defineProps<{
   inventories: Inventory[]
   items: InventoryItem[]
   arts: InventoryArt[]
-  /** Whether the appointment repeats at all, which is what makes an evening of its own possible. */
+  /** Whether the appointment repeats at all, which is what makes a need for a single date possible. */
   recurring: boolean
   saving: boolean
   /** Why the last attempt did not take, shown here because this is where the reader is looking. */
@@ -88,10 +88,10 @@ const incomplete = computed(() => {
       <NumberInput v-model="trailHours" :min="0" data-testid="equipment-line-trail"/>
 
       <label v-if="recurring" class="flex items-center gap-2 text-sm">
-        <CheckboxInput v-model="thisEveningOnly" data-testid="equipment-line-once"/>
-        <span>{{ t('eventEquipment.thisEveningOnlyLabel') }}</span>
+        <CheckboxInput v-model="thisDateOnly" data-testid="equipment-line-once"/>
+        <span>{{ t('eventEquipment.thisDateOnlyLabel') }}</span>
       </label>
-      <FieldHint v-if="recurring">{{ t('eventEquipment.thisEveningOnlyHint') }}</FieldHint>
+      <FieldHint v-if="recurring">{{ t('eventEquipment.thisDateOnlyHint') }}</FieldHint>
 
       <ButtonRow pair align="end">
         <SecondaryButton data-cancel @click="show = false">{{ t('common.cancel') }}</SecondaryButton>

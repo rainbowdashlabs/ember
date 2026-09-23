@@ -14,7 +14,7 @@ import java.time.LocalTime;
 /**
  * The one appointment an entry has been invited to, or {@code null} while nobody has been invited.
  *
- * <p>An appointment id alone does not name an evening: everything occurrence-shaped here is keyed
+ * <p>An appointment id alone does not name an occurrence: everything occurrence-shaped here is keyed
  * by appointment and date, and a weekly Dienst without a date would mean every Tuesday there has
  * ever been. So the date travels with the appointment, and an answer given to the invitation
  * answers that pair.

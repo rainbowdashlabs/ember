@@ -136,7 +136,7 @@ public sealed interface NotificationParams {
      * is short of an answer.
      *
      * @param eventName  the appointment that wants the answer
-     * @param eventDate  the evening the registration is for, which is what the link opens
+     * @param eventDate  the date the registration is for, which is what the link opens
      * @param memberName whose answer is missing, which is the reader themselves or somebody they
      *                   look after; a guardian needs to know which of their children it is about
      */

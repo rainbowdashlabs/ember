@@ -51,7 +51,7 @@ test.describe('Checklists', () => {
     })
 
     /**
-     * A list tied to an evening picks up whoever signs up afterwards, once somebody presses refresh.
+     * A list tied to an occurrence picks up whoever signs up afterwards, once somebody presses refresh.
      *
      * <p>That last clause is the whole story. "Follows" invites the reading that the list keeps
      * itself up to date, and it does not: the late sign-up sits there unseen until the button is

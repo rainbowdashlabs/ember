@@ -40,7 +40,7 @@ const props = defineProps<{
   currentMemberId: number
   registrableMembers: AnswerablePerson[]
   hasManagedMembers: boolean
-  /** The single evening this screen is focused on. Every answer written here belongs to it. */
+  /** The single date this screen is focused on. Every answer written here belongs to it. */
   effectiveDate: string | null
   /** Everybody the station has today, which is who a list built from these sign-ups can hold. */
   currentMemberIds: number[]
@@ -113,7 +113,7 @@ const unregisteredMembers = computed(() => {
 })
 
 /**
- * The people holding a place on the evening in view, which is what anything built from this tab
+ * The people holding a place on the date in view, which is what anything built from this tab
  * works from. The loaded list carries every occurrence of the appointment, so the date is what
  * makes this one Tuesday rather than all of them.
  */

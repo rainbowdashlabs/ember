@@ -444,7 +444,7 @@ public class LendingRoutes implements Routes {
 
     /**
      * @param eventId   the appointment the list was collected for, or {@code null}
-     * @param eventDate the evening of that appointment, or {@code null}
+     * @param eventDate the date of that appointment, or {@code null}
      */
     public record CreateLendingRequest(
             int owningStationId,

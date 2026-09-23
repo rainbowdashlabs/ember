@@ -722,7 +722,7 @@ public class ChecklistRoutes implements Routes {
      * stopped following anything.
      *
      * @param eventId   the appointment
-     * @param eventDate the one evening whose sign-ups it follows
+     * @param eventDate the one date whose sign-ups it follows
      * @param eventName the appointment's name, so the header can say it without a second request
      */
     public record SourceOccurrenceResponse(Integer eventId, LocalDate eventDate, String eventName) {}

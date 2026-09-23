@@ -713,7 +713,7 @@ public class EmailService {
      * Sends the invitation to come and look, which is the first message a station writes to
      * somebody on its waiting list of its own accord.
      *
-     * <p>It carries the evening they are asked to come to and links to the page where the three
+     * <p>It carries the appointment they are asked to come to and links to the page where the three
      * answers are given. The answers are not links in the body: a one-click answer in a mail is
      * followed by scanners, which would answer on the reader's behalf.
      */

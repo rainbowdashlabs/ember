@@ -14,7 +14,7 @@ import java.time.LocalDate;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * A list of steps a station works through, optionally prepared for one evening of one appointment.
+ * A list of steps a station works through, optionally prepared for one date of one appointment.
  *
  * @param eventId   the appointment this was prepared for, or {@code null} when it stands on its own
  * @param eventDate the single occurrence of that appointment, {@code null} exactly when the

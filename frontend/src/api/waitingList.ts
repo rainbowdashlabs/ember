@@ -101,7 +101,7 @@ export interface WaitingListInvitation {
     arrivalTime?: string | null
 }
 
-/** What the station sends when it invites: the evening, or nothing to invite without one. */
+/** What the station sends when it invites: the occurrence, or nothing to invite without one. */
 export interface WaitingListInvitationRequest {
     eventId: number
     date: string
@@ -178,7 +178,7 @@ export interface WaitingListInvitationAnswer {
     note: string
 }
 
-/** The evening the entry is invited to, already written out the way the mail wrote it. */
+/** The occurrence the entry is invited to, already written out the way the mail wrote it. */
 export interface WaitingListPublicInvitation {
     eventId: number
     date: string
@@ -401,7 +401,7 @@ export async function confirmInterest(token: string): Promise<void> {
 /**
  * Answers the invitation the entry currently holds.
  *
- * The evening travels with the answer so it says what it answers: an entry carries one current
+ * The occurrence travels with the answer so it says what it answers: an entry carries one current
  * invitation, and a click from a mail that has been superseded is refused rather than applied to
  * the invitation that replaced it.
  */

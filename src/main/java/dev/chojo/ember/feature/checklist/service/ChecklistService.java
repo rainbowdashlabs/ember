@@ -127,7 +127,7 @@ public class ChecklistService {
     /**
      * Creates a checklist and materialises the people it starts with.
      *
-     * <p>Passing an {@code occurrence} makes the list follow that evening's accepted sign-ups
+     * <p>Passing an {@code occurrence} makes the list follow that date's accepted sign-ups
      * instead of a filter, and the filter is left empty: the two never stand together, because an
      * appointment already decides who it is for.
      */
@@ -344,7 +344,7 @@ public class ChecklistService {
      * Works out who belongs on the list right now, and whether the list follows anything at all.
      *
      * <p>Two sources, never both. An appointment occurrence resolves to the accepted sign-ups of
-     * that one evening; anything else resolves the filter rows against the station's current
+     * that one date; anything else resolves the filter rows against the station's current
      * members with {@link RestrictionSet#matches}. A list that follows neither, which is what a
      * deleted appointment leaves behind, resolves to nothing and marks nobody.
      *
@@ -378,7 +378,7 @@ public class ChecklistService {
     }
 
     /**
-     * The people holding a place on the followed evening, narrowed to the members this station has
+     * The people holding a place on the followed date, narrowed to the members this station has
      * today.
      *
      * <p>Only a place actually taken counts, which is the set the appointment itself measures. Two
@@ -427,7 +427,7 @@ public class ChecklistService {
     }
 
     /**
-     * One evening of one appointment, which is what a following list names.
+     * One occurrence of one appointment, which is what a following list names.
      *
      * <p>The date is the whole point. Sign-ups are kept per appointment and date, so an appointment
      * on its own would resolve to the union of every Tuesday a weekly Dienst has ever had.

@@ -610,7 +610,7 @@ class NotificationFeedRendererTest {
                 new NotificationData.NotificationLink("event-detail", Map.of("id", 42)));
         var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
 
-        assertTrue(html.contains("09:00"), "the evening starts when the station says it does: " + html);
+        assertTrue(html.contains("09:00"), "the appointment starts when the station says it does: " + html);
         assertTrue(html.contains("14:00"), "and ends when it says it does: " + html);
         assertFalse(html.contains("07:00"), "not in the machine's clock: " + html);
     }

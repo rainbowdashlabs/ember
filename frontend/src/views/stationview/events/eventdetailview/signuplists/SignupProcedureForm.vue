@@ -39,7 +39,7 @@ const props = defineProps<{
   creating: boolean
   error: string
   memberSet: SignupMemberSet
-  /** The evening the set belongs to, already written the way a reader reads a date. */
+  /** The occurrence the set belongs to, already written the way a reader reads a date. */
   dateLabel: string
 }>()
 

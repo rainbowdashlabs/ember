@@ -527,7 +527,7 @@ public class WaitingListService {
     }
 
     /**
-     * Invite a WAITING entry: record the evening it is about, set status to INVITED, stamp the
+     * Invite a WAITING entry: record the appointment it is about, set status to INVITED, stamp the
      * moment and write the invitation to the guardians.
      *
      * <p>Nothing is created here. The account, the membership, the trial user type and the testing
@@ -542,7 +542,7 @@ public class WaitingListService {
      * <p>A list that writes to nobody records the invitation and sends nothing. The entry still
      * moves to invited, because the station has invited them, by whatever means it uses instead.
      *
-     * @param invitation the evening they are asked to come to, or {@code null} to invite without
+     * @param invitation the appointment they are asked to come to, or {@code null} to invite without
      *                   naming one
      */
     public WaitingListEntry inviteEntry(int entryId, WaitingListInvitation invitation) {
@@ -592,8 +592,8 @@ public class WaitingListService {
      * Records what somebody answered to the invitation their entry currently holds, and tells the
      * station.
      *
-     * <p>The answer names the evening it answers and is refused when that is not the evening the
-     * entry is currently invited to. Together with an entry carrying one current invitation, that is
+     * <p>The answer names the appointment it answers and is refused when that is not the appointment
+     * the entry is currently invited to. Together with an entry carrying one current invitation, that is
      * what makes a click from a mail that has been superseded harmless rather than misleading.
      *
      * <p>A refusal is recorded and nothing more. Withdrawing the entry would move it out of the

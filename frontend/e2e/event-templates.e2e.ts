@@ -115,7 +115,7 @@ test.describe('Event templates', () => {
     /**
      * Copying a template rather than typing the second one out.
      *
-     * <p>Stations run two or three variations of the same evening, and the only way to get the second
+     * <p>Stations run two or three variations of the same appointment, and the only way to get the second
      * one was to enter every question again.
      */
     test('a template can be duplicated', async ({managerPage: page}) => {
@@ -203,7 +203,7 @@ test.describe('Event templates', () => {
     /**
      * A template says who its appointments are for, and applying it says so on the appointment.
      *
-     * <p>A template could only ever name a kind of member, so a station running one evening for the
+     * <p>A template could only ever name a kind of member, so a station running one appointment for the
      * youngest group picked that group again on every date of the year. Naming it once on the
      * template is the whole point, and the appointment can still be widened afterwards.
      */

@@ -60,8 +60,8 @@ public class MemberCheckNotesService {
     private static final Logger log = LoggerFactory.getLogger(MemberCheckNotesService.class);
 
     /**
-     * How far back a birthday is still worth mentioning. Six days means the one evening a week a
-     * station meets always falls within reach of the birthday before it.
+     * How far back a birthday is still worth mentioning. Six days means the one appointment a week
+     * a station meets always falls within reach of the birthday before it.
      */
     private static final int BIRTHDAY_WINDOW_DAYS = 6;
 

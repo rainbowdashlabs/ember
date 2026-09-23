@@ -74,7 +74,7 @@ public final class BeaconPayloads {
      *
      * <p>Forwarded without their name: who wrote it is the station's business, and a beacon reading
      * "somebody on version X, on this page, in this browser" can act on all of it without knowing
-     * whose evening it was. What the report is worth at the other end is the context around the
+     * whose report it was. What the report is worth at the other end is the context around the
      * sentence, because "der Knopf tut nichts" names no defect on its own.
      *
      * @param page           the address they were on, with any query string already removed

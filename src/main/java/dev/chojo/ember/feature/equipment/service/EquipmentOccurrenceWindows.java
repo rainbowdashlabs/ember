@@ -13,13 +13,13 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 
 /**
- * When an evening of an appointment starts and ends, and how long the gear it needs is away.
+ * When an occurrence of an appointment starts and ends, and how long the gear it needs is away.
  *
  * <p>An appointment carries the clock time of its first date and repeats that clock time onto every
- * date it falls on, so one evening is that date combined with the times read off the start and the
+ * date it falls on, so one occurrence is that date combined with the times read off the start and the
  * end. The reading is done in UTC because every other date derivation in the appointment code is:
  * the calendar, the reminders and the identity of a sign-up all read the day off the start time that
- * way, and a claim that computed the day differently would hold a window on a different evening than
+ * way, and a claim that computed the day differently would hold a window on a different date than
  * the one the sign-ups are keyed to.
  *
  * <p>A window is instants rather than days on purpose. Lead and trail are "Friday evening to Monday
@@ -31,10 +31,10 @@ public final class EquipmentOccurrenceWindows {
     private EquipmentOccurrenceWindows() {}
 
     /**
-     * When one evening of an appointment begins.
+     * When one occurrence of an appointment begins.
      *
      * @param event the appointment
-     * @param date  the evening
+     * @param date  the date
      * @return the moment it begins
      */
     public static Instant startOf(StationEvent event, LocalDate date) {
@@ -42,13 +42,13 @@ public final class EquipmentOccurrenceWindows {
     }
 
     /**
-     * When one evening of an appointment ends.
+     * When one occurrence of an appointment ends.
      *
      * <p>An appointment whose end reads earlier in the day than its start runs past midnight, so the
      * end belongs to the following day.
      *
      * @param event the appointment
-     * @param date  the evening
+     * @param date  the date
      * @return the moment it ends
      */
     public static Instant endOf(StationEvent event, LocalDate date) {

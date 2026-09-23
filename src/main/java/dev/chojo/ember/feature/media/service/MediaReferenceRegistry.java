@@ -172,7 +172,7 @@ public class MediaReferenceRegistry {
      * The files of a station that are handed out only by events keeping them back from the room.
      *
      * <p>The library addresses a file by the hash of its bytes and hands it to anybody signed in,
-     * which is right for the picture on a page and wrong for the plan of an evening. A file that
+     * which is right for the picture on a page and wrong for the plan of an appointment. A file that
      * only ever reaches a reader through an internal attachment is kept behind the same question
      * the event asks, so that the list a screen draws and the library door cannot disagree.
      *

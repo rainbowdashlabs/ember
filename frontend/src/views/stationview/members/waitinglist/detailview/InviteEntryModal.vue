@@ -19,7 +19,7 @@ import type {WaitingListEntryWithScore} from '@/api/waitingList'
 /**
  * The invitation to come and look, which is the one transition that has something to fill in.
  *
- * The evening is optional: a station that has not settled on one yet can still write, and the mail
+ * The date is optional: a station that has not settled on one yet can still write, and the mail
  * then simply says nothing about when. What it never does is sign anybody up for the appointment.
  */
 const occurrence = defineModel<EventOccurrenceRef | null>('occurrence', {required: true})

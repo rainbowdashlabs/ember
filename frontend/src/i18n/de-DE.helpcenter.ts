@@ -1855,14 +1855,14 @@ volumes:
         },
         lendingCollect: {
             title: 'Was ein Termin braucht',
-            subtitle: 'Ausrüstung für einen Abend vormerken und Fehlendes leihen.',
+            subtitle: 'Ausrüstung für einen Termin vormerken und Fehlendes leihen.',
             whatIs: 'Wozu ist das gut?',
             whatIsText: 'Das Inventar weiß, was die Wache besitzt, und der Termin weiß, wer kommt. Keines von beiden wusste bisher, dass der Leistungsmarsch am Samstag vierzehn Garnituren und einen Anhänger braucht. Auf der Registerkarte Ausrüstung eines Termins steht genau das.',
-            seriesText: 'Bei einer Terminreihe gilt eine Zeile für jeden Abend. Ein einzelner Abend kann zusätzlich etwas eintragen, ohne die Reihe anzufassen: der eine Dienst im Jahr, für den auch der Anhänger gebraucht wird.',
+            seriesText: 'Bei einer Terminreihe gilt eine Zeile für jeden Termin der Reihe. Ein einzelner Termin kann zusätzlich etwas eintragen, ohne die Reihe anzufassen: der eine Dienst im Jahr, für den auch der Anhänger gebraucht wird.',
             linesTitle: 'Die Zeilen',
             linesText: 'Eine Zeile benennt ein bestimmtes Stück, fragt nach einer Anzahl einer Art aus einer Sammlung oder nach einer Anzahl aus einem ganzen einheitlichen Inventar.',
             pickText: 'Gesucht wird durch Tippen: ein paar Buchstaben aus dem Namen genügen, und jeder Treffer sagt gleich, in welchem Inventar er liegt und wie viele Stücke davon an der Wache sind. Eine Liste zum Durchscrollen gibt es nicht mehr, denn bei ein paar hundert Stücken war sie ohnehin nicht mehr zu lesen.',
-            tooManyText: 'Steht neben einer Art oder einem Inventar eine kleinere Zahl als die verlangte, sagt der Dialog es sofort. Verboten wird es nicht: Was fehlt, lässt sich eintragen und danach bei den Partnerwachen suchen. Gezählt wird, was die Wache überhaupt besitzt; was an einem bestimmten Abend noch frei ist, steht neben der Zeile im Ausrüstungs-Reiter, weil eine Zeile für jeden Abend der Reihe gilt und nicht nur für einen.',
+            tooManyText: 'Steht neben einer Art oder einem Inventar eine kleinere Zahl als die verlangte, sagt der Dialog es sofort. Verboten wird es nicht: Was fehlt, lässt sich eintragen und danach bei den Partnerwachen suchen. Gezählt wird, was die Wache überhaupt besitzt; was an einem bestimmten Termin noch frei ist, steht neben der Zeile im Ausrüstungs-Reiter, weil eine Zeile für jeden Termin der Reihe gilt und nicht nur für einen.',
             leadText: 'Ausrüstung ist länger weg als der Termin dauert. Die Funkgeräte werden am Vorabend geholt und kommen am Montag zurück, deshalb trägt jede Zeile ein, wie viele Stunden vorher sie schon aus dem Regal ist und wie lange danach noch. Ein Tag in jede Richtung ist der Normalfall und voreingestellt.',
             coverTitle: 'Was gedeckt ist',
             coverText: 'Neben jeder Zeile steht, woher die Stücke kommen: eigene, geliehene und angefragte. Eine geliehene Kiste ist an der eigenen Wache eine ganz gewöhnliche Zeile und zählt deshalb mit, sonst würde eine Lücke gemeldet, die vor einer Woche geschlossen wurde.',
@@ -2114,6 +2114,7 @@ volumes:
             tip: 'Nutze den PDF-Export, um Anwesenheitslisten für die Dokumentation auszudrucken.',
         },
         attendanceSession: {
+            openEventText: 'Gehört der Bogen zu einem Termin, führt „Termin öffnen" zurück zu genau dem Tag, den der Bogen abdeckt. Bei einem wöchentlichen Termin landest du damit auf dem richtigen Datum und nicht auf dem ersten der Reihe. Der Eintrag bleibt auch, wenn der Bogen geschlossen ist.',
             title: 'Anwesenheit erfassen',
             subtitle: 'Eine einzelne Anwesenheitssitzung bearbeiten.',
             howTo: 'So erfasst du die Anwesenheit',
@@ -2130,8 +2131,8 @@ volumes:
             missingEntryTitle: 'Namen ohne Eintrag',
             missingEntryText: 'Wer erst nach dem Anlegen des Bogens in eine Gruppe der Vorlage gekommen ist, steht auf der Liste, hat aber noch keine Zeile. '
                 + 'Die Statusknöpfe stehen trotzdem an der Zeile: Beim ersten Druck entsteht der Eintrag und bekommt sofort den gewählten Status.',
-            beforeJoiningText: 'Liegt das Beitrittsdatum eines Mitglieds nach dem Abend, steht dort statt der Knöpfe "Noch nicht beigetreten". '
-                + 'Diese Person war an dem Abend noch nicht dabei und kann deshalb auch nicht nachgetragen werden. Ist kein Beitrittsdatum hinterlegt, gilt keine Einschränkung.',
+            beforeJoiningText: 'Liegt das Beitrittsdatum eines Mitglieds nach dem Termin, steht dort statt der Knöpfe "Noch nicht beigetreten". '
+                + 'Diese Person war an dem Termin noch nicht dabei und kann deshalb auch nicht nachgetragen werden. Ist kein Beitrittsdatum hinterlegt, gilt keine Einschränkung.',
             notesTitle: 'Hinweise zum Mitglied',
             notesText: 'Neben jedem Namen steht, was für dieses Mitglied noch offen ist: ein laufender Tausch mit dem, worauf gerade gewartet wird, eine Fundsache, die noch abgeholt werden muss, und ein Geburtstag der letzten sechs Tage. '
                 + 'Die Hinweise stehen sowohl in der Schnellprüfung als auch in der Liste aller Anwesenheiten, denn genau dann steht die Person vor dir.',
@@ -2141,7 +2142,7 @@ volumes:
             notesRightsText: 'Angezeigt wird nur, wofür du auch sonst die Rechte hast: Tauschvorgänge brauchen Leserechte auf das Inventar, das Weiterbewegen zusätzlich das Recht für Tauschvorgänge, Fundsachen das Recht zur Verwaltung des Fundbüros. '
                 + 'Der Geburtstag folgt der Sichtbarkeit des Profilfelds. Wer nichts davon hat, sieht die Anwesenheitsliste unverändert.',
             frozenTitle: 'Abgeschlossene Anwesenheiten',
-            frozenText: 'Ein Bogen lässt sich nur eine begrenzte Zeit nach seinem Abend bearbeiten, standardmäßig sieben Tage. '
+            frozenText: 'Ein Bogen lässt sich nur eine begrenzte Zeit nach seinem Termin bearbeiten, standardmäßig sieben Tage. '
                 + 'Danach ist er abgeschlossen: Status, Zeiten, Felder und neue Namen sind gesperrt, Lesen und Exportieren bleiben möglich.',
             frozenManagerText: 'Wer Anwesenheiten verwaltet, kann einen abgeschlossenen Bogen über "Wieder öffnen" erneut für dieselbe Zeitspanne freigeben oder ihn über das Aktionen-Menü vorzeitig abschließen. '
                 + 'Wie lange die Frist läuft, legt der Betreiber der Instanz fest.',
@@ -2359,9 +2360,11 @@ volumes:
             absentText: 'Verwalter sehen eine Liste der Mitglieder, die sich abgemeldet haben. So weiß man, wer nicht dabei ist.',
             templateTitle: 'Anwesenheitsvorlage',
             templateText: 'Wenn für diesen Termin eine Anwesenheitsvorlage hinterlegt ist, kannst du die Anwesenheit direkt von hier aus starten. Welche Vorlage das ist, steht nur bei denen, die den Termin bearbeiten dürfen: für alle anderen ist es eine Einstellung, die sie nichts angeht.',
+            attendanceMenuText: 'Im Menü neben „Termin bearbeiten" liegt dafür ein Eintrag. Gibt es für diesen Tag noch keinen Bogen, heißt er „Anwesenheit erfassen" und legt einen an; gibt es schon einen, heißt er „Erfassung öffnen" und führt dorthin.',
+            attendanceDayText: 'Der Eintrag gehört immer zu dem Tag, den du gerade ansiehst. Ein wöchentlicher Termin bekommt deshalb einen eigenen Bogen je Tag, und angelegt wird nur am Tag selbst.',
             announceTitle: 'Als Neuigkeit ankündigen',
             announceText: 'Im Menü neben „Termin bearbeiten" liegt „Als Neuigkeit ankündigen". Damit öffnet sich der Neuigkeiten-Editor mit einem fertigen Entwurf: Titel des Termins, das Datum und die Angaben, die der Termin in der Übersicht zeigt, meist Treffpunkt und Ort.',
-            announceDateText: 'Der Entwurf nennt genau den Abend, den du gerade ansiehst. Bei einem wöchentlichen Termin ist das wichtig, sonst weiß niemand, welcher Dienstag gemeint ist.',
+            announceDateText: 'Der Entwurf nennt genau den Tag, den du gerade ansiehst. Bei einem wöchentlichen Termin ist das wichtig, sonst weiß niemand, welcher Dienstag gemeint ist.',
             announceAudienceText: 'Ist der Termin nur für bestimmte Gruppen sichtbar, startet die Neuigkeit mit derselben Auswahl. Solange sie steht, erreicht die Neuigkeit weder Partnerwachen noch die öffentliche Seite. Das Aufheben ist ein bewusster zweiter Schritt.',
             announceSnapshotText: 'Der Entwurf ist eine Abschrift, kein Verweis. Verschiebt sich der Termin später, ändert sich die Neuigkeit nicht mit, genauso wie ein gedruckter Aushang.',
             cancelTitle: 'Termin absagen',
@@ -2376,7 +2379,7 @@ volumes:
             federationText: 'Wenn der Termin für Partnerwachen freigegeben ist, siehst du auch Anmeldungen von Mitgliedern anderer Wachen.',
             signupListsTitle: 'Checkliste oder Umfrage aus den Anmeldungen',
             signupListsSurveyText: 'Die Umfrage wird als Entwurf angelegt und ist auf genau diese Personen beschränkt. Sie erreicht niemanden, solange sie nicht veröffentlicht ist: erst die Fragen schreiben, dann veröffentlichen. Der Eintrag erscheint nur, wenn das Modul für Umfragen bei der Wache eingeschaltet ist.',
-            signupListsText: 'Über dem Anmeldungen-Bereich sitzt ein Menü, das aus den Zusagen eine Checkliste oder eine Umfrage macht. Übernommen wird genau ein Abend, nämlich der, den die Seite gerade zeigt, und nur wer dort einen Platz hat. Wer sich später anmeldet, kommt nicht von selbst dazu: die Liste ist eine Momentaufnahme, und Nachzügler werden von Hand ergänzt.',
+            signupListsText: 'Über dem Anmeldungen-Bereich sitzt ein Menü, das aus den Zusagen eine Checkliste oder eine Umfrage macht. Übernommen wird genau ein Termin, nämlich der, den die Seite gerade zeigt, und nur wer dort einen Platz hat. Wer sich später anmeldet, kommt nicht von selbst dazu: die Liste ist eine Momentaufnahme, und Nachzügler werden von Hand ergänzt.',
             signupListsLimitsText: 'Drei Gruppen können nicht auf die Liste, und der Dialog sagt vorher, um wie viele es geht: Zusagen von Partnerwachen, weil diese Personen hier keine Mitglieder sind, und Personen, die die Wache inzwischen verlassen haben. Bei einem Termin ohne Anmeldung gibt es gar keine Zusagen, dort erscheint das Menü deshalb nicht. Im Verbandsbereich fehlt es ebenfalls, weil Checklisten und Umfragen der Wache gehören.',
             nextOccurrenceTitle: 'Datum-bezogene Ansicht',
             nextOccurrenceText: 'Die Detailansicht ist immer an ein konkretes Datum gebunden. Bei wiederkehrenden Terminen wird das Datum entweder aus der URL übernommen (etwa wenn du aus einer Erinnerung kommst) oder fällt auf den nächsten Termin zurück. Beginn und Ende zeigen genau diesen Tag - kein separater „Nächster Termin"-Kasten mehr nötig. Abwesenheiten beziehen sich auf dasselbe Datum.',
@@ -2475,8 +2478,8 @@ volumes:
             step3: 'Mitglieder per Nutzertyp, Gruppe, Tag oder einzeln auswählen - oder stattdessen einen Termin wählen.',
             step4: 'Speichern. Die Mitglieder werden eingefroren auf die Liste übernommen.',
             followsTitle: 'Liste zu einem Termin',
-            followsText: 'Statt Merkmalen kann eine Liste einem einzelnen Terminabend folgen. Auf sie kommt dann, wer für genau diesen Abend einen Platz hat.',
-            followsOccurrence: 'Es zählt ein Abend, nicht die ganze Reihe. Bei einem wöchentlichen Dienst wählst du das Datum mit aus.',
+            followsText: 'Statt Merkmalen kann eine Liste einem einzelnen Termin folgen. Auf sie kommt dann, wer für genau diesen Termin einen Platz hat.',
+            followsOccurrence: 'Es zählt ein einzelner Termin, nicht die ganze Reihe. Bei einem wöchentlichen Dienst wählst du das Datum mit aus.',
             followsRefresh: 'Wer sich später anmeldet, kommt beim nächsten Auffrischen dazu. Von selbst passiert das nicht.',
             followsCancel: 'Wer absagt, bleibt auf der Liste stehen und wird als nicht mehr passend gekennzeichnet. So gehen die Häkchen nicht verloren.',
             followsGuests: 'Zusagen von Partnerwachen bleiben außen vor, weil sie hier keine Mitglieder sind.',
@@ -3145,9 +3148,9 @@ volumes:
             itemsTitle: 'Die Schritte',
             itemsText: 'Jeder Schritt hat einen Titel und wahlweise eine Beschreibung. Mit den Pfeilen sortierst du ihn um. Über die Schalter legst du fest, ob Zuständige den Schritt sehen und selbst abhaken dürfen.',
             fromSignupsTitle: 'Ablauf aus den Anmeldungen',
-            fromSignupsText: 'Wer für einen Abend zugesagt hat, muss nicht von Hand abgetippt werden. Im Termin öffnest du den Reiter „Anmeldungen“ und wählst im Menü „Aus den Anmeldungen“ den Eintrag „Ablauf aus den Anmeldungen“. Die zugesagten Personen sind dann die Zuständigen, das Fälligkeitsdatum ist der Abend selbst.',
+            fromSignupsText: 'Wer für einen Termin zugesagt hat, muss nicht von Hand abgetippt werden. Im Termin öffnest du den Reiter „Anmeldungen“ und wählst im Menü „Aus den Anmeldungen“ den Eintrag „Ablauf aus den Anmeldungen“. Die zugesagten Personen sind dann die Zuständigen, das Fälligkeitsdatum ist der Termin selbst.',
             fromSignupsTemplateText: 'Eine Vorlage ist dabei nötig, denn die Schritte kommen aus ihr: eine Namensliste ohne Aufgaben hilft niemandem. Hat deine Wache noch keine Vorlage, sagt der Dialog das und du legst zuerst unter Abläufe > Vorlagen eine an.',
-            fromSignupsSharedText: 'Alle Zuständigen teilen sich dieselben Schritte. Ein Haken zählt für alle, nicht pro Person. Für „jede Person gibt ihren Zettel ab“ nimmst du stattdessen eine Checkliste. Jede zugesagte Person bekommt außerdem eine Benachrichtigung, sobald der Ablauf angelegt ist. Gibt es für den Abend schon einen Ablauf, bietet dir der Dialog ihn an, statt einen zweiten daneben anzulegen.',
+            fromSignupsSharedText: 'Alle Zuständigen teilen sich dieselben Schritte. Ein Haken zählt für alle, nicht pro Person. Für „jede Person gibt ihren Zettel ab“ nimmst du stattdessen eine Checkliste. Jede zugesagte Person bekommt außerdem eine Benachrichtigung, sobald der Ablauf angelegt ist. Gibt es für den Termin schon einen Ablauf, bietet dir der Dialog ihn an, statt einen zweiten daneben anzulegen.',
             editTitle: 'Beim Bearbeiten',
             editText: 'Bearbeitest du einen bestehenden Ablauf, fehlt die Vorlagen-Auswahl und die Schaltfläche unten heißt „Speichern". Schon abgehakte Schritte bleiben abgehakt.',
             tip: 'Formuliere jeden Schritt als eine Tätigkeit, zum Beispiel „Schlüssel übergeben". Dann weiß jede Person sofort, was zu tun ist.',
@@ -3168,7 +3171,7 @@ volumes:
             resolveTitle: 'Abschließen und wieder öffnen',
             resolveText: 'Mit der grünen Schaltfläche schließt du den Ablauf ab, mit der roten öffnest du ihn wieder. Beides fragt vorher noch einmal nach. Ein rotes Abzeichen zeigt, dass der Ablauf überfällig ist.',
             fromEventTitle: 'Abläufe zu einem Termin',
-            fromEventText: 'Stammt der Ablauf aus den Anmeldungen eines Termins, steht oben neben der Fälligkeit ein Verweis „Zum Termin am …“. Er führt zurück auf genau den Abend, für den vorbereitet wird.',
+            fromEventText: 'Stammt der Ablauf aus den Anmeldungen eines Termins, steht oben neben der Fälligkeit ein Verweis „Zum Termin am …“. Er führt zurück auf genau den Termin, für den vorbereitet wird.',
             tip: 'Nutze die Notiz für Dinge, die vom Plan abweichen - beim nächsten Mal weiß dann jede Person, warum.',
         },
         procedureTemplates: {
@@ -4378,7 +4381,7 @@ volumes:
             registrationFieldsDefaults: 'Ein Vorgabewert wird beim Öffnen des Anmeldeformulars vorausgefüllt und kann geändert werden. Er zählt erst als Antwort, wenn die Anmeldung abgeschickt wird.',
             registrationFieldsOverview: 'Mit „In der Anmeldeliste anzeigen" entscheidest du, ob die Antwort direkt neben dem Namen in der Anmeldeliste steht oder nur an der Anmeldung selbst.',
             attachmentsTitle: 'Dateien zum Termin',
-            attachmentsText: 'Ein Termin kann Dateien mitgeben: den Laufzettel, das Formular zum Mitbringen, den Plan für den Abend. Du wählst sie aus den Medien der Wache oder lädst sie dort hoch, gibst ihnen bei Bedarf einen Anzeigenamen und bringst sie in die Reihenfolge, in der sie auf der Terminseite stehen sollen.',
+            attachmentsText: 'Ein Termin kann Dateien mitgeben: den Laufzettel, das Formular zum Mitbringen, den Plan für den Termin. Du wählst sie aus den Medien der Wache oder lädst sie dort hoch, gibst ihnen bei Bedarf einen Anzeigenamen und bringst sie in die Reihenfolge, in der sie auf der Terminseite stehen sollen.',
             attachmentsInternalText: 'Mit dem Schalter „Intern" legst du fest, wer eine Datei bekommt. Ohne ihn sieht sie jeder, der den Termin sehen darf, Partnerwachen eingeschlossen. Mit ihm bleibt sie bei den Leuten, die den Termin durchführen: Wer Termine bearbeiten darf oder das Recht auf interne Termindaten hat, sieht sie, sonst niemand, und an Partnerwachen wird sie nicht weitergegeben.',
             attachmentsFilesText: 'Dateien liegen weiterhin in den Medien der Wache. Ein angehängtes Bild oder Dokument lässt sich dort nicht löschen, solange ein Termin es mitgibt, und derselbe Laufzettel kann an mehreren Terminen hängen, ohne mehrfach zu belegen.',
             title: 'Termin erstellen / bearbeiten',

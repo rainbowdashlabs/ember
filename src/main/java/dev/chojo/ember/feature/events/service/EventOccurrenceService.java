@@ -46,8 +46,8 @@ public class EventOccurrenceService {
      * The clock a station keeps its days by.
      *
      * <p>Which day it is, and which day an appointment falls on, are both the station's to answer. A
-     * server an hour or two behind is still on yesterday late in the evening, so asking it left this
-     * evening's appointment off the list of today's and put tomorrow's one day early.
+     * server an hour or two behind is still on yesterday late in the evening, so asking it left
+     * today's appointment off that list and put tomorrow's one day early.
      *
      * @param stationId the station whose day is meant
      * @return its timezone, UTC where it keeps none

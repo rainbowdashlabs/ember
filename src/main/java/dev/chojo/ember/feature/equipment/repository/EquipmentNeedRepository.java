@@ -42,7 +42,7 @@ public class EquipmentNeedRepository {
     }
 
     /**
-     * Every line of one appointment, the standing ones and the ones written for a single evening.
+     * Every line of one appointment, the standing ones and the ones written for a single date.
      *
      * @param eventId the appointment
      * @return the lines, in their own order
@@ -80,7 +80,7 @@ public class EquipmentNeedRepository {
      * Appends a line to an appointment.
      *
      * @param eventId      the appointment
-     * @param eventDate    the one evening it speaks for, or {@code null} for the whole series
+     * @param eventDate    the one date it speaks for, or {@code null} for the whole series
      * @param itemId       the named piece, or {@code null}
      * @param artId        the kind of thing, or {@code null}
      * @param inventoryId  the inventory, or {@code null}
@@ -179,10 +179,10 @@ public class EquipmentNeedRepository {
     }
 
     /**
-     * Deletes the lines an evening wrote for itself, leaving the series alone.
+     * Deletes the lines a single date wrote for itself, leaving the series alone.
      *
      * @param eventId the appointment
-     * @param date    the evening
+     * @param date    the date
      * @return how many lines went
      */
     public int deleteForDate(int eventId, LocalDate date) {
@@ -193,10 +193,10 @@ public class EquipmentNeedRepository {
     }
 
     /**
-     * Records that a piece went out for one evening.
+     * Records that a piece went out for one date.
      *
      * @param needId    the line it went out against
-     * @param eventDate the evening
+     * @param eventDate the date
      * @param itemId    the piece
      * @param claimFrom when it left
      * @param claimTo   when it is due back
@@ -247,10 +247,10 @@ public class EquipmentNeedRepository {
     }
 
     /**
-     * The pieces that went out for one evening of one appointment.
+     * The pieces that went out for one date of one appointment.
      *
      * @param eventId the appointment
-     * @param date    the evening
+     * @param date    the date
      * @return the handovers
      */
     public List<EquipmentHandover> findHandovers(int eventId, LocalDate date) {

@@ -87,7 +87,7 @@ test.describe('Event files', () => {
      * exists and a file that only lands on save is a file somebody believes they attached.
      *
      * <p>The row this story made is the one it acts on, by the id it was given. The suite runs its
-     * stories side by side on the same seeded evening, so the first row on the screen is as likely
+     * stories side by side on the same seeded appointment, so the first row on the screen is as likely
      * to belong to another story as to this one.
      */
     test('a manager hangs a library file on an event and keeps it back', async ({managerPage: page}) => {

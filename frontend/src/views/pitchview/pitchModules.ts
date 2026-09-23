@@ -143,7 +143,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                 kind: 'showcase', id: 'events-handover', accent: 'primary', tone: 'accent',
                 chip: 'Termine im Detail',
                 heading: 'Vom Termin in den Jahresbericht',
-                lead: 'Wer zugesagt hat, steht am Abend schon in der Anwesenheitsliste. Von dort läuft es weiter.',
+                lead: 'Wer zugesagt hat, steht am Termin schon in der Anwesenheitsliste. Von dort läuft es weiter.',
                 screens: [
                     {
                         title: 'Anwesenheit', subtitle: 'Knotenkunde · 18.06.',

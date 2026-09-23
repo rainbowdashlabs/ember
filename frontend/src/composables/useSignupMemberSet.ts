@@ -7,7 +7,7 @@ import {computed, type ComputedRef} from 'vue'
 import {RegistrationStatus, type EventRegistrationEntry, type FederatedEventRegistration, type StationEvent} from '@/api/events'
 
 /**
- * The people holding a place on one evening, ready to be handed to anything that works from a list
+ * The people holding a place on one date, ready to be handed to anything that works from a list
  * of members.
  *
  * <p>Everything a caller has to say about the set is here, including what it could not hold: a count

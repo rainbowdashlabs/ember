@@ -91,9 +91,9 @@ class EquipmentNeedRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    void anEveningWritesALineOfItsOwnAndTakesItBack() {
-        var event = EquipmentTestSupport.weekly(
-                eventRepo, station.id(), "NeedRepoOneEvening", EquipmentTestSupport.SATURDAY);
+    void aSingleDateWritesALineOfItsOwnAndTakesItBack() {
+        var event =
+                EquipmentTestSupport.weekly(eventRepo, station.id(), "NeedRepoOneDate", EquipmentTestSupport.SATURDAY);
         equipmentNeedRepo.create(event.id(), null, null, blue.id(), null, 2, 0, 0);
         var once = equipmentNeedRepo.create(event.id(), EquipmentTestSupport.SATURDAY, null, blue.id(), null, 9, 0, 0);
         assertFalse(once.forWholeSeries());

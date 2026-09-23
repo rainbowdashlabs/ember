@@ -50,7 +50,7 @@ import java.util.Optional;
 public class EquipmentAvailabilityService {
 
     /**
-     * How far outside the queried window an evening may lie and still reach into it, which bounds the
+     * How far outside the queried window an occurrence may lie and still reach into it, which bounds the
      * walk over the recurrence rule. A lead or trail beyond this is refused when the line is written.
      */
     static final int MAX_LEAD_TRAIL_DAYS = 60;
@@ -168,7 +168,7 @@ public class EquipmentAvailabilityService {
      *
      * <p>Loose claims name no pieces, so they cannot take one out of this list; they take a count out
      * of {@link EquipmentAvailability#free()} instead. What is dropped here is what a piece-level
-     * claim points at: a piece already handed over for another evening, a piece set aside for a
+     * claim points at: a piece already handed over for another date, a piece set aside for a
      * partner, and a piece a block names.
      *
      * @param stationId the station asking
@@ -224,15 +224,15 @@ public class EquipmentAvailabilityService {
     }
 
     /**
-     * The evenings one appointment produces inside a window, widened by the longest lead and trail its
-     * lines carry so that an evening just outside can still reach in.
+     * The occurrences one appointment produces inside a window, widened by the longest lead and trail
+     * its lines carry so that an occurrence just outside can still reach in.
      *
      * @param event  the appointment
      * @param breaks the periods the station does not meet in
      * @param from   the first moment of the window
      * @param to     the last moment of the window
      * @param slack  the widest lead or trail to allow for
-     * @return the evenings, in order
+     * @return the dates, in order
      */
     public static List<LocalDate> occurrencesIn(
             StationEvent event, List<EventBreak> breaks, Instant from, Instant to, int slack) {
@@ -252,16 +252,16 @@ public class EquipmentAvailabilityService {
     }
 
     /**
-     * What one evening of an appointment needs, which is the standing list with that evening's own
-     * lines folded in.
+     * What one date of an appointment needs, which is the standing list with that date's own lines
+     * folded in.
      *
-     * <p>A line written for the evening is added; where it names the same thing as a standing line it
+     * <p>A line written for the date is added; where it names the same thing as a standing line it
      * takes its place, which is how one Dienst a year asks for twenty jackets instead of fourteen
      * without touching the other forty-nine.
      *
      * @param needs every line of the appointment
-     * @param date  the evening
-     * @return the lines that hold for that evening
+     * @param date  the date
+     * @return the lines that hold for that date
      */
     public static List<EquipmentNeed> needsForDate(List<EquipmentNeed> needs, LocalDate date) {
         var byTarget = new LinkedHashMap<LineTarget, EquipmentNeed>();

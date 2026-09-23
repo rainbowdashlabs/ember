@@ -17,14 +17,14 @@ import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
 
 /**
  * Names the list and its first column before it is made, and asks whether it should keep looking at
- * this evening.
+ * this occurrence.
  *
  * <p>The column is not an extra: a checklist without one is refused outright, so asking for it here
  * is the difference between landing on a usable grid and landing on an error. The description the
  * ordinary create dialog carries stays, because a list made from a sign-up sheet is exactly the kind
- * that wants a note saying which evening it came from.
+ * that wants a note saying which occurrence it came from.
  *
- * <p>The choice between a copy and a list that follows the evening is the one thing that changes
+ * <p>The choice between a copy and a list that follows the occurrence is the one thing that changes
  * what happens after it is made, so it is asked here rather than discovered later on a screen whose
  * refresh button seems to promise something the list cannot do.
  */
@@ -34,7 +34,7 @@ const props = defineProps<{
   creating: boolean
   error: string
   memberSet: SignupMemberSet
-  /** The evening the set belongs to, already written the way a reader reads a date. */
+  /** The occurrence the set belongs to, already written the way a reader reads a date. */
   dateLabel: string
   /** What the list is called before anybody changes it: the appointment and its date. */
   suggestedName: string

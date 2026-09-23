@@ -41,7 +41,7 @@ const props = defineProps<{
   registrationStats: MemberRegistrationStats[]
   unregisteredMembers: MemberOption[]
   registrationFields?: EventRegistrationField[]
-  /** The evening in view, which is the one a table of who is coming is drawn for. */
+  /** The date in view, which is the one a table of who is coming is drawn for. */
   effectiveDate?: string | null
 }>()
 

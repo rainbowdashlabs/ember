@@ -50,7 +50,7 @@ public record AttendanceEntry(
      * <p>Nearly everybody who was there was there from the start, so an entry that carries no time
      * of its own stands for the session's. That reading only holds for somebody who was actually
      * there: filling the session's hours in beside a member marked absent would put them on the
-     * sheet for an evening they missed.
+     * sheet for an appointment they missed.
      *
      * @param sessionStart when the session began
      * @return the member's own check-in, the session's start where they were present and wrote none

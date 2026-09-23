@@ -11,7 +11,7 @@ import StatusFieldRow from './StatusFieldRow.vue'
 import type {WaitingListPublicInvitation} from '@/api/waitingList'
 
 /**
- * The evening somebody was invited to, said exactly as the mail said it.
+ * The appointment somebody was invited to, said exactly as the mail said it.
  *
  * The page is the invitation rather than a window into the station, and an answer given without
  * knowing the occasion is not an answer worth collecting. "The date does not suit" in particular is

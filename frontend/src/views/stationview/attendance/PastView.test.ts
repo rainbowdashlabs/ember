@@ -8,7 +8,7 @@ import {mountSuspended} from '@nuxt/test-utils/runtime'
 import PastView from './PastView.vue'
 
 /**
- * A sheet filled in weeks after the evening it records: the evening ran on the sixth of July and
+ * A sheet filled in weeks after the appointment it records: the appointment ran on the sixth of July and
  * somebody wrote it down on the fourteenth of September. Those are the only rows where the two dates
  * disagree, and the list showed the wrong one of them for every such row.
  */
@@ -42,7 +42,7 @@ describe('PastView', () => {
         listSessionSummaries.mockResolvedValue([WRITTEN_DOWN_LATE])
     })
 
-    it('dates an evening by when it was, not by when somebody wrote it down', async () => {
+    it('dates an appointment by when it was, not by when somebody wrote it down', async () => {
         const wrapper = await mountSuspended(PastView)
         await new Promise(resolve => setTimeout(resolve, 0))
         await wrapper.vm.$nextTick()
@@ -52,7 +52,7 @@ describe('PastView', () => {
         expect(text).not.toContain('14.09.2026')
     })
 
-    it('keeps the times of the evening beside its date', async () => {
+    it('keeps the times of the appointment beside its date', async () => {
         const wrapper = await mountSuspended(PastView)
         await new Promise(resolve => setTimeout(resolve, 0))
         await wrapper.vm.$nextTick()

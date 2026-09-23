@@ -20,11 +20,11 @@ public class Attendance {
     private static final int MAX_FREEZE_AFTER_DAYS = 365;
 
     /**
-     * How many days after its evening an attendance sheet stays open before it freezes.
+     * How many days after its appointment an attendance sheet stays open before it freezes.
      *
-     * <p>A sheet that anybody may still change months later is not a record of the evening, and a
-     * sheet that closes the next morning is useless to a station that writes its evenings up at the
-     * weekend. Whoever manages attendance can unlock a frozen sheet for the same span again, so this
+     * <p>A sheet that anybody may still change months later is not a record of the appointment, and a
+     * sheet that closes the next morning is useless to a station that writes its appointments up at
+     * the weekend. Whoever manages attendance can unlock a frozen sheet for the same span again, so this
      * decides how long the ordinary case lasts, not what is still possible. Read as at least a day
      * and at most a year.
      */

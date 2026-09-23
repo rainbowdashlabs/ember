@@ -43,7 +43,7 @@ const emit = defineEmits<{
 }>()
 
 /**
- * Whether the member had joined the station by the evening this sheet is about. A member entered
+ * Whether the member had joined the station by the date this sheet is about. A member entered
  * afterwards was not there, so nothing is offered to record about them; a member with no join date
  * carries no restriction, which is the state every member had before the field was filled in.
  */

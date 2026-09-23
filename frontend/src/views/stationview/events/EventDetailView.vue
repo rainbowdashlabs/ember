@@ -65,8 +65,8 @@ async function reloadMyRegistrations() {
 /**
  * The next date this repeating appointment falls on.
  *
- * <p>Today counts as long as today's evening is still ahead. The comparison is against the clock
- * the appointment ends at rather than against the stored end of its very first evening, which lies
+ * <p>Today counts as long as today's occurrence is still ahead. The comparison is against the clock
+ * the appointment ends at rather than against the stored end of its very first occurrence, which lies
  * in the past for every series that has run once and used to send the reader a week forward on the
  * one day the appointment actually takes place.
  */
@@ -96,9 +96,9 @@ const nextOccurrenceDate = computed(() => {
  *   2. {@link nextOccurrenceDate} for a recurring event without a path date - sensible default.
  *   3. The event's {@code startTime} date for one-time events.
  *
- * <p>Every lookup keyed by an evening - absences, sign-ups, the gear claimed for it - reads from
- * here, so this is the name the server knows the evening by and not the day the reader sees. The
- * server names an evening after the day it falls on where the station stands, so that is the clock
+ * <p>Every lookup keyed by an occurrence - absences, sign-ups, the gear claimed for it - reads from
+ * here, so this is the name the server knows the occurrence by and not the day the reader sees. The
+ * server names an occurrence after the day it falls on where the station stands, so that is the clock
  * this asks: reading the day off the stored moment put the page a day ahead of its own sign-ups for
  * every appointment made late in the evening, and reading it off the reader's clock does the same
  * to anybody sitting in another zone.
@@ -118,7 +118,7 @@ const effectiveDate = computed((): string | null => {
  * <p>A repeating appointment is shown on the occurrence the page is bound to, whose clock is the
  * one it repeats. A one-off is shown on the day its own moment falls on where the station stands,
  * which is the same day {@link effectiveDate} looks its sign-ups up under: the day drawn and the
- * day asked for have to be the one day, or the page reads as though it were showing an evening it
+ * day asked for have to be the one day, or the page reads as though it were showing a date it
  * has nothing for.
  */
 function dayShownFor(iso: string): string {
