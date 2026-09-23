@@ -50,6 +50,29 @@ test.describe('Passkeys', () => {
     /** The part the onboarding story takes, past the ones the independent stories hold. */
     const ONBOARD_SLOT = 5
 
+    /**
+     * Names the account and reads back what the asking device is showing.
+     *
+     * <p>Two things travel from this screen to the other one: the code, which the QR also carries,
+     * and the number, which it deliberately does not. Both are waited for by content rather than by
+     * visibility, because the elements render before the request has answered and an empty read
+     * would be pasted into a form that rightly refuses it.
+     */
+    async function raiseRequest(device: Page, identifier: string): Promise<{code: string; matchNumber: string}> {
+        await device.getByTestId('device-identifier').fill(identifier)
+        await device.getByRole('button', {name: 'Weiter'}).click()
+
+        const codeElement = device.getByTestId('device-code')
+        await expect(codeElement).toHaveText(/[0-9A-Z-]{8,9}/, {timeout: 15_000})
+        const numberElement = device.getByTestId('device-match-number')
+        await expect(numberElement).toHaveText(/\d{2}/, {timeout: 15_000})
+
+        return {
+            code: (await codeElement.innerText()).trim(),
+            matchNumber: (await numberElement.innerText()).trim(),
+        }
+    }
+
     interface MemberRow {
         id: number
         accountId: number
@@ -266,20 +289,16 @@ test.describe('Passkeys', () => {
         await newDevice.goto('/unlock-device')
         // A browser that can hold a passkey is asked which it wants; this story wants the credential.
         await newDevice.getByRole('button', {name: 'Passkey auf diesem Gerät anlegen'}).click()
-        // Waited for by content, not visibility: the element renders before the code arrives,
-        // and an empty read here would be pasted into a form that rightly refuses it.
-        const codeElement = newDevice.locator('.font-mono').first()
-        await expect(codeElement).toHaveText(/[0-9A-Z-]{8,9}/, {timeout: 15_000})
-        const code = (await codeElement.innerText()).trim()
+        const handshake = await raiseRequest(newDevice, account.email)
 
         await answerStepUpPrompts(approver)
         await approver.goto('/account/unlock-device')
-        await approver.getByPlaceholder('K7RM-2WQD').fill(code)
+        await approver.getByPlaceholder('K7RM-2WQD').fill(handshake.code)
         await approver.getByRole('button', {name: 'Code prüfen'}).click()
         await expect(approver.getByText('Das Gerät legt danach einen Passkey für dein Konto an.')).toBeVisible()
         await expect(approver.getByText('Nur freischalten, wenn du gerade selbst an diesem Gerät sitzt.'))
             .toBeVisible()
-        await approver.getByRole('button', {name: 'Freischalten', exact: true}).click()
+        await approver.getByTestId(`number-choice-${handshake.matchNumber}`).click()
         await expect(approver.getByText('Freigeschaltet.', {exact: false})).toBeVisible({timeout: 15_000})
 
         // The new device enrols and signs in with the passkey it just made.
@@ -310,19 +329,17 @@ test.describe('Passkeys', () => {
 
         await newDevice.goto('/unlock-device')
         await newDevice.getByRole('button', {name: 'Nur anmelden, nichts speichern'}).click()
-        const codeElement = newDevice.locator('.font-mono').first()
-        await expect(codeElement).toHaveText(/[0-9A-Z-]{8,9}/, {timeout: 15_000})
-        const code = (await codeElement.innerText()).trim()
+        const handshake = await raiseRequest(newDevice, account.email)
 
         await answerStepUpPrompts(approver)
         await approver.goto('/account/unlock-device')
-        await approver.getByPlaceholder('K7RM-2WQD').fill(code)
+        await approver.getByPlaceholder('K7RM-2WQD').fill(handshake.code)
         await approver.getByRole('button', {name: 'Code prüfen'}).click()
 
         // The screen says what this grant is, which is a different thing from a passkey.
         await expect(approver.getByText('Das Gerät wird danach in deinem Namen angemeldet', {exact: false}))
             .toBeVisible()
-        await approver.getByRole('button', {name: 'Freischalten', exact: true}).click()
+        await approver.getByTestId(`number-choice-${handshake.matchNumber}`).click()
         await expect(approver.getByText('Freigeschaltet.', {exact: false})).toBeVisible({timeout: 15_000})
 
         await expect(newDevice.getByTestId('app-shell')).toBeVisible({timeout: 30_000})
@@ -419,19 +436,19 @@ test.describe('Passkeys', () => {
 
         await newDevice.goto('/unlock-device')
         await newDevice.getByRole('button', {name: 'Nur anmelden, nichts speichern'}).click()
-        const codeElement = newDevice.locator('.font-mono').first()
-        await expect(codeElement).toHaveText(/[0-9A-Z-]{8,9}/, {timeout: 15_000})
-        const code = (await codeElement.innerText()).trim()
+        // Named as the charge, which is who is signing in. The guardian may answer it because the
+        // charge is in their care, and that is the only reason anybody but the charge may.
+        const handshake = await raiseRequest(newDevice, loginName)
 
         await guardian.goto('/account/unlock-device')
-        await guardian.getByPlaceholder('K7RM-2WQD').fill(code)
+        await guardian.getByPlaceholder('K7RM-2WQD').fill(handshake.code)
         await guardian.getByRole('button', {name: 'Code prüfen'}).click()
 
         // The choice the guardian gets and nobody else does: whose sign-in this is.
         const forWhom = guardian.getByTestId('approve-for')
         await expect(forWhom).toBeVisible({timeout: 15_000})
         await forWhom.selectOption(String(charge.accountId))
-        await guardian.getByRole('button', {name: 'Freischalten', exact: true}).click()
+        await guardian.getByTestId(`number-choice-${handshake.matchNumber}`).click()
         await expect(guardian.getByText('Freigeschaltet.', {exact: false})).toBeVisible({timeout: 15_000})
 
         // The device is signed in as the charge, not as the guardian who approved it.
