@@ -2,13 +2,10 @@
 
 ## v26.18.7
 
-### New Features
-
-- **Signing in from another device asks for a number.** The device that wants to get in shows a two-digit number, and the device approving picks it out of six. Somebody who was only sent a picture of the code cannot see that number, so a forwarded code is no longer enough on its own.
-
 ### Improvements
 
 - **An appointment and its attendance sheet lead to each other.** The menu on an appointment opens the sheet for the date shown, or starts one where there is none yet, and the menu on a sheet leads back to the appointment on that same date.
+- **Signing in from another device asks for a number.** The device that wants to get in shows a two-digit number, and the device approving picks it out of six. Somebody who was only sent a picture of the code cannot see that number, so a forwarded code is no longer enough on its own.
 - **Scanning is all the approving device has to do.** The QR code now carries the sign-in code, so the phone opens straight onto what it is about to approve instead of asking for eight characters to be typed in. The code is still shown for anyone who cannot scan.
 - **New settings for shared internet connections.** An installation whose members reach the internet through one address can widen the per-address limits on signing in from another device under `auth.deviceHandshake`.
 

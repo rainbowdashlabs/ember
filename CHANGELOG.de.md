@@ -2,13 +2,10 @@
 
 ## v26.18.7
 
-### Neue Funktionen
-
-- **Die Anmeldung über ein anderes Gerät fragt nach einer Zahl.** Das Gerät, das hereinmöchte, zeigt eine zweistellige Zahl, und das freischaltende Gerät wählt sie aus sechs aus. Wer nur ein Bild des Codes geschickt bekommen hat, sieht diese Zahl nicht, sodass ein weitergeleiteter Code allein nicht mehr genügt.
-
 ### Verbesserungen
 
 - **Termin und Anwesenheitsliste führen zueinander.** Das Menü am Termin öffnet die Liste für den angezeigten Tag oder legt eine an, wenn es noch keine gibt, und das Menü an der Liste führt zurück zum Termin an genau diesem Tag.
+- **Die Anmeldung über ein anderes Gerät fragt nach einer Zahl.** Das Gerät, das hereinmöchte, zeigt eine zweistellige Zahl, und das freischaltende Gerät wählt sie aus sechs aus. Wer nur ein Bild des Codes geschickt bekommen hat, sieht diese Zahl nicht, sodass ein weitergeleiteter Code allein nicht mehr genügt.
 - **Das freischaltende Gerät muss nur noch scannen.** Der QR-Code enthält jetzt den Anmeldecode, sodass das Handy direkt das öffnet, was es freischalten soll, statt nach acht Zeichen zu fragen. Der Code steht weiterhin da, falls jemand nicht scannen kann.
 - **Neue Einstellungen für gemeinsam genutzte Internetzugänge.** Eine Installation, deren Mitglieder über einen Anschluss ins Internet gehen, kann die Grenzen pro Adresse für die Anmeldung über ein anderes Gerät unter `auth.deviceHandshake` erweitern.
 
@@ -22,7 +19,6 @@
 - **Bei gemeinsamer Adresse konnte sich immer nur ein Gerät anmelden.** In einem Büro oder Gerätehaus, wo alle über denselben Anschluss ins Internet gehen, wurde das zweite wartende Gerät abgewiesen und wartete dann endlos, ohne zu sagen warum. Jedes Gerät und jedes Konto hat jetzt sein eigenes Kontingent.
 - **Eine Bitte, langsamer zu machen, sah aus wie ein allgemeiner Fehler.** Ein Bildschirm, dem gesagt wurde, dass er es zu oft versucht, zeigte dieselbe Meldung wie bei jedem anderen Fehler und riet dazu, einen neuen Code anzufordern, was einen weiteren Versuch verbrauchte. Jetzt steht dort, dass zu oft versucht wurde, und es wird gewartet statt sofort erneut gefragt.
 - **Die Anmeldung über ein anderes Gerät war in manchen Browsern versteckt.** Der Link auf der Anmeldeseite erschien nur, wenn der Browser einen Passkey speichern konnte, obwohl diese Art der Anmeldung nie einen brauchte. Er wird jetzt allen angezeigt.
->>>>>>> 2dd89f2f (Translate the release notes and record the installed test-utils version)
 
 ## v26.18.6
 
