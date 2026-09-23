@@ -61,14 +61,21 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   const templateId = route.query.templateId ? Number(route.query.templateId) : null
   if (templateId) {
     const eventId = route.query.eventId ? Number(route.query.eventId) : null
-    await createSession(templateId, eventId)
+    const date = typeof route.query.date === 'string' ? route.query.date : null
+    await createSession(templateId, eventId, date)
   }
 }, {autoLoad: false})
 
 const {running: creating, error: createError, run: runCreate} = useAsyncAction(
-    async (templateId: number, eventId?: number | null, times?: {title: string; startTime: string; endTime: string}) => {
+    async (
+        templateId: number,
+        eventId?: number | null,
+        eventDate?: string | null,
+        times?: {title: string; startTime: string; endTime: string},
+    ) => {
       const session = await attendance.createSession(templateId, {
         eventId: eventId ?? null,
+        ...(eventDate ? {eventDate} : {}),
         ...(times ?? {}),
         ...(chosenAudience.value ? {audience: chosenAudience.value} : {}),
       })
@@ -78,9 +85,9 @@ const {running: creating, error: createError, run: runCreate} = useAsyncAction(
 
 const displayError = computed(() => error.value || createError.value)
 
-function createSession(templateId: number, eventId?: number | null) {
+function createSession(templateId: number, eventId?: number | null, eventDate?: string | null) {
   error.value = ''
-  return runCreate(templateId, eventId)
+  return runCreate(templateId, eventId, eventDate)
 }
 
 /**
@@ -136,7 +143,7 @@ function audienceChosen(templateId: number, audience: SessionAudience) {
 
 function createWithTimes(times: {title: string; startTime: string; endTime: string}) {
   if (!chosenTemplate.value) return
-  runCreate(chosenTemplate.value.id, null, times)
+  runCreate(chosenTemplate.value.id, null, null, times)
 }
 
 function createFromEvent(ev: StationEvent) {

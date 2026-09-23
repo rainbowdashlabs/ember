@@ -21,6 +21,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Expands the recurrence rules of events into the concrete dates they take place on, honouring the
@@ -28,7 +29,14 @@ import java.util.List;
  */
 @Singleton
 public class EventOccurrenceService {
-    private static final int UPCOMING_DAYS = 28;
+    /**
+     * How far the walk goes before it gives up on filling a page.
+     *
+     * <p>Only reached where an appointment repeats with no end and the page still could not be
+     * filled, which means the station has very little on. Three years is past the next date of
+     * anything that repeats at all, yearly included.
+     */
+    private static final int MAX_LOOKAHEAD_DAYS = 1100;
 
     private final EventCrudService eventCrudService;
     private final EventBreakService breakService;
@@ -88,8 +96,16 @@ public class EventOccurrenceService {
     }
 
     /**
-     * Expands events into chronologically sorted date occurrences for the next 28 days,
-     * applying optional server-side filters, with pagination on the expanded list.
+     * The next page of occurrences, worked out one day at a time until the page is full.
+     *
+     * <p>Asked day by day the way the calendar asks it, rather than by expanding a fixed stretch of
+     * time and slicing what comes out. The stretch used to be four weeks, which is generous for a
+     * weekly appointment and blind to every rarer one: an appointment that comes round once a
+     * quarter had no date inside the window and so never reached the list at all, while the calendar
+     * found it as soon as somebody paged forward to its month.
+     *
+     * <p>Walking instead of expanding also means the work follows the page rather than the calendar:
+     * a first page of ten is ten found and no more, however far ahead the tenth turns out to be.
      */
     public List<UpcomingEventOccurrence> findUpcomingOccurrences(
             int stationId,
@@ -100,35 +116,61 @@ public class EventOccurrenceService {
             int limit,
             int offset) {
         var events = matchingEvents(stationId, memberIds, categoryId, requiresRegistration, search);
-        var breaks = breakService.findByStation(stationId);
+        if (events.isEmpty()) return List.of();
 
+        var breaks = breakService.findByStation(stationId);
         var zone = timezoneOf(stationId);
         LocalDate today = LocalDate.now(zone);
+        LocalDate lastWorthAsking = lastDateWorthAsking(events, zone, today);
+
+        int wanted = offset + limit;
         var occurrences = new ArrayList<UpcomingEventOccurrence>();
-
-        for (var ev : events) {
-            if (ev.eventType() != StationEvent.EventType.ONE_TIME || ev.startTime() == null) continue;
-            LocalDate eventDate = ev.startTime().atZone(zone).toLocalDate();
-            if (!eventDate.isBefore(today)) {
-                occurrences.add(new UpcomingEventOccurrence(EventSummary.of(ev), eventDate));
-            }
-        }
-
-        for (int d = 0; d <= UPCOMING_DAYS; d++) {
-            LocalDate date = today.plusDays(d);
+        for (LocalDate date = today;
+                !date.isAfter(lastWorthAsking) && occurrences.size() < wanted;
+                date = date.plusDays(1)) {
             if (EventBreak.coversAny(breaks, date)) continue;
-
-            for (var ev : events) {
-                if (ev.occursOn(date, zone)) {
-                    occurrences.add(new UpcomingEventOccurrence(EventSummary.of(ev), date));
-                }
-            }
+            occurrences.addAll(onDate(events, date, zone));
         }
-
-        occurrences.sort(Comparator.comparing(UpcomingEventOccurrence::date)
-                .thenComparing(occurrence -> timeOfDay(occurrence, zone))
-                .thenComparing(occurrence -> occurrence.event().id()));
         return occurrences.stream().skip(offset).limit(limit).toList();
+    }
+
+    /** Everything falling on one date, in the order the list shows a day's appointments. */
+    private List<UpcomingEventOccurrence> onDate(List<StationEvent> events, LocalDate date, ZoneId zone) {
+        var onThisDate = new ArrayList<UpcomingEventOccurrence>();
+        for (var ev : events) {
+            boolean falls = ev.eventType() == StationEvent.EventType.ONE_TIME
+                    ? ev.startTime() != null
+                            && ev.startTime().atZone(zone).toLocalDate().equals(date)
+                    : ev.occursOn(date, zone);
+            if (falls) onThisDate.add(new UpcomingEventOccurrence(EventSummary.of(ev), date));
+        }
+        onThisDate.sort(Comparator.comparing((UpcomingEventOccurrence o) -> timeOfDay(o, zone))
+                .thenComparing(occurrence -> occurrence.event().id()));
+        return onThisDate;
+    }
+
+    /**
+     * The last date the walk could still find anything on, so a page that cannot be filled ends
+     * rather than counting days for ever.
+     *
+     * <p>Where every appointment has an end, that is the latest of them. Where any repeats without
+     * one there is no such date, and {@link #MAX_LOOKAHEAD_DAYS} stands in: far enough that a yearly
+     * appointment is reached, and near enough that asking for a page nobody can fill is still cheap.
+     */
+    private static LocalDate lastDateWorthAsking(List<StationEvent> events, ZoneId zone, LocalDate today) {
+        LocalDate furthest = today;
+        for (var ev : events) {
+            if (ev.eventType() == StationEvent.EventType.ONE_TIME) {
+                if (ev.startTime() == null) continue;
+                LocalDate on = ev.startTime().atZone(zone).toLocalDate();
+                if (on.isAfter(furthest)) furthest = on;
+                continue;
+            }
+            Optional<LocalDate> ends = ev.lastDate();
+            if (ends.isEmpty()) return today.plusDays(MAX_LOOKAHEAD_DAYS);
+            if (ends.get().isAfter(furthest)) furthest = ends.get();
+        }
+        return furthest;
     }
 
     /**

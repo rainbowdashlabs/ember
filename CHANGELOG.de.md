@@ -15,6 +15,8 @@
 
 ### Fehlerbehebungen
 
+- **Die Anwesenheit ließ sich nur am Tag selbst erfassen.** Der Eintrag dafür erschien am Termin nur, solange der angezeigte Tag der heutige war, sodass eine am Morgen danach nachgetragene oder am Abend vorher vorbereitete Liste gar nicht anzulegen war. Angeboten wird jetzt der Tag, den die Seite zeigt, und die Liste gehört zu diesem Tag.
+- **Seltenere Termine tauchten in der Terminübersicht nie auf.** Die Liste sah vier Wochen voraus, sodass ein Termin, der einmal im Quartal oder einmal im Jahr stattfindet, darin vollständig fehlte, obwohl der Kalender daneben denselben Termin zeigte, sobald man vorblätterte. Die Liste sieht jetzt so weit voraus, wie sie für eine volle Seite braucht.
 - **Die Anwesenheit eines wiederkehrenden Termins wurde auf das falsche Datum gebucht.** Beim Erfassen der Anwesenheit eines wöchentlichen Termins bekam die Liste das Datum des ersten Termins der Reihe, und an jedem weiteren Tag öffnete sich wieder dieselbe Liste. Jeder Tag bekommt jetzt seine eigene Liste mit dem Datum, das er abdeckt.
 - **Bei gemeinsamer Adresse konnte sich immer nur ein Gerät anmelden.** In einem Büro oder Gerätehaus, wo alle über denselben Anschluss ins Internet gehen, wurde das zweite wartende Gerät abgewiesen und wartete dann endlos, ohne zu sagen warum. Jedes Gerät und jedes Konto hat jetzt sein eigenes Kontingent.
 - **Eine Bitte, langsamer zu machen, sah aus wie ein allgemeiner Fehler.** Ein Bildschirm, dem gesagt wurde, dass er es zu oft versucht, zeigte dieselbe Meldung wie bei jedem anderen Fehler und riet dazu, einen neuen Code anzufordern, was einen weiteren Versuch verbrauchte. Jetzt steht dort, dass zu oft versucht wurde, und es wird gewartet statt sofort erneut gefragt.

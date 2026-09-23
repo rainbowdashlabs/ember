@@ -76,6 +76,13 @@ export interface SessionRequest {
     countedMinutes?: number | null
     /** Whom to enter on this one sheet, left out where the template's own groups decide. */
     audience?: SessionAudience
+    /**
+     * Which day of a repeating appointment the sheet is for, as an ISO date.
+     *
+     * <p>Left out, the server takes the day it was asked on. A series is one appointment that comes
+     * round again and again, so a sheet taken for another of its days has to say which.
+     */
+    eventDate?: string
 }
 
 /**
