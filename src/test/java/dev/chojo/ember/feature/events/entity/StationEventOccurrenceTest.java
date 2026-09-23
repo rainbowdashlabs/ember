@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * When an appointment runs on a given day.
  *
  * <p>A repeating appointment keeps the date it was first configured on, and an attendance sheet that
- * took that date as it stood opened for an evening years past. What it really carries is a time of
+ * took that date as it stood opened for a day years past. What it really carries is a time of
  * day and a length, and this is where they are placed on the day being recorded.
  */
 class StationEventOccurrenceTest {

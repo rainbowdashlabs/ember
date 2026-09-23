@@ -303,7 +303,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
-    /** The evening an invitation names is written and read back whole, and clears in one go. */
+    /** The appointment an invitation names is written and read back whole, and clears in one go. */
     @Test
     void updateInvitation() {
         var list = waitingListRepo.create(
@@ -362,8 +362,8 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     }
 
     /**
-     * The evenings of a trial period are counted off the attendance sheets themselves, so a mark
-     * taken back lowers the count again and an evening before the trial began counts for nothing.
+     * The dates of a trial period are counted off the attendance sheets themselves, so a mark taken
+     * back lowers the count again and a date before the trial began counts for nothing.
      */
     @Test
     void attendanceCountIsReadOffTheSheets() {
@@ -393,9 +393,9 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         assertEquals(
                 0,
                 waitingListRepo.findEntryById(entry.id()).orElseThrow().attendanceCount(),
-                "an evening before the trial belongs to no trial");
+                "a date before the trial belongs to no trial");
 
-        var evening = attendanceRepo.createSession(
+        var during = attendanceRepo.createSession(
                 template.id(),
                 Instant.now().plusSeconds(3600),
                 Instant.now().plusSeconds(7200),
@@ -403,18 +403,18 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 "Probeabend",
                 null);
         attendanceRepo.createEntry(
-                evening.id(),
+                during.id(),
                 member.id(),
                 AttendanceEntry.AttendanceStatus.PRESENT,
                 AttendanceEntry.EntrySource.EXPECTED);
         assertEquals(1, waitingListRepo.findEntryById(entry.id()).orElseThrow().attendanceCount());
 
-        var mark = attendanceRepo.findEntry(evening.id(), member.id()).orElseThrow();
+        var mark = attendanceRepo.findEntry(during.id(), member.id()).orElseThrow();
         attendanceRepo.updateEntryStatus(mark.id(), AttendanceEntry.AttendanceStatus.ABSENT);
         assertEquals(
                 0,
                 waitingListRepo.findEntryById(entry.id()).orElseThrow().attendanceCount(),
-                "a mark taken back is no evening");
+                "a mark taken back counts for no date");
 
         attendanceRepo.deleteTemplate(template.id());
         stationMemberRepo.delete(member.id());

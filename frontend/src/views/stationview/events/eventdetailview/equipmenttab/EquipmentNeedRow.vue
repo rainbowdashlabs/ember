@@ -58,7 +58,7 @@ const overClaimNames = computed(() =>
         {{ t('eventEquipment.missing', {count: coverage.missing}) }}
       </ErrorBadge>
       <InfoBadge v-if="coverage.need.eventDate" data-testid="equipment-need-once">
-        {{ t('eventEquipment.thisEveningOnly') }}
+        {{ t('eventEquipment.thisDateOnly') }}
       </InfoBadge>
       <DeleteButton v-if="editable" data-testid="equipment-need-remove" @click="emit('remove', coverage.need.id)"/>
     </div>

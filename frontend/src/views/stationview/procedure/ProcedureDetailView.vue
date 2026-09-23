@@ -51,7 +51,7 @@ const isOverdue = computed(() => {
 })
 
 /**
- * Back to the evening this was prepared for.
+ * Back to the appointment this was prepared for.
  *
  * <p>A procedure made out of who is coming records the appointment and the date, so the preparation
  * and the occasion stay connected. One merely named after a Tuesday is connected to nothing.

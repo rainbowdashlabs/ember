@@ -54,7 +54,7 @@ function line() {
         quantity: 2,
         leadHours: 24,
         trailHours: 24,
-        thisEveningOnly: false,
+        thisDateOnly: false,
     }
 }
 
@@ -135,7 +135,7 @@ describe('useEquipmentNeeds', () => {
         expect(needs.saveError.value).toBe('Die Zeile ist bereits ausgegeben')
     })
 
-    it('reads nothing without an evening to read for', async () => {
+    it('reads nothing without a date to read for', async () => {
         const needs = needsFor(null)
 
         await needs.loadCoverage()

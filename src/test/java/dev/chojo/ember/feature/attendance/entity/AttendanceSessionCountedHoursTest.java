@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AttendanceSessionCountedHoursTest {
 
     private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
-    private static final Instant EVENING_START = Instant.parse("2026-09-02T16:00:00Z");
-    private static final Instant EVENING_END = Instant.parse("2026-09-02T20:00:00Z");
+    private static final Instant SESSION_START = Instant.parse("2026-09-02T16:00:00Z");
+    private static final Instant SESSION_END = Instant.parse("2026-09-02T20:00:00Z");
 
     private static AttendanceSession sheet(Instant start, Instant end, Integer countedMinutes) {
         return new AttendanceSession(1, 1, start, end, start, null, "Sheet", null, null, countedMinutes);
@@ -33,56 +33,56 @@ class AttendanceSessionCountedHoursTest {
 
     @Test
     void withoutANumberOfItsOwnTheClockDecides() {
-        var evening = sheet(EVENING_START, EVENING_END, null);
+        var session = sheet(SESSION_START, SESSION_END, null);
 
-        assertEquals(4.0, evening.countedHours(EVENING_START, EVENING_END));
-        assertEquals(2.0, evening.countedHours(EVENING_START, EVENING_START.plusSeconds(7200)));
+        assertEquals(4.0, session.countedHours(SESSION_START, SESSION_END));
+        assertEquals(2.0, session.countedHours(SESSION_START, SESSION_START.plusSeconds(7200)));
     }
 
     /**
-     * Setting up and clearing away happen either side of the evening everybody else turns up for, and
-     * the two hours an appointment is scheduled for are not what whoever did them was there for. A
+     * Setting up and clearing away happen either side of the appointment everybody else turns up
+     * for, and the two hours it is scheduled for are not what whoever did them was there for. A
      * sheet that names no number of its own counts the clock it is given, past its own ends included.
      */
     @Test
     void aPresenceReachingPastTheSheetCountsWhatTheClockSays() {
-        var evening = sheet(Instant.parse("2026-09-02T17:00:00Z"), Instant.parse("2026-09-02T19:00:00Z"), null);
+        var session = sheet(Instant.parse("2026-09-02T17:00:00Z"), Instant.parse("2026-09-02T19:00:00Z"), null);
 
         assertEquals(
                 4.0,
-                evening.countedHours(Instant.parse("2026-09-02T16:00:00Z"), Instant.parse("2026-09-02T20:00:00Z")));
+                session.countedHours(Instant.parse("2026-09-02T16:00:00Z"), Instant.parse("2026-09-02T20:00:00Z")));
     }
 
-    /** The same evening with a number of its own caps everybody at it, whoever stayed on. */
+    /** The same appointment with a number of its own caps everybody at it, whoever stayed on. */
     @Test
     void aSheetWithANumberOfItsOwnStillCapsThePresenceReachingPastIt() {
-        var evening = sheet(Instant.parse("2026-09-02T17:00:00Z"), Instant.parse("2026-09-02T19:00:00Z"), 120);
+        var session = sheet(Instant.parse("2026-09-02T17:00:00Z"), Instant.parse("2026-09-02T19:00:00Z"), 120);
 
         assertEquals(
                 2.0,
-                evening.countedHours(Instant.parse("2026-09-02T16:00:00Z"), Instant.parse("2026-09-02T20:00:00Z")));
+                session.countedHours(Instant.parse("2026-09-02T16:00:00Z"), Instant.parse("2026-09-02T20:00:00Z")));
     }
 
     @Test
     void aWholePresenceCountsTheNumberTheSheetCarries() {
-        var evening = sheet(EVENING_START, EVENING_END, 180);
+        var session = sheet(SESSION_START, SESSION_END, 180);
 
-        assertEquals(3.0, evening.countedHours(EVENING_START, EVENING_END));
+        assertEquals(3.0, session.countedHours(SESSION_START, SESSION_END));
     }
 
     @Test
-    void halfAnEveningCountsHalfOfIt() {
-        var evening = sheet(EVENING_START, EVENING_END, 180);
+    void halfAnAppointmentCountsHalfOfIt() {
+        var session = sheet(SESSION_START, SESSION_END, 180);
 
-        assertEquals(1.5, evening.countedHours(EVENING_START, EVENING_START.plusSeconds(7200)));
+        assertEquals(1.5, session.countedHours(SESSION_START, SESSION_START.plusSeconds(7200)));
     }
 
     /** An arrival written before the sheet began does not buy hours nobody was there for. */
     @Test
     void nobodyCountsMoreThanTheSheetIsWorth() {
-        var evening = sheet(EVENING_START, EVENING_END, 180);
+        var session = sheet(SESSION_START, SESSION_END, 180);
 
-        assertEquals(3.0, evening.countedHours(EVENING_START.minusSeconds(7200), EVENING_END.plusSeconds(7200)));
+        assertEquals(3.0, session.countedHours(SESSION_START.minusSeconds(7200), SESSION_END.plusSeconds(7200)));
     }
 
     @Test
@@ -97,24 +97,24 @@ class AttendanceSessionCountedHoursTest {
 
     @Test
     void aPresenceThatEndsBeforeItBeganIsWorthNothing() {
-        var evening = sheet(EVENING_START, EVENING_END, 180);
+        var session = sheet(SESSION_START, SESSION_END, 180);
 
-        assertEquals(0.0, evening.countedHours(EVENING_END, EVENING_START));
-        assertEquals(0.0, sheet(EVENING_START, EVENING_END, null).countedHours(EVENING_END, EVENING_START));
+        assertEquals(0.0, session.countedHours(SESSION_END, SESSION_START));
+        assertEquals(0.0, sheet(SESSION_START, SESSION_END, null).countedHours(SESSION_END, SESSION_START));
     }
 
     /** A sheet of no length still knows what a presence at it counts as. */
     @Test
     void aSheetWithoutASpanCountsTheWholeNumber() {
-        var instant = sheet(EVENING_START, EVENING_START, 60);
+        var instant = sheet(SESSION_START, SESSION_START, 60);
 
-        assertEquals(1.0, instant.countedHours(EVENING_START, EVENING_START.plusSeconds(60)));
+        assertEquals(1.0, instant.countedHours(SESSION_START, SESSION_START.plusSeconds(60)));
     }
 
     @Test
     void aSheetKnowsWhetherItRunsIntoAnotherDay() {
-        assertFalse(sheet(EVENING_START, EVENING_END, null).spansDays(BERLIN));
-        assertTrue(sheet(EVENING_START, Instant.parse("2026-09-03T09:00:00Z"), null)
+        assertFalse(sheet(SESSION_START, SESSION_END, null).spansDays(BERLIN));
+        assertTrue(sheet(SESSION_START, Instant.parse("2026-09-03T09:00:00Z"), null)
                 .spansDays(BERLIN));
     }
 

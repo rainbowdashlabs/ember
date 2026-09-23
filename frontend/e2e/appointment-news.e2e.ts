@@ -41,7 +41,7 @@ async function announce(page: Page) {
 
 test.describe('An appointment announced as a news entry', () => {
     /**
-     * The draft carries the appointment's name and the evening it is about, which is the retyping
+     * The draft carries the appointment's name and the date it is about, which is the retyping
      * this exists to prevent: a weekly appointment announced without a date says nothing.
      */
     test('the appointment opens the news editor on a finished draft', async ({managerPage: page}) => {

@@ -63,7 +63,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         return List.of(new GuardianInput(name, "", email, ""));
     }
 
-    /** An invitation that names no evening, which is every story not about the appointment. */
+    /** An invitation that names no appointment, which is every story not about the appointment. */
     private static WaitingListEntry invite(int entryId) {
         return service.inviteEntry(entryId, null);
     }
@@ -437,11 +437,11 @@ class WaitingListServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * The invitation names one evening: an appointment and the date of it, because a weekly Dienst
-     * without a date would mean every Tuesday there has ever been.
+     * The invitation names one occurrence: an appointment and the date of it, because a weekly
+     * Dienst without a date would mean every Tuesday there has ever been.
      */
     @Test
-    void anInvitationCarriesTheEveningItIsAbout() {
+    void anInvitationCarriesTheAppointmentItIsAbout() {
         var event = appointment("Schnupperdienst");
         var entry = service.createEntry(listId, "Neu", "Gast", guardians("", "gast@test.com"), Map.of(), "");
 
@@ -471,7 +471,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void anInvitationMayNameNoEveningAtAll() {
+    void anInvitationMayNameNoAppointmentAtAll() {
         var entry = service.createEntry(listId, "Neu", "Ohne", guardians("", "ohne@test.com"), Map.of(), "");
 
         var invited = invite(entry.id());
@@ -633,10 +633,10 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     /**
      * Somebody in a trial period at two stations has an entry at each, and only the one that saw
-     * them counts the evening: a member belongs to one station.
+     * them counts the date: a member belongs to one station.
      */
     @Test
-    void aTrialAtTwoStationsCountsOnlyWhereTheEveningWas() {
+    void aTrialAtTwoStationsCountsOnlyWhereTheDateWas() {
         var elsewhere = stationRepo.create("SecondTrialStation");
         var otherList =
                 service.create(elsewhere.id(), "Zweite Liste", "", null, 180, null, null, 5, false, true, null, null);
@@ -656,7 +656,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertEquals(0, service.findEntryById(there.id()).orElseThrow().attendanceCount());
     }
 
-    /** An evening of the station's own sheet, with the member written down as having been there. */
+    /** One date of the station's own sheet, with the member written down as having been there. */
     private static void markPresent(int memberId, String title) {
         var template = attendanceRepo.createTemplate(station.id(), title);
         var session = attendanceRepo.createSession(

@@ -27,7 +27,7 @@ import {showToast} from '@/util/toast'
 
 const props = defineProps<{
   event: StationEvent
-  /** The evening the sign-ups are read from, which is the one the screen is focused on. */
+  /** The date the sign-ups are read from, which is the one the screen is focused on. */
   effectiveDate: string | null
   memberSet: SignupMemberSet
 }>()
@@ -60,7 +60,7 @@ const canCreateProcedure = computed(() =>
     hasPermission(StationPermission.PROCEDURE_EDIT) && isModuleEnabled(StationModules.PROCEDURES))
 
 /**
- * Where the menu can do anything at all: an appointment that is signed up for, an evening in view,
+ * Where the menu can do anything at all: an appointment that is signed up for, a date in view,
  * a panel that is not the association's, and at least one thing the reader may create.
  */
 const shown = computed(() =>
@@ -79,11 +79,11 @@ const showSurvey = ref(false)
 const showProcedure = ref(false)
 
 const procedureTemplates = ref<ProcedureTemplate[]>([])
-/** What has already been prepared for this evening, so a second press does not make a second list. */
+/** What has already been prepared for this date, so a second press does not make a second list. */
 const existingProcedure = ref<Procedure | null>(null)
 
 /**
- * Makes the list, either as a copy of tonight's names or as one tied to this evening.
+ * Makes the list, either as a copy of the names as they stand or as one tied to this date.
  *
  * <p>A following list names the occurrence instead of the people, and the server resolves the same
  * accepted sign-ups from it, so the two agree on the first day and only the following one can still
@@ -141,7 +141,7 @@ const {running: creatingSurvey, error: surveyError, run: runCreateSurvey} = useA
 
 /**
  * What the dialog needs before it can offer anything: the templates it must pick one of, and
- * whatever was already prepared for this same evening.
+ * whatever was already prepared for this same date.
  */
 const {running: loadingProcedure, run: runLoadProcedure} = useAsyncAction(
     async () => {

@@ -404,7 +404,7 @@ test.describe('Events', () => {
     })
 
     /**
-     * A course of a few evenings is a repeating appointment that stops. Before it could be said, a
+     * A course over a few dates is a repeating appointment that stops. Before it could be said, a
      * series ran for ever and had to be deleted by hand on the day it ended.
      */
     test('a repeating appointment is given an end', async ({managerPage: page}) => {
@@ -433,7 +433,7 @@ test.describe('Events', () => {
     })
 
     /**
-     * A season of weekly evenings is entered once rather than fifty times. The story generates the
+     * A season of weekly appointments is entered once rather than fifty times. The story generates the
      * dates, creates them in one go, and finds one of them in the planner afterwards.
      */
     test('a run of events is created in one go', async ({managerPage: page}) => {

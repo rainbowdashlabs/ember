@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * One line of what an appointment needs, answered for one evening.
+ * One line of what an appointment needs, answered for one date.
  *
  * <p>The need is the question and where the gear comes from is part of the answer, not a second
  * question. Fourteen needed, ten of our own, four borrowed from station A, none outstanding: counting
@@ -21,8 +21,8 @@ import java.util.List;
  *
  * @param need        the line
  * @param label       what the line asks for, in words
- * @param from        when the gear goes, the evening's start less the lead
- * @param to          when it is back, the evening's end plus the trail
+ * @param from        when the gear goes, the occurrence's start less the lead
+ * @param to          when it is back, the occurrence's end plus the trail
  * @param own         how many of the station's own pieces are free for that window
  * @param borrowed    how many pieces are already here on loan against this line
  * @param outstanding how many pieces have been asked of a partner and not yet arrived

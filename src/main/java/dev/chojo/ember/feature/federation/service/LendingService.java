@@ -117,7 +117,7 @@ public class LendingService {
      * it. Adding a field to an appointment must never quietly add it to a request.
      *
      * @param eventId   the appointment the request was collected for, or {@code null}
-     * @param eventDate the evening of that appointment, or {@code null}
+     * @param eventDate the date of that appointment, or {@code null}
      * @param occasion  what to tell the owning station the request is for
      */
     public LendingRequest createRequest(
@@ -198,8 +198,8 @@ public class LendingService {
     /**
      * Withdraws the requests an appointment has sent that nobody has settled yet.
      *
-     * <p>Cancelling an appointment is the moment a partner's shelf has to be given back: the evening
-     * they were holding gear for is not happening, and the partner has no other way of learning that.
+     * <p>Cancelling an appointment is the moment a partner's shelf has to be given back: the date they
+     * were holding gear for is not happening, and the partner has no other way of learning that.
      *
      * @param eventId   the appointment
      * @param stationId the station it belongs to
@@ -731,7 +731,7 @@ public class LendingService {
      * Whether one named piece is still there to be promised over a window.
      *
      * <p>Ownership says a station may lend a piece; it does not say the piece is here. Gear already at
-     * a partner, in the post or set aside for another evening is owned all the same, and promising it
+     * a partner, in the post or set aside for another date is owned all the same, and promising it
      * a second time is how one radio is lent twice.
      *
      * @param stationId the station doing the lending

@@ -248,8 +248,8 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     /**
      * A group is an audience a template can name, which it could not before.
      *
-     * <p>The point of the whole thing: a station running one evening for the youngest group used to
-     * pick that group again on every date of the year, because a template could only say what kind
+     * <p>The point of the whole thing: a station whose appointments are for the youngest group used
+     * to pick that group again on every date of the year, because a template could only say what kind
      * of member somebody is.
      */
     @Test

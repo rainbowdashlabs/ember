@@ -6747,7 +6747,7 @@
           "type": "date",
           "nullable": false,
           "verified": true,
-          "description": "The evening the piece went out for, which is what pairs a handover with one occurrence of a series."
+          "description": "The date the piece went out for, which is what pairs a handover with one occurrence of a series."
         },
         {
           "name": "item_id",
@@ -6761,14 +6761,14 @@
           "type": "timestamptz",
           "nullable": false,
           "verified": true,
-          "description": "When the piece left, taken from the evening and the line's lead rather than from the clock, so the window a firm claim holds is the same window the loose one held."
+          "description": "When the piece left, taken from the occurrence and the line's lead rather than from the clock, so the window a firm claim holds is the same window the loose one held."
         },
         {
           "name": "claim_to",
           "type": "timestamptz",
           "nullable": false,
           "verified": true,
-          "description": "When the piece is due back, the evening's end plus the line's trail."
+          "description": "When the piece is due back, the occurrence's end plus the line's trail."
         },
         {
           "name": "handed_by",
@@ -6835,7 +6835,7 @@
         "status": "IGNORED",
         "reason": "Equipment record kept as the station's own log, not personal data"
       },
-      "description": "A piece that actually went out for one evening of an appointment. The only claim on stock that is a row: everything still merely planned is derived from the recurrence rule when somebody asks."
+      "description": "A piece that actually went out for one date of an appointment. The only claim on stock that is a row: everything still merely planned is derived from the recurrence rule when somebody asks."
     },
     "event_equipment_need": {
       "feature": "events",
@@ -6861,7 +6861,7 @@
           "type": "date",
           "nullable": true,
           "verified": true,
-          "description": "Null where the line holds for every evening the series produces, which is the ordinary case. Set where one single evening says something of its own: a line for that date alone is added to the standing list, and where it names the same thing as a standing line it takes its place for that evening. The one Dienst a year that also needs the trailer is written this way, without touching the series."
+          "description": "Null where the line holds for every date the series produces, which is the ordinary case. Set where one single date says something of its own: a line for that date alone is added to the standing list, and where it names the same thing as a standing line it takes its place for that date. The one Dienst a year that also needs the trailer is written this way, without touching the series."
         },
         {
           "name": "item_id",
@@ -7343,7 +7343,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "How many places this partner may fill on one date. NULL means no cap. Counted per occurrence, because a registration is per date and five places at a weekly evening means five every week."
+          "description": "How many places this partner may fill on one date. NULL means no cap. Counted per occurrence, because a registration is per date and five places at a weekly appointment means five every week."
         },
         {
           "name": "partner_confirms",
@@ -9549,7 +9549,7 @@
           "type": "date",
           "nullable": true,
           "verified": true,
-          "description": "The evening of that appointment the request is for. Null exactly when event_id is."
+          "description": "The date of that appointment the request is for. Null exactly when event_id is."
         },
         {
           "name": "occasion",

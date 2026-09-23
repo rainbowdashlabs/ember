@@ -16,7 +16,7 @@ import type {ChecklistSourceRequest} from '@/api/checklists'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 
 /**
- * Chooses what a list is made of: a description of people, or one evening of an appointment.
+ * Chooses what a list is made of: a description of people, or one date of an appointment.
  *
  * <p>Never both. An appointment already carries its own audience, and the people holding a place
  * on it are what came out of that, so a group condition on top would narrow a set that has been
@@ -30,7 +30,7 @@ defineProps<{
   groups: MemberGroup[]
   tags: UserTag[]
   members: StationMember[]
-  /** What the chip should read for an evening this list already follows. */
+  /** What the chip should read for an occurrence this list already follows. */
   selectedOccurrenceLabel?: string | null
 }>()
 

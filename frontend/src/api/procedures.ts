@@ -193,9 +193,9 @@ export async function getProcedures(params?: { status?: string; assignee?: strin
 }
 
 /**
- * What has already been prepared for one evening of one appointment.
+ * What has already been prepared for one occurrence of one appointment.
  *
- * <p>Read before offering to prepare something: a second list for the same evening is a state
+ * <p>Read before offering to prepare something: a second list for the same occurrence is a state
  * nobody tidies up, so the caller offers what is already there instead of making another.
  *
  * @param eventId the appointment

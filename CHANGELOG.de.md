@@ -1,5 +1,15 @@
 # Änderungsprotokoll
 
+## v26.18.7
+
+### Verbesserungen
+
+- **Termin und Anwesenheitsliste führen zueinander.** Das Menü am Termin öffnet die Liste für den angezeigten Tag oder legt eine an, wenn es noch keine gibt, und das Menü an der Liste führt zurück zum Termin an genau diesem Tag.
+
+### Fehlerbehebungen
+
+- **Die Anwesenheit eines wiederkehrenden Termins wurde auf das falsche Datum gebucht.** Beim Erfassen der Anwesenheit eines wöchentlichen Termins bekam die Liste das Datum des ersten Termins der Reihe, und an jedem weiteren Tag öffnete sich wieder dieselbe Liste. Jeder Tag bekommt jetzt seine eigene Liste mit dem Datum, das er abdeckt.
+
 ## v26.18.6
 
 ### Neue Funktionen

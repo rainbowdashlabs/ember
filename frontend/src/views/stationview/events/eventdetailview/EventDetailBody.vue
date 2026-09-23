@@ -4,8 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -20,10 +21,10 @@ import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {isRecurringEvent, type AbsentMember, type EventField, type EventRegistrationEntry, type EventRegistrationField, type RegistrationFieldValue, type StationEvent} from '@/api/events'
-import {events} from '@/api'
+import {attendance, events} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {StationModules, StationPermission, type StationMember} from '@/api/types'
-import {formatDateTime} from '@/util/format'
+import {formatDateTime, stationToday} from '@/util/format'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 import {useSession} from '@/composables/useSession'
 
@@ -67,7 +68,44 @@ const emit = defineEmits<{
 const currentMemberIds = computed(() => props.allMembers.map(member => member.id))
 
 const {t} = useI18n()
-const {isModuleEnabled} = useSession()
+const {isModuleEnabled, stationTimezone} = useSession()
+const router = useRouter()
+
+/**
+ * The sheet this occurrence already has, looked up again whenever the page turns to another one.
+ *
+ * <p>A repeating appointment has a sheet per date, so the day decides: the menu offers to open the
+ * date's own sheet where there is one, and to take it where there is not.
+ */
+const attendanceSessionId = ref<number | null>(null)
+
+const canTakeAttendance = computed(() =>
+    props.canManageAttendance
+    && props.event.templateId != null
+    && props.effectiveDate === stationToday(stationTimezone.value))
+
+watch(() => [props.eventId, props.effectiveDate] as const, async () => {
+  attendanceSessionId.value = null
+  if (!props.canManageAttendance || !props.effectiveDate) return
+  try {
+    const sheet = await attendance.getSessionForEvent(props.eventId, props.effectiveDate)
+    attendanceSessionId.value = sheet?.id ?? null
+  } catch {
+    attendanceSessionId.value = null
+  }
+}, {immediate: true})
+
+/** Opens the date's own sheet, or the page that takes it where there is none yet. */
+function toAttendance() {
+  if (attendanceSessionId.value) {
+    router.push({name: 'attendance-session', params: {id: attendanceSessionId.value}})
+    return
+  }
+  router.push({
+    name: 'attendance-new',
+    query: {templateId: String(props.event.templateId), eventId: String(props.eventId)},
+  })
+}
 
 /**
  * The questions the appointment asks of whoever registers, which is what makes an answer worth
@@ -139,7 +177,7 @@ const activeTab = ref<'info' | 'registrations' | 'equipment'>('info')
  * by the server: either way the tab would only stand for an answer nobody can get.
  *
  * <p>Two rights open it, as they do at the server: keeping the inventory, and reading what an event
- * keeps internal. Somebody who helps run the evenings but keeps no gear holds only the second.
+ * keeps internal. Somebody who helps run the appointments but keeps no gear holds only the second.
  */
 const canReadEquipment = computed(() =>
     isModuleEnabled(StationModules.INVENTORY)
@@ -148,7 +186,7 @@ const canReadEquipment = computed(() =>
 
 /**
  * Whether what is missing can be asked for, which is a right over the gear rather than over the
- * evening. Somebody who only reads what an event keeps internal is shown what it needs and is not
+ * appointment. Somebody who only reads what an event keeps internal is shown what it needs and is not
  * offered a button landing them on a page that refuses them.
  */
 const canBorrowGear = computed(() => props.hasPermission(StationPermission.INVENTORY_LENDING_REQUEST))
@@ -196,7 +234,10 @@ function onCancelled() {
         :can-write-news="hasPermission(StationPermission.NEWS_EDIT)"
         :effective-date="effectiveDate"
         :category-name="categoryName"
+        :attendance-session-id="attendanceSessionId"
+        :can-take-attendance="canTakeAttendance"
         @cancel="showCancelModal = true"
+        @attendance="toAttendance"
     />
 
     <div v-if="event.requiresRegistration" class="flex flex-wrap gap-3 text-sm">

@@ -44,7 +44,7 @@ export interface DraftWords {
  * The one occurrence, written out.
  *
  * <p>A weekly appointment has no single date, so an announcement that only names the appointment
- * says nothing about which evening it is about. That is the retyping mistake this whole thing
+ * says nothing about which occurrence it is about. That is the retyping mistake this whole thing
  * exists to prevent, so the date the reader was looking at is what goes in.
  */
 export function occurrenceLabel(date: string | null, event: StationEvent, words: DraftWords): string {

@@ -64,7 +64,7 @@ class CacheHeaderTest {
     }
 
     /**
-     * A waiting-list entry behind its own link carries a name, an address and the evening somebody
+     * A waiting-list entry behind its own link carries a name, an address and the appointment somebody
      * was invited to, and it changes the moment they answer. Held for an hour it was both a copy of
      * a family's details sitting in a cache nobody owns and an answer the page could not see it had
      * given.

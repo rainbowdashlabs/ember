@@ -32,8 +32,8 @@ const {counts} = useSidebarCounts()
 /**
  * The daily work: the gear itself, who holds it, and what is on the move.
  *
- * <p>Flat rather than folded, because these are the entries somebody opens several times in an
- * evening. What a station sets up once lives under a heading instead.
+ * <p>Flat rather than folded, because these are the entries somebody opens several times a day.
+ * What a station sets up once lives under a heading instead.
  */
 const dailyLinks = computed<InventorySidebarLink[]>(() => {
   const links: InventorySidebarLink[] = []

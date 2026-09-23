@@ -20,6 +20,8 @@ const props = defineProps<{
   readonly?: boolean
   locked?: boolean
   canManage?: boolean
+  /** The appointment this sheet was taken for, which the menu then leads back to. */
+  eventId?: number | null
 }>()
 
 defineEmits<{
@@ -30,18 +32,29 @@ defineEmits<{
   remove: []
   unlock: []
   lock: []
+  openEvent: []
 }>()
 
 /**
  * Checking the attendance is what the reader came for while anybody is still unchecked, so it is
  * the one action that stays a button of its own.
  *
- * <p>It is not always there: it goes once every entry has been decided, and it is not offered
- * while the check is already running. The export takes its place then, because a finished list is
- * kept in order to be handed on. A reader without edit rights has no action here at all, so their
- * toolbar is the back button and nothing else, exactly as it was before.
+ * <p>It is not always there: it goes once every entry has been decided, it is not offered while
+ * the check is already running, and a closed sheet takes no more answers at all. The export takes
+ * its place then, because a finished list is kept in order to be handed on.
  */
-const canCheck = computed(() => !props.checkMode && props.uncheckedCount > 0)
+const canCheck = computed(() =>
+    !props.locked && !props.readonly && !props.checkMode && props.uncheckedCount > 0)
+
+/**
+ * The actions a sheet in this state still has, beyond the one that is a button.
+ *
+ * <p>A reader who may only look, and a closed sheet, keep the way back to the appointment and
+ * nothing else, which is why the menu outlives the editing actions inside it.
+ */
+const editable = computed(() => !props.locked && !props.readonly)
+
+const hasMenu = computed(() => editable.value || props.eventId != null)
 </script>
 
 <template>
@@ -49,37 +62,37 @@ const canCheck = computed(() => !props.checkMode && props.uncheckedCount > 0)
     <SecondaryButton :icon="['fas', 'chevron-left']" @click="$emit('back')">
       {{ t('attendanceSession.back') }}
     </SecondaryButton>
-    <ButtonRow v-if="locked" pair align="end">
-      <PrimaryButton :icon="['fas', 'download']" @click="$emit('export')">
+    <ButtonRow align="end">
+      <PrimaryButton v-if="canCheck" :icon="['fas', 'clipboard-user']" @click="$emit('startCheckMode')">
+        {{ t('attendanceSession.checkMode') }} ({{ uncheckedCount }})
+      </PrimaryButton>
+      <PrimaryButton v-else-if="locked || !readonly" :icon="['fas', 'download']" @click="$emit('export')">
         {{ t('attendanceSession.export') }}
       </PrimaryButton>
       <SecondaryButton
-          v-if="canManage"
+          v-if="locked && canManage"
           :icon="['fas', 'lock-open']"
           data-testid="unlock-session"
           @click="$emit('unlock')"
       >
         {{ t('attendanceSession.reopen') }}
       </SecondaryButton>
-    </ButtonRow>
-    <ButtonRow v-else-if="!readonly" align="end">
-      <PrimaryButton v-if="canCheck" :icon="['fas', 'clipboard-user']" @click="$emit('startCheckMode')">
-        {{ t('attendanceSession.checkMode') }} ({{ uncheckedCount }})
-      </PrimaryButton>
-      <PrimaryButton v-else :icon="['fas', 'download']" @click="$emit('export')">
-        {{ t('attendanceSession.export') }}
-      </PrimaryButton>
-      <ActionsMenu :label="t('common.actions')" test-id="session-actions">
-        <DropdownMenuItem v-if="canCheck" :icon="['fas', 'download']" @click="$emit('export')">
+      <ActionsMenu v-if="hasMenu" :label="t('common.actions')" test-id="session-actions">
+        <DropdownMenuItem v-if="eventId" :icon="['fas', 'calendar-days']" data-testid="session-event"
+                          @click="$emit('openEvent')">
+          {{ t('attendanceSession.openEvent') }}
+        </DropdownMenuItem>
+        <DropdownMenuItem v-if="editable && canCheck" :icon="['fas', 'download']" @click="$emit('export')">
           {{ t('attendanceSession.export') }}
         </DropdownMenuItem>
-        <DropdownMenuItem :icon="['fas', 'clipboard-check']" @click="$emit('sync')">
+        <DropdownMenuItem v-if="editable" :icon="['fas', 'clipboard-check']" @click="$emit('sync')">
           {{ t('attendanceSession.sync') }}
         </DropdownMenuItem>
-        <DropdownMenuItem v-if="canManage" :icon="['fas', 'lock']" data-testid="lock-session" @click="$emit('lock')">
+        <DropdownMenuItem v-if="editable && canManage" :icon="['fas', 'lock']" data-testid="lock-session"
+                          @click="$emit('lock')">
           {{ t('attendanceSession.close') }}
         </DropdownMenuItem>
-        <DropdownMenuItem :icon="['fas', 'trash']" data-testid="delete-session" destructive
+        <DropdownMenuItem v-if="editable" :icon="['fas', 'trash']" data-testid="delete-session" destructive
                           @click="$emit('remove')">
           {{ t('attendanceSession.delete') }}
         </DropdownMenuItem>

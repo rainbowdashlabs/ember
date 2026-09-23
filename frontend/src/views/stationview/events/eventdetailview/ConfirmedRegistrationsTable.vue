@@ -35,9 +35,9 @@ const props = defineProps<{
   eventId: number
   /** The heading of the block, which the controls share a line with. */
   title: string
-  /** The evening these sign-ups belong to, because a registration belongs to one. */
+  /** The date these sign-ups belong to, because a registration belongs to one. */
   effectiveDate: string | null
-  /** Every sign-up for the evening, which is where a row's status and its accept button come from. */
+  /** Every sign-up for that date, which is where a row's status and its accept button come from. */
   entries: EventRegistrationEntry[]
 }>()
 
@@ -45,7 +45,7 @@ const props = defineProps<{
  * Whether the confirmed sign-ups are shown as a table rather than as the cards they have always been.
  *
  * <p>Off to begin with. The cards are what everybody knows and they hold more per person than a row
- * can; the table is for the evening somebody wants one line each and a sheet to carry.
+ * can; the table is for when somebody wants one line each and a sheet to carry.
  */
 const asTable = defineModel<boolean>('asTable', {required: true})
 
@@ -103,7 +103,7 @@ const rows = computed<Row[]>(() => drawnCells.value.map(row => ({...row, extra: 
 
 /**
  * The table opens on the confirmed sign-ups, because a sheet of who is coming is what it is for.
- * Clearing that filter shows everybody standing on the evening's list.
+ * Clearing that filter shows everybody standing on the list for that date.
  */
 const state = ref(emptyTableState(NAME_KEY))
 state.value.filters = new Map([[STATUS_KEY, new Set<string>([RegistrationStatus.ACCEPTED])]])

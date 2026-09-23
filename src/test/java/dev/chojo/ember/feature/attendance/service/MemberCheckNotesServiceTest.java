@@ -354,7 +354,7 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
 
     /**
      * Today reads as zero rather than as nothing, because "has a birthday today" is the one the
-     * evening is actually for.
+     * appointment is actually for.
      */
     @Test
     void aBirthdayTodayIsNoDaysAgo() {

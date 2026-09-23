@@ -80,7 +80,7 @@ public class EventReminderChecker {
     private static final int[] CLOSING_WARNINGS = {3, 1};
 
     /**
-     * The clock a station's evenings are read by, or UTC where it has named none.
+     * The clock a station's appointments are read by, or UTC where it has named none.
      *
      * <p>Looked up once per station per sweep rather than once per event, since a station with a
      * weekly drill and a dozen appointments would otherwise ask the same question a dozen times.
@@ -92,9 +92,9 @@ public class EventReminderChecker {
     /**
      * One sweep: what has to be warned about, and what has to be reminded of.
      *
-     * <p>Which day it is, and which day an evening falls on, are both questions about the station's
-     * clock. Asked in UTC, an evening starting at 00:30 in Berlin belongs to the day before, and a
-     * reminder set three days ahead goes out four days ahead.
+     * <p>Which day it is, and which day an appointment falls on, are both questions about the
+     * station's clock. Asked in UTC, an appointment starting at 00:30 in Berlin belongs to the day
+     * before, and a reminder set three days ahead goes out four days ahead.
      */
     private void check() {
         try {
@@ -143,7 +143,7 @@ public class EventReminderChecker {
     /**
      * The days this event falls on that are worth reminding about, read in the station's own clock.
      *
-     * @param zone the station's zone, which is what decides the day an evening belongs to
+     * @param zone the station's zone, which is what decides the day an appointment belongs to
      */
     private List<LocalDate> computeOccurrences(
             StationEvent event, LocalDate today, List<Integer> reminderDays, ZoneId zone) {

@@ -46,10 +46,12 @@ const {t} = useI18n()
         </div>
       </div>
       <div class="mt-2 w-56 rounded-theme border border-(--border) py-1 ml-auto">
+        <DropdownMenuItem :icon="['fas', 'calendar-days']">{{ t('attendanceSession.openEvent') }}</DropdownMenuItem>
         <DropdownMenuItem :icon="['fas', 'download']">{{ t('attendanceSession.export') }}</DropdownMenuItem>
         <DropdownMenuItem :icon="['fas', 'clipboard-check']">{{ t('attendanceSession.sync') }}</DropdownMenuItem>
         <DropdownMenuItem :icon="['fas', 'trash']" destructive>{{ t('attendanceSession.delete') }}</DropdownMenuItem>
       </div>
+      <p>{{ t('helpCenter.attendanceSession.openEventText') }}</p>
     </HelpSection>
 
     <!-- Session header editing -->

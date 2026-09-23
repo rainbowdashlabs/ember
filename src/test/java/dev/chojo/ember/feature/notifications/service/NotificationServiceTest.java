@@ -567,7 +567,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 cluster.id(), account1.id(), dev.chojo.ember.api.auth.ClusterUserType.CLUSTER_USER);
 
         var data = NotificationData.of(
-                new NotificationParams.NewEvent("Partner evening", "at the other station"),
+                new NotificationParams.NewEvent("Partner appointment", "at the other station"),
                 new NotificationData.NotificationLink("dashboard-overview"));
         notificationRepo.createForClusterMember(follower.id(), NotificationType.NEW_EVENT, data);
 

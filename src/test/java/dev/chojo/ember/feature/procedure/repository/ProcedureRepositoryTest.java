@@ -199,7 +199,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     }
 
     /**
-     * A procedure prepared for one evening keeps the appointment and the date it was made for, and
+     * A procedure prepared for one occurrence keeps the appointment and the date it was made for, and
      * is found again by them. That is what a second press of the button reads, so that the reader is
      * offered the list already there rather than a second one beside it.
      */

@@ -21,7 +21,7 @@ function acceptPercent(row: RankedRegistration): number | null {
 
 /**
  * The columns of the ranking: the member, the score it is ranked by, how often they were let in and
- * turned away, the share of places they got, and the evening they asked for.
+ * turned away, the share of places they got, and the date they asked for.
  */
 export function registrationStatsColumns(t: (key: string) => string): TableColumn<RankedRegistration>[] {
     return [

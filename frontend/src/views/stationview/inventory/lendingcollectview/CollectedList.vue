@@ -29,7 +29,7 @@ const props = defineProps<{
   entries: CollectedEntry[]
   checks: LineCheck[]
   sending: boolean
-  /** Whether anything can be asked for at all, which needs the evening the list is being built for. */
+  /** Whether anything can be asked for at all, which needs the appointment the list is being built for. */
   canSend: boolean
 }>()
 

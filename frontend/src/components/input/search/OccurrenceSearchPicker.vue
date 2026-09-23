@@ -10,7 +10,7 @@ import {listUpcomingOccurrences, type EventOccurrenceRef, type UpcomingEventOccu
 import {formatDate} from '@/util/format'
 
 /**
- * Picks one evening out of what is coming up.
+ * Picks one occurrence out of what is coming up.
  *
  * It offers occurrences rather than appointments, because a weekly Dienst named without a date
  * would mean every Tuesday there has ever been. And it offers only what the reader may know about,
@@ -25,7 +25,7 @@ const props = defineProps<{
   testid: string
   /** Whether only appointments people sign up for may be picked. */
   requiresRegistration?: boolean
-  /** What the chip should read for an evening picked before this screen was opened. */
+  /** What the chip should read for an occurrence picked before this screen was opened. */
   selectedDisplay?: string | null
   disabled?: boolean
 }>()

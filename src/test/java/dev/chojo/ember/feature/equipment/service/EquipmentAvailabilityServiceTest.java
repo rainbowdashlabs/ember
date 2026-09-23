@@ -141,15 +141,15 @@ class EquipmentAvailabilityServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void aWeeklySeriesClaimsEveryEveningItProduces() {
+    void aWeeklySeriesClaimsEveryDateItProduces() {
         var dienst =
                 EquipmentTestSupport.weekly(eventRepo, station.id(), "AvailSvcDienst", EquipmentTestSupport.SATURDAY);
         equipmentNeedRepo.create(dienst.id(), null, null, blue.id(), null, 4, 60, 60);
 
         for (int week = 0; week < 3; week++) {
-            LocalDate evening = EquipmentTestSupport.SATURDAY.plusWeeks(week);
-            var answer = availability.availability(
-                    station.id(), LineTarget.art(blue.id()), from(evening, 19), from(evening, 21));
+            LocalDate date = EquipmentTestSupport.SATURDAY.plusWeeks(week);
+            var answer =
+                    availability.availability(station.id(), LineTarget.art(blue.id()), from(date, 19), from(date, 21));
             assertEquals(4, answer.claimed(), "week " + week);
             assertEquals(2, answer.free());
         }
@@ -165,7 +165,7 @@ class EquipmentAvailabilityServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void oneEveningOverridesItsOwnLineWithoutTouchingTheSeries() {
+    void oneDateOverridesItsOwnLineWithoutTouchingTheSeries() {
         var dienst = EquipmentTestSupport.weekly(
                 eventRepo, station.id(), "AvailSvcUeberschreiben", EquipmentTestSupport.SATURDAY);
         equipmentNeedRepo.create(dienst.id(), null, null, blue.id(), null, 2, 0, 0);
@@ -285,18 +285,17 @@ class EquipmentAvailabilityServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void anAppointmentInABreakProducesNoEvening() {
+    void anAppointmentInABreakProducesNoOccurrence() {
         var dienst =
                 EquipmentTestSupport.weekly(eventRepo, station.id(), "AvailSvcFerien", EquipmentTestSupport.SATURDAY);
         equipmentNeedRepo.create(dienst.id(), null, trailer.id(), null, null, 1, 0, 0);
-        LocalDate evening = EquipmentTestSupport.SATURDAY.plusWeeks(4);
-        var pause =
-                eventBreakRepo.create(station.id(), "AvailSvcSommerferien", evening.minusDays(1), evening.plusDays(1));
+        LocalDate date = EquipmentTestSupport.SATURDAY.plusWeeks(4);
+        var pause = eventBreakRepo.create(station.id(), "AvailSvcSommerferien", date.minusDays(1), date.plusDays(1));
 
         assertEquals(
                 0,
                 availability
-                        .availability(station.id(), LineTarget.item(trailer.id()), from(evening, 19), from(evening, 21))
+                        .availability(station.id(), LineTarget.item(trailer.id()), from(date, 19), from(date, 21))
                         .claimed());
 
         eventBreakRepo.delete(pause.id());

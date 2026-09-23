@@ -222,6 +222,19 @@ export const createSession = templateSessions.create
 export const updateSession = sessions.update
 export const deleteSession = sessions.remove
 
+/**
+ * The sheet an appointment has on one of its days, or null where nobody has taken it yet.
+ *
+ * <p>A repeating appointment has one sheet per day it comes round, so the day is asked for; left
+ * out, it is the station's today.
+ */
+export async function getSessionForEvent(eventId: number, date?: string | null): Promise<AttendanceSession | null> {
+    const res = await client.get<AttendanceSession | ''>(`/attendance/events/${eventId}/session`, {
+        params: date ? {date} : undefined,
+    })
+    return res.status === 204 || !res.data ? null : res.data
+}
+
 // -- Session Fields --
 
 export async function getSessionFields(sessionId: number): Promise<AttendanceSessionField[]> {

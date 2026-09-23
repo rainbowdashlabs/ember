@@ -12,7 +12,7 @@ import type {AnnouncementDraft} from './announcementPrefill'
 /**
  * What an entry written from an appointment says about itself.
  *
- * <p>Two things the author cannot see from the text alone. Which evening is being announced, because
+ * <p>Two things the author cannot see from the text alone. Which occurrence is being announced, because
  * a weekly appointment has no single date and the draft was written about exactly one of them. And,
  * the moment the entry is widened to partner stations or to the public page, what it is about to
  * take with it: an overview field is carried whether or not the appointment shows it publicly, so

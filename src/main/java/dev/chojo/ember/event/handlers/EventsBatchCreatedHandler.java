@@ -47,9 +47,9 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
     /**
      * Announces a batch of new appointments as one entry naming when the first of them falls.
      *
-     * <p>Which day that is belongs to the station's clock rather than the server's: an evening just
-     * after midnight in Berlin is the previous day read in UTC, and the announcement would name a
-     * day nobody is meeting on.
+     * <p>Which day that is belongs to the station's clock rather than the server's: an appointment
+     * just after midnight in Berlin is the previous day read in UTC, and the announcement would name
+     * a day nobody is meeting on.
      */
     @Override
     public void handle(EventsBatchCreated event) {

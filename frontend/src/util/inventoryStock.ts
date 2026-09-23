@@ -24,13 +24,13 @@ export function isAtHand(item: InventoryItem): boolean {
 /**
  * How many pieces of each kind are at hand.
  *
- * <p>This is the plain count of what exists rather than what is free on one evening. A line is
- * written for a whole series of evenings, so there is no single evening a free count could be taken
- * over. What is free on one evening is a different
- * question with a different answer for every evening, and it is already answered where it belongs:
- * beside the line, for the evening being looked at, with the appointments it collides with named.
- * What belongs in the dialogue is the ceiling that holds on every evening, because asking for more
- * pieces than exist is wrong whatever the date.
+ * <p>This is the plain count of what exists rather than what is free on one date. A line is
+ * written for a whole series of dates, so there is no single date a free count could be taken
+ * over. What is free on one date is a different
+ * question with a different answer for every date, and it is already answered where it belongs:
+ * beside the line, for the date being looked at, with the appointments it collides with named.
+ * What belongs in the dialogue is the ceiling that holds on every date, because asking for more
+ * pieces than exist is wrong on any of them.
  *
  * @param items every piece the station holds
  * @returns the count per kind, kinds with no piece left out

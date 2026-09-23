@@ -149,7 +149,7 @@ class ChecklistServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * The whole life of a list that follows an evening: it starts with the people who had already
+     * The whole life of a list that follows one date: it starts with the people who had already
      * taken a place, a late sign-up arrives on the next refresh, somebody who cancels stays on it
      * and is marked, a row taken off by hand never comes back, and the appointment being deleted
      * leaves the list standing with everything on it.
@@ -159,12 +159,12 @@ class ChecklistServiceTest extends RepositoryTestBase {
         var account3 = accountRepo.create("svc3@test.com", "Svc", "Three");
         var late = stationMemberRepo.create(station.id(), account3.id());
         var event = createEvent("Dienstabend");
-        LocalDate evening = LocalDate.of(2026, 3, 3);
-        LocalDate otherEvening = LocalDate.of(2026, 3, 10);
+        LocalDate date = LocalDate.of(2026, 3, 3);
+        LocalDate otherDate = LocalDate.of(2026, 3, 10);
 
-        eventRegistrationRepo.create(event.id(), managerMember.id(), evening, RegistrationStatus.ACCEPTED, null);
-        eventRegistrationRepo.create(event.id(), other.id(), evening, RegistrationStatus.PENDING, null);
-        eventRegistrationRepo.create(event.id(), late.id(), otherEvening, RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(event.id(), managerMember.id(), date, RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(event.id(), other.id(), date, RegistrationStatus.PENDING, null);
+        eventRegistrationRepo.create(event.id(), late.id(), otherDate, RegistrationStatus.ACCEPTED, null);
 
         var checklist = service.create(
                 station.id(),
@@ -173,10 +173,10 @@ class ChecklistServiceTest extends RepositoryTestBase {
                 RestrictionMode.AND,
                 List.of(new ColumnSpec("Zettel abgegeben", "")),
                 FilterSpec.empty(),
-                new ChecklistService.OccurrenceSpec(event.id(), evening),
+                new ChecklistService.OccurrenceSpec(event.id(), date),
                 managerMember.id());
 
-        // Only the one evening counts: the accepted sign-up on the other Tuesday is somebody else's.
+        // Only the one date counts: the accepted sign-up on the other Tuesday is somebody else's.
         assertEquals(
                 List.of(managerMember.id()),
                 service.findEntries(checklist.id(), false).stream()
@@ -186,13 +186,13 @@ class ChecklistServiceTest extends RepositoryTestBase {
         assertTrue(service.findById(checklist.id()).orElseThrow().followsEvent());
 
         // A late sign-up arrives, and only a refresh brings it in.
-        eventRegistrationRepo.create(event.id(), late.id(), evening, RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(event.id(), late.id(), date, RegistrationStatus.ACCEPTED, null);
         var refreshed = service.refresh(checklist.id());
         assertEquals(1, refreshed.added());
         assertEquals(1, refreshed.alreadyPresent());
 
         // Somebody cancels: their row stays and the list knows they no longer match.
-        eventRegistrationRepo.create(event.id(), late.id(), evening, RegistrationStatus.DECLINED, null);
+        eventRegistrationRepo.create(event.id(), late.id(), date, RegistrationStatus.DECLINED, null);
         var afterCancel =
                 service.resolveMembership(service.findById(checklist.id()).orElseThrow());
         assertTrue(afterCancel.following());
@@ -229,8 +229,8 @@ class ChecklistServiceTest extends RepositoryTestBase {
     @Test
     void followingAndFilteringReplaceEachOther() {
         var event = createEvent("Wechsel");
-        LocalDate evening = LocalDate.of(2026, 4, 7);
-        eventRegistrationRepo.create(event.id(), other.id(), evening, RegistrationStatus.ACCEPTED, null);
+        LocalDate date = LocalDate.of(2026, 4, 7);
+        eventRegistrationRepo.create(event.id(), other.id(), date, RegistrationStatus.ACCEPTED, null);
 
         var checklist = service.create(
                 station.id(),
@@ -242,10 +242,9 @@ class ChecklistServiceTest extends RepositoryTestBase {
                 managerMember.id());
         assertFalse(service.findFilterRows(checklist.id()).isEmpty());
 
-        var following =
-                service.followOccurrence(checklist.id(), new ChecklistService.OccurrenceSpec(event.id(), evening));
+        var following = service.followOccurrence(checklist.id(), new ChecklistService.OccurrenceSpec(event.id(), date));
         assertTrue(following.followsEvent());
-        assertEquals(evening, following.sourceEventDate());
+        assertEquals(date, following.sourceEventDate());
         assertTrue(service.findFilterRows(checklist.id()).isEmpty());
 
         var backToFilter = service.update(

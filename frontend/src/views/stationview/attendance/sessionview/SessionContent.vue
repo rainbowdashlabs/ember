@@ -82,6 +82,7 @@ const emit = defineEmits<{
   enter: [memberId: number, status: AttendanceStatus]
   unlock: []
   lock: []
+  openEvent: []
   moveSwap: [movementId: number, stepId: number, replacementItemId: number | null]
   dropSwap: [movementId: number]
   signOffFound: [itemId: number]
@@ -100,8 +101,10 @@ const emit = defineEmits<{
         :readonly="!canEdit"
         :locked="locked"
         :can-manage="canManage"
+        :event-id="session?.eventId ?? null"
         @unlock="emit('unlock')"
         @lock="emit('lock')"
+        @open-event="emit('openEvent')"
         @back="emit('back')"
         @export="emit('export')"
         @sync="emit('sync')"

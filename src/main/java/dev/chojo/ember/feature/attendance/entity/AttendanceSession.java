@@ -48,7 +48,7 @@ public record AttendanceSession(
      * both, its age against the configured span decides.
      *
      * @param now             the moment to judge by
-     * @param freezeAfterDays how many days after its evening a sheet closes on its own
+     * @param freezeAfterDays how many days after its date a sheet closes on its own
      * @return true where the sheet is open for writing
      */
     public boolean isOpen(Instant now, int freezeAfterDays) {
@@ -62,7 +62,7 @@ public record AttendanceSession(
      *
      * <p>The clock decides where the sheet says nothing else. Where it carries a number of its own,
      * that number is what a whole presence is worth and a shorter one counts its share of it, so an
-     * evening of four hours counted as three gives three to whoever stayed and one and a half to
+     * appointment of four hours counted as three gives three to whoever stayed and one and a half to
      * whoever left halfway. Nobody counts more than the sheet is worth, which is what stops an
      * arrival written before the sheet began from buying extra.
      *

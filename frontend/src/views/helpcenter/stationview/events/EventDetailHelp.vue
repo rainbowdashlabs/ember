@@ -203,6 +203,8 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.eventDetail.templateTitle')">
       <p>{{ t('helpCenter.eventDetail.templateText') }}</p>
+      <p>{{ t('helpCenter.eventDetail.attendanceMenuText') }}</p>
+      <p>{{ t('helpCenter.eventDetail.attendanceDayText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.eventDetail.tip') }}</HelpTip>

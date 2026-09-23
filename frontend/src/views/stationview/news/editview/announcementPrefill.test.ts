@@ -28,7 +28,7 @@ function audience(over: Partial<RestrictionSelection> = {}): RestrictionSelectio
 }
 
 describe('buildAnnouncementDraft', () => {
-    it('carries the name, the one evening and the overview fields', () => {
+    it('carries the name, the one occurrence and the overview fields', () => {
         const draft = buildAnnouncementDraft(
             EVENT,
             '2026-09-08',

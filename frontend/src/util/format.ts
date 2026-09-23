@@ -222,7 +222,7 @@ export function stationToday(timezone?: string | null): string {
  * The time of day a moment shows where the station stands, as `HH:mm`.
  *
  * <p>Sorts and compares as it reads, which is what makes it the thing to ask when the question is
- * whether this evening's appointment is over yet.
+ * whether today's appointment is over yet.
  */
 export function stationClock(moment: Date, timezone?: string | null): string {
     if (!timezone) return `${pad2(moment.getHours())}:${pad2(moment.getMinutes())}`

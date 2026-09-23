@@ -18,13 +18,13 @@ import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
  */
 defineProps<{
   memberSet: SignupMemberSet
-  /** The evening the set belongs to, already written the way a reader reads a date. */
+  /** The occurrence the set belongs to, already written the way a reader reads a date. */
   dateLabel: string
   /**
-   * Whether what is being made stays tied to this evening instead of copying it once.
+   * Whether what is being made stays tied to this occurrence instead of copying it once.
    *
    * <p>The closing sentence is the one people read hardest, and it has to say the opposite thing in
-   * each case: a copy never catches up, while a list that follows the evening does, but only when
+   * each case: a copy never catches up, while a list that follows the occurrence does, but only when
    * somebody presses the refresh button on it.
    */
   following?: boolean

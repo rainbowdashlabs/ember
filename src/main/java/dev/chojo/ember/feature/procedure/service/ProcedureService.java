@@ -135,12 +135,12 @@ public class ProcedureService {
     }
 
     /**
-     * Every procedure prepared for one evening of one appointment.
+     * Every procedure prepared for one date of one appointment.
      *
      * @param stationId the station the appointment belongs to
      * @param eventId   the appointment
      * @param eventDate the one occurrence of it
-     * @return what is already there for that evening, newest first
+     * @return what is already there for that date, newest first
      */
     public List<Procedure> findProceduresByOccurrence(int stationId, int eventId, LocalDate eventDate) {
         return repository.findProceduresByOccurrence(stationId, eventId, eventDate);

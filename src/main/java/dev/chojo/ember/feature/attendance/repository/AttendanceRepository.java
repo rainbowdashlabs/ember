@@ -252,7 +252,7 @@ public class AttendanceRepository {
     /**
      * Finds session summaries with attendance counts for all sessions in a station.
      *
-     * <p>Newest evening first, by when the evening was rather than by when somebody wrote it down.
+     * <p>Newest date first, by when the appointment was rather than by when somebody wrote it down.
      * A sheet filled in weeks later is an ordinary thing, and ordering by the writing put it among
      * this week's while showing a date from July.
      *
@@ -289,15 +289,25 @@ public class AttendanceRepository {
     }
 
     /**
-     * Finds the most recent session linked to an event.
+     * Finds the session an appointment has on one day.
+     *
+     * <p>A repeating appointment is one row that comes round again and again, so its sheets are told
+     * apart by the day they run on. Asked for the appointment alone, this answered with the sheet of
+     * its first occurrence, and every later date opened that one instead of its own.
      *
      * @param eventId the event ID
+     * @param from    the first moment of the day, on the station's clock
+     * @param until   the first moment of the next day
      * @return the session if found
      */
-    public Optional<AttendanceSession> findSessionByEventId(int eventId) {
+    public Optional<AttendanceSession> findSessionByEventOnDay(int eventId, Instant from, Instant until) {
         return query("""
-                SELECT %s FROM attendance_session WHERE event_id = :event_id ORDER BY created_at DESC LIMIT 1;""", ATTENDANCE_SESSION_COLUMNS)
-                .single(call().bind("event_id", eventId))
+                SELECT %s FROM attendance_session
+                WHERE event_id = :event_id AND start_time >= :from AND start_time < :until
+                ORDER BY created_at DESC LIMIT 1;""", ATTENDANCE_SESSION_COLUMNS)
+                .single(call().bind("event_id", eventId)
+                        .bind("from", from, INSTANT_TIMESTAMP)
+                        .bind("until", until, INSTANT_TIMESTAMP))
                 .map(AttendanceSession.map())
                 .first();
     }

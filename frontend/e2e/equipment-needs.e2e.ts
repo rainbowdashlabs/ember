@@ -60,9 +60,9 @@ async function appointment(
 test.describe('Appointment equipment', () => {
     /**
      * The whole idea in one walk: an appointment says what it needs, and the panel answers for the
-     * evening rather than in general, naming where the pieces would come from.
+     * date rather than in general, naming where the pieces would come from.
      */
-    test('an appointment says what it needs and the panel answers for that evening',
+    test('an appointment says what it needs and the panel answers for that date',
         async ({managerPage: page}) => {
             const headers = await apiHeaders(page)
             const start = inDays(21)
@@ -125,7 +125,7 @@ test.describe('Appointment equipment', () => {
         })
 
     /**
-     * Two appointments over the same evening may both write down the same six radios. The second one
+     * Two appointments over the same date may both write down the same six radios. The second one
      * is not refused: the panel reports the over-claim and names the appointment it collides with,
      * which is what makes the conflict something anybody can act on before the day.
      */
@@ -188,11 +188,11 @@ test.describe('Appointment equipment', () => {
     })
 
     /**
-     * The collecting screen is reached from an appointment, and that is what fixes the evening the
+     * The collecting screen is reached from an appointment, and that is what fixes the occurrence the
      * request is for. Opened without one it used to offer a button that could never do anything and
      * said nothing about why.
      */
-    test('collecting without an evening says so rather than offering a button that cannot act',
+    test('collecting without an occurrence says so rather than offering a button that cannot act',
         async ({managerPage: page}) => {
             await page.goto('/station/inventory/lending/collect')
             await expect(page.getByTestId('app-shell')).toBeVisible()

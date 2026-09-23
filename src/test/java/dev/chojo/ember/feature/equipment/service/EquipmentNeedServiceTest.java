@@ -135,7 +135,7 @@ class EquipmentNeedServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void oneEveningWritesALineOfItsOwn() {
+    void oneDateWritesALineOfItsOwn() {
         var dienst =
                 EquipmentTestSupport.weekly(eventRepo, station.id(), "NeedSvcDienst", EquipmentTestSupport.SATURDAY);
         needs.add(dienst.id(), station.id(), null, LineTarget.art(blue.id()), 2, 0, 0);

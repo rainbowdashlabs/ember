@@ -199,8 +199,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
      * The day an occasion falls on, which is the day its registrations are answered for.
      *
      * <p>Read in the station's own timezone, because that is the calendar the sheet is put on. Read
-     * in the server's, an evening late enough in the day was registered for one date and looked up
-     * under the next.
+     * in the server's, an appointment late enough in the day was registered for one date and looked
+     * up under the next.
      */
     private LocalDate dayOf(StationEvent event) {
         return LocalDate.ofInstant(
@@ -464,7 +464,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
     /**
      * A repeating appointment carries the date somebody first configured it on, and taking that
-     * date as it stood opened a sheet for an evening years past.
+     * date as it stood opened a sheet years in the past.
      */
     @Test
     @Order(50)
@@ -504,11 +504,60 @@ class AttendanceServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * Every date of a repeating appointment gets its own sheet.
+     *
+     * <p>The appointment is one row that comes round again and again, so a sheet was looked up by the
+     * appointment alone and last week's came back: this week's attendance was written onto the sheet
+     * of the first occurrence, under that occurrence's date. A sheet of the same day is still the one
+     * that is handed back, because opening the same date twice must not make two.
+     */
+    @Test
+    @Order(50)
+    void everyDateOfARepeatingAppointmentGetsItsOwnSheet() {
+        Instant configuredLongAgo = Instant.parse("2024-09-04T18:00:00Z");
+        var weekly = eventRepo.create(
+                station.id(),
+                "Übungsabend",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                3,
+                configuredLongAgo,
+                configuredLongAgo.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var lastWeek = openSheet(
+                templateId,
+                Instant.now().minus(7, ChronoUnit.DAYS),
+                Instant.now().minus(7, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
+                weekly.id(),
+                "Letzte Woche");
+        try {
+            var today = openSheet(templateId, null, null, weekly.id(), null);
+            assertNotEquals(lastWeek.id(), today.id(), "this occurrence is not last week's sheet");
+
+            var again = openSheet(templateId, null, null, weekly.id(), null);
+            assertEquals(today.id(), again.id(), "opening the same date twice makes one sheet");
+
+            service.deleteSession(today.id());
+        } finally {
+            service.deleteSession(lastWeek.id());
+            eventRepo.delete(weekly.id());
+        }
+    }
+
+    /**
      * Which day a sheet is opened for is the station's day, not the server's.
      *
      * <p>A station far enough east has been on tomorrow for hours while the server is still on today,
      * so asking the server put the sheet on the occurrence before the one everybody had turned up for,
-     * and the evening's sheet was nowhere to be found.
+     * and the day's sheet was nowhere to be found.
      */
     @Test
     @Order(50)
@@ -637,8 +686,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
     /**
      * Only the template's groups put anybody on a sheet.
      *
-     * <p>Whom the event was open to says nothing about who is expected at the evening: the sheet is
-     * the template's, and somebody outside its groups stays off it however the event was addressed.
+     * <p>Whom the event was open to says nothing about who is expected at the appointment: the sheet
+     * is the template's, and somebody outside its groups stays off it however the event was addressed.
      */
     @Test
     @Order(54)

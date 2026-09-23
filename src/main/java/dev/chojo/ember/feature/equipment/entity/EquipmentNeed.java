@@ -21,12 +21,12 @@ import java.time.LocalDate;
  * the radios are fetched the evening before and come back on the Monday, and a request asking only
  * for the Saturday leaves the owner finding an empty shelf on the Friday.
  *
- * <p>A line with no date holds for every evening the series produces, which is why a weekly Dienst is
- * written once rather than fifty times. A line with a date speaks for that evening alone: it is added
+ * <p>A line with no date holds for every date the series produces, which is why a weekly Dienst is
+ * written once rather than fifty times. A line with a date speaks for that date alone: it is added
  * to the standing list, and where it names the same thing as a standing line it takes its place.
  *
  * @param eventId      the appointment the line belongs to
- * @param eventDate    the one evening this line speaks for, or {@code null} for the whole series
+ * @param eventDate    the one date this line speaks for, or {@code null} for the whole series
  * @param itemId       the named piece, or {@code null}
  * @param artId        the kind of thing counted, or {@code null}
  * @param inventoryId  the inventory counted out of, or {@code null}
@@ -61,7 +61,7 @@ public record EquipmentNeed(
     }
 
     /**
-     * Whether this line holds for every evening the series produces.
+     * Whether this line holds for every date the series produces.
      *
      * @return {@code true} when the line carries no date of its own
      */

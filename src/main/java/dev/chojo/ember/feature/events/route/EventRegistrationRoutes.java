@@ -649,7 +649,7 @@ public class EventRegistrationRoutes implements Routes {
 
     /**
      * Which day the table is about. A registration belongs to one occurrence, so a table without a
-     * day would be a table of every evening at once.
+     * day would be a table of every occurrence at once.
      */
     private LocalDate tableDate(Context ctx) {
         var req = ctx.bodyAsClass(RegistrationTableRequest.class);
@@ -953,8 +953,8 @@ public class EventRegistrationRoutes implements Routes {
     /**
      * The day a registration is filed against, read in the clock of the station holding the event.
      *
-     * <p>Not the server's: an evening just after midnight in Berlin is the previous day in UTC, and
-     * the registration would be filed against a day the event is not on.
+     * <p>Not the server's: an appointment just after midnight in Berlin is the previous day in
+     * UTC, and the registration would be filed against a day the event is not on.
      */
     private LocalDate resolveEventDate(RegisterRequest req, StationEvent event) {
         if (event.eventType() == StationEvent.EventType.ONE_TIME) {

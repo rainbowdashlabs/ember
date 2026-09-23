@@ -51,6 +51,7 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -152,13 +153,17 @@ public class AttendanceRoutes implements Routes {
                 prefix + "/attendance/templates/{templateId}/sessions",
                 this::createSession,
                 StationPermission.ATTENDANCE_EDIT);
+        routes.get(
+                prefix + "/attendance/events/{eventId}/session",
+                this::getSessionForEvent,
+                StationPermission.ATTENDANCE_READ);
         routes.get(prefix + "/attendance/sessions/{id}", this::getSession, StationPermission.ATTENDANCE_READ);
         routes.put(prefix + "/attendance/sessions/{id}", this::updateSession, StationPermission.ATTENDANCE_EDIT);
         // Whoever may take an attendance may throw one away again: a sheet opened for the wrong
-        // evening is a mistake made while taking it, and is undone by the same person on the spot.
+        // appointment is a mistake made while taking it, and is undone by the same person on the spot.
         routes.delete(prefix + "/attendance/sessions/{id}", this::deleteSession, StationPermission.ATTENDANCE_EDIT);
         // Reopening a closed sheet is the one thing an ordinary taker may not do, because the point
-        // of closing is that the evening stops being everybody's to change.
+        // of closing is that the appointment stops being everybody's to change.
         routes.post(
                 prefix + "/attendance/sessions/{id}/unlock", this::unlockSession, StationPermission.ATTENDANCE_MANAGER);
         routes.post(prefix + "/attendance/sessions/{id}/lock", this::lockSession, StationPermission.ATTENDANCE_MANAGER);
@@ -601,6 +606,41 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = SessionDetail.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
+    /**
+     * The sheet an appointment has on one of its days, so a page showing that day can offer to open
+     * it rather than to take it again. A day nobody has taken yet answers with no content.
+     */
+    @OpenApi(
+            path = "/api/v1/attendance/events/{eventId}/session",
+            methods = HttpMethod.GET,
+            summary = "The attendance sheet of an appointment on one day",
+            tags = {"Attendance"},
+            pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
+            queryParams =
+                    @OpenApiParam(name = "date", description = "The day to look on, the station's today by default"),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceSession.class)),
+                @OpenApiResponse(status = "204")
+            })
+    private void getSessionForEvent(Context ctx) {
+        UserSession userSession = UserSession.from(ctx);
+        int eventId = pathInt(ctx, "eventId");
+        String date = ctx.queryParam("date");
+        LocalDate day;
+        try {
+            day = date == null || date.isBlank() ? null : LocalDate.parse(date);
+        } catch (DateTimeParseException e) {
+            throw new BadRequestResponse("Unreadable date: " + date);
+        }
+        var found = attendanceService.findSessionForEvent(eventId, day);
+        if (found.isEmpty()) {
+            ctx.status(204);
+            return;
+        }
+        verifySessionOwnership(found.get().id(), userSession);
+        ctx.json(found.get());
+    }
+
     private void getSession(Context ctx) {
         UserSession userSession = UserSession.from(ctx);
         int id = pathInt(ctx, "id");

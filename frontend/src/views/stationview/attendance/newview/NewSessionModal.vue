@@ -22,7 +22,7 @@ import {instantToLocalInput, localInputToInstant} from '@/util/format'
  *
  * <p>A sheet used to begin and end at the moment it was made, which counted everybody on it for
  * nothing and left no way to write down a weekend at all. The two ends are asked for here instead,
- * prefilled so that the ordinary evening is still one further click, and each of them carries its
+ * prefilled so that the ordinary appointment is still one further click, and each of them carries its
  * day, which is what makes a sheet over several days possible without an appointment behind it.
  */
 const {t} = useI18n()

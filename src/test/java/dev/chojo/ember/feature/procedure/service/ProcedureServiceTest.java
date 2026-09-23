@@ -201,8 +201,8 @@ class ProcedureServiceTest {
     }
 
     /**
-     * A procedure prepared for one evening carries the appointment and the date it was made for, so
-     * that pressing the same button again can find it rather than make a second one.
+     * A procedure prepared for one occurrence carries the appointment and the date it was made for,
+     * so that pressing the same button again can find it rather than make a second one.
      */
     @Test
     void createProcedureForOccurrenceRecordsIt() {

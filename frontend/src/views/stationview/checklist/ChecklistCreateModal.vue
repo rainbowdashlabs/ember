@@ -36,7 +36,7 @@ const follows = ref<'FILTER' | 'EVENT'>('FILTER')
 const occurrence = ref<ChecklistSourceRequest | null>(null)
 
 /**
- * A list that is meant to follow an evening but names none would be created following nothing, so
+ * A list that is meant to follow an appointment but names none would be created following nothing, so
  * the choice has to be finished before it can be saved.
  */
 const membershipIncomplete = computed(() => follows.value === 'EVENT' && occurrence.value === null)

@@ -27,7 +27,7 @@ import {formatDate} from '@/util/format'
  * Changes what an existing list is made of, which nothing could do before.
  *
  * <p>Only the create dialog ever set this, so a list built from a fixed set of names could never
- * become one that follows an evening, however clearly that was what somebody wanted. Saving here
+ * become one that follows an appointment, however clearly that was what somebody wanted. Saving here
  * changes what the list will resolve next; it adds and removes nobody on its own, because bringing
  * people in is what the refresh button is for.
  */

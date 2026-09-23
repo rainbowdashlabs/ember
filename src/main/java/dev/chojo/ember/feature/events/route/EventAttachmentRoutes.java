@@ -273,8 +273,8 @@ public class EventAttachmentRoutes implements Routes {
      * The event, asserted to be the caller's station's and one they may see.
      *
      * <p>Whoever may write events is let through whatever the event says about who may see it: an
-     * editor working on an evening they restricted to one group still has to be able to open it. A
-     * guardian sees what the members they look after see, the same as in the event list.
+     * editor working on an appointment they restricted to one group still has to be able to open
+     * it. A guardian sees what the members they look after see, the same as in the event list.
      */
     private void requireVisibleEvent(Context ctx, int eventId) {
         var session = UserSession.from(ctx);

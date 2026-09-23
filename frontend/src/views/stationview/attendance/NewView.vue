@@ -86,7 +86,7 @@ function createSession(templateId: number, eventId?: number | null) {
 /**
  * The times a new sheet is offered, taken from the last sheet this template ran.
  *
- * <p>A station that meets on Tuesday evenings meets for as long as it met last Tuesday, so that is
+ * <p>A station that meets on Tuesdays meets for as long as it met last Tuesday, so that is
  * the better guess than any fixed length, and where a template has never been used a plain two
  * hours stands in.
  */

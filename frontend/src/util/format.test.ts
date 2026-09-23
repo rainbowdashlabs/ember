@@ -166,7 +166,7 @@ describe('an appointment late in the evening', () => {
 
 /**
  * The day an appointment is filed under is the station's, and nobody else's. The sign-ups, the
- * absences and the gear claimed for an evening are all looked up by it, so a page that asks its own
+ * absences and the gear claimed for a date are all looked up by it, so a page that asks its own
  * clock instead asks for a day nothing is filed under and comes back with nothing at all.
  */
 describe('the day an appointment is filed under', () => {
@@ -196,7 +196,7 @@ describe('the day an appointment is filed under', () => {
         expect(stationToday('Europe/Berlin')).toBe(todayIsoDate())
     })
 
-    it('reads the clock off the station too, so an evening ends when it ends there', () => {
+    it('reads the clock off the station too, so an appointment ends when it ends there', () => {
         readingFrom('Pacific/Auckland')
         expect(stationClock(new Date(halfPastTenInBerlin), 'Europe/Berlin')).toBe('22:30')
         expect(stationClock(new Date(halfPastTenInBerlin), null)).toBe('09:30')

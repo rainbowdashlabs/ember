@@ -18,14 +18,14 @@ import type {Procedure, ProcedureTemplate} from '@/api/procedures'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
 
 /**
- * Prepares one shared list of steps for the people who hold a place on an evening.
+ * Prepares one shared list of steps for the people who hold a place on an appointment.
  *
  * <p>A procedure is not a list per person: every step carries one tick that counts for everybody on
  * it. So this makes one preparation list a handful of people work through together, and the count
  * it shows is how many of them will be told about it, one message each.
  *
  * <p>Three things can be behind this window, and only one of them is the form. A station that has
- * written no template cannot have a procedure at all and is told so. An evening that has already
+ * written no template cannot have a procedure at all and is told so. A date that has already
  * been prepared for is offered what is there, because two nearly identical lists for one appointment
  * is a state nobody tidies up.
  */
@@ -37,15 +37,15 @@ const props = defineProps<{
   creating: boolean
   error: string
   memberSet: SignupMemberSet
-  /** The evening the set belongs to, already written the way a reader reads a date. */
+  /** The occurrence the set belongs to, already written the way a reader reads a date. */
   dateLabel: string
   /** What the list is called before anybody changes it: the appointment and its date. */
   suggestedName: string
-  /** The evening itself, which is when the preparation has to be done by. */
+  /** The date itself, which is when the preparation has to be done by. */
   occurrenceDate: string | null
   /** The station's templates, without the archived ones. */
   templates: ProcedureTemplate[]
-  /** A list already prepared for this very evening, which is offered instead of a second one. */
+  /** A list already prepared for this very date, which is offered instead of a second one. */
   existing: Procedure | null
 }>()
 

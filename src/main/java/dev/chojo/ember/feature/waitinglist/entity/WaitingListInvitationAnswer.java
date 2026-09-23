@@ -17,7 +17,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  *
  * <p>It belongs to that one invitation and goes with it: a station offering a different date
  * replaces the invitation, and an answer to the one it replaced would say nothing about the new
- * evening.
+ * date.
  *
  * @param answer     which of the three was clicked
  * @param answeredAt when it was clicked, so a station can see how long an invitation has been sitting

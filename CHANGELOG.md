@@ -1,5 +1,15 @@
 # Changelog
 
+## v26.18.7
+
+### Improvements
+
+- **An appointment and its attendance sheet lead to each other.** The menu on an appointment opens the sheet for the date shown, or starts one where there is none yet, and the menu on a sheet leads back to the appointment on that same date.
+
+### Fixes
+
+- **Attendance for a repeating appointment was recorded on the wrong date.** Starting the attendance for a weekly appointment dated the sheet to the first date of the series and reopened that same sheet on every later date. Each date now gets its own sheet, dated to the day it covers.
+
 ## v26.18.6
 
 ### New Features

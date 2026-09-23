@@ -55,7 +55,7 @@ public class WaitingListRepository {
             invitation_answer, invitation_answered_at, invitation_answer_note""";
 
     /**
-     * The evenings of the trial period, counted off the attendance sheets themselves.
+     * The dates of the trial period, counted off the attendance sheets themselves.
      *
      * <p>A number kept beside the entry only ever went up, and only when somebody pressed the button
      * on the sheet: a mark taken back left it standing, a sheet thrown away left it standing, and
@@ -64,8 +64,8 @@ public class WaitingListRepository {
      * the sheets say.
      *
      * <p>The trial period is a stretch of time rather than a status: it begins when the entry moves
-     * to testing and ends when whoever it is about joins or withdraws. An evening outside that
-     * stretch belongs to no trial and is counted towards none.
+     * to testing and ends when whoever it is about joins or withdraws. A date outside that stretch
+     * belongs to no trial and is counted towards none.
      */
     private static final String TRIAL_ATTENDANCE_COUNT = """
             (SELECT count(*)
@@ -79,7 +79,7 @@ public class WaitingListRepository {
                AND (waiting_list_entry.withdrawn_at IS NULL
                     OR trial_session.start_time < waiting_list_entry.withdrawn_at)) AS attendance_count""";
 
-    /** An entry as it is read, which is the only place the trial evenings are counted. */
+    /** An entry as it is read, which is the only place the trial dates are counted. */
     private static final String WAITING_LIST_ENTRY_READ_COLUMNS =
             WAITING_LIST_ENTRY_COLUMNS.replace("attendance_count", TRIAL_ATTENDANCE_COUNT);
 

@@ -17,7 +17,7 @@ import java.time.ZoneOffset;
  * The appointments the equipment tests plan against, written straight to the repository.
  *
  * <p>Every one of them is anchored to a fixed date rather than to today, so a test that walks a
- * window says which evenings it expects instead of depending on the day it runs.
+ * window says which dates it expects instead of depending on the day it runs.
  */
 public final class EquipmentTestSupport {
 
