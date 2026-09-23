@@ -26,8 +26,12 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-          cache: gradle
-      - uses: gradle/actions/wrapper-validation@v6
+      # setup-gradle rather than the `cache: gradle` that setup-java offers. That one writes its
+      # entry once and never updates it, so the first job to finish froze a near-empty cache and
+      # every job since re-fetched the whole dependency graph while reporting a cache hit. This
+      # keys an entry per job, and validates the wrapper on its own.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
       - name: Build with Gradle
         run: ./gradlew --build-cache build -x test -x spotlessCheck -x javadoc
       # Built once here rather than inside each e2e container, twice a group and five groups over.
@@ -52,7 +56,8 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-          cache: gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
       - name: Run repository tests
         uses: nick-fields/retry@v4
         with:
@@ -81,7 +86,8 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-          cache: gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
       # The packages are large and come from mirrors that are occasionally slow: the same step has
       # taken twenty seconds and ten minutes on consecutive runs. Keeping the downloads means a run
       # that hits the cache does not reach for a mirror at all.
@@ -154,7 +160,8 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-          cache: gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
       # Tracking tests enforce that data_tracking.json is in sync with the live PG schema -
       # every DB table is tracked, no stale entries, table hashes match the live columns/FKs,
       # no UNVERIFIED statuses remain, RETAIN strategies carry a legal basis, etc. They use a
@@ -184,7 +191,8 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-          cache: gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
       - name: Run other tests
         uses: nick-fields/retry@v4
         with:
@@ -210,7 +218,8 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-          cache: gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
       - name: Download coverage data
         uses: actions/download-artifact@v8
         with:
@@ -239,7 +248,8 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-          cache: gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
       - name: Generate Javadoc
         run: ./gradlew javadoc
 
@@ -397,7 +407,8 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-          cache: gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
       - name: Check formatting and license headers
         run: ./gradlew spotlessJavaCheck
 
@@ -411,7 +422,8 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-          cache: gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
       - name: Check formatting and license headers
         run: ./gradlew spotlessJavascriptCheck spotlessVueCheck
 
@@ -429,7 +441,8 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-          cache: gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
       - name: Check locale encoding
         run: ./gradlew spotlessFrontendLocalesCheck
 
@@ -561,7 +574,20 @@ jobs:
     name: Verify Docker Build
     steps:
       - uses: actions/checkout@v7
+      - name: Set up buildx
+        uses: docker/setup-buildx-action@v4
+      # Reads the layers the images on main were built from, and writes none back, so a branch
+      # resolves dependencies only where it has changed them. The packages are public, so this
+      # needs no credentials, and a branch whose cache is missing simply builds from nothing.
       - name: Build backend image
-        run: docker build . -f docker/backend.Dockerfile
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/backend.Dockerfile
+          cache-from: type=registry,ref=ghcr.io/rainbowdashlabs/ember-backend:buildcache-amd64
       - name: Build frontend image
-        run: docker build . -f docker/frontend.Dockerfile
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/frontend.Dockerfile
+          cache-from: type=registry,ref=ghcr.io/rainbowdashlabs/ember-frontend:buildcache-amd64
