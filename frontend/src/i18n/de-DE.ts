@@ -306,7 +306,7 @@ export default {
         incomplete: 'Unvollständig',
         withPasskey: 'Mit Passkey anmelden',
         passkeyFailed: 'Die Anmeldung mit Passkey hat nicht geklappt. Du kannst dich weiter mit deinem Passwort anmelden.',
-        passkeyElsewhere: 'Passkey auf einem anderen Gerät?',
+        passkeyElsewhere: 'Mit einem anderen Gerät anmelden',
         passwordOff: 'Die Anmeldung mit Passwort ist für dieses Konto ausgeschaltet. Melde dich mit '
             + 'deinem Passkey an, oder setze dein Passwort zurück, um sie wieder einzuschalten.',
     },
@@ -385,11 +385,21 @@ export default {
         },
         device: {
             title: 'Dieses Gerät freischalten',
-            instruction: 'Öffne auf einem Gerät, auf dem du schon angemeldet bist, Konto, Sicherheit, '
-                + '"Neues Gerät freischalten" und gib dort diesen Code ein:',
+            instruction: 'Scanne diesen QR-Code mit einem Gerät, auf dem du schon angemeldet bist. '
+                + 'Dort wirst du nach der Zahl gefragt, die unten steht.',
             qrAlt: 'QR-Code zum Freischalt-Bildschirm',
-            qrHint: 'Der QR-Code öffnet nur den Freischalt-Bildschirm. Den Code oben tippst du selbst ein.',
+            identifierLabel: 'E-Mail-Adresse oder Benutzername',
+            identifierPlaceholder: "name{'@'}beispiel.de",
+            identifierHint: 'Damit weiß das andere Gerät, für wen die Anfrage gilt. Nur dieses Konto kann '
+                + 'sie freischalten.',
+            numberIntro: 'Deine Zahl:',
+            codeFallback: 'Falls du den QR-Code nicht scannen kannst, gib diesen Code ein:',
             waiting: 'Warte auf die Freischaltung ...',
+            waitingThrottled: 'Es wurde gerade sehr oft nachgefragt. Die Anfrage läuft weiter, es dauert '
+                + 'nur einen Moment länger.',
+            rejected: 'Auf dem anderen Gerät wurde die falsche Zahl gewählt.',
+            rejectedHint: 'Aus Sicherheitsgründen ist diese Anfrage damit beendet. Fordere eine neue an '
+                + 'und achte darauf, die Zahl von diesem Bildschirm zu wählen.',
             signingIn: 'Du wirst angemeldet ...',
             signedInAs: 'Angemeldet als {name}.',
             expired: 'Die Anfrage ist abgelaufen oder wurde nicht freigeschaltet.',
@@ -404,15 +414,22 @@ export default {
             chooseSignIn: 'Nur anmelden, nichts speichern',
             chooseSignInHint: 'Für ein geliehenes oder fremdes Gerät. Es bleibt nichts zurück, und die '
                 + 'Anmeldung endet mit der Sitzung.',
-            instructionSignIn: 'Öffne auf einem Gerät, auf dem du schon angemeldet bist, Konto, Sicherheit, '
-                + '"Neues Gerät freischalten" und gib dort diesen Code ein. Auf diesem Gerät wird nichts '
-                + 'gespeichert:',
+            instructionSignIn: 'Scanne diesen QR-Code mit einem Gerät, auf dem du schon angemeldet bist. '
+                + 'Dort wirst du nach der Zahl gefragt, die unten steht. Auf diesem Gerät wird nichts '
+                + 'gespeichert.',
         },
         approve: {
             title: 'Neues Gerät freischalten',
-            hint: 'Ein Gerät ohne Passkey zeigt dir einen Code. Gib ihn hier ein, sieh dir an, was du '
-                + 'freischaltest, und bestätige nur, wenn du selbst davor sitzt.',
+            hint: 'Scanne den QR-Code des anderen Geräts, oder gib den Code hier ein. Danach siehst du, '
+                + 'was du freischaltest, und wählst die Zahl, die auf dem anderen Gerät steht.',
             lookup: 'Code prüfen',
+            numberTitle: 'Welche Zahl steht auf dem anderen Gerät?',
+            numberHint: 'Sieh auf den Bildschirm des Geräts, das hereinkommen möchte, und wähle die Zahl, '
+                + 'die dort steht.',
+            numberWrongWarning: 'Wenn du die Zahl nicht sehen kannst, brich ab. Wer dir einen QR-Code '
+                + 'geschickt hat, kann dir die Zahl nicht zeigen.',
+            wrongNumber: 'Das war die falsche Zahl. Die Anfrage ist damit beendet; das andere Gerät muss '
+                + 'eine neue stellen.',
             unknownCode: 'Diesen Code gibt es nicht oder er ist abgelaufen.',
             unknownDevice: 'Unbekanntes Gerät',
             place: 'Ort: {place}',

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import org.junit.jupiter.api.Test;
 
@@ -176,7 +177,7 @@ class AuthRateLimiterTest {
 
     @Test
     void theInjectedConstructorCreatesWorkingInstance() throws Exception {
-        var limiter = new AuthRateLimiter(demo(false));
+        var limiter = new AuthRateLimiter(demo(false), new Auth());
         assertTrue(limiter.tryLogin("9.9.9.9", "test@example.com").isEmpty());
     }
 
@@ -187,15 +188,15 @@ class AuthRateLimiterTest {
      */
     @Test
     void aDevelopmentInstanceIsNotThrottledAndAPublicDemoStillIs() throws Exception {
-        var onDev = new AuthRateLimiter(demo(true));
-        for (int i = 0; i < 50; i++) {
-            assertTrue(onDev.tryDeviceRequest("1.2.3.4").isEmpty(), "a dev run never meets a bucket");
+        var onDev = new AuthRateLimiter(demo(true), new Auth());
+        for (int i = 0; i < 200; i++) {
+            assertTrue(onDev.tryDeviceRequest("1.2.3.4", "a@example.com").isEmpty(), "a dev run never meets a bucket");
         }
 
-        var onDemo = new AuthRateLimiter(demo(false, true));
-        for (int i = 0; i < 5; i++) onDemo.tryDeviceRequest("1.2.3.4");
+        var onDemo = new AuthRateLimiter(demo(false, true), new Auth());
+        for (int i = 0; i < 10; i++) onDemo.tryDeviceRequest("1.2.3.4", "a@example.com");
         assertTrue(
-                onDemo.tryDeviceRequest("1.2.3.4").isPresent(),
+                onDemo.tryDeviceRequest("1.2.3.4", "a@example.com").isPresent(),
                 "the public demo is exactly where an unthrottled auth surface would be found");
     }
 
@@ -249,14 +250,15 @@ class AuthRateLimiterTest {
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         var limiter = new AuthRateLimiter(clock);
 
-        for (int i = 0; i < 5; i++)
-            assertTrue(limiter.tryDeviceRequest("1.2.3.4").isEmpty());
-        assertTrue(limiter.tryDeviceRequest("1.2.3.4").isPresent());
-
-        for (int i = 0; i < 40; i++) assertTrue(limiter.tryDevicePoll("1.2.3.4").isEmpty());
-        assertTrue(limiter.tryDevicePoll("1.2.3.4").isPresent());
-
         for (int i = 0; i < 10; i++)
+            assertTrue(limiter.tryDeviceRequest("1.2.3.4", "one@example.com").isEmpty());
+        assertTrue(limiter.tryDeviceRequest("1.2.3.4", "one@example.com").isPresent());
+
+        for (int i = 0; i < 90; i++)
+            assertTrue(limiter.tryDevicePoll("1.2.3.4", "secret-a").isEmpty());
+        assertTrue(limiter.tryDevicePoll("1.2.3.4", "secret-a").isPresent());
+
+        for (int i = 0; i < 40; i++)
             assertTrue(limiter.tryDeviceEnroll("1.2.3.4").isEmpty());
         assertTrue(limiter.tryDeviceEnroll("1.2.3.4").isPresent());
 
@@ -268,6 +270,103 @@ class AuthRateLimiterTest {
         assertTrue(
                 limiter.tryDeviceCodeEntry(10, 42).isPresent(),
                 "the sixth approval for one account is refused whoever's session asks");
+    }
+
+    /**
+     * The office. Everybody behind one router shares an address, so keying the wait on the address
+     * meant two people signing in at once held each other refused for as long as they both waited:
+     * a waiting device asks about twenty-four times a minute and the bucket refilled forty.
+     *
+     * <p>The poll secret is handed out by the request that created it and nobody else holds it, so
+     * it tells two waiting devices apart where the address cannot.
+     */
+    @Test
+    void twoDevicesBehindOneAddressDoNotSpendEachOthersPolls() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+
+        for (int i = 0; i < 90; i++) limiter.tryDevicePoll("1.2.3.4", "secret-a");
+        assertTrue(limiter.tryDevicePoll("1.2.3.4", "secret-a").isPresent(), "the first device spent its own");
+
+        assertTrue(
+                limiter.tryDevicePoll("1.2.3.4", "secret-b").isEmpty(),
+                "the second device behind the same router waits on nobody");
+    }
+
+    /** The same office, on the other bucket: raising a request is counted against the account. */
+    @Test
+    void twoPeopleBehindOneAddressDoNotSpendEachOthersRequests() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+
+        for (int i = 0; i < 10; i++) limiter.tryDeviceRequest("1.2.3.4", "one@example.com");
+        assertTrue(limiter.tryDeviceRequest("1.2.3.4", "one@example.com").isPresent());
+
+        assertTrue(
+                limiter.tryDeviceRequest("1.2.3.4", "two@example.com").isEmpty(),
+                "a colleague at the next desk has their own budget");
+    }
+
+    /**
+     * The address bucket is still there, and still stops one machine opening requests for every
+     * address it knows. It is only deep enough that an office never reaches it.
+     */
+    @Test
+    void oneMachineCannotRaiseRequestsForEverybody() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+
+        for (int i = 0; i < 60; i++) limiter.tryDeviceRequest("1.2.3.4", "person" + i + "@example.com");
+
+        assertTrue(
+                limiter.tryDeviceRequest("1.2.3.4", "someone-else@example.com").isPresent(),
+                "the address runs out even though every account was fresh");
+    }
+
+    /**
+     * Confirming a sensitive action and signing in share nothing. They used to draw on one bucket,
+     * so an afternoon of confirmations quietly spent that evening's sign-in budget.
+     */
+    @Test
+    void aStepUpDoesNotSpendTheBudgetForSigningIn() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+
+        for (int i = 0; i < 20; i++) limiter.tryStepUpDeviceRequest("1.2.3.4", 42);
+        assertTrue(limiter.tryStepUpDeviceRequest("1.2.3.4", 42).isPresent(), "the step-ups ran out");
+
+        assertTrue(
+                limiter.tryDeviceRequest("5.6.7.8", "one@example.com").isEmpty(), "and signing in is untouched by it");
+    }
+
+    /**
+     * A poll secret is a bearer token and base64 is case sensitive, so two different secrets must
+     * not fold into one bucket the way two spellings of an address are meant to.
+     */
+    @Test
+    void twoSecretsDifferingOnlyInCaseAreTwoBuckets() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+
+        for (int i = 0; i < 90; i++) limiter.tryDevicePoll("1.2.3.4", "aBc");
+        assertTrue(limiter.tryDevicePoll("1.2.3.4", "aBc").isPresent());
+
+        assertTrue(limiter.tryDevicePoll("1.2.3.4", "abc").isEmpty(), "a different secret is a different bucket");
+    }
+
+    /**
+     * An address that belongs to nobody still counts against its own bucket. Were it not counted,
+     * the difference between a request that was throttled and one that was not would answer whether
+     * an address has an account here.
+     */
+    @Test
+    void anIdentifierThatMatchesNothingIsCountedLikeAnyOther() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+
+        for (int i = 0; i < 10; i++) limiter.tryDeviceRequest("1.2.3.4", "nobody@example.com");
+
+        assertTrue(limiter.tryDeviceRequest("1.2.3.4", "nobody@example.com").isPresent());
     }
 
     private static final class ControllableClock extends Clock {

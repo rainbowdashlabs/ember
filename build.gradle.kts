@@ -172,6 +172,26 @@ val releaseTags = tasks.register("releaseTags") {
     }
 }
 
+/**
+ * Downloads every dependency this build can resolve, compiling nothing.
+ *
+ * It exists for the image build, which runs it from the dependency declarations alone, before the
+ * sources arrive. The layer it fills then survives any change to a source file, so a push that
+ * touches one class no longer re-fetches the whole dependency graph.
+ *
+ * The view is lenient because the point is to warm a cache rather than to judge the build: a
+ * configuration that cannot be resolved yet is left to the real build, which reports it properly.
+ */
+tasks.register("resolveDependencies") {
+    description = "Downloads every resolvable dependency, so an image layer can hold them"
+    val resolvable = configurations.matching { it.isCanBeResolved }
+    doLast {
+        resolvable.forEach { configuration ->
+            configuration.incoming.artifactView { isLenient = true }.artifacts.artifactFiles.files
+        }
+    }
+}
+
 tasks {
     withType<Test>().configureEach {
         environment("TESTCONTAINERS_RYUK_DISABLED", "true")

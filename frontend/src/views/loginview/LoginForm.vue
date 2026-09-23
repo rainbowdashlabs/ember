@@ -67,8 +67,12 @@ const {t} = useI18n()
                      :icon="['fas', 'fingerprint']" @click="emit('passkey')">
       {{ t('login.withPasskey') }}
     </SecondaryButton>
-    <router-link v-if="props.passkeyAvailable"
-                 class="block w-full text-center text-sm text-(--text-muted) hover:text-(--text) transition-colors"
+    <!--
+      Not gated on passkeys, deliberately. Signing in from another device asks for a session and
+      not for a credential, so it needs neither a browser that can hold a passkey nor an instance
+      that uses them. Hiding it behind that check kept it from the browsers it exists for.
+    -->
+    <router-link class="block w-full text-center text-sm text-(--text-muted) hover:text-(--text) transition-colors"
                  to="/unlock-device">
       {{ t('login.passkeyElsewhere') }}
     </router-link>

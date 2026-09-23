@@ -11,6 +11,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.LoginResult;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose;
@@ -37,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -125,15 +127,14 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
         return service.poll(pollSecret, EnumSet.allOf(DeviceRequestPurpose.class));
     }
 
-    private int newAccount() {
-        return accountRepo
-                .create("device-" + UUID.randomUUID() + "@test.com", "Device", "Owner", true)
-                .id();
+    private Account newAccount() {
+        return accountRepo.create("device-" + UUID.randomUUID() + "@test.com", "Device", "Owner", true);
     }
 
     @Test
     void theCodeOpensTheRequestAndAWrongOneNothing() {
-        var request = service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, "Firefox on Linux", "DE");
+        var request = service.createRequest(
+                DeviceRequestPurpose.ENROL_PASSKEY, newAccount().email(), "Firefox on Linux", "DE");
         assertEquals(8, request.code().length());
 
         var found = service.lookup(request.code()).orElseThrow();
@@ -148,14 +149,21 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
 
     @Test
     void approvalHandsOutTheEnrolmentTokenExactlyOnce() {
-        int accountId = newAccount();
-        var request = service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, "Chrome on Windows", "DE");
+        var account = newAccount();
+        int accountId = account.id();
+        var request =
+                service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, account.email(), "Chrome on Windows", "DE");
 
         assertEquals(
                 DeviceRequestService.PollStatus.PENDING,
                 poll(request.pollSecret()).status());
-        assertTrue(service.approve(accountId, accountId, request.code()));
-        assertFalse(service.approve(accountId, accountId, request.code()), "an approval happens exactly once");
+        assertEquals(
+                DeviceRequestService.ApprovalResult.APPROVED,
+                service.approve(accountId, accountId, request.code(), request.matchNumber()));
+        assertEquals(
+                DeviceRequestService.ApprovalResult.UNKNOWN,
+                service.approve(accountId, accountId, request.code(), request.matchNumber()),
+                "an approval happens exactly once");
 
         var first = poll(request.pollSecret());
         assertEquals(DeviceRequestService.PollStatus.APPROVED, first.status());
@@ -173,9 +181,11 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
      */
     @Test
     void theEnrolmentTokenHasExactlyOnePower() {
-        int accountId = newAccount();
-        var request = service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, "Safari on iPhone", null);
-        service.approve(accountId, accountId, request.code());
+        var account = newAccount();
+        int accountId = account.id();
+        var request =
+                service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, account.email(), "Safari on iPhone", null);
+        service.approve(accountId, accountId, request.code(), request.matchNumber());
         String enrollToken = poll(request.pollSecret()).claimToken();
 
         var ceremony = service.beginEnrollment(enrollToken).orElseThrow();
@@ -190,9 +200,11 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
 
     @Test
     void aFinishedEnrolmentMintsTheFactorAndMailsTheNotice() throws Exception {
-        int accountId = newAccount();
-        var request = service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, "Chrome on Android", "DE");
-        service.approve(accountId, accountId, request.code());
+        var account = newAccount();
+        int accountId = account.id();
+        var request =
+                service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, account.email(), "Chrome on Android", "DE");
+        service.approve(accountId, accountId, request.code(), request.matchNumber());
         String enrollToken = poll(request.pollSecret()).claimToken();
         var ceremony = service.beginEnrollment(enrollToken).orElseThrow();
 
@@ -212,12 +224,14 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
      */
     @Test
     void aVouchedSignInSaysSoRatherThanClaimingACredentialWasMade() {
-        int accountId = newAccount();
+        var account = newAccount();
+        int accountId = account.id();
         when(authService.admitVouchedForAccount(anyInt(), any(), any()))
                 .thenReturn(LoginResult.success("granted-token", Instant.now().plusSeconds(600)));
 
-        var request = service.createRequest(DeviceRequestPurpose.SIGN_IN, "Firefox on a borrowed laptop", "DE");
-        service.approve(accountId, accountId, request.code());
+        var request = service.createRequest(
+                DeviceRequestPurpose.SIGN_IN, account.email(), "Firefox on a borrowed laptop", "DE");
+        service.approve(accountId, accountId, request.code(), request.matchNumber());
         service.claimSignIn(poll(request.pollSecret()).claimToken(), "Firefox on a borrowed laptop", "DE");
 
         verify(emailService).sendDeviceSignedInNotice(any(), any(), any(), any(), any());
@@ -226,7 +240,8 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
 
     @Test
     void theRequestRemembersWhatItsApprovalWillBuy() {
-        var request = service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, "Firefox on Linux", "DE");
+        var request = service.createRequest(
+                DeviceRequestPurpose.ENROL_PASSKEY, newAccount().email(), "Firefox on Linux", "DE");
         var found = service.lookup(request.code()).orElseThrow();
 
         assertEquals(DeviceRequestPurpose.ENROL_PASSKEY, found.purpose());
@@ -237,10 +252,14 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
 
     @Test
     void approvalNamesBothTheApproverAndWhoTheGrantIsFor() {
-        int accountId = newAccount();
-        var request = service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, "Chrome on Windows", "DE");
+        var account = newAccount();
+        int accountId = account.id();
+        var request =
+                service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, account.email(), "Chrome on Windows", "DE");
 
-        assertTrue(service.approve(accountId, accountId, request.code()));
+        assertEquals(
+                DeviceRequestService.ApprovalResult.APPROVED,
+                service.approve(accountId, accountId, request.code(), request.matchNumber()));
         poll(request.pollSecret());
 
         var stored = deviceRepo.findByPollSecret(hashOf(request.pollSecret())).orElseThrow();
@@ -254,9 +273,11 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
      */
     @Test
     void aTokenIsOnlySpendableOnThePurposeItWasMintedFor() {
-        int accountId = newAccount();
-        var request = service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, "Firefox on Linux", "DE");
-        service.approve(accountId, accountId, request.code());
+        var account = newAccount();
+        int accountId = account.id();
+        var request =
+                service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, account.email(), "Firefox on Linux", "DE");
+        service.approve(accountId, accountId, request.code(), request.matchNumber());
         String claimToken = poll(request.pollSecret()).claimToken();
 
         assertTrue(
@@ -282,7 +303,7 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
      */
     @Test
     void aStepUpRequestIsBoundToTheSessionThatRaisedIt() {
-        int accountId = newAccount();
+        int accountId = newAccount().id();
         String sessionToken = "session-" + UUID.randomUUID();
         accountRepo.createSession(accountId, sessionToken, Instant.now().plusSeconds(600), "ua", null);
         int sessionId = accountRepo.findSession(sessionToken).orElseThrow().id();
@@ -294,6 +315,8 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
                 accountId,
                 sessionId,
                 StepUpCategory.ACCOUNT_SECURITY,
+                42,
+                List.of(13, 27, 42, 58, 71, 86),
                 "Firefox on Linux",
                 "DE",
                 Instant.now().plusSeconds(600));
@@ -313,14 +336,15 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
      */
     @Test
     void aPollOnlyEverHandsOverWhatItsOwnDoorIsFor() {
-        int accountId = newAccount();
+        var account = newAccount();
+        int accountId = account.id();
         String sessionToken = "session-" + UUID.randomUUID();
         accountRepo.createSession(accountId, sessionToken, Instant.now().plusSeconds(600), "ua", null);
         int sessionId = accountRepo.findSession(sessionToken).orElseThrow().id();
 
         var stepUp =
                 service.createStepUpRequest(accountId, sessionId, StepUpCategory.ACCOUNT_SECURITY, "Firefox", "DE");
-        service.approve(accountId, accountId, stepUp.code());
+        service.approve(accountId, accountId, stepUp.code(), stepUp.matchNumber());
 
         assertEquals(
                 DeviceRequestService.PollStatus.UNKNOWN,
@@ -330,8 +354,8 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
                         .status(),
                 "the unauthenticated door says nothing at all about a step-up");
 
-        var signIn = service.createRequest(DeviceRequestPurpose.SIGN_IN, "Chrome", "DE");
-        service.approve(accountId, accountId, signIn.code());
+        var signIn = service.createRequest(DeviceRequestPurpose.SIGN_IN, account.email(), "Chrome", "DE");
+        service.approve(accountId, accountId, signIn.code(), signIn.matchNumber());
         assertEquals(
                 DeviceRequestService.PollStatus.UNKNOWN,
                 service.poll(signIn.pollSecret(), Set.of(DeviceRequestPurpose.STEP_UP))
@@ -348,6 +372,9 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
                         DeviceRequestPurpose.STEP_UP,
                         "code-" + UUID.randomUUID(),
                         "poll-" + UUID.randomUUID(),
+                        null,
+                        42,
+                        List.of(13, 27, 42, 58, 71, 86),
                         "ua",
                         "DE",
                         Instant.now().plusSeconds(600)),
@@ -360,12 +387,16 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
      */
     @Test
     void aSignInClaimBuysOneSessionForTheAccountTheApprovalNamed() {
-        int accountId = newAccount();
+        var account = newAccount();
+        int accountId = account.id();
         when(authService.admitVouchedForAccount(anyInt(), any(), any()))
                 .thenReturn(LoginResult.success("granted-token", Instant.now().plusSeconds(600)));
 
-        var request = service.createRequest(DeviceRequestPurpose.SIGN_IN, "Firefox on a borrowed laptop", "DE");
-        assertTrue(service.approve(accountId, accountId, request.code()));
+        var request = service.createRequest(
+                DeviceRequestPurpose.SIGN_IN, account.email(), "Firefox on a borrowed laptop", "DE");
+        assertEquals(
+                DeviceRequestService.ApprovalResult.APPROVED,
+                service.approve(accountId, accountId, request.code(), request.matchNumber()));
         var poll = poll(request.pollSecret());
 
         assertEquals(DeviceRequestPurpose.SIGN_IN, poll.purpose(), "the asking device is told what it may claim");
@@ -383,12 +414,14 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
 
     @Test
     void aSignInClaimCannotBeSpentOnAnEnrolment() {
-        int accountId = newAccount();
+        var account = newAccount();
+        int accountId = account.id();
         when(authService.admitVouchedForAccount(anyInt(), any(), any()))
                 .thenReturn(LoginResult.success("granted-token", Instant.now().plusSeconds(600)));
 
-        var request = service.createRequest(DeviceRequestPurpose.SIGN_IN, "Chrome on a shared machine", null);
-        service.approve(accountId, accountId, request.code());
+        var request = service.createRequest(
+                DeviceRequestPurpose.SIGN_IN, account.email(), "Chrome on a shared machine", null);
+        service.approve(accountId, accountId, request.code(), request.matchNumber());
         String claimToken = poll(request.pollSecret()).claimToken();
 
         assertTrue(
@@ -403,14 +436,16 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
      */
     @Test
     void aConfirmedStepUpStampsTheAskingSessionAsVouchedForAndNotAsLocal() {
-        int accountId = newAccount();
+        int accountId = newAccount().id();
         String sessionToken = "session-" + UUID.randomUUID();
         accountRepo.createSession(accountId, sessionToken, Instant.now().plusSeconds(600), "ua", null);
         int sessionId = accountRepo.findSession(sessionToken).orElseThrow().id();
 
         var request =
                 service.createStepUpRequest(accountId, sessionId, StepUpCategory.ACCOUNT_SECURITY, "Firefox", "DE");
-        assertTrue(service.approve(accountId, accountId, request.code()));
+        assertEquals(
+                DeviceRequestService.ApprovalResult.APPROVED,
+                service.approve(accountId, accountId, request.code(), request.matchNumber()));
         String claimToken = poll(request.pollSecret()).claimToken();
 
         assertTrue(service.claimStepUp(claimToken));
@@ -429,12 +464,14 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
      */
     @Test
     void endingEverySessionVoidsAGrantThatWasApprovedButNotYetClaimed() {
-        int accountId = newAccount();
+        var account = newAccount();
+        int accountId = account.id();
         when(authService.admitVouchedForAccount(anyInt(), any(), any()))
                 .thenReturn(LoginResult.success("granted-token", Instant.now().plusSeconds(600)));
 
-        var request = service.createRequest(DeviceRequestPurpose.SIGN_IN, "Firefox on a borrowed laptop", "DE");
-        service.approve(accountId, accountId, request.code());
+        var request = service.createRequest(
+                DeviceRequestPurpose.SIGN_IN, account.email(), "Firefox on a borrowed laptop", "DE");
+        service.approve(accountId, accountId, request.code(), request.matchNumber());
         String claimToken = poll(request.pollSecret()).claimToken();
 
         accountRepo.deleteSessionsByAccount(accountId);
@@ -447,7 +484,8 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
 
     @Test
     void anUnapprovedTokenAndAnUnknownSecretOpenNothing() {
-        var request = service.createRequest(DeviceRequestPurpose.ENROL_PASSKEY, "Edge on Windows", null);
+        var request = service.createRequest(
+                DeviceRequestPurpose.ENROL_PASSKEY, newAccount().email(), "Edge on Windows", null);
         assertTrue(service.beginEnrollment("no-such-token").isEmpty());
         assertEquals(
                 DeviceRequestService.PollStatus.UNKNOWN, poll("no-such-secret").status());

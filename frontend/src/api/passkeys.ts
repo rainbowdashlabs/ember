@@ -135,15 +135,22 @@ export async function answerOffer(answer: 'LATER' | 'DECLINED'): Promise<void> {
 // -- The device handshake --
 
 export interface DeviceRequest {
-    /** The eight-character code the approving member types, ungrouped. */
+    /** The eight-character code, ungrouped. Scanning the QR carries it; typing it is the fallback. */
     code: string
     pollSecret: string
+    /**
+     * The number this screen shows and the approving screen asks for.
+     *
+     * <p>It is the one part of the handshake the QR does not carry, which is what makes carrying
+     * the code in the QR safe: a picture forwarded to somebody does not bring this screen with it.
+     */
+    matchNumber: number
     expiresAt: string
-    /** Base64 PNG of a QR code opening the approval screen. It does not carry the code. */
+    /** Base64 PNG of a QR code opening the approval screen with the code already in it. */
     qrPng: string
 }
 
-export type DevicePollStatus = 'PENDING' | 'APPROVED' | 'EXPIRED' | 'UNKNOWN'
+export type DevicePollStatus = 'PENDING' | 'APPROVED' | 'EXPIRED' | 'UNKNOWN' | 'REJECTED'
 
 /**
  * What approving a device request buys. The handshake is the same either way; only what the poll
@@ -180,21 +187,30 @@ export interface DeviceLookup {
     stepUpCategory: string | null
     /** Whose step-up it is, where that is somebody in the reader's care rather than the reader. */
     stepUpSubject: string | null
+    /**
+     * The six numbers to offer, in the order to offer them. One is the number the asking screen
+     * shows, and which it is is never said here.
+     */
+    numberChoices: number[]
     /** Whom this reader may sign in, for a sign-in. Themselves first. */
     candidates: ApprovalCandidate[]
 }
 
-export async function deviceRequest(): Promise<DeviceRequest> {
-    const res = await client.post<DeviceRequest>('/auth/passkey/device-request')
+export async function deviceRequest(identifier: string): Promise<DeviceRequest> {
+    const res = await client.post<DeviceRequest>('/auth/passkey/device-request', {identifier})
     return res.data
 }
 
 /**
  * Asks to be signed in rather than given a credential. Nothing is left on this device, and the
  * instance does not need passkeys switched on at all.
+ *
+ * <p>The account is named here rather than at the approval, so a code raised for one person cannot
+ * be answered by another. An address that belongs to nobody is answered exactly like one that does,
+ * so the screen says nothing about who has an account here.
  */
-export async function signInRequest(): Promise<DeviceRequest> {
-    const res = await client.post<DeviceRequest>('/auth/device/sign-in-request')
+export async function signInRequest(identifier: string): Promise<DeviceRequest> {
+    const res = await client.post<DeviceRequest>('/auth/device/sign-in-request', {identifier})
     return res.data
 }
 
@@ -243,9 +259,16 @@ export async function deviceLookup(code: string): Promise<DeviceLookup> {
 /**
  * Approves a request. {@code forAccountId} names somebody in the reader's care where a guardian is
  * signing a member in; left out, the grant is for the reader themselves.
+ *
+ * <p>{@code pickedNumber} is the choice the reader made. The wrong one ends the request: the server
+ * answers 409 and the code is spent, so there is no second guess on it.
  */
-export async function deviceApprove(code: string, forAccountId?: number): Promise<void> {
-    await client.post('/account/passkeys/device-approve', {code, forAccountId: forAccountId ?? null})
+export async function deviceApprove(code: string, pickedNumber: number, forAccountId?: number): Promise<void> {
+    await client.post('/account/passkeys/device-approve', {
+        code,
+        pickedNumber,
+        forAccountId: forAccountId ?? null,
+    })
 }
 
 // -- Confirming a step-up on a device that is already signed in --
@@ -253,6 +276,8 @@ export async function deviceApprove(code: string, forAccountId?: number): Promis
 export interface DeviceStepUp {
     code: string
     pollSecret: string
+    /** The number this screen shows and the confirming screen asks for. */
+    matchNumber: number
     expiresAt: string
 }
 

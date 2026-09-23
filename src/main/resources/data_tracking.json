@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:1c752e281c3a19c5507795981a7f946c1a73550f205b4151a7a34a049c7a4a7d",
-  "generatedAt": "2026-09-21T12:04:59Z",
+  "schemaHash": "sha256:dc633632552c7745f31bdc6c4204337b7b3a38080a15fe4a80fc393987db6b75",
+  "generatedAt": "2026-09-23T11:27:55Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -5549,7 +5549,7 @@
       "description": "The rows and cells of one piece of authored content. A page, a news entry or a knowledge-base article owns one; the container itself knows nothing about which."
     },
     "device_request": {
-      "tableHash": "sha256:8c2256c7f1284e968266b4a33d9a2b5f93849068db8827f43d68d84b6d4159d2",
+      "tableHash": "sha256:d33a692bc9fea0c224f56cdcbd5c7a4c3b697ab14b16921b340cd4bd8074ecdc",
       "columns": [
         {
           "name": "id",
@@ -5669,11 +5669,45 @@
           "nullable": true,
           "verified": true,
           "description": "The sensitivity category the step-up was demanded for. Shown on the approval screen, and the only thing the approval buys: a confirmation given for one category does not answer a demand for another."
+        },
+        {
+          "name": "named_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account the requesting device said it wants, resolved from the address or username typed there. Claimed and not proved, so it decides only who may approve the request and never who is signed in. NULL where the identifier matched no account, which is a request nobody can approve and which is answered exactly like a real one so that the screen cannot be used to find out which addresses exist."
+        },
+        {
+          "name": "match_number",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The two-digit number the requesting screen shows and the approving screen asks for. It never travels in the QR, which is what stops a forwarded picture being enough to approve."
+        },
+        {
+          "name": "match_choices",
+          "type": "_int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The six numbers the approval screen offers, in the order it offers them, one of which is match_number. Fixed when the request is raised rather than drawn per lookup, because a fresh draw each time would leave the right number the only one appearing in every round."
+        },
+        {
+          "name": "rejected_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the approving screen picked the wrong number. The request is over at that point: there is no second guess on the same code, so a guess costs a whole new request and another conversation with whoever is holding the phone."
         }
       ],
       "foreignKeys": [
         {
           "column": "approved_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "named_account_id",
           "refTable": "account",
           "refColumn": "id",
           "onDelete": "CASCADE"

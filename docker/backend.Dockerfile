@@ -15,6 +15,14 @@ WORKDIR /home/gradle
 # does not own. The sources arrive here as root and the build runs as gradle.
 RUN apk add --no-cache git && git config --global --add safe.directory /home/gradle
 
+# The declarations arrive on their own so that resolving them is a layer a source change does not
+# invalidate, the same split the frontend image makes around `npm ci`. Copying everything first
+# meant every push re-fetched the whole dependency graph.
+COPY settings.gradle.kts build.gradle.kts ./
+COPY gradle gradle
+
+RUN gradle resolveDependencies --no-daemon
+
 COPY . .
 
 RUN gradle clean installDist --no-daemon -x test -x javadocJar -x sourcesJar

@@ -85,6 +85,11 @@ jobs:
             GITHUB_REF_NAME=${{ github.ref_name }}
             GITHUB_SHA=${{ github.sha }}
           outputs: type=image,name=${{ matrix.image }},push-by-digest=true,name-canonical=true,push=true
+          # Kept in the registry rather than the Actions cache, which is ten gigabytes for the whole
+          # repository and is where the Gradle caches now live. A tag of its own per image and
+          # architecture, because one overwritten by the next build caches nothing.
+          cache-from: type=registry,ref=${{ matrix.image }}:buildcache-${{ matrix.arch }}
+          cache-to: type=registry,ref=${{ matrix.image }}:buildcache-${{ matrix.arch }},mode=max
 
       # Named after the digest, holding the architecture, so the publish job can check what was
       # built without being told the list a second time.

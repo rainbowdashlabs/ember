@@ -13,6 +13,7 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,6 +50,9 @@ class AuthCleanupSweeperTest extends RepositoryTestBase {
                 dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose.ENROL_PASSKEY,
                 "code-hash-" + UUID.randomUUID(),
                 expiredPollSecret,
+                accountId,
+                42,
+                List.of(13, 27, 42, 58, 71, 86),
                 "ua",
                 null,
                 past);

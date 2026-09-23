@@ -31,7 +31,10 @@ import org.slf4j.LoggerFactory;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -68,6 +71,22 @@ public class DeviceRequestService {
     private static final Duration REQUEST_TTL = Duration.ofMinutes(10);
 
     private static final int MAX_ATTEMPTS = 5;
+
+    /**
+     * Six numbers on the approval screen, one of them right.
+     *
+     * <p>This is what lets the code travel inside the QR. A forwarded picture carries the code but
+     * not the screen that raised it, so whoever scanned it is asked for something they cannot see.
+     * One in six is the price of guessing rather than stopping, and a wrong pick ends the request,
+     * so it is one chance and not a series of them.
+     */
+    private static final int MATCH_CHOICES = 6;
+
+    private static final int MATCH_LOWEST = 10;
+    private static final int MATCH_HIGHEST = 99;
+
+    /** Far enough apart that a digit read wrong off a screen lands on no other choice. */
+    private static final int MATCH_MIN_DISTANCE = 3;
 
     private final DeviceRequestRepository repository;
     private final PasskeyService passkeyService;
@@ -109,6 +128,31 @@ public class DeviceRequestService {
         return code.toString();
     }
 
+    /** Two digits, so it is read off a screen and said out loud without being written down. */
+    private static int newMatchNumber() {
+        return MATCH_LOWEST + RANDOM.nextInt(MATCH_HIGHEST - MATCH_LOWEST + 1);
+    }
+
+    /**
+     * The numbers the approval screen offers, the real one among them, in the order it offers them.
+     *
+     * <p>Drawn once and stored, never per lookup: a fresh draw each time would leave the right
+     * number the only one appearing in every round, and two looks at the same code would give it
+     * away. The decoys keep their distance from the real one so that a misread digit lands on
+     * nothing rather than on a plausible wrong answer.
+     */
+    private static List<Integer> matchChoicesAround(int matchNumber) {
+        var choices = new ArrayList<Integer>(MATCH_CHOICES);
+        choices.add(matchNumber);
+        while (choices.size() < MATCH_CHOICES) {
+            int candidate = newMatchNumber();
+            boolean tooClose = choices.stream().anyMatch(taken -> Math.abs(taken - candidate) < MATCH_MIN_DISTANCE);
+            if (!tooClose) choices.add(candidate);
+        }
+        Collections.shuffle(choices, RANDOM);
+        return List.copyOf(choices);
+    }
+
     private static String newSecret() {
         byte[] bytes = new byte[32];
         RANDOM.nextBytes(bytes);
@@ -123,13 +167,46 @@ public class DeviceRequestService {
     /**
      * Raises a request from a device nobody has identified yet, which is how a passkey enrolment and
      * a sign-in both begin. What the approval will buy is fixed here and never later.
+     *
+     * <p>The device says which account it wants, and that decides who may approve it. It is a claim
+     * and not a proof: an address is public, so naming one buys nothing on its own. What it buys is
+     * that a code raised for one person cannot be approved by another, which is what used to let a
+     * code be sent to a crowd for whoever bit to answer with their own account.
+     *
+     * <p>An identifier that matches nothing still gets a code, a number and a poll, and is written
+     * down naming nobody. The request simply cannot be approved and dies at its expiry. Anything
+     * else would answer whether an address exists here.
      */
-    public CreatedRequest createRequest(DeviceRequestPurpose purpose, String userAgent, String country) {
+    public CreatedRequest createRequest(
+            DeviceRequestPurpose purpose, String identifier, String userAgent, String country) {
         String code = newCode();
         String pollSecret = newSecret();
+        int matchNumber = newMatchNumber();
         Instant expiresAt = Instant.now().plus(REQUEST_TTL);
-        repository.create(purpose, tokenHasher.hash(code), tokenHasher.hash(pollSecret), userAgent, country, expiresAt);
-        return new CreatedRequest(code, pollSecret, expiresAt);
+        repository.create(
+                purpose,
+                tokenHasher.hash(code),
+                tokenHasher.hash(pollSecret),
+                resolveNamed(identifier).orElse(null),
+                matchNumber,
+                matchChoicesAround(matchNumber),
+                userAgent,
+                country,
+                expiresAt);
+        return new CreatedRequest(code, pollSecret, matchNumber, expiresAt);
+    }
+
+    /**
+     * The account behind what somebody typed, by address or by username, or empty when it is
+     * neither. Never says which of the two it was, and never says that it found nothing.
+     */
+    private Optional<Integer> resolveNamed(String identifier) {
+        if (identifier == null || identifier.isBlank()) return Optional.empty();
+        String trimmed = identifier.trim();
+        return accountRepository
+                .findByEmail(trimmed)
+                .or(() -> accountRepository.findByUsername(trimmed))
+                .map(Account::id);
     }
 
     /**
@@ -150,10 +227,15 @@ public class DeviceRequestService {
      * never happens: a grant nobody claimed and a grant a revoke voided would otherwise leave no
      * record that anybody ever said yes.
      */
-    public boolean approve(int approvedAccountId, int subjectAccountId, String code) {
+    public ApprovalResult approve(int approvedAccountId, int subjectAccountId, String code, int pickedNumber) {
         Optional<DeviceRequest> request = repository.findOpenByCode(tokenHasher.hash(normalizeCode(code)));
-        if (request.isEmpty()) return false;
+        if (request.isEmpty()) return ApprovalResult.UNKNOWN;
         DeviceRequest open = request.get();
+        if (open.matchNumber() != pickedNumber) {
+            repository.reject(open.id());
+            log.info("Device request {} ({}) refused: the number did not match", open.id(), open.purpose());
+            return ApprovalResult.WRONG_NUMBER;
+        }
         boolean approved = repository.approve(open.id(), approvedAccountId, subjectAccountId);
         if (approved) {
             auditService.record(
@@ -170,7 +252,7 @@ public class DeviceRequestService {
                     approvedAccountId,
                     subjectAccountId);
         }
-        return approved;
+        return approved ? ApprovalResult.APPROVED : ApprovalResult.UNKNOWN;
     }
 
     /**
@@ -190,6 +272,7 @@ public class DeviceRequestService {
         if (requestOpt.isEmpty()) return new PollResult(PollStatus.UNKNOWN, null, null);
         DeviceRequest request = requestOpt.get();
         if (!allowed.contains(request.purpose())) return new PollResult(PollStatus.UNKNOWN, null, null);
+        if (request.isRejected()) return new PollResult(PollStatus.REJECTED, null, null);
         if (request.isExpired() || request.consumedAt() != null) {
             return new PollResult(PollStatus.EXPIRED, null, null);
         }
@@ -315,6 +398,7 @@ public class DeviceRequestService {
             int accountId, int sessionId, StepUpCategory category, String userAgent, String country) {
         String code = newCode();
         String pollSecret = newSecret();
+        int matchNumber = newMatchNumber();
         Instant expiresAt = Instant.now().plus(REQUEST_TTL);
         repository.createStepUp(
                 tokenHasher.hash(code),
@@ -322,10 +406,12 @@ public class DeviceRequestService {
                 accountId,
                 sessionId,
                 category,
+                matchNumber,
+                matchChoicesAround(matchNumber),
                 userAgent,
                 country,
                 expiresAt);
-        return new CreatedRequest(code, pollSecret, expiresAt);
+        return new CreatedRequest(code, pollSecret, matchNumber, expiresAt);
     }
 
     /**
@@ -403,13 +489,33 @@ public class DeviceRequestService {
                 });
     }
 
-    public record CreatedRequest(String code, String pollSecret, Instant expiresAt) {}
+    /**
+     * @param matchNumber the number the requesting screen shows, which the approving screen asks
+     *         for. It is the one part of the handshake that never travels in the QR
+     */
+    public record CreatedRequest(String code, String pollSecret, int matchNumber, Instant expiresAt) {}
+
+    /**
+     * How an approval went, which the screen says three different things about.
+     *
+     * <p>A wrong number is told apart from an unknown code on purpose. The reader holding the phone
+     * has the code in front of them and needs to know that the numbers were the problem, while
+     * somebody fishing for a code learns nothing from it: reaching this answer at all means already
+     * holding a code raised for their own account.
+     */
+    public enum ApprovalResult {
+        APPROVED,
+        WRONG_NUMBER,
+        UNKNOWN
+    }
 
     public enum PollStatus {
         PENDING,
         APPROVED,
         EXPIRED,
-        UNKNOWN
+        UNKNOWN,
+        /** Somebody picked the wrong number, which ends the request rather than costing a guess. */
+        REJECTED
     }
 
     /**

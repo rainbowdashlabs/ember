@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.twofactor.route;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import dev.chojo.ember.api.RateLimits;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -31,8 +32,6 @@ import dev.chojo.ember.feature.twofactor.service.WebAuthnService;
 import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.HttpResponseException;
-import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -42,7 +41,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -89,14 +87,6 @@ public class TwoFactorRoutes implements Routes {
 
     private String clientIp(Context ctx) {
         return ClientIp.resolve(ctx, network).getHostAddress();
-    }
-
-    private static void enforceLimit(Optional<Long> retryAfter) {
-        if (retryAfter.isEmpty()) return;
-        throw new HttpResponseException(
-                HttpStatus.TOO_MANY_REQUESTS.getCode(),
-                "Too many requests, please try again later",
-                Map.of("Retry-After", Long.toString(retryAfter.get())));
     }
 
     /**
@@ -268,7 +258,7 @@ public class TwoFactorRoutes implements Routes {
         }
 
         int accountId = preAuth.accountId();
-        enforceLimit(rateLimiter.tryTwoFactor(clientIp(ctx), accountId));
+        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), accountId));
         String attemptKey = tokenHasher.hash(request.preAuthToken());
         boolean verified;
 
@@ -364,7 +354,7 @@ public class TwoFactorRoutes implements Routes {
         if (!twoFactorService.isEnrolled(session.accountId())) {
             throw new BadRequestResponse("Not enrolled in 2FA");
         }
-        enforceLimit(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
 
         boolean verified;
         TwoFactorKind kind;
@@ -463,7 +453,7 @@ public class TwoFactorRoutes implements Routes {
             throw new BadRequestResponse("preAuthToken, challengeToken, and credentialJson are required");
         }
         int accountId = consumeReadOnlyPreAuth(request.preAuthToken());
-        enforceLimit(rateLimiter.tryTwoFactor(clientIp(ctx), accountId));
+        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), accountId));
         if (!webAuthnService.finishAssertion(accountId, request.challengeToken(), request.credentialJson())) {
             throw new UnauthorizedResponse("WebAuthn verification failed");
         }
@@ -523,7 +513,7 @@ public class TwoFactorRoutes implements Routes {
         if (request.challengeToken() == null || request.credentialJson() == null) {
             throw new BadRequestResponse("challengeToken and credentialJson are required");
         }
-        enforceLimit(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
         if (!webAuthnService.finishAssertion(session.accountId(), request.challengeToken(), request.credentialJson())) {
             throw new UnauthorizedResponse("WebAuthn verification failed");
         }

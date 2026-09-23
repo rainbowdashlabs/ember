@@ -43,6 +43,8 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.security.anotherDeviceTitle')">
       <p>{{ t('helpCenter.security.anotherDeviceText') }}</p>
+      <p>{{ t('helpCenter.security.anotherDeviceNumberText') }}</p>
+      <p>{{ t('helpCenter.security.anotherDeviceWrongNumberText') }}</p>
       <p>{{ t('helpCenter.security.anotherDeviceSignIn') }}</p>
       <p>{{ t('helpCenter.security.anotherDeviceGuardian') }}</p>
     </HelpSection>
