@@ -4,8 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -18,9 +19,11 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import NumberMatchPicker from './unlockdeviceapproveview/NumberMatchPicker.vue'
 import {passkeys} from '@/api'
 import type {DeviceLookup} from '@/api/passkeys'
 import {apiErrorStatus} from '@/util/apiError'
+import {describeFailure, FailureKind} from '@/util/failure'
 import {formatDateTime} from '@/util/format'
 
 /**
@@ -29,6 +32,7 @@ import {formatDateTime} from '@/util/format'
  * device yourself. The approval itself stands behind the step-up proof.
  */
 const {t} = useI18n()
+const route = useRoute()
 
 const code = ref('')
 const details = ref<DeviceLookup | null>(null)
@@ -57,6 +61,24 @@ const purposeSentence = computed(() => {
   return t('passkeys.approve.purposePasskey')
 })
 
+/**
+ * What a refusal means here.
+ *
+ * <p>Four answers, and they ask different things of the reader. An unknown code is a typo or a code
+ * raised for somebody else, and the server does not distinguish those on purpose. A refusal for
+ * asking too often can be waited out, and saying so is the difference between waiting twenty
+ * seconds and giving up. A wrong number ends the request outright, which the reader has to be told
+ * or they will sit waiting for something that is never coming.
+ */
+function refusalText(e: unknown): string {
+  const status = apiErrorStatus(e)
+  if (status === 404) return t('passkeys.approve.unknownCode')
+  if (status === 409) return t('passkeys.approve.wrongNumber')
+  const failure = describeFailure(e, t)
+  if (failure.kind === FailureKind.TOO_OFTEN) return `${failure.message} ${failure.guidance}`
+  return t('common.error')
+}
+
 async function lookup() {
   error.value = ''
   busy.value = true
@@ -65,20 +87,34 @@ async function lookup() {
     forAccountId.value = String(details.value.candidates[0]?.accountId ?? '')
   } catch (e) {
     details.value = null
-    error.value = apiErrorStatus(e) === 404 ? t('passkeys.approve.unknownCode') : t('common.error')
+    error.value = refusalText(e)
   } finally {
     busy.value = false
   }
 }
 
-async function approve() {
+/**
+ * Approves, with the number the reader chose.
+ *
+ * <p>A wrong choice is the end of the request rather than a retry, so the screen goes back to the
+ * beginning and says why: there is nothing left to press here, and the device has to ask again.
+ */
+async function approve(pickedNumber: number) {
   error.value = ''
   busy.value = true
   try {
-    await passkeys.deviceApprove(code.value, offersCandidates.value ? Number(forAccountId.value) : undefined)
+    await passkeys.deviceApprove(
+        code.value,
+        pickedNumber,
+        offersCandidates.value ? Number(forAccountId.value) : undefined)
     done.value = true
   } catch (e) {
-    error.value = apiErrorStatus(e) === 404 ? t('passkeys.approve.unknownCode') : t('common.error')
+    const refused = refusalText(e)
+    if (apiErrorStatus(e) === 409) {
+      code.value = ''
+      details.value = null
+    }
+    error.value = refused
   } finally {
     busy.value = false
   }
@@ -90,6 +126,20 @@ function reset() {
   done.value = false
   error.value = ''
 }
+
+/**
+ * A code that arrived in the address, which is how scanning the QR gets here.
+ *
+ * <p>It is read and the request looked up at once, so the reader lands on the number rather than
+ * on a filled in field and a button. Nothing is approved by arriving: the number still has to be
+ * matched, and that is the step a forwarded QR cannot get past.
+ */
+onMounted(() => {
+  const scanned = route.query.code
+  if (typeof scanned !== 'string' || !scanned) return
+  code.value = scanned
+  void lookup()
+})
 </script>
 
 <template>
@@ -133,12 +183,12 @@ function reset() {
           </div>
 
           <Alert variant="error">{{ t('passkeys.approve.warning') }}</Alert>
-          <ButtonRow pair align="between">
-            <SecondaryButton type="button" :disabled="busy" @click="reset">{{ t('common.cancel') }}</SecondaryButton>
-            <PrimaryButton type="button" :disabled="busy" @click="approve">
-              {{ t('passkeys.approve.approve') }}
-            </PrimaryButton>
-          </ButtonRow>
+
+          <NumberMatchPicker :busy="busy" :choices="details.numberChoices" @pick="approve"/>
+
+          <SecondaryButton class="w-full" type="button" :disabled="busy" @click="reset">
+            {{ t('common.cancel') }}
+          </SecondaryButton>
         </template>
       </NeutralContainer>
     </div>

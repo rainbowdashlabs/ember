@@ -967,7 +967,12 @@ public class ApiServer {
             } else if (code >= 400 && code != 401) {
                 log.warn("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage());
             }
-            ctx.json(new ErrorResponseWrapper(HttpStatus.forStatus(code).getMessage(), err.getMessage()))
+            Long retryAfter = null;
+            if (err instanceof RateLimits.TooManyRequestsException refused) {
+                retryAfter = refused.retryAfterSeconds();
+                ctx.header("Retry-After", Long.toString(retryAfter));
+            }
+            ctx.json(new ErrorResponseWrapper(HttpStatus.forStatus(code).getMessage(), err.getMessage(), retryAfter))
                     .status(code);
         });
 
@@ -1057,13 +1062,7 @@ public class ApiServer {
         }
 
         boolean expensivePath = ctx.path().contains("/ai/");
-        Optional<Long> retryAfter = globalRateLimiter.check(clientIp, expensivePath);
-        if (retryAfter.isPresent()) {
-            throw new HttpResponseException(
-                    HttpStatus.TOO_MANY_REQUESTS.getCode(),
-                    "Too many requests, please try again later",
-                    Map.of("Retry-After", Long.toString(retryAfter.get())));
-        }
+        RateLimits.enforce(globalRateLimiter.check(clientIp, expensivePath));
     }
 
     /**

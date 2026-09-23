@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.passkey.route;
 
+import dev.chojo.ember.api.RateLimits;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -191,14 +192,29 @@ public class PasskeyRoutes implements Routes {
 
     private void createDeviceRequest(Context ctx) {
         requirePasskeysOn();
-        enforceLimit(rateLimiter.tryDeviceRequest(clientIp(ctx)));
+        var identifier = ctx.bodyAsClass(DeviceIdentifierRequest.class);
+        RateLimits.enforce(rateLimiter.tryDeviceRequest(clientIp(ctx), identifier.identifier()));
         var request = deviceService.createRequest(
-                DeviceRequestPurpose.ENROL_PASSKEY, ctx.userAgent(), ctx.header("CF-IPCountry"));
-        // The QR opens the approval screen and nothing more. A link that arrives with the code
-        // already filled in would be exactly the relayable artifact this flow is shaped to avoid.
-        String approvalUrl = api.baseUrl() + "/account/unlock-device";
+                DeviceRequestPurpose.ENROL_PASSKEY,
+                identifier.identifier(),
+                ctx.userAgent(),
+                ctx.header("CF-IPCountry"));
+        ctx.json(deviceRequestResponse(request));
+    }
+
+    /**
+     * The answer either request gives, code and all.
+     *
+     * <p>The QR carries the code, so scanning it is the whole of the reader's work. That makes it a
+     * thing which grants a session to whoever holds it, which is why the number exists: it is shown
+     * here and asked for there, and a picture forwarded to somebody cannot carry the screen it was
+     * taken from.
+     */
+    private DeviceRequestResponse deviceRequestResponse(DeviceRequestService.CreatedRequest request) {
+        String approvalUrl = api.baseUrl() + "/account/unlock-device?code=" + request.code();
         String qrPng = Base64.getEncoder().encodeToString(totpService.generateQrPng(approvalUrl, 240));
-        ctx.json(new DeviceRequestResponse(request.code(), request.pollSecret(), request.expiresAt(), qrPng));
+        return new DeviceRequestResponse(
+                request.code(), request.pollSecret(), request.matchNumber(), request.expiresAt(), qrPng);
     }
 
     /**
@@ -206,12 +222,11 @@ public class PasskeyRoutes implements Routes {
      * this does not need passkeys to be on at all: not needing them is the point.
      */
     private void createSignInRequest(Context ctx) {
-        enforceLimit(rateLimiter.tryDeviceRequest(clientIp(ctx)));
-        var request =
-                deviceService.createRequest(DeviceRequestPurpose.SIGN_IN, ctx.userAgent(), ctx.header("CF-IPCountry"));
-        String approvalUrl = api.baseUrl() + "/account/unlock-device";
-        String qrPng = Base64.getEncoder().encodeToString(totpService.generateQrPng(approvalUrl, 240));
-        ctx.json(new DeviceRequestResponse(request.code(), request.pollSecret(), request.expiresAt(), qrPng));
+        var identifier = ctx.bodyAsClass(DeviceIdentifierRequest.class);
+        RateLimits.enforce(rateLimiter.tryDeviceRequest(clientIp(ctx), identifier.identifier()));
+        var request = deviceService.createRequest(
+                DeviceRequestPurpose.SIGN_IN, identifier.identifier(), ctx.userAgent(), ctx.header("CF-IPCountry"));
+        ctx.json(deviceRequestResponse(request));
     }
 
     /**
@@ -220,7 +235,7 @@ public class PasskeyRoutes implements Routes {
      * password does.
      */
     private void claimSignIn(Context ctx) {
-        enforceLimit(rateLimiter.tryDevicePoll(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryDeviceClaim(clientIp(ctx)));
         var request = ctx.bodyAsClass(SignInClaimRequest.class);
         if (isBlank(request.claimToken())) {
             throw new BadRequestResponse("claimToken is required");
@@ -239,11 +254,11 @@ public class PasskeyRoutes implements Routes {
     }
 
     private void pollDeviceRequest(Context ctx) {
-        enforceLimit(rateLimiter.tryDevicePoll(clientIp(ctx)));
         var request = ctx.bodyAsClass(DevicePollRequest.class);
         if (isBlank(request.pollSecret())) {
             throw new BadRequestResponse("pollSecret is required");
         }
+        RateLimits.enforce(rateLimiter.tryDevicePoll(clientIp(ctx), request.pollSecret()));
         var result = deviceService.poll(
                 request.pollSecret(), Set.of(DeviceRequestPurpose.ENROL_PASSKEY, DeviceRequestPurpose.SIGN_IN));
         ctx.json(new DevicePollResponse(
@@ -254,7 +269,7 @@ public class PasskeyRoutes implements Routes {
 
     private void beginDeviceEnrollment(Context ctx) {
         requirePasskeysOn();
-        enforceLimit(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
         var request = ctx.bodyAsClass(DeviceEnrollBeginRequest.class);
         if (isBlank(request.enrollToken())) {
             throw new BadRequestResponse("enrollToken is required");
@@ -267,7 +282,7 @@ public class PasskeyRoutes implements Routes {
 
     private void finishDeviceEnrollment(Context ctx) {
         requirePasskeysOn();
-        enforceLimit(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
         var request = ctx.bodyAsClass(DeviceEnrollFinishRequest.class);
         if (isBlank(request.enrollToken()) || isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
             throw new BadRequestResponse("enrollToken, challengeToken and credentialJson are required");
@@ -284,7 +299,7 @@ public class PasskeyRoutes implements Routes {
 
     private void lookupTokenEnrollment(Context ctx) {
         requirePasskeysOn();
-        enforceLimit(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
         var request = ctx.bodyAsClass(TokenEnrollRequest.class);
         if (isBlank(request.token())) {
             throw new BadRequestResponse("token is required");
@@ -295,7 +310,7 @@ public class PasskeyRoutes implements Routes {
 
     private void beginTokenEnrollment(Context ctx) {
         requirePasskeysOn();
-        enforceLimit(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
         var request = ctx.bodyAsClass(TokenEnrollRequest.class);
         if (isBlank(request.token())) {
             throw new BadRequestResponse("token is required");
@@ -308,7 +323,7 @@ public class PasskeyRoutes implements Routes {
 
     private void finishTokenEnrollment(Context ctx) {
         requirePasskeysOn();
-        enforceLimit(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
         var request = ctx.bodyAsClass(TokenEnrollFinishRequest.class);
         if (isBlank(request.token()) || isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
             throw new BadRequestResponse("token, challengeToken and credentialJson are required");
@@ -322,7 +337,7 @@ public class PasskeyRoutes implements Routes {
 
     private void lookupDeviceRequest(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        enforceLimit(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
+        RateLimits.enforce(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
         var request = ctx.bodyAsClass(DeviceCodeRequest.class);
         if (isBlank(request.code())) {
             throw new BadRequestResponse("code is required");
@@ -338,6 +353,7 @@ public class PasskeyRoutes implements Routes {
                 open.purpose().name(),
                 open.stepUpCategory() == null ? null : open.stepUpCategory().name(),
                 stepUpSubject(session, open),
+                open.matchChoices(),
                 managedCandidates(session, open)));
     }
 
@@ -357,15 +373,28 @@ public class PasskeyRoutes implements Routes {
     }
 
     /**
-     * Whether this reader is allowed to see a step-up request at all, let alone answer it.
+     * Whether this reader is allowed to see the request at all, let alone answer it.
      *
      * <p>Their own, or one raised by somebody in their care: a member signed in by their guardian has
      * no password and no passkey, so the guardian is the only one who can answer a demand made of
      * them. Everybody else is told nothing, which is exactly what a wrong code already earns, so the
      * answer cannot be read as "this code exists".
+     *
+     * <p>A sign-in and an enrolment are read against the account the requesting device named, a
+     * step-up against the one whose session raised it. The first two used to be waved through,
+     * because a request named nobody until it was approved: a code could then be handed to a crowd
+     * and whoever answered it gave away their own account, without whoever raised it ever having to
+     * know whose it would be.
+     *
+     * <p>A request whose identifier matched no account names nobody and so passes for nobody, which
+     * is how an address that does not exist here comes to be answered like one that does.
      */
     private boolean mayConfirm(UserSession session, DeviceRequest open) {
-        if (!open.is(DeviceRequestPurpose.STEP_UP)) return true;
+        if (!open.is(DeviceRequestPurpose.STEP_UP)) {
+            if (open.namesAccount(session.accountId())) return true;
+            return open.namedAccountId() != null
+                    && accountRepository.isGuardianOf(session.accountId(), open.namedAccountId());
+        }
         if (Integer.valueOf(session.accountId()).equals(open.requestingAccountId())) return true;
         return open.requestingAccountId() != null
                 && accountRepository.isGuardianOf(session.accountId(), open.requestingAccountId());
@@ -432,7 +461,7 @@ public class PasskeyRoutes implements Routes {
      */
     private void approveDeviceRequest(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        enforceLimit(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
+        RateLimits.enforce(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
         var request = ctx.bodyAsClass(DeviceCodeRequest.class);
         if (isBlank(request.code())) {
             throw new BadRequestResponse("code is required");
@@ -441,9 +470,16 @@ public class PasskeyRoutes implements Routes {
         if (!mayConfirm(session, open)) {
             throw new NotFoundResponse();
         }
+        if (request.pickedNumber() == null) {
+            throw new BadRequestResponse("pickedNumber is required");
+        }
         int subject = subjectFor(session, open, request.forAccountId());
         stepUpGuard.spendLocalProof(session, StepUpCategory.ACCOUNT_SECURITY);
-        if (!deviceService.approve(session.accountId(), subject, request.code())) {
+        var result = deviceService.approve(session.accountId(), subject, request.code(), request.pickedNumber());
+        if (result == DeviceRequestService.ApprovalResult.WRONG_NUMBER) {
+            throw new HttpResponseException(HttpStatus.CONFLICT.getCode(), "The numbers did not match", Map.of());
+        }
+        if (result != DeviceRequestService.ApprovalResult.APPROVED) {
             throw new NotFoundResponse();
         }
         ctx.json(Map.of("message", "Device approved"));
@@ -451,14 +487,6 @@ public class PasskeyRoutes implements Routes {
 
     private String clientIp(Context ctx) {
         return ClientIp.resolve(ctx, network).getHostAddress();
-    }
-
-    private static void enforceLimit(Optional<Long> retryAfter) {
-        if (retryAfter.isEmpty()) return;
-        throw new HttpResponseException(
-                HttpStatus.TOO_MANY_REQUESTS.getCode(),
-                "Too many requests, please try again later",
-                Map.of("Retry-After", Long.toString(retryAfter.get())));
     }
 
     private void requirePasskeysOn() {
@@ -487,7 +515,7 @@ public class PasskeyRoutes implements Routes {
             })
     private void beginSignIn(Context ctx) {
         requirePasskeysOn();
-        enforceLimit(rateLimiter.tryPasskeySignIn(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryPasskeySignIn(clientIp(ctx)));
         var start = passkeyService.startSignIn();
         ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
     }
@@ -508,7 +536,7 @@ public class PasskeyRoutes implements Routes {
             })
     private void finishSignIn(Context ctx) {
         requirePasskeysOn();
-        enforceLimit(rateLimiter.tryPasskeySignIn(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryPasskeySignIn(clientIp(ctx)));
         var request = ctx.bodyAsClass(SignInFinishRequest.class);
         if (isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
             throw new BadRequestResponse("challengeToken and credentialJson are required");
@@ -709,10 +737,20 @@ public class PasskeyRoutes implements Routes {
     public record TrialResponse(String outcome) {}
 
     /**
-     * @param qrPng PNG of a QR code opening the approval screen. It does not carry the code:
-     *         both travel separately on purpose.
+     * @param qrPng PNG of a QR code opening the approval screen with the code already in it, so
+     *         scanning it is the whole of the reader's work
+     * @param matchNumber the number this screen shows and the approving screen asks for. It is the
+     *         one part of the handshake the QR does not carry, which is what a forwarded picture
+     *         cannot supply
      */
-    public record DeviceRequestResponse(String code, String pollSecret, Instant expiresAt, String qrPng) {}
+    public record DeviceRequestResponse(
+            String code, String pollSecret, int matchNumber, Instant expiresAt, String qrPng) {}
+
+    /**
+     * @param identifier the address or username the device is asking to be signed in as. Answered
+     *         the same way whether or not it matches an account
+     */
+    public record DeviceIdentifierRequest(String identifier) {}
 
     public record DevicePollRequest(String pollSecret) {}
 
@@ -731,14 +769,18 @@ public class PasskeyRoutes implements Routes {
     /**
      * @param forAccountId whom the sign-in is for, where a guardian is signing in somebody in their
      *         care. Absent means the approver themselves
+     * @param pickedNumber which of the six offered numbers the reader chose. Absent on the lookup,
+     *         which only reads; the approval refuses without it
      */
-    public record DeviceCodeRequest(String code, Integer forAccountId) {}
+    public record DeviceCodeRequest(String code, Integer forAccountId, Integer pickedNumber) {}
 
     /**
      * @param purpose what approving this buys, so the screen can say it in the reader's terms
      * @param stepUpCategory what a step-up was demanded for, absent for the other purposes
      * @param stepUpSubject whose step-up it is, where that is somebody in the reader's care rather
      *         than the reader themselves
+     * @param numberChoices the six numbers to offer, in the order to offer them, one of which is
+     *         the one the requesting screen shows. Which is never said here
      * @param candidates whom this reader may sign in, for a sign-in. Themselves first
      */
     public record DeviceLookupResponse(
@@ -748,6 +790,7 @@ public class PasskeyRoutes implements Routes {
             String purpose,
             String stepUpCategory,
             String stepUpSubject,
+            List<Integer> numberChoices,
             List<ApprovalCandidate> candidates) {}
 
     public record ApprovalCandidate(int accountId, String name) {}

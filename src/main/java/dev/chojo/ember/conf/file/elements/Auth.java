@@ -108,6 +108,12 @@ public class Auth {
 
     private PasskeySettings passkeys = new PasskeySettings();
 
+    /**
+     * How hard signing in from another device is throttled per network address, for installations
+     * whose people share one.
+     */
+    private DeviceHandshakeSettings deviceHandshake = new DeviceHandshakeSettings();
+
     public int tokenBytes() {
         return tokenBytes;
     }
@@ -184,6 +190,10 @@ public class Auth {
 
     public PasskeySettings passkeys() {
         return passkeys;
+    }
+
+    public DeviceHandshakeSettings deviceHandshake() {
+        return deviceHandshake;
     }
 
     @Override

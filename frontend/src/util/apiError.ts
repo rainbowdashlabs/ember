@@ -16,6 +16,14 @@ export interface ApiErrorBody {
     category?: string
     /** What the account can prove itself with, named by a step-up refusal. */
     proofs?: string[]
+    /**
+     * How many seconds to wait before asking again, on a refusal for asking too often.
+     *
+     * <p>It rides in the body as well as in the `Retry-After` header, because a header is only
+     * readable cross-origin when the server says it may be, and a screen that wants to count the
+     * wait down should not depend on that.
+     */
+    retryAfterSeconds?: number
 }
 
 interface ApiErrorShape {
@@ -42,6 +50,17 @@ export function apiErrorStatus(e: unknown): number | undefined {
  */
 export function apiErrorBody(e: unknown): ApiErrorBody | undefined {
     return asApiError(e).response?.data
+}
+
+/**
+ * How long a refusal asked the caller to wait, in milliseconds, or undefined when it did not say.
+ *
+ * <p>Only a number the server actually named counts. A caller that gets nothing here decides its
+ * own wait, which is what it would have had to do anyway.
+ */
+export function retryAfterMillis(e: unknown): number | undefined {
+    const seconds = apiErrorBody(e)?.retryAfterSeconds
+    return typeof seconds === 'number' && seconds > 0 ? seconds * 1000 : undefined
 }
 
 /**

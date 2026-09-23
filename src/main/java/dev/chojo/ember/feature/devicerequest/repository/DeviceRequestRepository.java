@@ -5,12 +5,14 @@
  */
 package dev.chojo.ember.feature.devicerequest.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.devicerequest.entity.DeviceRequest;
 import dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -29,28 +31,43 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class DeviceRequestRepository {
     private static final String COLUMNS =
             "id, purpose, approved_account_id, subject_account_id, requesting_account_id, requesting_session_id, "
-                    + "step_up_category, approved_at, consumed_at, expires_at, attempts, "
+                    + "named_account_id, step_up_category, approved_at, consumed_at, expires_at, rejected_at, "
+                    + "match_number, match_choices, attempts, "
                     + "requested_user_agent, requested_country, claim_token_hash IS NOT NULL AS claim_token_issued, "
                     + "created_at";
 
     /**
      * A request from a device nobody has identified yet, which is how a passkey enrolment and a
      * sign-in both begin.
+     *
+     * @param namedAccountId the account the device asked for, or {@code null} where the identifier
+     *         matched nothing. Such a row is written all the same, so that a request for an address
+     *         that exists and one for an address that does not are answered identically
      */
     public int create(
             DeviceRequestPurpose purpose,
             String codeHash,
             String pollSecretHash,
+            Integer namedAccountId,
+            int matchNumber,
+            List<Integer> matchChoices,
             String userAgent,
             String country,
             Instant expiresAt) {
         return query("""
-                INSERT INTO device_request (purpose, code_hash, poll_secret_hash, requested_user_agent, requested_country, expires_at)
-                VALUES (:purpose, :code_hash, :poll_secret_hash, :user_agent, :country, :expires_at)
+                INSERT INTO device_request (purpose, code_hash, poll_secret_hash, named_account_id,
+                                            match_number, match_choices,
+                                            requested_user_agent, requested_country, expires_at)
+                VALUES (:purpose, :code_hash, :poll_secret_hash, :named_account_id,
+                        :match_number, :match_choices,
+                        :user_agent, :country, :expires_at)
                 RETURNING id;""")
                 .single(call().bind("purpose", purpose)
                         .bind("code_hash", codeHash)
                         .bind("poll_secret_hash", pollSecretHash)
+                        .bind("named_account_id", namedAccountId)
+                        .bind("match_number", matchNumber)
+                        .bind("match_choices", matchChoices, PostgreSqlTypes.INTEGER)
                         .bind("user_agent", userAgent)
                         .bind("country", country)
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP))
@@ -69,14 +86,18 @@ public class DeviceRequestRepository {
             int requestingAccountId,
             int requestingSessionId,
             StepUpCategory category,
+            int matchNumber,
+            List<Integer> matchChoices,
             String userAgent,
             String country,
             Instant expiresAt) {
         return query("""
                 INSERT INTO device_request (purpose, code_hash, poll_secret_hash, requesting_account_id,
                                             requesting_session_id, step_up_category,
+                                            match_number, match_choices,
                                             requested_user_agent, requested_country, expires_at)
                 VALUES ('STEP_UP', :code_hash, :poll_secret_hash, :account_id, :session_id, :category,
+                        :match_number, :match_choices,
                         :user_agent, :country, :expires_at)
                 RETURNING id;""")
                 .single(call().bind("code_hash", codeHash)
@@ -84,6 +105,8 @@ public class DeviceRequestRepository {
                         .bind("account_id", requestingAccountId)
                         .bind("session_id", requestingSessionId)
                         .bind("category", category)
+                        .bind("match_number", matchNumber)
+                        .bind("match_choices", matchChoices, PostgreSqlTypes.INTEGER)
                         .bind("user_agent", userAgent)
                         .bind("country", country)
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP))
@@ -93,14 +116,14 @@ public class DeviceRequestRepository {
     }
 
     /**
-     * The open request behind a typed code: not yet approved, not spent, not expired. Empty is
-     * all a wrong code earns; which of the reasons applied is nobody's business.
+     * The open request behind a typed code: not yet approved, not refused, not spent, not expired.
+     * Empty is all a wrong code earns; which of the reasons applied is nobody's business.
      */
     public Optional<DeviceRequest> findOpenByCode(String codeHash) {
         return query("""
                 SELECT %s FROM device_request
                 WHERE code_hash = :code_hash AND approved_at IS NULL AND consumed_at IS NULL
-                AND expires_at > now();""", COLUMNS)
+                AND rejected_at IS NULL AND expires_at > now();""", COLUMNS)
                 .single(call().bind("code_hash", codeHash))
                 .map(DeviceRequest.map())
                 .first();
@@ -129,12 +152,28 @@ public class DeviceRequestRepository {
         return query("""
                 UPDATE device_request
                 SET approved_account_id = :approved_by, subject_account_id = :subject, approved_at = now()
-                WHERE id = :id AND approved_at IS NULL AND consumed_at IS NULL AND expires_at > now();""")
+                WHERE id = :id AND approved_at IS NULL AND consumed_at IS NULL
+                AND rejected_at IS NULL AND expires_at > now();""")
                 .single(call().bind("id", id)
                         .bind("approved_by", approvedAccountId)
                         .bind("subject", subjectAccountId))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Ends the request because the approving screen picked the wrong number.
+     *
+     * <p>Guarded like the approval it replaces, so the two cannot both land and a request that was
+     * already answered stays answered. There is no way back from here: the code is spent, and
+     * whoever wanted in raises a new request and shows a new number.
+     */
+    public boolean reject(int id) {
+        return query("""
+                UPDATE device_request
+                SET rejected_at = now()
+                WHERE id = :id AND approved_at IS NULL AND consumed_at IS NULL
+                AND rejected_at IS NULL AND expires_at > now();""").single(call().bind("id", id)).update().changed();
     }
 
     /**

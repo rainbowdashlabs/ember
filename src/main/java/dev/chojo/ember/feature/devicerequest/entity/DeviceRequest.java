@@ -8,7 +8,10 @@ package dev.chojo.ember.feature.devicerequest.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.api.auth.StepUpCategory;
 
+import java.sql.Array;
+import java.sql.SQLException;
 import java.time.Instant;
+import java.util.List;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -25,6 +28,12 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param requestingAccountId the account that raised a step-up request, {@code null} for the
  *         purposes an unidentified device raises
  * @param requestingSessionId the session a successful step-up stamps, {@code null} otherwise
+ * @param namedAccountId the account the requesting device asked for, claimed and never proved, so
+ *         it decides who may approve and never who is signed in. {@code null} where the identifier
+ *         matched nothing, which is a request nobody can approve
+ * @param matchNumber the number the requesting screen shows and the approving screen asks for
+ * @param matchChoices the six numbers the approval screen offers, in the order it offers them
+ * @param rejectedAt when the approving screen picked the wrong number, which ends the request
  * @param stepUpCategory what the step-up was demanded for, so the approval screen can say, and the
  *         only thing an approval answers
  * @param claimTokenIssued whether the one-time token was already handed out; it is delivered exactly
@@ -37,10 +46,14 @@ public record DeviceRequest(
         Integer subjectAccountId,
         Integer requestingAccountId,
         Integer requestingSessionId,
+        Integer namedAccountId,
         StepUpCategory stepUpCategory,
         Instant approvedAt,
         Instant consumedAt,
         Instant expiresAt,
+        Instant rejectedAt,
+        int matchNumber,
+        List<Integer> matchChoices,
         int attempts,
         String requestedUserAgent,
         String requestedCountry,
@@ -55,15 +68,23 @@ public record DeviceRequest(
                 row.getObject("subject_account_id", Integer.class),
                 row.getObject("requesting_account_id", Integer.class),
                 row.getObject("requesting_session_id", Integer.class),
+                row.getObject("named_account_id", Integer.class),
                 row.getEnum("step_up_category", StepUpCategory.class),
                 row.get("approved_at", INSTANT_TIMESTAMP),
                 row.get("consumed_at", INSTANT_TIMESTAMP),
                 row.get("expires_at", INSTANT_TIMESTAMP),
+                row.get("rejected_at", INSTANT_TIMESTAMP),
+                row.getInt("match_number"),
+                elements(row.getArray("match_choices"), Integer[].class),
                 row.getInt("attempts"),
                 row.getString("requested_user_agent"),
                 row.getString("requested_country"),
                 row.getBoolean("claim_token_issued"),
                 row.get("created_at", INSTANT_TIMESTAMP));
+    }
+
+    private static <T> List<T> elements(Array array, Class<T[]> type) throws SQLException {
+        return List.of(type.cast(array.getArray()));
     }
 
     public boolean isExpired() {
@@ -72,6 +93,22 @@ public record DeviceRequest(
 
     public boolean isApproved() {
         return approvedAt != null;
+    }
+
+    /** Whether the approving screen picked the wrong number, which ends the request for good. */
+    public boolean isRejected() {
+        return rejectedAt != null;
+    }
+
+    /**
+     * Whether this reader may be shown the request at all.
+     *
+     * <p>A request that names no account was raised for an identifier that matched nothing. It is
+     * answered like any other so that the screen cannot be asked which addresses exist, and it
+     * reaches this point belonging to nobody, so nobody passes.
+     */
+    public boolean namesAccount(int accountId) {
+        return namedAccountId != null && namedAccountId == accountId;
     }
 
     /** Whether this is the purpose given, which is what every branch asks before it acts. */

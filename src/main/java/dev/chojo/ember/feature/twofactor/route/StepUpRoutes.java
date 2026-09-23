@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.twofactor.route;
 
+import dev.chojo.ember.api.RateLimits;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -24,16 +25,12 @@ import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.HttpResponseException;
-import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -89,7 +86,7 @@ public class StepUpRoutes implements Routes {
      */
     private void beginDeviceStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        enforceLimit(rateLimiter.tryDeviceRequest(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryStepUpDeviceRequest(clientIp(ctx), session.accountId()));
         if (!twoFactorService
                 .availableProofs(session.accountId(), session.sessionId())
                 .contains(StepUpProof.ANOTHER_DEVICE)) {
@@ -102,7 +99,8 @@ public class StepUpRoutes implements Routes {
                 parseCategory(request.category()),
                 ctx.userAgent(),
                 ctx.header("CF-IPCountry"));
-        ctx.json(new DeviceStepUpBeginResponse(created.code(), created.pollSecret(), created.expiresAt()));
+        ctx.json(new DeviceStepUpBeginResponse(
+                created.code(), created.pollSecret(), created.matchNumber(), created.expiresAt()));
     }
 
     /**
@@ -111,11 +109,11 @@ public class StepUpRoutes implements Routes {
      */
     private void pollDeviceStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        enforceLimit(rateLimiter.tryDevicePoll(clientIp(ctx)));
         var request = ctx.bodyAsClass(DeviceStepUpPollRequest.class);
         if (request.pollSecret() == null || request.pollSecret().isBlank()) {
             throw new BadRequestResponse("pollSecret is required");
         }
+        RateLimits.enforce(rateLimiter.tryDevicePoll(clientIp(ctx), request.pollSecret()));
         var result = deviceRequestService.poll(request.pollSecret(), Set.of(DeviceRequestPurpose.STEP_UP));
         if (result.claimToken() != null && deviceRequestService.claimStepUp(result.claimToken())) {
             auditService.record(
@@ -151,14 +149,6 @@ public class StepUpRoutes implements Routes {
         return ClientIp.resolve(ctx, network).getHostAddress();
     }
 
-    private static void enforceLimit(Optional<Long> retryAfter) {
-        if (retryAfter.isEmpty()) return;
-        throw new HttpResponseException(
-                HttpStatus.TOO_MANY_REQUESTS.getCode(),
-                "Too many requests, please try again later",
-                Map.of("Retry-After", Long.toString(retryAfter.get())));
-    }
-
     /**
      * The password proof. A password oracle reachable with any live session, so it is throttled
      * per account and per client address before anything else happens, and every failure is
@@ -167,7 +157,7 @@ public class StepUpRoutes implements Routes {
      */
     private void passwordStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        enforceLimit(rateLimiter.tryPasswordStepUp(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(rateLimiter.tryPasswordStepUp(clientIp(ctx), session.accountId()));
 
         var request = ctx.bodyAsClass(PasswordStepUpRequest.class);
         if (request.password() == null || request.password().isBlank()) {
@@ -218,7 +208,7 @@ public class StepUpRoutes implements Routes {
         if (request.challengeToken() == null || request.credentialJson() == null) {
             throw new BadRequestResponse("challengeToken and credentialJson are required");
         }
-        enforceLimit(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
         if (!passkeyService.finishStepUp(session.accountId(), request.challengeToken(), request.credentialJson())) {
             auditService.record(
                     session.accountId(),
@@ -254,7 +244,11 @@ public class StepUpRoutes implements Routes {
      */
     public record DeviceStepUpBeginRequest(String category) {}
 
-    public record DeviceStepUpBeginResponse(String code, String pollSecret, Instant expiresAt) {}
+    /**
+     * @param matchNumber the number this screen shows and the confirming screen asks for, which the
+     *         QR does not carry
+     */
+    public record DeviceStepUpBeginResponse(String code, String pollSecret, int matchNumber, Instant expiresAt) {}
 
     public record DeviceStepUpPollRequest(String pollSecret) {}
 

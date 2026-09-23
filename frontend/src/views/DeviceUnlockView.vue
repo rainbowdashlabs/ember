@@ -14,8 +14,13 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import DeviceIdentifierForm from './deviceunlockview/DeviceIdentifierForm.vue'
+import DeviceHandshakeWaiting from './deviceunlockview/DeviceHandshakeWaiting.vue'
+import DeviceHandshakeFailure from './deviceunlockview/DeviceHandshakeFailure.vue'
 import {passkeys} from '@/api'
 import type {DeviceRequest} from '@/api/passkeys'
+import {useBackingOffPoll, type PollOutcome} from '@/composables/useBackingOffPoll'
+import {describeFailure, FailureKind} from '@/util/failure'
 import {createWebAuthnCredential, getWebAuthnCredential, isWebAuthnSupported, webauthnErrorKey} from '@/util/webauthn'
 import {decideSignInLanding} from '@/util/signInLanding'
 import {showToast} from '@/util/toast'
@@ -34,12 +39,21 @@ const {setActiveStation, clearActiveStation} = useStations()
 const {setActiveCluster, clearActiveCluster} = useCluster()
 const session = useSession()
 
-type Phase = 'choosing' | 'loading' | 'waiting' | 'enrolling' | 'signingIn' | 'done' | 'expired' | 'failed'
+type Phase =
+    | 'choosing'
+    | 'identifying'
+    | 'loading'
+    | 'waiting'
+    | 'enrolling'
+    | 'signingIn'
+    | 'done'
+    | 'expired'
+    | 'rejected'
+    | 'failed'
 const phase = ref<Phase>('loading')
 const error = ref('')
 const request = ref<DeviceRequest | null>(null)
 const signedInAs = ref('')
-let pollTimer: ReturnType<typeof setInterval> | null = null
 
 /**
  * What this device is asking for. A passkey is the better answer where the browser can hold one: it
@@ -57,48 +71,65 @@ const wants = ref<'ENROL_PASSKEY' | 'SIGN_IN'>('ENROL_PASSKEY')
 const browserHoldsPasskeys = isWebAuthnSupported()
 const canHoldPasskey = ref(false)
 
-const groupedCode = computed(() => {
-  const code = request.value?.code ?? ''
-  return code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code
-})
-
-function stopPolling() {
-  if (pollTimer) clearInterval(pollTimer)
-  pollTimer = null
+/**
+ * What to put on the screen when something went wrong.
+ *
+ * <p>Being refused for asking too often is worth saying in those words: the reader can act on it by
+ * waiting, where the flow's own sentence tells them to fetch a new code, which spends another
+ * request from the bucket that just refused. Everything else keeps the sentence it always had.
+ */
+function failureText(e: unknown, fallback: string): string {
+  const failure = describeFailure(e, t)
+  if (failure.kind !== FailureKind.TOO_OFTEN) return fallback
+  return `${failure.message} ${failure.guidance}`
 }
 
-async function start(want: 'ENROL_PASSKEY' | 'SIGN_IN' = wants.value) {
-  stopPolling()
+/** Remembers who is asking, so the retry button does not send the reader back to the field. */
+const identifier = ref('')
+
+function chose(want: 'ENROL_PASSKEY' | 'SIGN_IN') {
   wants.value = want
+  phase.value = 'identifying'
+}
+
+async function start(named: string = identifier.value) {
+  stopPolling()
+  identifier.value = named
   error.value = ''
   phase.value = 'loading'
   try {
-    request.value = want === 'SIGN_IN' ? await passkeys.signInRequest() : await passkeys.deviceRequest()
+    request.value = wants.value === 'SIGN_IN'
+        ? await passkeys.signInRequest(named)
+        : await passkeys.deviceRequest(named)
     phase.value = 'waiting'
-    pollTimer = setInterval(poll, 2500)
-  } catch {
+    startPolling()
+  } catch (e) {
     phase.value = 'failed'
-    error.value = t('passkeys.device.requestFailed')
+    error.value = failureText(e, t('passkeys.device.requestFailed'))
   }
 }
 
-/** One tick of the wait. A lost poll is nothing: the next tick asks again. */
-async function poll() {
-  if (!request.value || phase.value !== 'waiting') return
-  try {
-    const result = await passkeys.devicePoll(request.value.pollSecret)
-    if (result.status === 'APPROVED' && result.enrollToken) {
-      stopPolling()
-      if (result.purpose === 'SIGN_IN') await claimSession(result.enrollToken)
-      else await enroll(result.enrollToken)
-    } else if (result.status === 'EXPIRED' || result.status === 'UNKNOWN') {
-      stopPolling()
-      phase.value = 'expired'
-    }
-  } catch {
-    return
+/** One ask, saying whether the wait goes on. What it found decides where the screen goes next. */
+async function poll(): Promise<PollOutcome> {
+  if (!request.value || phase.value !== 'waiting') return 'stop'
+  const result = await passkeys.devicePoll(request.value.pollSecret)
+  if (result.status === 'APPROVED' && result.enrollToken) {
+    if (result.purpose === 'SIGN_IN') await claimSession(result.enrollToken)
+    else await enroll(result.enrollToken)
+    return 'stop'
   }
+  if (result.status === 'REJECTED') {
+    phase.value = 'rejected'
+    return 'stop'
+  }
+  if (result.status === 'EXPIRED' || result.status === 'UNKNOWN') {
+    phase.value = 'expired'
+    return 'stop'
+  }
+  return 'again'
 }
+
+const {start: startPolling, stop: stopPolling, throttled} = useBackingOffPoll(poll)
 
 /**
  * The sign-in half: the approval bought a session, so there is no ceremony to run. Nothing is left
@@ -109,9 +140,9 @@ async function claimSession(claimToken: string) {
   try {
     await passkeys.signInClaim(claimToken)
     await landAfterSignIn()
-  } catch {
+  } catch (e) {
     phase.value = 'failed'
-    error.value = t('passkeys.device.signInFailed')
+    error.value = failureText(e, t('passkeys.device.signInFailed'))
   }
 }
 
@@ -178,7 +209,7 @@ onMounted(async () => {
     }
   }
   if (canHoldPasskey.value) phase.value = 'choosing'
-  else void start('SIGN_IN')
+  else chose('SIGN_IN')
 })
 onBeforeUnmount(stopPolling)
 </script>
@@ -191,26 +222,26 @@ onBeforeUnmount(stopPolling)
 
       <template v-if="phase === 'choosing'">
         <p>{{ t('passkeys.device.chooseIntro') }}</p>
-        <PrimaryButton class="w-full" :icon="['fas', 'fingerprint']" @click="start('ENROL_PASSKEY')">
+        <PrimaryButton class="w-full" :icon="['fas', 'fingerprint']" @click="chose('ENROL_PASSKEY')">
           {{ t('passkeys.device.choosePasskey') }}
         </PrimaryButton>
         <MutedText tag="p" size="sm">{{ t('passkeys.device.choosePasskeyHint') }}</MutedText>
-        <SecondaryButton class="w-full" :icon="['fas', 'right-to-bracket']" @click="start('SIGN_IN')">
+        <SecondaryButton class="w-full" :icon="['fas', 'right-to-bracket']" @click="chose('SIGN_IN')">
           {{ t('passkeys.device.chooseSignIn') }}
         </SecondaryButton>
         <MutedText tag="p" size="sm">{{ t('passkeys.device.chooseSignInHint') }}</MutedText>
       </template>
 
+      <DeviceIdentifierForm v-else-if="phase === 'identifying'" @submit="start"/>
+
       <Spinner v-else-if="phase === 'loading'" size="lg" class="mx-auto"/>
 
-      <template v-else-if="phase === 'waiting' && request">
-        <p>{{ wants === 'SIGN_IN' ? t('passkeys.device.instructionSignIn') : t('passkeys.device.instruction') }}</p>
-        <div class="text-4xl font-mono tracking-widest">{{ groupedCode }}</div>
-        <img :src="`data:image/png;base64,${request.qrPng}`" :alt="t('passkeys.device.qrAlt')"
-             class="mx-auto h-48 w-48 rounded bg-white p-2"/>
-        <MutedText tag="p" size="sm">{{ t('passkeys.device.qrHint') }}</MutedText>
-        <MutedText tag="p" size="sm">{{ t('passkeys.device.waiting') }}</MutedText>
-      </template>
+      <DeviceHandshakeWaiting
+          v-else-if="phase === 'waiting' && request"
+          :request="request"
+          :throttled="throttled"
+          :wants-sign-in="wants === 'SIGN_IN'"
+      />
 
       <p v-else-if="phase === 'enrolling'">{{ t('passkeys.create.preparing') }}</p>
       <p v-else-if="phase === 'signingIn'">{{ t('passkeys.device.signingIn') }}</p>
@@ -218,13 +249,15 @@ onBeforeUnmount(stopPolling)
         {{ signedInAs ? t('passkeys.device.signedInAs', {name: signedInAs}) : t('passkeys.device.signingIn') }}
       </p>
 
-      <template v-else>
-        <Alert variant="error">{{ error || t('passkeys.device.expired') }}</Alert>
-        <PrimaryButton class="w-full" @click="start()">{{ t('passkeys.device.retry') }}</PrimaryButton>
-        <router-link class="block text-sm text-(--text-muted) hover:text-(--text)" to="/login">
-          {{ t('passkeys.device.backToLogin') }}
-        </router-link>
-      </template>
+      <DeviceHandshakeFailure
+          v-else-if="phase === 'rejected'"
+          :hint="t('passkeys.device.rejectedHint')"
+          :message="t('passkeys.device.rejected')"
+          test-id="device-rejected"
+          @retry="start()"
+      />
+
+      <DeviceHandshakeFailure v-else :message="error || t('passkeys.device.expired')" @retry="start()"/>
     </div>
   </div>
 </template>

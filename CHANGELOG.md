@@ -2,13 +2,26 @@
 
 ## v26.18.7
 
+### New Features
+
+- **Signing in from another device asks for a number.** The device that wants to get in shows a two-digit number, and the device approving picks it out of six. Somebody who was only sent a picture of the code cannot see that number, so a forwarded code is no longer enough on its own.
+
 ### Improvements
 
 - **An appointment and its attendance sheet lead to each other.** The menu on an appointment opens the sheet for the date shown, or starts one where there is none yet, and the menu on a sheet leads back to the appointment on that same date.
+- **Scanning is all the approving device has to do.** The QR code now carries the sign-in code, so the phone opens straight onto what it is about to approve instead of asking for eight characters to be typed in. The code is still shown for anyone who cannot scan.
+- **New settings for shared internet connections.** An installation whose members reach the internet through one address can widen the per-address limits on signing in from another device under `auth.deviceHandshake`.
+
+### Security
+
+- **A sign-in code now belongs to one account.** Until now any signed-in member could approve any open code, so a code sent round a group handed over the account of whoever answered it. You give your address or username before the code is made, and only that account can approve it.
 
 ### Fixes
 
 - **Attendance for a repeating appointment was recorded on the wrong date.** Starting the attendance for a weekly appointment dated the sheet to the first date of the series and reopened that same sheet on every later date. Each date now gets its own sheet, dated to the day it covers.
+- **Only one device at a time could sign in where an address is shared.** In an office or a hall where everybody reaches the internet through one connection, the second device waiting for approval was refused and then waited for ever without saying why. Every device and every account now has its own allowance.
+- **Being asked to slow down looked like a general failure.** A screen that was told it was trying too often showed the same message as any other error and advised fetching a new code, which used up another attempt. It now says that too many attempts were made and waits instead of asking again straight away.
+- **Signing in from another device was hidden from some browsers.** The link on the sign-in page only appeared where the browser could hold a passkey, although this way of signing in never needed one. It now shows for everybody.
 
 ## v26.18.6
 
