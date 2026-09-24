@@ -100,31 +100,33 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
     void singleMemberTakeAndReleaseSlot() {
         var field = createField(EventFieldType.MEMBER, selfRegConfig());
 
-        var afterTake = service.toggleSelfRegistration(eventId, field.id(), memberA, null);
+        var afterTake = service.toggleSelfRegistration(eventId, field.id(), memberA, null, false);
         assertEquals(String.valueOf(memberA), afterTake.value());
 
-        var afterRelease = service.toggleSelfRegistration(eventId, field.id(), memberA, null);
+        var afterRelease = service.toggleSelfRegistration(eventId, field.id(), memberA, null, false);
         assertEquals("", afterRelease.value());
     }
 
     @Test
     void singleMemberConflictWhenSlotHeldByOther() {
         var field = createField(EventFieldType.MEMBER, selfRegConfig());
-        service.toggleSelfRegistration(eventId, field.id(), memberA, null);
+        service.toggleSelfRegistration(eventId, field.id(), memberA, null, false);
 
-        assertThrows(ConflictResponse.class, () -> service.toggleSelfRegistration(eventId, field.id(), memberB, null));
+        assertThrows(
+                ConflictResponse.class,
+                () -> service.toggleSelfRegistration(eventId, field.id(), memberB, null, false));
     }
 
     @Test
     void listMemberAddRemove() {
         var field = createField(EventFieldType.MEMBER_LIST, selfRegConfig());
 
-        service.toggleSelfRegistration(eventId, field.id(), memberA, null);
-        service.toggleSelfRegistration(eventId, field.id(), memberB, null);
+        service.toggleSelfRegistration(eventId, field.id(), memberA, null, false);
+        service.toggleSelfRegistration(eventId, field.id(), memberB, null, false);
         var afterBoth = eventFieldRepo.findById(field.id()).orElseThrow();
         assertEquals(List.of(memberA, memberB), QuestionValues.memberIds(afterBoth.value()));
 
-        service.toggleSelfRegistration(eventId, field.id(), memberA, null);
+        service.toggleSelfRegistration(eventId, field.id(), memberA, null, false);
         var afterAGone = eventFieldRepo.findById(field.id()).orElseThrow();
         assertEquals(List.of(memberB), QuestionValues.memberIds(afterAGone.value()));
     }
@@ -134,18 +136,21 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
         var config = new EventFieldConfig(null, groupId, null, null, true, null, false);
         var field = createField(EventFieldType.MEMBER_OF_GROUP, config);
 
-        var afterA = service.toggleSelfRegistration(eventId, field.id(), memberA, null);
+        var afterA = service.toggleSelfRegistration(eventId, field.id(), memberA, null, false);
         assertEquals(String.valueOf(memberA), afterA.value());
 
-        service.toggleSelfRegistration(eventId, field.id(), memberA, null);
-        assertThrows(ForbiddenResponse.class, () -> service.toggleSelfRegistration(eventId, field.id(), memberB, null));
+        service.toggleSelfRegistration(eventId, field.id(), memberA, null, false);
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.toggleSelfRegistration(eventId, field.id(), memberB, null, false));
     }
 
     @Test
     void groupConstraintMissingGroupRejected() {
         var field = createField(EventFieldType.MEMBER_OF_GROUP, selfRegConfig());
         assertThrows(
-                BadRequestResponse.class, () -> service.toggleSelfRegistration(eventId, field.id(), memberA, null));
+                BadRequestResponse.class,
+                () -> service.toggleSelfRegistration(eventId, field.id(), memberA, null, false));
     }
 
     @Test
@@ -153,17 +158,20 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
         var config = new EventFieldConfig(null, null, StationUserType.TEAM, null, true, null, false);
         var field = createField(EventFieldType.MEMBER_OF_TYPE, config);
 
-        service.toggleSelfRegistration(eventId, field.id(), memberA, null);
-        service.toggleSelfRegistration(eventId, field.id(), memberA, null);
+        service.toggleSelfRegistration(eventId, field.id(), memberA, null, false);
+        service.toggleSelfRegistration(eventId, field.id(), memberA, null, false);
 
-        assertThrows(ForbiddenResponse.class, () -> service.toggleSelfRegistration(eventId, field.id(), memberB, null));
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.toggleSelfRegistration(eventId, field.id(), memberB, null, false));
     }
 
     @Test
     void userTypeConstraintMissingRejected() {
         var field = createField(EventFieldType.MEMBER_OF_TYPE, selfRegConfig());
         assertThrows(
-                BadRequestResponse.class, () -> service.toggleSelfRegistration(eventId, field.id(), memberA, null));
+                BadRequestResponse.class,
+                () -> service.toggleSelfRegistration(eventId, field.id(), memberA, null, false));
     }
 
     @Test
@@ -171,17 +179,20 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
         var config = new EventFieldConfig(null, null, null, tagId, true, null, false);
         var field = createField(EventFieldType.MEMBER_OF_TAG, config);
 
-        service.toggleSelfRegistration(eventId, field.id(), memberA, null);
-        service.toggleSelfRegistration(eventId, field.id(), memberA, null);
+        service.toggleSelfRegistration(eventId, field.id(), memberA, null, false);
+        service.toggleSelfRegistration(eventId, field.id(), memberA, null, false);
 
-        assertThrows(ForbiddenResponse.class, () -> service.toggleSelfRegistration(eventId, field.id(), memberB, null));
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.toggleSelfRegistration(eventId, field.id(), memberB, null, false));
     }
 
     @Test
     void tagConstraintMissingRejected() {
         var field = createField(EventFieldType.MEMBER_OF_TAG, selfRegConfig());
         assertThrows(
-                BadRequestResponse.class, () -> service.toggleSelfRegistration(eventId, field.id(), memberA, null));
+                BadRequestResponse.class,
+                () -> service.toggleSelfRegistration(eventId, field.id(), memberA, null, false));
     }
 
     @Test
@@ -189,7 +200,7 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
         var listOfGroup = createField(
                 EventFieldType.MEMBER_LIST_OF_GROUP,
                 new EventFieldConfig(null, groupId, null, null, true, null, false));
-        service.toggleSelfRegistration(eventId, listOfGroup.id(), memberA, null);
+        service.toggleSelfRegistration(eventId, listOfGroup.id(), memberA, null, false);
         assertEquals(
                 List.of(memberA),
                 QuestionValues.memberIds(
@@ -198,7 +209,7 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
         var listOfType = createField(
                 EventFieldType.MEMBER_LIST_OF_TYPE,
                 new EventFieldConfig(null, null, StationUserType.TEAM, null, true, null, false));
-        service.toggleSelfRegistration(eventId, listOfType.id(), memberA, null);
+        service.toggleSelfRegistration(eventId, listOfType.id(), memberA, null, false);
         assertEquals(
                 List.of(memberA),
                 QuestionValues.memberIds(
@@ -206,7 +217,7 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
 
         var listOfTag = createField(
                 EventFieldType.MEMBER_LIST_OF_TAG, new EventFieldConfig(null, null, null, tagId, true, null, false));
-        service.toggleSelfRegistration(eventId, listOfTag.id(), memberA, null);
+        service.toggleSelfRegistration(eventId, listOfTag.id(), memberA, null, false);
         assertEquals(
                 List.of(memberA),
                 QuestionValues.memberIds(
@@ -217,14 +228,16 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
     void selfRegistrationDisabledIsRejected() {
         var field = createField(EventFieldType.MEMBER, EventFieldConfig.parse("{}"));
         assertThrows(
-                BadRequestResponse.class, () -> service.toggleSelfRegistration(eventId, field.id(), memberA, null));
+                BadRequestResponse.class,
+                () -> service.toggleSelfRegistration(eventId, field.id(), memberA, null, false));
     }
 
     @Test
     void nonMemberFieldIsRejected() {
         var field = createField(EventFieldType.STRING, selfRegConfig());
         assertThrows(
-                BadRequestResponse.class, () -> service.toggleSelfRegistration(eventId, field.id(), memberA, null));
+                BadRequestResponse.class,
+                () -> service.toggleSelfRegistration(eventId, field.id(), memberA, null, false));
     }
 
     @Test
@@ -232,18 +245,21 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
         var field = createField(EventFieldType.MEMBER, selfRegConfig());
         assertThrows(
                 NotFoundResponse.class,
-                () -> service.toggleSelfRegistration(eventId + 99999, field.id(), memberA, null));
+                () -> service.toggleSelfRegistration(eventId + 99999, field.id(), memberA, null, false));
     }
 
     @Test
     void missingFieldIsNotFound() {
-        assertThrows(NotFoundResponse.class, () -> service.toggleSelfRegistration(eventId, 987654, memberA, null));
+        assertThrows(
+                NotFoundResponse.class, () -> service.toggleSelfRegistration(eventId, 987654, memberA, null, false));
     }
 
     @Test
     void missingMemberIsBadRequest() {
         var field = createField(EventFieldType.MEMBER, selfRegConfig());
-        assertThrows(BadRequestResponse.class, () -> service.toggleSelfRegistration(eventId, field.id(), 987654, null));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.toggleSelfRegistration(eventId, field.id(), 987654, null, false));
     }
 
     @Test

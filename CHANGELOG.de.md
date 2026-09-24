@@ -1,5 +1,16 @@
 # Änderungsprotokoll
 
+## v26.18.8
+
+### Neue Funktionen
+
+- **Ein Mitglieder-Feld am Termin kann pro Datum gefüllt werden.** Ein Termin-Feld, das Mitglieder benennt, kann für jeden Tag einer Terminreihe einen eigenen Eintrag halten, sodass darin stehen kann, wer diese Woche fährt und wer nächste. Ohne die Einstellung gilt ein Eintrag wie bisher für die ganze Reihe.
+
+### Verbesserungen
+
+- **Wer in einem Mitglieder-Feld steht, steht auf der Anmeldeliste des Termins.** Wer in einem Termin-Feld eingetragen ist, das Mitglieder benennt, nimmt teil: Die Person steht auf der Anmeldeliste, wird mitgezählt, und der Termin erreicht ihren Kalender und ihr Kalender-Abonnement. Der Platz ist sofort bestätigt und wird zurückgegeben, indem der Name aus dem Feld genommen wird, nicht durch Abmelden.
+- **Das Kalender-Abonnement reicht ein Jahr zurück.** Bisher blieb nur die letzte Woche darin, sodass sich nicht nachschlagen ließ, was im vergangenen Herbst war. Es umfasst jetzt ein Jahr in beide Richtungen.
+
 ## v26.18.7
 
 ### Verbesserungen

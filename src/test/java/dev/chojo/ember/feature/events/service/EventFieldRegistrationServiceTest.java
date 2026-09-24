@@ -71,6 +71,11 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
 
     /** A one-off on a fixed day, so the date its registrations carry is known to the test. */
     private StationEvent oneTimeEvent(boolean requiresRegistration, boolean requiresConfirmation) {
+        return oneTimeEvent(requiresRegistration, requiresConfirmation, null);
+    }
+
+    private StationEvent oneTimeEvent(
+            boolean requiresRegistration, boolean requiresConfirmation, Instant registrationDeadline) {
         Instant start = Instant.now().plus(3, ChronoUnit.DAYS).truncatedTo(ChronoUnit.HOURS);
         return eventRepo.create(
                 station.id(),
@@ -82,7 +87,7 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
                 start.plus(2, ChronoUnit.HOURS),
                 null,
                 requiresRegistration,
-                null,
+                registrationDeadline,
                 requiresConfirmation,
                 null,
                 null,
@@ -254,6 +259,38 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
         assertTrue(eventFieldRegistrationService.reconcileAll() > 0);
 
         assertTrue(registrationOf(event.id(), memberB).orElseThrow().fromField());
+    }
+
+    /**
+     * A field of an appointment is not a way past the day it stopped taking people, and is not a way
+     * past the audience either: who may stand in the field is the field's own business.
+     */
+    @Test
+    void aClosedAppointmentTakesNobodyElseThroughItsFields() {
+        var event = oneTimeEvent(true, false, Instant.now().minus(1, ChronoUnit.DAYS));
+        var field = memberField(event.id(), "", false);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> fieldService.toggleSelfRegistration(event.id(), field.id(), memberA, null, false));
+        assertTrue(registrationOf(event.id(), memberA).isEmpty());
+
+        fieldService.toggleSelfRegistration(event.id(), field.id(), memberA, null, true);
+        assertTrue(registrationOf(event.id(), memberA).orElseThrow().fromField());
+    }
+
+    /** Coming back off is never refused: a name on a rota that is wrong helps nobody. */
+    @Test
+    void aClosedAppointmentStillLetsSomebodyOffItsFields() {
+        var event = oneTimeEvent(true, false, Instant.now().minus(1, ChronoUnit.DAYS));
+        var field = memberField(event.id(), QuestionValues.formatMembers(List.of(memberB)), false);
+        eventFieldRegistrationService.reconcile(event.id());
+
+        fieldService.toggleSelfRegistration(event.id(), field.id(), memberB, null, false);
+
+        assertEquals(
+                RegistrationStatus.WITHDRAWN,
+                registrationOf(event.id(), memberB).orElseThrow().status());
     }
 
     @Test

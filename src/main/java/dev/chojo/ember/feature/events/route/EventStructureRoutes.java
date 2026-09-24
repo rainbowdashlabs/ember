@@ -409,7 +409,11 @@ public class EventStructureRoutes implements Routes {
         int fieldId = pathInt(ctx, "fieldId");
         requireOwnedEvent(crudService, eventId, session);
         ctx.json(eventFieldService.toggleSelfRegistration(
-                eventId, fieldId, session.member().id(), askedDate(ctx)));
+                eventId,
+                fieldId,
+                session.member().id(),
+                askedDate(ctx),
+                session.hasPermission(StationPermission.EVENT_MANAGER)));
     }
 
     /**

@@ -28,6 +28,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -238,15 +239,31 @@ public class EventFieldService {
      * when the caller already holds it, and raise {@link ConflictResponse} when the
      * slot belongs to someone else.
      *
+     * <p>Who may put themselves in is the field's own business and not the appointment's. Standing
+     * in one now holds a place on the list, so it is a second way onto it, and deliberately so: a
+     * station that switched self-registration on for a field and then narrowed who may stand in it
+     * has said twice over who belongs there, and a register audience that happens not to name the
+     * same group is far more likely to be an oversight than a decision. The closing date is the one
+     * thing that still holds, because it is the appointment saying it is done taking people, and
+     * that is not a thing a field of it can overrule.
+     *
+     * <p>Coming back off the list is never refused, whatever the date. Somebody who cannot be there
+     * has to be able to say so, and the alternative is a name on a rota that everybody knows is
+     * wrong.
+     *
+     * @param runsTheEvent whoever keeps the appointment's list, for whom the closing date is not a
+     *                     refusal: they are not answering the appointment, they are running it
      * @throws NotFoundResponse   when the field does not exist on the given event
      * @throws BadRequestResponse when the field is not a member-type field, when
-     *                            self-registration is not enabled, or when the
-     *                            field's required constraint is mis-configured
+     *                            self-registration is not enabled, when the field's required
+     *                            constraint is mis-configured, or when the appointment has stopped
+     *                            taking people
      * @throws ForbiddenResponse  when the caller does not satisfy the field's
      *                            group / type / tag constraint
      * @throws ConflictResponse   when a single-value slot is already taken
      */
-    public EventField toggleSelfRegistration(int eventId, int fieldId, int memberId, LocalDate date) {
+    public EventField toggleSelfRegistration(
+            int eventId, int fieldId, int memberId, LocalDate date, boolean runsTheEvent) {
         var raw = repository.findById(fieldId).orElseThrow(NotFoundResponse::new);
         boolean perDate = raw.config().perDate();
         if (perDate && date == null) {
@@ -267,24 +284,29 @@ public class EventFieldService {
         ensureEligible(field, member);
 
         String newValue;
+        boolean entering;
         if (field.fieldType().isMemberListField()) {
             var ids = QuestionValues.memberIds(field.value());
-            if (ids.contains(memberId)) {
-                ids.removeIf(id -> id == memberId);
-            } else {
+            entering = !ids.contains(memberId);
+            if (entering) {
                 ids.add(memberId);
+            } else {
+                ids.removeIf(id -> id == memberId);
             }
             newValue = QuestionValues.formatMembers(ids);
         } else {
             var ids = QuestionValues.memberIds(field.value());
             if (ids.isEmpty()) {
+                entering = true;
                 newValue = QuestionValues.formatMember(memberId);
             } else if (ids.getFirst() == memberId) {
+                entering = false;
                 newValue = "";
             } else {
                 throw new ConflictResponse("Slot is already taken");
             }
         }
+        if (entering && !runsTheEvent) requireStillTakingPeople(eventId);
 
         if (perDate) {
             repository.updateValueOn(fieldId, date, newValue);
@@ -296,6 +318,22 @@ public class EventFieldService {
         return perDate
                 ? repository.findByIdOn(fieldId, date).orElseThrow(NotFoundResponse::new)
                 : repository.findById(fieldId).orElseThrow(NotFoundResponse::new);
+    }
+
+    /**
+     * Refuses to put anybody on an appointment that has stopped taking people.
+     *
+     * <p>The same refusal the sign-up button gives, in the same words, because it is the same
+     * refusal: a field of an appointment cannot be a way past the date the appointment stopped at.
+     *
+     * @throws BadRequestResponse where the closing date has gone by
+     */
+    private void requireStillTakingPeople(int eventId) {
+        var event = eventRepository.findById(eventId).orElseThrow(NotFoundResponse::new);
+        if (!event.requiresRegistration() || event.registrationDeadline() == null) return;
+        if (Instant.now().isAfter(event.registrationDeadline())) {
+            throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
+        }
     }
 
     private void ensureEligible(EventField field, StationMember member) {
