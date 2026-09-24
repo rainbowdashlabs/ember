@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
@@ -68,7 +69,7 @@ class IcalEventRendererTest {
                     }
                     return sb.toString();
                 });
-        renderer = new IcalEventRenderer(eventFieldService, notificationService);
+        renderer = new IcalEventRenderer(eventFieldService, mock(EventDateResolver.class), notificationService);
         station = new Station(
                 1,
                 null,
@@ -232,7 +233,7 @@ class IcalEventRendererTest {
                 true);
         var other = new EventField(
                 2, 10, "Thema", EventFieldType.STRING, EventFieldConfig.parse("{}"), "Übung", 1, false, null, false);
-        when(eventFieldService.findByEvent(10)).thenReturn(List.of(loc, other));
+        when(eventFieldService.findByEvent(eq(10), any())).thenReturn(List.of(loc, other));
         var ctx = ctx(Map.of(), Map.of());
 
         var ve = renderer.render(event, ctx);
@@ -250,7 +251,7 @@ class IcalEventRendererTest {
     @Test
     void rendersCancelledEventWithPrefixAndStatus() {
         var event = cancelledEvent(11, "Schlechtes Wetter");
-        when(eventFieldService.findByEvent(11)).thenReturn(List.of());
+        when(eventFieldService.findByEvent(eq(11), any())).thenReturn(List.of());
         var ctx = ctx(Map.of(), Map.of());
 
         var ve = renderer.render(event, ctx);
@@ -263,7 +264,7 @@ class IcalEventRendererTest {
     @Test
     void compactModeOmitsLabelsButKeepsLink() {
         var event = simpleEvent(12);
-        when(eventFieldService.findByEvent(12)).thenReturn(List.of());
+        when(eventFieldService.findByEvent(eq(12), any())).thenReturn(List.of());
         var ctx = new IcalEventRenderer.Context(
                 station,
                 "en",
@@ -282,7 +283,7 @@ class IcalEventRendererTest {
     @Test
     void rendersManagedMemberStatusLinesAndAcceptedCount() {
         var event = registrationRequiredEvent(13, Instant.now().plusSeconds(3600));
-        when(eventFieldService.findByEvent(13)).thenReturn(List.of());
+        when(eventFieldService.findByEvent(eq(13), any())).thenReturn(List.of());
         var managed = Map.of(
                 13,
                 List.of(

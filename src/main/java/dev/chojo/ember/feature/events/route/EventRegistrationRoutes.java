@@ -13,6 +13,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
+import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
@@ -21,6 +22,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
@@ -37,6 +39,7 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -95,6 +98,7 @@ public class EventRegistrationRoutes implements Routes {
     private final AttendanceService attendanceService;
     private final MemberIdentityFactory memberIdentityFactory;
     private final EventRegistrationFieldService registrationFieldService;
+    private final EventFieldService eventFieldService;
     private static final Logger log = LoggerFactory.getLogger(EventRegistrationRoutes.class);
     private static final DateTimeFormatter DAY_STAMP = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
@@ -116,6 +120,7 @@ public class EventRegistrationRoutes implements Routes {
             AttendanceService attendanceService,
             MemberIdentityFactory memberIdentityFactory,
             EventRegistrationFieldService registrationFieldService,
+            EventFieldService eventFieldService,
             RegistrationAnswerReminder answerReminder,
             EventMemberTableService eventMemberTableService,
             MemberTableService memberTableService,
@@ -132,6 +137,7 @@ public class EventRegistrationRoutes implements Routes {
         this.attendanceService = attendanceService;
         this.memberIdentityFactory = memberIdentityFactory;
         this.registrationFieldService = registrationFieldService;
+        this.eventFieldService = eventFieldService;
         this.answerReminder = answerReminder;
         this.eventMemberTableService = eventMemberTableService;
         this.memberTableService = memberTableService;
@@ -271,7 +277,26 @@ public class EventRegistrationRoutes implements Routes {
                 createdByName,
                 fields,
                 crudService.findById(r.eventId()).map(StationEvent::name).orElse(null),
-                answersMissing);
+                answersMissing,
+                r.fromField(),
+                r.fromField() ? namingField(r) : null);
+    }
+
+    /**
+     * The question that put this member on the list, named so the reader knows where to go to come
+     * off it again.
+     *
+     * <p>Several questions may name the same member on the same date, and the first of them is
+     * enough: what the line beside the entry has to say is that a question holds the place, not how
+     * many do.
+     */
+    private String namingField(EventRegistration registration) {
+        return eventFieldService.findByEvent(registration.eventId(), registration.eventDate()).stream()
+                .filter(field -> field.fieldType().isMemberField())
+                .filter(field -> QuestionValues.memberIds(field.value()).contains(registration.memberId()))
+                .map(EventField::name)
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -998,7 +1023,14 @@ public class EventRegistrationRoutes implements Routes {
              * Whether the appointment asks something this registration has not answered, which is
              * what a question added after somebody registered leaves behind.
              */
-            boolean answersMissing) {}
+            boolean answersMissing,
+            /**
+             * Whether this place is held because a question of the appointment names the member,
+             * which is a place nobody can give back from the list.
+             */
+            boolean fromField,
+            /** The question that names them, where one does. */
+            String fieldName) {}
 
     @OpenApiName("EventRegisterRequest")
     public record RegisterRequest(String eventDate, Integer memberId, List<FieldValueEntry> fields) {}

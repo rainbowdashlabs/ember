@@ -70,9 +70,14 @@ public class UserFeedRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(UserFeedRoutes.class);
 
     /**
-     * Past iCal window: keep the last week of cancelled or recently-finished events visible.
+     * Past iCal window: a year back, the same distance the feed reaches forward.
+     *
+     * <p>It used to be a week, which made the subscribed calendar useless for looking anything up:
+     * what somebody was at last autumn simply was not there, although the application itself still
+     * knew. A calendar is as much a record of what happened as a plan of what is coming, and a year
+     * either way is the same year the rest of the feed covers.
      */
-    private static final Duration ICAL_WINDOW_PAST = Duration.ofDays(7);
+    private static final Duration ICAL_WINDOW_PAST = Duration.ofDays(365);
 
     /**
      * Forward iCal window: cover annual events without unbounded growth on long-running stations.

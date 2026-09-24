@@ -40,6 +40,13 @@ export interface GivenAnswer<K extends string | number = number, U = number> ext
     canUpdate?: boolean
     /** Whether the appointment asks something this answer has not answered. */
     answersMissing?: boolean
+    /**
+     * The question of the appointment that puts this person on the list, where one does.
+     *
+     * <p>Such a place is not an answer they gave, so there is nothing to take back: the way off the
+     * list is out of the question, and this is what says so in place of the button.
+     */
+    heldByField?: string | null
 }
 
 /** One person's answer to the appointment's questions, ready to be sent. */
@@ -119,6 +126,7 @@ export function localAnswers(
             createdByName: registration.createdByName,
             canUpdate: asksQuestions,
             answersMissing: registration.answersMissing === true,
+            heldByField: registration.fromField ? (registration.fieldName ?? '') : null,
         })
     }
     return answers

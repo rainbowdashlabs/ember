@@ -10,6 +10,7 @@ import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import {EventFieldTypes} from '@/api/events'
 import {StationUserType, StationUserTypeLabels, type MemberGroup, type StationUserTypeName, type UserTag} from '@/api/types'
 import {fieldConstraint, isMemberFieldType} from './eventFieldConfig'
@@ -25,6 +26,7 @@ const groupId = defineModel<string>('groupId', {required: true})
 const userType = defineModel<string>('userType', {required: true})
 const tagId = defineModel<string>('tagId', {required: true})
 const selfRegistration = defineModel<boolean>('selfRegistration', {required: true})
+const perDate = defineModel<boolean>('perDate', {required: true})
 
 const {t} = useI18n()
 
@@ -72,4 +74,13 @@ const isMemberField = computed(() => isMemberFieldType(props.fieldType))
     <ToggleInput v-model="selfRegistration"/>
     {{ t('eventFields.selfRegistration') }}
   </label>
+
+  <div v-if="isMemberField" class="space-y-1">
+    <label class="flex items-center gap-2 text-sm">
+      <ToggleInput v-model="perDate"/>
+      {{ t('eventFields.perDate') }}
+    </label>
+    <MutedText size="sm" tag="p">{{ t('eventFields.perDateHint') }}</MutedText>
+    <MutedText v-if="!perDate" size="sm" tag="p">{{ t('eventFields.perDateKeptAnswers') }}</MutedText>
+  </div>
 </template>

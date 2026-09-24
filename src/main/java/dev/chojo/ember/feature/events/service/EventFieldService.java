@@ -28,6 +28,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -45,6 +46,7 @@ public class EventFieldService {
     private final UserTagService tagService;
     private final EventRepository eventRepository;
     private final AttendanceRepository attendanceRepository;
+    private final EventFieldRegistrationService fieldRegistrationService;
 
     @Inject
     public EventFieldService(
@@ -53,13 +55,15 @@ public class EventFieldService {
             MemberGroupRepository groupRepository,
             UserTagService tagService,
             EventRepository eventRepository,
-            AttendanceRepository attendanceRepository) {
+            AttendanceRepository attendanceRepository,
+            EventFieldRegistrationService fieldRegistrationService) {
         this.repository = repository;
         this.memberRepository = memberRepository;
         this.groupRepository = groupRepository;
         this.tagService = tagService;
         this.eventRepository = eventRepository;
         this.attendanceRepository = attendanceRepository;
+        this.fieldRegistrationService = fieldRegistrationService;
     }
 
     public List<String> findDistinctFieldNames(int stationId) {
@@ -68,6 +72,17 @@ public class EventFieldService {
 
     public List<EventField> findByEvent(int eventId) {
         return repository.findByEvent(eventId);
+    }
+
+    /**
+     * The questions of an appointment as they stand on one of its dates, which is the only way a
+     * question answered per date can be read.
+     *
+     * @param eventId the appointment
+     * @param date    the occurrence, or null to read the answers the appointment itself carries
+     */
+    public List<EventField> findByEvent(int eventId, LocalDate date) {
+        return date == null ? repository.findByEvent(eventId) : repository.findByEventOn(eventId, date);
     }
 
     /**
@@ -87,9 +102,29 @@ public class EventFieldService {
     }
 
     public Map<Integer, List<EventField>> findOverviewFieldsByEvents(List<Integer> eventIds) {
-        var allFields = repository.findOverviewFieldsByEvents(eventIds);
+        return grouped(repository.findOverviewFieldsByEvents(eventIds));
+    }
+
+    /**
+     * The same questions, each answered for the date its own appointment is drawn on.
+     *
+     * <p>An appointment with no date at all is left out: there is no occurrence to answer for, and a
+     * question answered per date would otherwise fall back to the appointment's own answer, which a
+     * question answered per date does not have.
+     *
+     * @param eventIds  every appointment on the list
+     * @param datesById the date each of them is drawn on
+     */
+    public Map<Integer, List<EventField>> findOverviewFieldsByEvents(
+            List<Integer> eventIds, Map<Integer, LocalDate> datesById) {
+        var asked = eventIds.stream().filter(datesById::containsKey).toList();
+        var dates = asked.stream().map(datesById::get).toList();
+        return grouped(repository.findOverviewFieldsByEventsOn(asked, dates));
+    }
+
+    private static Map<Integer, List<EventField>> grouped(List<EventField> fields) {
         var result = new LinkedHashMap<Integer, List<EventField>>();
-        for (var field : allFields) {
+        for (var field : fields) {
             result.computeIfAbsent(field.eventId(), _ -> new ArrayList<>()).add(field);
         }
         return result;
@@ -113,7 +148,37 @@ public class EventFieldService {
                         : dropTie(eventId, field))
                 .toList();
         repository.replaceFields(eventId, kept);
+        fieldRegistrationService.reconcile(eventId);
         log.info("Replaced {} fields for event {}", kept.size(), eventId);
+    }
+
+    /**
+     * Writes the answer a question carries on one date, for whoever may edit the appointment.
+     *
+     * <p>A question answered per date has no answer on the appointment itself, so the editor cannot
+     * reach it: this is where the answer for one occurrence is given. Naming members here puts them
+     * on that date's list, the same as naming them anywhere else does.
+     *
+     * @throws NotFoundResponse   when the question does not belong to this appointment
+     * @throws BadRequestResponse when the question is not answered per date, or the answer is not one
+     *                            it takes
+     */
+    public EventField setValueOn(int eventId, int fieldId, LocalDate date, String value) {
+        var field = repository.findById(fieldId).orElseThrow(NotFoundResponse::new);
+        if (field.eventId() != eventId) throw new NotFoundResponse();
+        if (!field.config().perDate()) {
+            throw new BadRequestResponse("Field is not answered per date");
+        }
+        String answer = value != null ? value : "";
+        var question = field.config()
+                .settings()
+                .asQuestion(field.name(), field.fieldType().kind());
+        QuestionCheck.answerIfGiven(question, answer).ifPresent(problem -> {
+            throw new BadRequestResponse(problem.message());
+        });
+        repository.updateValueOn(fieldId, date, answer);
+        fieldRegistrationService.reconcile(eventId);
+        return repository.findByIdOn(fieldId, date).orElseThrow(NotFoundResponse::new);
     }
 
     /**
@@ -154,6 +219,7 @@ public class EventFieldService {
                 field.attendanceFieldId(),
                 eventId);
         return new EventFieldRepository.FieldEntry(
+                field.id(),
                 field.name(),
                 field.fieldType(),
                 field.config(),
@@ -180,8 +246,13 @@ public class EventFieldService {
      *                            group / type / tag constraint
      * @throws ConflictResponse   when a single-value slot is already taken
      */
-    public EventField toggleSelfRegistration(int eventId, int fieldId, int memberId) {
-        var field = repository.findById(fieldId).orElseThrow(NotFoundResponse::new);
+    public EventField toggleSelfRegistration(int eventId, int fieldId, int memberId, LocalDate date) {
+        var raw = repository.findById(fieldId).orElseThrow(NotFoundResponse::new);
+        boolean perDate = raw.config().perDate();
+        if (perDate && date == null) {
+            throw new BadRequestResponse("This question is answered per date, so a date is required");
+        }
+        var field = perDate ? repository.findByIdOn(fieldId, date).orElseThrow(NotFoundResponse::new) : raw;
         if (field.eventId() != eventId) {
             throw new NotFoundResponse();
         }
@@ -215,9 +286,16 @@ public class EventFieldService {
             }
         }
 
-        repository.updateValue(fieldId, newValue);
+        if (perDate) {
+            repository.updateValueOn(fieldId, date, newValue);
+        } else {
+            repository.updateValue(fieldId, newValue);
+        }
+        fieldRegistrationService.reconcile(eventId);
         log.info("Member {} toggled self-registration on event field {}", memberId, fieldId);
-        return repository.findById(fieldId).orElseThrow(NotFoundResponse::new);
+        return perDate
+                ? repository.findByIdOn(fieldId, date).orElseThrow(NotFoundResponse::new)
+                : repository.findById(fieldId).orElseThrow(NotFoundResponse::new);
     }
 
     private void ensureEligible(EventField field, StationMember member) {

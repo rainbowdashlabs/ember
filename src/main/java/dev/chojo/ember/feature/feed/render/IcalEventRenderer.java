@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRecurrence;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -49,11 +50,16 @@ import java.util.Map;
 @Singleton
 public class IcalEventRenderer {
     private final EventFieldService eventFieldService;
+    private final EventDateResolver dateResolver;
     private final NotificationService notificationService;
 
     @Inject
-    public IcalEventRenderer(EventFieldService eventFieldService, NotificationService notificationService) {
+    public IcalEventRenderer(
+            EventFieldService eventFieldService,
+            EventDateResolver dateResolver,
+            NotificationService notificationService) {
         this.eventFieldService = eventFieldService;
+        this.dateResolver = dateResolver;
         this.notificationService = notificationService;
     }
 
@@ -148,7 +154,8 @@ public class IcalEventRenderer {
         }
 
         // Load the event's custom fields once and split into a location candidate + the rest.
-        var fields = eventFieldService.findByEvent(event.id());
+        var fields = eventFieldService.findByEvent(
+                event.id(), dateResolver.nextDate(event).orElse(null));
         var location = firstLocation(fields);
         if (location != null) {
             vevent.add(new Location(location));

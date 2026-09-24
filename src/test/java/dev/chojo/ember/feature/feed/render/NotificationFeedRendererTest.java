@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
@@ -88,7 +89,7 @@ class NotificationFeedRendererTest {
         stationRepository = mock(StationRepository.class);
         // No-ops by default; per-test stubbing wires up real returns when needed.
         when(crudService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
-        when(eventFieldService.findByEvent(ArgumentMatchers.anyInt())).thenReturn(List.of());
+        when(eventFieldService.findByEvent(ArgumentMatchers.anyInt(), any())).thenReturn(List.of());
         // Stand-in for the real resolution: everything but a member field renders its stored
         // text, so a test that cares about member names stubs this again for its own field.
         when(eventFieldService.displayValue(ArgumentMatchers.any())).thenAnswer(inv -> {
@@ -134,6 +135,7 @@ class NotificationFeedRendererTest {
                 notificationService,
                 crudService,
                 eventFieldService,
+                mock(EventDateResolver.class),
                 lostAndFoundService,
                 lendingService,
                 storageQuotaService,
@@ -295,7 +297,7 @@ class NotificationFeedRendererTest {
         var end = Instant.parse("2027-09-15T19:00:00Z");
         var event = stubEvent(42, start, end);
         when(crudService.findById(42)).thenReturn(Optional.of(event));
-        when(eventFieldService.findByEvent(42))
+        when(eventFieldService.findByEvent(ArgumentMatchers.eq(42), any()))
                 .thenReturn(List.of(
                         new EventField(
                                 1,

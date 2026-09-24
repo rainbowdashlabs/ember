@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.service.LendingService;
@@ -69,6 +70,7 @@ public class NotificationFeedRenderer {
     private final NotificationService notificationService;
     private final EventCrudService crudService;
     private final EventFieldService eventFieldService;
+    private final EventDateResolver dateResolver;
     private final LostAndFoundService lostAndFoundService;
     private final LendingService lendingService;
     private final StorageQuotaService storageQuotaService;
@@ -82,6 +84,7 @@ public class NotificationFeedRenderer {
             NotificationService notificationService,
             EventCrudService crudService,
             EventFieldService eventFieldService,
+            EventDateResolver dateResolver,
             LostAndFoundService lostAndFoundService,
             LendingService lendingService,
             StorageQuotaService storageQuotaService,
@@ -92,6 +95,7 @@ public class NotificationFeedRenderer {
         this.notificationService = notificationService;
         this.crudService = crudService;
         this.eventFieldService = eventFieldService;
+        this.dateResolver = dateResolver;
         this.lostAndFoundService = lostAndFoundService;
         this.lendingService = lendingService;
         this.storageQuotaService = storageQuotaService;
@@ -728,7 +732,8 @@ public class NotificationFeedRenderer {
             }
             // Custom event fields - skip blank values, and let the service name the members a
             // member field holds, because a reader outside the app cannot read an internal id.
-            for (var field : eventFieldService.findByEvent(eventId)) {
+            for (var field : eventFieldService.findByEvent(
+                    eventId, dateResolver.nextDate(event).orElse(null))) {
                 if (field.value() == null || field.value().isBlank()) continue;
                 String value = eventFieldService.displayValue(field);
                 if (value.isBlank()) continue;

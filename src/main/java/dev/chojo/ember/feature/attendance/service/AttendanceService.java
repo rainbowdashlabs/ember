@@ -405,7 +405,7 @@ public class AttendanceService {
             }
         }
         // The appointment's own answers stand above the defaults the sheet and the appointment carry
-        if (eventId != null) takeEventFieldValues(session.id(), eventId, false);
+        if (eventId != null) takeEventFieldValues(session.id(), eventId, dayOf(session), false);
 
         var expected = expectedFor(templateId, audience);
         enterExpectedMembers(session.id(), expected, new HashSet<>());
@@ -424,18 +424,19 @@ public class AttendanceService {
      *
      * @param sessionId        the sheet being filled
      * @param eventId          the appointment it was made from
+     * @param date             the date the sheet covers, which is the date whose answers it takes
      * @param keepWhatIsFilled leaves a field that already says something alone, which is what filling
      *                         an open sheet in wants: what stands on it was written by somebody
      *                         looking at the occurrence itself, and the appointment must not undo that
      */
-    private void takeEventFieldValues(int sessionId, int eventId, boolean keepWhatIsFilled) {
+    private void takeEventFieldValues(int sessionId, int eventId, LocalDate date, boolean keepWhatIsFilled) {
         Set<Integer> filled = keepWhatIsFilled
                 ? attendanceRepository.findSessionFields(sessionId).stream()
                         .filter(field -> !isEmptyValue(field.value()))
                         .map(AttendanceSessionField::fieldId)
                         .collect(Collectors.toSet())
                 : Set.of();
-        for (var field : eventFieldRepository.findByEvent(eventId)) {
+        for (var field : eventFieldRepository.findByEventOn(eventId, date)) {
             if (field.attendanceFieldId() == null) continue;
             if (field.value() == null || field.value().isBlank()) continue;
             if (filled.contains(field.attendanceFieldId())) continue;
@@ -677,6 +678,20 @@ public class AttendanceService {
      * @param stationId the station whose day is meant
      * @return its timezone, UTC where it keeps none
      */
+    /**
+     * The day a sheet covers, which is the day its own start falls on where the station stands.
+     *
+     * <p>A sheet has no date of its own, and the appointment it was made from may fall on many, so
+     * the answers it takes have to be the answers of this day rather than of the series.
+     */
+    private LocalDate dayOf(AttendanceSession session) {
+        var event = session.eventId() == null
+                ? null
+                : eventRepository.findById(session.eventId()).orElse(null);
+        var zone = event == null ? ZoneId.systemDefault() : timezoneOf(event.stationId());
+        return session.startTime().atZone(zone).toLocalDate();
+    }
+
     private ZoneId timezoneOf(int stationId) {
         return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
     }
@@ -926,7 +941,7 @@ public class AttendanceService {
 
         if (session.get().eventId() != null) {
             int eventId = session.get().eventId();
-            takeEventFieldValues(sessionId, eventId, true);
+            takeEventFieldValues(sessionId, eventId, dayOf(session.get()), true);
             applyRegistrations(sessionId, eventId, expected);
         }
 

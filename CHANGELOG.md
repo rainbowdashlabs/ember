@@ -2,7 +2,14 @@
 
 ## v26.18.7
 
+### New Features
+
+- **A question of an appointment can be answered per date.** A question that names members can be marked as answered per date, so a repeating appointment has a different answer for who drives every week. Without the mark one answer holds for the whole series, as before.
+
 ### Improvements
+
+- **Being named in an appointment's question puts you on its list.** Whoever stands in a question that names members counts as taking part: they appear on the registration list, they are counted, and the appointment reaches their calendar and their calendar subscription. The place is confirmed at once, whatever the appointment says about confirming, and it is given back by taking the name out of the question rather than by signing off.
+- **The calendar subscription reaches a year back.** It used to keep only the last week, so looking up what happened last autumn was impossible. It now covers a year in both directions.
 
 - **An appointment and its attendance sheet lead to each other.** The menu on an appointment opens the sheet for the date shown, or starts one where there is none yet, and the menu on a sheet leads back to the appointment on that same date.
 - **Signing in from another device asks for a number.** The device that wants to get in shows a two-digit number, and the device approving picks it out of six. Somebody who was only sent a picture of the code cannot see that number, so a forwarded code is no longer enough on its own.

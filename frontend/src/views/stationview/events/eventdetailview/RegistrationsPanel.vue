@@ -86,8 +86,16 @@ const canRegisterOthers = computed(
  */
 function decidable(registration: EventRegistrationEntry): boolean {
   return hasPermission(StationPermission.EVENT_REGISTRATION)
+      && !registration.fromField
       && registration.status !== RegistrationStatus.DECLINED
       && registration.status !== RegistrationStatus.WITHDRAWN
+}
+
+/** What to say instead, where a question of the appointment is what puts somebody on the list. */
+function heldByFieldNote(registration: EventRegistrationEntry): string {
+  return registration.fieldName
+      ? t('eventsUpcoming.heldByNamedField', {field: registration.fieldName})
+      : t('eventsUpcoming.heldByField')
 }
 
 /** The kinds present among those not on the list yet, so choosing one never empties it by itself. */
@@ -224,6 +232,9 @@ function statusLabel(status: string): string {
             <ErrorBadge v-if="reg.answersMissing" :data-testid="`answer-missing-${reg.id}`">
               {{ t('eventDetail.answerMissing') }}
             </ErrorBadge>
+            <MutedText v-if="reg.fromField" size="sm" :data-testid="`held-by-field-${reg.id}`">
+              {{ heldByFieldNote(reg) }}
+            </MutedText>
           </div>
           <ButtonRow v-if="decidable(reg) || canEditAnswers" pair>
             <template v-if="decidable(reg)">

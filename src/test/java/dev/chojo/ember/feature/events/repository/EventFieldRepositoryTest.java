@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -189,6 +190,153 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     @Order(10)
     void findByIdMissingReturnsEmpty() {
         assertTrue(eventFieldRepo.findById(987654).isEmpty());
+    }
+
+    /** The answer one named question carries, out of everything the appointment happens to ask. */
+    private static String valueOf(List<EventField> fields, String name) {
+        return fields.stream()
+                .filter(field -> name.equals(field.name()))
+                .map(EventField::value)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    /** A question answered per date carries a different answer on each of them, and none elsewhere. */
+    @Test
+    @Order(10)
+    void answersPerDateStandApart() {
+        var field = eventFieldRepo.create(
+                eventId,
+                "Fahrer",
+                EventFieldType.STRING,
+                EventFieldConfig.parse("{\"perDate\":true}"),
+                "ignored",
+                0,
+                true,
+                null,
+                false);
+        LocalDate monday = LocalDate.of(2027, 3, 1);
+        LocalDate tuesday = monday.plusDays(1);
+
+        eventFieldRepo.updateValueOn(field.id(), monday, "Anna");
+        eventFieldRepo.updateValueOn(field.id(), tuesday, "Bert");
+        eventFieldRepo.updateValueOn(field.id(), monday, "Clara");
+
+        assertEquals(
+                "Clara",
+                eventFieldRepo.findByIdOn(field.id(), monday).orElseThrow().value());
+        assertEquals(
+                "Bert",
+                eventFieldRepo.findByIdOn(field.id(), tuesday).orElseThrow().value());
+        assertEquals(
+                "",
+                eventFieldRepo
+                        .findByIdOn(field.id(), monday.plusMonths(1))
+                        .orElseThrow()
+                        .value());
+
+        assertEquals("Clara", valueOf(eventFieldRepo.findByEventOn(eventId, monday), "Fahrer"));
+
+        var stored = eventFieldRepo.findDateValues(eventId);
+        assertEquals(2, stored.get(field.id()).size());
+
+        eventFieldRepo.deleteByEvent(eventId);
+    }
+
+    /** A question that is not answered per date reads the same answer on every one of them. */
+    @Test
+    @Order(10)
+    void oneAnswerHoldsForEveryDateWhereTheQuestionSaysNothing() {
+        eventFieldRepo.create(
+                eventId,
+                "Treffpunkt",
+                EventFieldType.STRING,
+                EventFieldConfig.parse("{}"),
+                "Halle",
+                0,
+                true,
+                null,
+                false);
+        LocalDate day = LocalDate.of(2027, 4, 5);
+
+        assertEquals("Halle", valueOf(eventFieldRepo.findByEventOn(eventId, day), "Treffpunkt"));
+        assertEquals(
+                "Halle",
+                valueOf(eventFieldRepo.findOverviewFieldsByEventsOn(List.of(eventId), List.of(day)), "Treffpunkt"));
+        assertTrue(eventFieldRepo
+                .findOverviewFieldsByEventsOn(List.of(), List.of())
+                .isEmpty());
+        assertTrue(eventFieldRepo.findEventIdsWithMemberFields().stream().noneMatch(id -> id == eventId));
+
+        eventFieldRepo.deleteByEvent(eventId);
+    }
+
+    /**
+     * Saving the questions again writes over the rows that are already there, which is what keeps
+     * the answers given per date: they hang off the question's id.
+     */
+    @Test
+    @Order(10)
+    void savingAgainKeepsTheRowOfAQuestionTheEditorNames() {
+        eventFieldRepo.replaceFields(
+                eventId,
+                List.of(new EventFieldRepository.FieldEntry(
+                        "Fahrer", EventFieldType.STRING, EventFieldConfig.parse("{}"), "Anna", false, null, false)));
+        int fieldId = eventFieldRepo.findByEvent(eventId).getFirst().id();
+
+        eventFieldRepo.replaceFields(
+                eventId,
+                List.of(
+                        new EventFieldRepository.FieldEntry(
+                                fieldId,
+                                "Fahrerin",
+                                EventFieldType.STRING,
+                                EventFieldConfig.parse("{}"),
+                                "Bea",
+                                true,
+                                null,
+                                false),
+                        new EventFieldRepository.FieldEntry(
+                                "Beifahrer",
+                                EventFieldType.STRING,
+                                EventFieldConfig.parse("{}"),
+                                "Cem",
+                                false,
+                                null,
+                                false)));
+
+        var fields = eventFieldRepo.findByEvent(eventId);
+        assertEquals(2, fields.size());
+        assertEquals(fieldId, fields.getFirst().id());
+        assertEquals("Fahrerin", fields.getFirst().name());
+        assertEquals("Bea", fields.getFirst().value());
+        assertTrue(fields.getFirst().overview());
+        assertEquals("Beifahrer", fields.get(1).name());
+
+        eventFieldRepo.deleteByEvent(eventId);
+    }
+
+    /** A question the editor claims but that belongs to another appointment is added, never stolen. */
+    @Test
+    @Order(10)
+    void aQuestionOfAnotherAppointmentIsNotWrittenOver() {
+        eventFieldRepo.replaceFields(
+                eventId,
+                List.of(new EventFieldRepository.FieldEntry(
+                        987654,
+                        "Fremd",
+                        EventFieldType.STRING,
+                        EventFieldConfig.parse("{}"),
+                        "x",
+                        false,
+                        null,
+                        false)));
+
+        var fields = eventFieldRepo.findByEvent(eventId);
+        assertEquals(1, fields.size());
+        assertNotEquals(987654, fields.getFirst().id());
+
+        eventFieldRepo.deleteByEvent(eventId);
     }
 
     @Test

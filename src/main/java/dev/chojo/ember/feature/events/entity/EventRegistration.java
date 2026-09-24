@@ -22,6 +22,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param status    the current registration status
  * @param createdAt when the registration was created or last updated
  * @param createdBy the member ID of whoever created the registration, or null if self-registered
+ * @param fromField whether the member holds this place because a question of the appointment names
+ *                  them, which is a place nobody can give back from the list
  */
 public record EventRegistration(
         int id,
@@ -32,7 +34,8 @@ public record EventRegistration(
         Instant createdAt,
         Integer createdBy,
         Instant statusChangedAt,
-        RegistrationStatus previousStatus) {
+        RegistrationStatus previousStatus,
+        boolean fromField) {
 
     /**
      * A registration whose answer has never moved, which is one nobody can take back.
@@ -48,7 +51,7 @@ public record EventRegistration(
             RegistrationStatus status,
             Instant createdAt,
             Integer createdBy) {
-        this(id, eventId, memberId, eventDate, status, createdAt, createdBy, createdAt, null);
+        this(id, eventId, memberId, eventDate, status, createdAt, createdBy, createdAt, null, false);
     }
 
     /**
@@ -64,6 +67,7 @@ public record EventRegistration(
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.getObject("created_by", Integer.class),
                 row.get("status_changed_at", INSTANT_TIMESTAMP),
-                row.getEnum("previous_status", RegistrationStatus.class));
+                row.getEnum("previous_status", RegistrationStatus.class),
+                row.getBoolean("from_field"));
     }
 }

@@ -23,6 +23,11 @@ import java.util.List;
  *                         on a {@code MEMBER_*} field without the edit-event permission
  * @param width            how much of a row the field takes when the form is drawn, which is the
  *                         station's own layout choice and means nothing to the server
+ * @param perDate          when {@code true}, the field carries one answer per date of the
+ *                         appointment rather than one for the whole series. A repeating
+ *                         appointment asking who drives has a different answer every week; one
+ *                         asking where it meets has the same answer every time, and that is what
+ *                         this flag tells apart
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record EventFieldConfig(
@@ -31,8 +36,9 @@ public record EventFieldConfig(
         StationUserType userType,
         Integer tagId,
         boolean selfRegistration,
-        String width) {
-    private static final EventFieldConfig EMPTY = new EventFieldConfig(null, null, null, null, false, null);
+        String width,
+        boolean perDate) {
+    private static final EventFieldConfig EMPTY = new EventFieldConfig(null, null, null, null, false, null, false);
 
     public static EventFieldConfig empty() {
         return EMPTY;

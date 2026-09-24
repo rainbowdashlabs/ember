@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:dc633632552c7745f31bdc6c4204337b7b3a38080a15fe4a80fc393987db6b75",
-  "generatedAt": "2026-09-23T11:27:55Z",
+  "schemaHash": "sha256:be504337b63c7b98a4c0e37a0750820fecc9edee37beb90343ad0bbbadf5c6c5",
+  "generatedAt": "2026-09-24T11:37:56Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -7295,6 +7295,54 @@
       },
       "description": "Custom fields attached to events (displayed in event detail view)."
     },
+    "event_field_date_value": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:ab876e140edfebbe26bdade7cbc56afa1a053b703d4f18e5873d78f8be8c45e4",
+      "columns": [
+        {
+          "name": "field_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The question this answer belongs to."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The occurrence this answer belongs to, named after the day it falls on where the station stands, the same way a registration names one."
+        },
+        {
+          "name": "value",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The answer itself, in the same shape the question would carry on the appointment: text for a text question, the member ids for a member question."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "field_id",
+          "refTable": "event_field",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
+      },
+      "description": "The answer one question of an appointment carries on one of its dates. Only questions marked as answered per date have rows here; every other question is answered once on the appointment itself. Rows are kept when a question stops being answered per date, so switching the setting back brings the answers out again."
+    },
     "event_field_default": {
       "feature": "events",
       "scope": "STATION",
@@ -7418,7 +7466,7 @@
     "event_registration": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:ee1b9e584e09d6470c7fbde267f6e3c639f536230751fc732c707eefe99c2fc1",
+      "tableHash": "sha256:f233044e414783ff1eed11e963d84fd59e16191c841c51b861eaa2d7abecbe02",
       "columns": [
         {
           "name": "id",
@@ -7482,6 +7530,13 @@
           "nullable": true,
           "verified": true,
           "description": "What was held immediately before the current status, for as long as a withdrawal can be taken back. Restoring a place has to give back the place: somebody who held a confirmed seat and pressed the wrong button must not be handed a pending one."
+        },
+        {
+          "name": "from_field",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this registration exists because the member is named in a question of the appointment rather than because anybody signed up. It cannot be taken back while it holds: the way off the list is out of the question that names them. False on a registration somebody made, including one made by a member who is also named."
         }
       ],
       "foreignKeys": [

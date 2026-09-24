@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
@@ -98,6 +99,7 @@ class RegistrationAnswerAuthorTest {
                 mock(AttendanceService.class),
                 mock(MemberIdentityFactory.class),
                 mock(EventRegistrationFieldService.class),
+                mock(EventFieldService.class),
                 mock(RegistrationAnswerReminder.class),
                 mock(EventMemberTableService.class),
                 mock(MemberTableService.class),

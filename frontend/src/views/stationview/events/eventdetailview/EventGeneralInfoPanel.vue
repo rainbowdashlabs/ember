@@ -24,6 +24,8 @@ defineProps<{
   endFormatted: string
   templateName: string
   canEditEvent: boolean
+  /** The occurrence on screen, which is the one a question answered per date is answered for. */
+  effectiveDate?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -50,6 +52,7 @@ const {t} = useI18n()
         :end-formatted="endFormatted"
         :template-name="templateName"
         :can-edit-event="canEditEvent"
+        :effective-date="effectiveDate"
         @field-updated="(f) => emit('field-updated', f)"
     />
   </NeutralContainer>

@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import io.javalin.http.BadRequestResponse;
@@ -39,6 +40,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -62,6 +64,7 @@ public class EventStructureRoutes implements Routes {
     private final EventBreakService breakService;
     private final EventFieldDefaultService fieldDefaultService;
     private final EventFieldService eventFieldService;
+    private final EventDateResolver dateResolver;
 
     @Inject
     public EventStructureRoutes(
@@ -69,12 +72,14 @@ public class EventStructureRoutes implements Routes {
             EventCategoryService categoryService,
             EventBreakService breakService,
             EventFieldDefaultService fieldDefaultService,
-            EventFieldService eventFieldService) {
+            EventFieldService eventFieldService,
+            EventDateResolver dateResolver) {
         this.crudService = crudService;
         this.categoryService = categoryService;
         this.breakService = breakService;
         this.fieldDefaultService = fieldDefaultService;
         this.eventFieldService = eventFieldService;
+        this.dateResolver = dateResolver;
     }
 
     @Override
@@ -106,6 +111,10 @@ public class EventStructureRoutes implements Routes {
                 prefix + "/events/{eventId}/fields/{fieldId}/self-register",
                 this::selfRegisterField,
                 StationPermission.USER);
+        routes.put(
+                prefix + "/events/{eventId}/fields/{fieldId}/value",
+                this::setFieldValueOnDate,
+                StationPermission.EVENT_EDIT);
     }
 
     @OpenApi(
@@ -303,12 +312,31 @@ public class EventStructureRoutes implements Routes {
             summary = "Get fields for an event",
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            queryParams = @OpenApiParam(name = "date", type = String.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
     private void getFields(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
-        ctx.json(eventFieldService.findByEvent(id));
+        ctx.json(eventFieldService.findByEvent(id, askedDate(ctx)));
+    }
+
+    /**
+     * The date a reader is asking about, or nothing where they are asking about the appointment
+     * itself.
+     *
+     * <p>The editor asks about the appointment, because that is what it edits. Every screen showing
+     * one occurrence asks about that occurrence, because a question answered per date has no answer
+     * anywhere else.
+     */
+    private static LocalDate askedDate(Context ctx) {
+        String date = ctx.queryParam("date");
+        if (date == null || date.isBlank()) return null;
+        try {
+            return LocalDate.parse(date);
+        } catch (DateTimeParseException e) {
+            throw new BadRequestResponse("date is not a date");
+        }
     }
 
     @OpenApi(
@@ -328,6 +356,7 @@ public class EventStructureRoutes implements Routes {
                 id,
                 req.fields().stream()
                         .map(e -> new EventFieldRepository.FieldEntry(
+                                e.id(),
                                 e.name(),
                                 e.fieldType(),
                                 e.config(),
@@ -340,6 +369,30 @@ public class EventStructureRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/events/{eventId}/fields/{fieldId}/value",
+            methods = HttpMethod.PUT,
+            summary = "Set the answer a field carries on one date of the event",
+            tags = {"Events"},
+            pathParams = {
+                @OpenApiParam(name = "eventId", type = Integer.class, required = true),
+                @OpenApiParam(name = "fieldId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FieldDateValueRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setFieldValueOnDate(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int eventId = pathInt(ctx, "eventId");
+        int fieldId = pathInt(ctx, "fieldId");
+        requireOwnedEvent(crudService, eventId, session);
+        var req = ctx.bodyAsClass(FieldDateValueRequest.class);
+        if (req.date() == null) throw new BadRequestResponse("date is required");
+        ctx.json(eventFieldService.setValueOn(eventId, fieldId, req.date(), req.value()));
+    }
+
+    @OpenApi(
             path = "/api/v1/events/{eventId}/fields/{fieldId}/self-register",
             methods = HttpMethod.POST,
             summary = "Toggle the caller's presence on a self-registration member field",
@@ -348,6 +401,7 @@ public class EventStructureRoutes implements Routes {
                 @OpenApiParam(name = "eventId", type = Integer.class, required = true),
                 @OpenApiParam(name = "fieldId", type = Integer.class, required = true)
             },
+            queryParams = @OpenApiParam(name = "date", type = String.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField.class)))
     private void selfRegisterField(Context ctx) {
         var session = UserSession.from(ctx);
@@ -355,15 +409,19 @@ public class EventStructureRoutes implements Routes {
         int fieldId = pathInt(ctx, "fieldId");
         requireOwnedEvent(crudService, eventId, session);
         ctx.json(eventFieldService.toggleSelfRegistration(
-                eventId, fieldId, session.member().id()));
+                eventId, fieldId, session.member().id(), askedDate(ctx)));
     }
 
+    /**
+     * The questions marked for the overview, each answered for the occurrence its appointment is
+     * drawn on, which for every list of appointments is the next one.
+     */
     private void getOverviewFields(Context ctx) {
         var session = UserSession.from(ctx);
-        var eventIds = crudService.findByStation(session.stationId()).stream()
-                .map(StationEvent::id)
-                .toList();
-        ctx.json(eventFieldService.findOverviewFieldsByEvents(eventIds));
+        var events = crudService.findByStation(session.stationId());
+        var nextDates = dateResolver.nextDates(events);
+        ctx.json(eventFieldService.findOverviewFieldsByEvents(
+                events.stream().map(StationEvent::id).toList(), nextDates));
     }
 
     @OpenApi(
@@ -388,8 +446,12 @@ public class EventStructureRoutes implements Routes {
     @OpenApiName("SetEventFieldsRequest")
     public record SetEventFieldsRequest(List<EventFieldEntry> fields) {}
 
+    @OpenApiName("FieldDateValueRequest")
+    public record FieldDateValueRequest(LocalDate date, String value) {}
+
     @OpenApiName("EventFieldEntry")
     public record EventFieldEntry(
+            Integer id,
             String name,
             EventFieldType fieldType,
             EventFieldConfig config,

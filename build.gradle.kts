@@ -501,6 +501,7 @@ tasks {
                     // Daemon/scheduler threads
                     "*.RegistrationDeadlineChecker*",
                     "*.DueDateReminderChecker*",
+                    "*.FieldRegistrationSweeper*",
                     // Complex CSV parsing with many edge cases
                     "*.MemberImportService*",
                     // Not CSV parsing despite its name: the uncovered part is remote-transfer

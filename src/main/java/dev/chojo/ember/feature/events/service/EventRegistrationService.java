@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepositor
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -248,6 +249,7 @@ public class EventRegistrationService {
      * @return true if the registration was updated
      */
     public boolean updateStatus(int id, RegistrationStatus status) {
+        registrationRepository.findById(id).ifPresent(EventRegistrationService::requireNotHeldByAField);
         if (!registrationRepository.updateStatus(id, status)) {
             log.warn("Cannot update registration status: registration {} not found", id);
             return false;
@@ -275,6 +277,21 @@ public class EventRegistrationService {
     }
 
     /**
+     * Refuses to take back a place that a question of the appointment gives.
+     *
+     * <p>Such a place is not an answer anybody gave, so there is nothing to take back: it holds for
+     * as long as the question names the member, and taking it back here would be undone by the next
+     * time the two are compared. The way off the list is out of the question.
+     *
+     * @throws BadRequestResponse where the registration is held by a question
+     */
+    private static void requireNotHeldByAField(EventRegistration registration) {
+        if (registration.fromField()) {
+            throw new BadRequestResponse("This place comes from a field of the appointment and is taken back there");
+        }
+    }
+
+    /**
      * Takes a registration back at the member's request.
      *
      * <p>The row is kept and marked, whether or not the place had been confirmed. Taking a place back
@@ -299,6 +316,7 @@ public class EventRegistrationService {
             log.warn("Cannot withdraw registration: registration {} not found", id);
             return false;
         }
+        requireNotHeldByAField(registration);
         if (!registrationRepository.recordAnswer(id, RegistrationStatus.WITHDRAWN)) return false;
         log.info("Withdrew registration {}", id);
         announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
@@ -345,6 +363,7 @@ public class EventRegistrationService {
             log.warn("Cannot refuse registration: registration {} not found", id);
             return false;
         }
+        requireNotHeldByAField(registration);
         var status = refusalFor(registration.status());
         if (!registrationRepository.recordAnswer(id, status)) return false;
         log.info("Recorded {} for registration {}", status, id);
@@ -413,6 +432,7 @@ public class EventRegistrationService {
                 .filter(r -> r.memberId() == memberId)
                 .findFirst()
                 .orElse(null);
+        if (existing != null) requireNotHeldByAField(existing);
         var heldBefore = existing == null ? null : existing.status();
         var status = refusalFor(heldBefore);
         var result = registrationRepository.create(eventId, memberId, eventDate, status, createdBy);

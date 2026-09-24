@@ -68,7 +68,9 @@ import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
+import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
@@ -339,6 +341,8 @@ public abstract class RepositoryTestBase {
     protected static TwoFactorRepository twoFactorRepo;
     protected static MemberIdentityFactory memberIdentityFactory;
     protected static MemberNameResolver memberNameResolver;
+    protected static EventDateResolver eventDateResolver;
+    protected static EventFieldRegistrationService eventFieldRegistrationService;
     protected static MemberLookupService memberLookupService;
     protected static DataSource dataSource;
     protected static String schemaName;
@@ -592,6 +596,14 @@ public abstract class RepositoryTestBase {
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, memberLookupService, memberNameResolver);
+        eventDateResolver = new EventDateResolver(eventRepo, eventBreakRepo, stationRepo);
+        eventFieldRegistrationService = new EventFieldRegistrationService(
+                eventRepo,
+                eventFieldRepo,
+                eventRegistrationRepo,
+                eventDateResolver,
+                new DomainEventBus(Set.of()),
+                memberNameResolver);
         // Built here rather than with the other services: it reads a holder's name, which needs the
         // resolver that is only ready at this point.
         clusterInventoryService = new ClusterInventoryService(

@@ -124,7 +124,9 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         memberGroupRepo,
                         mock(UserTagService.class),
                         eventRepo,
-                        attendanceRepo),
+                        attendanceRepo,
+                        eventFieldRegistrationService),
+                eventDateResolver,
                 media,
                 new Api());
 

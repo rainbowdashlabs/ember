@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -207,6 +207,18 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   if ((canManageEvents() || canManageAttendance()) && isRecurringEvent(ev.eventType) && ev.dayOfWeek) {
     await loadAbsences()
   }
+})
+
+/**
+ * Reads the questions again for the occurrence on screen.
+ *
+ * <p>Which occurrence that is follows from the appointment, so it is not known when the page first
+ * loads, and a question answered per date is answered differently on each of them. Paging to another
+ * date therefore has to ask again.
+ */
+watch(effectiveDate, async date => {
+  if (!date) return
+  fields.value = await events.getEventFields(eventId.value, date).catch(() => fields.value)
 })
 
 async function loadAbsences() {

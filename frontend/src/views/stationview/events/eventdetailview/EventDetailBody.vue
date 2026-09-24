@@ -299,6 +299,7 @@ function onCancelled() {
         :current-member-id="currentMemberId"
         :absent-members="absentMembers"
         :focused-date="focusedDate"
+        :effective-date="effectiveDate"
         :start-formatted="startFormatted"
         :end-formatted="endFormatted"
         :template-name="templateName"

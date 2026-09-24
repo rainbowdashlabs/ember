@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -106,7 +107,7 @@ public class WaitlistInvitationMessage {
                 dateFormat.format(invitation.date()),
                 span(event, zone, timeFormat),
                 invitation.arrivalTime() == null ? "" : timeFormat.format(invitation.arrivalTime()),
-                location(event, station));
+                location(event, station, invitation.date()));
     }
 
     /** When the appointment itself runs, in the zone the station keeps its times in. */
@@ -116,8 +117,8 @@ public class WaitlistInvitationMessage {
                 + format.format(LocalTime.from(event.endTime().atZone(zone)));
     }
 
-    private String location(StationEvent event, Station station) {
-        return eventFieldRepository.findByEvent(event.id()).stream()
+    private String location(StationEvent event, Station station, LocalDate date) {
+        return eventFieldRepository.findByEventOn(event.id(), date).stream()
                 .filter(field -> field.fieldType() == EventFieldType.LOCATION)
                 .map(EventField::value)
                 .filter(value -> value != null && !value.isBlank())
