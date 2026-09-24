@@ -23,7 +23,7 @@ application {
 
 group = "dev.chojo"
 // CalVer as YY.MINOR.MICRO -> https://calver.org/
-version = "26.18.7"
+version = "26.18.8"
 
 repositories {
     maven("https://eldonexus.de/repository/maven-proxies/")
@@ -501,6 +501,7 @@ tasks {
                     // Daemon/scheduler threads
                     "*.RegistrationDeadlineChecker*",
                     "*.DueDateReminderChecker*",
+                    "*.FieldRegistrationSweeper*",
                     // Complex CSV parsing with many edge cases
                     "*.MemberImportService*",
                     // Not CSV parsing despite its name: the uncovered part is remote-transfer

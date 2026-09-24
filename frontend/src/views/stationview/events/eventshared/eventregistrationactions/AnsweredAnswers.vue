@@ -9,6 +9,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import RegistrationStatusBadge from '../RegistrationStatusBadge.vue'
 import {isRefusal, type GivenAnswer} from '@/util/eventAnswers'
 import type {RegistrationStatusName} from '@/api/events'
@@ -57,7 +58,12 @@ function undoLabel(status: RegistrationStatusName): string {
     <span v-if="showNames" class="min-w-28 truncate text-xs text-(--text-muted)">{{ row.name }}</span>
     <RegistrationStatusBadge :status="row.status"/>
 
+    <MutedText v-if="row.heldByField != null" size="sm" :data-testid="`held-by-field-${row.key}`">
+      {{ row.heldByField ? t('eventsUpcoming.heldByNamedField', {field: row.heldByField})
+        : t('eventsUpcoming.heldByField') }}
+    </MutedText>
     <SecondaryButton
+        v-else
         :disabled="registering"
         :icon="['fas', 'rotate-left']"
         :data-testid="`undo-answer-${row.key}`"

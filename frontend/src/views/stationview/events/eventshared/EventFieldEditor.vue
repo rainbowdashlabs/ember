@@ -72,6 +72,8 @@ const width = ref<string>(FieldWidths.FULL)
 const userType = ref<string>('')
 const tagId = ref<string>('')
 const selfRegistration = ref(false)
+const perDate = ref(false)
+const fieldId = ref<number | null>(null)
 
 /**
  * Takes the choices on only where they differ from the ones already held.
@@ -90,6 +92,7 @@ function setEnumOptions(incoming: string[]) {
 
 /** Takes the form apart into the fields that edit it. */
 function seed(entry: EventFieldEntry) {
+  fieldId.value = entry.id ?? null
   name.value = entry.name ?? ''
   fieldType.value = entry.fieldType ?? 'STRING'
   fieldValue.value = entry.value ?? ''
@@ -104,6 +107,7 @@ function seed(entry: EventFieldEntry) {
   userType.value = cfg.userType ? String(cfg.userType) : ''
   tagId.value = cfg.tagId ? String(cfg.tagId) : ''
   selfRegistration.value = Boolean(cfg.selfRegistration)
+  perDate.value = Boolean(cfg.perDate)
 }
 
 seed(modelValue.value)
@@ -128,6 +132,9 @@ function buildConfig(): Record<string, unknown> {
   if (isMemberFieldType(fieldType.value) && selfRegistration.value) {
     c.selfRegistration = true
   }
+  if (isMemberFieldType(fieldType.value) && perDate.value) {
+    c.perDate = true
+  }
   return c
 }
 
@@ -149,6 +156,7 @@ const matchingAttendanceFields = computed(() =>
 )
 
 const entry = computed<EventFieldEntry>(() => ({
+  id: fieldId.value,
   name: name.value,
   fieldType: fieldType.value,
   config: configString.value,
@@ -203,6 +211,7 @@ watch(modelValue, incoming => {
         v-model:user-type="userType"
         v-model:tag-id="tagId"
         v-model:self-registration="selfRegistration"
+        v-model:per-date="perDate"
         :field-type="fieldType"
         :groups="groups"
         :tags="tags"

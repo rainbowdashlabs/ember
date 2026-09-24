@@ -75,6 +75,7 @@ export function useEventForm() {
 
   function applyEventFields(fields: EventField[]) {
     state.fields = fields.map(f => ({
+      id: f.id,
       name: f.name ?? '',
       fieldType: f.fieldType ?? 'STRING',
       config: f.config ?? {},

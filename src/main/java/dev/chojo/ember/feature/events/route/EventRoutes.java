@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventExportService;
+import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
@@ -80,6 +81,7 @@ public class EventRoutes implements Routes {
     private final StationMemberService stationMemberService;
     private final EventExportService eventExportService;
     private final EventRegistrationFieldService registrationFieldService;
+    private final EventFieldRegistrationService fieldRegistrationService;
 
     @Inject
     public EventRoutes(
@@ -90,8 +92,10 @@ public class EventRoutes implements Routes {
             BatchEventService batchEventService,
             StationMemberService stationMemberService,
             EventExportService eventExportService,
-            EventRegistrationFieldService registrationFieldService) {
+            EventRegistrationFieldService registrationFieldService,
+            EventFieldRegistrationService fieldRegistrationService) {
         this.crudService = crudService;
+        this.fieldRegistrationService = fieldRegistrationService;
         this.occurrenceService = occurrenceService;
         this.restrictionService = restrictionService;
         this.reminderService = reminderService;
@@ -337,9 +341,11 @@ public class EventRoutes implements Routes {
                 .ifPresentOrElse(
                         event -> {
                             applyAudiences(id, req);
-                            ctx.json(crudService
+                            var saved = crudService
                                     .setRepeatEnd(id, req.repeatUntil(), req.repeatCount())
-                                    .orElse(event));
+                                    .orElse(event);
+                            fieldRegistrationService.reconcile(id);
+                            ctx.json(saved);
                         },
                         () -> {
                             throw new NotFoundResponse();

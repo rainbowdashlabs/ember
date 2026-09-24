@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventRecurrence;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -52,6 +53,7 @@ public class PublicEventRoutes implements Routes {
     private final EventCrudService crudService;
     private final EventCategoryService categoryService;
     private final EventFieldService eventFieldService;
+    private final EventDateResolver dateResolver;
     private final StationRepository stationRepository;
 
     @Inject
@@ -59,10 +61,12 @@ public class PublicEventRoutes implements Routes {
             EventCrudService crudService,
             EventCategoryService categoryService,
             EventFieldService eventFieldService,
+            EventDateResolver dateResolver,
             StationRepository stationRepository) {
         this.crudService = crudService;
         this.categoryService = categoryService;
         this.eventFieldService = eventFieldService;
+        this.dateResolver = dateResolver;
         this.stationRepository = stationRepository;
     }
 
@@ -143,7 +147,7 @@ public class PublicEventRoutes implements Routes {
                 .toList();
 
         var overviewFields = eventFieldService.findOverviewFieldsByEvents(
-                publicEvents.stream().map(StationEvent::id).toList());
+                publicEvents.stream().map(StationEvent::id).toList(), dateResolver.nextDates(publicEvents));
         var publicUids = crudService.findPublicUidsByIds(
                 data.station().id(), publicEvents.stream().map(StationEvent::id).toList());
 
@@ -175,7 +179,9 @@ public class PublicEventRoutes implements Routes {
 
         if (!isEventPublic(event, categoryMap)) throw new NotFoundResponse();
 
-        var fields = eventFieldService.findByEvent(id).stream()
+        var fields = eventFieldService
+                .findByEvent(id, dateResolver.nextDate(event).orElse(null))
+                .stream()
                 .filter(EventField::isPublic)
                 .toList();
 

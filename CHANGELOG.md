@@ -1,5 +1,16 @@
 # Changelog
 
+## v26.18.8
+
+### New Features
+
+- **A member field on an appointment can be filled in per date.** A field of an appointment that names members can be set to hold its own entry for each date of a repeating appointment, so it can say who drives this week and who drives next. Without the setting one entry holds for the whole series, as before.
+
+### Improvements
+
+- **Standing in a member field puts you on the appointment's list.** Whoever is entered in a field of the appointment that names members counts as taking part: they are on the registration list, they are counted, and the appointment reaches their calendar and their calendar subscription. The place is confirmed at once and is given back by taking the name out of the field rather than by signing off.
+- **The calendar subscription reaches a year back.** It used to keep only the last week, so looking up what happened last autumn was impossible. It now covers a year in both directions.
+
 ## v26.18.7
 
 ### Improvements

@@ -217,7 +217,7 @@ public class EventExportService {
             var event = expanded.event();
             Map<String, String> fieldMap = Map.of();
             if (needsFields) {
-                var fields = eventFieldRepository.findByEvent(event.id());
+                var fields = eventFieldRepository.findByEventOn(event.id(), expanded.date());
                 var map = new LinkedHashMap<String, String>();
                 for (var f : fields) {
                     map.put(f.name(), f.value());

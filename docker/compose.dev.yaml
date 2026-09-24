@@ -28,17 +28,21 @@ x-rustfs: &rustfs
     RUSTFS_CONSOLE_ADDRESS: ":9001"
 
 x-rustfs-init: &rustfs-init
-  # From quay rather than Docker Hub, which stopped serving this image: every end-to-end job died
-  # pulling it, before a single story ran.
-  image: quay.io/minio/mc:latest
+  image: amazon/aws-cli:latest
   entrypoint: ["/bin/sh", "-c"]
+  # Credentials go in the command, not in `environment`: both services using this anchor bring an
+  # `environment` of their own, and a YAML merge replaces that key whole rather than adding to it.
   command:
     - |
-      until mc alias set local "http://$$RUSTFS_HOST:9000" emberadmin emberadmin 2>/dev/null; do
+      export AWS_ACCESS_KEY_ID=emberadmin
+      export AWS_SECRET_ACCESS_KEY=emberadmin
+      export AWS_DEFAULT_REGION=us-east-1
+      endpoint="http://$$RUSTFS_HOST:9000"
+      until aws --endpoint-url "$$endpoint" s3 ls >/dev/null 2>&1; do
         echo "Waiting for rustfs to come up..."
         sleep 2
       done
-      mc mb --ignore-existing local/ember
+      aws --endpoint-url "$$endpoint" s3 mb "s3://ember" 2>/dev/null || true
       echo "rustfs ready: bucket 'ember' available on $$RUSTFS_HOST"
 
 x-sftp: &sftp

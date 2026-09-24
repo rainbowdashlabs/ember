@@ -163,6 +163,8 @@ export interface EventField {
 }
 
 export interface EventFieldEntry {
+    /** The row this question already has, so saving keeps the answers it carries per date. */
+    id?: number | null
     name: string
     fieldType?: string
     config?: Record<string, unknown>
@@ -387,6 +389,10 @@ export interface EventRegistrationEntry {
     fields?: RegistrationFieldValue[]
     /** Whether the appointment asks something this registration has not answered. */
     answersMissing?: boolean
+    /** Whether a question of the appointment names this member, which is a place nobody gives back here. */
+    fromField?: boolean
+    /** The question that names them, where one does. */
+    fieldName?: string | null
 }
 
 /**
@@ -663,8 +669,23 @@ export async function exportEventList(data: {
 
 // -- Event Fields (per-event) --
 
-export async function getEventFields(eventId: number): Promise<EventField[]> {
-    const res = await client.get<EventField[]>(`/events/${eventId}/fields`)
+/**
+ * The questions of an appointment. With a date, as they stand on that occurrence; without one, as
+ * the appointment itself carries them, which is what the editor edits.
+ */
+export async function getEventFields(eventId: number, date?: string | null): Promise<EventField[]> {
+    const res = await client.get<EventField[]>(`/events/${eventId}/fields`, {params: date ? {date} : undefined})
+    return res.data
+}
+
+/** Writes the answer one question carries on one date. */
+export async function setEventFieldValueOn(
+    eventId: number,
+    fieldId: number,
+    date: string,
+    value: string,
+): Promise<EventField> {
+    const res = await client.put<EventField>(`/events/${eventId}/fields/${fieldId}/value`, {date, value})
     return res.data
 }
 
@@ -673,8 +694,16 @@ export async function setEventFields(eventId: number, data: SetEventFieldsReques
     return res.data
 }
 
-export async function toggleFieldSelfRegistration(eventId: number, fieldId: number): Promise<EventField> {
-    const res = await client.post<EventField>(`/events/${eventId}/fields/${fieldId}/self-register`)
+export async function toggleFieldSelfRegistration(
+    eventId: number,
+    fieldId: number,
+    date?: string | null,
+): Promise<EventField> {
+    const res = await client.post<EventField>(
+        `/events/${eventId}/fields/${fieldId}/self-register`,
+        undefined,
+        {params: date ? {date} : undefined},
+    )
     return res.data
 }
 

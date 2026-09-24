@@ -306,7 +306,9 @@ class DemoServiceTest extends RepositoryTestBase {
                         memberGroupRepo,
                         mock(UserTagService.class),
                         eventRepo,
-                        attendanceRepo),
+                        attendanceRepo,
+                        eventFieldRegistrationService),
+                eventDateResolver,
                 mock(MediaLibraryService.class),
                 new Api());
         var newsFederationService = new NewsFederationService(

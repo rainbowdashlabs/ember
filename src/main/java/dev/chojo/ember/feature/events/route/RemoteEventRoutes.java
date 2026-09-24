@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
@@ -153,6 +154,7 @@ public class RemoteEventRoutes implements Routes {
 
     private final EventCrudService crudService;
     private final EventFieldService eventFieldService;
+    private final EventDateResolver dateResolver;
     private final EventFederationService eventFederationService;
     private final EventAttachmentService attachmentService;
     private final MediaLibraryService media;
@@ -162,12 +164,14 @@ public class RemoteEventRoutes implements Routes {
     public RemoteEventRoutes(
             EventCrudService crudService,
             EventFieldService eventFieldService,
+            EventDateResolver dateResolver,
             EventFederationService eventFederationService,
             EventAttachmentService attachmentService,
             MediaLibraryService media,
             Api apiConfig) {
         this.crudService = crudService;
         this.eventFieldService = eventFieldService;
+        this.dateResolver = dateResolver;
         this.eventFederationService = eventFederationService;
         this.attachmentService = attachmentService;
         this.media = media;
@@ -210,7 +214,9 @@ public class RemoteEventRoutes implements Routes {
         int eventId = pathInt(ctx, "id");
         requireSharedEvent(partner, eventId);
         var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
-        var fields = eventFieldService.findByEvent(eventId).stream()
+        var fields = eventFieldService
+                .findByEvent(eventId, dateResolver.nextDate(event).orElse(null))
+                .stream()
                 .filter(EventField::isPublic)
                 .toList();
         var places = eventFederationService.partnerPlaces(eventId, partner.id());

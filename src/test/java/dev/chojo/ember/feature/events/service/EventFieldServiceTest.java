@@ -44,7 +44,8 @@ class EventFieldServiceTest extends RepositoryTestBase {
                 memberGroupRepo,
                 new UserTagService(userTagRepo, memberGroupRepo),
                 eventRepo,
-                attendanceRepo);
+                attendanceRepo,
+                eventFieldRegistrationService);
         station = stationRepo.create("EventFieldServiceStation");
 
         Instant start = Instant.now().plus(1, ChronoUnit.DAYS);

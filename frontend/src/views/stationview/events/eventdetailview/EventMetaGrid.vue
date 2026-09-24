@@ -12,6 +12,7 @@ import DetailLabel from '@/components/typography/DetailLabel.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import PerDateFieldValue from './PerDateFieldValue.vue'
 import {EventFieldTypes, type EventField} from '@/api/events'
 import type {StationMember} from '@/api/types'
 import {events} from '@/api'
@@ -27,6 +28,8 @@ const props = defineProps<{
   templateName: string
   /** Which sheet the attendance is taken on is a setting, so only whoever sets it is shown it. */
   canEditEvent: boolean
+  /** The occurrence on screen, which is the one a question answered per date is answered for. */
+  effectiveDate?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -72,6 +75,11 @@ function selfRegistrationEnabled(field: EventField): boolean {
   return cfg.selfRegistration === true
 }
 
+function perDateEnabled(field: EventField): boolean {
+  const cfg = (field.config ?? {}) as { perDate?: boolean }
+  return cfg.perDate === true
+}
+
 function memberIdsOf(field: EventField): number[] {
   const raw = field.value
   if (!raw) return []
@@ -111,7 +119,7 @@ async function toggle(field: EventField) {
   if (submitting.value.has(field.id)) return
   submitting.value.add(field.id)
   try {
-    const updated = await events.toggleFieldSelfRegistration(props.eventId, field.id)
+    const updated = await events.toggleFieldSelfRegistration(props.eventId, field.id, props.effectiveDate)
     emit('field-updated', updated)
   } catch (e) {
     const status = e instanceof AxiosError ? e.response?.status : undefined
@@ -170,6 +178,14 @@ async function toggle(field: EventField) {
           {{ t('eventFields.slotTaken') }}
         </SecondaryButton>
       </div>
+      <PerDateFieldValue
+          v-if="canEditEvent && effectiveDate && perDateEnabled(field)"
+          :event-id="eventId"
+          :field="field"
+          :date="effectiveDate"
+          :all-members="allMembers"
+          @saved="emit('field-updated', $event)"
+      />
     </div>
   </div>
 </template>

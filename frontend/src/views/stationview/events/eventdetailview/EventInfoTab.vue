@@ -24,6 +24,8 @@ const props = defineProps<{
   currentMemberId: number
   absentMembers: AbsentMember[]
   focusedDate: string | null
+  /** The occurrence on screen, which is the one a question answered per date is answered for. */
+  effectiveDate: string | null
   startFormatted: string
   endFormatted: string
   templateName: string
@@ -59,6 +61,7 @@ const canEditEvent = computed(() => props.canManageEvents || props.hasPermission
         :end-formatted="endFormatted"
         :template-name="templateName"
         :can-edit-event="canEditEvent"
+        :effective-date="effectiveDate"
         @field-updated="(f) => emit('field-updated', f)"
     />
 

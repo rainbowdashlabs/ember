@@ -275,9 +275,17 @@ function answerForHousehold() {
   showAnswerDialog.value = true
 }
 
-/** Everyone in the household who has a place, which is who there is something to give up for. */
+/**
+ * Everyone in the household who has a place to give up.
+ *
+ * <p>A place a question of the appointment gives is not one of them: it is not an answer anybody
+ * gave, and the way off the list is out of the question that names them.
+ */
 const withPlace = computed(() =>
-    household.value.filter(person => standingRegistrationFor(person.key) !== undefined))
+    household.value.filter(person => {
+      const registration = standingRegistrationFor(person.key)
+      return registration !== undefined && !registration.fromField
+    }))
 
 /** Everyone still to answer, which is who the sign-up button is for. */
 const withoutPlace = computed(() =>

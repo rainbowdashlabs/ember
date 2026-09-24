@@ -32,7 +32,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRegistrationRepository {
 
     private static final String COLUMNS =
-            "id, event_id, member_id, event_date, status, created_at, created_by, status_changed_at, previous_status";
+            "id, event_id, member_id, event_date, status, created_at, created_by, status_changed_at, previous_status, from_field";
 
     /**
      * Retrieves all registrations for an event on a specific date, ordered by creation time.
@@ -217,7 +217,8 @@ public class EventRegistrationRepository {
                         created_at        = now(),
                         created_by        = :created_by,
                         previous_status   = event_registration.status,
-                        status_changed_at = now()
+                        status_changed_at = now(),
+                        from_field        = FALSE
                 RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("member_id", memberId)
@@ -533,5 +534,125 @@ public class EventRegistrationRepository {
                         ON er.event_id = se.id
                 WHERE se.station_id = :station_id
                   AND er.status = 'PENDING';""", call().bind("station_id", stationId));
+    }
+
+    /**
+     * The registrations an appointment holds because a question of it names the member, on the
+     * given dates.
+     *
+     * @param eventId the appointment
+     * @param dates   the dates being reconciled, empty for none
+     * @return the rows written by a question, in no particular order
+     */
+    /** The dates of an appointment that already carry a place given by one of its questions. */
+    public List<LocalDate> findFromFieldDates(int eventId) {
+        return query("""
+                SELECT DISTINCT event_date
+                FROM event_registration
+                WHERE event_id = :event_id AND from_field;""")
+                .single(call().bind("event_id", eventId))
+                .map(row -> row.getObject("event_date", LocalDate.class))
+                .all();
+    }
+
+    public List<EventRegistration> findFromFieldOn(int eventId, Collection<LocalDate> dates) {
+        if (dates.isEmpty()) return List.of();
+        return query("""
+                SELECT %s
+                FROM event_registration
+                WHERE event_id = :event_id
+                  AND from_field
+                  AND event_date = ANY(:dates);""", COLUMNS)
+                .single(call().bind("event_id", eventId).bind("dates", List.copyOf(dates), PostgreSqlTypes.DATE))
+                .map(EventRegistration.map())
+                .all();
+    }
+
+    /**
+     * Gives everyone named by a question their confirmed place.
+     *
+     * <p>A place somebody already holds is left exactly as it is, which is what the condition on the
+     * update says: a confirmed registration made by the member themselves stays theirs, so taking
+     * them out of the question later cannot take away something they did not get from it. Everything
+     * else, pending or refused, is overwritten, because being named says they are taking part.
+     *
+     * <p>A name that no longer belongs to anybody in the station is passed over rather than refused.
+     * An answer keeps the ids it was written with, so a question can still name somebody who has
+     * since left, and a whole appointment failing to save over one departed member would be worse
+     * than a list one name shorter.
+     *
+     * @param eventId   the appointment
+     * @param memberIds the members named, read in step with the dates
+     * @param dates     the date each of those names falls on
+     * @return how many rows were written
+     */
+    public int confirmFromField(int eventId, List<Integer> memberIds, List<LocalDate> dates) {
+        if (memberIds.isEmpty()) return 0;
+        return query("""
+                INSERT INTO event_registration(event_id, member_id, event_date, status, from_field)
+                SELECT se.id, named.member_id, named.event_date, 'ACCEPTED', TRUE
+                FROM UNNEST(:member_ids::INTEGER[], :dates::DATE[]) AS named(member_id, event_date)
+                JOIN station_event se ON se.id = :event_id
+                JOIN station_member sm ON sm.id = named.member_id AND sm.station_id = se.station_id
+                ON CONFLICT (event_id, member_id, event_date)
+                    DO UPDATE
+                    SET status            = 'ACCEPTED',
+                        from_field        = TRUE,
+                        previous_status   = event_registration.status,
+                        status_changed_at = now()
+                    WHERE event_registration.status <> 'ACCEPTED';""")
+                .single(call().bind("event_id", eventId)
+                        .bind("member_ids", memberIds, PostgreSqlTypes.INTEGER)
+                        .bind("dates", dates, PostgreSqlTypes.DATE))
+                .insert()
+                .rows();
+    }
+
+    /**
+     * Records that a place held through a question has been given up, for an appointment that has to
+     * be signed up for.
+     *
+     * <p>The row stays and says so. Somebody taking their own name out of a question of an
+     * appointment they had to sign up for has given up a place, and whoever runs it has to see that
+     * they did rather than find the list one shorter with nothing to say who is missing.
+     */
+    public int withdrawFromField(int eventId, List<Integer> memberIds, List<LocalDate> dates) {
+        if (memberIds.isEmpty()) return 0;
+        return query("""
+                UPDATE event_registration er
+                SET status            = 'WITHDRAWN',
+                    previous_status   = er.status,
+                    status_changed_at = now(),
+                    from_field        = FALSE
+                FROM UNNEST(:member_ids::INTEGER[], :dates::DATE[]) AS gone(member_id, event_date)
+                WHERE er.event_id = :event_id
+                  AND er.from_field
+                  AND er.member_id = gone.member_id
+                  AND er.event_date = gone.event_date;""")
+                .single(call().bind("event_id", eventId)
+                        .bind("member_ids", memberIds, PostgreSqlTypes.INTEGER)
+                        .bind("dates", dates, PostgreSqlTypes.DATE))
+                .update()
+                .rows();
+    }
+
+    /**
+     * Removes the places a question gave on an appointment that nobody has to sign up for. Nothing
+     * was given up there, so nothing is worth recording.
+     */
+    public int deleteFromField(int eventId, List<Integer> memberIds, List<LocalDate> dates) {
+        if (memberIds.isEmpty()) return 0;
+        return query("""
+                DELETE FROM event_registration er
+                USING UNNEST(:member_ids::INTEGER[], :dates::DATE[]) AS gone(member_id, event_date)
+                WHERE er.event_id = :event_id
+                  AND er.from_field
+                  AND er.member_id = gone.member_id
+                  AND er.event_date = gone.event_date;""")
+                .single(call().bind("event_id", eventId)
+                        .bind("member_ids", memberIds, PostgreSqlTypes.INTEGER)
+                        .bind("dates", dates, PostgreSqlTypes.DATE))
+                .delete()
+                .rows();
     }
 }

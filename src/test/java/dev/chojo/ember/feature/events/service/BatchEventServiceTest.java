@@ -52,7 +52,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
                 memberGroupRepo,
                 new UserTagService(userTagRepo, memberGroupRepo),
                 eventRepo,
-                attendanceRepo);
+                attendanceRepo,
+                eventFieldRegistrationService);
         batchService = new BatchEventService(
                 eventServices.crud(), eventServices.restriction(), fieldService, eventBreakRepo, domainEventBus);
 
