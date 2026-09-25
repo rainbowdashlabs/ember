@@ -57,7 +57,7 @@ function updateOptions(items: string[]) {
   <div v-if="q.config.multiSelect" class="flex gap-4 items-center">
     <SelectInput v-model="(q.config.multiLimitType as string)" class="w-40">
       <option value="NONE">{{ t('forms.choice.limitNone') }}</option>
-      <option value="EQUAL_TO">{{ t('forms.choice.limitEqual') }}</option>
+      <option value="EXACTLY">{{ t('forms.choice.limitEqual') }}</option>
       <option value="AT_MOST">{{ t('forms.choice.limitAtMost') }}</option>
       <option value="AT_LEAST">{{ t('forms.choice.limitAtLeast') }}</option>
     </SelectInput>

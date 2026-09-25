@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import {PublicFormState, type PublicFormStateName} from '@/api/publicForms'
+import {formatDateTime} from '@/util/format'
 
 /**
  * Why a form is not taking answers, said where the fields would have been.
@@ -19,6 +20,8 @@ import {PublicFormState, type PublicFormStateName} from '@/api/publicForms'
  */
 const props = defineProps<{
   state: PublicFormStateName
+  /** When it stopped taking answers, where that is known. */
+  closedSince?: string | null
 }>()
 
 const {t} = useI18n()
@@ -26,6 +29,7 @@ const {t} = useI18n()
 const message = computed(() => {
   if (props.state === PublicFormState.NOT_PUBLISHED) return t('publicForm.notPublishedYet')
   if (props.state === PublicFormState.NOT_OPEN_YET) return t('publicForm.notOpenYet')
+  if (props.closedSince) return t('publicForm.closedSince', {when: formatDateTime(props.closedSince)})
   return t('publicForm.closed')
 })
 </script>

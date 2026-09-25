@@ -7,6 +7,17 @@
 - **Vergangene Termine haben einen eigenen Reiter.** Beide Terminlisten trennen jetzt, was kommt, von dem, was vorbei ist. Eine Wache, die seit Jahren läuft, liest nicht mehr jahrelange erledigte Termine durch, um den nächsten zu finden. Ein Serientermin bleibt bei den kommenden, solange er noch stattfindet, und steht dort mit dem Datum, an dem er das nächste Mal fällt.
 - **Die Terminlisten lassen sich durchsuchen, auf einen Zeitraum eingrenzen und seitenweise laden.** Jede Liste auf beiden Seiten nimmt eine Suche, eine Kategorie sowie ein Von und ein Bis, lädt in Seiten statt alles auf einmal und behält die Auswahl in der Adresse. Die Liste, die du gerade siehst, lässt sich damit als Lesezeichen sichern oder weitergeben.
 - **Die Terminübersicht liest sich nach Datum.** Termine, die einmal stattfinden, stehen in einer Liste in der Reihenfolge, in der sie fallen, und zeigen jeweils ihre Kategorie. Serientermine haben einen eigenen Block. Eine Kategorie zu wählen ist jetzt ein Filter statt einer Überschrift, zu der man scrollt.
+- **Eine geschlossene Umfrage lässt sich wieder öffnen.** Das Menü einer geschlossenen Umfrage bietet jetzt an, sie wieder zu öffnen. Eine Umfrage aus der letzten Saison lässt sich damit erneut stellen, ohne sie ein zweites Mal zu schreiben.
+- **Die Antworten einer Umfrage lassen sich verwerfen.** Das Menü bietet an, alle gesammelten Antworten zu löschen. Die Umfrage und ihre Fragen bleiben bestehen. Ein Probelauf oder eine Runde, die an die falschen Leute ging, lässt sich so zurücksetzen und noch einmal stellen, und wer vorher geantwortet hat, darf erneut antworten.
+- **Eine abgelaufene Umfrage sagt, wann sie abgelaufen ist.** Die Kachel in der Liste der Wache trägt das Datum, an dem sie geschlossen hat, und die Seite hinter dem Link sagt, seit wann sie keine Antworten mehr annimmt, statt nur, dass sie zu ist.
+- **Die Einstellungen einer Umfrage werden beim Ändern gespeichert.** Name, Daten, Reichweite und Schalter werden in dem Moment gesichert, in dem du sie änderst. Eine Umfrage, die weiter reicht als gedacht, hängt damit nicht mehr an einem vergessenen Klick. Die Fragen warten weiterhin auf Speichern, und die Seite sagt das auch.
+
+### Fehlerbehebungen
+
+- **Eine öffentliche Umfrage war unter der ausgegebenen Adresse nicht erreichbar.** Die angebotene Adresse einer für alle offenen Umfrage enthielt den lesbaren Namen der Wache, angenommen wurde aber nur die Adresse mit ihrer Kennung. Jeder Link, den man von der Umfrage selbst kopiert hatte, führte damit ins Leere.
+- **Eine Wache, die außer einer Umfrage nichts öffentlich hatte, zeigte gar nichts.** Eine für alle offene Umfrage wird im Rahmen der Wache dargestellt. Eine Wache ohne öffentliche Seiten, Wiki, Kalender, Warteliste und Blog gab jedoch nichts über sich preis, sodass die Seite der Umfrage für alle Empfänger leer blieb.
+- **Eine Auswahlfrage mit einer genauen Anzahl ließ sich nicht speichern.** Die Einstellung "genau" bei einer Frage mit mehreren Antworten wurde beim Speichern abgelehnt, und die Umfrage kam ohne Erklärung unverändert zurück.
+- **Die Kachel einer Umfrage zeigte "offen", obwohl das Enddatum vorbei war.** Die Liste wies eine Umfrage als antwortbereit aus, während ihre eigene Seite allen Besuchern sagte, sie sei geschlossen: Die Kachel las nur, ob jemand sie von Hand geschlossen hatte. Sie liest jetzt auch die Daten und sagt außerdem, wenn eine Umfrage noch nicht begonnen hat.
 
 ## v26.19.1
 

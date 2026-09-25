@@ -73,7 +73,7 @@ export const QUESTION_TYPES_BY_PURPOSE: Record<FormPurposeName, QuestionType[]> 
     ],
 }
 
-export type MultiLimitType = 'NONE' | 'EQUAL_TO' | 'AT_MOST' | 'AT_LEAST'
+export type MultiLimitType = 'NONE' | 'EXACTLY' | 'AT_MOST' | 'AT_LEAST'
 
 export type RatingIcon = 'STAR' | 'NUMBER' | 'HEART' | 'THUMB_UP'
 

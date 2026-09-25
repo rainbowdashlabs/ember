@@ -208,7 +208,29 @@ public class PublicFormRoutes implements Routes {
                         .toList()
                 : List.<PublicFormQuestion>of();
         return new PublicForm(
-                form.publicUid().toString(), form.title(), form.description(), form.purpose(), state, questions);
+                form.publicUid().toString(),
+                form.title(),
+                form.description(),
+                form.purpose(),
+                state,
+                closedSince(form, state),
+                questions);
+    }
+
+    /**
+     * When the form stopped taking answers, for a page that has to explain why it is not offering
+     * any fields.
+     *
+     * <p>A form stops for either of two reasons and sometimes both: its end date passed, or somebody
+     * closed it. Whichever happened first is when it actually stopped, and is the date to give.
+     */
+    private Instant closedSince(Form form, PublicFormState state) {
+        if (state != PublicFormState.CLOSED) return null;
+        var byDate = form.endAt() != null && Instant.now().isAfter(form.endAt()) ? form.endAt() : null;
+        var byHand = form.closedAt();
+        if (byHand == null) return byDate;
+        if (byDate == null) return byHand;
+        return byHand.isBefore(byDate) ? byHand : byDate;
     }
 
     private PublicFormState stateOf(Form form) {
@@ -332,6 +354,8 @@ public class PublicFormRoutes implements Routes {
             String description,
             FormPurpose purpose,
             PublicFormState state,
+            /** When it stopped taking answers, or null while it still does. */
+            Instant closedSince,
             List<PublicFormQuestion> questions) {}
 
     @OpenApiName("PublicFormQuestion")
