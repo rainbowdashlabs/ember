@@ -55,6 +55,22 @@ const ROOT_TARGETS = [
 ]
 
 const REPO_ROOT = new URL('../..', import.meta.url).pathname
+const FRONTEND_ROOT = new URL('..', import.meta.url).pathname
+
+/**
+ * What a file is called in the baseline, which has to be the one name in both layouts it is read
+ * in.
+ *
+ * <p>The frontend image is built from `frontend/` alone, so there the frontend is the root and
+ * naming a file relative to the repository above it names something else entirely. Every lookup
+ * then missed, every file counted as one that may carry nothing, and the image failed on six
+ * hundred comments the checkout was perfectly happy with. A frontend file is therefore named from
+ * the frontend down, with the prefix written rather than derived.
+ */
+function baselineKey(file) {
+    if (file.startsWith(FRONTEND_ROOT)) return join('frontend', relative(FRONTEND_ROOT, file))
+    return relative(REPO_ROOT, file)
+}
 
 /**
  * A line that opens a block comment which is a doc comment, and so may stand.
@@ -97,7 +113,7 @@ function commentStart(line) {
 
 function check(file) {
     const lines = readFileSync(file, 'utf-8').split('\n')
-    const key = relative(REPO_ROOT, file)
+    const key = baselineKey(file)
     const allowed = baseline[key] ?? 0
     const found = []
     let inBlock = false
