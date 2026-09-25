@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.station.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
@@ -28,8 +29,6 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.util.UUID;
-
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class PublicStationRoutes implements Routes {
@@ -39,6 +38,7 @@ public class PublicStationRoutes implements Routes {
     private final PageService pageService;
     private final WaitingListService waitingListService;
     private final NewsService newsService;
+    private final FormService formService;
 
     @Inject
     public PublicStationRoutes(
@@ -47,13 +47,15 @@ public class PublicStationRoutes implements Routes {
             StationLogoService logoService,
             PageService pageService,
             WaitingListService waitingListService,
-            NewsService newsService) {
+            NewsService newsService,
+            FormService formService) {
         this.stationRepository = stationRepository;
         this.stationService = stationService;
         this.logoService = logoService;
         this.pageService = pageService;
         this.waitingListService = waitingListService;
         this.newsService = newsService;
+        this.formService = formService;
     }
 
     @Override
@@ -91,7 +93,12 @@ public class PublicStationRoutes implements Routes {
                 station.publicWaitlistEnabled() && waitingListService.hasPublicWaitlists(station.id());
         boolean hasPublicBlog = station.publicBlogEnabled() && newsService.hasPublicBlogEntries(station.id());
 
-        if (!hasPublicKb && !hasPublicCalendar && !hasPublicPages && !hasPublicWaitlist && !hasPublicBlog) {
+        if (!hasPublicKb
+                && !hasPublicCalendar
+                && !hasPublicPages
+                && !hasPublicWaitlist
+                && !hasPublicBlog
+                && !formService.hasOpenlyAddressedForms(station.id())) {
             throw new NotFoundResponse();
         }
 
@@ -144,15 +151,8 @@ public class PublicStationRoutes implements Routes {
      * @param allowClusterHome whether an association's own station may answer, which only the wiki does
      */
     private Station resolveStation(Context ctx, boolean allowClusterHome) {
-        String param = ctx.pathParam("stationUid");
-        Station station;
-        try {
-            UUID uid = UUID.fromString(param);
-            station = stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);
-        } catch (IllegalArgumentException e) {
-            // Not a UUID - try as public slug
-            station = stationRepository.findBySlug(param).orElseThrow(NotFoundResponse::new);
-        }
+        var station =
+                stationRepository.findByAddress(ctx.pathParam("stationUid")).orElseThrow(NotFoundResponse::new);
         if (!allowClusterHome && station.stationKind() == StationKind.CLUSTER_HOME) {
             throw new NotFoundResponse();
         }

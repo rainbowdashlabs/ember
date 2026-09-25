@@ -13,10 +13,30 @@ import {test, expect, apiHeaders, type Page} from './fixtures/auth'
  * entry also says whether its event takes registrations, because an event that does not has no
  * registration tab and would make these stories wait for something that is correctly absent.
  */
+/**
+ * A coming occurrence of a seeded appointment that is signed up for, opened on that very day.
+ *
+ * <p>Asked of the API rather than picked off the page, because the list pages ten at a time and a
+ * station whose next ten appointments happen to take none would leave the story hunting a row that
+ * is there but not shown.
+ *
+ * <p>Three things are asked of it, and each of them broke this once. It has to be coming rather
+ * than any appointment the station ever wrote, because a day gone by takes no answer. It is opened
+ * on its own day rather than by its bare id, so a repeating appointment is bound to an occurrence
+ * it really has instead of whichever day the page works out for itself. And it must be one that
+ * takes an answer without anybody confirming it, because that is the answer the stories then read
+ * back.
+ */
 async function openEventWithRegistration(page: Page) {
-    await page.goto('/station/events')
-    await page.locator('[data-testid="event-entry"][data-registration="true"]').first().click()
-    await page.waitForURL(/\/station\/events\/\d+/)
+    const headers = await apiHeaders(page)
+    const answer = await page.request.get('/api/v1/events/upcoming?requiresRegistration=true&limit=50', {headers})
+    expect(answer.ok(), 'the appointment list answers').toBeTruthy()
+
+    const occurrences: {date: string, event: {id: number, requiresConfirmation: boolean}}[] = await answer.json()
+    const coming = occurrences.find(occurrence => !occurrence.event.requiresConfirmation)
+    expect(coming, 'the seeded station has a coming appointment that is answered without confirming').toBeTruthy()
+
+    await page.goto(`/station/events/${coming!.event.id}/${coming!.date}`)
 }
 
 /**
@@ -64,6 +84,31 @@ test.describe('Events', () => {
         const dates = await rows.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-date') ?? ''))
         expect(dates.length, 'there is something to put in order').toBeGreaterThan(1)
         expect(dates, 'every row is on or after the one above it').toEqual([...dates].sort())
+    })
+
+    /**
+     * A monthly appointment opens on the day it next falls on.
+     *
+     * <p>The page used to work that day out itself, by stepping from today to the next matching
+     * weekday. That is the rule a weekly appointment keeps and no other: a monthly one landed on
+     * whichever of its weekdays came round first, so the page named a day in the middle of the
+     * month and offered its sign-ups under a day the appointment does not happen on.
+     */
+    test('a monthly appointment opens on the day it next falls on', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const answer = await page.request.get('/api/v1/events', {headers})
+        expect(answer.ok(), 'the appointment list answers').toBeTruthy()
+
+        const appointments: {id: number, eventType: string}[] = await answer.json()
+        const monthly = appointments.find(appointment => appointment.eventType === 'MONTHLY_FIRST')
+        expect(monthly, 'the seeded station has an appointment repeating monthly').toBeTruthy()
+
+        await page.goto(`/station/events/${monthly!.id}`)
+
+        const shown = page.getByTestId('page-subtitle')
+        await expect(shown).not.toBeEmpty()
+        const dayOfMonth = Number((await shown.textContent())!.match(/(\d{2})\.\d{2}\.\d{4}/)![1])
+        expect(dayOfMonth, 'the first of its weekday in the month, so never past the seventh').toBeLessThanOrEqual(7)
     })
 
     /**
@@ -423,9 +468,8 @@ test.describe('Events', () => {
 
         await page.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
 
-        await page.waitForURL(/\/station\/events$/)
-        // The name is on the page twice: once in the calendar preview above, which leads nowhere,
-        // and once on the list entry. Only the entry opens the appointment.
+        await page.waitForURL(/\/station\/events/)
+        await page.goto(`/station/events?search=${encodeURIComponent(name)}`)
         await page.getByTestId('event-entry').filter({hasText: name}).first().click()
         await page.waitForURL(/\/station\/events\/\d+/)
 
@@ -453,7 +497,7 @@ test.describe('Events', () => {
 
         await page.getByRole('button', {name: 'Termine erstellen'}).click()
 
-        await page.goto('/station/events')
+        await page.goto(`/station/events?search=${encodeURIComponent(name)}`)
         await expect(page.getByText(name).first()).toBeVisible()
     })
 
@@ -476,18 +520,29 @@ test.describe('Events', () => {
     })
 
     /**
-     * What a category is for: the events page sorts itself into blocks instead of one long list,
-     * and no block holds everything.
+     * The planner reads by date, with every category mixed into one list and each row wearing its
+     * own. It used to be sorted into a block per category, which is why a category is on a row at
+     * all: without the badge the reader would have lost what the headings used to say.
      */
-    test('the events list is grouped by category', async ({managerPage: page}) => {
+    test('the planner reads by date and every row wears its category', async ({managerPage: page}) => {
         await page.goto('/station/events')
 
-        const groups = page.getByTestId('event-category-group')
-        await expect(groups.first()).toBeVisible()
-        expect(await groups.count()).toBeGreaterThan(1)
+        await expect(page.getByTestId('event-entry').first()).toBeVisible()
+        await expect(page.getByTestId('event-entry-category').first()).toBeVisible()
+    })
 
-        const total = await page.getByTestId('event-entry').count()
-        const inFirstGroup = await groups.first().getByTestId('event-entry').count()
-        expect(inFirstGroup).toBeLessThan(total)
+    /**
+     * What has been is a tab of its own, and the tab is in the address, so a reader can keep the
+     * past open, copy what they are looking at and come back to it.
+     */
+    test('the past appointments are a tab of their own', async ({managerPage: page}) => {
+        await page.goto('/station/events')
+
+        await page.getByRole('button', {name: 'Vergangen'}).click()
+        await expect(page).toHaveURL(/tab=past/)
+
+        await page.reload()
+        await expect(page).toHaveURL(/tab=past/)
+        await expect(page.getByText(/Vergangene Termine|Keine vergangenen Termine/).first()).toBeVisible()
     })
 })

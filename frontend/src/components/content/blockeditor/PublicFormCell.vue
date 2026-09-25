@@ -84,7 +84,7 @@ const unreachable = computed(() => !loadFailure.value || loadFailure.value.kind 
             <FailureAlert :failure="loadFailure ?? submitFailure"/>
             <FailureAlert :message="validationError" expected/>
 
-            <PublicFormClosedNotice v-if="!open" :state="form.state"/>
+            <PublicFormClosedNotice v-if="!open" :state="form.state" :closed-since="form.closedSince"/>
 
             <template v-else-if="!submitted">
                 <div v-for="q in form.questions" :key="q.id" class="space-y-2">

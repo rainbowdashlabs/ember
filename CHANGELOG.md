@@ -1,5 +1,29 @@
 # Changelog
 
+## v26.19.2
+
+### Improvements
+
+- **When something goes wrong, it says what.** Instead of "that did not work", a failure now names what happened, whether it is yours to put right or ours, and what to do next. Where it looks like a fault in Ember, the same message offers to report it, and the report reaches the people who run your installation with everything they need to find it.
+- **A failure that turns out to be a rule no longer asks you to report a bug.** Something you may not do, a name already taken, a file too large: each says so plainly and offers no report, so the reports that do arrive are the ones worth reading.
+- **An action that worked is no longer reported as one that failed.** Saving, deleting, inviting and handing over used to say they had failed when only the list behind them would not refresh, and many people did the thing a second time. The two are now told apart, and a screen that is merely out of date says so.
+
+- **Appointments that have happened have a tab of their own.** Both appointment lists now separate what is coming from what is done, so a station that has been running for years no longer reads years of finished appointments to find next week's. A repeating appointment stays with the coming ones as long as it still comes round, shown against the date it next falls on.
+- **The appointment lists can be searched, narrowed to a stretch of dates and paged.** Every list on both pages takes a search, a category and a from and to, loads in pages instead of all at once, and keeps what you chose in the address, so the list you are looking at can be bookmarked or passed on.
+- **The planner reads by date.** Appointments that happen once stand in one list in the order they fall, each showing its category, and repeating appointments have a block of their own. Picking a category is now a filter rather than a heading to scroll to.
+- **A closed survey can be opened again.** The menu on a closed survey now offers to reopen it, so a survey asked last season can be asked again without being written a second time.
+- **A survey's answers can be thrown away.** The menu offers to clear every answer a survey has collected, leaving the survey and its questions standing. A trial run or a round that went to the wrong people can be cleared and asked again, and whoever answered before may answer again.
+- **A survey that has run out says when it did.** Its tile in the station's list carries the date it stopped, and the page somebody opens the link to says it has taken no answers since that date instead of only that it is shut.
+- **A survey's settings are kept as they are changed.** Its name, its dates, its reach and its switches are saved the moment you change them, so a survey left reaching further than intended is no longer one forgotten press away. The questions still wait for Save, and the page says so.
+
+### Fixes
+
+- **A monthly or quarterly appointment opened on the wrong day.** Opened without a day named in the address, it showed the next time its weekday came round instead of the day it actually falls on, so the sign-ups, the attendance and the questions on that page all belonged to a day the appointment does not happen. It now opens on the day it next falls on, with the weeks the station is off and the end of the series taken into account.
+- **A public survey could not be opened at the address it was handed out with.** The address offered for a survey open to everybody spelled the station's readable name, and only the address spelling its identifier was accepted, so every link copied from the survey's own page led to "not found".
+- **A station whose only public thing was a survey showed nothing at all.** A survey open to everybody is drawn inside the station's frame, and a station with no public pages, wiki, calendar, waiting list or blog answered nothing about itself, so the survey's page stayed empty for everybody it was sent to.
+- **A choice question limiting the answer to an exact number could not be saved.** Setting "exactly" on a question that takes several answers was refused when the survey was saved, and the survey came back unchanged with no explanation.
+- **A survey's tile said it was open after its closing date had passed.** The list showed a survey as taking answers while its own page told every visitor it had closed, because the tile read only whether somebody had closed it by hand. It now reads the dates too, and says when a survey has not started yet.
+
 ## v26.19.1
 
 ### Improvements

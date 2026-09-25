@@ -15,7 +15,6 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ShareLinkPanel from './ShareLinkPanel.vue'
 import {forms, stationManage} from '@/api'
-import {getItem} from '@/api/storage'
 import {FormVisibility, type Form} from '@/api/forms'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
@@ -49,10 +48,9 @@ const openlyAddressed = computed(() => props.form.visibility === FormVisibility.
  * The station's readable name where it has one, and its identifier otherwise. The public address
  * takes either, and the readable one is what somebody pastes into a message without wincing.
  */
-const stationName = ref<string | null>(null)
+const stationAddress = ref<string | null>(null)
 
-const publicPath = computed(
-    () => `/public/station/${stationName.value ?? getItem('station_id') ?? ''}/forms/${props.form.publicUid}`)
+const publicPath = computed(() => `/public/station/${stationAddress.value ?? ''}/forms/${props.form.publicUid}`)
 
 const token = ref<string | null>(null)
 const failure = ref<Failure | null>(null)
@@ -62,9 +60,10 @@ const loading = ref(true)
 async function load() {
   if (openlyAddressed.value) {
     try {
-      stationName.value = (await stationManage.getStationInfo()).publicSlug ?? null
+      const station = await stationManage.getStationInfo()
+      stationAddress.value = station.publicSlug ?? station.id
     } catch {
-      stationName.value = null
+      stationAddress.value = null
     }
     loading.value = false
     return

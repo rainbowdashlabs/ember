@@ -42,7 +42,7 @@ const tosVersion = defineModel<string>('tosVersion', {required: true})
     <p v-if="form.description" class="mt-1 text-(--text-muted)">{{ form.description }}</p>
   </div>
 
-  <PublicFormClosedNotice v-if="!open" :state="form.state"/>
+  <PublicFormClosedNotice v-if="!open" :state="form.state" :closed-since="form.closedSince"/>
 
   <template v-else>
     <div class="space-y-4">

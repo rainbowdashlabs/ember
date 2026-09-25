@@ -19,7 +19,8 @@ const props = defineProps<{
   forms: Form[]
   canCreatePolls: boolean
   titleKey?: string
-  statusLabel: (status: string) => string
+  /** Names whether a form is taking answers, which is not the same as its stored status. */
+  statusLabel: (state: string) => string
   /**
    * Where a tile leads, which only the screen owning the routes can say. Nothing where the tiles
    * are shown rather than offered, and then they are not links.
@@ -47,6 +48,7 @@ const emit = defineEmits<{
   (e: 'edit', form: Form): void
   (e: 'analytics', form: Form): void
   (e: 'share', form: Form): void
+  (e: 'clear', form: Form): void
   (e: 'delete', form: Form): void
 }>()
 
@@ -95,6 +97,7 @@ const { t } = useI18n()
         @edit="emit('edit', $event)"
         @analytics="emit('analytics', $event)"
         @share="emit('share', $event)"
+        @clear="emit('clear', $event)"
         @delete="emit('delete', $event)"
       />
     </div>

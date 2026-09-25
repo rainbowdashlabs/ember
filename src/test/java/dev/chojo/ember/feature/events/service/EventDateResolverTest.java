@@ -90,6 +90,40 @@ class EventDateResolverTest extends RepositoryTestBase {
         assertEquals(next, eventDateResolver.nextDates(List.of(weekly)).get(weekly.id()));
     }
 
+    /**
+     * A monthly appointment falls on the first of its weekday in the month, and a quarterly one
+     * only in the months a quarter opens with.
+     *
+     * <p>Neither rule can be found by stepping a week at a time from today, which is what the
+     * appointment's own page used to do: it named the second or the fourth of the weekday and
+     * offered a sign-up for a day the appointment does not happen on.
+     */
+    @Test
+    void anAppointmentRepeatingLessOftenThanWeeklyIsNotAWeekAway() {
+        Instant start = Instant.now().minus(60, ChronoUnit.DAYS);
+        var monthly = event(StationEvent.EventType.MONTHLY_FIRST, DayOfWeek.SATURDAY.getValue(), start);
+        var quarterly = event(StationEvent.EventType.QUARTERLY, DayOfWeek.SATURDAY.getValue(), start);
+
+        LocalDate nextMonthly = eventDateResolver.nextDate(monthly).orElseThrow();
+        assertEquals(DayOfWeek.SATURDAY, nextMonthly.getDayOfWeek());
+        assertTrue(nextMonthly.getDayOfMonth() <= 7, "the first Saturday of its month and no other");
+        assertFalse(nextMonthly.isBefore(LocalDate.now(dateResolverZone())));
+
+        LocalDate nextQuarterly = eventDateResolver.nextDate(quarterly).orElseThrow();
+        assertTrue(nextQuarterly.getDayOfMonth() <= 7);
+        assertEquals(
+                0, (nextQuarterly.getMonthValue() - 1) % 3, "only January, April, July and October open a quarter");
+
+        var monthlyYear = eventDateResolver.occurrencesWithin(monthly, 365);
+        assertTrue(monthlyYear.size() >= 12, "one a month, all year");
+        assertTrue(monthlyYear.stream()
+                .allMatch(date -> date.getDayOfWeek() == DayOfWeek.SATURDAY && date.getDayOfMonth() <= 7));
+
+        var quarterlyYear = eventDateResolver.occurrencesWithin(quarterly, 365);
+        assertTrue(quarterlyYear.size() >= 4, "one a quarter, all year");
+        assertTrue(quarterlyYear.stream().allMatch(date -> (date.getMonthValue() - 1) % 3 == 0));
+    }
+
     /** A break the station keeps is not a date anything falls on. */
     @Test
     void aBreakTakesItsDatesOut() {

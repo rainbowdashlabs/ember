@@ -11,16 +11,15 @@ import {useEventRoutes} from '@/composables/useEventRoutes'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
 import EventDashboardBody from './indexview/EventDashboardBody.vue'
 import EventDashboardModals from './indexview/EventDashboardModals.vue'
-import type {AttendanceTemplate} from '@/api/attendance'
-import type {EventBreak, EventCategory, EventField, StationEvent} from '@/api/events'
-import {attendance, events} from '@/api'
+import EventFilterBar from './eventshared/EventFilterBar.vue'
+import {useEventDashboard} from './indexview/useEventDashboard'
+import {EventKinds, EventStates, type EventBreak, type StationEvent} from '@/api/events'
+import {events} from '@/api'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
-import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {useSession} from '@/composables/useSession'
-import {StationPermission} from '@/api/types'
-import {describeFailure, type Failure} from '@/util/failure'
+import {describeFailure, saying} from '@/util/failure'
 
 defineProps<{
   /** The heading, when the station's own wording is not the right one. */
@@ -29,72 +28,25 @@ defineProps<{
 }>()
 
 const {t} = useI18n()
-const {hasPermission} = useSession()
 const router = useRouter()
 const eventRoutes = useEventRoutes()
-const allEvents = ref<StationEvent[]>([])
-const todayEvents = ref<StationEvent[]>([])
-const breaks = ref<EventBreak[]>([])
-const categories = ref<EventCategory[]>([])
-const templates = ref<AttendanceTemplate[]>([])
-const overviewFields = ref<Record<number, EventField[]>>({})
 
-interface CategoryGroup {
-  category: EventCategory | null
-  events: StationEvent[]
-}
+const {
+  tab, isPast, searchInput, categoryId, from, to,
+  todayEvents, breaks, categories, templates, overviewFields,
+  dates, series, isEmpty,
+  loading, failure, reload, loadMore,
+} = useEventDashboard()
 
-const eventsByCategory = computed((): CategoryGroup[] => {
-  const groups: CategoryGroup[] = []
-  const sorted = [...categories.value].sort((a, b) => a.position - b.position)
-
-  const sortByStart = (a: StationEvent, b: StationEvent) =>
-      (a.startTime ?? '').localeCompare(b.startTime ?? '')
-
-  for (const cat of sorted) {
-    const catEvents = allEvents.value.filter(e => e.categoryId === cat.id).sort(sortByStart)
-    if (catEvents.length > 0) {
-      groups.push({category: cat, events: catEvents})
-    }
-  }
-
-  const uncategorized = allEvents.value.filter(e => !e.categoryId).sort(sortByStart)
-  if (uncategorized.length > 0) {
-    groups.push({category: null, events: uncategorized})
-  }
-
-  return groups
-})
+const tabs = computed(() => [
+  {key: EventStates.CURRENT, label: t('events.tabCurrent')},
+  {key: EventStates.PAST, label: t('events.tabPast')},
+])
 
 const showBreakModal = ref(false)
 const editingBreak = ref<EventBreak | null>(null)
 const showHolidayModal = ref(false)
 const showExportModal = ref(false)
-
-/**
- * Attendance templates belong to the attendance action, which only whoever records it may use.
- * Asking for them alongside the events sank the whole page for everyone else: a member opening the
- * events page got an error instead of the station's events, because one of the calls beside them
- * was refused.
- */
-const {loading, failure, reload} = useAsyncLoader(async () => {
-  const [ev, today, br, cats, ovFields] = await Promise.all([
-    events.listEvents(),
-    events.listTodayEvents(),
-    events.listBreaks(),
-    events.listCategories(),
-    events.getOverviewFields(),
-  ])
-  allEvents.value = ev
-  todayEvents.value = today
-  breaks.value = br
-  categories.value = cats
-  overviewFields.value = ovFields
-
-  templates.value = hasPermission(StationPermission.ATTENDANCE_EDIT)
-      ? await attendance.listTemplates().catch(() => [])
-      : []
-})
 
 const {
   show: showDeleteEventModal,
@@ -102,7 +54,7 @@ const {
   requestDelete: requestDeleteEvent,
   confirm: confirmDeleteEvent,
 } = useConfirmDelete<StationEvent>({
-  onDelete: ev => events.deleteEvent(ev.id),
+  onDelete: event => events.deleteEvent(event.id),
   onSuccess: () => reload(),
   failure,
 })
@@ -113,7 +65,7 @@ const {
   requestDelete: requestDeleteBreak,
   confirm: confirmDeleteBreak,
 } = useConfirmDelete<EventBreak>({
-  onDelete: br => events.deleteBreak(br.id),
+  onDelete: entry => events.deleteBreak(entry.id),
   onSuccess: () => reload(),
   failure,
 })
@@ -122,8 +74,8 @@ function openAddEvent() {
   router.push({name: eventRoutes.create})
 }
 
-function openEditEvent(ev: StationEvent) {
-  router.push({name: eventRoutes.edit, params: {id: ev.id}})
+function openEditEvent(event: StationEvent) {
+  router.push({name: eventRoutes.edit, params: {id: event.id}})
 }
 
 function openAddBreak() {
@@ -131,26 +83,19 @@ function openAddBreak() {
   showBreakModal.value = true
 }
 
-function openEditBreak(br: EventBreak) {
-  editingBreak.value = br
+function openEditBreak(entry: EventBreak) {
+  editingBreak.value = entry
   showBreakModal.value = true
 }
 
-/** Puts a failure on the page, whether it happened here or in one of the dialogs. */
-function show(described: Failure) {
-  failure.value = described
-}
-
-function clearFailure() {
-  failure.value = null
-}
-
 /**
- * Saving the break and reading the dashboard back are answered for separately: a break that was
- * stored and a page that then failed to refresh must not read as a break that was not stored.
+ * Writes the break, then catches the page up, and answers for the two separately.
+ *
+ * <p>They shared an attempt, so a break that was written and a page that then failed to come back
+ * both read as a refused break, and the reader writes the same closure twice.
  */
 async function saveBreak(data: { name: string; startDate: string; endDate: string }) {
-  clearFailure()
+  failure.value = null
   try {
     if (editingBreak.value) {
       await events.updateBreak(editingBreak.value.id, data)
@@ -159,29 +104,50 @@ async function saveBreak(data: { name: string; startDate: string; endDate: strin
     }
     showBreakModal.value = false
   } catch (e) {
-    show(describeFailure(e, t))
+    failure.value = describeFailure(e, t)
     return
   }
-  await reload()
+  await catchUp()
 }
 
+/**
+ * Writes each school holiday as a break of its own.
+ *
+ * <p>How many went in is said where some did, because the list comes from a directory of dozens and
+ * a reader told only that it failed cannot tell whether to run it again or fix the rest by hand.
+ */
 async function onImportHolidays(holidays: Array<{ name: string; startDate: string; endDate: string }>) {
-  clearFailure()
+  failure.value = null
+  let written = 0
   try {
-    for (const h of holidays) {
-      await events.createBreak(h)
+    for (const holiday of holidays) {
+      await events.createBreak(holiday)
+      written++
     }
     showHolidayModal.value = false
   } catch (e) {
-    show(describeFailure(e, t))
+    const described = describeFailure(e, t)
+    failure.value = written === 0
+        ? described
+        : saying(described, t('events.holidaysImportedPartly', {written, total: holidays.length}))
+    await catchUp()
     return
   }
-  await reload()
+  await catchUp()
 }
 
-function goToAttendance(ev: StationEvent) {
-  if (ev.templateId) {
-    router.push({name: 'attendance-new', query: {templateId: String(ev.templateId), eventId: String(ev.id)}})
+/** Fetches the page again, saying so where that is the only thing that failed. */
+async function catchUp() {
+  try {
+    await reload()
+  } catch (e) {
+    failure.value = saying(describeFailure(e, t), t('failure.staleAfterAction'))
+  }
+}
+
+function goToAttendance(event: StationEvent) {
+  if (event.templateId) {
+    router.push({name: 'attendance-new', query: {templateId: String(event.templateId), eventId: String(event.id)}})
   }
 }
 
@@ -196,11 +162,24 @@ function goToAttendance(ev: StationEvent) {
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :failure="failure"/>
 
+      <TabBar v-model="tab" :tabs="tabs"/>
+
+      <EventFilterBar
+          v-model:search="searchInput"
+          v-model:category-id="categoryId"
+          v-model:from="from"
+          v-model:to="to"
+          :categories="categories"
+      />
+
       <EventDashboardBody
           v-if="!loading"
+          :is-past="isPast"
           :today-events="todayEvents"
-          :events-by-category="eventsByCategory"
-          :has-events="allEvents.length > 0"
+          :dates="dates"
+          :series="series"
+          :is-empty="isEmpty"
+          :categories="categories"
           :templates="templates"
           :overview-fields="overviewFields"
           :breaks="breaks"
@@ -213,24 +192,26 @@ function goToAttendance(ev: StationEvent) {
           @delete-break="requestDeleteBreak"
           @import-holidays="showHolidayModal = true"
           @open-export="showExportModal = true"
-      />
-
-      <EventDashboardModals
-          v-model:show-export="showExportModal"
-          v-model:show-break="showBreakModal"
-          v-model:show-holiday="showHolidayModal"
-          v-model:show-delete-event="showDeleteEventModal"
-          v-model:show-delete-break="showDeleteBreakModal"
-          :categories="categories"
-          :editing-break="editingBreak"
-          :delete-event-target="deleteEventTarget"
-          :delete-break-target="deleteBreakTarget"
-          @error="show"
-          @save-break="saveBreak"
-          @import-holidays="onImportHolidays"
-          @confirm-delete-event="confirmDeleteEvent"
-          @confirm-delete-break="confirmDeleteBreak"
+          @load-more-dates="loadMore(EventKinds.ONE_TIME)"
+          @load-more-series="loadMore(EventKinds.REPEATING)"
       />
     </div>
+
+    <EventDashboardModals
+        v-model:show-export="showExportModal"
+        v-model:show-break="showBreakModal"
+        v-model:show-holiday="showHolidayModal"
+        v-model:show-delete-event="showDeleteEventModal"
+        v-model:show-delete-break="showDeleteBreakModal"
+        :categories="categories"
+        :editing-break="editingBreak"
+        :delete-event-target="deleteEventTarget"
+        :delete-break-target="deleteBreakTarget"
+        @error="refused => failure = refused"
+        @save-break="saveBreak"
+        @import-holidays="onImportHolidays"
+        @confirm-delete-event="confirmDeleteEvent"
+        @confirm-delete-break="confirmDeleteBreak"
+    />
   </ViewContent>
 </template>

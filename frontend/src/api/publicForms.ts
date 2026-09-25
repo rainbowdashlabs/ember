@@ -34,6 +34,8 @@ export interface PublicForm {
     description: string
     purpose: FormPurposeName
     state: PublicFormStateName
+    /** When it stopped taking answers, or nothing while it still does. */
+    closedSince?: string | null
     /** Empty unless the form is open: a form nobody can answer hands out no questions. */
     questions: PublicFormQuestion[]
 }

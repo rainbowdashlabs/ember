@@ -8,14 +8,16 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useInstantSave } from '@/composables/useInstantSave'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import InstantSaveNotice from '@/components/feedback/InstantSaveNotice.vue'
 import FormShareLink from '@/components/public/FormShareLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import QuestionEditor from './builderview/QuestionEditor.vue'
+import QuestionListEditor from './builderview/QuestionListEditor.vue'
 import FormMetadataEditor from './builderview/FormMetadataEditor.vue'
 import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
@@ -195,10 +197,45 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
     shuffle: q.shuffle,
     config: typeof q.config === 'object' ? { ...q.config } : {},
   }))
+
+  settings.arm()
+  if (answeredByMembers.value) limits.arm()
 })
 
-async function saveForm(): Promise<number> {
-  const formData = {
+/**
+ * The form's own settings, written back as they are changed.
+ *
+ * <p>Only the questions wait for the button. Everything else is a switch or a date that somebody
+ * sets and considers set, and a form left reaching further than its editor believed, because they
+ * changed a setting and walked away, is the accident worth designing out.
+ *
+ * <p>Armed only once a form has been read, and only where there is a form to write to: what is
+ * being created has nowhere to go yet, so it is the button that brings it into being.
+ */
+const settings = useInstantSave(
+    () => currentSettings(),
+    async data => {
+      if (formId.value) await forms.updateForm(formId.value, data)
+    })
+
+const limits = useInstantSave(
+    () => ({...restriction.value}),
+    async selection => {
+      if (!formId.value || !answeredByMembers.value) return
+      await forms.setRestrictions(formId.value, {
+        userTypes: selection.userTypes,
+        groupIds: selection.groupIds,
+        tagIds: selection.tagIds,
+        memberIds: selection.memberIds,
+      })
+    })
+
+/** True while anything is on its way to the server, so the page can say so rather than look idle. */
+const savingSettings = computed(() => settings.saving.value || limits.saving.value)
+const settingsFailed = computed(() => settings.failed.value || limits.failed.value)
+
+function currentSettings() {
+  return {
     title: title.value,
     description: description.value,
     shuffleQuestions: shuffleQuestions.value,
@@ -208,13 +245,15 @@ async function saveForm(): Promise<number> {
     endAt: endAt.value ? new Date(endAt.value).toISOString() : null,
     purpose: purpose.value,
   }
+}
+
+async function saveForm(): Promise<number> {
   const id = formId.value
   if (id) {
-    await forms.updateForm(id, formData)
-    await saveVisibility(id)
+    await settings.flush()
     return id
   }
-  const created = await forms.createForm(formData)
+  const created = await forms.createForm(currentSettings())
   await saveVisibility(created.id)
   return created.id
 }
@@ -281,7 +320,8 @@ async function save() {
   try {
     const id = await saveForm()
     await saveQuestions(id)
-    if (answeredByMembers.value) {
+    await limits.flush()
+    if (answeredByMembers.value && !formId.value) {
       await forms.setRestrictions(id, {
         userTypes: restriction.value.userTypes,
         groupIds: restriction.value.groupIds,
@@ -307,6 +347,10 @@ async function save() {
       <FailureAlert :failure="actionFailure ?? loadFailure"/>
 
       <template v-if="!loading">
+        <InstantSaveNotice v-if="formId" :saving="savingSettings" :failed="settingsFailed"
+            :label="t('forms.settingsSaved')" :saving-label="t('forms.settingsSaving')"
+            :failed-label="t('forms.settingsSaveFailed')"/>
+
         <FormMetadataEditor
           v-model:title="title"
           v-model:description="description"
@@ -333,17 +377,13 @@ async function save() {
           v-model="restriction"
         />
 
-        <div class="space-y-3">
-          <QuestionEditor v-for="(q, idx) in questions" :key="q.id"
-              :question="q" :index="idx" :total-questions="questions.length"
-              @move="moveQuestion" @remove="removeQuestion" />
-        </div>
-
-        <div class="flex flex-wrap gap-2">
-          <SecondaryButton :icon="['fas', 'plus']" v-for="type in questionTypes" :key="type" @click="addQuestion(type)">
-            {{ t(`forms.questionTypes.${type}`) }}
-          </SecondaryButton>
-        </div>
+        <QuestionListEditor
+          :questions="questions"
+          :question-types="questionTypes"
+          @move="moveQuestion"
+          @remove="removeQuestion"
+          @add="addQuestion"
+        />
 
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="router.push({ name: returnRouteName })">{{ t('common.cancel') }}</SecondaryButton>

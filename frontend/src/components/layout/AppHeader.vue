@@ -44,7 +44,8 @@ defineEmits<{
 
     <div v-show="title" class="flex flex-col justify-center min-w-0">
       <span class="text-base font-semibold truncate">{{ title }}</span>
-      <span v-show="subtitle" class="text-xs text-[var(--text-muted)] line-clamp-2 sm:truncate">{{ subtitle }}</span>
+      <span v-show="subtitle" data-testid="page-subtitle"
+            class="text-xs text-[var(--text-muted)] line-clamp-2 sm:truncate">{{ subtitle }}</span>
     </div>
 
     <div class="flex-1"/>
