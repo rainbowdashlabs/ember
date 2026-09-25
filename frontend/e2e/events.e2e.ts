@@ -14,23 +14,29 @@ import {test, expect, apiHeaders, type Page} from './fixtures/auth'
  * registration tab and would make these stories wait for something that is correctly absent.
  */
 /**
- * The seeded appointment that is signed up for, opened by its own address.
+ * A coming occurrence of a seeded appointment that is signed up for, opened on that very day.
  *
- * <p>Asked of the API rather than picked off the page. The list pages ten at a time now, so the
- * first row that takes sign-ups is the first one on page one, and a station whose next ten
- * appointments happen to take none would leave the story hunting a row that is there but not shown.
+ * <p>Asked of the API rather than picked off the page, because the list pages ten at a time and a
+ * station whose next ten appointments happen to take none would leave the story hunting a row that
+ * is there but not shown.
+ *
+ * <p>Three things are asked of it, and each of them broke this once. It has to be coming rather
+ * than any appointment the station ever wrote, because a day gone by takes no answer. It is opened
+ * on its own day rather than by its bare id, so a repeating appointment is bound to an occurrence
+ * it really has instead of whichever day the page works out for itself. And it must be one that
+ * takes an answer without anybody confirming it, because that is the answer the stories then read
+ * back.
  */
 async function openEventWithRegistration(page: Page) {
-    await page.goto('/station/events')
-
     const headers = await apiHeaders(page)
-    const answer = await page.request.get('/api/v1/events?requiresRegistration=true', {headers})
+    const answer = await page.request.get('/api/v1/events/upcoming?requiresRegistration=true&limit=50', {headers})
     expect(answer.ok(), 'the appointment list answers').toBeTruthy()
 
-    const [appointment] = await answer.json()
-    expect(appointment, 'the seeded station has an appointment that is signed up for').toBeTruthy()
+    const occurrences: {date: string, event: {id: number, requiresConfirmation: boolean}}[] = await answer.json()
+    const coming = occurrences.find(occurrence => !occurrence.event.requiresConfirmation)
+    expect(coming, 'the seeded station has a coming appointment that is answered without confirming').toBeTruthy()
 
-    await page.goto(`/station/events/${appointment.id}`)
+    await page.goto(`/station/events/${coming!.event.id}/${coming!.date}`)
 }
 
 /**
