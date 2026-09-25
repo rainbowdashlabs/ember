@@ -421,7 +421,7 @@ test.describe('Cluster inventory screens', () => {
         await page.getByTestId('item-edit-name').fill(renamed)
         await page.getByTestId('item-edit-save').click()
 
-        await expect(page.getByText(renamed)).toBeVisible({timeout: 15000})
+        await expect(page.getByRole('heading', {name: renamed})).toBeVisible({timeout: 15000})
         await page.context().close()
     })
 

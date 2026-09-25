@@ -154,7 +154,7 @@ test.describe('Knowledge base', () => {
         await page.getByRole('button', {name: 'Speichern'}).click()
 
         await page.reload()
-        await expect(page.getByText(description)).toBeVisible()
+        await expect(page.getByRole('main').getByText(description)).toBeVisible()
     })
 
     /**

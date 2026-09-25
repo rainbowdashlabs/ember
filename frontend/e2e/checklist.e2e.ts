@@ -47,7 +47,7 @@ test.describe('Checklists', () => {
 
         await page.getByRole('button', {name: 'Speichern'}).click()
 
-        await expect(page.getByText(checklist)).toBeVisible()
+        await expect(page.getByRole('heading', {name: checklist})).toBeVisible()
     })
 
     /**
