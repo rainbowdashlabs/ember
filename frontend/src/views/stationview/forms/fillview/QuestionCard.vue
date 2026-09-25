@@ -10,10 +10,10 @@ import MutedText from '@/components/typography/MutedText.vue'
 import {QuestionTypes, type FormQuestion} from '@/api/forms'
 import ChoiceQuestion from './ChoiceQuestion.vue'
 import TextQuestion from './TextQuestion.vue'
-import RatingQuestion from './RatingQuestion.vue'
+import RatingQuestion from '@/components/forms/fill/RatingQuestion.vue'
 import DateQuestion from './DateQuestion.vue'
-import RankingQuestion from './RankingQuestion.vue'
-import LikertQuestion from './LikertQuestion.vue'
+import RankingQuestion from '@/components/forms/fill/RankingQuestion.vue'
+import LikertQuestion from '@/components/forms/fill/LikertQuestion.vue'
 
 const props = defineProps<{
   question: FormQuestion

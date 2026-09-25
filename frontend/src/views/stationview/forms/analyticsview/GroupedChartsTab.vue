@@ -11,6 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import GroupedQuestionResult from './GroupedQuestionResult.vue'
 import type {FormQuestionInfo, FormResultGroup} from '@/api/forms'
 import {darkThemeActive as isDark} from '@/util/themeState'
+import {chartTextColor} from '@/util/chartLayout'
 import type {GroupSeries} from './groupedChart'
 
 /**
@@ -30,7 +31,7 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const asTable = ref(false)
-const textColor = computed(() => (isDark.value ? '#ccc' : '#333'))
+const textColor = computed(() => chartTextColor(isDark.value))
 const tooMany = computed(() => props.series === null && props.groups.length > 0)
 </script>
 

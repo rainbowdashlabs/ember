@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -12,13 +12,15 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import FormShareLink from '@/components/public/FormShareLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import QuestionEditor from './builderview/QuestionEditor.vue'
 import FormMetadataEditor from './builderview/FormMetadataEditor.vue'
 import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import type { QuestionDraft } from './builderview/types'
-import {FormPurpose, QUESTION_TYPES_BY_PURPOSE, QuestionTypes, type FormPurposeName, type FormQuestionRequest, type QuestionType} from '@/api/forms'
+import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, QuestionTypes, type Form, type FormPurposeName, type FormQuestionRequest, type FormVisibilityName, type PageUsingForm, type QuestionType} from '@/api/forms'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
 import { instantToLocalInput } from '@/util/format'
@@ -49,6 +51,29 @@ const allowEdit = ref(true)
 const forced = ref(false)
 const startAt = ref('')
 const endAt = ref('')
+const visibility = ref<FormVisibilityName>(FormVisibility.PUBLIC)
+
+/**
+ * The reach the form is stored with, which is what a change is measured against.
+ *
+ * <p>Not the previous value of the box: reading the form fills the box in, and a form already
+ * stored as reachable by link alone moved it off the default the moment it loaded. Measured that
+ * way, opening the editor counted as a change, wrote the reach back and minted a link nobody had
+ * asked for.
+ */
+const storedVisibility = ref<FormVisibilityName | null>(null)
+
+/**
+ * The pages that still put this form on themselves after it was closed to its link alone.
+ *
+ * <p>Nothing stops the change: the editor may well mean it, and the cells are theirs to tidy. What
+ * they cannot do is notice, because those pages go on rendering with a poll on them that nobody
+ * outside can answer any more.
+ */
+const heldBy = ref<PageUsingForm[]>([])
+
+/** The form as the server last gave it, for the panel that shows where it is reached. */
+const loadedForm = ref<Form | null>(null)
 
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
@@ -120,6 +145,7 @@ const { loading, error } = useAsyncLoader(async () => {
     forms.getQuestions(formId.value),
     forms.getRestrictions(formId.value),
   ])
+  loadedForm.value = form
   title.value = form.title
   description.value = form.description
   shuffleQuestions.value = form.shuffleQuestions
@@ -128,6 +154,8 @@ const { loading, error } = useAsyncLoader(async () => {
   startAt.value = instantToLocalInput(form.startAt)
   endAt.value = instantToLocalInput(form.endAt)
   purpose.value = form.purpose
+  visibility.value = form.visibility
+  storedVisibility.value = form.visibility
 
   restriction.value = {
     userTypes: restrictions.userTypes ?? [],
@@ -162,11 +190,51 @@ async function saveForm(): Promise<number> {
   const id = formId.value
   if (id) {
     await forms.updateForm(id, formData)
+    await saveVisibility(id)
     return id
   }
   const created = await forms.createForm(formData)
+  await saveVisibility(created.id)
   return created.id
 }
+
+/**
+ * How far the form reaches is set on its own, because it is not part of the form's own settings: it
+ * says who can get to the form rather than what the form asks. An internal form has no reach at all
+ * and the server refuses to be told about one.
+ */
+async function saveVisibility(id: number) {
+  if (purpose.value === FormPurpose.INTERNAL) return
+  await forms.setFormVisibility(id, visibility.value)
+}
+
+/**
+ * Turning a form to its link alone takes effect at once, and gives it a link where it has none.
+ *
+ * <p>Waiting for the save would mean showing an address that does not exist yet, or showing nothing
+ * where somebody has just asked for a link. What the link opens still follows the last save, which
+ * is what the note beside it says.
+ *
+ * <p>A form keeps the one link it was given. Opening it to everybody and closing it again leaves
+ * that link alone, so a link already handed out still works afterwards; ending it is the button
+ * that says so and nothing else.
+ */
+watch(visibility, async now => {
+  const id = formId.value
+  if (!id || !loadedForm.value || purpose.value === FormPurpose.INTERNAL) return
+  if (now === storedVisibility.value) return
+  try {
+    const {form: saved, stillHeldBy} = await forms.setFormVisibility(id, now)
+    storedVisibility.value = now
+    if (now === FormVisibility.UNLISTED && !(await forms.getFormShareLink(id))) {
+      await forms.replaceFormShareLink(id, null)
+    }
+    loadedForm.value = saved
+    heldBy.value = stillHeldBy
+  } catch {
+    error.value = t('common.error')
+  }
+})
 
 async function saveQuestions(id: number) {
   const questionRequests: FormQuestionRequest[] = questions.value.map(q => ({
@@ -217,7 +285,15 @@ async function save() {
           v-model:shuffle-questions="shuffleQuestions"
           v-model:allow-edit="allowEdit"
           v-model:forced="forced"
+          v-model:visibility="visibility"
+          :purpose="purpose"
         />
+
+        <FormShareLink v-if="loadedForm && purpose !== FormPurpose.INTERNAL" :form="loadedForm" unsaved/>
+
+        <Alert v-if="heldBy.length > 0" variant="info">
+          {{ t('forms.stillHeldBy', {pages: heldBy.map(p => p.title).join(', ')}) }}
+        </Alert>
 
         <FormRestrictionsEditor
           :groups="allGroups"

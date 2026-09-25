@@ -8,14 +8,24 @@ import {ref, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
+import Modal from '@/components/feedback/Modal.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import ShareLinkPanel from '@/components/public/ShareLinkPanel.vue'
 import PagesListContent from './pageslistview/PagesListContent.vue'
+import PageVisibilityModal from './pageslistview/PageVisibilityModal.vue'
 import {
     listPages,
     createPage,
     deletePage,
     duplicatePage,
-    setPublished,
+    setVisibility,
+    getPageShareLink,
+    replacePageShareLink,
     setLandingPage,
+    type PageVisibilityName,
     type StationPage,
 } from '@/api/pageManage'
 import {StationPermission} from '@/api/types'
@@ -116,12 +126,72 @@ async function onDuplicate(page: StationPage) {
     }
 }
 
-async function onTogglePublish(page: StationPage) {
+const visibilityPage = ref<StationPage | null>(null)
+const visibilityError = ref('')
+
+const sharePage = ref<StationPage | null>(null)
+const shareOpen = ref(false)
+const shareToken = ref<string | null>(null)
+const shareError = ref('')
+const shareBusy = ref(false)
+
+async function onChooseVisibility(visibility: PageVisibilityName) {
+    const page = visibilityPage.value
+    if (!page) return
+    visibilityError.value = ''
     try {
-        await setPublished(page.id, !page.published)
+        await setVisibility(page.id, visibility)
+        visibilityPage.value = null
         await reload()
+    } catch (e) {
+        const said = (e as {response?: {data?: {message?: string}}})?.response?.data?.message
+        visibilityError.value = said || t('common.error')
+    }
+}
+
+async function onShareLink(page: StationPage) {
+    sharePage.value = page
+    shareError.value = ''
+    shareToken.value = null
+    shareOpen.value = true
+    try {
+        shareToken.value = await getPageShareLink(page.id)
     } catch {
-        error.value = t('common.error')
+        shareError.value = t('common.error')
+    }
+}
+
+async function onReplaceShareLink() {
+    const page = sharePage.value
+    if (!page) return
+    shareBusy.value = true
+    shareError.value = ''
+    try {
+        shareToken.value = await replacePageShareLink(page.id, shareToken.value)
+    } catch {
+        shareError.value = t('shareLink.replaceConflict')
+    } finally {
+        shareBusy.value = false
+    }
+}
+
+/**
+ * Makes the page's first link.
+ *
+ * <p>A page carries no link until somebody asks for one, so the dialog opens on a page that has
+ * none and this is the way out of it. Replacing nothing is what making the first one is.
+ */
+async function onCreateShareLink() {
+    const page = sharePage.value
+    if (!page) return
+    shareBusy.value = true
+    shareError.value = ''
+    try {
+        shareToken.value = await replacePageShareLink(page.id, null)
+    } catch {
+        shareError.value = t('shareLink.createFailed')
+    } finally {
+        shareBusy.value = false
     }
 }
 
@@ -166,10 +236,41 @@ function onReorder(fromIndex: number, toIndex: number) {
             @reorder="onReorder"
             @edit="navigateToEdit"
             @duplicate="onDuplicate"
-            @toggle-publish="onTogglePublish"
+            @change-visibility="(p: StationPage) => { visibilityPage = p; visibilityError = '' }"
+            @share-link="onShareLink"
             @set-landing="onSetLandingPage"
             @request-delete="requestDelete"
             @confirm-delete="confirmDelete"
         />
+
+        <PageVisibilityModal
+            :page="visibilityPage"
+            :error="visibilityError"
+            @choose="onChooseVisibility"
+            @close="visibilityPage = null"
+        />
+
+        <Modal v-model="shareOpen">
+            <div class="space-y-4">
+                <SubHeader>{{ t('stationPages.shareLink') }}</SubHeader>
+                <ShareLinkPanel
+                    v-if="shareToken"
+                    :path="`/s/${shareToken}`"
+                    :busy="shareBusy"
+                    :error="shareError"
+                    replaceable
+                    @replace="onReplaceShareLink"
+                />
+                <Alert v-else-if="shareError" variant="error">{{ shareError }}</Alert>
+                <div v-else class="space-y-3">
+                    <MutedText tag="p" size="sm">{{ t('shareLink.none') }}</MutedText>
+                    <ButtonRow align="end">
+                        <PrimaryButton :disabled="shareBusy" :icon="['fas', 'link']" @click="onCreateShareLink">
+                            {{ t('shareLink.create') }}
+                        </PrimaryButton>
+                    </ButtonRow>
+                </div>
+            </div>
+        </Modal>
     </ViewContent>
 </template>

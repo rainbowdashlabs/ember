@@ -14,5 +14,7 @@ import { FormPurpose } from '@/api/forms'
     :show-available-section="false"
     title-key="stationPages.editor.pollsTitle"
     analytics-route-name="pages-polls-analytics"
+    create-route-name="pages-polls-create"
+    edit-route-name="pages-polls-edit"
   />
 </template>

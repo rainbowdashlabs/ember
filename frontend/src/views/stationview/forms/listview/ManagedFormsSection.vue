@@ -41,6 +41,7 @@ const emit = defineEmits<{
   (e: 'close', form: Form): void
   (e: 'edit', form: Form): void
   (e: 'analytics', form: Form): void
+  (e: 'share', form: Form): void
   (e: 'delete', form: Form): void
 }>()
 
@@ -88,6 +89,7 @@ const { t } = useI18n()
         @close="emit('close', $event)"
         @edit="emit('edit', $event)"
         @analytics="emit('analytics', $event)"
+        @share="emit('share', $event)"
         @delete="emit('delete', $event)"
       />
     </div>

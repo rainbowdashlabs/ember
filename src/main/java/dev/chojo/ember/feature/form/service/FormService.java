@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.form.entity.FormVisibility;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
@@ -30,6 +31,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.system.service.RequirementsService;
+import dev.chojo.ember.util.ShareTokens;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -57,6 +59,7 @@ public class FormService {
     private final UserTagService tagService;
     private final RestrictionService restrictionService;
     private final DomainEventBus eventBus;
+    private final ShareTokens shareTokens;
 
     @Inject
     public FormService(
@@ -65,13 +68,15 @@ public class FormService {
             MemberGroupService groupService,
             UserTagService tagService,
             RestrictionService restrictionService,
-            DomainEventBus eventBus) {
+            DomainEventBus eventBus,
+            ShareTokens shareTokens) {
         this.repository = repository;
         this.memberService = memberService;
         this.groupService = groupService;
         this.tagService = tagService;
         this.restrictionService = restrictionService;
         this.eventBus = eventBus;
+        this.shareTokens = shareTokens;
     }
 
     /**
@@ -253,7 +258,11 @@ public class FormService {
     }
 
     /**
-     * Publishes a form by transitioning its status to OPEN.
+     * Opens a form for answers.
+     *
+     * <p>Only an internal form tells the station about it. A contact form and a public poll are
+     * answered by people who are not members, and the notification pointed every member at the
+     * internal page for filling a form in, which refuses them: wrong audience, wrong destination.
      *
      * @param id the form ID
      * @return {@code true} if the status was updated
@@ -262,12 +271,80 @@ public class FormService {
         var form = repository.findById(id).orElse(null);
         boolean updated = repository.updateStatus(id, Form.FormStatus.OPEN);
         if (updated && form != null) {
-            eventBus.publish(new FormPublished(form.stationId(), id, form.title()));
+            if (form.purpose() == FormPurpose.INTERNAL) {
+                eventBus.publish(new FormPublished(form.stationId(), id, form.title()));
+            }
             log.info("Published form {} (station {})", id, form.stationId());
         } else if (!updated) {
             log.warn("Form publish affected zero rows for form {}", id);
         }
         return updated;
+    }
+
+    /**
+     * The link this form is sent with, where it has one.
+     *
+     * <p>Asking does not make one. The screens that show a link show it wherever a form is written
+     * or its results read, and minting on sight would give a link to every form anybody ever opened,
+     * including the ones nobody means to send. {@link #replaceShareLink} against no link is how the
+     * first one is made, which is somebody pressing a button.
+     *
+     * <p>Only a form meant to be answered from outside has one at all. An internal form is reached
+     * from the station's own screens, and a link that let anybody answer it would go around the
+     * restrictions it carries.
+     *
+     * @param id the form ID
+     * @return the link, or empty where the form has none, is internal, or is gone
+     */
+    public Optional<String> shareLink(int id) {
+        return repository
+                .findById(id)
+                .filter(form -> form.purpose() != FormPurpose.INTERNAL)
+                .flatMap(form -> repository.findShareToken(id));
+    }
+
+    /**
+     * Replaces the link, ending every copy of the one the form carried.
+     *
+     * @param id       the form ID
+     * @param expected the link the caller was shown
+     * @return the new link, or empty where the form has since been given a different one
+     */
+    public Optional<String> replaceShareLink(int id, String expected) {
+        var form = repository.findById(id).orElse(null);
+        if (form == null) return Optional.empty();
+        if (form.purpose() == FormPurpose.INTERNAL) {
+            throw new BadRequestResponse("A form for the station's own members is not sent by link");
+        }
+        String replacement = shareTokens.mint();
+        if (!repository.replaceShareToken(id, expected, replacement)) return Optional.empty();
+        log.info("Form {} share link replaced", id);
+        return Optional.of(replacement);
+    }
+
+    public Optional<Form> findByShareToken(String token) {
+        return repository.findByShareToken(token).filter(form -> form.purpose() != FormPurpose.INTERNAL);
+    }
+
+    /**
+     * Sets how far a form reaches: at its own address, or at the link it was sent with alone.
+     *
+     * <p>Only a form meant for people outside the station has either reach, so an internal one is
+     * refused rather than quietly given a setting that decides nothing.
+     *
+     * @param id         the form ID
+     * @param visibility what it becomes
+     * @return {@code true} if a row changed
+     */
+    public boolean setVisibility(int id, FormVisibility visibility) {
+        var form = repository.findById(id).orElse(null);
+        if (form == null) return false;
+        if (form.purpose() == FormPurpose.INTERNAL) {
+            throw new BadRequestResponse("A form for the station's own members is not reached from outside at all");
+        }
+        boolean changed = repository.updateVisibility(id, visibility);
+        if (changed) log.info("Form {} visibility set to {}", id, visibility);
+        return changed;
     }
 
     /**

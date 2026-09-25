@@ -27,11 +27,13 @@ import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.ShareTokens;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -70,9 +72,10 @@ class PageImageDescriptionTest extends RepositoryTestBase {
                 pageRepo,
                 blocks,
                 media,
-                new CellDescriptions(media),
+                new CellDescriptions(media, (stationId, pageUid) -> Optional.empty()),
                 stationMemberRepo,
-                new AvatarService(new ImageVariantService(storageService)));
+                new AvatarService(new ImageVariantService(storageService)),
+                new ShareTokens());
         station = stationRepo.create("ImageDescriptionStation");
         account = accountRepo.create("image-desc@test.com", "Image", "Author");
         member = stationMemberRepo.create(station.id(), account.id());

@@ -7,12 +7,15 @@ package dev.chojo.ember.feature.form.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.DomainEventHandler;
+import dev.chojo.ember.event.events.FormPublished;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
+import dev.chojo.ember.feature.form.entity.FormVisibility;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -23,6 +26,8 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.ShareTokens;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -32,6 +37,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,7 +66,8 @@ class FormServiceTest extends RepositoryTestBase {
         var groupService = mock(MemberGroupService.class);
         var tagService = mock(UserTagService.class);
 
-        service = new FormService(formRepo, memberService, groupService, tagService, restrictionService, eventBus);
+        service = new FormService(
+                formRepo, memberService, groupService, tagService, restrictionService, eventBus, new ShareTokens());
         station = stationRepo.create("FormSvcStation");
         account = accountRepo.create("form-svc@test.com", "Form", "Svc");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -324,8 +331,8 @@ class FormServiceTest extends RepositoryTestBase {
         when(tagService.findTagsForMember(member.id())).thenReturn(List.of());
 
         var eventBus = new DomainEventBus(Set.of());
-        var restrictedService =
-                new FormService(formRepo, memberService, groupService, tagService, restrictionService, eventBus);
+        var restrictedService = new FormService(
+                formRepo, memberService, groupService, tagService, restrictionService, eventBus, new ShareTokens());
 
         // Member is in the restriction list - should have access
         assertTrue(restrictedService.canMemberAccess(form.id(), member.id()));
@@ -494,7 +501,203 @@ class FormServiceTest extends RepositoryTestBase {
         assertNotNull(pending);
     }
 
+    @Test
+    @Order(45)
+    void aPublicFormIsSentByALinkThatCanBeWithdrawn() {
+        var poll = service.create(
+                station.id(),
+                "Umfrage zum Versenden",
+                "",
+                false,
+                false,
+                false,
+                null,
+                null,
+                member.id(),
+                FormPurpose.POLL);
+
+        assertTrue(
+                service.shareLink(poll.id()).isEmpty(),
+                "asking does not make one: a form nobody means to send should not get a link because"
+                        + " somebody opened its editor");
+
+        var link = service.replaceShareLink(poll.id(), null).orElseThrow();
+        assertEquals(
+                link,
+                service.shareLink(poll.id()).orElseThrow(),
+                "asking twice hands out the same link rather than ending the first one");
+        assertEquals(poll.id(), service.findByShareToken(link).orElseThrow().id());
+
+        var replacement = service.replaceShareLink(poll.id(), link).orElseThrow();
+        assertNotEquals(link, replacement);
+        assertTrue(service.findByShareToken(link).isEmpty(), "the link that was replaced opens nothing");
+        assertEquals(
+                poll.id(), service.findByShareToken(replacement).orElseThrow().id());
+
+        assertTrue(
+                service.replaceShareLink(poll.id(), link).isEmpty(),
+                "whoever holds the old link is told it changed rather than ending somebody else's");
+
+        service.delete(poll.id());
+    }
+
+    /**
+     * A form on a public page answers at its own address, because that is what the page fetches it
+     * by. A form that is only sent to the people it is meant for answers at its link and nowhere
+     * else, so replacing the link really does end every way in that was given out.
+     */
+    @Test
+    @Order(45)
+    void aFormSentByLinkAloneIsNotAnsweredAtItsOwnAddress() {
+        var poll = service.create(
+                station.id(), "Nur per Link", "", false, false, false, null, null, member.id(), FormPurpose.POLL);
+        assertEquals(FormVisibility.PUBLIC, poll.visibility(), "a form is openly addressed until somebody says not");
+
+        assertTrue(service.setVisibility(poll.id(), FormVisibility.UNLISTED));
+        assertFalse(
+                service.findById(poll.id()).orElseThrow().visibility().openlyAddressed(),
+                "and then its own address answers nothing");
+
+        var internal = service.create(
+                station.id(), "Intern", "", false, false, false, null, null, member.id(), FormPurpose.INTERNAL);
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.setVisibility(internal.id(), FormVisibility.UNLISTED),
+                "a form for the station's own members is not reached from outside at all");
+
+        service.delete(poll.id());
+        service.delete(internal.id());
+    }
+
+    @Test
+    @Order(46)
+    void anInternalFormIsNotSentByALink() {
+        var internal = service.create(
+                station.id(),
+                "Nur für Mitglieder",
+                "",
+                false,
+                false,
+                false,
+                null,
+                null,
+                member.id(),
+                FormPurpose.INTERNAL);
+
+        assertTrue(service.shareLink(internal.id()).isEmpty(), "an internal form is reached from inside the station");
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.replaceShareLink(internal.id(), null),
+                "and one cannot be given a link either, which is the half that would have let it out");
+        assertTrue(service.shareLink(999999).isEmpty());
+        assertTrue(service.replaceShareLink(999999, null).isEmpty());
+
+        service.delete(internal.id());
+    }
+
+    /**
+     * Opening a form for the public tells nobody. The notification says a new form is there to fill
+     * in and points at the internal page for filling one in, which refuses anybody who is not a
+     * member: wrong audience, wrong destination.
+     */
+    @Test
+    @Order(47)
+    void onlyAnInternalFormTellsTheStationItHasOpened() {
+        var announced = new ArrayList<String>();
+        var listening = new FormService(
+                formRepo,
+                mock(StationMemberService.class),
+                mock(MemberGroupService.class),
+                mock(UserTagService.class),
+                restrictionService,
+                new DomainEventBus(Set.of(new DomainEventHandler<FormPublished>() {
+                    @Override
+                    public Class<FormPublished> eventType() {
+                        return FormPublished.class;
+                    }
+
+                    @Override
+                    public void handle(FormPublished event) {
+                        announced.add(event.formTitle());
+                    }
+                })),
+                new ShareTokens());
+
+        var poll = listening.create(
+                station.id(),
+                "Öffentliche Umfrage",
+                "",
+                false,
+                false,
+                false,
+                null,
+                null,
+                member.id(),
+                FormPurpose.POLL);
+        var internal = listening.create(
+                station.id(),
+                "Interne Umfrage",
+                "",
+                false,
+                false,
+                false,
+                null,
+                null,
+                member.id(),
+                FormPurpose.INTERNAL);
+
+        listening.publish(poll.id());
+        listening.publish(internal.id());
+
+        assertEquals(List.of("Interne Umfrage"), announced);
+
+        listening.delete(poll.id());
+        listening.delete(internal.id());
+    }
+
     // -- Delete --
+
+    /**
+     * A form keeps the one link it was given, whichever way its reach is turned afterwards.
+     *
+     * <p>Opening it to everybody and closing it again leaves the link alone, so one already handed
+     * out still works; only ending it explicitly changes it.
+     */
+    @Test
+    @Order(90)
+    void aPublicFormKeepsItsLinkThroughEveryChangeOfReach() {
+        var form = service.create(
+                station.id(), "Sent By Link", "", false, true, false, null, null, member.id(), FormPurpose.POLL);
+
+        service.setVisibility(form.id(), FormVisibility.UNLISTED);
+        String first = service.replaceShareLink(form.id(), null).orElseThrow();
+
+        service.setVisibility(form.id(), FormVisibility.PUBLIC);
+        assertEquals(first, service.shareLink(form.id()).orElseThrow(), "a public form still carries its link");
+
+        service.setVisibility(form.id(), FormVisibility.UNLISTED);
+        assertEquals(first, service.shareLink(form.id()).orElseThrow());
+
+        String replaced = service.replaceShareLink(form.id(), first).orElseThrow();
+        assertNotEquals(first, replaced);
+        assertTrue(service.findByShareToken(replaced).isPresent());
+
+        service.delete(form.id());
+    }
+
+    /** A form for the station's own members is not sent by link, and says so the same way twice. */
+    @Test
+    @Order(91)
+    void anInternalFormIsNotSentByLink() {
+        var form = service.create(
+                station.id(), "Members Only", "", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
+
+        assertTrue(service.shareLink(form.id()).isEmpty());
+        assertThrows(BadRequestResponse.class, () -> service.replaceShareLink(form.id(), null));
+        assertThrows(BadRequestResponse.class, () -> service.setVisibility(form.id(), FormVisibility.UNLISTED));
+
+        service.delete(form.id());
+    }
 
     @Test
     @Order(99)

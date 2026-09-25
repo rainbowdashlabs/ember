@@ -32,7 +32,7 @@ const {
   allEvents, eventBreaks, todayEvents, myRegistrations, eligibleMembers, managedMembers,
   registrationCounts, overviewFields, categories, restrictions, groups, tags,
   selectedCategoryId, searchQuery, showNeedsAction,
-  loadingMore, hasMore, registering, filteredUpcoming, multiDayEndDate,
+  loadingMore, hasMore, registering, upcomingOccurrences, multiDayEndDate,
   loading, error,
   answerPrompt, confirmAnswerPrompt, cancelAnswerPrompt,
 } = upcoming
@@ -138,7 +138,7 @@ watch(loaded, (isLoaded) => {
           :all-events="allEvents"
           :event-breaks="eventBreaks"
           :filtered-today-events="filteredTodayEvents"
-          :filtered-upcoming="filteredUpcoming"
+          :upcoming-occurrences="upcomingOccurrences"
           :overview-fields="overviewFields"
           :my-registrations="myRegistrations"
           :managed-members-count="managedMembers.length"

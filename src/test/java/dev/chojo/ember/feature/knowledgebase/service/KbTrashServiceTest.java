@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.repository.KbFavouriteRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService.MemberAccess;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -327,14 +328,14 @@ class KbTrashServiceTest extends RepositoryTestBase {
     @Test
     void aDeleteNamesThePagesThatCarryTheArticle() {
         var article = file(null, "trash-on-a-page");
-        var draft = pageWithArticle("Entwurf Ausbildung", "entwurf-ausbildung", article.id(), false);
+        var draft = pageWithArticle("Entwurf Ausbildung", "entwurf-ausbildung", article.id(), PageVisibility.DRAFT);
 
         var quiet = service.impactOf(station.id(), List.of(), List.of(article.id()));
 
         assertEquals(List.of("Entwurf Ausbildung"), quiet.embeddedOn());
         assertFalse(quiet.onPublicPage(), "a page nobody outside reads is the milder case");
 
-        pageRepo.setPublished(draft, true);
+        pageRepo.setVisibility(draft, PageVisibility.PUBLIC, null);
         var loud = service.impactOf(station.id(), List.of(), List.of(article.id()));
 
         assertTrue(loud.onPublicPage());
@@ -350,11 +351,11 @@ class KbTrashServiceTest extends RepositoryTestBase {
     /**
      * A station page carrying one wiki article in a cell, which is the shape the warning reads.
      */
-    private static int pageWithArticle(String title, String slug, int articleId, boolean published) {
+    private static int pageWithArticle(String title, String slug, int articleId, PageVisibility visibility) {
         var page = pageRepo.create(station.id(), title, slug, null, member.id());
         var container = contentContainerRepo.create(station.id());
         pageRepo.setContainer(page.id(), container.id());
-        pageRepo.setPublished(page.id(), published);
+        pageRepo.setVisibility(page.id(), visibility, null);
         int rowId = contentContainerRepo.insertRow(container.id(), 0);
         contentContainerRepo.insertCell(
                 rowId, 0, 100.0, CellContentType.KB_ARTICLE, "", new CellConfig.KbArticleConfig(articleId, title));

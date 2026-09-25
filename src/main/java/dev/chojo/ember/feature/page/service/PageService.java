@@ -13,9 +13,11 @@ import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.util.Markdown;
+import dev.chojo.ember.util.ShareTokens;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -24,11 +26,12 @@ import org.slf4j.LoggerFactory;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 @Singleton
 public class PageService {
@@ -41,6 +44,7 @@ public class PageService {
     private final CellDescriptions descriptions;
     private final StationMemberRepository stationMemberRepository;
     private final AvatarService avatarService;
+    private final ShareTokens shareTokens;
 
     @Inject
     public PageService(
@@ -49,13 +53,15 @@ public class PageService {
             MediaLibraryService mediaLibrary,
             CellDescriptions descriptions,
             StationMemberRepository stationMemberRepository,
-            AvatarService avatarService) {
+            AvatarService avatarService,
+            ShareTokens shareTokens) {
         this.pageRepository = pageRepository;
         this.blocks = blocks;
         this.mediaLibrary = mediaLibrary;
         this.descriptions = descriptions;
         this.stationMemberRepository = stationMemberRepository;
         this.avatarService = avatarService;
+        this.shareTokens = shareTokens;
     }
 
     // --- Page CRUD ---
@@ -74,6 +80,7 @@ public class PageService {
     public StationPage create(int stationId, String title, Integer parentId, int createdBy) {
         if (parentId != null) {
             validateDepth(parentId, 1);
+            refuseUnlistedParent(parentId);
         }
         String slug = generateUniqueSlug(stationId, title, 0);
         var page = pageRepository.create(stationId, title, slug, parentId, createdBy);
@@ -81,6 +88,18 @@ public class PageService {
         pageRepository.setContainer(page.id(), container.id());
         log.info("Page {} created in station {} by member {}", page.id(), stationId, createdBy);
         return pageRepository.findById(page.id()).orElse(page);
+    }
+
+    /**
+     * A page reached only by its link stands on its own, so nothing may be filed under one: a child
+     * of a page that is not in the tree has no address anybody could work out.
+     */
+    private void refuseUnlistedParent(int parentId) {
+        pageRepository.findById(parentId).ifPresent(parent -> {
+            if (parent.visibility() == PageVisibility.UNLISTED) {
+                throw new BadRequestResponse("A page reached by its link alone cannot hold pages under it");
+            }
+        });
     }
 
     public Optional<StationPage> getPage(int pageId) {
@@ -117,33 +136,63 @@ public class PageService {
     }
 
     /**
-     * Page picker for the {@code PAGE_LINK} cell. Returns a compact
-     * {@code PickerPage} shape (public UUID + title + slug + updatedAt) for published pages of the
-     * supplied station, with optional case-insensitive title-substring filter.
+     * Page picker for the page link cell. Returns a compact {@code PickerPage} shape (public UUID +
+     * title + slug + updatedAt) for the pages of the supplied station that somebody outside can
+     * open, with optional case-insensitive title-substring filter.
      */
     public List<PageRepository.PickerPage> searchPagePicker(int stationId, String search, int limit) {
         return pageRepository.searchForPicker(stationId, search, limit);
     }
 
-    public List<StationPage> listPublishedPages(int stationId) {
-        var all = pageRepository.findPublishedByStation(stationId);
-        // Filter out children whose parents are unpublished
-        Set<Integer> publishedIds = new HashSet<>();
+    /**
+     * The pages that belong in the station's menu, its public page list and its sitemap.
+     *
+     * <p>A page whose parent is not itself listed is left out, and so is one whose grandparent is
+     * not: the check walks the whole line rather than the nearest parent. Looking only at the parent
+     * let a page three deep out through a draft above it, which put it in the sitemap.
+     */
+    public List<StationPage> listListedPages(int stationId) {
+        var all = pageRepository.findListedByStation(stationId);
+        var listed = new HashMap<Integer, StationPage>();
         for (var page : all) {
-            publishedIds.add(page.id());
+            listed.put(page.id(), page);
         }
-        return all.stream()
-                .filter(p -> p.parentId() == null || publishedIds.contains(p.parentId()))
-                .toList();
+        return all.stream().filter(page -> lineIsListed(page, listed)).toList();
     }
 
+    /**
+     * Whether every page above this one is listed too.
+     *
+     * <p>The walk reads the pages it was handed rather than asking for each ancestor again: an
+     * ancestor it may continue through is by definition one of them, since the step before checked
+     * exactly that. Asking anyway cost a query per ancestor per page, on the menu, the sitemap and
+     * every public render.
+     */
+    private boolean lineIsListed(StationPage page, Map<Integer, StationPage> listed) {
+        var parentId = page.parentId();
+        var seen = new HashSet<Integer>();
+        while (parentId != null) {
+            var parent = listed.get(parentId);
+            if (parent == null || !seen.add(parentId)) return false;
+            parentId = parent.parentId();
+        }
+        return true;
+    }
+
+    /**
+     * The page a path of slugs spells, where every page along that path is listed.
+     *
+     * <p>Every step is checked and not only the last one. A published page under an unpublished one
+     * used to be served at a path spelling its unpublished parent's slug, which handed out a page
+     * nobody had published and named one nobody was meant to know about.
+     */
     public Optional<StationPage> getPageByPath(int stationId, String path) {
         String[] segments = path.split("/");
         Integer parentId = null;
         StationPage found = null;
         for (String slug : segments) {
             var page = pageRepository.findBySlugAndParent(stationId, slug, parentId);
-            if (page.isEmpty()) return Optional.empty();
+            if (page.isEmpty() || !page.get().visibility().listed()) return Optional.empty();
             found = page.get();
             parentId = found.id();
         }
@@ -176,6 +225,10 @@ public class PageService {
 
         if (parentId != null && parentId != pageId) {
             validateDepth(parentId, 1 + maxChildDepth(pageId));
+            refuseUnlistedParent(parentId);
+        }
+        if (parentId != null && page.visibility() == PageVisibility.UNLISTED) {
+            throw new BadRequestResponse("A page reached by its link alone does not sit under another");
         }
 
         if (pageRepository.slugExists(page.stationId(), slug, pageId)) {
@@ -192,19 +245,92 @@ public class PageService {
         return true;
     }
 
-    public boolean setPublished(int pageId, boolean published) {
-        boolean changed = pageRepository.setPublished(pageId, published);
-        if (changed) {
-            log.info("Page {} publish state set to {}", pageId, published);
+    /**
+     * Moves a page between draft, reachable by its link, and public.
+     *
+     * <p>A page reached by its link stands outside the page tree, so becoming one detaches the page
+     * from its parent and is refused while it still has children of its own. Lifting those children
+     * to the top by itself would change every one of their public addresses without saying so, and
+     * which of them belongs where is the editor's judgement rather than this method's.
+     *
+     * @param pageId     the page
+     * @param visibility what it becomes
+     * @return whether anything changed
+     * @throws BadRequestResponse where the page still has children and is leaving the tree
+     */
+    public boolean setVisibility(int pageId, PageVisibility visibility) {
+        var page = pageRepository.findById(pageId).orElse(null);
+        if (page == null) return false;
+        if (visibility == PageVisibility.UNLISTED && pageRepository.hasChildren(pageId)) {
+            throw new BadRequestResponse("A page with pages under it cannot be reached by a link alone");
         }
-        if (changed && !published) {
-            // Auto-unset landing page if this page is being unpublished
-            pageRepository.findById(pageId).ifPresent(page -> pageRepository
+
+        boolean minting = visibility == PageVisibility.UNLISTED;
+        boolean changed = pageRepository.setVisibility(pageId, visibility, minting ? shareTokens.mint() : null);
+        if (!changed) return false;
+        log.info("Page {} visibility set to {}", pageId, visibility);
+
+        if (visibility == PageVisibility.UNLISTED && page.parentId() != null) {
+            pageRepository.updateMeta(
+                    pageId, page.title(), page.slug(), null, page.metaDescription(), page.ogImageId());
+        }
+        if (!visibility.listed()) {
+            pageRepository
                     .getLandingPageId(page.stationId())
                     .filter(id -> id == pageId)
-                    .ifPresent(_ -> pageRepository.setLandingPage(page.stationId(), null)));
+                    .ifPresent(_ -> pageRepository.setLandingPage(page.stationId(), null));
         }
-        return changed;
+        return true;
+    }
+
+    /**
+     * The link a page reachable by one is reached at, for the screen that shows it.
+     *
+     * <p>A page keeps the one link it was given. Opening it to everybody does not end it and does
+     * not hide it either, because the link goes on working and somebody who handed it out is owed
+     * the ability to see it and to replace it. Only a draft has none to show: nobody outside can
+     * open it by any address at all.
+     *
+     * @param pageId the page
+     * @return its token, or empty where it has none or nobody outside could use one
+     */
+    public Optional<String> shareToken(int pageId) {
+        return pageRepository
+                .findById(pageId)
+                .filter(page -> page.visibility().reachable())
+                .flatMap(page -> pageRepository.findShareToken(pageId));
+    }
+
+    /**
+     * Replaces a page's link, ending every copy of the one it held. Where it had none, this is how
+     * the first one is made.
+     *
+     * @param pageId   the page
+     * @param expected the link the caller was shown, so two administrators cannot take it in turns
+     *                 to end each other's without being told
+     * @return the new link, or empty where the page has since been given a different one
+     * @throws BadRequestResponse where nobody outside the station could open the page anyway, so a
+     *                            link to it would be one that leads nowhere
+     */
+    public Optional<String> replaceShareToken(int pageId, String expected) {
+        var page = pageRepository.findById(pageId).orElse(null);
+        if (page == null) return Optional.empty();
+        if (!page.visibility().reachable()) {
+            throw new BadRequestResponse("A page nobody outside can open is not reached by a link either");
+        }
+        String replacement = shareTokens.mint();
+        if (!pageRepository.replaceShareToken(pageId, expected, replacement)) return Optional.empty();
+        log.info("Page {} share link replaced", pageId);
+        return Optional.of(replacement);
+    }
+
+    public Optional<StationPage> getSharedPage(String token) {
+        return pageRepository
+                .findByShareToken(token)
+                .filter(page -> page.visibility().reachable())
+                .map(this::loadBlocks)
+                .map(this::renderMarkdownCells)
+                .map(this::resolveOgImageHash);
     }
 
     public boolean deletePage(int pageId) {
@@ -247,8 +373,8 @@ public class PageService {
             if (page.stationId() != stationId) {
                 throw new BadRequestResponse("Page does not belong to station");
             }
-            if (!page.published()) {
-                throw new BadRequestResponse("Landing page must be published");
+            if (!page.visibility().listed()) {
+                throw new BadRequestResponse("A landing page has to be public");
             }
             if (page.parentId() != null) {
                 throw new BadRequestResponse("Landing page cannot be a subpage");
@@ -264,14 +390,29 @@ public class PageService {
         return pageRepository
                 .getLandingPageId(stationId)
                 .flatMap(pageRepository::findById)
-                .filter(StationPage::published)
+                .filter(page -> page.visibility().listed())
                 .map(this::loadBlocks)
                 .map(this::renderMarkdownCells)
                 .map(this::resolveOgImageHash);
     }
 
-    public boolean hasPublishedPages(int stationId) {
-        return !pageRepository.findPublishedByStation(stationId).isEmpty();
+    /**
+     * Whether the station has a page for its own public site, which is what decides whether that
+     * site exists at all.
+     *
+     * <p>Listed rather than reachable on purpose. A station whose only page is one reached by its
+     * link has no public site, and saying otherwise would put an empty pages menu on it and name it
+     * in the sitemap on the strength of a page nobody is meant to find.
+     */
+    /**
+     * Whether the station has any page in its menu at all.
+     *
+     * <p>Asked once per station while the sitemap index is built and once per public station
+     * request, so it asks the database whether one exists rather than reading every listed page in
+     * order to look at the size of the list.
+     */
+    public boolean hasListedPages(int stationId) {
+        return pageRepository.anyListed(stationId);
     }
 
     public Optional<Integer> getLandingPageId(int stationId) {
@@ -282,7 +423,7 @@ public class PageService {
         return pageRepository
                 .getLandingPageId(stationId)
                 .flatMap(pageRepository::findById)
-                .filter(StationPage::published)
+                .filter(page -> page.visibility().listed())
                 .map(StationPage::slug);
     }
 

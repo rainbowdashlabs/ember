@@ -8,14 +8,11 @@ import {computed, onMounted, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import DateInput from '@/components/input/datetime/DateInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
-import {QuestionTypes} from '@/api/forms'
+import PublicQuestionFields from '@/components/forms/fill/PublicQuestionFields.vue'
+import PublicFormClosedNotice from '@/components/forms/fill/PublicFormClosedNotice.vue'
 import {usePublicFormSubmission} from '@/composables/usePublicFormSubmission'
 
 const props = defineProps<{
@@ -32,6 +29,7 @@ const {t} = useI18n()
 
 const {
   form,
+  open,
   answers,
   loading,
   loadError: error,
@@ -45,6 +43,8 @@ const {
   submitError,
   load,
   toggleChoice,
+  updateText,
+  updateDate,
   submit,
 } = usePublicFormSubmission(
     computed(() => props.stationUid),
@@ -76,7 +76,9 @@ watch(() => [props.stationUid, props.formPublicUid], load)
                 {{ error || submitError || validationError }}
             </Alert>
 
-            <template v-if="!submitted">
+            <PublicFormClosedNotice v-if="!open" :state="form.state"/>
+
+            <template v-else-if="!submitted">
                 <div v-for="q in form.questions" :key="q.id" class="space-y-2">
                     <div>
                         <span class="font-medium text-sm">{{ q.title }}</span>
@@ -84,47 +86,12 @@ watch(() => [props.stationUid, props.formPublicUid], load)
                         <MutedText v-if="q.description" tag="p" class="mt-0.5">{{ q.description }}</MutedText>
                     </div>
 
-                    <template v-if="q.questionType === QuestionTypes.TEXT">
-                        <TextAreaInput v-if="q.config.longAnswer"
-                                       v-model="(answers[q.id] as { text: string }).text"/>
-                        <TextInput v-else v-model="(answers[q.id] as { text: string }).text"/>
-                    </template>
-
-                    <template v-if="q.questionType === QuestionTypes.DATE">
-                        <DateInput v-model="(answers[q.id] as { date: string }).date"/>
-                    </template>
-
-                    <template v-if="q.questionType === QuestionTypes.CHOICE">
-                        <div class="space-y-1">
-                            <template v-if="q.config.dropdown">
-                                <SelectInput
-                                    :model-value="String((answers[q.id] as { selected: number[] })?.selected?.[0] ?? '')"
-                                    @update:model-value="(v: string | number | null | undefined) => toggleChoice(q, Number(v))">
-                                    <option value="">--</option>
-                                    <option v-for="(opt, oi) in (q.config.options as string[])" :key="oi" :value="oi">
-                                        {{ opt }}
-                                    </option>
-                                </SelectInput>
-                            </template>
-                            <template v-else>
-                                <div v-for="(opt, oi) in (q.config.options as string[])"
-                                     :key="oi"
-                                     class="flex cursor-pointer items-center gap-2 rounded px-3 py-2 text-sm transition-colors"
-                                     :class="(answers[q.id] as { selected: number[] })?.selected?.includes(oi)
-                                         ? 'border border-primary bg-primary/10 text-primary'
-                                         : 'border border-(--border) hover:border-primary/50'"
-                                     @click="toggleChoice(q, oi)">
-                                    <font-awesome-icon
-                                        :icon="['fas', (answers[q.id] as { selected: number[] })?.selected?.includes(oi)
-                                          ? (q.config.multiSelect ? 'square-check' : 'circle-dot')
-                                          : (q.config.multiSelect ? 'square' : 'circle')]"
-                                        :class="(answers[q.id] as { selected: number[] })?.selected?.includes(oi) ? 'text-primary' : 'text-(--text-muted)'"
-                                        class="shrink-0"/>
-                                    <span>{{ opt }}</span>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
+                    <PublicQuestionFields
+                        :question="q"
+                        :answer="answers[q.id]"
+                        @update:text="(v: string) => updateText(q, v)"
+                        @update:date="(v: string) => updateDate(q, v)"
+                        @toggle-choice="(oi: number) => toggleChoice(q, oi)"/>
                 </div>
 
                 <PublicConsentCheckbox
@@ -141,6 +108,6 @@ watch(() => [props.stationUid, props.formPublicUid], load)
             <p v-else class="text-success text-sm">{{ t('publicForm.thanksText') }}</p>
         </template>
 
-        <EmptyHint v-else-if="!loading">{{ t('publicForm.notFound') }}</EmptyHint>
+        <Alert v-else-if="!loading" variant="error">{{ t('publicForm.unreachableHere') }}</Alert>
     </div>
 </template>

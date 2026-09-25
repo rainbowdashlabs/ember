@@ -9,8 +9,9 @@ import {unique} from './fixtures/unique'
 test.describe('Pages', () => {
     /**
      * A page starts as a draft, which is the whole reason the list distinguishes the two: nothing
-     * a manager writes is public until they say so. The story writes one and then says so, and
-     * reloads, because a badge that changes only in the open page has published nothing.
+     * a manager writes is public until they say so. The story writes one and then says so, through
+     * the visibility chooser that now holds that decision, and reloads, because a badge that
+     * changes only in the open page has published nothing.
      */
     test('a page is created as a draft and published', async ({managerPage: page}) => {
         const title = unique('Seite')
@@ -24,7 +25,10 @@ test.describe('Pages', () => {
         const row = page.getByTestId('page-row').filter({hasText: title})
         await expect(row.getByText('Entwurf')).toBeVisible()
 
-        await row.getByRole('button', {name: 'Veröffentlichen'}).click()
+        await row.getByRole('button', {name: 'Sichtbarkeit ändern'}).click()
+        const visibility = page.getByTestId('modal')
+        await visibility.getByText('Alle', {exact: true}).click()
+        await visibility.getByRole('button', {name: 'Speichern'}).click()
         await expect(row.getByText('Veröffentlicht', {exact: true})).toBeVisible()
 
         await page.reload()

@@ -112,8 +112,14 @@ test.describe('Cluster', () => {
         expect(sitemap.ok()).toBeTruthy()
         expect(await sitemap.text()).not.toContain(cluster.name)
 
+        // Among the stations, and not on the page at large: the tile for the cluster itself carries
+        // the same name and belongs there, so asking whether the name appears anywhere asked the
+        // wrong question and answered it differently depending on which of the two lists had
+        // arrived. Waiting for that tile is also what says the page has finished loading, without
+        // which an empty page would answer "nowhere" and pass having looked at nothing.
         await page.goto('/cross-station')
-        await expect(page.getByText(cluster.name, {exact: true})).toHaveCount(0)
+        await expect(page.getByTestId('cross-station-cluster').filter({hasText: cluster.name})).toBeVisible()
+        await expect(page.getByTestId('cross-station-station').filter({hasText: cluster.name})).toHaveCount(0)
     })
 
     /**

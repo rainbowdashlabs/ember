@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { computed, ref, watch, type Ref } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   isRecurringEvent,
@@ -44,6 +44,17 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   const allEvents = ref<StationEvent[]>([])
   const eventBreaks = ref<EventBreak[]>([])
   const todayEvents = ref<StationEvent[]>([])
+  /**
+   * The dates the list draws, in the order the server put them, which is the nearest first.
+   *
+   * <p>One row per date and not one per appointment: a weekly drill is ten rows over the next ten
+   * weeks, because the list is a run of what is coming up rather than a register of what exists.
+   * Keeping only the next date of each collapsed a station's month into a handful of rows, and the
+   * page went on asking for ten more dates and throwing nine of them away.
+   *
+   * <p>Nothing is reordered on top of the server's order. Multi-day events used to be hoisted to the
+   * front as banner rows, which put an event months away above tomorrow's drill.
+   */
   const upcomingOccurrences = ref<UpcomingEventOccurrence[]>([])
   const myRegistrations = ref<EventRegistrationEntry[]>([])
   const eligibleMembers = ref<Record<number, number[]>>({})
@@ -72,23 +83,6 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     return endStr > startDateStr ? endStr : null
   }
 
-  /**
-   * The occurrences to render: one entry per event, in the order the server put them, which is
-   * the nearest date first.
-   *
-   * <p>A repeating event reaches here once per date it falls on, and only its next one is worth a
-   * row: the list answers "what is coming up", not "how often does this happen". Nothing is
-   * reordered on top of that. Multi-day events used to be hoisted to the front as banner rows,
-   * which put an event months away above tomorrow's drill and made the list read as unsorted.
-   */
-  const filteredUpcoming = computed(() => {
-    const seen = new Set<number>()
-    return upcomingOccurrences.value.filter(item => {
-      if (seen.has(item.event.id)) return false
-      seen.add(item.event.id)
-      return true
-    })
-  })
 
   function buildUpcomingParams(offset = 0) {
     const params: {
@@ -210,7 +204,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     loadingMore,
     hasMore,
     registering,
-    filteredUpcoming,
+    upcomingOccurrences,
     multiDayEndDate,
     loading,
     error,

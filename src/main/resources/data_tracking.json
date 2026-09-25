@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:be504337b63c7b98a4c0e37a0750820fecc9edee37beb90343ad0bbbadf5c6c5",
-  "generatedAt": "2026-09-24T11:37:56Z",
+  "schemaHash": "sha256:6a1fa31fe9712597c48cd329eb8f3559112a84c97353e765467ccfab8e35798b",
+  "generatedAt": "2026-09-24T21:50:29Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10510,7 +10510,7 @@
     "form": {
       "feature": "forms",
       "scope": "STATION",
-      "tableHash": "sha256:8fdea2fe96cbbfb797f144ca2e1ec91bcc7fa223c4a60427e1dbfcbad1dee829",
+      "tableHash": "sha256:0321d2589e214c80901834156a6027d5e53e79571308f90aaf5e6d3dfcee1536",
       "columns": [
         {
           "name": "id",
@@ -10630,6 +10630,20 @@
           "nullable": false,
           "verified": true,
           "description": "Stable opaque public identifier referenced from public page cells (FORMS_CTA, POLL_EMBED) and the public form-response endpoint. The integer id stays internal."
+        },
+        {
+          "name": "share_token",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The link this form is reached by when it is sent to somebody, as 32 random bytes in URL-safe Base64. Null until somebody asks for the link, so a form that is never sent carries none. Replacing it ends every copy of the previous link, which is the only way to withdraw one: the form's own start and end dates decide whether it takes answers, so the link itself never expires."
+        },
+        {
+          "name": "visibility",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How far a form meant for people outside the station reaches. PUBLIC: anybody, at the form's own stable address, which is what a form put on a public page needs. UNLISTED: only whoever was sent the link, and the stable address answers nothing, so replacing the link really does end every way in. Says nothing about whether the form takes answers; its status and dates decide that. Existing forms are public, which is what they already were."
         }
       ],
       "foreignKeys": [
@@ -21742,7 +21756,7 @@
     "station_page": {
       "feature": "page",
       "scope": "STATION",
-      "tableHash": "sha256:9692c08d61cf598650ed4145f56cce98565a305a9ccabc775e76f920a5cb9125",
+      "tableHash": "sha256:cd2cf605232ecd969cb468a9d2926ace88801b9899526391705279413e4e2702",
       "columns": [
         {
           "name": "id",
@@ -21771,12 +21785,6 @@
         {
           "name": "slug",
           "type": "text",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "published",
-          "type": "bool",
           "nullable": false,
           "verified": true
         },
@@ -21829,6 +21837,20 @@
           "nullable": true,
           "verified": true,
           "description": "The blocks this page is built from."
+        },
+        {
+          "name": "visibility",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Who reaches this page. DRAFT: nobody outside the station. UNLISTED: anybody holding its link, and it stands outside the page tree, out of the menu and out of the sitemap. PUBLIC: anybody, at the path its slugs spell. Replaces the published flag, which could not say the middle case."
+        },
+        {
+          "name": "share_token",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The link this page is reached by while it is unlisted, as 32 random bytes in URL-safe Base64. Minted when the page first becomes unlisted and kept afterwards, so a page opened to the public and closed again is reached by the same link as before. Replacing it ends every copy of the previous one."
         }
       ],
       "foreignKeys": [

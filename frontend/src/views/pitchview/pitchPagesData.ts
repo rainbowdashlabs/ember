@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {PageVisibility} from '@/api/pageManage'
 import type {CellConfig, CellContentTypeName, PageCell, PageRow, StationPage} from '@/api/pageManage'
 import type {PitchPages} from './pitchTypes'
 
@@ -19,7 +20,8 @@ function daysFromNow(days: number): string {
 function page(id: number, title: string, slug: string, published: boolean,
               parentId: number | null = null): StationPage {
     return {
-        id, stationId: 1, parentId, title, slug, published, sortOrder: id,
+        id, stationId: 1, parentId, title, slug, sortOrder: id,
+        visibility: published ? PageVisibility.PUBLIC : PageVisibility.DRAFT,
         metaDescription: null, ogImageId: null, ogImageHash: null,
         createdBy: 1, createdAt: '', updatedAt: '', rows: [],
     }

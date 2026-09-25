@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onBeforeUnmount, ref} from 'vue'
+import {computed, onBeforeUnmount, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
@@ -14,7 +14,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import {FormStatus, type Form} from '@/api/forms'
+import {FormPurpose, FormStatus, FormVisibility, type Form} from '@/api/forms'
 import {formatDate} from '@/util/format'
 
 const props = defineProps<{
@@ -29,11 +29,20 @@ const emit = defineEmits<{
   (e: 'close', form: Form): void
   (e: 'edit', form: Form): void
   (e: 'analytics', form: Form): void
+  (e: 'share', form: Form): void
   (e: 'delete', form: Form): void
 }>()
 
 const {t} = useI18n()
 const menuOpen = ref(false)
+
+/**
+ * A form answered from outside that has been set to answer at its link and nowhere else. Worth
+ * saying on the tile, because it is the difference between a form anybody can find and one only the
+ * people who were sent it can.
+ */
+const sentByLinkAlone = computed(
+    () => props.form.purpose !== FormPurpose.INTERNAL && props.form.visibility === FormVisibility.UNLISTED)
 
 function toggleMenu() {
   menuOpen.value = !menuOpen.value
@@ -44,6 +53,7 @@ const menuActions = {
   close: () => emit('close', props.form),
   edit: () => emit('edit', props.form),
   analytics: () => emit('analytics', props.form),
+  share: () => emit('share', props.form),
   delete: () => emit('delete', props.form),
 }
 
@@ -72,6 +82,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
         <SecondaryBadge v-if="form.status !== FormStatus.DRAFT">
           {{ t('forms.responseCount', {count: form.responseCount}) }}
         </SecondaryBadge>
+        <InfoBadge v-if="sentByLinkAlone">{{ t('forms.unlistedBadge') }}</InfoBadge>
         <MutedIcon v-if="form.restricted" :icon="['fas', 'lock']"/>
       </div>
       <div class="font-semibold">{{ form.title }}</div>
@@ -93,6 +104,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
         </DropdownMenuItem>
         <DropdownMenuItem v-if="canCreatePolls && form.status !== FormStatus.CLOSED" :icon="['fas', 'pen']" @click="pick('edit')">
           {{ t('forms.edit') }}
+        </DropdownMenuItem>
+        <DropdownMenuItem v-if="canCreatePolls && form.purpose !== FormPurpose.INTERNAL" :icon="['fas', 'link']" @click="pick('share')">
+          {{ t('forms.share') }}
         </DropdownMenuItem>
         <DropdownMenuItem v-if="form.status !== FormStatus.DRAFT" :icon="['fas', 'chart-bar']" @click="pick('analytics')">
           {{ t('forms.viewAnalytics') }}

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.form.entity.FormVisibility;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
@@ -37,7 +38,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
 public class FormRepository {
 
     private static final String FORM_COLUMNS_BARE =
-            "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, purpose, public_uid";
+            "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, purpose, visibility, public_uid";
     private static final String FORM_COLUMNS = SqlSupport.alias("f", FORM_COLUMNS_BARE);
     private static final String FORM_COMPUTED =
             "%s, (SELECT count(*) FROM form_response fr WHERE fr.form_id = f.id)::INT AS response_count, GREATEST(f.updated_at, (SELECT MAX(fr2.updated_at) FROM form_response fr2 WHERE fr2.form_id = f.id)) AS last_activity_at"
@@ -258,13 +259,47 @@ public class FormRepository {
         return SqlSupport.deleteById("form", id);
     }
 
+    public Optional<String> findShareToken(int id) {
+        return query("SELECT share_token FROM form WHERE id = :id;")
+                .single(call().bind("id", id))
+                .map(row -> row.getString("share_token"))
+                .first();
+    }
+
+    public Optional<Form> findByShareToken(String token) {
+        return query("SELECT %s, %s FROM form f WHERE f.share_token = :token;", FORM_COLUMNS, FORM_COMPUTED)
+                .single(call().bind("token", token))
+                .map(Form.map())
+                .first();
+    }
+
     /**
-     * Updates the status of a form. When closing, the {@code closed_at} timestamp is set automatically.
+     * Replaces the link, but only where the form still carries the one the caller was shown, so two
+     * administrators cannot take it in turns to end each other's without being told.
      *
-     * @param id     the form ID
-     * @param status the new status
-     * @return {@code true} if a row was updated
+     * @param id          the form
+     * @param expected    the link the caller last saw
+     * @param replacement the link to put in its place
+     * @return whether the form still held the expected link and was given the new one
      */
+    public boolean replaceShareToken(int id, String expected, String replacement) {
+        return query("""
+                UPDATE form
+                SET share_token = :replacement,
+                    updated_at  = now()
+                WHERE id = :id AND share_token IS NOT DISTINCT FROM :expected;""")
+                .single(call().bind("id", id).bind("expected", expected).bind("replacement", replacement))
+                .update()
+                .changed();
+    }
+
+    public boolean updateVisibility(int id, FormVisibility visibility) {
+        return query("UPDATE form SET visibility = :visibility, updated_at = now() WHERE id = :id;")
+                .single(call().bind("id", id).bind("visibility", visibility.name()))
+                .update()
+                .changed();
+    }
+
     public boolean updateStatus(int id, Form.FormStatus status) {
         return query("""
                 UPDATE form

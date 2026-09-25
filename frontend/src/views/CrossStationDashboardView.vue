@@ -90,6 +90,7 @@ function selectStation(stationId: string) {
         <NeutralContainer
             v-for="station in dashboard.stations"
             :key="station.stationId"
+            data-testid="cross-station-station"
             class="cursor-pointer hover:border-primary transition-colors space-y-3"
             @click="selectStation(station.stationId)"
         >
@@ -122,6 +123,7 @@ function selectStation(stationId: string) {
           <NeutralContainer
               v-for="cluster in clusterList"
               :key="cluster.uid"
+              data-testid="cross-station-cluster"
               class="cursor-pointer hover:border-primary transition-colors flex items-center gap-3"
               @click="selectCluster(cluster.uid)"
           >

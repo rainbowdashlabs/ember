@@ -8,15 +8,15 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useSession } from '@/composables/useSession'
+import { StationPermission } from '@/api/types'
 import ViewContent from '@/components/layout/ViewContent.vue'
+import FormShareLink from '@/components/public/FormShareLink.vue'
+import AnalyticsBody from '@/views/stationview/forms/analyticsview/AnalyticsBody.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
 import AnalyticsHeader from '@/views/stationview/forms/analyticsview/AnalyticsHeader.vue'
-import AnalyticsTabs from '@/views/stationview/forms/analyticsview/AnalyticsTabs.vue'
 import ExportModal from '@/views/stationview/forms/analyticsview/ExportModal.vue'
-import MissingResponsesPanel from '@/views/stationview/forms/analyticsview/MissingResponsesPanel.vue'
-import ResultFilterBar from '@/views/stationview/forms/analyticsview/ResultFilterBar.vue'
 import {useResultView} from '@/views/stationview/forms/analyticsview/useResultView'
 import {FormAnalyticsBase, FormPurpose, type Form, type FormAnalytics, type FormAnalyticsBaseName, type FormAnswer, type FormResponse} from '@/api/forms'
 import type { ProfileField } from '@/api/profileFields'
@@ -27,11 +27,34 @@ import type { ExportFormat, ExportSeparator } from '@/util/exportFormat'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const { hasPermission } = useSession()
 
 const analyticsBase = computed<FormAnalyticsBaseName>(() => {
   const meta = route.meta?.formAnalyticsBase as FormAnalyticsBaseName | undefined
   return meta ?? FormAnalyticsBase.FORMS
 })
+
+/**
+ * The list this form was opened from, which is the one going back leads to.
+ *
+ * <p>The same results screen serves the internal forms and the polls put on a public page, and it
+ * used to lead back to the internal list from both, so leaving the results of a public poll landed
+ * on a list that does not hold it.
+ */
+const listRoute = computed(() =>
+    analyticsBase.value === FormAnalyticsBase.PAGE_POLLS ? 'pages-polls' : 'forms-list')
+
+/**
+ * Where writing this form happens, which is the screen beside the one the results are on. Reading
+ * the answers is most of what makes somebody want to change the question.
+ */
+const editRoute = computed(() =>
+    analyticsBase.value === FormAnalyticsBase.PAGE_POLLS ? 'pages-polls-edit' : 'forms-edit')
+
+const canEdit = computed(() => hasPermission(StationPermission.POLL_CREATE))
+
+/** A form answered from outside carries a link, and the results are where somebody goes looking for it. */
+const sendable = computed(() => form.value !== null && form.value.purpose !== FormPurpose.INTERNAL)
 
 const formId = computed(() => Number(route.params.id))
 const form = ref<Form | null>(null)
@@ -182,40 +205,27 @@ const { loading, error } = useAsyncLoader(async () => {
         <AnalyticsHeader
           :title="form.title"
           :total-responses="analytics.totalResponses"
+          :can-edit="canEdit"
           @export="openExportModal"
-          @back="router.push({ name: 'forms-list' })"
+          @edit="router.push({ name: editRoute, params: { id: formId } })"
+          @back="router.push({ name: listRoute })"
         />
 
-        <ResultFilterBar
-          v-if="groupable && analytics.totalResponses > 0"
-          v-model:filter="view.filter.value"
-          v-model:grouping="view.grouping.value"
-          :groups="view.groups.value"
-          :tags="view.tags.value"
-          :fields="view.groupableFields.value"
-          :matching="view.narrowed.value ? view.narrowed.value.totalResponses : null"
-          :querying="view.querying.value"
-          @reset="view.reset"
-        />
+        <FormShareLink v-if="sendable && form" :form="form"/>
 
-        <MissingResponsesPanel
-          v-if="form.forced && shown && shown.missingResponses.length > 0"
-          :members="shown.missingResponses"
-        />
-
-        <EmptyState v-if="analytics.totalResponses === 0">{{ t('forms.analytics.noResponses') }}</EmptyState>
-
-        <AnalyticsTabs
-          v-else-if="shown"
-          :results="shown"
-          :grouped="!!(view.grouping.value && view.narrowed.value)"
-          :names="groupNames"
-          :series="view.series.value"
-          :responses="visibleResponses"
+        <AnalyticsBody
+          :form="form"
+          :analytics="analytics"
+          :shown="shown"
+          :view="view"
+          :groupable="groupable"
+          :group-names="groupNames"
+          :visible-responses="visibleResponses"
           :current-response="currentResponse"
           :current-response-index="currentResponseIndex"
           :loading-response="loadingResponse"
           :get-answer-for-question="getAnswerForQuestion"
+          :missing="shown ? shown.missingResponses : []"
           @prev="prevResponse"
           @next="nextResponse"
         />

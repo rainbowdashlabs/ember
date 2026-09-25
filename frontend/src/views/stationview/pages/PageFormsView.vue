@@ -14,5 +14,7 @@ import { FormPurpose } from '@/api/forms'
     :show-available-section="false"
     title-key="stationPages.editor.contactFormsTitle"
     analytics-route-name="pages-forms-submissions"
+    create-route-name="pages-forms-create"
+    edit-route-name="pages-forms-edit"
   />
 </template>

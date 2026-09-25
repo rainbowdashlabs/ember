@@ -9,6 +9,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
+import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
@@ -127,7 +128,15 @@ public class FormAnalyticsAssembler {
                 buildMissingResponses(form, filter));
     }
 
+    /**
+     * Who was expected and has not answered, which only an internal form can say.
+     *
+     * <p>A contact form and a poll on a public page are answered by whoever opens the link, and the
+     * station's own members are not the people being asked. Listing them as missing would name
+     * everybody as owing an answer to something never put to them.
+     */
     private List<MemberIdentity> buildMissingResponses(Form form, FormResultQuery.Filter filter) {
+        if (form.purpose() != FormPurpose.INTERNAL) return List.of();
         if (!form.forced()) return List.of();
         var missing = stationMemberRepository.findByStation(form.stationId()).stream()
                 .filter(m -> formService.canMemberAccess(form.id(), m.id()))

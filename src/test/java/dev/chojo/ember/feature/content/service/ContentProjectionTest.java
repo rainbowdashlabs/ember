@@ -143,7 +143,10 @@ class ContentProjectionTest {
                         new CellConfig.FileDownloadConfig("https://example.org/p.pdf", "Protokoll", "Das Protokoll"))));
         assertEquals(
                 "[Die Seite](/seite)",
-                project(cell(CellContentType.PAGE_LINK, "/seite", new CellConfig.PageLinkConfig(1, "Die Seite"))));
+                project(cell(
+                        CellContentType.PAGE_LINK,
+                        "/seite",
+                        new CellConfig.PageLinkConfig("11111111-2222-3333-4444-555555555555", "Die Seite"))));
         assertEquals(
                 "[Der Artikel](/artikel)",
                 project(cell(

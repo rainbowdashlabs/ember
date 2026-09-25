@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.ShareTokens;
 import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -61,7 +62,8 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
         var groupService = mock(MemberGroupService.class);
         var tagService = mock(UserTagService.class);
 
-        formService = new FormService(formRepo, memberService, groupService, tagService, restrictionService, eventBus);
+        formService = new FormService(
+                formRepo, memberService, groupService, tagService, restrictionService, eventBus, new ShareTokens());
         assembler = new FormAnalyticsAssembler(
                 formService,
                 new FormRespondents(stationMemberRepo, memberGroupRepo, userTagRepo, profileFieldRepo, stationRepo),

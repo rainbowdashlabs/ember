@@ -27,7 +27,7 @@ defineProps<{
   allEvents: StationEvent[]
   eventBreaks: EventBreak[]
   filteredTodayEvents: StationEvent[]
-  filteredUpcoming: UpcomingEventOccurrence[]
+  upcomingOccurrences: UpcomingEventOccurrence[]
   overviewFields: Record<number, EventField[]>
   myRegistrations: EventRegistrationEntry[]
   managedMembersCount: number
@@ -98,7 +98,7 @@ defineEmits<{
     <FederatedEventsSection/>
 
     <UpcomingEventsSection
-        :items="filteredUpcoming"
+        :items="upcomingOccurrences"
         :categories="categories"
         :overview-fields="overviewFields"
         :my-registrations="myRegistrations"

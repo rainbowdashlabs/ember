@@ -19,12 +19,14 @@ import dev.chojo.ember.feature.media.service.MediaReferenceRegistry;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
 import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.ShareTokens;
 import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -37,6 +39,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -71,9 +74,10 @@ class PageServiceTest extends RepositoryTestBase {
                 pageRepo,
                 blocks,
                 media,
-                new CellDescriptions(media),
+                new CellDescriptions(media, (stationId, pageUid) -> Optional.empty()),
                 stationMemberRepo,
-                new AvatarService(new ImageVariantService(storageService)));
+                new AvatarService(new ImageVariantService(storageService)),
+                new ShareTokens());
         station = stationRepo.create("PageServiceStation");
         account = accountRepo.create("page-svc@test.com", "Page", "Author");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -166,24 +170,25 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(7)
     void publishAndUnpublish() {
-        assertTrue(service.setPublished(pageId, true));
-        assertTrue(service.getPage(pageId).orElseThrow().published());
+        assertTrue(service.setVisibility(pageId, PageVisibility.PUBLIC));
+        assertEquals(
+                PageVisibility.PUBLIC, service.getPage(pageId).orElseThrow().visibility());
 
-        assertTrue(service.setPublished(pageId, false));
-        assertFalse(service.getPage(pageId).orElseThrow().published());
+        assertTrue(service.setVisibility(pageId, PageVisibility.DRAFT));
+        assertEquals(PageVisibility.DRAFT, service.getPage(pageId).orElseThrow().visibility());
     }
 
     @Test
     @Order(8)
     void listPublishedPagesEmpty() {
-        var list = service.listPublishedPages(station.id());
+        var list = service.listListedPages(station.id());
         assertEquals(0, list.size());
     }
 
     @Test
     @Order(9)
     void publishForLandingPage() {
-        service.setPublished(pageId, true);
+        service.setVisibility(pageId, PageVisibility.PUBLIC);
     }
 
     @Test
@@ -210,18 +215,31 @@ class PageServiceTest extends RepositoryTestBase {
         assertThrows(IllegalArgumentException.class, () -> service.setLandingPage(station.id(), 99999));
 
         // Page not published - user-facing BadRequestResponse so the message is preserved
-        service.setPublished(pageId, false);
+        service.setVisibility(pageId, PageVisibility.DRAFT);
         assertThrows(BadRequestResponse.class, () -> service.setLandingPage(station.id(), pageId));
-        service.setPublished(pageId, true);
+
+        service.setVisibility(pageId, PageVisibility.UNLISTED);
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.setLandingPage(station.id(), pageId),
+                "a page nobody can find is no landing page either");
+        service.setVisibility(pageId, PageVisibility.PUBLIC);
     }
 
     @Test
     @Order(13)
     void unpublishAutoUnsetsLandingPage() {
         service.setLandingPage(station.id(), pageId);
-        service.setPublished(pageId, false);
+        service.setVisibility(pageId, PageVisibility.DRAFT);
         assertTrue(service.getLandingPage(station.id()).isEmpty());
-        service.setPublished(pageId, true);
+        service.setVisibility(pageId, PageVisibility.PUBLIC);
+
+        service.setLandingPage(station.id(), pageId);
+        service.setVisibility(pageId, PageVisibility.UNLISTED);
+        assertTrue(
+                service.getLandingPage(station.id()).isEmpty(),
+                "a landing page that leaves the tree stops being the landing page");
+        service.setVisibility(pageId, PageVisibility.PUBLIC);
     }
 
     @Test
@@ -244,7 +262,7 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(16)
     void depthValidation() {
-        service.setPublished(childPageId, true);
+        service.setVisibility(childPageId, PageVisibility.PUBLIC);
         var grandchild = service.create(station.id(), "Grandchild", childPageId, member.id());
 
         // Depth 3 would be exceeded - user-facing BadRequestResponse
@@ -258,12 +276,42 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(17)
     void unpublishedParentHidesChildren() {
-        service.setPublished(pageId, false);
-        service.setPublished(childPageId, true);
-        var published = service.listPublishedPages(station.id());
-        // Child is published but parent is not, so child is hidden
-        assertTrue(published.stream().noneMatch(p -> p.id() == childPageId));
-        service.setPublished(pageId, true);
+        service.setVisibility(pageId, PageVisibility.DRAFT);
+        service.setVisibility(childPageId, PageVisibility.PUBLIC);
+        var listed = service.listListedPages(station.id());
+        assertTrue(listed.stream().noneMatch(p -> p.id() == childPageId));
+        assertTrue(
+                service.getPageByPath(station.id(), "welcome-page/child-page").isEmpty(),
+                "a page under an unpublished one is not served at the path spelling that page's slug");
+        service.setVisibility(pageId, PageVisibility.PUBLIC);
+    }
+
+    @Test
+    @Order(17)
+    void aPageWithChildrenCannotBeReachedByALinkAlone() {
+        assertThrows(BadRequestResponse.class, () -> service.setVisibility(pageId, PageVisibility.UNLISTED));
+    }
+
+    @Test
+    @Order(17)
+    void aPageReachedByALinkStandsOutsideTheTree() {
+        var alone = service.create(station.id(), "Einladung", null, member.id());
+        service.setVisibility(alone.id(), PageVisibility.UNLISTED);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.create(station.id(), "Darunter", alone.id(), member.id()),
+                "nothing is filed under a page that is not in the tree");
+        assertTrue(service.shareToken(alone.id()).isPresent());
+        assertTrue(
+                service.listListedPages(station.id()).stream().noneMatch(p -> p.id() == alone.id()),
+                "it is in no menu and in no sitemap");
+        assertTrue(
+                service.getSharedPage(service.shareToken(alone.id()).orElseThrow())
+                        .isPresent(),
+                "and it opens for whoever holds its link");
+
+        service.deletePage(alone.id());
     }
 
     @Test
@@ -280,8 +328,8 @@ class PageServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(19)
-    void hasPublishedPages() {
-        assertTrue(service.hasPublishedPages(station.id()));
+    void hasListedPages() {
+        assertTrue(service.hasListedPages(station.id()));
     }
 
     @Test
@@ -412,6 +460,59 @@ class PageServiceTest extends RepositoryTestBase {
         var rendered = service.getPageRendered(pageId).orElseThrow();
         String renderedHtml = rendered.rows().getFirst().cells().getFirst().content();
         assertTrue(renderedHtml.contains("<h1") || renderedHtml.contains("<strong"));
+    }
+
+    /**
+     * A page keeps the one link it was given, however its reach changes afterwards.
+     *
+     * <p>Opening it to everybody and closing it again used to be the moment to worry about: a link
+     * already handed out has to go on working, and only the button that says so ends it.
+     */
+    @Test
+    @Order(90)
+    void aPageKeepsItsLinkThroughEveryChangeOfReach() {
+        int id = service.create(station.id(), "Kept Link", null, member.id()).id();
+        service.setVisibility(id, PageVisibility.UNLISTED);
+        String first = service.shareToken(id).orElseThrow();
+
+        service.setVisibility(id, PageVisibility.PUBLIC);
+        assertEquals(first, service.shareToken(id).orElseThrow(), "a public page still shows the link it has");
+
+        service.setVisibility(id, PageVisibility.UNLISTED);
+        assertEquals(first, service.shareToken(id).orElseThrow());
+
+        String replaced = service.replaceShareToken(id, first).orElseThrow();
+        assertNotEquals(first, replaced, "ending the link is the one thing that changes it");
+        assertEquals(replaced, service.shareToken(id).orElseThrow());
+
+        service.deletePage(id);
+    }
+
+    /** A draft nobody outside can open is not reached by a link either. */
+    @Test
+    @Order(91)
+    void aDraftIsGivenNoLink() {
+        int id = service.create(station.id(), "No Link Yet", null, member.id()).id();
+        assertTrue(service.shareToken(id).isEmpty());
+        assertThrows(BadRequestResponse.class, () -> service.replaceShareToken(id, null));
+        service.deletePage(id);
+    }
+
+    /** A link opens a page that is public as readily as one that is reachable by link alone. */
+    @Test
+    @Order(92)
+    void aLinkOpensAPublicPageToo() {
+        int id = service.create(station.id(), "Opened Up", null, member.id()).id();
+        service.setVisibility(id, PageVisibility.UNLISTED);
+        String token = service.shareToken(id).orElseThrow();
+        assertTrue(service.getSharedPage(token).isPresent());
+
+        service.setVisibility(id, PageVisibility.PUBLIC);
+        assertTrue(service.getSharedPage(token).isPresent(), "opening the page up does not end its link");
+
+        service.setVisibility(id, PageVisibility.DRAFT);
+        assertTrue(service.getSharedPage(token).isEmpty(), "a draft is reached by nothing at all");
+        service.deletePage(id);
     }
 
     @Test

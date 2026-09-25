@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -11,8 +12,25 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import { FormPurpose, FormVisibility, type FormPurposeName, type FormVisibilityName } from '@/api/forms'
+
+const props = defineProps<{
+  /** What the form is for, which decides whether the two settings that need a signed-in reader apply. */
+  purpose: FormPurposeName
+}>()
 
 const { t } = useI18n()
+
+/**
+ * Whether the form is answered by somebody the station knows.
+ *
+ * <p>A contact form and a poll on a public page are answered by whoever opens the link, with no
+ * account behind the answer. Neither being expected to answer nor coming back to change an answer
+ * means anything then: there is nobody to expect and nobody to recognise on the way back. Both were
+ * offered all the same and did nothing.
+ */
+const answeredByMembers = computed(() => props.purpose === FormPurpose.INTERNAL)
 
 const title = defineModel<string>('title', { required: true })
 const description = defineModel<string>('description', { required: true })
@@ -21,6 +39,23 @@ const endAt = defineModel<string>('endAt', { required: true })
 const shuffleQuestions = defineModel<boolean>('shuffleQuestions', { required: true })
 const allowEdit = defineModel<boolean>('allowEdit', { required: true })
 const forced = defineModel<boolean>('forced', { required: true })
+
+/**
+ * How far a form for people outside the station reaches. A form on a public page has to answer at
+ * its own address, because that is what the page fetches it by; one that is only sent to the people
+ * it is meant for answers at its link and nowhere else, so replacing that link ends every way in
+ * that was given out.
+ */
+const visibility = defineModel<FormVisibilityName>('visibility', { required: true })
+
+const reachesOutside = computed(() => props.purpose !== FormPurpose.INTERNAL)
+
+const openlyAddressed = computed({
+  get: () => visibility.value === FormVisibility.PUBLIC,
+  set: open => {
+    visibility.value = open ? FormVisibility.PUBLIC : FormVisibility.UNLISTED
+  },
+})
 </script>
 
 <template>
@@ -43,14 +78,24 @@ const forced = defineModel<boolean>('forced', { required: true })
           <ToggleInput v-model="shuffleQuestions" />
           {{ t('forms.shuffleQuestions') }}
         </FieldLabel>
-        <FieldLabel inline>
+        <FieldLabel v-if="answeredByMembers" inline>
           <ToggleInput v-model="allowEdit" />
           {{ t('forms.allowEdit') }}
         </FieldLabel>
-        <FieldLabel inline>
+        <FieldLabel v-if="answeredByMembers" inline>
           <ToggleInput v-model="forced" />
           {{ t('forms.forced') }}
         </FieldLabel>
+      </div>
+
+      <div v-if="reachesOutside" class="space-y-1">
+        <FieldLabel inline>
+          <ToggleInput v-model="openlyAddressed" />
+          {{ t('forms.openlyAddressed') }}
+        </FieldLabel>
+        <MutedText tag="p" size="sm">
+          {{ openlyAddressed ? t('forms.openlyAddressedHint') : t('forms.unlistedHint') }}
+        </MutedText>
       </div>
     </div>
   </NeutralContainer>

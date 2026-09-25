@@ -7,4 +7,8 @@ Disallow: /station/
 Disallow: /admin/
 Disallow: /api/
 
+# A form or a page somebody was sent the link to. Not disallowed: a crawler has to be able to fetch
+# one to read the noindex it answers with, and a disallowed address can still be listed from a link
+# found elsewhere. Nothing links to these, so nothing should reach them in the first place.
+
 Sitemap: /sitemap.xml

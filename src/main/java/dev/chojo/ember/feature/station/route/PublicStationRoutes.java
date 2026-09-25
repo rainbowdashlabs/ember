@@ -85,7 +85,7 @@ public class PublicStationRoutes implements Routes {
         }
 
         boolean hasPublicCalendar = station.publicCalendarEnabled();
-        boolean hasPublicPages = station.publicPagesEnabled() && pageService.hasPublishedPages(station.id());
+        boolean hasPublicPages = station.publicPagesEnabled() && pageService.hasListedPages(station.id());
         boolean hasPublicWaitlist =
                 station.publicWaitlistEnabled() && waitingListService.hasPublicWaitlists(station.id());
         boolean hasPublicBlog = station.publicBlogEnabled() && newsService.hasPublicBlogEntries(station.id());

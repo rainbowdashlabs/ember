@@ -41,6 +41,8 @@ const KNOWN_SHARED_HELP_COMPONENTS = new Set([
     'helpcenter/stationview/news/DetailHelp.vue',
     'helpcenter/stationview/news/EditHelp.vue',
     'helpcenter/stationview/news/CreateHelp.vue',
+    'helpcenter/stationview/forms/BuilderHelp.vue',
+    'helpcenter/stationview/forms/EditHelp.vue',
 ])
 
 // ── Panel definitions ───────────────────────────────────────────────
@@ -50,7 +52,7 @@ const panels = [
         label: 'Station',
         appFilter: (r) => !['help-', 'admin-', 'cluster-', 'account-', 'login', 'forgot', 'set-password', 'set-address', 'station-select',
             'cross-station-dashboard', '2fa-verify', 'passkey-offer', 'apply', 'waitlist-', 'waiting-list', 'home', 'privacy', 'terms', 'reconsent', 'imprint',
-            'patch-notes', 'reset-password', 'confirm-email-change', 'install', 'public-', 'not-found', 'style', 'helpcenter-', 'requirements',
+            'patch-notes', 'reset-password', 'confirm-email-change', 'install', 'public-', 'shared-', 'not-found', 'style', 'helpcenter-', 'requirements',
             'pitch', 'unlock-device', 'passkey-offer', 'enroll']
             .some(p => r.name.startsWith(p)),
         helpFilter: (r) => r.name.startsWith('help-') && !r.name.startsWith('help-admin') && !r.name.startsWith('help-cluster'),
@@ -236,6 +238,7 @@ const SIDEBAR_SKIP = (r) =>
         'privacy', 'terms', 'reconsent', 'imprint', 'patch-notes', 'not-found', 'style',
         'station-select', 'profile-settings'].includes(r.name)
     || r.name.startsWith('public-') || r.name.startsWith('waiting-list') || r.name.startsWith('waitlist-')
+    || r.name.startsWith('shared-')
 
 const unlinkedRoutes = allRoutes.filter(r => {
     if (!r.name || !r.path) return false

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.page.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
@@ -25,7 +26,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class PageRepository {
 
     private static final String STATION_PAGE_COLUMNS =
-            "id, public_uid, station_id, parent_id, title, slug, published, sort_order, meta_description, og_image_id, container_id, created_by, created_at, updated_at";
+            "id, public_uid, station_id, parent_id, title, slug, visibility, sort_order, meta_description, og_image_id, container_id, created_by, created_at, updated_at";
 
     // --- Page CRUD ---
 
@@ -46,6 +47,13 @@ public class PageRepository {
 
     public Optional<StationPage> findById(int id) {
         return SqlSupport.findById("station_page", STATION_PAGE_COLUMNS, id, StationPage.mapFlat());
+    }
+
+    public Optional<StationPage> findByPublicUid(UUID publicUid) {
+        return query("SELECT %s FROM station_page WHERE public_uid = :public_uid::uuid;", STATION_PAGE_COLUMNS)
+                .single(call().bind("public_uid", publicUid, StandardValueConverter.UUID_STRING))
+                .map(StationPage.mapFlat())
+                .first();
     }
 
     public Optional<StationPage> findBySlugAndStation(String slug, int stationId) {
@@ -89,12 +97,12 @@ public class PageRepository {
                 .all();
     }
 
-    public List<StationPage> findPublishedByStation(int stationId) {
+    public List<StationPage> findListedByStation(int stationId) {
         return query("""
                 SELECT %s
                 FROM station_page
                 WHERE station_id = :station_id
-                  AND published
+                  AND visibility = 'PUBLIC'
                 ORDER BY sort_order;""", STATION_PAGE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(StationPage.mapFlat())
@@ -102,10 +110,60 @@ public class PageRepository {
     }
 
     /**
-     * Editor's PAGE_LINK picker. Returns a compact shape - {@code publicUid},
-     * {@code title}, {@code slug}, {@code updatedAt} - for the published pages of the supplied
-     * station, optionally filtered by case-insensitive title substring. Empty {@code search}
-     * returns the most recently updated pages so the picker has something on first focus.
+     * The pages that put a given form on themselves, by title.
+     *
+     * <p>Asked before a form is closed to its link alone, because that shuts the address these
+     * cells fetch it at and there is no other sign of it: the page goes on rendering and the poll
+     * on it stops working for everybody who opens it.
+     *
+     * @param stationId  the station whose pages are searched
+     * @param formPublicUid the form as a cell names it
+     * @return the pages holding it, listed ones first, each named once however many cells it has
+     */
+    public List<PageUsingForm> findPagesEmbedding(int stationId, String formPublicUid) {
+        return query("""
+                SELECT DISTINCT p.id, p.title, p.visibility
+                FROM page_cell c
+                JOIN page_row r ON r.id = c.row_id
+                JOIN station_page p ON p.container_id = r.container_id
+                WHERE p.station_id = :station_id
+                  AND c.config ->> 'formPublicUid' = :form_uid
+                ORDER BY p.visibility DESC, p.title;""")
+                .single(call().bind("station_id", stationId).bind("form_uid", formPublicUid))
+                .map(row -> new PageUsingForm(
+                        row.getInt("id"), row.getString("title"), row.getEnum("visibility", PageVisibility.class)))
+                .all();
+    }
+
+    /** One page holding a form, and how far that page itself reaches. */
+    public record PageUsingForm(int id, String title, PageVisibility visibility) {}
+
+    /**
+     * Whether the station has a page in its menu, without reading any of them.
+     *
+     * <p>The sitemap index asks this of every station it knows, and the public station endpoint
+     * asks it on every render of every public page.
+     */
+    public boolean anyListed(int stationId) {
+        return query("""
+                SELECT EXISTS(
+                    SELECT 1 FROM station_page WHERE station_id = :station_id AND visibility = 'PUBLIC'
+                ) AS present;""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> row.getBoolean("present"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * Editor's page link picker. Returns a compact shape - {@code publicUid},
+     * {@code title}, {@code slug}, {@code updatedAt} - for the pages of the supplied station that
+     * somebody outside can open, optionally filtered by case-insensitive title substring. Empty
+     * {@code search} returns the most recently updated pages so the picker has something on first
+     * focus.
+     *
+     * <p>Reachable rather than listed: an editor links to a page that is only reachable by its own
+     * link as readily as to one in the menu, and is warned about it where they do.
      */
     public List<PickerPage> searchForPicker(int stationId, String search, int limit) {
         var where = WhereBuilder.create().like("AND LOWER(title) LIKE :q", "q", search);
@@ -113,7 +171,7 @@ public class PageRepository {
                 SELECT public_uid, title, slug, updated_at
                 FROM station_page
                 WHERE station_id = :station_id
-                  AND PUBLISHED
+                  AND visibility IN ('UNLISTED', 'PUBLIC')
                   %s
                 ORDER BY updated_at DESC
                 LIMIT :limit;""", where.fragment())
@@ -149,13 +207,81 @@ public class PageRepository {
                 .changed();
     }
 
-    public boolean setPublished(int id, boolean published) {
-        return query("UPDATE station_page SET published = :published, updated_at = :updated_at WHERE id = :id;")
+    /**
+     * Sets a page's visibility and, where it is becoming reachable by a link and holds none yet,
+     * mints one in the same statement.
+     *
+     * <p>One statement rather than two on purpose. Two administrators opening the page at the same
+     * moment would otherwise each mint a link and the second would end the first's, which by then
+     * has been sent; and between two statements the page would be unlisted with no link, which is a
+     * page nobody can reach.
+     *
+     * @param id         the page
+     * @param visibility what it becomes
+     * @param mintedToken a fresh token, used only where the page has none and is becoming unlisted
+     * @return whether a row changed
+     */
+    public boolean setVisibility(int id, PageVisibility visibility, String mintedToken) {
+        return query("""
+                UPDATE station_page
+                SET visibility  = :visibility,
+                    share_token = CASE
+                                      WHEN :mints THEN COALESCE(share_token, :token)
+                                      ELSE share_token
+                                  END,
+                    updated_at  = :updated_at
+                WHERE id = :id;""")
                 .single(call().bind("id", id)
-                        .bind("published", published)
+                        .bind("visibility", visibility.name())
+                        .bind("mints", visibility == PageVisibility.UNLISTED)
+                        .bind("token", mintedToken)
                         .bind("updated_at", Instant.now(), INSTANT_TIMESTAMP))
                 .update()
                 .changed();
+    }
+
+    public Optional<String> findShareToken(int id) {
+        return query("SELECT share_token FROM station_page WHERE id = :id;")
+                .single(call().bind("id", id))
+                .map(row -> row.getString("share_token"))
+                .first();
+    }
+
+    public Optional<StationPage> findByShareToken(String token) {
+        return query("SELECT %s FROM station_page WHERE share_token = :token;", STATION_PAGE_COLUMNS)
+                .single(call().bind("token", token))
+                .map(StationPage.mapFlat())
+                .first();
+    }
+
+    /**
+     * Replaces a page's link, but only where it still holds the one the caller was shown.
+     *
+     * <p>Two administrators looking at the same page would otherwise take it in turns to end each
+     * other's link without either being told. The one whose statement changes nothing is the one who
+     * has to look again.
+     *
+     * @param id          the page
+     * @param expected    the token the caller last saw
+     * @param replacement the token to put in its place
+     * @return whether the row still held the expected token and was replaced
+     */
+    public boolean replaceShareToken(int id, String expected, String replacement) {
+        return query("""
+                UPDATE station_page
+                SET share_token = :replacement,
+                    updated_at  = :updated_at
+                WHERE id = :id AND share_token IS NOT DISTINCT FROM :expected;""")
+                .single(call().bind("id", id)
+                        .bind("expected", expected)
+                        .bind("replacement", replacement)
+                        .bind("updated_at", Instant.now(), INSTANT_TIMESTAMP))
+                .update()
+                .changed();
+    }
+
+    public boolean hasChildren(int id) {
+        return SqlSupport.exists("SELECT 1 FROM station_page WHERE parent_id = :id;", call().bind("id", id));
     }
 
     public boolean delete(int id) {
@@ -227,7 +353,7 @@ public class PageRepository {
     public List<EmbeddingPage> findPagesEmbeddingArticles(int stationId, List<Integer> fileIds) {
         if (fileIds.isEmpty()) return List.of();
         return query("""
-                SELECT DISTINCT p.title, p.published
+                SELECT DISTINCT p.title, p.visibility
                 FROM page_cell c
                     JOIN page_row r ON r.id = c.row_id
                     JOIN station_page p ON p.container_id = r.container_id
@@ -240,14 +366,19 @@ public class PageRepository {
                                 "article_ids",
                                 fileIds.stream().map(String::valueOf).toList(),
                                 PostgreSqlTypes.TEXT))
-                .map(row -> new EmbeddingPage(row.getString("title"), row.getBoolean("published")))
+                .map(row -> new EmbeddingPage(
+                        row.getString("title"),
+                        row.getEnum("visibility", PageVisibility.class).reachable()))
                 .all();
     }
 
     /**
-     * A page that carries a wiki article, and whether anybody outside can see that page.
+     * A page that carries a wiki article, and whether anybody outside can open that page.
+     *
+     * <p>Reachable rather than listed: a page nobody can find is still a page somebody was sent, so
+     * deleting the article under it is as visible a change as deleting one under a page in the menu.
      */
-    public record EmbeddingPage(String title, boolean published) {}
+    public record EmbeddingPage(String title, boolean reachable) {}
 
     /**
      * Lightweight picker result row for the page picker. Exposes only the public UUID - never the
