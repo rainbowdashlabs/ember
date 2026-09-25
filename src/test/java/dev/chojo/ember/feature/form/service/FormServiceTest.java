@@ -699,6 +699,27 @@ class FormServiceTest extends RepositoryTestBase {
         service.delete(form.id());
     }
 
+    /**
+     * Who may answer is a question only an internal form can ask, because only it knows who is
+     * answering.
+     */
+    @Test
+    @Order(92)
+    void aPublicFormIsNarrowedToNobody() {
+        var form = service.create(
+                station.id(), "Open To All", "", false, true, false, null, null, member.id(), FormPurpose.CONTACT);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.setRestrictions(
+                        form.id(),
+                        new RestrictionSelection(
+                                List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null)));
+        assertFalse(service.findRestrictions(form.id()).hasRestrictions());
+
+        service.delete(form.id());
+    }
+
     @Test
     @Order(99)
     void delete() {
