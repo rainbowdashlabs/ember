@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {expect, test, type Page} from '@playwright/test'
-import {accountWith} from './fixtures/auth'
+import {cast} from './fixtures/cast'
 
 /**
  * The public routes, run by the `ssr-no-js` project with JavaScript switched off.
@@ -89,9 +89,9 @@ test.describe('Public pages without JavaScript', () => {
      * project runs with scripts switched off and cannot press a button to get one.
      */
     test('a survey sent by link carries its questions and refuses to be indexed', async ({page, request}) => {
-        const manager = await accountWith(request, 'POLL_CREATE')
+        const manager = (await cast()).manager
         const session = await (await request.post('/api/v1/demo/login', {data: {email: manager.email}})).json()
-        const headers = {Authorization: `Bearer ${session.token}`, 'X-Station-Id': String(manager.stationId)}
+        const headers = {Authorization: `Bearer ${session.token}`, ...(manager.stationId ? {'X-Station-Id': manager.stationId} : {})}
 
         const polls = await (await request.get('/api/v1/forms?purpose=POLL', {headers})).json()
         const link = await (await request.get(`/api/v1/forms/${polls[0].id}/share-link`, {headers})).json()
