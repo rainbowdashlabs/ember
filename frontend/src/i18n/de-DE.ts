@@ -2734,6 +2734,9 @@ export default {
         fields: 'Felder',
     },
     events: {
+        listNotLoaded: 'Die Terminliste konnte nicht neu geladen werden. Was hier steht, ist noch die vorige Auswahl.',
+        moreNotLoaded: 'Weitere Termine konnten nicht geladen werden. Die bereits angezeigten bleiben stehen.',
+        holidaysImportedPartly: '{written} von {total} Ferienterminen wurden eingetragen, der Rest nicht.',
         attachments: {
             title: 'Dateien',
             hint: 'Dateien aus der Mediathek, die zu diesem Termin gehören: Laufzettel, Formulare, Pläne.',

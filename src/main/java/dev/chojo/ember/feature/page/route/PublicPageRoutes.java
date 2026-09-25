@@ -154,7 +154,8 @@ public class PublicPageRoutes implements Routes {
      * The station an address names, whether it names it by identifier or by its public slug.
      */
     private int resolveStation(Context ctx) {
-        return stationRepository.resolveAddressedId(ctx.pathParam("stationUid"))
+        return stationRepository
+                .resolveAddressedId(ctx.pathParam("stationUid"))
                 .orElseThrow(Refusal.STATION_NOT_HERE::raise);
     }
 
