@@ -19,6 +19,10 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.service.EventOccurrenceService.EventKind;
+import dev.chojo.ember.feature.events.service.EventOccurrenceService.EventPageQuery;
+import dev.chojo.ember.feature.events.service.EventOccurrenceService.EventState;
+import dev.chojo.ember.feature.events.service.EventOccurrenceService.OccurrenceQuery;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -91,6 +95,32 @@ class EventServicesTest extends RepositoryTestBase {
     /** Today as the station has it, which is the day every one of these lookups answers about. */
     private static LocalDate stationToday() {
         return LocalDate.now(stationZone());
+    }
+
+    /** A page of a listing with no filter and no window, which is what most of these lookups ask for. */
+    private static OccurrenceQuery page(int limit, int offset) {
+        return new OccurrenceQuery(null, null, null, null, null, limit, offset);
+    }
+
+    /** The same page, narrowed to what a search field was typed into. */
+    private static OccurrenceQuery searchPage(String search) {
+        return new OccurrenceQuery(null, null, search, null, null, 100, 0);
+    }
+
+    /** The same page, narrowed to a stretch of days. */
+    private static OccurrenceQuery window(LocalDate from, LocalDate to) {
+        return new OccurrenceQuery(null, null, null, from, to, 100, 0);
+    }
+
+    /** A page of appointments themselves, of one half and one kind. */
+    private static EventPageQuery eventPage(EventState state, EventKind kind) {
+        return new EventPageQuery(state, kind, page(100, 0));
+    }
+
+    /** Today as a given station has it, which is the only clock its appointments are placed on. */
+    private static LocalDate todayAt(int stationId) {
+        return LocalDate.now(
+                StationFormat.timezoneOf(stationRepo.findById(stationId).orElse(null)));
     }
 
     @AfterAll
@@ -1066,7 +1096,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, page(100, 0));
         assertTrue(occurrences.stream().anyMatch(o -> o.event().id() == event.id()));
     }
 
@@ -1097,14 +1127,14 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, page(100, 0));
         assertTrue(occurrences.stream().anyMatch(o -> o.event().id() == event.id()));
     }
 
     @Test
     @Order(122)
     void findUpcomingOccurrencesWithPagination() {
-        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 2, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, page(2, 0));
         assertTrue(occurrences.size() <= 2);
     }
 
@@ -1139,7 +1169,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
         try {
-            var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 1000, 0);
+            var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, page(1000, 0));
             assertTrue(
                     occurrences.stream().anyMatch(o -> o.event().id() == yearly.id()),
                     "an appointment two hundred days out is still upcoming");
@@ -1151,12 +1181,11 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(123)
     void findUpcomingOccurrencesWithOffset() {
-        var all = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var all = occurrenceService.findUpcomingOccurrences(station.id(), null, page(100, 0));
         if (all.size() > 1) {
             // Compared by what comes back rather than by how much of it. The list no longer runs out
             // after a fixed stretch of time, so a page asked for past the first is simply full again.
-            var offsetResults =
-                    occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, all.size() - 1, 1);
+            var offsetResults = occurrenceService.findUpcomingOccurrences(station.id(), null, page(all.size() - 1, 1));
             assertEquals(all.subList(1, all.size()), offsetResults);
         }
     }
@@ -1165,7 +1194,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(124)
     void findUpcomingOccurrencesWithFilters() {
         var occurrences = occurrenceService.findUpcomingOccurrences(
-                station.id(), List.of(member.id()), categoryId, false, null, 100, 0);
+                station.id(), List.of(member.id()), new OccurrenceQuery(categoryId, false, null, null, null, 100, 0));
         assertNotNull(occurrences);
     }
 
@@ -1195,7 +1224,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, page(100, 0));
         // The event should appear at least once in the next 28 days if there's a matching date
         assertNotNull(occurrences);
     }
@@ -1225,7 +1254,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, page(100, 0));
         assertNotNull(occurrences);
     }
 
@@ -1256,7 +1285,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, page(100, 0));
         assertNotNull(occurrences);
     }
 
@@ -1297,8 +1326,7 @@ class EventServicesTest extends RepositoryTestBase {
                     null,
                     null);
 
-            var occurrences =
-                    occurrenceService.findUpcomingOccurrences(breakStation.id(), null, null, null, null, 100, 0);
+            var occurrences = occurrenceService.findUpcomingOccurrences(breakStation.id(), null, page(100, 0));
             var itsDates = occurrences.stream()
                     .filter(o -> o.event().name().equals("Break Recurring"))
                     .map(UpcomingEventOccurrence::date)
@@ -1332,7 +1360,7 @@ class EventServicesTest extends RepositoryTestBase {
                 .id();
         int morning = oneTimeAt(sortStation.id(), "Morgens", day.atTime(8, 0)).id();
 
-        var order = occurrenceService.findUpcomingOccurrences(sortStation.id(), null, null, null, null, 100, 0).stream()
+        var order = occurrenceService.findUpcomingOccurrences(sortStation.id(), null, page(100, 0)).stream()
                 .map(occurrence -> occurrence.event().id())
                 .toList();
 
@@ -1362,6 +1390,341 @@ class EventServicesTest extends RepositoryTestBase {
                 null);
     }
 
+    /**
+     * A weekly appointment written on a day that has gone by, which is the shape every walk back is
+     * tested with. It falls on the weekday of the day it was written, so a day counted in whole weeks
+     * from it is one of its dates.
+     */
+    private static StationEvent weeklyWrittenOn(int stationId, String name, LocalDate written) {
+        var zone = StationFormat.timezoneOf(stationRepo.findById(stationId).orElse(null));
+        var start = written.atTime(18, 0).atZone(zone).toInstant();
+        return crudService.create(
+                stationId,
+                name,
+                "desc",
+                StationEvent.EventType.RECURRING,
+                written.getDayOfWeek().getValue(),
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    /**
+     * The walk back holds what has happened and nothing that has not, which is the whole of what
+     * "before today" means for a one-off appointment.
+     */
+    @Test
+    @Order(1291)
+    void pastOccurrencesHoldYesterdayAndNotTomorrow() {
+        var walkStation = stationRepo.create("WalkBackStation");
+        try {
+            var today = todayAt(walkStation.id());
+            int yesterday = oneTimeAt(
+                            walkStation.id(), "Gestern", today.minusDays(1).atTime(10, 0))
+                    .id();
+            int tomorrow = oneTimeAt(
+                            walkStation.id(), "Morgen", today.plusDays(1).atTime(10, 0))
+                    .id();
+
+            var found = occurrenceService.findPastOccurrences(walkStation.id(), null, page(100, 0));
+            var ids = found.stream().map(o -> o.event().id()).toList();
+
+            assertTrue(ids.contains(yesterday), "yesterday has happened");
+            assertFalse(ids.contains(tomorrow), "tomorrow has not");
+            assertEquals(today.minusDays(1), found.getFirst().date());
+        } finally {
+            stationRepo.delete(walkStation.id());
+        }
+    }
+
+    /**
+     * A series gives one date a week going back and stops on the day it was written.
+     *
+     * <p>Nothing in a recurrence rule says when it started, so a weekly appointment answers for its
+     * weekday on every date there has ever been. Going forward that never shows. Going back, without
+     * the floor, it would hand out a drill every week since the epoch.
+     */
+    @Test
+    @Order(1292)
+    void pastOccurrencesOfAWeeklyAppointmentStopWhereItWasWritten() {
+        var walkStation = stationRepo.create("WalkBackWeeklyStation");
+        try {
+            var today = todayAt(walkStation.id());
+            var written = today.minusWeeks(5);
+            weeklyWrittenOn(walkStation.id(), "Wöchentliche Übung", written);
+
+            var dates = occurrenceService.findPastOccurrences(walkStation.id(), null, page(100, 0)).stream()
+                    .map(UpcomingEventOccurrence::date)
+                    .toList();
+
+            assertEquals(
+                    List.of(
+                            today.minusWeeks(1),
+                            today.minusWeeks(2),
+                            today.minusWeeks(3),
+                            today.minusWeeks(4),
+                            written),
+                    dates,
+                    "one date a week going back, newest first, and nothing before it existed");
+        } finally {
+            stationRepo.delete(walkStation.id());
+        }
+    }
+
+    /** A break removes a date going back exactly as it removes one going forward. */
+    @Test
+    @Order(1293)
+    void aBreakRemovesADateGoingBack() {
+        var walkStation = stationRepo.create("WalkBackBreakStation");
+        try {
+            var today = todayAt(walkStation.id());
+            var written = today.minusWeeks(4);
+            weeklyWrittenOn(walkStation.id(), "Übung mit Pause", written);
+            var silenced = today.minusWeeks(2);
+            breakService.create(walkStation.id(), "Ferien", silenced, silenced);
+
+            var dates = occurrenceService.findPastOccurrences(walkStation.id(), null, page(100, 0)).stream()
+                    .map(UpcomingEventOccurrence::date)
+                    .toList();
+
+            assertEquals(
+                    List.of(today.minusWeeks(1), today.minusWeeks(3), written),
+                    dates,
+                    "the covered date is gone and the ones around it stand");
+        } finally {
+            stationRepo.delete(walkStation.id());
+        }
+    }
+
+    /** A page of ten is ten, and the next page carries on where it stopped. */
+    @Test
+    @Order(1294)
+    void aPageOfTenPastOccurrencesIsTen() {
+        var walkStation = stationRepo.create("WalkBackPageStation");
+        try {
+            var today = todayAt(walkStation.id());
+            weeklyWrittenOn(walkStation.id(), "Lange Reihe", today.minusWeeks(20));
+
+            var first = occurrenceService.findPastOccurrences(walkStation.id(), null, page(10, 0));
+            var second = occurrenceService.findPastOccurrences(walkStation.id(), null, page(10, 10));
+
+            assertEquals(10, first.size());
+            assertEquals(today.minusWeeks(1), first.getFirst().date());
+            assertEquals(today.minusWeeks(10), first.getLast().date());
+            assertEquals(today.minusWeeks(11), second.getFirst().date());
+        } finally {
+            stationRepo.delete(walkStation.id());
+        }
+    }
+
+    /**
+     * The two readings of "past", which are not the same reading and are both needed.
+     *
+     * <p>A list of occurrences answers about dates: a weekly drill has one behind it for every week
+     * it has run. A list of appointments answers about the appointment: that same drill is current,
+     * because it comes round again. Reading either question with the other one's answer is the way
+     * this goes wrong, so both are asked here on the same day about the same appointment.
+     */
+    @Test
+    @Order(1295)
+    void aRepeatingAppointmentIsCurrentOnTheDayItFillsThePast() {
+        var walkStation = stationRepo.create("TwoReadingsStation");
+        try {
+            var today = todayAt(walkStation.id());
+            var drill = weeklyWrittenOn(walkStation.id(), "Wöchentlicher Dienst", today.minusWeeks(10));
+
+            var behindIt = occurrenceService.findPastOccurrences(walkStation.id(), null, page(100, 0));
+            var current = occurrenceService.findEventsPage(walkStation.id(), null, eventPage(EventState.CURRENT, null));
+            var past = occurrenceService.findEventsPage(walkStation.id(), null, eventPage(EventState.PAST, null));
+
+            assertEquals(10, behindIt.size(), "ten occurrences have gone by");
+            assertEquals(
+                    List.of(drill.id()),
+                    current.stream().map(d -> d.event().id()).toList(),
+                    "and the appointment is current, because it comes round again");
+            assertEquals(today, current.getFirst().nextDate(), "placed on the date it next falls on");
+            assertEquals(
+                    today.minusWeeks(1),
+                    current.getFirst().previousDate(),
+                    "and still saying when it last ran, which is not what orders this list");
+            assertTrue(past.isEmpty(), "an appointment that still comes round is never past");
+        } finally {
+            stationRepo.delete(walkStation.id());
+        }
+    }
+
+    /**
+     * A page of appointments splits by what still comes round and by kind, and each half is ordered
+     * from the date nearest to now outwards.
+     */
+    @Test
+    @Order(1296)
+    void thePagedListSplitsByWhatStillComesRoundAndByKind() {
+        var pageStation = stationRepo.create("PagedEventsStation");
+        try {
+            var today = todayAt(pageStation.id());
+            int ran = oneTimeAt(pageStation.id(), "Gelaufen", today.minusDays(3).atTime(10, 0))
+                    .id();
+            int coming = oneTimeAt(
+                            pageStation.id(), "Kommt noch", today.plusDays(3).atTime(10, 0))
+                    .id();
+            int drill = weeklyWrittenOn(pageStation.id(), "Dienstabend", today.minusWeeks(3))
+                    .id();
+
+            var current = occurrenceService.findEventsPage(pageStation.id(), null, eventPage(EventState.CURRENT, null));
+            var past = occurrenceService.findEventsPage(pageStation.id(), null, eventPage(EventState.PAST, null));
+            var oneTimeOnly = occurrenceService.findEventsPage(
+                    pageStation.id(), null, eventPage(EventState.CURRENT, EventKind.ONE_TIME));
+            var repeatingOnly = occurrenceService.findEventsPage(
+                    pageStation.id(), null, eventPage(EventState.CURRENT, EventKind.REPEATING));
+
+            assertEquals(
+                    List.of(drill, coming),
+                    current.stream().map(d -> d.event().id()).toList(),
+                    "soonest first, which puts today's series before an appointment three days out");
+            assertEquals(List.of(ran), past.stream().map(d -> d.event().id()).toList());
+            assertNull(past.getFirst().nextDate(), "a past appointment has no next date");
+            assertEquals(today.minusDays(3), past.getFirst().previousDate(), "and says when it did run");
+            assertEquals(
+                    List.of(coming),
+                    oneTimeOnly.stream().map(d -> d.event().id()).toList());
+            assertEquals(today.plusDays(3), oneTimeOnly.getFirst().nextDate());
+            assertNull(oneTimeOnly.getFirst().previousDate(), "something that has not happened has no date behind it");
+            assertEquals(
+                    List.of(drill),
+                    repeatingOnly.stream().map(d -> d.event().id()).toList());
+            assertEquals(today.minusWeeks(1), repeatingOnly.getFirst().previousDate());
+        } finally {
+            stationRepo.delete(pageStation.id());
+        }
+    }
+
+    /** The next date is the first one from today on, and nothing at all where there is none. */
+    @Test
+    @Order(1297)
+    void theNextDateIsTheFirstOneFromTodayOn() {
+        var nextStation = stationRepo.create("NextDateStation");
+        try {
+            var today = todayAt(nextStation.id());
+            var coming =
+                    oneTimeAt(nextStation.id(), "Steht an", today.plusDays(4).atTime(9, 0));
+            var gone = oneTimeAt(nextStation.id(), "Vorbei", today.minusDays(4).atTime(9, 0));
+
+            assertEquals(
+                    today.plusDays(4), occurrenceService.findNextDate(coming).orElse(null));
+            assertTrue(occurrenceService.findNextDate(gone).isEmpty());
+        } finally {
+            stationRepo.delete(nextStation.id());
+        }
+    }
+
+    /** A window of days narrows both walks, each from its own end. */
+    @Test
+    @Order(1298)
+    void theWindowNarrowsBothWalks() {
+        var windowStation = stationRepo.create("WindowStation");
+        try {
+            var today = todayAt(windowStation.id());
+            weeklyWrittenOn(windowStation.id(), "Reihe", today.minusWeeks(6));
+
+            var upcoming = occurrenceService.findUpcomingOccurrences(
+                    windowStation.id(), null, window(today.plusWeeks(2), today.plusWeeks(3)));
+            var past = occurrenceService.findPastOccurrences(
+                    windowStation.id(), null, window(today.minusWeeks(3), today.minusWeeks(2)));
+
+            assertEquals(
+                    List.of(today.plusWeeks(2), today.plusWeeks(3)),
+                    upcoming.stream().map(UpcomingEventOccurrence::date).toList());
+            assertEquals(
+                    List.of(today.minusWeeks(2), today.minusWeeks(3)),
+                    past.stream().map(UpcomingEventOccurrence::date).toList());
+
+            var onItsDate = occurrenceService.findEventsPage(
+                    windowStation.id(), null, new EventPageQuery(EventState.CURRENT, null, window(today, today)));
+            var besideIt = occurrenceService.findEventsPage(
+                    windowStation.id(),
+                    null,
+                    new EventPageQuery(EventState.CURRENT, null, window(today.plusDays(1), today.plusDays(2))));
+
+            assertEquals(1, onItsDate.size(), "a page of appointments is windowed by the date it is ordered by");
+            assertTrue(besideIt.isEmpty(), "and an appointment whose next date lies outside it is left out");
+        } finally {
+            stationRepo.delete(windowStation.id());
+        }
+    }
+
+    /**
+     * A series whose dates are exhausted is past, and past appointments read newest first by the
+     * date each of them last fell on.
+     */
+    @Test
+    @Order(1299)
+    void pastAppointmentsReadByTheDateTheyLastFellOn() {
+        var endedStation = stationRepo.create("EndedSeriesStation");
+        try {
+            var today = todayAt(endedStation.id());
+            var older = weeklyWrittenOn(endedStation.id(), "Alte Reihe", today.minusWeeks(12));
+            crudService.setRepeatEnd(older.id(), today.minusWeeks(8), null);
+            var newer = weeklyWrittenOn(endedStation.id(), "Neuere Reihe", today.minusWeeks(10));
+            crudService.setRepeatEnd(newer.id(), today.minusWeeks(3), null);
+
+            var past = occurrenceService.findEventsPage(
+                    endedStation.id(), null, eventPage(EventState.PAST, EventKind.REPEATING));
+
+            assertEquals(
+                    List.of(newer.id(), older.id()),
+                    past.stream().map(d -> d.event().id()).toList(),
+                    "the one that ran most recently first");
+            assertNull(past.getFirst().nextDate(), "a series with its dates behind it has none left");
+            assertEquals(
+                    today.minusWeeks(3),
+                    past.getFirst().previousDate(),
+                    "and the list shows the date it is ordered by");
+        } finally {
+            stationRepo.delete(endedStation.id());
+        }
+    }
+
+    /** A search on the past searches the past, and not everything the station has ever written. */
+    @Test
+    @Order(1300)
+    void searchNarrowsATabWithoutReachingOutOfIt() {
+        var searchStation = stationRepo.create("PastSearchStation");
+        try {
+            var today = todayAt(searchStation.id());
+            int wanted = oneTimeAt(
+                            searchStation.id(), "Zeltlager", today.minusDays(2).atTime(10, 0))
+                    .id();
+            oneTimeAt(searchStation.id(), "Dienstabend", today.minusDays(2).atTime(12, 0));
+            oneTimeAt(
+                    searchStation.id(),
+                    "Zeltlager Vorbereitung",
+                    today.plusDays(2).atTime(10, 0));
+
+            var occurrences = occurrenceService.findPastOccurrences(searchStation.id(), null, searchPage("zeltlager"));
+            var appointments = occurrenceService.findEventsPage(
+                    searchStation.id(), null, new EventPageQuery(EventState.PAST, null, searchPage("zeltlager")));
+
+            assertEquals(
+                    List.of(wanted),
+                    occurrences.stream().map(o -> o.event().id()).toList(),
+                    "the one that matches and has happened");
+            assertEquals(
+                    List.of(wanted),
+                    appointments.stream().map(d -> d.event().id()).toList());
+        } finally {
+            stationRepo.delete(searchStation.id());
+        }
+    }
+
     @Test
     @Order(129)
     void findUpcomingOccurrencesOneTimePastNotIncluded() {
@@ -1388,7 +1751,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, page(100, 0));
         assertTrue(occurrences.stream().noneMatch(o -> o.event().id() == event.id()));
     }
 
@@ -2266,13 +2629,13 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var byName = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, "searchable", 100, 0);
+        var byName = occurrenceService.findUpcomingOccurrences(station.id(), null, searchPage("searchable"));
         assertTrue(byName.stream().anyMatch(o -> o.event().id() == unique.id()));
 
-        var byDesc = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, "needle", 100, 0);
+        var byDesc = occurrenceService.findUpcomingOccurrences(station.id(), null, searchPage("needle"));
         assertTrue(byDesc.stream().anyMatch(o -> o.event().id() == unique.id()));
 
-        var none = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, "no-such-string", 100, 0);
+        var none = occurrenceService.findUpcomingOccurrences(station.id(), null, searchPage("no-such-string"));
         assertTrue(none.stream().noneMatch(o -> o.event().id() == unique.id()));
     }
 

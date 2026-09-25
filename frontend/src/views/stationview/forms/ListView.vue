@@ -16,6 +16,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FormShareLink from '@/components/public/FormShareLink.vue'
 import {FormStatus, type Form, type FormListEntry, type FormPurposeName} from '@/api/forms'
+import {PublicFormState} from '@/api/publicForms'
 import { StationPermission } from '@/api/types'
 import { forms } from '@/api'
 import { useSession } from '@/composables/useSession'
@@ -110,15 +111,24 @@ const { loading, error, reload } = useAsyncLoader(async () => {
 }, { autoLoad: false })
 loading.value = true
 
-function statusLabel(status: string) {
-  if (status === FormStatus.OPEN) return t('forms.statusOpen')
-  if (status === FormStatus.CLOSED) return t('forms.statusClosed')
+function statusLabel(state: string) {
+  if (state === PublicFormState.OPEN) return t('forms.statusOpen')
+  if (state === PublicFormState.CLOSED) return t('forms.statusClosed')
+  if (state === PublicFormState.NOT_OPEN_YET) return t('forms.statusScheduled')
   return t('forms.statusDraft')
 }
 
 function publishForm(form: Form) {
-  showConfirm(t('forms.confirmPublish'), async () => {
+  const question = form.status === FormStatus.CLOSED ? t('forms.confirmReopen') : t('forms.confirmPublish')
+  showConfirm(question, async () => {
     await forms.publishForm(form.id)
+    await reload()
+  })
+}
+
+function clearResponses(form: Form) {
+  showConfirm(t('forms.confirmClearResponses', {count: form.responseCount}), async () => {
+    await forms.clearFormResponses(form.id)
     await reload()
   })
 }
@@ -209,6 +219,7 @@ watch(loaded, (isLoaded) => {
           @edit="goEdit"
           @analytics="goAnalytics"
           @share="openShareLink"
+          @clear="clearResponses"
           @delete="deleteForm"
         />
 

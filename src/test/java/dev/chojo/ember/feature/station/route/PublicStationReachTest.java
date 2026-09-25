@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import io.javalin.http.Context;
+import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -27,27 +28,30 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * The clock a station's public pages are written on, as its public card hands it out.
+ * Whether a station answers the open web at all.
  *
- * <p>Those pages are rendered once by the server and once again by the browser, and neither machine
- * stands where the reader does, so a date written on whichever clock ran came out differently in the
- * two copies. The station's own clock is the one both can be told to use, and it only reaches them
- * if the card carries it.
+ * <p>A form put where anybody can reach it is drawn inside the station's own frame, with its name
+ * and its colours around it, and that frame asks the station's public card for them. A station
+ * whose only public thing is such a form therefore has to answer, or the form's page comes up empty
+ * for everybody it was sent to: it had nothing else on the public web, which is exactly the case
+ * where somebody reaches for a form.
  */
-class PublicStationInfoTimezoneTest {
-    private static final UUID STATION_UID = UUID.fromString("22222222-2222-2222-2222-222222222222");
+class PublicStationReachTest {
+    private static final UUID STATION_UID = UUID.fromString("33333333-3333-3333-3333-333333333333");
 
-    private static Station station(String timezone) {
+    /** A station that publishes nothing: no wiki, no calendar, no pages, no waiting list, no blog. */
+    private static Station withdrawnStation() {
         return new Station(
                 9,
                 STATION_UID,
                 "Wache",
-                timezone,
+                "Europe/Berlin",
                 "de-DE",
                 null,
                 null,
@@ -55,12 +59,12 @@ class PublicStationInfoTimezoneTest {
                 null,
                 ThemeFeel.ROUNDED,
                 false,
-                PublicKbMode.DENY_ALL,
+                PublicKbMode.OFF,
                 null,
                 DiscoveryVisibility.NONE,
                 null,
                 false,
-                true,
+                false,
                 null,
                 false,
                 null,
@@ -79,21 +83,23 @@ class PublicStationInfoTimezoneTest {
                 false);
     }
 
-    private static PublicStationRoutes.PublicStationInfo cardOf(String timezone) throws Exception {
+    private static PublicStationRoutes routesWhereFormsReach(boolean openlyAddressedForms) {
         var stationRepository = mock(StationRepository.class);
-        when(stationRepository.findByAddress(STATION_UID.toString())).thenReturn(Optional.of(station(timezone)));
-        var routes = new PublicStationRoutes(
+        when(stationRepository.findByAddress(STATION_UID.toString())).thenReturn(Optional.of(withdrawnStation()));
+        var formService = mock(FormService.class);
+        when(formService.hasOpenlyAddressedForms(9)).thenReturn(openlyAddressedForms);
+        return new PublicStationRoutes(
                 stationRepository,
                 mock(StationService.class),
                 mock(StationLogoService.class),
                 mock(PageService.class),
                 mock(WaitingListService.class),
                 mock(NewsService.class),
-                mock(FormService.class));
+                formService);
+    }
 
-        Context ctx = mock(Context.class);
+    private static void askFor(PublicStationRoutes routes, Context ctx) throws Exception {
         when(ctx.pathParam("stationUid")).thenReturn(STATION_UID.toString());
-
         Method handler = PublicStationRoutes.class.getDeclaredMethod("getInfo", Context.class);
         handler.setAccessible(true);
         try {
@@ -102,25 +108,25 @@ class PublicStationInfoTimezoneTest {
             if (e.getCause() instanceof RuntimeException cause) throw cause;
             throw e;
         }
+    }
+
+    @Test
+    void aStationWithNothingPublicAtAllAnswersNobody() {
+        var routes = routesWhereFormsReach(false);
+        Context ctx = mock(Context.class);
+
+        assertThrows(NotFoundResponse.class, () -> askFor(routes, ctx));
+    }
+
+    @Test
+    void aFormAnybodyCanReachIsEnoughToAnswerWith() throws Exception {
+        var routes = routesWhereFormsReach(true);
+        Context ctx = mock(Context.class);
+
+        askFor(routes, ctx);
 
         var card = ArgumentCaptor.forClass(PublicStationRoutes.PublicStationInfo.class);
         verify(ctx).json(card.capture());
-        return card.getValue();
-    }
-
-    @Test
-    void aStationHandsOutTheClockItKeeps() throws Exception {
-        assertEquals("Europe/Berlin", cardOf("Europe/Berlin").timezone());
-    }
-
-    /**
-     * A station that never said where it stands falls back to the clock its exports already fall back
-     * to, spelled the way a browser reads it: Java writes that offset as {@code Z}, and no browser's
-     * date formatter knows that spelling.
-     */
-    @Test
-    void aStationThatNamedNoClockHandsOutOneABrowserCanRead() throws Exception {
-        assertEquals("UTC", cardOf(null).timezone());
-        assertEquals("UTC", cardOf("Nirgendwo/Nirgends").timezone());
+        assertEquals("Wache", card.getValue().name());
     }
 }

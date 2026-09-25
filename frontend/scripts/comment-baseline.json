@@ -214,7 +214,6 @@
   "frontend/src/views/stationview/events/eventshared/eventFieldText.test.ts": 1,
   "frontend/src/views/stationview/events/eventshared/eventFieldText.ts": 1,
   "frontend/src/views/stationview/events/FederatedEventDetailView.vue": 1,
-  "frontend/src/views/stationview/events/indexview/EventsByCategory.vue": 1,
   "frontend/src/views/stationview/events/RegistrationsView.vue": 5,
   "frontend/src/views/stationview/events/upcomingview/registrationAudience.test.ts": 1,
   "frontend/src/views/stationview/forms/analyticsview/groupedResults.test.ts": 1,

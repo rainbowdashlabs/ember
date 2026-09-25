@@ -672,8 +672,17 @@ class FormServiceTest extends RepositoryTestBase {
         service.setVisibility(form.id(), FormVisibility.UNLISTED);
         String first = service.replaceShareLink(form.id(), null).orElseThrow();
 
+        assertEquals(
+                form.id(),
+                service.findByShareToken(first).orElseThrow().id(),
+                "a form reaching nobody but whoever was sent the link had better answer at that link");
+
         service.setVisibility(form.id(), FormVisibility.PUBLIC);
         assertEquals(first, service.shareLink(form.id()).orElseThrow(), "a public form still carries its link");
+        assertEquals(
+                form.id(),
+                service.findByShareToken(first).orElseThrow().id(),
+                "and opening it to everybody does not close the link it was already sent with");
 
         service.setVisibility(form.id(), FormVisibility.UNLISTED);
         assertEquals(first, service.shareLink(form.id()).orElseThrow());
@@ -718,6 +727,66 @@ class FormServiceTest extends RepositoryTestBase {
         assertFalse(service.findRestrictions(form.id()).hasRestrictions());
 
         service.delete(form.id());
+    }
+
+    /**
+     * A poll asked once can be asked again: reopening it takes answers afresh, and emptying it
+     * leaves the questions standing so whoever answered before may answer again.
+     */
+    @Test
+    @Order(93)
+    void aPollIsReopenedAndEmptiedToBeAskedAgain() {
+        var poll = service.create(
+                station.id(), "Ask Again", "", false, true, false, null, null, member.id(), FormPurpose.POLL);
+        try {
+            service.publish(poll.id());
+            byte[] hash = new byte[32];
+            hash[0] = 7;
+            service.submitAnonymousResponse(poll.id(), hash, Map.of(), TEST_CONSENT);
+            assertEquals(1, service.countResponses(poll.id()));
+
+            assertTrue(service.close(poll.id()));
+            assertNotNull(service.findById(poll.id()).orElseThrow().closedAt());
+
+            assertTrue(service.publish(poll.id()));
+            var reopened = service.findById(poll.id()).orElseThrow();
+            assertEquals(Form.FormStatus.OPEN, reopened.status());
+            assertNull(reopened.closedAt(), "a form taking answers again is not a closed one");
+            assertTrue(service.isAcceptingResponses(reopened));
+
+            assertEquals(1, service.clearResponses(poll.id()));
+            assertEquals(0, service.countResponses(poll.id()));
+            assertFalse(
+                    service.hasAnonymousResponded(poll.id(), hash),
+                    "whoever answered the round that was thrown away may answer the next one");
+            assertTrue(service.findById(poll.id()).isPresent(), "the form itself stays");
+        } finally {
+            service.delete(poll.id());
+        }
+    }
+
+    /**
+     * Whether the station is on the public web at all: a form anybody may reach at its own address
+     * counts, and one that answers at its link alone does not.
+     */
+    @Test
+    @Order(94)
+    void aFormAtItsOwnAddressPutsTheStationOnThePublicWeb() {
+        assertFalse(service.hasOpenlyAddressedForms(station.id()), "an internal form reaches nobody outside");
+
+        var poll = service.create(
+                station.id(), "Open To All", "", false, true, false, null, null, member.id(), FormPurpose.POLL);
+        try {
+            assertTrue(service.hasOpenlyAddressedForms(station.id()));
+
+            service.setVisibility(poll.id(), FormVisibility.UNLISTED);
+            assertFalse(service.hasOpenlyAddressedForms(station.id()));
+
+            service.setVisibility(poll.id(), FormVisibility.PUBLIC);
+            assertTrue(service.hasOpenlyAddressedForms(station.id()));
+        } finally {
+            service.delete(poll.id());
+        }
     }
 
     @Test

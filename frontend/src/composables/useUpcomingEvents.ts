@@ -12,9 +12,7 @@ import {
   type EventCategory,
   type EventField,
   type EventRegistrationEntry,
-  type EventRegistrationField,
   type RegistrationCount,
-  type RegistrationFieldValue,
   type StationEvent,
   type UpcomingEventOccurrence,
 } from '@/api/events'
@@ -22,10 +20,9 @@ import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { events, managedMembers as managedMembersApi, memberGroups, userTags } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useEventAnswer } from '@/composables/useEventAnswer'
+import { usePagedList, PAGE_SIZE } from '@/composables/usePagedList'
+import { useEventListFilters } from '@/composables/useEventListFilters'
 import { toIsoDate } from '@/util/format'
-
-const PAGE_SIZE = 10
-const SEARCH_DEBOUNCE_MS = 250
 
 /**
  * The upcoming-events page's data: the paged occurrence list with its filters, the supporting
@@ -34,6 +31,11 @@ const SEARCH_DEBOUNCE_MS = 250
  * The occurrence list is filtered server-side and paged, so changing a filter re-requests the
  * first page rather than narrowing what is already loaded. Registration changes reload only the
  * registrations and their counts, keeping the list itself stable under the user.
+ *
+ * The tab decides which end of the calendar the list comes from, and nothing else about it changes:
+ * the page lists dates either way, so a weekly drill is one row per date on both, hundreds of them
+ * behind it included. Every filter applies to whichever tab is open, and all of them live in the
+ * address.
  *
  * @param currentMemberId the acting member, whose registrations are sent without an explicit id
  * @param isGuardian      whether the acting member may also register the members they manage
@@ -44,18 +46,6 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   const allEvents = ref<StationEvent[]>([])
   const eventBreaks = ref<EventBreak[]>([])
   const todayEvents = ref<StationEvent[]>([])
-  /**
-   * The dates the list draws, in the order the server put them, which is the nearest first.
-   *
-   * <p>One row per date and not one per appointment: a weekly drill is ten rows over the next ten
-   * weeks, because the list is a run of what is coming up rather than a register of what exists.
-   * Keeping only the next date of each collapsed a station's month into a handful of rows, and the
-   * page went on asking for ten more dates and throwing nine of them away.
-   *
-   * <p>Nothing is reordered on top of the server's order. Multi-day events used to be hoisted to the
-   * front as banner rows, which put an event months away above tomorrow's drill.
-   */
-  const upcomingOccurrences = ref<UpcomingEventOccurrence[]>([])
   const myRegistrations = ref<EventRegistrationEntry[]>([])
   const eligibleMembers = ref<Record<number, number[]>>({})
   const managedMembers = ref<StationMember[]>([])
@@ -66,12 +56,9 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   const groups = ref<MemberGroup[]>([])
   const tags = ref<UserTag[]>([])
 
-  const selectedCategoryId = ref('')
-  const searchQuery = ref('')
   const showNeedsAction = ref(false)
 
-  const loadingMore = ref(false)
-  const hasMore = ref(true)
+  const { tab, isPast, searchInput, categoryId, from, to } = useEventListFilters(() => reloadOccurrences())
 
   /**
    * The end date of an event that spans more than its start day, or {@code null} when it does
@@ -83,24 +70,36 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     return endStr > startDateStr ? endStr : null
   }
 
-
-  function buildUpcomingParams(offset = 0) {
-    const params: {
-      categoryId?: number
-      requiresRegistration?: boolean
-      search?: string
-      limit: number
-      offset: number
-    } = {limit: PAGE_SIZE, offset}
-    if (selectedCategoryId.value) params.categoryId = Number(selectedCategoryId.value)
-    if (showNeedsAction.value) params.requiresRegistration = true
-    if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
-    return params
+  function occurrenceParams(offset: number) {
+    return {
+      categoryId: categoryId.value ? Number(categoryId.value) : undefined,
+      requiresRegistration: showNeedsAction.value ? true : undefined,
+      search: searchInput.value.trim() || undefined,
+      from: from.value || undefined,
+      to: to.value || undefined,
+      limit: PAGE_SIZE,
+      offset,
+    }
   }
 
-  const {loading, error, reload} = useAsyncLoader(async () => {
-    const [upcoming, today, regs, elig, counts, ovFields, cats, allEv, brs, restr, grps, tgs] = await Promise.all([
-      events.listUpcomingOccurrences(buildUpcomingParams()),
+  /**
+   * The dates the list draws, in the order the server put them: the nearest first while they are
+   * still to come, the most recent first once they have passed.
+   *
+   * <p>One row per date and not one per appointment: a weekly drill is ten rows over the next ten
+   * weeks, because the list is a run of what is coming up rather than a register of what exists.
+   * Keeping only the next date of each collapsed a station's month into a handful of rows, and the
+   * page went on asking for ten more dates and throwing nine of them away.
+   *
+   * <p>Nothing is reordered on top of the server's order. Multi-day events used to be hoisted to the
+   * front as banner rows, which put an event months away above tomorrow's drill.
+   */
+  const occurrences = usePagedList<UpcomingEventOccurrence>(offset => isPast.value
+    ? events.listPastOccurrences(occurrenceParams(offset))
+    : events.listUpcomingOccurrences(occurrenceParams(offset)))
+
+  const { loading, error, reload } = useAsyncLoader(async () => {
+    const [today, regs, elig, counts, ovFields, cats, allEv, brs, restr, grps, tgs] = await Promise.all([
       events.listTodayEvents(),
       events.listMyRegistrations(),
       events.listEligibleMembers(),
@@ -112,9 +111,8 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
       events.listAllRestrictions().catch(() => ({})),
       memberGroups.listGroups().catch(() => []),
       userTags.listTags().catch(() => []),
+      occurrences.load(),
     ])
-    upcomingOccurrences.value = upcoming
-    hasMore.value = upcoming.length >= PAGE_SIZE
     todayEvents.value = today
     myRegistrations.value = regs
     eligibleMembers.value = elig
@@ -151,39 +149,24 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     confirmAnswerPrompt, cancelAnswerPrompt,
   } = useEventAnswer(currentMemberId, reloadRegistrations, error)
 
-  async function reloadUpcoming() {
+  async function reloadOccurrences() {
     if (loading.value) return
     try {
-      const upcoming = await events.listUpcomingOccurrences(buildUpcomingParams())
-      upcomingOccurrences.value = upcoming
-      hasMore.value = upcoming.length >= PAGE_SIZE
+      await occurrences.load()
     } catch {
       error.value = t('common.error')
     }
   }
 
   async function loadMore() {
-    loadingMore.value = true
     try {
-      const more = await events.listUpcomingOccurrences(
-        buildUpcomingParams(upcomingOccurrences.value.length))
-      upcomingOccurrences.value = [...upcomingOccurrences.value, ...more]
-      hasMore.value = more.length >= PAGE_SIZE
+      await occurrences.loadMore()
     } catch {
       error.value = t('common.error')
-    } finally {
-      loadingMore.value = false
     }
   }
 
-  watch(selectedCategoryId, () => reloadUpcoming())
-  watch(showNeedsAction, () => reloadUpcoming())
-
-  let searchDebounce: ReturnType<typeof setTimeout> | null = null
-  watch(searchQuery, () => {
-    if (searchDebounce) clearTimeout(searchDebounce)
-    searchDebounce = setTimeout(() => reloadUpcoming(), SEARCH_DEBOUNCE_MS)
-  })
+  watch(showNeedsAction, () => reloadOccurrences())
 
   return {
     allEvents,
@@ -198,13 +181,15 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     restrictions,
     groups,
     tags,
-    selectedCategoryId,
-    searchQuery,
+    tab,
+    isPast,
+    searchInput,
+    categoryId,
+    from,
+    to,
     showNeedsAction,
-    loadingMore,
-    hasMore,
     registering,
-    upcomingOccurrences,
+    occurrences: occurrences.view,
     multiDayEndDate,
     loading,
     error,

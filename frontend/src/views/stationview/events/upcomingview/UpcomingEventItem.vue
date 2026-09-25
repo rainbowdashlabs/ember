@@ -37,6 +37,11 @@ const props = defineProps<{
   registrations: EventRegistrationEntry[]
   hasManagedMembers: boolean
   registering: boolean
+  /**
+   * Whether the date can still be answered. A date that has passed cannot, and controls offering to
+   * sign up for it would be an offer the server refuses.
+   */
+  answerable: boolean
   formatTime: (iso?: string) => string
   formatDeadline: (iso: string) => string
 }>()
@@ -88,6 +93,7 @@ const containerClass = computed(() => [
       </div>
     </div>
     <EventRegistrationActions
+        v-if="answerable"
         :people="eligibleMembers"
         :answers="answers"
         :requires-registration="!!event.requiresRegistration"

@@ -73,7 +73,7 @@ export const QUESTION_TYPES_BY_PURPOSE: Record<FormPurposeName, QuestionType[]> 
     ],
 }
 
-export type MultiLimitType = 'NONE' | 'EQUAL_TO' | 'AT_MOST' | 'AT_LEAST'
+export type MultiLimitType = 'NONE' | 'EXACTLY' | 'AT_MOST' | 'AT_LEAST'
 
 export type RatingIcon = 'STAR' | 'NUMBER' | 'HEART' | 'THUMB_UP'
 
@@ -297,6 +297,17 @@ export async function publishForm(id: number): Promise<Form> {
 export async function closeForm(id: number): Promise<Form> {
     const res = await client.post<Form>(`/forms/${id}/close`)
     return res.data
+}
+
+/**
+ * Throws away every answer the form has collected. The form and its questions stay, so it can be
+ * asked again.
+ *
+ * @returns how many answers were thrown away
+ */
+export async function clearFormResponses(id: number): Promise<number> {
+    const res = await client.delete<{cleared: number}>(`/forms/${id}/responses`)
+    return res.data.cleared
 }
 
 // -- Questions --

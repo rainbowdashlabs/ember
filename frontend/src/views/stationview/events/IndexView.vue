@@ -11,15 +11,14 @@ import {useEventRoutes} from '@/composables/useEventRoutes'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
 import EventDashboardBody from './indexview/EventDashboardBody.vue'
 import EventDashboardModals from './indexview/EventDashboardModals.vue'
-import type {AttendanceTemplate} from '@/api/attendance'
-import type {EventBreak, EventCategory, EventField, StationEvent} from '@/api/events'
-import {attendance, events} from '@/api'
+import EventFilterBar from './eventshared/EventFilterBar.vue'
+import {useEventDashboard} from './indexview/useEventDashboard'
+import {EventKinds, EventStates, type EventBreak, type StationEvent} from '@/api/events'
+import {events} from '@/api'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
-import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {useSession} from '@/composables/useSession'
-import {StationPermission} from '@/api/types'
 
 defineProps<{
   /** The heading, when the station's own wording is not the right one. */
@@ -28,72 +27,25 @@ defineProps<{
 }>()
 
 const {t} = useI18n()
-const {hasPermission} = useSession()
 const router = useRouter()
 const eventRoutes = useEventRoutes()
-const allEvents = ref<StationEvent[]>([])
-const todayEvents = ref<StationEvent[]>([])
-const breaks = ref<EventBreak[]>([])
-const categories = ref<EventCategory[]>([])
-const templates = ref<AttendanceTemplate[]>([])
-const overviewFields = ref<Record<number, EventField[]>>({})
 
-interface CategoryGroup {
-  category: EventCategory | null
-  events: StationEvent[]
-}
+const {
+  tab, isPast, searchInput, categoryId, from, to,
+  todayEvents, breaks, categories, templates, overviewFields,
+  dates, series, isEmpty,
+  loading, error, reload, loadMore,
+} = useEventDashboard()
 
-const eventsByCategory = computed((): CategoryGroup[] => {
-  const groups: CategoryGroup[] = []
-  const sorted = [...categories.value].sort((a, b) => a.position - b.position)
-
-  const sortByStart = (a: StationEvent, b: StationEvent) =>
-      (a.startTime ?? '').localeCompare(b.startTime ?? '')
-
-  for (const cat of sorted) {
-    const catEvents = allEvents.value.filter(e => e.categoryId === cat.id).sort(sortByStart)
-    if (catEvents.length > 0) {
-      groups.push({category: cat, events: catEvents})
-    }
-  }
-
-  const uncategorized = allEvents.value.filter(e => !e.categoryId).sort(sortByStart)
-  if (uncategorized.length > 0) {
-    groups.push({category: null, events: uncategorized})
-  }
-
-  return groups
-})
+const tabs = computed(() => [
+  {key: EventStates.CURRENT, label: t('events.tabCurrent')},
+  {key: EventStates.PAST, label: t('events.tabPast')},
+])
 
 const showBreakModal = ref(false)
 const editingBreak = ref<EventBreak | null>(null)
 const showHolidayModal = ref(false)
 const showExportModal = ref(false)
-
-/**
- * Attendance templates belong to the attendance action, which only whoever records it may use.
- * Asking for them alongside the events sank the whole page for everyone else: a member opening the
- * events page got an error instead of the station's events, because one of the calls beside them
- * was refused.
- */
-const {loading, error, reload} = useAsyncLoader(async () => {
-  const [ev, today, br, cats, ovFields] = await Promise.all([
-    events.listEvents(),
-    events.listTodayEvents(),
-    events.listBreaks(),
-    events.listCategories(),
-    events.getOverviewFields(),
-  ])
-  allEvents.value = ev
-  todayEvents.value = today
-  breaks.value = br
-  categories.value = cats
-  overviewFields.value = ovFields
-
-  templates.value = hasPermission(StationPermission.ATTENDANCE_EDIT)
-      ? await attendance.listTemplates().catch(() => [])
-      : []
-})
 
 const {
   show: showDeleteEventModal,
@@ -101,7 +53,7 @@ const {
   requestDelete: requestDeleteEvent,
   confirm: confirmDeleteEvent,
 } = useConfirmDelete<StationEvent>({
-  onDelete: ev => events.deleteEvent(ev.id),
+  onDelete: event => events.deleteEvent(event.id),
   onSuccess: () => reload(),
   error,
 })
@@ -112,7 +64,7 @@ const {
   requestDelete: requestDeleteBreak,
   confirm: confirmDeleteBreak,
 } = useConfirmDelete<EventBreak>({
-  onDelete: br => events.deleteBreak(br.id),
+  onDelete: entry => events.deleteBreak(entry.id),
   onSuccess: () => reload(),
   error,
 })
@@ -121,8 +73,8 @@ function openAddEvent() {
   router.push({name: eventRoutes.create})
 }
 
-function openEditEvent(ev: StationEvent) {
-  router.push({name: eventRoutes.edit, params: {id: ev.id}})
+function openEditEvent(event: StationEvent) {
+  router.push({name: eventRoutes.edit, params: {id: event.id}})
 }
 
 function openAddBreak() {
@@ -130,8 +82,8 @@ function openAddBreak() {
   showBreakModal.value = true
 }
 
-function openEditBreak(br: EventBreak) {
-  editingBreak.value = br
+function openEditBreak(entry: EventBreak) {
+  editingBreak.value = entry
   showBreakModal.value = true
 }
 
@@ -153,8 +105,8 @@ async function saveBreak(data: { name: string; startDate: string; endDate: strin
 async function onImportHolidays(holidays: Array<{ name: string; startDate: string; endDate: string }>) {
   error.value = ''
   try {
-    for (const h of holidays) {
-      await events.createBreak(h)
+    for (const holiday of holidays) {
+      await events.createBreak(holiday)
     }
     showHolidayModal.value = false
     await reload()
@@ -163,9 +115,9 @@ async function onImportHolidays(holidays: Array<{ name: string; startDate: strin
   }
 }
 
-function goToAttendance(ev: StationEvent) {
-  if (ev.templateId) {
-    router.push({name: 'attendance-new', query: {templateId: String(ev.templateId), eventId: String(ev.id)}})
+function goToAttendance(event: StationEvent) {
+  if (event.templateId) {
+    router.push({name: 'attendance-new', query: {templateId: String(event.templateId), eventId: String(event.id)}})
   }
 }
 
@@ -180,11 +132,24 @@ function goToAttendance(ev: StationEvent) {
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :message="error"/>
 
+      <TabBar v-model="tab" :tabs="tabs"/>
+
+      <EventFilterBar
+          v-model:search="searchInput"
+          v-model:category-id="categoryId"
+          v-model:from="from"
+          v-model:to="to"
+          :categories="categories"
+      />
+
       <EventDashboardBody
           v-if="!loading"
+          :is-past="isPast"
           :today-events="todayEvents"
-          :events-by-category="eventsByCategory"
-          :has-events="allEvents.length > 0"
+          :dates="dates"
+          :series="series"
+          :is-empty="isEmpty"
+          :categories="categories"
           :templates="templates"
           :overview-fields="overviewFields"
           :breaks="breaks"
@@ -197,24 +162,26 @@ function goToAttendance(ev: StationEvent) {
           @delete-break="requestDeleteBreak"
           @import-holidays="showHolidayModal = true"
           @open-export="showExportModal = true"
-      />
-
-      <EventDashboardModals
-          v-model:show-export="showExportModal"
-          v-model:show-break="showBreakModal"
-          v-model:show-holiday="showHolidayModal"
-          v-model:show-delete-event="showDeleteEventModal"
-          v-model:show-delete-break="showDeleteBreakModal"
-          :categories="categories"
-          :editing-break="editingBreak"
-          :delete-event-target="deleteEventTarget"
-          :delete-break-target="deleteBreakTarget"
-          @error="e => error = e"
-          @save-break="saveBreak"
-          @import-holidays="onImportHolidays"
-          @confirm-delete-event="confirmDeleteEvent"
-          @confirm-delete-break="confirmDeleteBreak"
+          @load-more-dates="loadMore(EventKinds.ONE_TIME)"
+          @load-more-series="loadMore(EventKinds.REPEATING)"
       />
     </div>
+
+    <EventDashboardModals
+        v-model:show-export="showExportModal"
+        v-model:show-break="showBreakModal"
+        v-model:show-holiday="showHolidayModal"
+        v-model:show-delete-event="showDeleteEventModal"
+        v-model:show-delete-break="showDeleteBreakModal"
+        :categories="categories"
+        :editing-break="editingBreak"
+        :delete-event-target="deleteEventTarget"
+        :delete-break-target="deleteBreakTarget"
+        @error="message => error = message"
+        @save-break="saveBreak"
+        @import-holidays="onImportHolidays"
+        @confirm-delete-event="confirmDeleteEvent"
+        @confirm-delete-break="confirmDeleteBreak"
+    />
   </ViewContent>
 </template>

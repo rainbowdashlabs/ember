@@ -76,7 +76,7 @@ watch(() => [props.stationUid, props.formPublicUid], load)
                 {{ error || submitError || validationError }}
             </Alert>
 
-            <PublicFormClosedNotice v-if="!open" :state="form.state"/>
+            <PublicFormClosedNotice v-if="!open" :state="form.state" :closed-since="form.closedSince"/>
 
             <template v-else-if="!submitted">
                 <div v-for="q in form.questions" :key="q.id" class="space-y-2">

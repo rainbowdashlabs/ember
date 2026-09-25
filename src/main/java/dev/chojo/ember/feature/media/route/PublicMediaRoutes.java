@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.media.route;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
@@ -16,8 +15,6 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
-import java.util.UUID;
 
 /**
  * Delivery of a station's media by content hash, without authentication, for the public site.
@@ -87,13 +84,6 @@ public class PublicMediaRoutes implements Routes {
     }
 
     private int resolveStation(Context ctx) {
-        String param = ctx.pathParam("stationUid");
-        try {
-            UUID uid = UUID.fromString(param);
-            return stationRepository.resolveId(uid).orElseThrow(NotFoundResponse::new);
-        } catch (IllegalArgumentException e) {
-            // Not a UUID - try as public slug
-            return stationRepository.findBySlug(param).map(Station::id).orElseThrow(NotFoundResponse::new);
-        }
+        return stationRepository.resolveAddressedId(ctx.pathParam("stationUid")).orElseThrow(NotFoundResponse::new);
     }
 }

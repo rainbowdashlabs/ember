@@ -123,6 +123,7 @@ public class FormRoutes implements Routes {
         routes.delete(prefix + "/forms/{id}", this::delete, StationPermission.POLL_CREATE);
         routes.post(prefix + "/forms/{id}/publish", this::publish, StationPermission.POLL_CREATE);
         routes.post(prefix + "/forms/{id}/close", this::close, StationPermission.POLL_CREATE);
+        routes.delete(prefix + "/forms/{id}/responses", this::clearResponses, StationPermission.POLL_CREATE);
         routes.put(prefix + "/forms/{id}/visibility", this::setVisibility, StationPermission.POLL_CREATE);
         routes.get(prefix + "/forms/{id}/share-link", this::getShareLink, StationPermission.POLL_CREATE);
         routes.post(prefix + "/forms/{id}/share-link", this::replaceShareLink, StationPermission.POLL_CREATE);
@@ -458,6 +459,9 @@ public class FormRoutes implements Routes {
     @OpenApiName("FormVisibilityResponse")
     public record VisibilityResponse(Form form, List<PageRepository.PageUsingForm> stillHeldBy) {}
 
+    @OpenApiName("ClearedFormResponses")
+    public record ClearedResponses(int cleared) {}
+
     /**
      * The link this form is sent with, minted the first time it is asked for so a form nobody sends
      * never carries one.
@@ -535,6 +539,23 @@ public class FormRoutes implements Routes {
         formService.findById(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/responses",
+            methods = HttpMethod.DELETE,
+            summary = "Throw away every answer a form has collected",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            description = "The form and its questions stay as they are, so it can be asked again.",
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ClearedResponses.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void clearResponses(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedForm(id, UserSession.from(ctx));
+        ctx.json(new ClearedResponses(formService.clearResponses(id)));
     }
 
     // -- Questions --

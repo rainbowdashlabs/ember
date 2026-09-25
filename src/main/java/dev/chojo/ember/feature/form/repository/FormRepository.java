@@ -73,6 +73,30 @@ public class FormRepository {
     }
 
     /**
+     * Whether the station has a form anybody outside it can reach at the form's own address.
+     *
+     * <p>Answers whether the station is on the public web at all, for which one such form is enough:
+     * the form's page carries the station's name and colours around it, so that page has to render
+     * for a station that publishes nothing else.
+     *
+     * @param stationId the station to query
+     * @return whether one such form exists
+     */
+    public boolean hasOpenlyAddressedForms(int stationId) {
+        return query("""
+                SELECT 1
+                FROM form
+                WHERE station_id = :station_id
+                  AND visibility = 'PUBLIC'
+                  AND purpose IN ('CONTACT', 'POLL')
+                LIMIT 1;""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> true)
+                .first()
+                .orElse(false);
+    }
+
+    /**
      * Retrieves all forms for a station with the given purpose, ordered by creation date descending.
      *
      * @param stationId the station to query
@@ -305,7 +329,7 @@ public class FormRepository {
                 UPDATE form
                 SET
                     status     = :status,
-                    closed_at  = CASE WHEN :status = 'CLOSED' THEN now() ELSE closed_at END,
+                    closed_at  = CASE WHEN :status = 'CLOSED' THEN now() END,
                     updated_at = now()
                 WHERE id = :id;""")
                 .single(call().bind("id", id).bind("status", status))
@@ -556,6 +580,19 @@ public class FormRepository {
      */
     public boolean deleteResponse(int responseId) {
         return SqlSupport.deleteById("form_response", responseId);
+    }
+
+    /**
+     * Deletes every answer given to a form, leaving the form and its questions standing.
+     *
+     * @param formId the form whose answers go
+     * @return how many answers were deleted
+     */
+    public int deleteResponses(int formId) {
+        return query("DELETE FROM form_response WHERE form_id = :form_id;")
+                .single(call().bind("form_id", formId))
+                .delete()
+                .rows();
     }
 
     /**

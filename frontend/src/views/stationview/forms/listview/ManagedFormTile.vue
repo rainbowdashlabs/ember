@@ -4,12 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onBeforeUnmount, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {RouteLocationRaw} from 'vue-router'
-import IconButton from '@/components/button/IconButton.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
-import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -17,12 +15,16 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import {FormPurpose, FormStatus, FormVisibility, type Form} from '@/api/forms'
-import {formatDate} from '@/util/format'
+import {PublicFormState} from '@/api/publicForms'
+import {closedSinceOf, formStateOf} from '@/util/formState'
+import {formatDate, formatDateTime} from '@/util/format'
+import FormTileMenu from './FormTileMenu.vue'
 
 const props = defineProps<{
   form: Form
   canCreatePolls: boolean
-  statusLabel: (status: string) => string
+  /** Names whether a form is taking answers, which is not the same as its stored status. */
+  statusLabel: (state: string) => string
   /** The page the tile opens, or nothing where it opens none. */
   to: RouteLocationRaw | null
 }>()
@@ -33,11 +35,17 @@ const emit = defineEmits<{
   (e: 'edit', form: Form): void
   (e: 'analytics', form: Form): void
   (e: 'share', form: Form): void
+  (e: 'clear', form: Form): void
   (e: 'delete', form: Form): void
 }>()
 
 const {t} = useI18n()
-const menuOpen = ref(false)
+
+/** Whether the form is taking answers, which its dates decide as much as its status does. */
+const state = computed(() => formStateOf(props.form))
+
+/** When it stopped, for a form that has: a closed survey is usually one somebody has to date. */
+const closedSince = computed(() => closedSinceOf(props.form))
 
 /**
  * A form answered from outside that has been set to answer at its link and nowhere else. Worth
@@ -46,33 +54,6 @@ const menuOpen = ref(false)
  */
 const sentByLinkAlone = computed(
     () => props.form.purpose !== FormPurpose.INTERNAL && props.form.visibility === FormVisibility.UNLISTED)
-
-function toggleMenu() {
-  menuOpen.value = !menuOpen.value
-}
-
-const menuActions = {
-  publish: () => emit('publish', props.form),
-  close: () => emit('close', props.form),
-  edit: () => emit('edit', props.form),
-  analytics: () => emit('analytics', props.form),
-  share: () => emit('share', props.form),
-  delete: () => emit('delete', props.form),
-}
-
-function pick(action: keyof typeof menuActions) {
-  menuOpen.value = false
-  menuActions[action]()
-}
-
-function onClickOutside(event: MouseEvent) {
-  if (!menuOpen.value) return
-  const target = event.target as HTMLElement
-  if (!target.closest(`[data-form-menu="${props.form.id}"]`)) menuOpen.value = false
-}
-
-document.addEventListener('click', onClickOutside)
-onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 </script>
 
 <template>
@@ -80,9 +61,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
     <NeutralContainer class="relative cursor-pointer hover:border-primary transition-colors h-full">
       <div class="flex flex-col gap-2 pr-10 h-full">
         <div class="flex items-center gap-2 flex-wrap">
-          <SuccessBadge v-if="form.status === FormStatus.OPEN">{{ statusLabel(form.status) }}</SuccessBadge>
-          <ErrorBadge v-else-if="form.status === FormStatus.CLOSED">{{ statusLabel(form.status) }}</ErrorBadge>
-          <InfoBadge v-else>{{ statusLabel(form.status) }}</InfoBadge>
+          <SuccessBadge v-if="state === PublicFormState.OPEN">{{ statusLabel(state) }}</SuccessBadge>
+          <ErrorBadge v-else-if="state === PublicFormState.CLOSED">{{ statusLabel(state) }}</ErrorBadge>
+          <InfoBadge v-else>{{ statusLabel(state) }}</InfoBadge>
           <SecondaryBadge v-if="form.status !== FormStatus.DRAFT">
             {{ t('forms.responseCount', {count: form.responseCount}) }}
           </SecondaryBadge>
@@ -94,32 +75,21 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
         <div class="mt-auto pt-2 text-xs text-(--text-muted) flex flex-col gap-0.5">
           <span>{{ t('forms.createdOn', {when: formatDate(form.createdAt)}) }}</span>
           <span>{{ t('forms.lastActivityOn', {when: formatDate(form.lastActivityAt ?? form.updatedAt)}) }}</span>
+          <span v-if="closedSince">{{ t('forms.closedOn', {when: formatDateTime(closedSince)}) }}</span>
         </div>
       </div>
 
-      <div class="absolute top-2 right-2" :data-form-menu="form.id">
-        <IconButton :icon="['fas', 'ellipsis-vertical']" :label="t('forms.actions')" @click="toggleMenu"/>
-        <div v-if="menuOpen" class="absolute right-0 top-full mt-1 w-48 rounded-theme border border-(--border) bg-(--bg) shadow-lg z-20">
-          <DropdownMenuItem v-if="canCreatePolls && form.status === FormStatus.DRAFT" :icon="['fas', 'paper-plane']" @click="pick('publish')">
-            {{ t('forms.publish') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem v-if="canCreatePolls && form.status === FormStatus.OPEN" :icon="['fas', 'lock']" @click="pick('close')">
-            {{ t('forms.close') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem v-if="canCreatePolls && form.status !== FormStatus.CLOSED" :icon="['fas', 'pen']" @click="pick('edit')">
-            {{ t('forms.edit') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem v-if="canCreatePolls && form.purpose !== FormPurpose.INTERNAL" :icon="['fas', 'link']" @click="pick('share')">
-            {{ t('forms.share') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem v-if="form.status !== FormStatus.DRAFT" :icon="['fas', 'chart-bar']" @click="pick('analytics')">
-            {{ t('forms.viewAnalytics') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem v-if="canCreatePolls" :icon="['fas', 'trash']" icon-class="w-4 text-(--error)" @click="pick('delete')">
-            {{ t('forms.delete') }}
-          </DropdownMenuItem>
-        </div>
-      </div>
+      <FormTileMenu
+        :form="form"
+        :can-create-polls="canCreatePolls"
+        @publish="emit('publish', $event)"
+        @close="emit('close', $event)"
+        @edit="emit('edit', $event)"
+        @analytics="emit('analytics', $event)"
+        @share="emit('share', $event)"
+        @clear="emit('clear', $event)"
+        @delete="emit('delete', $event)"
+      />
     </NeutralContainer>
   </RowLink>
 </template>
