@@ -42,7 +42,8 @@ const emit = defineEmits<{
   (e: 'reorder', fromIndex: number, toIndex: number): void
   (e: 'edit', page: StationPage): void
   (e: 'duplicate', page: StationPage): void
-  (e: 'toggle-publish', page: StationPage): void
+  (e: 'change-visibility', page: StationPage): void
+  (e: 'share-link', page: StationPage): void
   (e: 'set-landing', page: StationPage): void
   (e: 'request-delete', page: StationPage): void
   (e: 'confirm-delete'): void
@@ -77,7 +78,8 @@ const {t} = useI18n()
         @reorder="(from: number, to: number) => emit('reorder', from, to)"
         @edit="(p: StationPage) => emit('edit', p)"
         @duplicate="(p: StationPage) => emit('duplicate', p)"
-        @toggle-publish="(p: StationPage) => emit('toggle-publish', p)"
+        @change-visibility="(p: StationPage) => emit('change-visibility', p)"
+        @share-link="(p: StationPage) => emit('share-link', p)"
         @set-landing="(p: StationPage) => emit('set-landing', p)"
         @delete="(p: StationPage) => emit('request-delete', p)"
     />

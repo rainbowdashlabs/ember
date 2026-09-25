@@ -18,11 +18,17 @@ import {usePublicFormSubmission} from '@/composables/usePublicFormSubmission'
 const {t} = useI18n()
 const route = useRoute()
 
-const stationUid = computed(() => String(route.params.stationUid))
-const publicUid = computed(() => String(route.params.publicUid))
+/**
+ * A form is reached either by the link it was sent with, which names no station, or by station and
+ * form where it is linked from a public page. Both end in this view.
+ */
+const shareToken = computed(() => (route.params.token ? String(route.params.token) : null))
+const stationUid = computed(() => (route.params.stationUid ? String(route.params.stationUid) : null))
+const publicUid = computed(() => (route.params.publicUid ? String(route.params.publicUid) : null))
 
 const {
   form,
+  open,
   answers,
   loading,
   submitted,
@@ -37,7 +43,7 @@ const {
   updateText,
   updateDate,
   submit,
-} = usePublicFormSubmission(stationUid, publicUid)
+} = usePublicFormSubmission(stationUid, publicUid, shareToken)
 
 onMounted(load)
 </script>
@@ -56,6 +62,7 @@ onMounted(load)
       <PublicFormBody
           v-if="!loading && form && !submitted"
           :form="form"
+          :open="open"
           :answers="answers"
           v-model:consent-accepted="consentAccepted"
           v-model:consent-version="consentVersion"

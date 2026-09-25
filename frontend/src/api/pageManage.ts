@@ -167,8 +167,16 @@ export interface NewsTeaserConfig {
 }
 
 export interface PageLinkConfig {
-    /** Public UUID of the referenced station page. Live title sourced from the entity. */
+    /** Public UUID of the referenced station page. */
     pageUid?: string | null
+    /** Shown where the page can no longer be reached, so the card still says something. */
+    fallbackTitle?: string | null
+    /**
+     * Filled in by the server when the page is drawn, never stored: both the name and the address of
+     * the target move, and a copy written into the card would go stale the moment either did.
+     */
+    resolvedTitle?: string | null
+    resolvedHref?: string | null
 }
 
 export interface MapConfig {
@@ -399,13 +407,25 @@ export interface PageRow {
     cells: PageCell[]
 }
 
+/**
+ * Who reaches a page. A page reached by its link alone stands outside the page tree: no parent, no
+ * children, and its slug path answers nothing.
+ */
+export const PageVisibility = {
+    DRAFT: 'DRAFT',
+    UNLISTED: 'UNLISTED',
+    PUBLIC: 'PUBLIC',
+} as const
+
+export type PageVisibilityName = (typeof PageVisibility)[keyof typeof PageVisibility]
+
 export interface StationPage {
     id: number
     stationId: number
     parentId: number | null
     title: string
     slug: string
-    published: boolean
+    visibility: PageVisibilityName
     sortOrder: number
     metaDescription: string | null
     ogImageId: number | null
@@ -504,9 +524,20 @@ export async function duplicatePage(id: number): Promise<StationPage> {
     return res.data
 }
 
-export async function setPublished(id: number, published: boolean): Promise<StationPage> {
-    const res = await client.put<StationPage>(`/pages/${id}/publish`, {published})
+export async function setVisibility(id: number, visibility: PageVisibilityName): Promise<StationPage> {
+    const res = await client.put<StationPage>(`/pages/${id}/visibility`, {visibility})
     return res.data
+}
+
+/** The link an unlisted page is reached at, kept off the page itself so it never travels to a reader. */
+export async function getPageShareLink(id: number): Promise<string | null> {
+    const res = await client.get<{token: string | null}>(`/pages/${id}/share-link`)
+    return res.data.token
+}
+
+export async function replacePageShareLink(id: number, currentToken: string | null): Promise<string> {
+    const res = await client.post<{token: string}>(`/pages/${id}/share-link`, {currentToken})
+    return res.data.token
 }
 
 export async function setLandingPage(pageId: number | null): Promise<void> {

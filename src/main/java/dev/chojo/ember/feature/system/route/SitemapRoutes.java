@@ -131,7 +131,7 @@ public class SitemapRoutes implements Routes {
                 }
             }
             if (station.publicPagesEnabled()) {
-                var pages = pageService.listPublishedPages(station.id());
+                var pages = pageService.listListedPages(station.id());
                 for (var page : pages) {
                     var path = pageService.getPagePath(page);
                     var priority = page.parentId() == null ? "0.7" : "0.6";
@@ -163,10 +163,17 @@ public class SitemapRoutes implements Routes {
                 .toList();
     }
 
+    /**
+     * Whether a crawler is told this station exists at all.
+     *
+     * <p>Pages are counted rather than the switch that allows them. A station whose only page is one
+     * reached by its own link has nothing for a crawler to find, and naming it here would advertise
+     * it on the strength of a page nobody is meant to come across.
+     */
     private boolean hasPublicContent(Station station) {
         return station.publicCalendarEnabled()
                 || station.publicKbMode() != PublicKbMode.OFF
-                || station.publicPagesEnabled()
+                || (station.publicPagesEnabled() && pageService.hasListedPages(station.id()))
                 || station.publicWaitlistEnabled()
                 || station.publicBlogEnabled();
     }

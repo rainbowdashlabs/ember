@@ -33,6 +33,7 @@ public record Form(
         RestrictionMode restrictionMode,
         boolean restricted,
         FormPurpose purpose,
+        FormVisibility visibility,
         UUID publicUid,
         int responseCount) {
 
@@ -56,6 +57,7 @@ public record Form(
                 row.getEnum("restriction_mode", RestrictionMode.class),
                 row.getBoolean("restricted"),
                 row.getEnum("purpose", FormPurpose.class),
+                row.getEnum("visibility", FormVisibility.class),
                 row.get("public_uid", StandardValueConverter.UUID_STRING),
                 row.getInt("response_count"));
     }

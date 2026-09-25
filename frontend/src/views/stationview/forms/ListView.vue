@@ -12,6 +12,9 @@ import { useConfirmAction } from '@/composables/useConfirmAction'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import Modal from '@/components/feedback/Modal.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import FormShareLink from '@/components/public/FormShareLink.vue'
 import {FormStatus, type Form, type FormListEntry, type FormPurposeName} from '@/api/forms'
 import { StationPermission } from '@/api/types'
 import { forms } from '@/api'
@@ -34,7 +37,20 @@ const props = withDefaults(defineProps<{
    * hold POLL_VIEW_RESULTS still land on a route that calls the PAGE_EDIT-gated analytics API.
    */
   analyticsRouteName?: string
+  /**
+   * Where writing a form happens. A contact form and a public poll are edited on their own screens
+   * under the public pages, because that is where they belong and where their link lives; the
+   * station's own surveys keep the screens they always had.
+   *
+   * <p>Without this the two shared one address, so editing a contact form lit up the surveys entry
+   * in the menu and put the reader at an address that said the form lived somewhere it does not.
+   */
+  createRouteName?: string
+  editRouteName?: string
 }>(), {
+  analyticsRouteName: 'forms-analytics',
+  createRouteName: 'forms-create',
+  editRouteName: 'forms-edit',
   /**
    * Vue gives an absent boolean prop the value {@code false} rather than leaving it undefined, so
    * a fallback written as `?? true` never applies and the section is simply off wherever nobody
@@ -122,15 +138,23 @@ function deleteForm(form: Form) {
 }
 
 function goCreate() {
-  router.push({ name: 'forms-create', query: props.purpose ? { purpose: props.purpose } : undefined })
+  router.push({ name: props.createRouteName, query: props.purpose ? { purpose: props.purpose } : undefined })
 }
 
 function goEdit(form: Form) {
-  router.push({ name: 'forms-edit', params: { id: form.id } })
+  router.push({ name: props.editRouteName, params: { id: form.id } })
+}
+
+const sharedForm = ref<Form | null>(null)
+const shareOpen = ref(false)
+
+function openShareLink(form: Form) {
+  sharedForm.value = form
+  shareOpen.value = true
 }
 
 function goAnalytics(form: Form) {
-  router.push({ name: props.analyticsRouteName ?? 'forms-analytics', params: { id: form.id } })
+  router.push({ name: props.analyticsRouteName, params: { id: form.id } })
 }
 
 function openForm(form: Form) {
@@ -173,8 +197,16 @@ watch(loaded, (isLoaded) => {
           @close="closeForm"
           @edit="goEdit"
           @analytics="goAnalytics"
+          @share="openShareLink"
           @delete="deleteForm"
         />
+
+        <Modal v-model="shareOpen">
+          <div class="space-y-4">
+            <SubHeader>{{ t('forms.share') }}</SubHeader>
+            <FormShareLink v-if="sharedForm" :form="sharedForm"/>
+          </div>
+        </Modal>
 
         <AvailableFormsSection
           v-if="showAvailable"

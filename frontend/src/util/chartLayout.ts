@@ -71,11 +71,36 @@ export function chartTitle(text: string, color: string) {
     return {text, left: 'center', top: 0, textStyle: {fontSize: 14, color}}
 }
 
+/**
+ * The colour axis labels, legends and headings are written in.
+ *
+ * <p>A chart draws its own text rather than inheriting the page's, so the theme has to be handed to
+ * it. Every chart had been working this out for itself from the same two greys, which is three
+ * copies of one decision and a fourth waiting to drift.
+ *
+ * @param dark whether the dark theme is on
+ */
+export function chartTextColor(dark: boolean): string {
+    return dark ? '#ccc' : '#333'
+}
+
 /** Where a zoom slider sits so it clears the legend beneath it. */
 export const ZOOM_SLIDER_BOTTOM = LEGEND_HEIGHT + 6
 
-/** Where a ring chart sits so its title and labels stay clear of each other. */
-export const DONUT_CENTER = ['50%', '58%']
+/**
+ * Where a ring chart sits so its title and its labels stay clear of each other.
+ *
+ * <p>Above the middle rather than below it. The heading above needs less room than the leader lines
+ * and the legend below, so the ring sits where the space left over is where the space is wanted.
+ */
+export const DONUT_CENTER = ['50%', '46%']
 
-/** The inner and outer radius every ring chart uses. */
-export const DONUT_RADIUS = ['40%', '68%']
+/**
+ * The inner and outer radius every ring chart uses.
+ *
+ * <p>Held back from the edge to leave room for what the ring draws outside itself. A slice is named
+ * on the end of a leader line pointing away from it, and the ones at the bottom point straight down
+ * into the legend; drawn any larger, the names and the legend cross each other and neither can be
+ * read. The two numbers keep their ratio, so the ring is the same shape as before.
+ */
+export const DONUT_RADIUS = ['34%', '58%']

@@ -27,6 +27,8 @@ export default defineNuxtConfig({
     '/discovery': {ssr: true},
     '/discovery/**': {ssr: true},
     '/public/**': {ssr: true},
+    '/f/**': {ssr: true, headers: {'X-Robots-Tag': 'noindex, nofollow', 'Referrer-Policy': 'no-referrer'}},
+    '/s/**': {ssr: true, headers: {'X-Robots-Tag': 'noindex, nofollow', 'Referrer-Policy': 'no-referrer'}},
     '/helpcenter/**': {isr: 3600},
     '/station': {redirect: '/station/dashboard/overview'},
     '/station/**': {ssr: false},

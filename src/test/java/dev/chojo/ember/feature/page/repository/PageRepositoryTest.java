@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.page.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -47,7 +48,7 @@ class PageRepositoryTest extends RepositoryTestBase {
         assertEquals("Welcome", page.title());
         assertEquals("welcome", page.slug());
         assertNull(page.parentId());
-        assertFalse(page.published());
+        assertEquals(PageVisibility.DRAFT, page.visibility());
         pageId = page.id();
     }
 
@@ -86,15 +87,37 @@ class PageRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(6)
-    void setPublished() {
-        assertTrue(pageRepo.setPublished(pageId, true));
-        assertTrue(pageRepo.findById(pageId).orElseThrow().published());
+    void setVisibility() {
+        assertTrue(pageRepo.setVisibility(pageId, PageVisibility.PUBLIC, null));
+        assertEquals(
+                PageVisibility.PUBLIC, pageRepo.findById(pageId).orElseThrow().visibility());
+    }
+
+    @Test
+    @Order(6)
+    void aPageBecomingUnlistedIsMintedALinkInTheSameBreath() {
+        var page = pageRepo.create(station.id(), "Einladung", "einladung", null, member.id());
+        assertTrue(pageRepo.setVisibility(page.id(), PageVisibility.UNLISTED, "erster-token"));
+        assertEquals("erster-token", pageRepo.findShareToken(page.id()).orElseThrow());
+
+        pageRepo.setVisibility(page.id(), PageVisibility.PUBLIC, "zweiter-token");
+        pageRepo.setVisibility(page.id(), PageVisibility.UNLISTED, "dritter-token");
+        assertEquals(
+                "erster-token",
+                pageRepo.findShareToken(page.id()).orElseThrow(),
+                "a link already sent keeps working when a page is opened and closed again");
+
+        assertTrue(pageRepo.replaceShareToken(page.id(), "erster-token", "vierter-token"));
+        assertFalse(
+                pageRepo.replaceShareToken(page.id(), "erster-token", "fuenfter-token"),
+                "whoever was shown the old link is told it changed rather than ending somebody else's");
+        pageRepo.delete(page.id());
     }
 
     @Test
     @Order(7)
-    void findPublishedByStation() {
-        var list = pageRepo.findPublishedByStation(station.id());
+    void findListedByStation() {
+        var list = pageRepo.findListedByStation(station.id());
         assertEquals(1, list.size());
     }
 
@@ -164,9 +187,9 @@ class PageRepositoryTest extends RepositoryTestBase {
     void searchForPicker() {
         var pickerPage = pageRepo.create(station.id(), "Picker Match", "picker-match", null, member.id());
         try {
-            pageRepo.setPublished(pickerPage.id(), true);
+            pageRepo.setVisibility(pickerPage.id(), PageVisibility.PUBLIC, null);
             var unmatched = pageRepo.create(station.id(), "Unmatched", "unmatched", null, member.id());
-            pageRepo.setPublished(unmatched.id(), true);
+            pageRepo.setVisibility(unmatched.id(), PageVisibility.PUBLIC, null);
 
             var all = pageRepo.searchForPicker(station.id(), null, 50);
             assertTrue(all.stream().anyMatch(p -> "picker-match".equals(p.slug())));

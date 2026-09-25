@@ -1,15 +1,27 @@
 # Änderungsprotokoll
 
-## v26.18.8
+## v26.19.0
 
 ### Neue Funktionen
 
+- **Eine Umfrage oder ein Kontaktformular lässt sich per Link verschicken.** Jede Umfrage und jedes Kontaktformular hat einen eigenen Link, der sie auf einer eigenen Seite öffnet, mit nichts darum herum außer dem Namen der Wache. Wer den Link hat, kann antworten; er steht in keinem Menü und wird von Suchmaschinen nicht erfasst. Ein neuer Link lässt sich jederzeit erzeugen und beendet jede Kopie des bisherigen.
+- **Ein öffentliches Formular kann nur noch über seinen Link erreichbar sein.** Eine Umfrage und ein Kontaktformular sind standardmäßig öffentlich erreichbar, was sie brauchen, um auf einer öffentlichen Seite zu stehen. Abgeschaltet antworten sie nur noch über ihren Link: Die eigene Adresse funktioniert nicht mehr, sodass ein neuer Link tatsächlich jeden bisher vergebenen Weg hinein beendet. Die Einstellung steht beim Bearbeiten bei den übrigen Einstellungen des Formulars.
+- **Eine Seite kann nur über ihren Link erreichbar sein.** Neben Entwurf und Veröffentlicht lässt sich eine Seite jetzt so stellen, dass sie für alle offen ist, die ihren Link haben. Eine solche Seite fehlt im Menü der Wache und in ihrer Sitemap, und sie steht für sich: ohne Seite darüber und ohne Seiten darunter. Der Link lässt sich ebenso ersetzen.
 - **Ein Mitglieder-Feld am Termin kann pro Datum gefüllt werden.** Ein Termin-Feld, das Mitglieder benennt, kann für jeden Tag einer Terminreihe einen eigenen Eintrag halten, sodass darin stehen kann, wer diese Woche fährt und wer nächste. Ohne die Einstellung gilt ein Eintrag wie bisher für die ganze Reihe.
 
 ### Verbesserungen
 
 - **Wer in einem Mitglieder-Feld steht, steht auf der Anmeldeliste des Termins.** Wer in einem Termin-Feld eingetragen ist, das Mitglieder benennt, nimmt teil: Die Person steht auf der Anmeldeliste, wird mitgezählt, und der Termin erreicht ihren Kalender und ihr Kalender-Abonnement. Der Platz ist sofort bestätigt und wird zurückgegeben, indem der Name aus dem Feld genommen wird, nicht durch Abmelden.
 - **Das Kalender-Abonnement reicht ein Jahr zurück.** Bisher blieb nur die letzte Woche darin, sodass sich nicht nachschlagen ließ, was im vergangenen Herbst war. Es umfasst jetzt ein Jahr in beide Richtungen.
+- **Bewertung, Rangfolge und Skala lassen sich in einer öffentlichen Umfrage beantworten.** Eine öffentliche Umfrage bot diese drei Fragearten beim Erstellen an, zeigte beim Ausfüllen aber nichts dazu, sodass sich nur Text-, Datums- und Auswahlfragen beantworten ließen. Alle sechs Arten funktionieren jetzt überall, wo eine Umfrage beantwortet wird.
+
+### Fehlerbehebungen
+
+- **Eine öffentliche Umfrage konnte einen Absenden-Knopf anbieten, der nie funktionieren konnte.** Eine Umfrage, die vor ihrer Freigabe auf eine öffentliche Seite gestellt oder nach dem Schließen dort gelassen wurde, zeigte alle Fragen und einen Absenden-Knopf, und das Absenden endete mit der Bitte, es noch einmal zu versuchen. Eine solche Umfrage sagt jetzt klar, dass sie noch nicht offen oder bereits geschlossen ist, und bietet nichts zum Ausfüllen an.
+- **Ein Link auf eine andere Seite führte ins Leere.** Eine Karte, die auf eine andere Seite der Wache zeigte, verlor ihr Ziel beim Speichern, sodass jede von ihnen einen Platzhaltertitel zeigte und beim Klicken nirgendwohin führte. Karten behalten ihr Ziel jetzt und folgen ihm, wenn eine Seite umbenannt oder verschoben wird.
+- **Öffentliche Seiten wurden auch nach dem Abschalten weiter ausgeliefert.** Wurden die öffentlichen Seiten einer Wache abgeschaltet, verschwanden sie aus dem Menü und aus der Sitemap, wurden aber weiter an jeden ausgeliefert, der die Adresse noch hatte. Die Einstellung wird jetzt beim Abruf einer Seite berücksichtigt.
+- **Eine Seite unter einer unveröffentlichten Seite war öffentlich.** Eine veröffentlichte Seite unterhalb einer nicht veröffentlichten ließ sich weiterhin über eine Adresse öffnen, die den Namen der unveröffentlichten Seite enthielt, und stand in der Sitemap. Eine Seite ist jetzt nur öffentlich, wenn alles darüber es auch ist.
+- **Alle Mitglieder wurden über Formulare für die Öffentlichkeit benachrichtigt.** Wurde ein Kontaktformular oder eine öffentliche Umfrage geöffnet, ging an die ganze Wache eine Benachrichtigung über ein neues Formular, die auf eine Seite führte, die sie dann abwies. Nur noch interne Umfragen werden angekündigt.
 
 ## v26.18.7
 

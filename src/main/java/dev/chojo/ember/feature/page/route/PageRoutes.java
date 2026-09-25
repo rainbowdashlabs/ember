@@ -19,11 +19,13 @@ import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.MemberListResolver;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import io.javalin.http.BadRequestResponse;
+import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
@@ -117,7 +119,9 @@ public class PageRoutes implements Routes {
         routes.put(prefix + "/pages/{pid}", this::save, StationPermission.PAGE_EDIT);
         routes.post(prefix + "/pages/{pid}/duplicate", this::duplicate, StationPermission.PAGE_EDIT);
         routes.delete(prefix + "/pages/{pid}", this::delete, StationPermission.PAGE_MANAGER);
-        routes.put(prefix + "/pages/{pid}/publish", this::togglePublish, StationPermission.PAGE_MANAGER);
+        routes.put(prefix + "/pages/{pid}/visibility", this::setVisibility, StationPermission.PAGE_MANAGER);
+        routes.get(prefix + "/pages/{pid}/share-link", this::getShareLink, StationPermission.PAGE_MANAGER);
+        routes.post(prefix + "/pages/{pid}/share-link", this::replaceShareLink, StationPermission.PAGE_MANAGER);
         routes.post(prefix + "/pages/{pid}/files", this::uploadPageFile, StationPermission.PAGE_EDIT);
     }
 
@@ -318,14 +322,38 @@ public class PageRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    private void togglePublish(Context ctx) {
+    private void setVisibility(Context ctx) {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
-        var request = ctx.bodyAsClass(PublishRequest.class);
-        if (!pageService.setPublished(pid, request.published())) {
+        var request = ctx.bodyAsClass(VisibilityRequest.class);
+        if (request.visibility() == null) {
+            throw new BadRequestResponse("Say which visibility the page is to have");
+        }
+        if (!pageService.setVisibility(pid, request.visibility())) {
             throw new NotFoundResponse();
         }
         ctx.json(pageService.getPage(pid).orElseThrow());
+    }
+
+    /**
+     * The link a page reached by one is reached at. Separate from the page itself because the page
+     * travels to strangers and the link must not.
+     */
+    private void getShareLink(Context ctx) {
+        int pid = ctx.pathParamAsClass("pid", Integer.class).get();
+        requireOwnedPage(ctx, pid);
+        ctx.json(new ShareLinkResponse(pageService.shareToken(pid).orElse(null)));
+    }
+
+    private void replaceShareLink(Context ctx) {
+        int pid = ctx.pathParamAsClass("pid", Integer.class).get();
+        requireOwnedPage(ctx, pid);
+        var request = ctx.bodyAsClass(ReplaceShareLinkRequest.class);
+        var replaced = pageService.replaceShareToken(pid, request.currentToken());
+        if (replaced.isEmpty()) {
+            throw new ConflictResponse("This page has been given a different link since you last looked");
+        }
+        ctx.json(new ShareLinkResponse(replaced.get()));
     }
 
     private void setLandingPage(Context ctx) {
@@ -396,7 +424,11 @@ public class PageRoutes implements Routes {
         }
     }
 
-    record PublishRequest(boolean published) {}
+    record VisibilityRequest(PageVisibility visibility) {}
+
+    record ShareLinkResponse(String token) {}
+
+    record ReplaceShareLinkRequest(String currentToken) {}
 
     record LandingPageRequest(Integer pageId) {}
 }

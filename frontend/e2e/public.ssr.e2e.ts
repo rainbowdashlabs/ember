@@ -77,4 +77,29 @@ test.describe('Public pages without JavaScript', () => {
             await expect(page.getByRole('heading', {name: heading}).first()).toBeVisible()
         }
     })
+
+    /**
+     * A link whose whole purpose is to be pasted into a message. The questions have to be in the
+     * page the server sends, or the preview drawn beside the link says nothing, and the instruction
+     * not to index it has to be there too, since a crawler that runs no scripts would otherwise
+     * never see one.
+     *
+     * The link is asked for over plain HTTP rather than through the application, because this
+     * project runs with scripts switched off and cannot press a button to get one.
+     */
+    test('a survey sent by link carries its questions and refuses to be indexed', async ({page, request}) => {
+        const accounts = await (await request.get('/api/v1/demo/accounts')).json()
+        const manager = accounts.find((a: {permissions?: string[]}) => a.permissions?.includes('POLL_CREATE'))
+            ?? accounts[0]
+        const session = await (await request.post('/api/v1/demo/login', {data: {email: manager.email}})).json()
+        const headers = {Authorization: `Bearer ${session.token}`, 'X-Station-Id': String(session.stationId)}
+
+        const polls = await (await request.get('/api/v1/forms?purpose=POLL', {headers})).json()
+        const link = await (await request.get(`/api/v1/forms/${polls[0].id}/share-link`, {headers})).json()
+
+        await visit(page, `/f/${link.token}`)
+
+        await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/)
+        await expect(page.getByRole('button', {name: 'Absenden'})).toBeVisible()
+    })
 })

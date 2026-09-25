@@ -15,11 +15,26 @@ export interface PublicFormQuestion {
     config: Record<string, unknown>
 }
 
+/**
+ * Why a form is not taking answers, in the terms the reader can act on. CLOSED covers a form
+ * somebody closed and one whose end date has passed alike.
+ */
+export const PublicFormState = {
+    OPEN: 'OPEN',
+    NOT_PUBLISHED: 'NOT_PUBLISHED',
+    NOT_OPEN_YET: 'NOT_OPEN_YET',
+    CLOSED: 'CLOSED',
+} as const
+
+export type PublicFormStateName = (typeof PublicFormState)[keyof typeof PublicFormState]
+
 export interface PublicForm {
     publicUid: string
     title: string
     description: string
     purpose: FormPurposeName
+    state: PublicFormStateName
+    /** Empty unless the form is open: a form nobody can answer hands out no questions. */
     questions: PublicFormQuestion[]
 }
 
@@ -48,5 +63,19 @@ export async function submitPublicResponse(
         `/public/${stationUid}/forms/${publicUid}/responses`,
         data,
     )
+    return res.data
+}
+
+/** A form reached by the link it was sent with. No station stands in the address: the reader holds only the link. */
+export async function getSharedForm(token: string): Promise<PublicForm> {
+    const res = await client.get<PublicForm>(`/public/shared-form/${token}`)
+    return res.data
+}
+
+export async function submitSharedResponse(
+    token: string,
+    data: PublicFormSubmitRequest,
+): Promise<PublicFormSubmitResponse> {
+    const res = await client.post<PublicFormSubmitResponse>(`/public/shared-form/${token}/responses`, data)
     return res.data
 }

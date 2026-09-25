@@ -22,7 +22,7 @@ function form(id: number, title: string, description: string, status: Form['stat
     return {
         id, stationId: 'wache', title, description, status, shuffleQuestions: false, allowEdit: true,
         createdBy: 1, createdAt: days(-20), updatedAt: days(-2), lastActivityAt: days(-1),
-        purpose: 'INTERNAL', publicUid: `uid-${id}`, responseCount, ...rest,
+        purpose: 'INTERNAL', visibility: 'PUBLIC', publicUid: `uid-${id}`, responseCount, ...rest,
     }
 }
 

@@ -1141,6 +1141,13 @@ public class ApiServer {
             return;
         }
 
+        if (path.startsWith(API_PREFIX + "/public/shared/") || path.startsWith(API_PREFIX + "/public/shared-form/")) {
+            ctx.header("Cache-Control", "private, no-store");
+            ctx.header("Referrer-Policy", "no-referrer");
+            ctx.header("X-Robots-Tag", "noindex");
+            return;
+        }
+
         if (path.startsWith(API_PREFIX + "/public/")) {
             ctx.header("Cache-Control", "public, max-age=3600");
             addETag(ctx);

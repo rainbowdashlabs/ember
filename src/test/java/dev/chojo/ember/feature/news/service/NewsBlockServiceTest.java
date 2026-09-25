@@ -323,7 +323,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
         return new NewsService(
                 newsRepo,
                 new ContentBlockService(contentContainerRepo),
-                new CellDescriptions(media),
+                new CellDescriptions(media, (stationId, pageUid) -> Optional.empty()),
                 stationRepo,
                 restrictionService,
                 new DomainEventBus(Set.of()),

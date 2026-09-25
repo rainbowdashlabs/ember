@@ -55,6 +55,8 @@ import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
+import dev.chojo.ember.feature.form.entity.Form;
+import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
@@ -92,6 +94,7 @@ import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
@@ -114,6 +117,7 @@ import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.ShareTokens;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -121,6 +125,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -482,9 +487,11 @@ class DemoServiceTest extends RepositoryTestBase {
                         pageRepo,
                         new ContentBlockService(contentContainerRepo),
                         demoMediaLibrary,
-                        new CellDescriptions(demoMediaLibrary),
+                        new CellDescriptions(demoMediaLibrary, (stationId, pageUid) -> Optional.empty()),
                         stationMemberRepo,
-                        avatarService),
+                        avatarService,
+                        new ShareTokens()),
+                pageRepo,
                 demoMediaLibrary,
                 formRepo,
                 quizCatalogRepo);
@@ -609,6 +616,42 @@ class DemoServiceTest extends RepositoryTestBase {
         assertTrue(
                 stations.stream().anyMatch(s -> "Jugendfeuerwehr Musterstadt".equals(s.name())),
                 "Station 'Jugendfeuerwehr Musterstadt' should exist");
+    }
+
+    /**
+     * The demo has something to look at for both halves of sending a link.
+     *
+     * <p>Seeding without throwing says nothing about whether a link opens anything, and a fixed
+     * token that nobody fetches is a string in a seeder rather than a demonstration. This opens both
+     * the way a stranger would.
+     */
+    @Test
+    @Order(4)
+    void verifyThereIsSomethingToSend() {
+        var station = stationRepo.findAll().stream()
+                .filter(s -> "Jugendfeuerwehr Musterstadt".equals(s.name()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo station should exist"));
+
+        var invitation = pageRepo.findByStation(station.id()).stream()
+                .filter(p -> p.visibility() == PageVisibility.UNLISTED)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo should have a page reached by its link alone"));
+        assertNull(invitation.parentId(), "a page reached by its link stands outside the tree");
+        assertTrue(
+                pageRepo.findListedByStation(station.id()).stream().noneMatch(p -> p.id() == invitation.id()),
+                "and it is in no menu");
+
+        var token = pageRepo.findShareToken(invitation.id())
+                .orElseThrow(() -> new AssertionError("becoming reachable by a link mints one"));
+        assertTrue(token.length() >= 40, "and it is a real one, not something anybody could type: " + token);
+        assertEquals(
+                invitation.id(), pageRepo.findByShareToken(token).orElseThrow().id(), "and the link opens that page");
+
+        var poll = formRepo.findByStationAndPurpose(station.id(), FormPurpose.POLL).stream()
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo should have a survey that can be sent"));
+        assertEquals(Form.FormStatus.OPEN, poll.status(), "a survey nobody can answer demonstrates nothing");
     }
 
     @Test

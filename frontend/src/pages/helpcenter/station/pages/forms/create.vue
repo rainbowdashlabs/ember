@@ -1,0 +1,17 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import BuilderHelp from '~/views/helpcenter/stationview/forms/BuilderHelp.vue'
+
+definePageMeta({
+  layout: 'helpcenter',
+  name: 'help-pages-forms-create',
+})
+</script>
+
+<template>
+  <BuilderHelp />
+</template>

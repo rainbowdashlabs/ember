@@ -37,6 +37,18 @@ export const FormPurpose = {
 export type FormPurposeName = (typeof FormPurpose)[keyof typeof FormPurpose]
 
 /**
+ * How far a form meant for people outside the station reaches. Public means its own address answers,
+ * which is what a form on a public page needs; unlisted means the link it was sent with is the only
+ * way in, so replacing that link ends every way in that was given out.
+ */
+export const FormVisibility = {
+    PUBLIC: 'PUBLIC',
+    UNLISTED: 'UNLISTED',
+} as const
+
+export type FormVisibilityName = (typeof FormVisibility)[keyof typeof FormVisibility]
+
+/**
  * Whitelist of question types allowed per form purpose. Mirrors
  * {@code FormQuestionType.allowedFor(FormPurpose)} on the backend; the
  * editor hides non-whitelisted types in the question-type picker.
@@ -84,6 +96,7 @@ export interface Form {
     restrictionMode?: string
     restricted?: boolean
     purpose: FormPurposeName
+    visibility: FormVisibilityName
     publicUid: string
     responseCount: number
 }
@@ -481,4 +494,25 @@ export async function exportResponses(
         responseType: 'blob',
     })
     return documentFrom(res, `Antworten.${format}`)
+}
+
+/**
+ * The link a form is sent with, minted the first time it is asked for so a form nobody sends never
+ * carries one. Only a form meant to be answered from outside has one.
+ */
+export async function getFormShareLink(formId: number): Promise<string | null> {
+    const res = await client.get<{token: string | null}>(`/forms/${formId}/share-link`)
+    return res.data.token
+}
+
+/** Replaces the link, ending every copy of the one the form carried. */
+export async function replaceFormShareLink(formId: number, currentToken: string | null): Promise<string> {
+    const res = await client.post<{token: string}>(`/forms/${formId}/share-link`, {currentToken})
+    return res.data.token
+}
+
+/** Sets whether a public form answers at its own address or only at the link it was sent with. */
+export async function setFormVisibility(formId: number, visibility: FormVisibilityName): Promise<Form> {
+    const res = await client.put<Form>(`/forms/${formId}/visibility`, {visibility})
+    return res.data
 }

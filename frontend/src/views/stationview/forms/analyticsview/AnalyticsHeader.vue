@@ -12,10 +12,13 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 defineProps<{
   title: string
   totalResponses: number
+  /** Whether the reader may write the form as well as read its results. */
+  canEdit: boolean
 }>()
 
 const emit = defineEmits<{
   export: []
+  edit: []
   back: []
 }>()
 
@@ -30,7 +33,10 @@ const { t } = useI18n()
         {{ t('forms.analytics.totalResponses') }}: {{ totalResponses }}
       </p>
     </div>
-    <ButtonRow pair align="end">
+    <ButtonRow align="end">
+      <SecondaryButton v-if="canEdit" :icon="['fas', 'pen']" @click="emit('edit')">
+        {{ t('forms.edit') }}
+      </SecondaryButton>
       <SecondaryButton :icon="['fas', 'file-export']" @click="emit('export')">
         {{ t('forms.analytics.export') }}
       </SecondaryButton>

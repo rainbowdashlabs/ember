@@ -221,10 +221,29 @@ public sealed interface CellConfig {
             implements CellConfig {}
 
     /**
-     * Link card pointing at another public StationPage.
+     * Link card pointing at another station page.
+     *
+     * <p>The target is named by the page's public uid, which is what the picker hands out and what
+     * every other outside reference to a page uses. It was once a database id, which nothing on the
+     * outside ever had, so the uid the editor sent was dropped on the way in and every card ever
+     * placed pointed nowhere.
+     *
+     * <p>{@code resolvedTitle} and {@code resolvedHref} are filled in when the page is drawn, never
+     * stored: a page's name and address both change, and a copy written into the card would go stale
+     * the moment either did. The editor reads the raw cell and sees neither.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record PageLinkConfig(Integer pageId, String fallbackTitle) implements CellConfig {}
+    record PageLinkConfig(String pageUid, String fallbackTitle, String resolvedTitle, String resolvedHref)
+            implements CellConfig {
+
+        public PageLinkConfig(String pageUid, String fallbackTitle) {
+            this(pageUid, fallbackTitle, null, null);
+        }
+
+        public PageLinkConfig resolvedAs(String title, String href) {
+            return new PageLinkConfig(pageUid, fallbackTitle, title, href);
+        }
+    }
 
     /**
      * OpenStreetMap embed via configurable coordinates.

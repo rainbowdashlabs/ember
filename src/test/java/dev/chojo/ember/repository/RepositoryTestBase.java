@@ -179,6 +179,7 @@ import org.junit.jupiter.api.Tag;
 import org.mockito.Mockito;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -651,11 +652,12 @@ public abstract class RepositoryTestBase {
     }
 
     /**
-     * Cell descriptions over a media library that knows no file, for tests that never show a
-     * picture and so have nothing to describe.
+     * Cell descriptions over a media library that knows no file and a station that knows no page,
+     * for tests that show neither a picture nor a card linking to a page and so have nothing to
+     * fill in.
      */
     protected static CellDescriptions noCellDescriptions() {
-        return new CellDescriptions(mock(MediaLibraryService.class));
+        return new CellDescriptions(mock(MediaLibraryService.class), (stationId, pageUid) -> Optional.empty());
     }
 
     /**

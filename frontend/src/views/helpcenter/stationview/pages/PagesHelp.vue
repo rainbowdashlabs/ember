@@ -11,6 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import BulletList from '@/components/typography/BulletList.vue'
 import {StationPermission} from '@/api/types'
 import PagesListDummy from './pageshelp/PagesListDummy.vue'
@@ -39,8 +40,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.pages.statusText') }}</p>
       <BulletList>
         <li><SuccessBadge>{{ t('stationPages.published') }}</SuccessBadge> {{ t('helpCenter.pages.statusPublished') }}</li>
+        <li><InfoBadge>{{ t('stationPages.unlisted') }}</InfoBadge> {{ t('helpCenter.pages.statusUnlisted') }}</li>
         <li><SecondaryBadge>{{ t('stationPages.draft') }}</SecondaryBadge> {{ t('helpCenter.pages.statusDraft') }}</li>
       </BulletList>
+      <p>{{ t('helpCenter.pages.statusUnlistedText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.pages.landingTitle')">

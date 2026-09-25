@@ -101,21 +101,18 @@ public class PublicPageRoutes implements Routes {
     }
 
     private void listPages(Context ctx) {
-        int stationId = resolveStation(ctx);
-        var pages = pageService.listPublishedPages(stationId);
+        int stationId = resolveOpenStation(ctx);
+        var pages = pageService.listListedPages(stationId);
         ctx.json(pages.stream()
                 .map(p -> PublicPageSummary.from(p, pageService.getPagePath(p)))
                 .toList());
     }
 
     private void getPage(Context ctx) {
-        int stationId = resolveStation(ctx);
+        int stationId = resolveOpenStation(ctx);
         String pagePath = ctx.pathParam("pagePath");
 
-        var page = pageService
-                .getPageByPath(stationId, pagePath)
-                .filter(StationPage::published)
-                .orElseThrow(NotFoundResponse::new);
+        var page = pageService.getPageByPath(stationId, pagePath).orElseThrow(NotFoundResponse::new);
 
         var rendered = pageService.getPageRendered(page.id()).orElseThrow(NotFoundResponse::new);
         ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
@@ -123,10 +120,31 @@ public class PublicPageRoutes implements Routes {
     }
 
     private void getLandingPage(Context ctx) {
-        int stationId = resolveStation(ctx);
+        int stationId = resolveOpenStation(ctx);
         var page = pageService.getLandingPage(stationId).orElseThrow(NotFoundResponse::new);
         ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
         ctx.json(page);
+    }
+
+    /**
+     * The station whose public site this is, where it has one.
+     *
+     * <p>The switch that opens a station's pages to the world was consulted by the menu and by the
+     * sitemap and by nothing here, so turning it off hid the way in and went on serving every page
+     * to anybody who still had an address. It is asked here now.
+     *
+     * <p>A page reached by its own link is not part of that site and is served by
+     * {@link SharedPageRoutes}, which asks nothing of the switch.
+     */
+    private int resolveOpenStation(Context ctx) {
+        int stationId = resolveStation(ctx);
+        if (!stationRepository
+                .findById(stationId)
+                .map(Station::publicPagesEnabled)
+                .orElse(false)) {
+            throw new NotFoundResponse();
+        }
+        return stationId;
     }
 
     private int resolveStation(Context ctx) {

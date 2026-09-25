@@ -312,7 +312,7 @@ public class KbTrashService {
                 seenFolders.size(),
                 seenFiles.size(),
                 pages.stream().map(PageRepository.EmbeddingPage::title).toList(),
-                pages.stream().anyMatch(PageRepository.EmbeddingPage::published));
+                pages.stream().anyMatch(PageRepository.EmbeddingPage::reachable));
     }
 
     private boolean mayManage(MemberAccess access, Integer folderId, Integer fileId) {

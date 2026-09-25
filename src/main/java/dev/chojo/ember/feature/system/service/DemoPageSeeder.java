@@ -15,6 +15,8 @@ import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.page.entity.PageVisibility;
+import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
@@ -40,6 +42,7 @@ import javax.imageio.ImageIO;
 @Singleton
 public class DemoPageSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoPageSeeder.class);
+
     /**
      * What the demo station has in its media library. Plain colours rather than photographs: they
      * are here so the library is not empty and the picture cells below have something to show, and
@@ -52,6 +55,7 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
             new SeedImage("gruppenbild.png", new Color(0x00C507)));
 
     private final PageService pageService;
+    private final PageRepository pageRepository;
     private final MediaLibraryService mediaLibrary;
     private final FormRepository formRepository;
     private final QuizCatalogRepository quizCatalogRepository;
@@ -59,10 +63,12 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
     @Inject
     public DemoPageSeeder(
             PageService pageService,
+            PageRepository pageRepository,
             MediaLibraryService mediaLibrary,
             FormRepository formRepository,
             QuizCatalogRepository quizCatalogRepository) {
         this.pageService = pageService;
+        this.pageRepository = pageRepository;
         this.mediaLibrary = mediaLibrary;
         this.formRepository = formRepository;
         this.quizCatalogRepository = quizCatalogRepository;
@@ -182,7 +188,7 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
                                                 CellContentType.MARKDOWN,
                                                 "## Kontakt\n\nJugendfeuerwehrwart: Max Mustermann\n\nE-Mail: jf@musterstadt.de\nTelefon: 01234 / 56789",
                                                 CellConfig.EMPTY)))));
-        pageService.setPublished(welcome.id(), true);
+        pageService.setVisibility(welcome.id(), PageVisibility.PUBLIC);
         pageService.setLandingPage(stationId, welcome.id());
 
         // About page with child pages
@@ -207,7 +213,7 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
 
                                 Seit der Gründung haben über 200 Jugendliche den Weg zu uns gefunden. \
                                 Viele sind heute aktive Mitglieder der Einsatzabteilung.""", CellConfig.EMPTY)))));
-        pageService.setPublished(about.id(), true);
+        pageService.setVisibility(about.id(), PageVisibility.PUBLIC);
 
         // Child: Team
         var team = pageService.create(stationId, "Unser Team", about.id(), memberId);
@@ -234,7 +240,7 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
                                 - Thomas Müller
                                 - Lisa Weber
                                 - Jonas Fischer""", CellConfig.EMPTY)))));
-        pageService.setPublished(team.id(), true);
+        pageService.setVisibility(team.id(), PageVisibility.PUBLIC);
 
         // Child: Ausrüstung
         var equipment = pageService.create(stationId, "Ausrüstung", about.id(), memberId);
@@ -259,7 +265,7 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
                                 - Jugendfeuerwehr-T-Shirt
 
                                 Die Ausrüstung wird von der Gemeinde gestellt und muss bei Austritt zurückgegeben werden.""", CellConfig.EMPTY)))));
-        pageService.setPublished(equipment.id(), true);
+        pageService.setVisibility(equipment.id(), PageVisibility.PUBLIC);
 
         // Mitmachen page
         var join = pageService.create(stationId, "Mitmachen", null, memberId);
@@ -311,9 +317,45 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
 
                                                 **Ab welchem Alter?**
                                                 Ab 10 Jahren.""", CellConfig.EMPTY)))));
-        pageService.setPublished(join.id(), true);
+        pageService.setVisibility(join.id(), PageVisibility.PUBLIC);
 
         seedShowroom(stationId, memberId, media);
+        seedInvitationPage(stationId, memberId);
+    }
+
+    /**
+     * A page nobody finds by looking: it is in no menu and in no sitemap, and it opens for whoever
+     * was sent its link.
+     *
+     * <p>The demo needs one, or the third visibility is a setting with nothing behind it. Its link
+     * is minted the ordinary way, by the state change itself, so what the demo shows is the real
+     * thing rather than a readable stand-in: a link somebody could guess would teach exactly the
+     * wrong lesson about what the link is for. Whoever wants it presses the button in the page list,
+     * as they would anywhere else.
+     */
+    private void seedInvitationPage(int stationId, int memberId) {
+        var invitation = pageService.create(stationId, "Einladung zum Sommerfest", null, memberId);
+        pageService.savePage(
+                invitation.id(),
+                "Einladung zum Sommerfest",
+                "einladung-sommerfest",
+                null,
+                "Nur für geladene Gäste",
+                null,
+                List.of(new ContentBlockService.RowData(
+                        0,
+                        List.of(new ContentBlockService.CellData(
+                                0, 100, CellContentType.MARKDOWN, """
+                                # Einladung zum Sommerfest
+
+                                Schön, dass du da bist! Diese Seite steht in keinem Menü und wird von
+                                Suchmaschinen nicht erfasst. Wer ihren Link hat, kann sie öffnen.
+
+                                **Wann:** Samstag, 14 Uhr
+                                **Wo:** Gerätehaus, hinter der Halle
+
+                                Bring gern jemanden mit. Wir freuen uns auf dich!""", CellConfig.EMPTY)))));
+        pageService.setVisibility(invitation.id(), PageVisibility.UNLISTED);
     }
 
     /**
@@ -578,7 +620,7 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
                 "Demoseite mit allen verfügbaren Komponenten",
                 null,
                 rows);
-        pageService.setPublished(page.id(), true);
+        pageService.setVisibility(page.id(), PageVisibility.PUBLIC);
     }
 
     /**

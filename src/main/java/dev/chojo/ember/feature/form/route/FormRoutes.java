@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.form.entity.FormVisibility;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalyticsDto;
@@ -34,6 +35,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.CsvWriter;
 import io.javalin.http.BadRequestResponse;
+import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
@@ -117,6 +119,9 @@ public class FormRoutes implements Routes {
         routes.delete(prefix + "/forms/{id}", this::delete, StationPermission.POLL_CREATE);
         routes.post(prefix + "/forms/{id}/publish", this::publish, StationPermission.POLL_CREATE);
         routes.post(prefix + "/forms/{id}/close", this::close, StationPermission.POLL_CREATE);
+        routes.put(prefix + "/forms/{id}/visibility", this::setVisibility, StationPermission.POLL_CREATE);
+        routes.get(prefix + "/forms/{id}/share-link", this::getShareLink, StationPermission.POLL_CREATE);
+        routes.post(prefix + "/forms/{id}/share-link", this::replaceShareLink, StationPermission.POLL_CREATE);
 
         // Questions
         routes.get(prefix + "/forms/{id}/questions", this::listQuestions, StationPermission.USER);
@@ -177,7 +182,9 @@ public class FormRoutes implements Routes {
             description = "Returns a lightweight result shape (publicUid, title, purpose, status)"
                     + " scoped to the caller's station. Backs the POLL_EMBED and FORMS_CTA cell"
                     + " pickers. The purpose query parameter is required; empty q returns the"
-                    + " most recent forms of the requested purpose.",
+                    + " most recent forms of the requested purpose. Only openly addressed forms are"
+                    + " offered: a page fetches the form it carries by its own address, so a form"
+                    + " reached by its link alone would show as missing on the page.",
             tags = {"Forms"},
             queryParams = {
                 @OpenApiParam(name = "purpose", required = true),
@@ -210,6 +217,7 @@ public class FormRoutes implements Routes {
                     .findByPublicUid(lookup)
                     .filter(f -> f.stationId() == session.stationId())
                     .filter(f -> f.purpose() == purpose)
+                    .filter(f -> f.visibility().openlyAddressed())
                     .map(f -> List.of(new FormSearchResult(f.publicUid(), f.title(), f.purpose(), f.status())))
                     .orElseGet(List::of);
             ctx.json(result);
@@ -221,6 +229,7 @@ public class FormRoutes implements Routes {
         int limit = Math.clamp(requested, 1, 20);
 
         var results = formService.findByStationAndPurpose(session.stationId(), purpose).stream()
+                .filter(f -> f.visibility().openlyAddressed())
                 .filter(f ->
                         needle.isEmpty() || f.title().toLowerCase(Locale.ROOT).contains(needle))
                 .limit(limit)
@@ -401,6 +410,72 @@ public class FormRoutes implements Routes {
         formService.findById(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/visibility",
+            methods = HttpMethod.PUT,
+            summary = "How far a public form reaches",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = VisibilityRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = Form.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setVisibility(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedForm(id, UserSession.from(ctx));
+        var request = ctx.bodyAsClass(VisibilityRequest.class);
+        if (request.visibility() == null) {
+            throw new BadRequestResponse("Say how far the form is to reach");
+        }
+        if (!formService.setVisibility(id, request.visibility())) {
+            throw new NotFoundResponse();
+        }
+        ctx.json(formService.findById(id).orElseThrow());
+    }
+
+    /**
+     * The link this form is sent with, minted the first time it is asked for so a form nobody sends
+     * never carries one.
+     */
+    @OpenApi(
+            path = "/api/v1/forms/{id}/share-link",
+            methods = HttpMethod.GET,
+            summary = "The link a form is sent with",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareLinkResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void getShareLink(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedForm(id, UserSession.from(ctx));
+        ctx.json(new ShareLinkResponse(formService.shareLink(id).orElse(null)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/share-link",
+            methods = HttpMethod.POST,
+            summary = "Replace the link a form is sent with",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReplaceShareLinkRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareLinkResponse.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void replaceShareLink(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedForm(id, UserSession.from(ctx));
+        var request = ctx.bodyAsClass(ReplaceShareLinkRequest.class);
+        var replaced = formService
+                .replaceShareLink(id, request.currentToken())
+                .orElseThrow(
+                        () -> new ConflictResponse("This form has been given a different link since you last looked"));
+        ctx.json(new ShareLinkResponse(replaced));
     }
 
     @OpenApi(
@@ -870,6 +945,12 @@ public class FormRoutes implements Routes {
      */
     @OpenApiName("FormSubmitRequest")
     public record SubmitRequest(Map<Integer, FormAnswerValue> answers) {}
+
+    public record VisibilityRequest(FormVisibility visibility) {}
+
+    public record ShareLinkResponse(String token) {}
+
+    public record ReplaceShareLinkRequest(String currentToken) {}
 
     /**
      * Lightweight picker result shape for {@code GET /api/v1/forms/search}. Used by the

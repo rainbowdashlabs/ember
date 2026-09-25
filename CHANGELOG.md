@@ -1,15 +1,27 @@
 # Changelog
 
-## v26.18.8
+## v26.19.0
 
 ### New Features
 
+- **A survey or contact form can be sent by link.** Every survey and contact form has a link of its own that opens it on a page of its own, with nothing around it but the station's name. Anybody holding the link can answer; it stands in no menu and is not picked up by search engines. A new link can be made at any time, which ends every copy of the previous one.
+- **A public form can be set to answer only at its link.** A survey or contact form is publicly reachable by default, which is what it needs to sit on a public page. Switched off, it answers at its link alone: its own address stops working, so making a new link really does end every way in that was given out. The setting sits with the form's other settings while you write it.
+- **A page can be reachable by its link alone.** Beside draft and public, a page can now be set to open for anybody holding its link. Such a page is absent from the station's menu and from its sitemap, and it stands on its own: it has no page above it and none under it. The link can be replaced the same way.
 - **A member field on an appointment can be filled in per date.** A field of an appointment that names members can be set to hold its own entry for each date of a repeating appointment, so it can say who drives this week and who drives next. Without the setting one entry holds for the whole series, as before.
 
 ### Improvements
 
 - **Standing in a member field puts you on the appointment's list.** Whoever is entered in a field of the appointment that names members counts as taking part: they are on the registration list, they are counted, and the appointment reaches their calendar and their calendar subscription. The place is confirmed at once and is given back by taking the name out of the field rather than by signing off.
 - **The calendar subscription reaches a year back.** It used to keep only the last week, so looking up what happened last autumn was impossible. It now covers a year in both directions.
+- **A rating, a ranking and a scale can be answered on a public survey.** A survey open to the public offered these three kinds of question when it was written but drew nothing for them when somebody came to answer, so only the text, date and choice questions could be filled in. All six kinds now work wherever a survey is answered.
+
+### Fixes
+
+- **A public survey could offer a send button that could never work.** A survey placed on a public page before it was opened, or left there after it was closed, showed all its questions and a send button, and answering it ended in a message that asked the reader to try again. Such a survey now says plainly that it is not yet open, or that it has closed, and offers nothing to fill in.
+- **A link to another page led nowhere.** A card pointing at another page of the station lost the page it was pointing at the moment it was saved, so every one of them showed a stand-in title and went nowhere when clicked. Cards keep their target now and follow it when a page is renamed or moved.
+- **Public pages were served after the setting was switched off.** Turning off a station's public pages removed them from the menu and from the sitemap but went on serving every one of them to anybody who still had the address. The setting is now consulted when a page is asked for.
+- **A page under an unpublished one was public.** A page that was published while the page above it was not could still be opened at an address spelling the unpublished page's name, and it appeared in the sitemap. A page is now public only when everything above it is.
+- **Every member was told about forms meant for the public.** Opening a contact form or a public survey sent a notification to the whole station about a new form to fill in, pointing at a page that then refused them. Only internal surveys are announced now.
 
 ## v26.18.7
 

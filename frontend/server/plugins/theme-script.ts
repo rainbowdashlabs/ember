@@ -13,6 +13,14 @@ const THEME_SCRIPT = `<script>try{var m=localStorage.getItem('dark_mode')||local
 const BACKEND_URL = process.env.EMBER_BACKEND_URL || process.env.NUXT_BACKEND_URL || 'http://localhost:8080'
 const CACHE_TTL_MS = 60_000
 const PUBLIC_STATION_RE = /^\/public\/station\/([^/]+)/
+/**
+ * A form or a page somebody was sent the link to. The reader holds a link and no station, so the
+ * station behind it is asked for by that link. It cannot go through the station information route
+ * the line above uses: that one answers nothing for a station with no public site, which is exactly
+ * the station most likely to have sent somebody a form.
+ */
+const SHARED_FORM_RE = /^\/f\/([^/]+)/
+const SHARED_PAGE_RE = /^\/s\/([^/]+)/
 
 interface ResolvedTheme {
     theme: string
@@ -54,13 +62,30 @@ async function resolveInstanceTheme(): Promise<ResolvedTheme | null> {
 }
 
 async function resolveStationTheme(uid: string): Promise<ResolvedTheme | null> {
-    const cached = themeCache.get(uid)
+    return resolveThemeFrom(uid, `${BACKEND_URL}/api/v1/public/station/${encodeURIComponent(uid)}/info`)
+}
+
+/**
+ * The station behind a share link, asked for by that link and marking no page hit, so a render does
+ * not count as a visit on top of the one the page itself reports. A form's link and a page's link
+ * are different tokens on different tables, so each is asked of its own.
+ */
+async function resolveSharedTheme(kind: 'form' | 'page', token: string): Promise<ResolvedTheme | null> {
+    const base = kind === 'form' ? 'shared-form' : 'shared'
+    return resolveThemeFrom(
+        `shared:${kind}:${token}`,
+        `${BACKEND_URL}/api/v1/public/${base}/${encodeURIComponent(token)}/brand`,
+    )
+}
+
+async function resolveThemeFrom(cacheKey: string, url: string): Promise<ResolvedTheme | null> {
+    const cached = themeCache.get(cacheKey)
     if (cached && cached.expires > Date.now()) return cached.data
     const data = await fetchJson<{
         defaultTheme: string | null
         defaultFeel: string | null
         customThemeColors: string | null
-    }>(`${BACKEND_URL}/api/v1/public/station/${encodeURIComponent(uid)}/info`)
+    }>(url)
     if (!data) return cached?.data ?? (await resolveInstanceTheme())
     let customColors: ThemeColors | null = null
     if (data.customThemeColors) {
@@ -76,7 +101,7 @@ async function resolveStationTheme(uid: string): Promise<ResolvedTheme | null> {
         feel: (data.defaultFeel ?? instance?.feel ?? Feel.ROUNDED) as FeelValue,
         customColors,
     }
-    themeCache.set(uid, {data: resolved, expires: Date.now() + CACHE_TTL_MS})
+    themeCache.set(cacheKey, {data: resolved, expires: Date.now() + CACHE_TTL_MS})
     return resolved
 }
 
@@ -132,9 +157,18 @@ export default defineNitroPlugin((nitroApp) => {
 
         const path = event.path ?? ''
         const stationMatch = path.match(PUBLIC_STATION_RE)
-        const theme = stationMatch
-            ? await resolveStationTheme(stationMatch[1])
-            : await resolveInstanceTheme()
+        const formMatch = path.match(SHARED_FORM_RE)
+        const pageMatch = path.match(SHARED_PAGE_RE)
+        let theme: ResolvedTheme | null
+        if (stationMatch) {
+            theme = await resolveStationTheme(stationMatch[1])
+        } else if (formMatch) {
+            theme = await resolveSharedTheme('form', formMatch[1])
+        } else if (pageMatch) {
+            theme = await resolveSharedTheme('page', pageMatch[1])
+        } else {
+            theme = await resolveInstanceTheme()
+        }
         if (theme) {
             html.head.push(buildStyle(theme))
         }

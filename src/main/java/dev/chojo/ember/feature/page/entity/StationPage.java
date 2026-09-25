@@ -25,6 +25,11 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  *
  * <p>{@code containerId} names the container the page's blocks live in. Every page has one; the
  * container is what makes the same editor usable for something that is not a page.
+ *
+ * <p>The share token of an unlisted page is deliberately not here. This record travels whole to
+ * strangers on the public routes, so a token on it would hand every page's link to anybody who
+ * opened that page, and a link that cannot be kept cannot be withdrawn either. It is read on its
+ * own, by the one screen that shows it.
  */
 public record StationPage(
         int id,
@@ -33,7 +38,7 @@ public record StationPage(
         Integer parentId,
         String title,
         String slug,
-        boolean published,
+        PageVisibility visibility,
         int sortOrder,
         String metaDescription,
         Integer ogImageId,
@@ -52,7 +57,7 @@ public record StationPage(
                 row.getObject("parent_id") != null ? row.getInt("parent_id") : null,
                 row.getString("title"),
                 row.getString("slug"),
-                row.getBoolean("published"),
+                row.getEnum("visibility", PageVisibility.class),
                 row.getInt("sort_order"),
                 row.getString("meta_description"),
                 row.getObject("og_image_id") != null ? row.getInt("og_image_id") : null,
@@ -72,7 +77,7 @@ public record StationPage(
                 parentId,
                 title,
                 slug,
-                published,
+                visibility,
                 sortOrder,
                 metaDescription,
                 ogImageId,
@@ -92,7 +97,7 @@ public record StationPage(
                 parentId,
                 title,
                 slug,
-                published,
+                visibility,
                 sortOrder,
                 metaDescription,
                 ogImageId,

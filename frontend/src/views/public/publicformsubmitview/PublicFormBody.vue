@@ -10,6 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import PublicFormQuestionCard from './PublicFormQuestionCard.vue'
+import PublicFormClosedNotice from '@/components/forms/fill/PublicFormClosedNotice.vue'
 import type {PublicForm, PublicFormQuestion} from '@/api/publicForms'
 
 const {t} = useI18n()
@@ -18,6 +19,8 @@ defineProps<{
   form: PublicForm
   answers: Record<number, Record<string, unknown>>
   submitting: boolean
+  /** A form that is not taking answers shows why and offers nothing to fill in. */
+  open: boolean
 }>()
 
 const emit = defineEmits<{
@@ -39,28 +42,32 @@ const tosVersion = defineModel<string>('tosVersion', {required: true})
     <p v-if="form.description" class="mt-1 text-(--text-muted)">{{ form.description }}</p>
   </div>
 
-  <div class="space-y-4">
-    <PublicFormQuestionCard
-        v-for="q in form.questions"
-        :key="q.id"
-        :question="q"
-        :answer="answers[q.id] ?? {}"
-        @update:text="(v: string) => emit('update-text', q, v)"
-        @update:date="(v: string) => emit('update-date', q, v)"
-        @toggle-choice="(oi: number) => emit('toggle-choice', q, oi)"/>
-  </div>
+  <PublicFormClosedNotice v-if="!open" :state="form.state"/>
 
-  <NeutralContainer>
-    <PublicConsentCheckbox
-        v-model:accepted="consentAccepted"
-        v-model:consent-version="consentVersion"
-        v-model:privacy-version="privacyVersion"
-        v-model:tos-version="tosVersion"/>
-  </NeutralContainer>
+  <template v-else>
+    <div class="space-y-4">
+      <PublicFormQuestionCard
+          v-for="q in form.questions"
+          :key="q.id"
+          :question="q"
+          :answer="answers[q.id] ?? {}"
+          @update:text="(v: string) => emit('update-text', q, v)"
+          @update:date="(v: string) => emit('update-date', q, v)"
+          @toggle-choice="(oi: number) => emit('toggle-choice', q, oi)"/>
+    </div>
 
-  <div class="flex justify-end">
-    <PrimaryButton :disabled="submitting || !consentAccepted" @click="emit('submit')">
-      {{ submitting ? t('publicForm.submitting') : t('publicForm.submit') }}
-    </PrimaryButton>
-  </div>
+    <NeutralContainer>
+      <PublicConsentCheckbox
+          v-model:accepted="consentAccepted"
+          v-model:consent-version="consentVersion"
+          v-model:privacy-version="privacyVersion"
+          v-model:tos-version="tosVersion"/>
+    </NeutralContainer>
+
+    <div class="flex justify-end">
+      <PrimaryButton :disabled="submitting || !consentAccepted" @click="emit('submit')">
+        {{ submitting ? t('publicForm.submitting') : t('publicForm.submit') }}
+      </PrimaryButton>
+    </div>
+  </template>
 </template>
