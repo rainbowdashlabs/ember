@@ -75,6 +75,14 @@ const itemTable = useItemTable({
   assignedName: itemAssignedName,
 })
 
+/**
+ * The inventory's own name at the head of the page, because "Inventar-Details" says nothing about
+ * which one is open: it is the same word above every stock screen, and it is what the tab, the
+ * history and a bookmark all end up carrying. The word stands until the inventory has arrived, and
+ * where it could not be fetched at all.
+ */
+const pageTitle = computed(() => detail.value?.name || t('pages.inventory-detail.title'))
+
 const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
 const canProcure = computed(() => hasPermission(StationPermission.INVENTORY_PROCUREMENT))
 const canCreateInternal = computed(() => hasPermission(StationPermission.INVENTORY_CREATE_INTERNAL))
@@ -219,7 +227,7 @@ function goEdit() { router.push({ name: routes.edit, params: { id: inventoryId.v
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-detail.title')"
+      :title="pageTitle"
       :subtitle="t('pages.inventory-detail.subtitle')"
   >
     <div class="space-y-6">

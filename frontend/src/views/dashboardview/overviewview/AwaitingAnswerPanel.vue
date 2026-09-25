@@ -6,8 +6,8 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -30,10 +30,14 @@ import type {AwaitingAnswer, EventCategory} from '@/api/events'
  * warning notification asks, so a reader who acts on the notification finds the row gone.
  */
 const {t} = useI18n()
-const router = useRouter()
 
 const awaiting = ref<AwaitingAnswer[]>([])
 const categories = ref<EventCategory[]>([])
+
+/** The event the row is about. */
+function eventPage(entry: AwaitingAnswer) {
+  return {name: 'event-detail', params: {id: entry.eventId}}
+}
 
 /** The category the event was put in, absent where it was put in none. */
 function categoryOf(entry: AwaitingAnswer): EventCategory | undefined {
@@ -71,29 +75,28 @@ onMounted(loadData)
     </SectionHeader>
     <div class="overflow-y-auto flex-1 space-y-2">
       <EmptyState compact v-if="awaiting.length === 0">{{ t('dashboard.noAwaitingAnswer') }}</EmptyState>
-      <NeutralContainer
-          v-for="entry in awaiting"
-          :key="entry.eventId"
-          data-testid="awaiting-answer"
-          class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
-          @click="router.push({name: 'event-detail', params: {id: entry.eventId}})"
-      >
-        <div class="min-w-0">
-          <div class="flex items-center gap-2 min-w-0">
-            <p class="truncate text-sm font-medium">{{ entry.name }}</p>
-            <ColorBadge v-if="categoryOf(entry)" :color="categoryOf(entry)!.color"
-                        class="shrink-0" data-testid="dashboard-event-category">
-              {{ categoryOf(entry)!.name }}
-            </ColorBadge>
+      <RowLink v-for="entry in awaiting" :key="entry.eventId" :to="eventPage(entry)">
+        <NeutralContainer
+            data-testid="awaiting-answer"
+            class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
+        >
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 min-w-0">
+              <p class="truncate text-sm font-medium">{{ entry.name }}</p>
+              <ColorBadge v-if="categoryOf(entry)" :color="categoryOf(entry)!.color"
+                          class="shrink-0" data-testid="dashboard-event-category">
+                {{ categoryOf(entry)!.name }}
+              </ColorBadge>
+            </div>
+            <p class="text-xs text-(--text-muted)">
+              {{ entry.members.map(m => m.name).join(', ') }}
+            </p>
           </div>
-          <p class="text-xs text-(--text-muted)">
-            {{ entry.members.map(m => m.name).join(', ') }}
-          </p>
-        </div>
-        <span class="text-xs text-(--text-muted) shrink-0">
-          {{ t('dashboard.awaitingDaysLeft', {days: daysLeft(entry)}) }}
-        </span>
-      </NeutralContainer>
+          <span class="text-xs text-(--text-muted) shrink-0">
+            {{ t('dashboard.awaitingDaysLeft', {days: daysLeft(entry)}) }}
+          </span>
+        </NeutralContainer>
+      </RowLink>
     </div>
   </NeutralContainer>
 </template>

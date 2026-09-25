@@ -42,6 +42,18 @@ const members = ref<MemberCompletion[]>([])
 const assignableMembers = ref<MemberCompletion[]>([])
 const canEdit = ref(false)
 
+/**
+ * The ticket's identifier and its headline at the head of the page, so that the tab, the history and
+ * a bookmark say which ticket is open instead of saying "Ticket" over and over. The word stands
+ * until board and ticket have both arrived, and where either failed to load.
+ */
+const pageTitle = computed(() => board.value && ticket.value
+    ? `${board.value.shortKey}-${ticket.value.ticketNumber} ${ticket.value.title}`
+    : t('pages.ticket-detail.title'))
+
+/** With the ticket named above it, the line under it is where the board it lives on goes. */
+const pageSubtitle = computed(() => board.value?.name || t('pages.ticket-detail.subtitle'))
+
 const title = ref('')
 const description = ref('')
 const priority = ref<TicketPriorityName>(TicketPriority.MEDIUM)
@@ -229,8 +241,8 @@ watch(ticketNumber, reload)
 
 <template>
     <ViewContent
-        :title="t('pages.ticket-detail.title')"
-        :subtitle="t('pages.ticket-detail.subtitle')"
+        :title="pageTitle"
+        :subtitle="pageSubtitle"
     >
         <Spinner v-if="loading" />
         <Alert v-else-if="error && !ticket" variant="error">{{ error }}</Alert>

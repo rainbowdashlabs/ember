@@ -10,6 +10,7 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import type {BoardLabel, BoardTicket} from '@/api/boards'
 import {priorityColor, priorityIcon} from '@/util/ticketPriority'
 import BoardLabelBadge from './BoardLabelBadge.vue'
@@ -30,8 +31,12 @@ const props = withDefaults(defineProps<{
 const {t} = useI18n()
 const router = useRouter()
 
+function ticketPage(ticket: BoardTicket): string {
+  return `/station/boards/${props.shortKey}/tickets/${ticket.ticketNumber}`
+}
+
 function open(ticket: BoardTicket) {
-  router.push(`/station/boards/${props.shortKey}/tickets/${ticket.ticketNumber}`)
+  router.push(ticketPage(ticket))
 }
 </script>
 
@@ -43,6 +48,9 @@ function open(ticket: BoardTicket) {
     <RecordTable :table="table" clickable row-test-id="ticket-row" test-id="ticket-table" @row-click="open">
       <template #cell-key="{text}">
         <span class="font-mono whitespace-nowrap text-(--text-muted)">{{ text }}</span>
+      </template>
+      <template #cell-title="{row, text}">
+        <RowLink :to="ticketPage(row)">{{ text }}</RowLink>
       </template>
       <template #cell-labels="{row}">
         <span class="flex flex-wrap gap-1">

@@ -65,6 +65,14 @@ export async function search(stationUid: string, query: string): Promise<PublicS
     return res.data
 }
 
+/**
+ * The picture of a public file at the longest side asked for: a photograph scaled down, a sheet by
+ * its first page. Answered 404 where the file has none, and the tile draws the icon of its kind.
+ */
+export function filePictureUrl(stationUid: string, fileId: number, size = 512): string {
+    return `/api/v1/public/kb/${stationUid}/files/${fileId}/picture?size=${size}`
+}
+
 export function folderIconUrl(stationUid: string, folderId: number, size = 128): string {
     return `/api/v1/public/kb/${stationUid}/folders/${folderId}/icon?size=${size}`
 }

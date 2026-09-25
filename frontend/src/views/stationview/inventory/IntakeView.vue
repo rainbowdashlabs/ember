@@ -68,6 +68,15 @@ const {loading, error} = useAsyncLoader(async () => {
 
 const sizes = computed(() => detail.value?.sizes ?? [])
 
+/**
+ * Which inventory is being written down, at the head of the page, so two stocktakings open at once
+ * are told apart in the tab and in the history. The plain wording stands while it loads and where
+ * the inventory could not be fetched.
+ */
+const pageTitle = computed(() => (detail.value?.name
+    ? t('inventory.intake.titleNamed', {name: detail.value.name})
+    : t('inventory.intake.title')))
+
 /** Everybody who is not on the list yet, for adding somebody the chosen audience left out. */
 const pickable = computed(() => {
   const taken = new Set(lines.value.map(line => line.memberId))
@@ -127,7 +136,7 @@ const {running: saving, error: saveError, run: save} = useAsyncAction(async () =
 </script>
 
 <template>
-  <ViewContent :title="t('inventory.intake.title')" :subtitle="t('inventory.intake.subtitle')">
+  <ViewContent :title="pageTitle" :subtitle="t('inventory.intake.subtitle')">
     <div class="space-y-4">
       <div class="flex items-center gap-2">
         <SecondaryButton :icon="['fas', 'arrow-left']"

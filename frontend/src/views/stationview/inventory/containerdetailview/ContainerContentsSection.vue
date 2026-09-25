@@ -12,7 +12,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import ContainerContentsTree from '@/views/stationview/inventory/storageview/ContainerContentsTree.vue'
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import type {ContainerContents, InventoryContainerKind} from '@/api/inventoryContainers'
 
 const recursive = defineModel<boolean>('recursive', {required: true})
@@ -31,6 +33,15 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const routes = useInventoryRoutes()
+
+function containerPage(id: number) {
+  return {name: routes.container, params: {id: String(id)}}
+}
+
+function itemPage(id: number) {
+  return {name: routes.item, params: {id: String(id)}}
+}
 </script>
 
 <template>
@@ -68,31 +79,28 @@ const {t} = useI18n()
           <div v-if="props.contents.children.length > 0">
             <SubHeader class="mb-2">{{ t('inventory.storage.childContainers') }}</SubHeader>
             <ul class="divide-y divide-(--bg-accent)">
-              <li
-                  v-for="c in props.contents.children"
-                  :key="c.id"
-                  class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
-                  @click="emit('openContainer', c.id)"
-              >
-                <AppIcon :icon="props.kindById.get(c.kindId ?? -1)?.icon ?? 'box'" class="w-4 text-(--text-muted)" />
-                <span class="font-medium">{{ c.name }}</span>
-                <span v-if="c.internalId" class="text-xs text-(--text-muted)">{{ c.internalId }}</span>
+              <li v-for="c in props.contents.children" :key="c.id">
+                <RowLink :to="containerPage(c.id)">
+                  <div class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2">
+                    <AppIcon :icon="props.kindById.get(c.kindId ?? -1)?.icon ?? 'box'" class="w-4 text-(--text-muted)" />
+                    <span class="font-medium">{{ c.name }}</span>
+                    <span v-if="c.internalId" class="text-xs text-(--text-muted)">{{ c.internalId }}</span>
+                  </div>
+                </RowLink>
               </li>
             </ul>
           </div>
           <div v-if="props.contents.items.length > 0">
             <SubHeader class="mb-2">{{ t('inventory.storage.containedItems') }}</SubHeader>
             <ul class="divide-y divide-(--bg-accent)">
-              <li
-                  v-for="i in props.contents.items"
-                  :key="i.id"
-                  class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
-                  data-testid="container-item"
-                  @click="emit('openItem', i.id)"
-              >
-                <font-awesome-icon :icon="['fas', 'cube']" class="w-4 text-(--text-muted)" />
-                <span class="font-medium">{{ i.name ?? '' }}</span>
-                <span v-if="i.internalId" class="text-xs text-(--text-muted)">{{ i.internalId }}</span>
+              <li v-for="i in props.contents.items" :key="i.id" data-testid="container-item">
+                <RowLink :to="itemPage(i.id)">
+                  <div class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2">
+                    <font-awesome-icon :icon="['fas', 'cube']" class="w-4 text-(--text-muted)" />
+                    <span class="font-medium">{{ i.name ?? '' }}</span>
+                    <span v-if="i.internalId" class="text-xs text-(--text-muted)">{{ i.internalId }}</span>
+                  </div>
+                </RowLink>
               </li>
             </ul>
           </div>

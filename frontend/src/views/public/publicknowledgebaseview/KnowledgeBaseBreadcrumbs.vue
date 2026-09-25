@@ -10,10 +10,13 @@ import type {KbFolder} from '@/api/knowledgeBase'
 
 defineProps<{
   currentFolder: KbFolder | null
+  /** Tiles or one entry to a line, offered here as it is in the station's own wiki. */
+  viewMode: 'grid' | 'list'
 }>()
 
 const emit = defineEmits<{
   (e: 'navigate', folderId: number | null): void
+  (e: 'toggleViewMode'): void
 }>()
 
 const {t} = useI18n()
@@ -40,5 +43,13 @@ const {t} = useI18n()
         {{ currentFolder.name }}
       </span>
     </template>
+
+    <div class="flex-1"/>
+
+    <IconButton
+        :icon="['fas', viewMode === 'grid' ? 'table-columns' : 'grip-vertical']"
+        :label="viewMode === 'grid' ? t('kb.listView') : t('kb.gridView')"
+        @click="emit('toggleViewMode')"
+    />
   </nav>
 </template>

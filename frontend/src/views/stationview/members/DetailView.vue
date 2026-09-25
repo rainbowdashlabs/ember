@@ -127,6 +127,14 @@ const relationsTabLabel = computed(() =>
   managesMembers.value ? t('memberDetail.tabManagedMembers') : t('memberDetail.tabGuardians')
 )
 
+/**
+ * The person's own name at the head of the page, and nothing besides: it is what makes the tab,
+ * the history and a bookmark worth reading. The word "Mitglied" stands there until the member has
+ * arrived, and where they could not be fetched at all.
+ */
+const pageTitle = computed(() =>
+  member.value ? memberDisplayName(member.value) : t('pages.members-detail.title'))
+
 async function loadChanges() {
   try { changes.value = await profileFieldChanges.getChanges(memberId.value) } catch { void 0 }
 }
@@ -209,7 +217,7 @@ const detailModalsProps = computed(() => ({
 
 <template>
   <ViewContent
-      :title="t('pages.members-detail.title')"
+      :title="pageTitle"
       :subtitle="t('pages.members-detail.subtitle')"
   >
     <div class="space-y-6">

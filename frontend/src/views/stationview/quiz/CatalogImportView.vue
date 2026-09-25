@@ -27,6 +27,14 @@ const leaveLabel = computed(() =>
   wizard.appending.value && wizard.catalogName.value ? wizard.catalogName.value : t('quiz.catalogs.title'),
 )
 
+/**
+ * An import into an existing catalog names it, with the job after the name; an import that creates
+ * one has nothing to name yet and keeps the words alone.
+ */
+const pageTitle = computed(() => wizard.appending.value && wizard.catalogName.value
+  ? t('pages.quiz-catalog-import.titleNamed', {name: wizard.catalogName.value})
+  : t('pages.quiz-catalog-import.title'))
+
 watch(loaded, isLoaded => { if (isLoaded) wizard.loadCatalogName() }, {immediate: true})
 
 function leave() {
@@ -36,7 +44,7 @@ function leave() {
 </script>
 
 <template>
-  <ViewContent :title="t('pages.quiz-catalog-import.title')" :subtitle="t('pages.quiz-catalog-import.subtitle')">
+  <ViewContent :title="pageTitle" :subtitle="t('pages.quiz-catalog-import.subtitle')">
     <div class="space-y-6">
       <ImportHeader :leave-label="leaveLabel" :appending="wizard.appending.value" @leave="leave" />
       <ImportErrorAlert :message="wizard.error.value" :problems="wizard.problems.value" />

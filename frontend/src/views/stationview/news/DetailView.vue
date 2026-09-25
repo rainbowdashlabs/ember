@@ -45,6 +45,13 @@ const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 const entry = ref<NewsEntry | null>(null)
 
 /**
+ * The entry's own headline at the head of the page, because "Neuigkeit" is the same word above every
+ * one of them and it is what the tab, the history and a bookmark end up carrying. The word stands
+ * until the entry has arrived, and where it could not be fetched at all.
+ */
+const pageTitle = computed(() => entry.value?.title || t('pages.news-detail.title'))
+
+/**
  * Where the pictures of this entry are fetched from. A system entry is read in every station, so
  * its pictures come out of the instance library rather than out of the station reading it, which
  * holds no copy of them.
@@ -86,7 +93,7 @@ watch(() => route.params.id, reload)
 
 <template>
   <ViewContent
-      :title="t('pages.news-detail.title')"
+      :title="pageTitle"
       :subtitle="t('pages.news-detail.subtitle')"
   >
     <div class="space-y-4">

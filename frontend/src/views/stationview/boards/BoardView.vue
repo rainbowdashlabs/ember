@@ -60,6 +60,16 @@ const {loading, error, reload} = useAsyncLoader(async () => {
     ticketLabelMap.value = map
 })
 
+/**
+ * The board's own name at the head of the page, because "Board" is the same word above every one of
+ * them and it is what the tab, the history and a bookmark end up carrying. The word stands until the
+ * board has arrived, and where it could not be fetched at all.
+ */
+const pageTitle = computed(() => board.value?.name || t('pages.board-view.title'))
+
+/** Once the name is the title, the line under it is where the board says what it is for. */
+const pageSubtitle = computed(() => board.value?.description || t('pages.board-view.subtitle'))
+
 const visibleLanes = computed(() => lanes.value.filter(l => !board.value?.backlogLaneId || l.id !== board.value.backlogLaneId))
 const backlogLane = computed(() => board.value?.backlogLaneId ? lanes.value.find(l => l.id === board.value!.backlogLaneId) ?? null : null)
 
@@ -152,8 +162,8 @@ watch(boardKey, reload)
 
 <template>
     <ViewContent
-        :title="t('pages.board-view.title')"
-        :subtitle="t('pages.board-view.subtitle')"
+        :title="pageTitle"
+        :subtitle="pageSubtitle"
     >
         <Spinner v-if="loading" />
         <Alert v-else-if="error" variant="error">{{ error }}</Alert>
@@ -164,7 +174,6 @@ watch(boardKey, reload)
                 :labels-for-ticket="labelsForTicket"
                 :lane-name="laneName"
                 @create="showCreateModal = true"
-                @open-ticket="openTicketDetail"
             />
 
             <BoardFilterBar

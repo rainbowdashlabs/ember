@@ -17,6 +17,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
@@ -125,8 +126,12 @@ function openContainer(c: InventoryContainer) {
   router.push({name: routes.container, params: {id: String(c.id)}})
 }
 
-function openItem(i: InventoryItem) {
-  router.push({name: routes.item, params: {id: String(i.id)}})
+function containerPage(c: InventoryContainer) {
+  return {name: routes.container, params: {id: String(c.id)}}
+}
+
+function itemPage(i: InventoryItem) {
+  return {name: routes.item, params: {id: String(i.id)}}
 }
 
 async function onCreated() {
@@ -185,39 +190,37 @@ onMounted(load)
             {{ t('inventory.storage.noResults') }}
           </div>
           <ul v-else class="divide-y divide-(--bg-accent)">
-            <li
-                v-for="c in containerMatches"
-                :key="`c-${c.id}`"
-                class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
-                @click="openContainer(c)"
-            >
-              <AppIcon :icon="kindById.get(c.kindId ?? -1)?.icon ?? 'box'" class="w-4 text-(--text-muted)" />
-              <span class="font-medium">{{ c.name }}</span>
-              <span v-if="c.internalId" class="text-xs text-(--text-muted)">{{ c.internalId }}</span>
-              <span class="ml-auto text-xs text-(--text-muted)">{{ t('inventory.storage.searchKindContainer') }}</span>
+            <li v-for="c in containerMatches" :key="`c-${c.id}`">
+              <RowLink :to="containerPage(c)">
+                <div class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2">
+                  <AppIcon :icon="kindById.get(c.kindId ?? -1)?.icon ?? 'box'" class="w-4 text-(--text-muted)" />
+                  <span class="font-medium">{{ c.name }}</span>
+                  <span v-if="c.internalId" class="text-xs text-(--text-muted)">{{ c.internalId }}</span>
+                  <span class="ml-auto text-xs text-(--text-muted)">{{ t('inventory.storage.searchKindContainer') }}</span>
+                </div>
+              </RowLink>
             </li>
-            <li
-                v-for="i in itemMatches"
-                :key="`i-${i.id}`"
-                class="py-2 flex flex-col gap-1 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
-                @click="openItem(i)"
-            >
-              <div class="flex items-center gap-3">
-                <font-awesome-icon :icon="['fas', 'cube']" class="w-4 text-(--text-muted)" />
-                <span class="font-medium">{{ i.name ?? '' }}</span>
-                <span v-if="i.internalId" class="text-xs text-(--text-muted)">{{ i.internalId }}</span>
-                <span class="ml-auto text-xs text-(--text-muted)">{{ t('inventory.storage.searchKindItem') }}</span>
-              </div>
-              <div class="pl-7 text-xs text-(--text-muted) truncate">
-                <template v-if="i.containerId">
-                  <font-awesome-icon :icon="['fas', 'location-dot']" class="mr-1.5" />
-                  {{ pathFor(i.containerId) }}
-                </template>
-                <template v-else>
-                  <font-awesome-icon :icon="['fas', 'circle-question']" class="mr-1.5" />
-                  {{ t('inventory.storage.itemPathUnassigned') }}
-                </template>
-              </div>
+            <li v-for="i in itemMatches" :key="`i-${i.id}`">
+              <RowLink :to="itemPage(i)">
+                <div class="py-2 flex flex-col gap-1 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2">
+                  <div class="flex items-center gap-3">
+                    <font-awesome-icon :icon="['fas', 'cube']" class="w-4 text-(--text-muted)" />
+                    <span class="font-medium">{{ i.name ?? '' }}</span>
+                    <span v-if="i.internalId" class="text-xs text-(--text-muted)">{{ i.internalId }}</span>
+                    <span class="ml-auto text-xs text-(--text-muted)">{{ t('inventory.storage.searchKindItem') }}</span>
+                  </div>
+                  <div class="pl-7 text-xs text-(--text-muted) truncate">
+                    <template v-if="i.containerId">
+                      <font-awesome-icon :icon="['fas', 'location-dot']" class="mr-1.5" />
+                      {{ pathFor(i.containerId) }}
+                    </template>
+                    <template v-else>
+                      <font-awesome-icon :icon="['fas', 'circle-question']" class="mr-1.5" />
+                      {{ t('inventory.storage.itemPathUnassigned') }}
+                    </template>
+                  </div>
+                </div>
+              </RowLink>
             </li>
           </ul>
         </NeutralContainer>

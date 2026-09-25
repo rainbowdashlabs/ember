@@ -143,6 +143,20 @@ const endFormatted = computed(() => {
   return combineDateAndTime(event.value.endTime)
 })
 
+/**
+ * The appointment's own name at the head of the page, because "Termin" stands over every one of
+ * them and is what the tab, the history and a bookmark end up carrying. The word is what stands
+ * there until the appointment has arrived, and where it could not be fetched at all.
+ */
+const pageTitle = computed(() => event.value?.name || t('pages.event-detail.title'))
+
+/**
+ * The day the page is bound to, under the name. A repeating appointment is a different page on
+ * every date it falls on, all of them called the same thing, so the date is what tells them apart.
+ */
+const pageSubtitle = computed(() =>
+    formatWeekdayDate(effectiveDate.value) || t('pages.event-detail.subtitle'))
+
 const registrableMembers = computed((): AnswerablePerson[] => {
   const eligible = eligibleMembers.value[eventId.value]
   const ids = eligible ?? [currentMemberId.value, ...managedMembers.value.map(m => m.id)]
@@ -253,8 +267,8 @@ function onFieldUpdated(field: EventField) {
 
 <template>
   <ViewContent
-      :title="t('pages.event-detail.title')"
-      :subtitle="t('pages.event-detail.subtitle')"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
   >
     <Spinner v-if="loading" size="lg"/>
     <FailureAlert :message="error"/>

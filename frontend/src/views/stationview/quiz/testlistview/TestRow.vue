@@ -4,21 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
+import { computed } from 'vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
-import MutedIcon from '@/components/display/MutedIcon.vue'
-import {QuizTestStatus, type QuizTest} from '@/api/quiz'
-import { formatDateTime } from '@/util/format'
+import RowLink from '@/components/navigation/RowLink.vue'
+import TestRowMobile from './testrow/TestRowMobile.vue'
+import TestRowDesktop from './testrow/TestRowDesktop.vue'
+import type {QuizTest} from '@/api/quiz'
+import { pressedAControl } from '@/util/rowPress'
 
-defineProps<{
+const props = defineProps<{
   test: QuizTest
   isMobile: boolean
   canConfigure: boolean
@@ -30,82 +24,45 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  navigate: [test: QuizTest]
   take: [test: QuizTest]
   edit: [test: QuizTest]
   remove: [test: QuizTest]
 }>()
 
-const { t } = useI18n()
+/**
+ * The test's own page, for a reader who is allowed to see what was written. Anybody else opens the
+ * test by sitting it, which is not a page to address: the attempt begins with the press.
+ */
+const testPage = computed(() => props.canReadResults
+    ? {name: 'quiz-test-detail', params: {id: props.test.id}}
+    : null)
+
+/**
+ * The press that sits the test, on the row that is not a link. A press that landed on one of the
+ * row's own buttons belongs to that button, so the row stays out of it.
+ */
+function sitTest(event: MouseEvent) {
+  if (testPage.value || pressedAControl(event)) return
+  emit('take', props.test)
+}
 </script>
 
 <template>
-  <NeutralContainer data-testid="test-entry" class="cursor-pointer" @click="emit('navigate', test)">
-    <div v-if="isMobile" class="space-y-2">
-      <div class="flex items-center justify-between">
-        <span class="font-medium">{{ test.title }}</span>
-        <MutedIcon v-if="test.restricted" :icon="['fas', 'lock']" class="ml-1" />
-        <SuccessBadge v-if="test.status === QuizTestStatus.ACTIVE">{{ t('quiz.tests.statusActive') }}</SuccessBadge>
-        <ErrorBadge v-else-if="test.status === QuizTestStatus.CLOSED">{{ t('quiz.tests.statusClosed') }}</ErrorBadge>
-        <SecondaryBadge v-else>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>
-        <InfoBadge v-if="submitted">{{ t('quiz.tests.taken') }}</InfoBadge>
-      </div>
-      <p v-if="test.description" class="text-xs text-(--text-muted) line-clamp-2">{{ test.description }}</p>
-      <div v-if="canReadResults && (test.startAt || test.endAt)" class="flex items-center justify-between text-xs text-(--text-muted)">
-        <span v-if="test.startAt">{{ t('quiz.tests.startAt') }}: {{ formatDateTime(test.startAt) }}</span>
-        <span>{{ attemptCount }} {{ t('quiz.attemptCount') }}</span>
-        <span v-if="test.endAt">{{ t('quiz.tests.endAt') }}: {{ formatDateTime(test.endAt) }}</span>
-      </div>
-      <div v-else-if="canReadResults" class="text-xs text-(--text-muted)">
-        {{ attemptCount }} {{ t('quiz.attemptCount') }}
-      </div>
-      <div v-if="!canReadResults && submitted" class="flex items-center justify-between text-xs text-(--text-muted)">
-        <span v-if="attemptStartedAt">{{ t('quiz.tests.startedAt') }}: {{ formatDateTime(attemptStartedAt) }}</span>
-        <span v-if="attemptSubmittedAt">{{ t('quiz.tests.submittedAt') }}: {{ formatDateTime(attemptSubmittedAt) }}</span>
-      </div>
-      <ButtonRow class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-        <PrimaryButton v-if="test.status === QuizTestStatus.ACTIVE && !canReadResults && !submitted" @click.stop="emit('take', test)">
-          {{ t('quiz.tests.takeTest') }}
-        </PrimaryButton>
-        <template v-if="canConfigure">
-          <SecondaryButton @click.stop="emit('edit', test)">{{ t('common.edit') }}</SecondaryButton>
-          <ErrorButton @click.stop="emit('remove', test)">{{ t('common.delete') }}</ErrorButton>
-        </template>
-      </ButtonRow>
-    </div>
-
-    <div v-else class="flex items-center justify-between gap-4">
-      <div class="flex-1 space-y-1">
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="font-medium">{{ test.title }}</span>
-          <MutedIcon v-if="test.restricted" :icon="['fas', 'lock']" class="ml-1" />
-          <SuccessBadge v-if="test.status === QuizTestStatus.ACTIVE">{{ t('quiz.tests.statusActive') }}</SuccessBadge>
-          <ErrorBadge v-else-if="test.status === QuizTestStatus.CLOSED">{{ t('quiz.tests.statusClosed') }}</ErrorBadge>
-          <SecondaryBadge v-else>{{ t('quiz.tests.statusDraft') }}</SecondaryBadge>
-          <InfoBadge v-if="submitted">{{ t('quiz.tests.taken') }}</InfoBadge>
-        </div>
-        <p v-if="test.description" class="text-xs text-(--text-muted) line-clamp-1">{{ test.description }}</p>
-      </div>
-      <div class="flex items-center gap-4 text-xs text-(--text-muted) shrink-0">
-        <span v-if="canReadResults">{{ attemptCount }} {{ t('quiz.attemptCount') }}</span>
-        <div v-if="canReadResults && (test.startAt || test.endAt)" class="text-right">
-          <div v-if="test.startAt">{{ t('quiz.tests.startAt') }}: {{ formatDateTime(test.startAt) }}</div>
-          <div v-if="test.endAt">{{ t('quiz.tests.endAt') }}: {{ formatDateTime(test.endAt) }}</div>
-        </div>
-        <div v-if="!canReadResults && submitted" class="text-right">
-          <div v-if="attemptStartedAt">{{ t('quiz.tests.startedAt') }}: {{ formatDateTime(attemptStartedAt) }}</div>
-          <div v-if="attemptSubmittedAt">{{ t('quiz.tests.submittedAt') }}: {{ formatDateTime(attemptSubmittedAt) }}</div>
-        </div>
-        <ButtonRow @click.stop>
-          <PrimaryButton v-if="test.status === QuizTestStatus.ACTIVE && !canReadResults && !submitted" @click="emit('take', test)">
-            {{ t('quiz.tests.takeTest') }}
-          </PrimaryButton>
-          <template v-if="canConfigure">
-            <SecondaryButton @click="emit('edit', test)">{{ t('common.edit') }}</SecondaryButton>
-            <ErrorButton @click="emit('remove', test)">{{ t('common.delete') }}</ErrorButton>
-          </template>
-        </ButtonRow>
-      </div>
-    </div>
-  </NeutralContainer>
+  <RowLink :to="testPage">
+    <NeutralContainer data-testid="test-entry" class="cursor-pointer" @click="sitTest">
+      <component
+        :is="isMobile ? TestRowMobile : TestRowDesktop"
+        :test="test"
+        :can-configure="canConfigure"
+        :can-read-results="canReadResults"
+        :submitted="submitted"
+        :attempt-count="attemptCount"
+        :attempt-started-at="attemptStartedAt"
+        :attempt-submitted-at="attemptSubmittedAt"
+        @take="emit('take', $event)"
+        @edit="emit('edit', $event)"
+        @remove="emit('remove', $event)"
+      />
+    </NeutralContainer>
+  </RowLink>
 </template>

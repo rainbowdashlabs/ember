@@ -61,6 +61,15 @@ const {containerById, walkOrder, rowsFor, pathFor} = useWalkPlan({
 
 const hasWalk = computed(() => deep.value && walkOrder.value.length > 1)
 
+/**
+ * Which container is being walked, at the head of the page, so two walks open at once are told
+ * apart in the tab and in the history. The plain wording stands while it loads and where the
+ * container could not be fetched.
+ */
+const pageTitle = computed(() => (detail.value?.container.name
+    ? t('pages.inventory-check-container-walk.titleNamed', {name: detail.value.container.name})
+    : t('pages.inventory-check-container-walk.title')))
+
 const currentContainer = computed<InventoryContainer | null>(() => walkOrder.value[walkIdx.value] ?? null)
 
 const currentRows = computed<ExpectedRow[]>(() => {
@@ -181,7 +190,7 @@ onMounted(load)
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-check-container-walk.title')"
+      :title="pageTitle"
       :subtitle="t('pages.inventory-check-container-walk.subtitle')"
   >
     <div v-if="loading" class="flex justify-center py-12">

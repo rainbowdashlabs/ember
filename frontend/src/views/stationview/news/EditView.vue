@@ -149,6 +149,24 @@ const canSave = computed(() =>
 )
 
 /**
+ * Which entry is being written. A new one has no headline to be named by and reads as the act it is;
+ * an existing one is named by its headline, so that two entries open at once are two different tabs.
+ * The plain words stand until the entry has arrived, and where it could not be fetched at all.
+ */
+const pageTitle = computed(() => {
+  if (!isEdit.value) return t('pages.news-create.title')
+  const named = title.value.trim()
+  return named
+      ? t('pages.news-edit.titleNamed', {name: named})
+      : t('pages.news-edit.title')
+})
+
+/** The line under it says which of the two this is, since the title no longer can. */
+const pageSubtitle = computed(() => isEdit.value
+    ? t('pages.news-edit.subtitle')
+    : t('pages.news-create.subtitle'))
+
+/**
  * Whether the entry still names an audience of its own. An entry that does reaches nobody outside
  * this station, whatever the two switches below it say, so lifting the last restriction is the
  * deliberate act that lets an announcement travel.
@@ -313,8 +331,8 @@ watch(loaded, (isLoaded) => {
 
 <template>
   <ViewContent
-      :title="t('pages.news-create.title')"
-      :subtitle="t('pages.news-create.subtitle')"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
   >
     <div class="space-y-6">
       <SecondaryButton :icon="['fas', 'chevron-left']" @click="leave">

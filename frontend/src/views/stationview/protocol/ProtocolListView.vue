@@ -10,13 +10,10 @@ import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import EditButton from '@/components/button/EditButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import StationBadge from '@/components/badge/StationBadge.vue'
+import LocalProtocolRow from './protocollistview/LocalProtocolRow.vue'
+import SharedProtocolRow from './protocollistview/SharedProtocolRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -118,11 +115,6 @@ async function handleCreate() {
   } catch { error.value = t('common.error') }
 }
 
-function navigateToSharedProtocol(shared: SharedProtocolEntry) {
-  if (!shared.stationUid) return
-  router.push({ name: 'federated-protocol', params: { stationUid: shared.stationUid, protocolId: shared.id } })
-}
-
 async function copySharedProtocol(protocolId: number) {
   try {
     await federation.copyProtocol(protocolId)
@@ -175,45 +167,20 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       :loading="loading"
     >
       <div class="space-y-2">
-        <NeutralContainer
+        <LocalProtocolRow
           v-for="p in filteredProtocols"
           :key="'local-' + p.id"
-          class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors group"
-          @click="router.push({ name: 'protocol-detail', params: { id: p.id } })"
-        >
-          <div class="flex-1 min-w-0">
-            <div class="font-medium">{{ p.name }}</div>
-            <div v-if="p.description" class="text-sm text-[var(--text-muted)] truncate">{{ p.description }}</div>
-          </div>
-          <span v-if="p.passThreshold" class="text-xs text-[var(--text-muted)]">{{ t('protocol.threshold') }}: {{ p.passThreshold }}P</span>
-          <div v-if="canConfigure" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <EditButton :label="t('common.edit')" @click.stop="router.push({ name: 'protocol-detail', params: { id: p.id } })" />
-            <DeleteButton :label="t('common.delete')" @click.stop="requestDelete(p)" />
-          </div>
-        </NeutralContainer>
+          :protocol="p"
+          :can-configure="canConfigure"
+          @remove="requestDelete"
+        />
 
-        <NeutralContainer
+        <SharedProtocolRow
           v-for="s in filteredShared"
           :key="'shared-' + s.id + '-' + s.stationUid"
-          class="flex items-center gap-2 hover:border-[var(--primary)] transition-colors group"
-          :class="s.stationUid ? 'cursor-pointer' : ''"
-          @click="navigateToSharedProtocol(s)"
-        >
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="font-medium">{{ s.name }}</span>
-              <StationBadge :station-name="s.stationName" />
-            </div>
-            <div v-if="s.description" class="text-sm text-[var(--text-muted)] truncate">{{ s.description }}</div>
-          </div>
-          <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <IconButton
-              :icon="['fas', 'copy']"
-              :label="t('federation.copyToStation')"
-              @click.stop="copySharedProtocol(s.id)"
-            />
-          </div>
-        </NeutralContainer>
+          :shared="s"
+          @copy="copySharedProtocol"
+        />
       </div>
     </AsyncSection>
 

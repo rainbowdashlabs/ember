@@ -16,7 +16,6 @@ defineProps<{
 
 const emit = defineEmits<{
     'toggle-bookmark': [board: DiscoveredBoard]
-    'navigate': [board: DiscoveredBoard]
 }>()
 </script>
 
@@ -30,7 +29,6 @@ const emit = defineEmits<{
                 :board="board"
                 :bookmarked="isBookmarked(board.partnerStationUid, board.remoteBoardUid)"
                 @toggle-bookmark="emit('toggle-bookmark', $event)"
-                @navigate="emit('navigate', $event)"
             />
         </div>
     </div>

@@ -6,9 +6,10 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
+import {useRouter, type RouteLocationRaw} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -124,16 +125,22 @@ function renderMessage(n: NotificationEntry): string {
   return t(n.localeKey, params)
 }
 
-async function navigateTo(n: NotificationEntry) {
-  await ack(n.id)
-  if (n.link) {
-    router.push({name: n.link.route, params: n.link.routeParams, query: n.link.query})
-  }
+/** What the notification is about, or nothing where it is about nothing that can be opened. */
+function notificationPage(n: NotificationEntry): RouteLocationRaw | null {
+  return n.link ? {name: n.link.route, params: n.link.routeParams, query: n.link.query} : null
 }
 
+/**
+ * Marks one notification read and takes it off the list.
+ *
+ * <p>Opening the row marks it read, and so does the acknowledge button inside it, so one press of
+ * that button reaches both. The list is what says whether anything is left to mark, so it is
+ * emptied before the server is told rather than after, and the second call finds nothing to do.
+ */
 async function ack(id: number) {
+  if (!notifs.value.some(entry => entry.id === id)) return
+  notifs.value = notifs.value.filter(entry => entry.id !== id)
   await notifications.acknowledge(id)
-  notifs.value = notifs.value.filter(n => n.id !== id)
   refreshSidebarCounts()
 }
 
@@ -208,25 +215,27 @@ onMounted(loadData)
       </EmptyState>
 
       <template v-if="notifs.length > 0">
-        <NeutralContainer v-for="n in notifs" :key="n.id" data-testid="notification-entry"
-                          class="flex items-start justify-between gap-3 py-2 px-3"
-                          :class="{ 'cursor-pointer hover:bg-(--bg-accent)': n.link }" @click="navigateTo(n)">
-          <div class="flex items-start gap-3">
-            <font-awesome-icon :icon="['fas', typeIcons[n.type] ?? 'bell']"
-                               class="text-primary mt-0.5 h-4 w-4 shrink-0"/>
-            <div>
-              <span class="text-xs font-semibold text-(--text-muted)">{{ t(`notification.typeLabel.${n.type}`) }}</span>
-              <p class="text-sm">{{ renderMessage(n) }}</p>
-              <!-- No body / preview snippet on the website: the dashboard panel stays
-                   scannable and the full rich body lives in the feed only. -->
-              <p class="text-xs text-(--text-muted)">{{ formatDateTime(n.createdAt) }}</p>
+        <RowLink v-for="n in notifs" :key="n.id" :to="notificationPage(n)">
+          <NeutralContainer data-testid="notification-entry"
+                            class="flex items-start justify-between gap-3 py-2 px-3"
+                            :class="{ 'cursor-pointer hover:bg-(--bg-accent)': n.link }" @click="ack(n.id)">
+            <div class="flex items-start gap-3">
+              <font-awesome-icon :icon="['fas', typeIcons[n.type] ?? 'bell']"
+                                 class="text-primary mt-0.5 h-4 w-4 shrink-0"/>
+              <div>
+                <span class="text-xs font-semibold text-(--text-muted)">{{ t(`notification.typeLabel.${n.type}`) }}</span>
+                <p class="text-sm">{{ renderMessage(n) }}</p>
+                <!-- No body / preview snippet on the website: the dashboard panel stays
+                     scannable and the full rich body lives in the feed only. -->
+                <p class="text-xs text-(--text-muted)">{{ formatDateTime(n.createdAt) }}</p>
+              </div>
             </div>
-          </div>
-          <LinkButton class="shrink-0 mt-1" @click="($event: MouseEvent) => { $event.stopPropagation(); ack(n.id) }">
-            <font-awesome-icon :icon="['fas', 'check']" class="mr-0.5"/>
-            {{ t('dashboard.acknowledge') }}
-          </LinkButton>
-        </NeutralContainer>
+            <LinkButton class="shrink-0 mt-1" @click="ack(n.id)">
+              <font-awesome-icon :icon="['fas', 'check']" class="mr-0.5"/>
+              {{ t('dashboard.acknowledge') }}
+            </LinkButton>
+          </NeutralContainer>
+        </RowLink>
       </template>
     </div>
   </NeutralContainer>

@@ -43,6 +43,23 @@ test.describe('Quiz', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })
 
+    /**
+     * A row that opens a page carries the address of that page, which is what lets a reader open it
+     * in a tab of its own, reach it with the keyboard and hear it announced as a link. The story
+     * therefore reads the address off the row and goes there directly instead of pressing it. The
+     * story above still presses the row and still passes, which is the whole point.
+     */
+    test('a catalogue row carries the address of the catalogue', async ({managerPage: page}) => {
+        const catalogue = await createCatalogue(page)
+
+        const row = page.getByRole('link', {name: new RegExp(catalogue)}).first()
+        const address = await row.getAttribute('href')
+        expect(address).toMatch(/\/station\/quiz\/catalogs\/\d+/)
+
+        await page.goto(address!)
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+    })
+
     /** A catalogue holds its questions in categories, so a fresh one starts by getting one. */
     test('a category is added to a catalogue', async ({managerPage: page}) => {
         const category = unique('Kategorie')
@@ -187,8 +204,9 @@ test.describe('Quiz', () => {
 
     /**
      * The point of a test sheet is somebody sitting it. The seeded station carries an active one,
-     * and a member is offered it directly in the list - the row navigates by click handler, so it
-     * carries an identifier for the story to aim at.
+     * and a member is offered it directly in the list. Sitting a test is not a link, because the
+     * attempt begins with the press, so the row stays a press and carries an identifier for the
+     * story to aim at.
      *
      * The paper is handed in unanswered on purpose: what the story holds is that a member can sit
      * a test and give it back, not that they know the answers.

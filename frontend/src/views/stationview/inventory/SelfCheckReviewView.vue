@@ -40,6 +40,15 @@ const {config: review, loading, error, runWith} = useConfigPanel<SelfCheckReview
 
 const busy = ref(false)
 
+/**
+ * Whose answers are being gone through, at the head of the page, so a reviewer with several open at
+ * once tells them apart in the tab and in the history. The plain wording stands while the review
+ * loads and where it could not be fetched.
+ */
+const pageTitle = computed(() => (review.value?.memberName
+    ? t('pages.inventory-self-check-review.titleNamed', {name: review.value.memberName})
+    : t('pages.inventory-self-check-review.title')))
+
 /** The kind of gear one answer is about, which is what a correction has to be told. */
 function requirementOf(row: SelfCheckReviewRow): RequiredInventoryItem | null {
   return review.value?.required.find(req => req.inventoryId === row.row.inventoryId) ?? null
@@ -121,7 +130,7 @@ const outstanding = computed(() => (review.value?.rows ?? []).filter(row => row.
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-self-check-review.title')"
+      :title="pageTitle"
       :subtitle="t('pages.inventory-self-check-review.subtitle')"
   >
     <div class="space-y-6">

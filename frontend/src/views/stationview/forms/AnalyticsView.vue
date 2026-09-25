@@ -58,6 +58,14 @@ const sendable = computed(() => form.value !== null && form.value.purpose !== Fo
 
 const formId = computed(() => Number(route.params.id))
 const form = ref<Form | null>(null)
+
+/**
+ * Whose results these are, with the part after the name, so the results of two forms open at once
+ * are two tabs that say which is which.
+ */
+const pageTitle = computed(() => form.value
+    ? t('pages.forms-analytics.titleNamed', {name: form.value.title})
+    : t('pages.forms-analytics.title'))
 const analytics = ref<FormAnalytics | null>(null)
 const responses = ref<FormResponse[]>([])
 const memberNames = ref<Map<number, string>>(new Map())
@@ -194,7 +202,7 @@ const { loading, error } = useAsyncLoader(async () => {
 
 <template>
   <ViewContent
-      :title="t('pages.forms-analytics.title')"
+      :title="pageTitle"
       :subtitle="t('pages.forms-analytics.subtitle')"
   >
     <div class="space-y-6 max-w-4xl">

@@ -194,12 +194,24 @@ function goBack() {
     if (board.value) router.push(`/station/boards/${board.value.shortKey}`)
 }
 
+/**
+ * The board the new ticket is being written on, by the short key the reader already knows from the
+ * ticket numbers, since the ticket itself has no name yet. The plain words stand until the board has
+ * arrived, and where it could not be fetched at all.
+ */
+const pageTitle = computed(() => board.value
+    ? t('pages.ticket-create.titleNamed', {name: board.value.shortKey})
+    : t('pages.ticket-create.title'))
+
+/** The short key names the board above; the line under it spells the board out. */
+const pageSubtitle = computed(() => board.value?.name || t('pages.ticket-create.subtitle'))
+
 </script>
 
 <template>
     <ViewContent
-        :title="t('pages.ticket-create.title')"
-        :subtitle="t('pages.ticket-create.subtitle')"
+        :title="pageTitle"
+        :subtitle="pageSubtitle"
     >
         <Spinner v-if="loading" />
         <Alert v-else-if="error && !board" variant="error">{{ error }}</Alert>

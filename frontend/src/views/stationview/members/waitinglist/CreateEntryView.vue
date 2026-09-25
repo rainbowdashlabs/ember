@@ -14,7 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type {GuardianInput, WaitingListField} from '@/api/waitingList'
+import type {GuardianInput, WaitingList, WaitingListField} from '@/api/waitingList'
 import {waitingList} from '@/api'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import EntryFormCard from './createentryview/EntryFormCard.vue'
@@ -25,11 +25,30 @@ const router = useRouter()
 
 const listId = computed(() => Number(route.params.id))
 
+const list = ref<WaitingList | null>(null)
+
 const {config: fields, loading, error} = useConfigPanel<WaitingListField[]>({
   initial: [],
-  fetch: () => waitingList.listFields(listId.value),
+  fetch: async () => {
+    const [listData, fieldData] = await Promise.all([
+      waitingList.getById(listId.value),
+      waitingList.listFields(listId.value),
+    ])
+    list.value = listData
+    return fieldData
+  },
   formatError: () => '',
 })
+
+/**
+ * Which list somebody is being written onto, at the head of the page: a station keeps several and
+ * the entry form is the same form above each. The static wording stands until the list has
+ * arrived, and where it could not be fetched at all.
+ */
+const pageTitle = computed(() => (list.value
+  ? t('pages.waiting-list-create-entry.titleNamed', {name: list.value.name})
+  : t('pages.waiting-list-create-entry.title')))
+
 const firstname = ref('')
 const lastname = ref('')
 const guardians = ref<GuardianInput[]>([{firstname: '', lastname: '', email: '', phone: ''}])
@@ -82,7 +101,7 @@ function goBack() {
 
 <template>
   <ViewContent
-      :title="t('pages.waiting-list-create-entry.title')"
+      :title="pageTitle"
       :subtitle="t('pages.waiting-list-create-entry.subtitle')"
   >
     <div class="space-y-6">

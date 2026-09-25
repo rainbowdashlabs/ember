@@ -52,12 +52,19 @@ async function copyToStation() {
     }
 }
 
+/**
+ * The partner's catalog by its own name, so a tab opened on one shared catalog is told apart from a
+ * tab opened on another. The generic wording stands while it loads and where the partner cannot be
+ * reached.
+ */
+const pageTitle = computed(() => detail.value?.catalog.name || t('pages.federated-quiz-catalog.title'))
+
 watch(() => [props.stationUid, props.catalogId], () => reload())
 </script>
 
 <template>
     <ViewContent
-        :title="t('pages.federated-quiz-catalog.title')"
+        :title="pageTitle"
         :subtitle="t('pages.federated-quiz-catalog.subtitle')"
     >
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>

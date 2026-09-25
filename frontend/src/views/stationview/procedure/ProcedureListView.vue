@@ -13,6 +13,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -82,6 +83,10 @@ const filteredItems = computed(() => {
   }
   return result
 })
+
+function procedurePage(p: Procedure) {
+  return { name: 'procedure-detail', params: { id: p.id } }
+}
 
 async function loadTemplates() {
   try {
@@ -159,31 +164,30 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       :loading="loading"
     >
       <div class="space-y-2">
-        <NeutralContainer
-          v-for="p in filteredItems"
-          :key="p.id"
-          data-testid="procedure-entry"
-          class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
-          @click="router.push({ name: 'procedure-detail', params: { id: p.id } })"
-        >
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="font-medium">{{ p.name }}</span>
-              <SuccessBadge v-if="p.status === ProcedureStatus.RESOLVED">{{ t('procedures.resolved') }}</SuccessBadge>
-              <PrimaryBadge v-else>{{ t('procedures.open') }}</PrimaryBadge>
+        <RowLink v-for="p in filteredItems" :key="p.id" :to="procedurePage(p)">
+          <NeutralContainer
+            data-testid="procedure-entry"
+            class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
+          >
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="font-medium">{{ p.name }}</span>
+                <SuccessBadge v-if="p.status === ProcedureStatus.RESOLVED">{{ t('procedures.resolved') }}</SuccessBadge>
+                <PrimaryBadge v-else>{{ t('procedures.open') }}</PrimaryBadge>
+              </div>
+              <div v-if="p.description" class="text-sm text-[var(--text-muted)] truncate">{{ p.description }}</div>
             </div>
-            <div v-if="p.description" class="text-sm text-[var(--text-muted)] truncate">{{ p.description }}</div>
-          </div>
-          <div class="flex items-center gap-3 text-sm text-[var(--text-muted)] shrink-0">
-            <span v-if="p.dueAt" class="flex items-center gap-1">
-              <font-awesome-icon :icon="['fas', 'calendar']" class="w-3 h-3" />
-              {{ formatDate(p.dueAt) }}
-            </span>
-          </div>
-          <div v-if="canEdit" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <DeleteButton :label="t('common.delete')" @click.stop="requestDelete(p)" />
-          </div>
-        </NeutralContainer>
+            <div class="flex items-center gap-3 text-sm text-[var(--text-muted)] shrink-0">
+              <span v-if="p.dueAt" class="flex items-center gap-1">
+                <font-awesome-icon :icon="['fas', 'calendar']" class="w-3 h-3" />
+                {{ formatDate(p.dueAt) }}
+              </span>
+            </div>
+            <div v-if="canEdit" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <DeleteButton :label="t('common.delete')" @click="requestDelete(p)" />
+            </div>
+          </NeutralContainer>
+        </RowLink>
       </div>
     </AsyncSection>
 

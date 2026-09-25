@@ -19,7 +19,7 @@ defineProps<{
 </script>
 
 <template>
-  <WaitingListsGrid v-if="section === 'lists'" :lists="waitlist.lists ?? []"/>
+  <WaitingListsGrid v-if="section === 'lists'" :lists="waitlist.lists ?? []" :linked="false"/>
 
   <OverviewSection v-else-if="section === 'settings'" :list="waitlist.list" :list-id="waitlist.list.id"
                    :fields="waitlist.fields" :groups="waitlist.groups" readonly/>

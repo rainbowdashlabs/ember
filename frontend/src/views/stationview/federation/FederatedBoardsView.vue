@@ -6,7 +6,6 @@
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -25,7 +24,6 @@ import {useFederatedBoardBookmarks} from '@/composables/useFederatedBoardBookmar
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
-const router = useRouter()
 const {loaded} = useSession()
 const {refresh: refreshSidebarBookmarks} = useFederatedBoardBookmarks()
 
@@ -93,10 +91,6 @@ async function toggleBookmark(board: DiscoveredBoard) {
     }
 }
 
-function navigateToBoard(board: DiscoveredBoard) {
-    router.push(`/station/federation/boards/${board.partnerStationUid}/${board.shortKey}`)
-}
-
 watch(loaded, (v) => {
     if (v) loadData()
 }, {immediate: true})
@@ -125,7 +119,6 @@ watch(loaded, (v) => {
                     :station-boards="stationBoards"
                     :is-bookmarked="isBookmarked"
                     @toggle-bookmark="toggleBookmark"
-                    @navigate="navigateToBoard"
                 />
             </div>
         </AsyncSection>

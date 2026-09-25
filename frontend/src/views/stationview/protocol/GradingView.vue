@@ -43,6 +43,15 @@ const member = ref<StationMember | null>(null)
 const locked = ref(false)
 const currentSectionIndex = ref(0)
 
+/**
+ * Whose sheet is being marked, with the part after the name, because a run is graded member by
+ * member and the run's name would be the same word above every one of them.
+ */
+const pageTitle = computed(() => {
+  const name = member.value?.name || member.value?.email
+  return name ? t('pages.protocol-grade.titleNamed', {name}) : t('pages.protocol-grade.title')
+})
+
 const topSections = computed(() => sections.value.filter(s => !s.parentId).sort((a, b) => a.position - b.position))
 const currentSection = computed(() => topSections.value[currentSectionIndex.value])
 
@@ -215,7 +224,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 
 <template>
   <ViewContent
-      :title="t('pages.protocol-grade.title')"
+      :title="pageTitle"
       :subtitle="t('pages.protocol-grade.subtitle')"
   >
     <Spinner v-if="loading" size="lg" />

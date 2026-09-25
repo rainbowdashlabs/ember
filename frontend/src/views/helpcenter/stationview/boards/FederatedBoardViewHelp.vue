@@ -16,6 +16,9 @@ import {StationPermission} from '@/api/types'
 const {t} = useI18n()
 
 const laneName = () => 'Offen'
+
+/** The example header searches nothing, so no hit is ever drawn and no address is ever asked for. */
+const ticketPage = () => ''
 </script>
 
 <template>
@@ -37,7 +40,8 @@ const laneName = () => 'Offen'
                             :short-key="t('helpCenter.federatedBoards.dummyBoard1Key')"
                             :is-read-only="false" :is-full="true" :can-manage-boards="true"
                             search-query="" :search-results="null" :lane-name="laneName"
-                            :priority-icon="priorityIcon" :priority-color="priorityColor"/>
+                            :priority-icon="priorityIcon" :priority-color="priorityColor"
+                            :ticket-page="ticketPage"/>
       <div class="flex items-center gap-2 mb-4 text-sm text-(--text-muted)">
         <font-awesome-icon :icon="['fas', 'share-nodes']"/>
         <span>

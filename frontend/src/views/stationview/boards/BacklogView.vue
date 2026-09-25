@@ -38,6 +38,18 @@ const {loading, error} = useAsyncLoader(async () => {
     }
 })
 
+/**
+ * Which board's backlog is open, by the short key the reader already knows from the ticket numbers.
+ * Three boards otherwise leave three tabs all reading "Backlog". The word alone stands until the
+ * board has arrived, and where it could not be fetched at all.
+ */
+const pageTitle = computed(() => board.value
+    ? t('pages.board-backlog.titleNamed', {name: board.value.shortKey})
+    : t('pages.board-backlog.title'))
+
+/** The short key names the board above; the line under it spells the board out. */
+const pageSubtitle = computed(() => board.value?.name || t('pages.board-backlog.subtitle'))
+
 const table = useTicketTable({
     id: 'board-backlog',
     shortKey: () => board.value?.shortKey ?? '',
@@ -48,8 +60,8 @@ const table = useTicketTable({
 
 <template>
     <ViewContent
-        :title="t('pages.board-backlog.title')"
-        :subtitle="t('pages.board-backlog.subtitle')"
+        :title="pageTitle"
+        :subtitle="pageSubtitle"
     >
         <Spinner v-if="loading" />
         <Alert v-else-if="error" variant="error">{{ error }}</Alert>

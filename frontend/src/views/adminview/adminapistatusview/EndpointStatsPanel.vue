@@ -8,6 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import type {EndpointStats} from '@/api/apiStatus'
@@ -46,8 +47,16 @@ const table = useDataTable<EndpointStats>({
   rowKey: endpoint => `${endpoint.method} ${endpoint.path}`,
 })
 
+/**
+ * The statistics of one endpoint. A row of a table cannot be a link itself, so the address hangs on
+ * the cell that names the endpoint and the rest of the row answers a press as it always did.
+ */
+function detailPage(endpoint: EndpointStats) {
+  return {name: 'admin-api-status-detail', query: {method: endpoint.method, path: endpoint.path}}
+}
+
 function openDetail(endpoint: EndpointStats) {
-  router.push({name: 'admin-api-status-detail', query: {method: endpoint.method, path: endpoint.path}})
+  router.push(detailPage(endpoint))
 }
 
 function errorRateClass(endpoint: EndpointStats): string {
@@ -75,7 +84,9 @@ function errorRateClass(endpoint: EndpointStats): string {
         <span :class="methodColor(row.method)" class="font-mono text-xs font-semibold">{{ row.method }}</span>
       </template>
       <template #cell-path="{row}">
-        <span class="font-mono text-xs">{{ row.path }}</span>
+        <RowLink :to="detailPage(row)">
+          <span class="font-mono text-xs">{{ row.path }}</span>
+        </RowLink>
       </template>
       <template #cell-errorRate="{row, text}">
         <span :class="errorRateClass(row)" class="tabular-nums">{{ text }}</span>

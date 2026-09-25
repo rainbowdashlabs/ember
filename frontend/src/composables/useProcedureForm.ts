@@ -29,6 +29,12 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
   const { t } = useI18n()
 
   const name = ref('')
+  /**
+   * The name the procedure was loaded under, which is what a page titles itself after. The editable
+   * field cannot serve: a header rewriting itself letter by letter as somebody renames the procedure
+   * is a distraction, and a cleared field would leave the page nameless.
+   */
+  const savedName = ref('')
   const description = ref('')
   /**
    * The due day as a date field holds it, `yyyy-MM-dd`. The endpoint speaks instants, so it is
@@ -120,6 +126,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     if (isEditMode.value) {
       const detail = await procedures.getProcedure(editId.value!)
       name.value = detail.procedure.name
+      savedName.value = detail.procedure.name
       description.value = detail.procedure.description ?? ''
       dueAt.value = instantToDate(detail.procedure.dueAt)
       isPublic.value = detail.procedure.isPublic
@@ -254,6 +261,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
 
   return {
     name,
+    savedName,
     description,
     dueAt,
     isPublic,

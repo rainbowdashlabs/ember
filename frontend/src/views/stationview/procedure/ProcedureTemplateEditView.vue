@@ -39,6 +39,13 @@ const detail = ref<TemplateDetail | null>(null)
 
 const templateId = computed(() => Number(route.params.id))
 
+/**
+ * The template's own name at the head of the page, because "Vorlage bearbeiten" is the word above
+ * every one of them and it is what the tab, the history and a bookmark carry. The wording holds the
+ * place while the template loads and where it cannot be loaded at all.
+ */
+const pageTitle = computed(() => detail.value?.template.name || t('pages.procedure-template-edit.title'))
+
 const showEditModal = ref(false)
 const editName = ref('')
 const editDescription = ref('')
@@ -174,7 +181,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 
 <template>
   <ViewContent
-      :title="t('pages.procedure-template-edit.title')"
+      :title="pageTitle"
       :subtitle="t('pages.procedure-template-edit.subtitle')"
   >
     <Spinner v-if="loading" />

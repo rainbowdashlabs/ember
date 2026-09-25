@@ -54,12 +54,21 @@ function openMemberPdf(memberId: number) {
   return protocol.exportMemberPdf(runId.value, memberId)
 }
 
+/**
+ * Which protocol was run, with the part of it after the name, rather than the word "Auswertung" over
+ * every evaluation there is. The evaluation carries the protocol's name and not the run's own, so
+ * that is what stands here.
+ */
+const pageTitle = computed(() => evalData.value
+    ? t('pages.protocol-evaluation.titleNamed', {name: evalData.value.protocolName})
+    : t('pages.protocol-evaluation.title'))
+
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
   <ViewContent
-      :title="t('pages.protocol-evaluation.title')"
+      :title="pageTitle"
       :subtitle="t('pages.protocol-evaluation.subtitle')"
   >
     <div class="flex items-center gap-2 mb-4">

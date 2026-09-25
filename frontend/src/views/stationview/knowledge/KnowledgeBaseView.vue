@@ -55,8 +55,8 @@ const search = useKbSearch(filters)
 
 const {
     folderParam, isFavouritesView, isTrashView, currentFolderId,
-    navigateToFolder, navigateToFile, navigateToFederatedFile, navigateToFavourites, navigateToTrash,
-    navigateToSharedFolder, sharedFolderId,
+    folderPage, filePage, federatedFilePage, favouritesPage, sharedFolderPage,
+    navigateToFolder, navigateToTrash, navigateToSharedFolder, sharedFolderId,
 } = navigation
 const {
     currentFolder, breadcrumbs, currentLevel, folderLevels, fileLevels,
@@ -175,10 +175,10 @@ const {items, toSearchItems} = useKbItems(
         fileLevels,
     },
     {
-        openFolder: navigateToFolder,
-        openFile: navigateToFile,
-        openFederatedFile: navigateToFederatedFile,
-        openFavourites: navigateToFavourites,
+        folderPage,
+        filePage,
+        federatedFilePage,
+        favouritesPage,
         editFolder: folder => editModalsRef.value?.openFolder(folder),
         shareFolder: folder => shareModalsRef.value?.openFolder(folder),
         moveFolder: move.moveFolder,
@@ -190,7 +190,7 @@ const {items, toSearchItems} = useKbItems(
         exportFilePdf,
         downloadFile,
         copySharedFile,
-        openSharedFolder: navigateToSharedFolder,
+        sharedFolderPage,
         toggleFavourite,
     },
 )
@@ -198,6 +198,14 @@ const {items, toSearchItems} = useKbItems(
 const searchItems = computed(() => toSearchItems(filteredSearchResults.value))
 
 const selection = useKbSelection(items, currentFolderId)
+
+/**
+ * The folder standing open, at the head of the page. "Wiki" is true of every folder in it and so
+ * tells a reader nothing about where they are, and it is what the tab and a bookmark end up
+ * carrying. A caller naming its own title (the association's copy of this screen) keeps it, and the
+ * word stands at the top of the wiki, where no folder is open.
+ */
+const pageTitle = computed(() => props.title ?? currentFolder.value?.name ?? t('pages.kb-browse.title'))
 
 watch([folderParam, sharedFolderId], () => {
     notice.value = ''
@@ -211,7 +219,7 @@ watch(loaded, (isLoaded) => {
 
 <template>
     <ViewContent
-        :title="title ?? t('pages.kb-browse.title')"
+        :title="pageTitle"
         :subtitle="subtitle ?? t('pages.kb-browse.subtitle')"
     >
         <slot name="before"/>

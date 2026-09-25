@@ -11,7 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
-import {QuizAttemptStatus, QuizQuestionTypes, type QuizAttemptDetail, type QuizQuestion, type QuizTestAnswer} from '@/api/quiz'
+import {QuizAttemptStatus, QuizQuestionTypes, type QuizAttemptDetail, type QuizQuestion, type QuizTest, type QuizTestAnswer} from '@/api/quiz'
 import {StationPermission} from '@/api/types'
 import {quiz} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -33,8 +33,18 @@ const attemptId = computed(() => Number(route.params.attemptId))
 const graded = ref(false)
 
 const attemptDetail = ref<QuizAttemptDetail | null>(null)
+const test = ref<QuizTest | null>(null)
 const questionsMap = ref<Map<number, QuizQuestion>>(new Map())
 const pointsOverrides = ref<Map<number, number>>(new Map())
+
+/**
+ * Which test is being marked, with the part of it after the name, rather than "Test bewerten" over
+ * every attempt of every test. The person whose sheet it is stands in the page's own header, so the
+ * title names the test.
+ */
+const pageTitle = computed(() => test.value
+    ? t('pages.quiz-test-evaluate.titleNamed', {name: test.value.title})
+    : t('pages.quiz-test-evaluate.title'))
 
 const totalPoints = computed(() => {
   if (!attemptDetail.value) return 0
@@ -150,8 +160,12 @@ function goBack() {
 }
 
 const {loading, error, reload} = useAsyncLoader(async () => {
-  const detail = await quiz.getAttemptDetail(attemptId.value)
+  const [detail, testDetail] = await Promise.all([
+    quiz.getAttemptDetail(attemptId.value),
+    quiz.getTest(testId.value),
+  ])
   attemptDetail.value = detail
+  test.value = testDetail.test
 
   if (detail.questionDetails) {
     for (const q of detail.questionDetails) {
@@ -200,7 +214,7 @@ function pointsForQuestion(aq: { questionId: number }): number {
 </script>
 
 <template>
-  <ViewContent :title="t('pages.quiz-test-evaluate.title')" :subtitle="t('pages.quiz-test-evaluate.subtitle')">
+  <ViewContent :title="pageTitle" :subtitle="t('pages.quiz-test-evaluate.subtitle')">
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error || gradeError" variant="error">{{ error || gradeError }}</Alert>

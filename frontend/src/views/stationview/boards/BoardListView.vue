@@ -12,6 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
@@ -68,6 +69,10 @@ const {error: createApiError, run: runCreate} = useAsyncAction(async () => {
 
 const createError = computed(() => createValidationError.value || createApiError.value)
 
+function boardPage(board: Board): string {
+    return `/station/boards/${board.shortKey}`
+}
+
 function handleCreate() {
     createValidationError.value = ''
     if (!createName.value.trim() || !createShortKey.value.trim()) {
@@ -98,29 +103,26 @@ function handleCreate() {
             :loading="loading"
         >
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <NeutralContainer
-                    v-for="board in boardList"
-                    :key="board.id"
-                    class="cursor-pointer hover:border-[var(--accent)] transition-colors"
-                    @click="router.push(`/station/boards/${board.shortKey}`)"
-                >
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
-                                <SubHeader>{{ board.name }}</SubHeader>
+                <RowLink v-for="board in boardList" :key="board.id" :to="boardPage(board)">
+                    <NeutralContainer class="h-full cursor-pointer hover:border-[var(--accent)] transition-colors">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
+                                    <SubHeader>{{ board.name }}</SubHeader>
+                                </div>
+                                <p v-if="board.description" class="text-sm text-[var(--text-muted)] line-clamp-2">{{ board.description }}</p>
                             </div>
-                            <p v-if="board.description" class="text-sm text-[var(--text-muted)] line-clamp-2">{{ board.description }}</p>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <IconButton :icon="['fas', 'gears']" :label="t('boards.settings')" @click="router.push(`/station/boards/${board.shortKey}/settings`)" />
+                                <DeleteButton @click="confirmDelete(board)" />
+                            </div>
                         </div>
-                        <div class="flex items-center gap-1 shrink-0">
-                            <IconButton :icon="['fas', 'gears']" :label="t('boards.settings')" @click.stop="router.push(`/station/boards/${board.shortKey}/settings`)" />
-                            <DeleteButton @click.stop="confirmDelete(board)" />
+                        <div class="mt-3 text-xs text-[var(--text-muted)]">
+                            {{ board.ticketCounter }} {{ board.ticketCounter === 1 ? 'Ticket' : 'Tickets' }}
                         </div>
-                    </div>
-                    <div class="mt-3 text-xs text-[var(--text-muted)]">
-                        {{ board.ticketCounter }} {{ board.ticketCounter === 1 ? 'Ticket' : 'Tickets' }}
-                    </div>
-                </NeutralContainer>
+                    </NeutralContainer>
+                </RowLink>
             </div>
         </AsyncSection>
 
@@ -154,7 +156,6 @@ function handleCreate() {
             </div>
         </Modal>
 
-        <!-- Delete Modal -->
         <Modal v-model="showDeleteModal">
             <SubHeader class="mb-4">{{ t('boards.deleteBoard') }}</SubHeader>
             <p class="mb-4">{{ t('boards.deleteBoardConfirm') }}</p>

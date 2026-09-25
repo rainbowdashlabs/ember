@@ -80,11 +80,18 @@ function onError(message: string) {
   error.value = message
 }
 
+/**
+ * The catalog's own name at the head of the page, because "Fragenkatalog" stands above every one of
+ * them and a tab, a bookmark and a history entry all carry it. The word holds the place until the
+ * catalog has arrived and where it cannot be loaded at all.
+ */
+const pageTitle = computed(() => catalog.value?.name || t('pages.quiz-catalog-detail.title'))
+
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent :title="t('pages.quiz-catalog-detail.title')" :subtitle="t('pages.quiz-catalog-detail.subtitle')">
+  <ViewContent :title="pageTitle" :subtitle="t('pages.quiz-catalog-detail.subtitle')">
     <div class="space-y-6">
       <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'quiz-catalogs' })">
         {{ t('common.back') }}

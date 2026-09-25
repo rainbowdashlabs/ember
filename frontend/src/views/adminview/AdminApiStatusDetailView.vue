@@ -38,6 +38,15 @@ const textColor = computed(() => isDark.value ? '#ccc' : '#333')
 const method = computed(() => route.query.method as string)
 const path = computed(() => route.query.path as string)
 
+/**
+ * The endpoint the page is about, which is the method and the path together. "Endpunkt-Details"
+ * stands above every one of them and is what the tab, the history and a bookmark carry. The plain
+ * wording stands where the page was opened without an endpoint named.
+ */
+const pageTitle = computed(() => (method.value && path.value
+    ? `${method.value} ${path.value}`
+    : t('pages.admin-api-status-detail.title')))
+
 const {config: detail, loading} = useConfigPanel<EndpointDetail | null>({
     initial: null,
     fetch: () => apiStatus.getEndpointDetail(method.value, path.value),
@@ -99,7 +108,7 @@ const responseTimeChartOption = computed(() => {
 </script>
 
 <template>
-    <ViewContent :title="t('pages.admin-api-status-detail.title')" :subtitle="t('pages.admin-api-status-detail.subtitle')">
+    <ViewContent :title="pageTitle" :subtitle="t('pages.admin-api-status-detail.subtitle')">
         <div class="flex items-center gap-3 mb-6">
             <SecondaryButton :icon="['fas', 'arrow-left']" @click="router.push({name: 'admin-api-status'})">
                 {{ t('common.back') }}

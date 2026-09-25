@@ -144,15 +144,6 @@ async function copySharedCatalog(catalogId: number) {
   }
 }
 
-function navigateToCatalog(catalog: QuizCatalog) {
-  router.push({ name: 'quiz-catalog-detail', params: { id: catalog.id } })
-}
-
-function navigateToSharedCatalog(shared: SharedCatalogEntry) {
-  if (!shared.stationUid) return
-  router.push({ name: 'federated-quiz-catalog', params: { stationUid: shared.stationUid, catalogId: shared.id } })
-}
-
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
@@ -178,8 +169,6 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           :catalogs="filteredCatalogs"
           :shared-catalogs="filteredSharedCatalogs"
           :is-mobile="isMobile"
-          @navigate="navigateToCatalog"
-          @navigate-shared="navigateToSharedCatalog"
           @export-catalog="exportCatalog"
           @confirm-delete="confirmDelete"
           @copy-shared="copySharedCatalog"

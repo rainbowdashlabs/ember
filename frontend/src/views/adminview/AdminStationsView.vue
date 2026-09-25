@@ -38,10 +38,6 @@ const {
   error: panelError,
 })
 
-function navigateToCreate() {
-  router.push({name: 'admin-station-edit'})
-}
-
 function navigateToEdit(id: string) {
   router.push({name: 'admin-station-edit', params: {id}})
 }
@@ -69,7 +65,6 @@ const error = computed(() => panelError.value || importError.value)
       <StationsGrid
           v-if="!loading"
           :stations="stationList"
-          @create="navigateToCreate"
           @import="showImportModal = true"
           @edit="navigateToEdit"
           @delete="requestDelete"/>

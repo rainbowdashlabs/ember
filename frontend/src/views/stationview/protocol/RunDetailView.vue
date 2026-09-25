@@ -76,12 +76,18 @@ function startGrading(memberId: number) {
   router.push({ name: 'protocol-grade', params: { id: runId.value, memberId } })
 }
 
+/**
+ * The run's own name at the head of the page, since a station holds many runs of the same protocol
+ * and "Prüfungsdurchlauf" tells none of them apart in a tab or a bookmark.
+ */
+const pageTitle = computed(() => run.value?.name || t('pages.protocol-run-detail.title'))
+
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
   <ViewContent
-      :title="t('pages.protocol-run-detail.title')"
+      :title="pageTitle"
       :subtitle="t('pages.protocol-run-detail.subtitle')"
   >
     <div class="flex items-center gap-2 mb-4">

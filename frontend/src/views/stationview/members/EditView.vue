@@ -15,6 +15,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MemberEditTabs from './editview/MemberEditTabs.vue'
 import MemberAccessActions from './editview/MemberAccessActions.vue'
 import type {MemberEditData} from './editview/types'
+import {memberDisplayName} from './listview/useMemberData'
 import {StationPermission, StationUserType, type MemberGroup, type PermissionGrant, type StationMember, type UserTag} from '@/api/types'
 import {profileFields, stationMembers, memberGroups, userTags, inventory} from '@/api'
 import type {MyInventoryItem} from '@/api/inventory'
@@ -60,6 +61,15 @@ const editData = computed<MemberEditData>(() => ({
   lockedPermissions: lockedPermissions.value,
   memberInventory: memberInventory.value,
 }))
+
+/**
+ * Whose profile is being changed, at the head of the page: "Mitglied bearbeiten" is the same line
+ * above every one of them, and it is what the tab, the history and a bookmark end up carrying. The
+ * plain wording stands until the member has arrived, and where they could not be fetched at all.
+ */
+const pageTitle = computed(() => (member.value
+  ? t('pages.members-edit.titleNamed', {name: memberDisplayName(member.value)})
+  : t('pages.members-edit.title')))
 
 async function loadTypePermissions(userType: string) {
   try {
@@ -139,7 +149,7 @@ function goBack() {
 
 <template>
   <ViewContent
-      :title="t('pages.members-edit.title')"
+      :title="pageTitle"
       :subtitle="t('pages.members-edit.subtitle')"
   >
     <div class="space-y-6">

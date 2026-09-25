@@ -75,10 +75,6 @@ const {
   error,
 })
 
-function viewDetail(inv: InventorySummary) {
-  router.push({name: routes.detail, params: {id: inv.id}})
-}
-
 function editInventory(inv: InventorySummary) {
   router.push({name: routes.edit, params: {id: inv.id}})
 }
@@ -116,7 +112,6 @@ function onError() {
             :key="inv.id"
             :inv="inv"
             :share="shares.get(inv.id) ?? null"
-            @open="viewDetail"
             @edit="editInventory"
             @remove="requestDelete"
             @share-changed="loadShares"

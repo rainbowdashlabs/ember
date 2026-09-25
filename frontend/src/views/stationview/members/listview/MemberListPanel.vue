@@ -22,7 +22,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  resendSetup: [member: StationMember, event: Event]
+  resendSetup: [member: StationMember]
 }>()
 
 const c = props.config
@@ -35,7 +35,7 @@ const c = props.config
   <div v-if="!c.loading.value" class="space-y-4">
     <TabBar v-model="c.activeTab.value" :tabs="c.tabs.value"/>
     <MemberFilterBar :config="config"/>
-    <MemberTable :config="config" @resend-setup="(member, event) => emit('resendSetup', member, event)"/>
+    <MemberTable :config="config" @resend-setup="(member) => emit('resendSetup', member)"/>
   </div>
 
   <ExportModal

@@ -48,6 +48,15 @@ const {loading, error} = useAsyncLoader(async () => {
   members.value = allMembers
 })
 
+/**
+ * Which inventory is being changed, at the head of the page. Three open settings screens otherwise
+ * read the same word, in the tab, in the history and in a bookmark alike. The plain wording stands
+ * until the inventory has arrived, and where it could not be fetched at all.
+ */
+const pageTitle = computed(() => (detail.value?.name
+    ? t('pages.inventory-edit.titleNamed', {name: detail.value.name})
+    : t('pages.inventory-edit.title')))
+
 async function onSettingsSaved() {
   success.value = t('inventory.edit.settingsSaved')
   detail.value = await inventory.getInventory(inventoryId.value)
@@ -68,7 +77,7 @@ function onError(message: string) {
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-edit.title')"
+      :title="pageTitle"
       :subtitle="t('pages.inventory-edit.subtitle')"
   >
     <div class="space-y-6">

@@ -82,8 +82,8 @@ function viewBadgeRef(el: unknown) {
         :initial-count="localEntry?.viewCount ?? 0"
         :news-title="title"
       />
-      <EditButton @click.stop="router.push({ name: newsRoutes.edit, params: { id: id } })"/>
-      <DeleteButton @click.stop="onRequestDelete(localEntry!)"/>
+      <EditButton @click="router.push({ name: newsRoutes.edit, params: { id: id } })"/>
+      <DeleteButton @click="onRequestDelete(localEntry!)"/>
     </div>
   </div>
 </template>

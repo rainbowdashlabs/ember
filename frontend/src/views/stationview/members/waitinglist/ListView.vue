@@ -54,10 +54,6 @@ const { running: creating, error: createError, run: createList } = useAsyncActio
   showCreateModal.value = false
   router.push({ name: 'waiting-list-detail', params: { id: created.id } })
 })
-
-function navigateToDetail(id: number) {
-  router.push({ name: 'waiting-list-detail', params: { id } })
-}
 </script>
 
 <template>
@@ -77,7 +73,7 @@ function navigateToDetail(id: number) {
 
       <template v-if="!loading">
         <EmptyState v-if="lists.length === 0">{{ t('waitingList.noLists') }}</EmptyState>
-        <WaitingListsGrid v-else :lists="lists" @select="navigateToDetail" />
+        <WaitingListsGrid v-else :lists="lists" />
       </template>
 
       <CreateListModal

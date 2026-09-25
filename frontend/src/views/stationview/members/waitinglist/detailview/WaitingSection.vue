@@ -29,6 +29,8 @@ const props = defineProps<{
   visibleFieldIds: Set<number>
   readonly?: boolean
   canAdd?: boolean
+  /** The list these people are on. Without it there is no entry page for a name to lead to. */
+  listId?: number
 }>()
 
 const emit = defineEmits<{
@@ -85,6 +87,7 @@ function setColumns(keys: (string | number)[], visible: boolean) {
       v-else
       :table="table"
       :readonly="readonly"
+      :list-id="listId"
       @invite="(id) => emit('invite', id)"
       @back-to-waiting="(id) => emit('backToWaiting', id)"
       @move-to-testing="(id) => emit('moveToTesting', id)"

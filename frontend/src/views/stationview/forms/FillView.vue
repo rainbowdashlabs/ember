@@ -31,6 +31,15 @@ const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const formId = computed(() => Number(route.params.id))
 const form = ref<Form | null>(null)
+
+/**
+ * Which form is being answered, with the part after its name, because the same form also has a page
+ * where it is written and the two tabs would otherwise read the same.
+ */
+const pageTitle = computed(() => form.value
+    ? t('pages.forms-fill.titleNamed', {name: form.value.title})
+    : t('pages.forms-fill.title'))
+
 const questions = ref<FormQuestion[]>([])
 const answers = ref<Record<number, Record<string, unknown>>>({})
 const hasExistingResponse = ref(false)
@@ -192,7 +201,7 @@ watch(loaded, (isLoaded) => {
 
 <template>
   <ViewContent
-      :title="t('pages.forms-fill.title')"
+      :title="pageTitle"
       :subtitle="t('pages.forms-fill.subtitle')"
   >
     <div class="space-y-6 max-w-3xl">

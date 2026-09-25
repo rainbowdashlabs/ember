@@ -46,6 +46,15 @@ const {config: state, loading, error, reload: loadData} = useConfigPanel<MemberC
 
 const check = useMemberCheck(memberId, state, error)
 
+/**
+ * Whose gear is being checked, at the head of the page, so two checks open at once are told apart
+ * in the tab and in the history. The plain wording stands while the check is being set up and where
+ * it could not be started at all.
+ */
+const pageTitle = computed(() => (state.value?.memberName
+    ? t('pages.inventory-check-member.titleNamed', {name: state.value.memberName})
+    : t('pages.inventory-check-member.title')))
+
 const checkMode = ref(false)
 
 const showExchange = ref(false)
@@ -272,7 +281,7 @@ async function cancel() {
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-check-member.title')"
+      :title="pageTitle"
       :subtitle="t('pages.inventory-check-member.subtitle')"
   >
     <div class="space-y-6">

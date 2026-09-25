@@ -57,6 +57,15 @@ const sortedFields = computed(() =>
   [...fields.value].sort((a, b) => a.position - b.position),
 )
 
+/**
+ * The list's name before the word, because every waiting list has its own questions and "Felder"
+ * alone is true of all of them. The static wording stands until the list has arrived, and where it
+ * could not be fetched at all.
+ */
+const pageTitle = computed(() => (list.value
+  ? t('pages.waiting-list-fields.titleNamed', {name: list.value.name})
+  : t('pages.waiting-list-fields.title')))
+
 const {loading, error} = useAsyncLoader(async () => {
   const [listData, fieldData] = await Promise.all([
     waitingList.getById(listId.value),
@@ -165,7 +174,7 @@ function goBack() {
 
 <template>
   <ViewContent
-      :title="t('pages.waiting-list-fields.title')"
+      :title="pageTitle"
       :subtitle="t('pages.waiting-list-fields.subtitle')"
   >
     <div class="space-y-6">

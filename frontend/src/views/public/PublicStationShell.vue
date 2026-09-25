@@ -15,8 +15,10 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {PublicStationInfo} from '@/api/discovery'
 import {apiUrl} from '@/util/apiUrl'
+import {socialMeta, stationLogoImage, useAbsoluteUrl} from '@/util/socialMeta'
 import type {PublicPageSummary} from '@/api/publicPages'
 import {useCanonical} from '~/composables/useCanonical'
+import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
 import {usePageHeader} from '@/composables/usePageHeader'
 import {useTheme} from '@/composables/useTheme'
 
@@ -31,11 +33,6 @@ const stationUid = computed(() => route.params.stationUid as string)
 
 const logoUrl = computed(() =>
     station.value?.hasLogo ? `/api/v1/public/stations/${station.value.stationUid}/logo?size=256` : null)
-
-const basePath = computed(() => {
-  const id = station.value?.publicSlug || stationUid.value
-  return `/public/station/${id}`
-})
 
 const landingPage = computed(() => {
   if (!station.value?.landingPageSlug) return null
@@ -77,6 +74,8 @@ const publicPages = computed(() => shell.value?.pages ?? [])
 const loading = computed(() => status.value === 'pending')
 const error = computed(() => (loadError.value ? t('common.error') : ''))
 
+const {basePath, canonicalPath} = usePublicStationAddress(station)
+
 onMounted(() => {
   if (!station.value) return
 
@@ -85,10 +84,7 @@ onMounted(() => {
 
   // A station reached by its identifier moves to its readable address once the page is up.
   if (station.value.publicSlug && UUID_REGEX.test(stationUid.value)) {
-    router.replace(route.path.replace(
-        `/public/station/${stationUid.value}`,
-        `/public/station/${station.value.publicSlug}`,
-    ))
+    router.replace(canonicalPath.value)
   }
 })
 
@@ -98,28 +94,18 @@ onUnmounted(() => {
 
 provide('publicStation', station)
 
-useCanonical(() => route.path)
+const absoluteUrl = useAbsoluteUrl()
+
+useCanonical(() => canonicalPath.value)
 
 useHead(computed(() => {
   if (!station.value) return {}
   const s = station.value
-  const desc = s.description || `Öffentliche Seite von ${s.name}`
-  const stationLogo = s.hasLogo ? `/api/v1/public/stations/${s.stationUid}/logo?size=512` : undefined
+  const desc = s.description || t('publicStation.meta.station', {station: s.name})
+  const stationLogo = absoluteUrl(stationLogoImage(s))
   return {
     title: s.name,
-    meta: [
-      {name: 'description', content: desc},
-      {property: 'og:title', content: `${s.name} - Ember`},
-      {property: 'og:description', content: desc},
-      {property: 'og:type', content: 'website'},
-      ...(stationLogo ? [
-        {property: 'og:image', content: stationLogo},
-        {name: 'twitter:image', content: stationLogo},
-      ] : []),
-      {name: 'twitter:card', content: stationLogo ? 'summary_large_image' : 'summary'},
-      {name: 'twitter:title', content: `${s.name} - Ember`},
-      {name: 'twitter:description', content: desc},
-    ],
+    meta: socialMeta({title: s.name, description: desc, imageUrl: stationLogo}),
     script: [
       {
         type: 'application/ld+json',

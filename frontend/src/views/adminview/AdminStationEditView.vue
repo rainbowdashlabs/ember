@@ -31,6 +31,15 @@ const manager = ref<ManagerDetail | null>(null)
 const managerEmail = ref('')
 const editingManager = ref(false)
 
+/**
+ * The station by its own name at the head of the page, because "Wache bearbeiten" stands above
+ * every one of them and is what the tab, the history and a bookmark carry. The plain wording stands
+ * while the station loads, where it could not be fetched, and for one being created.
+ */
+const pageTitle = computed(() => (isEdit.value && name.value.trim()
+    ? name.value.trim()
+    : t('pages.admin-station-edit.title')))
+
 const {loading, error} = useAsyncLoader(async () => {
   if (!stationId.value) return
   const detail = await stations.getStation(stationId.value)
@@ -75,7 +84,7 @@ function goBack() {
 </script>
 
 <template>
-  <ViewContent :title="t('pages.admin-station-edit.title')" :subtitle="t('pages.admin-station-edit.subtitle')">
+  <ViewContent :title="pageTitle" :subtitle="t('pages.admin-station-edit.subtitle')">
     <div class="space-y-6">
       <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
         {{ t('adminStations.back') }}

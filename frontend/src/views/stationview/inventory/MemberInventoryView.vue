@@ -107,6 +107,13 @@ const canManage = computed(() => hasPermission(StationPermission.INVENTORY_MANAG
 const member = ref<StationMember | null>(null)
 const items = ref<MyInventoryItem[]>([])
 
+/**
+ * Whose gear this is, at the head of the page. "Mitglieder-Inventar" stands above every one of them
+ * and is what the tab, the history and a bookmark carry, so the person is what the page is called.
+ * The plain wording stands while it loads and where the member could not be fetched.
+ */
+const pageTitle = computed(() => member.value?.name?.trim() || t('pages.inventory-member.title'))
+
 interface InventoryGroup {
   inventoryId: number
   inventoryName: string
@@ -171,7 +178,7 @@ watch(memberId, loadData)
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-member.title')"
+      :title="pageTitle"
       :subtitle="t('pages.inventory-member.subtitle')"
   >
     <div class="space-y-6">

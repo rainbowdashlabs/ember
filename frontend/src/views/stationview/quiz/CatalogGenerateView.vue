@@ -35,6 +35,14 @@ const { config: catalog, loading, error, reload: loadData } = useConfigPanel<Qui
   immediate: false,
 })
 
+/**
+ * The catalog the questions are being generated for, with the job after its name, because three
+ * catalogs generated for at once are otherwise three tabs reading the same words.
+ */
+const pageTitle = computed(() => catalog.value
+    ? t('pages.quiz-catalog-generate.titleNamed', {name: catalog.value.name})
+    : t('pages.quiz-catalog-generate.title'))
+
 const genGenerating = ref(false)
 const genResult = ref('')
 const genPhase = ref<'config' | 'review'>('config')
@@ -158,7 +166,7 @@ watch(loaded, (isLoaded) => {
 </script>
 
 <template>
-  <ViewContent :title="t('pages.quiz-catalog-generate.title')" :subtitle="t('pages.quiz-catalog-generate.subtitle')">
+  <ViewContent :title="pageTitle" :subtitle="t('pages.quiz-catalog-generate.subtitle')">
     <div class="space-y-6">
       <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'quiz-catalog-detail', params: { id: catalogId } })">
         {{ t('common.back') }}

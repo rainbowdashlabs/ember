@@ -15,8 +15,6 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  navigate: [catalog: QuizCatalog]
-  navigateShared: [shared: SharedCatalogEntry]
   exportCatalog: [catalog: QuizCatalog]
   confirmDelete: [catalog: QuizCatalog]
   copyShared: [catalogId: number]
@@ -30,7 +28,6 @@ const emit = defineEmits<{
       :key="'local-' + catalog.id"
       :catalog="catalog"
       :is-mobile="isMobile"
-      @navigate="(c) => emit('navigate', c)"
       @export-catalog="(c) => emit('exportCatalog', c)"
       @confirm-delete="(c) => emit('confirmDelete', c)"
     />
@@ -39,7 +36,6 @@ const emit = defineEmits<{
       :key="'shared-' + shared.stationUid + '-' + shared.id"
       :shared="shared"
       :is-mobile="isMobile"
-      @navigate="(s) => emit('navigateShared', s)"
       @copy="(id) => emit('copyShared', id)"
     />
   </div>

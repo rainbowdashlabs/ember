@@ -52,6 +52,22 @@ const error = ref('')
 const registrationFields = ref<EventRegistrationFieldDefinition[]>([])
 const {message: templateAppliedMessage, flash: flashTemplateApplied} = useFlashMessage(3000)
 
+/**
+ * What the appointment was called when the editor opened, which is what the head of the page says
+ * while it is being changed. The field itself is not read, so the tab does not rewrite itself on
+ * every keystroke, and a new appointment has no name to say.
+ */
+const openedName = ref('')
+
+const pageTitle = computed(() => {
+  if (!isEdit.value) return t('pages.event-new.title')
+  if (!openedName.value) return t('pages.event-edit.title')
+  return t('pages.event-edit.titleNamed', {name: openedName.value})
+})
+
+const pageSubtitle = computed(() =>
+    isEdit.value ? t('pages.event-edit.subtitle') : t('pages.event-new.subtitle'))
+
 async function applyEventTemplate(templateId: string | undefined) {
   if (!templateId) return
   try {
@@ -87,6 +103,7 @@ async function loadData() {
         loadRegistrationFields(eventId.value!),
         attachments.load(),
       ])
+      openedName.value = form.state.name
     }
   } catch (e) {
     reportCaughtError(e, 'EventEditView.loadData')
@@ -167,8 +184,8 @@ const bodyHandlers = {
 
 <template>
   <ViewContent
-      :title="t('pages.event-new.title')"
-      :subtitle="t('pages.event-new.subtitle')"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
   >
     <div class="space-y-6">
       <div class="flex items-center justify-between">

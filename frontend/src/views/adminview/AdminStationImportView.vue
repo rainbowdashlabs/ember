@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onBeforeUnmount, onMounted, ref} from 'vue'
+import {computed, onBeforeUnmount, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -22,6 +22,15 @@ const stationUid = (route.params.stationUid as string) ?? ''
 const progress = ref<ImportProgress | null>(null)
 const error = ref('')
 let pollTimer: ReturnType<typeof setInterval> | null = null
+
+/**
+ * Which station is coming in, at the head of the page, so two imports watched side by side are told
+ * apart in the tab and in the history. The plain wording stands until the first progress report has
+ * arrived, and where none can be fetched at all.
+ */
+const pageTitle = computed(() => (progress.value?.stationName
+    ? t('pages.admin-station-import.titleNamed', {name: progress.value.stationName})
+    : t('pages.admin-station-import.title')))
 
 async function tick() {
   try {
@@ -57,7 +66,7 @@ function backToStations() {
 </script>
 
 <template>
-  <ViewContent :title="t('pages.admin-station-import.title')" :subtitle="t('pages.admin-station-import.subtitle')">
+  <ViewContent :title="pageTitle" :subtitle="t('pages.admin-station-import.subtitle')">
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SecondaryButton @click="backToStations">

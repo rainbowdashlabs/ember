@@ -20,7 +20,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  resendSetup: [event: Event]
+  resendSetup: []
 }>()
 
 const {t} = useI18n()
@@ -33,6 +33,6 @@ const rowNote = computed(() => extras.note(props.member.id))
     <MemberName :identity="member.identity" size="sm" class="font-medium"/>
     <MutedText v-if="rowNote" data-testid="member-note" size="sm">{{ rowNote }}</MutedText>
     <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{ t('membersList.incomplete') }}</ErrorBadge>
-    <MemberSetupIndicator :member="member" :can-edit="canEdit" @resend-setup="emit('resendSetup', $event)"/>
+    <MemberSetupIndicator :member="member" :can-edit="canEdit" @resend-setup="emit('resendSetup')"/>
   </div>
 </template>

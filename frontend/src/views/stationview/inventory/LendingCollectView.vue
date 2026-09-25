@@ -35,6 +35,15 @@ const checks = ref<LineCheck[]>([])
 const sent = ref('')
 const occasion = ref('')
 
+/**
+ * The appointment the gear is being gathered for, at the head of the page. Collecting for two of
+ * them is two tabs that would otherwise read the same word. The plain wording stands while the
+ * appointment loads and where the page was opened without one.
+ */
+const pageTitle = computed(() => (occasion.value
+    ? t('pages.inventory-lending-collect.titleNamed', {name: occasion.value})
+    : t('pages.inventory-lending-collect.title')))
+
 /** What the server said went wrong, or a general refusal when it said nothing at all. */
 function failureText(e: unknown): string {
   return apiErrorMessage(e) ?? t('common.error')
@@ -138,7 +147,7 @@ function remove(key: string) {
 </script>
 
 <template>
-  <ViewContent :title="t('pages.inventory-lending-collect.title')" :subtitle="t('pages.inventory-lending-collect.subtitle')">
+  <ViewContent :title="pageTitle" :subtitle="t('pages.inventory-lending-collect.subtitle')">
     <Spinner v-if="loading" size="lg"/>
     <FailureAlert :message="error"/>
     <Alert v-if="actionError" variant="error" data-testid="collected-error">{{ actionError }}</Alert>

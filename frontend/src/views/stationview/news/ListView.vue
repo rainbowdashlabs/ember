@@ -170,14 +170,6 @@ function itemKey(item: UnifiedNewsItem): string {
   return `${item.kind}-${item.stationUid ?? 'local'}-${item.id}`
 }
 
-function openItem(item: UnifiedNewsItem) {
-  if (item.kind === 'federated') {
-    router.push({name: 'federated-news-detail', params: {stationUid: item.stationUid, newsId: item.id}})
-  } else {
-    router.push({name: newsRoutes.detail, params: {id: item.id}})
-  }
-}
-
 function toggleComments(item: UnifiedNewsItem) {
   const key = itemKey(item)
   commentsOpenId.value = commentsOpenId.value === key ? null : key
@@ -256,7 +248,6 @@ watch(() => entries.value.length, async () => {
           :item-key="itemKey"
           :set-news-item-ref="setNewsItemRef"
           :set-view-badge-ref="setViewBadgeRef"
-          :on-open="openItem"
           :on-toggle-comments="toggleComments"
           :on-request-delete="requestDelete"
         />

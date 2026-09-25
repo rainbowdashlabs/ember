@@ -46,6 +46,15 @@ const {config: task, loading, error, reload} = useConfigPanel<SelfCheckResponse 
 
 const check = useSelfCheck(task)
 
+/**
+ * Whose gear the task asks about, at the head of the page. A guardian answers for themselves and
+ * for each child, and all of those pages read the same word otherwise, in the tab and in the
+ * history alike. The plain wording stands while the task loads and where it could not be fetched.
+ */
+const pageTitle = computed(() => (task.value?.task.memberName
+    ? t('pages.inventory-self-check.titleNamed', {name: task.value.task.memberName})
+    : t('pages.inventory-self-check.title')))
+
 const readOnly = computed(() => task.value?.task.state !== SelfCheckState.OPEN)
 const outstandingRows = computed(() => (task.value?.rows ?? []).filter(row => row.state === 'OUTSTANDING'))
 
@@ -270,7 +279,7 @@ const exchangePiece = computed(() =>
 </script>
 
 <template>
-  <ViewContent :title="t('pages.inventory-self-check.title')" :subtitle="t('pages.inventory-self-check.subtitle')">
+  <ViewContent :title="pageTitle" :subtitle="t('pages.inventory-self-check.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="anyError" variant="error">{{ anyError }}</Alert>

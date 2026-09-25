@@ -5,8 +5,8 @@
  */
 <script setup lang="ts">
 import {computed} from 'vue'
-import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
@@ -20,8 +20,6 @@ const props = defineProps<{
   critAt?: number
   routeName?: string
 }>()
-
-const router = useRouter()
 
 const variant = computed<'success' | 'info' | 'error' | 'neutral'>(() => {
   if (props.count === 0) return 'success'
@@ -37,23 +35,23 @@ const container = computed(() => {
   return NeutralContainer
 })
 
-function go() {
-  if (props.routeName) router.push({name: props.routeName})
-}
+/** The page the card stands for, or nothing for a card that only counts something. */
+const page = computed(() => props.routeName ? {name: props.routeName} : null)
 </script>
 
 <template>
-  <component
-      :is="container"
-      :class="['flex flex-col gap-2 h-full', routeName ? 'cursor-pointer hover:border-primary transition-colors' : '']"
-      @click="go"
-  >
-    <div class="flex items-start gap-2">
-      <font-awesome-icon :icon="icon" class="text-xl mt-0.5"/>
-      <div class="flex-1 min-w-0">
-        <p class="text-sm text-(--text-muted)">{{ label }}</p>
-        <StatValue>{{ count }}</StatValue>
+  <RowLink :to="page">
+    <component
+        :is="container"
+        :class="['flex flex-col gap-2 h-full', routeName ? 'cursor-pointer hover:border-primary transition-colors' : '']"
+    >
+      <div class="flex items-start gap-2">
+        <font-awesome-icon :icon="icon" class="text-xl mt-0.5"/>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-(--text-muted)">{{ label }}</p>
+          <StatValue>{{ count }}</StatValue>
+        </div>
       </div>
-    </div>
-  </component>
+    </component>
+  </RowLink>
 </template>

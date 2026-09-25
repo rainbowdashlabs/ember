@@ -20,7 +20,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  resendSetup: [event: Event]
+  resendSetup: []
 }>()
 
 const state = computed(() => setupLinkState(props.member))
@@ -70,7 +70,7 @@ const waitingTitle = computed(() => `${pendingTitle.value} ${t('membersList.setu
         :label="t('membersList.accountPendingResend')"
         :class="expired ? 'text-error hover:bg-error/15' : 'text-warning hover:bg-warning/15'"
         :data-testid="expired ? 'resend-setup-expired' : 'resend-setup'"
-        @click.stop="emit('resendSetup', $event)"
+        @click="emit('resendSetup')"
     />
     <font-awesome-icon
         v-else

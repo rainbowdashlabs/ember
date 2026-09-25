@@ -6,8 +6,9 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter, type RouteLocationRaw} from 'vue-router'
+import type {RouteLocationRaw} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -28,7 +29,6 @@ import {useSession} from '@/composables/useSession'
 import {formatDate} from '@/util/format'
 
 const {t} = useI18n()
-const router = useRouter()
 const {isGuardian, sessionInfo} = useSession()
 
 const registrations = ref<EventRegistrationEntry[]>([])
@@ -97,30 +97,30 @@ onMounted(loadData)
     <div class="overflow-y-auto flex-1 space-y-2">
       <EmptyState compact v-if="activeRegistrations.length === 0">{{ t('dashboard.noRegistrations') }}</EmptyState>
       <template v-else>
-        <NeutralContainer v-for="reg in activeRegistrations" :key="reg.id"
-                          class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
-                          @click="router.push(registrationRoute(reg))">
-          <div>
-            <MemberName v-if="isOtherMember(reg.memberId)" :identity="reg.memberIdentity ?? null"
-                        class="text-xs font-semibold text-primary"/>
-            <div class="flex items-center gap-2 min-w-0">
-              <p class="truncate text-sm font-medium">{{ eventName(reg.eventId) }}</p>
-              <ColorBadge v-if="categoryOf(reg.eventId)" :color="categoryOf(reg.eventId)!.color"
-                          class="shrink-0" data-testid="dashboard-event-category">
-                {{ categoryOf(reg.eventId)!.name }}
-              </ColorBadge>
+        <RowLink v-for="reg in activeRegistrations" :key="reg.id" :to="registrationRoute(reg)">
+          <NeutralContainer class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)">
+            <div>
+              <MemberName v-if="isOtherMember(reg.memberId)" :identity="reg.memberIdentity ?? null"
+                          class="text-xs font-semibold text-primary"/>
+              <div class="flex items-center gap-2 min-w-0">
+                <p class="truncate text-sm font-medium">{{ eventName(reg.eventId) }}</p>
+                <ColorBadge v-if="categoryOf(reg.eventId)" :color="categoryOf(reg.eventId)!.color"
+                            class="shrink-0" data-testid="dashboard-event-category">
+                  {{ categoryOf(reg.eventId)!.name }}
+                </ColorBadge>
+              </div>
+              <p class="text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</p>
             </div>
-            <p class="text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</p>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <ErrorBadge v-if="reg.answersMissing" :data-testid="`answer-missing-${reg.id}`">
-              {{ t('eventDetail.answerMissing') }}
-            </ErrorBadge>
-            <component :is="statusBadgeComponent(reg.status)">
-              {{ t(`dashboard.registrationStatus.${reg.status}`) }}
-            </component>
-          </div>
-        </NeutralContainer>
+            <div class="flex items-center gap-2 shrink-0">
+              <ErrorBadge v-if="reg.answersMissing" :data-testid="`answer-missing-${reg.id}`">
+                {{ t('eventDetail.answerMissing') }}
+              </ErrorBadge>
+              <component :is="statusBadgeComponent(reg.status)">
+                {{ t(`dashboard.registrationStatus.${reg.status}`) }}
+              </component>
+            </div>
+          </NeutralContainer>
+        </RowLink>
       </template>
     </div>
   </NeutralContainer>

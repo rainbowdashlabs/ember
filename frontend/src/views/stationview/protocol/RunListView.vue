@@ -12,6 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -73,6 +74,10 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
 
 function protocolName(id: number) { return protocols.value.find(p => p.id === id)?.name ?? '?' }
 
+function runPage(run: TestProtocolRun) {
+  return { name: 'protocol-run-detail', params: { id: run.id } }
+}
+
 async function handleCreate() {
   if (!newProtocolId.value || !newName.value.trim()) return
   try {
@@ -118,19 +123,18 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       :loading="loading"
     >
       <div class="space-y-2">
-        <NeutralContainer
-          v-for="run in runs"
-          :key="run.id"
-          class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors"
-          @click="router.push({ name: 'protocol-run-detail', params: { id: run.id } })"
-        >
-          <div class="flex-1 min-w-0">
-            <div class="font-medium">{{ run.name }}</div>
-            <div class="text-sm text-[var(--text-muted)]">{{ protocolName(run.protocolId) }}, {{ formatDate(run.testDate) }}</div>
-          </div>
-          <SuccessBadge v-if="run.status === 'CLOSED'">{{ t('protocol.closed') }}</SuccessBadge>
-          <PrimaryBadge v-else>{{ t('protocol.open') }}</PrimaryBadge>
-        </NeutralContainer>
+        <RowLink v-for="run in runs" :key="run.id" :to="runPage(run)">
+          <NeutralContainer
+            class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors"
+          >
+            <div class="flex-1 min-w-0">
+              <div class="font-medium">{{ run.name }}</div>
+              <div class="text-sm text-[var(--text-muted)]">{{ protocolName(run.protocolId) }}, {{ formatDate(run.testDate) }}</div>
+            </div>
+            <SuccessBadge v-if="run.status === 'CLOSED'">{{ t('protocol.closed') }}</SuccessBadge>
+            <PrimaryBadge v-else>{{ t('protocol.open') }}</PrimaryBadge>
+          </NeutralContainer>
+        </RowLink>
       </div>
     </AsyncSection>
 

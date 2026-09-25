@@ -5,11 +5,10 @@
  */
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 
 const { t } = useI18n()
-const router = useRouter()
 </script>
 
 <template>
@@ -21,12 +20,14 @@ const router = useRouter()
       </div>
       <p class="text-sm text-(--text-muted)">{{ t('memberImport.modeMembersHint') }}</p>
     </NeutralContainer>
-    <NeutralContainer clickable class="space-y-2" @click="router.push({ name: 'members-import-team' })">
-      <div class="flex items-center gap-2">
-        <font-awesome-icon :icon="['fas', 'user-shield']" class="text-primary" />
-        <span class="font-semibold">{{ t('teamImport.modeTeam') }}</span>
-      </div>
-      <p class="text-sm text-(--text-muted)">{{ t('teamImport.modeTeamHint') }}</p>
-    </NeutralContainer>
+    <RowLink :to="{ name: 'members-import-team' }" class="h-full">
+      <NeutralContainer clickable class="h-full space-y-2">
+        <div class="flex items-center gap-2">
+          <font-awesome-icon :icon="['fas', 'user-shield']" class="text-primary" />
+          <span class="font-semibold">{{ t('teamImport.modeTeam') }}</span>
+        </div>
+        <p class="text-sm text-(--text-muted)">{{ t('teamImport.modeTeamHint') }}</p>
+      </NeutralContainer>
+    </RowLink>
   </div>
 </template>

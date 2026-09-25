@@ -234,12 +234,24 @@ function goBack() {
     if (board.value) router.push(`/station/boards/${board.value.shortKey}`)
 }
 
+/**
+ * Whose settings these are, by the short key the reader already knows from the ticket numbers. Three
+ * boards otherwise leave three tabs all reading the same. The plain words stand until the board has
+ * arrived, and where it could not be fetched at all.
+ */
+const pageTitle = computed(() => board.value
+    ? t('pages.board-settings.titleNamed', {name: board.value.shortKey})
+    : t('pages.board-settings.title'))
+
+/** The short key names the board above; the line under it spells the board out. */
+const pageSubtitle = computed(() => board.value?.name || t('pages.board-settings.subtitle'))
+
 </script>
 
 <template>
     <ViewContent
-        :title="t('pages.board-settings.title')"
-        :subtitle="t('pages.board-settings.subtitle')"
+        :title="pageTitle"
+        :subtitle="pageSubtitle"
     >
         <Spinner v-if="loading" />
         <Alert v-else-if="error && !board" variant="error">{{ error }}</Alert>

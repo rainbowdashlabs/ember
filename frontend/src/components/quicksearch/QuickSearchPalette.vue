@@ -8,6 +8,7 @@ import {computed, nextTick, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import {useQuickSearch} from '@/composables/useQuickSearch'
@@ -38,9 +39,19 @@ watch(isOpen, async (open) => {
     inputWrapper.value?.querySelector('input')?.focus()
 })
 
+/**
+ * Opens the hit the arrow keys stand on. A pressed hit is the link itself and needs no help, so this
+ * is the keyboard's way in and the palette closing is all the two have in common.
+ */
 function activateResult(result: PaletteResult) {
     close()
     router.push(result.to)
+}
+
+/** A press opening the hit here puts the palette away; one opening a tab of its own leaves it standing. */
+function onResultPress(event: MouseEvent) {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+    close()
 }
 
 function indexOfItem(sectionIdx: number, itemIdx: number): number {
@@ -108,24 +119,21 @@ function onKeydown(event: KeyboardEvent) {
 
             <div v-for="(section, sIdx) in sections" :key="section.key" class="mb-2" :data-testid="`palette-section-${section.key}`">
               <p class="px-2 pt-2 text-xs font-semibold uppercase tracking-wide text-(--text-muted)">{{ section.title }}</p>
-              <div
-                  v-for="(item, iIdx) in section.items"
-                  :key="`${section.key}-${iIdx}`"
-                  role="button"
-                  tabindex="0"
-                  data-testid="palette-result"
-                  :class="['flex items-center gap-3 rounded-theme px-2 py-2 cursor-pointer transition-colors', indexOfItem(sIdx, iIdx) === highlightedIndex ? 'bg-primary/10 text-primary' : 'hover:bg-(--bg-accent)']"
-                  @mouseenter="highlightedIndex = indexOfItem(sIdx, iIdx)"
-                  @click="activateResult(item)"
-                  @keydown.enter.prevent="activateResult(item)"
-              >
-                <UserAvatar v-if="item.identity" :identity="item.identity" :name="item.label" size="sm"/>
-                <font-awesome-icon v-else :icon="['fas', item.icon]" class="h-4 w-4 shrink-0"/>
-                <div class="min-w-0 flex-1">
-                  <p class="text-sm font-medium truncate">{{ item.label }}</p>
-                  <p v-if="item.sublabel" class="text-xs text-(--text-muted) truncate">{{ item.sublabel }}</p>
+              <RowLink v-for="(item, iIdx) in section.items" :key="`${section.key}-${iIdx}`" :to="item.to">
+                <div
+                    data-testid="palette-result"
+                    :class="['flex items-center gap-3 rounded-theme px-2 py-2 cursor-pointer transition-colors', indexOfItem(sIdx, iIdx) === highlightedIndex ? 'bg-primary/10 text-primary' : 'hover:bg-(--bg-accent)']"
+                    @mouseenter="highlightedIndex = indexOfItem(sIdx, iIdx)"
+                    @click="onResultPress"
+                >
+                  <UserAvatar v-if="item.identity" :identity="item.identity" :name="item.label" size="sm"/>
+                  <font-awesome-icon v-else :icon="['fas', item.icon]" class="h-4 w-4 shrink-0"/>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-medium truncate">{{ item.label }}</p>
+                    <p v-if="item.sublabel" class="text-xs text-(--text-muted) truncate">{{ item.sublabel }}</p>
+                  </div>
                 </div>
-              </div>
+              </RowLink>
             </div>
           </div>
 

@@ -31,6 +31,9 @@ const lintScripts = [
   'lint-stacked-text.mjs',
   'lint-standalone.mjs',
   'lint-button-rows.mjs',
+  'lint-page-links.mjs',
+  'lint-social-meta.mjs',
+  'lint-context-titles.mjs',
 ]
 
 for (const script of lintScripts) {

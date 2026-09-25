@@ -61,12 +61,24 @@ const reminderDays = ref<number[]>([])
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
 
+/**
+ * What the template was called when the editor opened, which is what the head of the page says
+ * while it is being changed. The field itself is not read, so the tab does not rewrite itself on
+ * every keystroke.
+ */
+const openedName = ref('')
+
+const pageTitle = computed(() => (openedName.value
+    ? t('pages.event-template-edit.titleNamed', {name: openedName.value})
+    : t('pages.event-template-edit.title')))
+
 onMounted(() => { if (loaded.value) loadData() })
 watch(loaded, (v) => { if (v && loading.value) loadData() })
 
 function seedForm(detail: EventTemplateDetail) {
   const tpl = detail.template
   name.value = tpl.name
+  openedName.value = tpl.name
   title.value = tpl.title ?? ''
   description.value = tpl.description ?? ''
   categoryId.value = tpl.categoryId ? String(tpl.categoryId) : ''
@@ -158,7 +170,7 @@ async function save() {
 
 <template>
   <ViewContent
-      :title="t('pages.event-template-edit.title')"
+      :title="pageTitle"
       :subtitle="t('pages.event-template-edit.subtitle')"
   >
     <div class="space-y-6">

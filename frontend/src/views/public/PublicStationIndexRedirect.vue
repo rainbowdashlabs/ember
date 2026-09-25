@@ -4,18 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {inject, watch, type Ref} from 'vue'
-import {useRoute, useRouter} from 'vue-router'
+import {watch} from 'vue'
+import {useRouter} from 'vue-router'
 import type {PublicStationInfo} from '@/api/discovery'
+import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
 
-const route = useRoute()
 const router = useRouter()
-const station = inject<Ref<PublicStationInfo | null>>('publicStation')
+const {station, basePath} = usePublicStationAddress()
 
 function redirect(info: PublicStationInfo | null) {
   if (!info) return
-  const uid = route.params.stationUid as string
-  const base = `/public/station/${uid}`
+  const base = basePath.value
 
   if (info.landingPageSlug) {
     router.replace(`${base}/page/${info.landingPageSlug}`)
@@ -29,10 +28,10 @@ function redirect(info: PublicStationInfo | null) {
 }
 
 // Station info is provided by PublicStationShell - redirect once available
-if (station?.value) {
+if (station.value) {
   redirect(station.value)
 }
-watch(() => station?.value, (v) => {
+watch(station, (v) => {
   if (v) redirect(v)
 })
 </script>

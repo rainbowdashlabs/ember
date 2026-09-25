@@ -141,8 +141,24 @@ function goCreate() {
   router.push({ name: props.createRouteName, query: props.purpose ? { purpose: props.purpose } : undefined })
 }
 
+function editPage(form: Form) {
+  return { name: props.editRouteName, params: { id: form.id } }
+}
+
+function analyticsPage(form: Form) {
+  return { name: props.analyticsRouteName, params: { id: form.id } }
+}
+
+/**
+ * Where a tile leads. A form nobody may answer yet is still being written, so it opens where it is
+ * written; one that is out opens on what came back.
+ */
+function formPage(form: Form) {
+  return form.status === FormStatus.DRAFT ? editPage(form) : analyticsPage(form)
+}
+
 function goEdit(form: Form) {
-  router.push({ name: props.editRouteName, params: { id: form.id } })
+  router.push(editPage(form))
 }
 
 const sharedForm = ref<Form | null>(null)
@@ -154,12 +170,7 @@ function openShareLink(form: Form) {
 }
 
 function goAnalytics(form: Form) {
-  router.push({ name: props.analyticsRouteName, params: { id: form.id } })
-}
-
-function openForm(form: Form) {
-  if (form.status === FormStatus.DRAFT) goEdit(form)
-  else goAnalytics(form)
+  router.push(analyticsPage(form))
 }
 
 function goFill(form: FormListEntry) {
@@ -191,8 +202,8 @@ watch(loaded, (isLoaded) => {
           :can-create-polls="canCreatePolls"
           :title-key="props.titleKey"
           :status-label="statusLabel"
+          :form-page="formPage"
           @create="goCreate"
-          @open="openForm"
           @publish="publishForm"
           @close="closeForm"
           @edit="goEdit"

@@ -6,7 +6,6 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
 import {useEventRoutes} from '@/composables/useEventRoutes'
 import {isRecurringEvent, type EventBreak, type EventCategory, type StationEvent} from '@/api/events'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -31,7 +30,6 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
-const router = useRouter()
 const eventRoutes = useEventRoutes()
 
 const {viewYear, viewMonth, weeks, prevMonth, nextMonth, goToToday} = useEventCalendarGrid(
@@ -77,12 +75,15 @@ function chipStyle(ev: StationEvent): {backgroundColor: string; color: string} |
   return {backgroundColor: s.bg, color: s.fg}
 }
 
-function openEvent(ev: StationEvent, date: string) {
+/**
+ * The page a chip opens: a repeating appointment carries the day it was pressed on, so the reader
+ * lands on the occurrence they were looking at rather than on the first of the series.
+ */
+function detailRoute(ev: StationEvent, date: string) {
   if (isRecurringEvent(ev.eventType)) {
-    router.push({name: eventRoutes.detailOnDate, params: {id: ev.id, date}})
-  } else {
-    router.push({name: eventRoutes.detail, params: {id: ev.id}})
+    return {name: eventRoutes.detailOnDate, params: {id: ev.id, date}}
   }
+  return {name: eventRoutes.detail, params: {id: ev.id}}
 }
 </script>
 
@@ -125,16 +126,16 @@ function openEvent(ev: StationEvent, date: string) {
             :day-idx="dayIdx"
             :lane-count="week.laneCount"
             :chip-style="chipStyle"
+            :detail-route="detailRoute"
             :format-time="formatTime"
-            @open="openEvent"
         />
         <CalendarMultiDayBar
             v-for="(bar, barIdx) in week.bars"
             :key="`bar-${weekIdx}-${barIdx}`"
             :bar="bar"
             :chip-style="chipStyle"
+            :detail-route="detailRoute"
             :format-time="formatTime"
-            @open="openEvent"
         />
       </div>
     </div>

@@ -52,6 +52,15 @@ const currentQuestionDetail = computed(() => {
   return questionData.value.get(currentQuestion.value.questionId) ?? null
 })
 
+/**
+ * Which test is being written, with the part of it after the name, because a reader sitting one test
+ * also has its own page open and the two tabs would otherwise read the same. The static wording
+ * stands while the sheet is being fetched and where it cannot be fetched.
+ */
+const pageTitle = computed(() => test.value
+    ? t('pages.quiz-test-take.titleNamed', {name: test.value.title})
+    : t('pages.quiz-test-take.title'))
+
 const attemptId = computed(() => attempt.value?.id ?? null)
 const currentQuestionId = computed(() => currentQuestion.value?.questionId ?? null)
 const timeLimit = computed(() => test.value?.timeLimit ?? null)
@@ -157,7 +166,7 @@ watch(loaded, (isLoaded) => {
 </script>
 
 <template>
-  <ViewContent :title="t('pages.quiz-test-take.title')" :subtitle="t('pages.quiz-test-take.subtitle')">
+  <ViewContent :title="pageTitle" :subtitle="t('pages.quiz-test-take.subtitle')">
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
       <FailureAlert :message="error"/>

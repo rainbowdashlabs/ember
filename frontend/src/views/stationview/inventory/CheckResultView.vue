@@ -33,6 +33,15 @@ const {config: detail, loading, error} = useConfigPanel<CheckDetail | null>({
   fetch: () => inventoryCheck.getLastCheck(memberId.value),
 })
 
+/**
+ * Whose result is being read, at the head of the page, so two of them open at once are told apart
+ * in the tab and in the history. The plain wording stands where the page was opened without a name
+ * to show.
+ */
+const pageTitle = computed(() => (memberName.value
+    ? t('pages.inventory-check-result.titleNamed', {name: memberName.value})
+    : t('pages.inventory-check-result.title')))
+
 function goBack() {
   router.push({ name: routes.checks })
 }
@@ -40,7 +49,7 @@ function goBack() {
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-check-result.title')"
+      :title="pageTitle"
       :subtitle="t('pages.inventory-check-result.subtitle')"
   >
     <div class="space-y-6">

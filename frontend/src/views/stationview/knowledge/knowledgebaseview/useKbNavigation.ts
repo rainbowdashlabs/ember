@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed} from 'vue'
-import {useRoute, useRouter} from 'vue-router'
+import {useRoute, useRouter, type RouteLocationRaw} from 'vue-router'
 import type {KbFileSummary} from '@/api/knowledgeBase'
 
 /** Where the knowledge base is mounted: a station's own screens, or an association's. */
@@ -52,8 +52,16 @@ export function useKbNavigation(routes: KbRoutes = STATION_KB_ROUTES) {
 
     const isSharedFolderView = computed(() => sharedStationUid.value !== null && sharedFolderId.value !== null)
 
+    /**
+     * A folder of a partner, addressed by the pair, because a folder id belongs to the station that
+     * owns it.
+     */
+    function sharedFolderPage(stationUid: string, folderId: number): RouteLocationRaw {
+        return {name: routes.browse, query: {sharedStation: stationUid, sharedFolder: folderId}}
+    }
+
     function navigateToSharedFolder(stationUid: string, folderId: number) {
-        router.push({name: routes.browse, query: {sharedStation: stationUid, sharedFolder: folderId}})
+        router.push(sharedFolderPage(stationUid, folderId))
     }
 
     const currentFolderId = computed(() => {
@@ -62,28 +70,28 @@ export function useKbNavigation(routes: KbRoutes = STATION_KB_ROUTES) {
         return Number(param)
     })
 
-    function navigateToFolder(folderId: number | null) {
-        if (folderId === null) {
-            router.push({name: routes.browse})
-        } else {
-            router.push({name: routes.browse, query: {folderId}})
-        }
+    function folderPage(folderId: number | null): RouteLocationRaw {
+        return folderId === null ? {name: routes.browse} : {name: routes.browse, query: {folderId}}
     }
 
-    function navigateToFile(file: Pick<KbFileSummary, 'id'>) {
-        router.push({name: routes.file, params: {id: file.id}})
+    function navigateToFolder(folderId: number | null) {
+        router.push(folderPage(folderId))
+    }
+
+    function filePage(file: Pick<KbFileSummary, 'id'>): RouteLocationRaw {
+        return {name: routes.file, params: {id: file.id}}
     }
 
     /**
-     * Opens a file held by a federation partner. A file id is only unique within the station that
-     * owns it, so the partner's station UUID is part of the address.
+     * A file held by a federation partner. A file id is only unique within the station that owns it,
+     * so the partner's station UUID is part of the address.
      */
-    function navigateToFederatedFile(stationUid: string, fileId: number) {
-        router.push({name: 'federated-kb-file', params: {stationUid, fileId}})
+    function federatedFilePage(stationUid: string, fileId: number): RouteLocationRaw {
+        return {name: 'federated-kb-file', params: {stationUid, fileId}}
     }
 
-    function navigateToFavourites() {
-        router.push({name: routes.browse, query: {folderId: 'favourites'}})
+    function favouritesPage(): RouteLocationRaw {
+        return {name: routes.browse, query: {folderId: 'favourites'}}
     }
 
     function navigateToTrash() {
@@ -98,11 +106,13 @@ export function useKbNavigation(routes: KbRoutes = STATION_KB_ROUTES) {
         sharedStationUid,
         sharedFolderId,
         isSharedFolderView,
+        folderPage,
+        filePage,
+        federatedFilePage,
+        favouritesPage,
+        sharedFolderPage,
         navigateToSharedFolder,
         navigateToFolder,
-        navigateToFile,
-        navigateToFederatedFile,
-        navigateToFavourites,
         navigateToTrash,
     }
 }

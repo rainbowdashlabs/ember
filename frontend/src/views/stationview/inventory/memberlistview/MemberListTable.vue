@@ -9,10 +9,12 @@ import { useI18n } from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import type { InventoryItem } from '@/api/inventory'
 import type { StationMember } from '@/api/types'
 import type { DataTableApi } from '@/composables/useDataTable'
+import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import MemberInventoryItems from './MemberInventoryItems.vue'
 import { inventoryIdOfColumn, NAME_KEY } from './inventoryMemberColumns'
 import type { ItemLabelParts } from './itemLabel'
@@ -36,6 +38,13 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const routes = useInventoryRoutes()
+
+/** Where the member's name leads, or nowhere while the list is being ticked for an export. */
+function memberPage(member: StationMember) {
+  if (props.exportMode || !routes.member) return null
+  return { name: routes.member, params: { memberId: member.id } }
+}
 
 /** The inventory columns that show, each with the inventory it stands for. */
 const inventoryColumns = computed(() => props.table.visibleColumns
@@ -62,10 +71,12 @@ function handleRowClick(member: StationMember) {
       </span>
     </template>
     <template #[`cell-${NAME_KEY}`]="{row, text}">
-      <span class="flex items-center gap-2 font-medium text-primary">
-        <UserAvatar :identity="row.identity" :name="text" size="sm" />
-        {{ text }}
-      </span>
+      <RowLink :to="memberPage(row)">
+        <span class="flex items-center gap-2 font-medium text-primary">
+          <UserAvatar :identity="row.identity" :name="text" size="sm" />
+          {{ text }}
+        </span>
+      </RowLink>
     </template>
     <template v-for="column in inventoryColumns" :key="column.key" #[`cell-${column.key}`]="{row}">
       <MemberInventoryItems :items="itemsFor(row.id, column.inventoryId)" :parts="parts" />
