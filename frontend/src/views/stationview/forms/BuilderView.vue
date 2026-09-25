@@ -80,6 +80,15 @@ const allTags = ref<UserTag[]>([])
 const allMembers = ref<StationMember[]>([])
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 
+/**
+ * Whether the form is answered by somebody the station knows.
+ *
+ * <p>Narrowing who may answer needs somebody to narrow it to. A contact form and a poll on a public
+ * page are answered by whoever opens the link, with no account behind the answer, so nothing
+ * anywhere reads what the picker sets: it was a screenful of groups and tags that decided nothing.
+ */
+const answeredByMembers = computed(() => purpose.value === FormPurpose.INTERNAL)
+
 const questions = ref<QuestionDraft[]>([])
 let nextTempId = 1
 
@@ -253,12 +262,14 @@ async function save() {
   try {
     const id = await saveForm()
     await saveQuestions(id)
-    await forms.setRestrictions(id, {
-      userTypes: restriction.value.userTypes,
-      groupIds: restriction.value.groupIds,
-      tagIds: restriction.value.tagIds,
-      memberIds: restriction.value.memberIds,
-    })
+    if (answeredByMembers.value) {
+      await forms.setRestrictions(id, {
+        userTypes: restriction.value.userTypes,
+        groupIds: restriction.value.groupIds,
+        tagIds: restriction.value.tagIds,
+        memberIds: restriction.value.memberIds,
+      })
+    }
     router.push({ name: returnRouteName.value })
   } catch (e) {
     error.value = t('common.error')
@@ -296,6 +307,7 @@ async function save() {
         </Alert>
 
         <FormRestrictionsEditor
+          v-if="answeredByMembers"
           :groups="allGroups"
           :tags="allTags"
           :members="allMembers"

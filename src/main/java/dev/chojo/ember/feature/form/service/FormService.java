@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.system.service.RequirementsService;
 import dev.chojo.ember.util.ShareTokens;
 import io.javalin.http.BadRequestResponse;
+import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -592,10 +593,20 @@ public class FormService {
     /**
      * Replaces all access restrictions for a form.
      *
+     * <p>Only a form answered by the station's own members has any. Narrowing who may answer needs
+     * somebody to narrow it to, and a contact form or a poll on a public page is answered by
+     * whoever opens the link: nothing anywhere reads a restriction on one, so storing it would keep
+     * a promise the form cannot make.
+     *
      * @param formId    the form ID
      * @param selection the restriction selection to apply
+     * @throws BadRequestResponse where the form is answered from outside the station
      */
     public void setRestrictions(int formId, RestrictionSelection selection) {
+        var form = repository.findById(formId).orElseThrow(NotFoundResponse::new);
+        if (form.purpose() != FormPurpose.INTERNAL) {
+            throw new BadRequestResponse("A form answered from outside the station has nobody to narrow it to");
+        }
         restrictionService.setRestrictions(RestrictionType.FORM, formId, selection);
         log.info("Updated access restrictions for form {}", formId);
     }
