@@ -13,10 +13,24 @@ import {test, expect, apiHeaders, type Page} from './fixtures/auth'
  * entry also says whether its event takes registrations, because an event that does not has no
  * registration tab and would make these stories wait for something that is correctly absent.
  */
+/**
+ * The seeded appointment that is signed up for, opened by its own address.
+ *
+ * <p>Asked of the API rather than picked off the page. The list pages ten at a time now, so the
+ * first row that takes sign-ups is the first one on page one, and a station whose next ten
+ * appointments happen to take none would leave the story hunting a row that is there but not shown.
+ */
 async function openEventWithRegistration(page: Page) {
     await page.goto('/station/events')
-    await page.locator('[data-testid="event-entry"][data-registration="true"]').first().click()
-    await page.waitForURL(/\/station\/events\/\d+/)
+
+    const headers = await apiHeaders(page)
+    const answer = await page.request.get('/api/v1/events?requiresRegistration=true', {headers})
+    expect(answer.ok(), 'the appointment list answers').toBeTruthy()
+
+    const [appointment] = await answer.json()
+    expect(appointment, 'the seeded station has an appointment that is signed up for').toBeTruthy()
+
+    await page.goto(`/station/events/${appointment.id}`)
 }
 
 /**
@@ -423,9 +437,8 @@ test.describe('Events', () => {
 
         await page.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
 
-        await page.waitForURL(/\/station\/events$/)
-        // The name is on the page twice: once in the calendar preview above, which leads nowhere,
-        // and once on the list entry. Only the entry opens the appointment.
+        await page.waitForURL(/\/station\/events/)
+        await page.goto(`/station/events?search=${encodeURIComponent(name)}`)
         await page.getByTestId('event-entry').filter({hasText: name}).first().click()
         await page.waitForURL(/\/station\/events\/\d+/)
 
@@ -453,7 +466,7 @@ test.describe('Events', () => {
 
         await page.getByRole('button', {name: 'Termine erstellen'}).click()
 
-        await page.goto('/station/events')
+        await page.goto(`/station/events?search=${encodeURIComponent(name)}`)
         await expect(page.getByText(name).first()).toBeVisible()
     })
 
@@ -476,18 +489,29 @@ test.describe('Events', () => {
     })
 
     /**
-     * What a category is for: the events page sorts itself into blocks instead of one long list,
-     * and no block holds everything.
+     * The planner reads by date, with every category mixed into one list and each row wearing its
+     * own. It used to be sorted into a block per category, which is why a category is on a row at
+     * all: without the badge the reader would have lost what the headings used to say.
      */
-    test('the events list is grouped by category', async ({managerPage: page}) => {
+    test('the planner reads by date and every row wears its category', async ({managerPage: page}) => {
         await page.goto('/station/events')
 
-        const groups = page.getByTestId('event-category-group')
-        await expect(groups.first()).toBeVisible()
-        expect(await groups.count()).toBeGreaterThan(1)
+        await expect(page.getByTestId('event-entry').first()).toBeVisible()
+        await expect(page.getByTestId('event-entry-category').first()).toBeVisible()
+    })
 
-        const total = await page.getByTestId('event-entry').count()
-        const inFirstGroup = await groups.first().getByTestId('event-entry').count()
-        expect(inFirstGroup).toBeLessThan(total)
+    /**
+     * What has been is a tab of its own, and the tab is in the address, so a reader can keep the
+     * past open, copy what they are looking at and come back to it.
+     */
+    test('the past appointments are a tab of their own', async ({managerPage: page}) => {
+        await page.goto('/station/events')
+
+        await page.getByRole('button', {name: 'Vergangen'}).click()
+        await expect(page).toHaveURL(/tab=past/)
+
+        await page.reload()
+        await expect(page).toHaveURL(/tab=past/)
+        await expect(page.getByText(/Vergangene Termine|Keine vergangenen Termine/).first()).toBeVisible()
     })
 })

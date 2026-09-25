@@ -135,6 +135,33 @@ public class StationRepository {
     }
 
     /**
+     * Finds a station by what a public address names it with.
+     *
+     * <p>Either its uid or the readable name it may have been given: the two are told apart by
+     * whether the text parses as a uid, and a public address may carry whichever of them the link
+     * was built from.
+     */
+    public Optional<Station> findByAddress(String address) {
+        return parseUid(address).map(this::findByUid).orElseGet(() -> findBySlug(address));
+    }
+
+    /**
+     * The internal id behind a public address, taking the cached lookup where the address is a uid.
+     */
+    public Optional<Integer> resolveAddressedId(String address) {
+        return parseUid(address).map(this::resolveId).orElseGet(() -> findBySlug(address)
+                .map(Station::id));
+    }
+
+    private static Optional<UUID> parseUid(String address) {
+        try {
+            return Optional.of(UUID.fromString(address));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
      * Updates the public slug for a station.
      */
     public void updatePublicSlug(int id, String slug) {

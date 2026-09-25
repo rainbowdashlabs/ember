@@ -31,8 +31,8 @@ const upcoming = useUpcomingEvents(currentMemberId, isGuardian)
 const {
   allEvents, eventBreaks, todayEvents, myRegistrations, eligibleMembers, managedMembers,
   registrationCounts, overviewFields, categories, restrictions, groups, tags,
-  selectedCategoryId, searchQuery, showNeedsAction,
-  loadingMore, hasMore, registering, upcomingOccurrences, multiDayEndDate,
+  tab, isPast, searchInput, categoryId, from, to, showNeedsAction,
+  registering, occurrences, multiDayEndDate,
   loading, error,
   answerPrompt, confirmAnswerPrompt, cancelAnswerPrompt,
 } = upcoming
@@ -57,8 +57,8 @@ watch(viewMode, (mode) => {
  * set the server already returned in full.
  */
 function matchesTextSearch(ev: StationEvent): boolean {
-  if (!searchQuery.value) return true
-  const q = searchQuery.value.toLowerCase()
+  if (!searchInput.value) return true
+  const q = searchInput.value.toLowerCase()
   return !!(ev.name?.toLowerCase().includes(q) || ev.description?.toLowerCase().includes(q)
       || overviewFields.value[ev.id]?.some(f => f.name?.toLowerCase().includes(q) || f.value?.toLowerCase().includes(q)))
 }
@@ -128,23 +128,25 @@ watch(loaded, (isLoaded) => {
       <FailureAlert :message="error"/>
       <UpcomingBody
           v-if="!loading"
+          v-model:tab="tab"
+          v-model:search="searchInput"
+          v-model:category-id="categoryId"
+          v-model:needs-action="showNeedsAction"
+          v-model:from="from"
+          v-model:to="to"
           :view-mode="viewMode"
+          :is-past="isPast"
           :can-create="canManageEvents()"
           :can-manage-attendance="canManageAttendance()"
-          :search-query="searchQuery"
-          :selected-category-id="selectedCategoryId"
-          :show-needs-action="showNeedsAction"
           :categories="categories"
           :all-events="allEvents"
           :event-breaks="eventBreaks"
           :filtered-today-events="filteredTodayEvents"
-          :upcoming-occurrences="upcomingOccurrences"
+          :occurrences="occurrences"
           :overview-fields="overviewFields"
           :my-registrations="myRegistrations"
           :managed-members-count="managedMembers.length"
           :registering="registering != null"
-          :has-more="hasMore"
-          :loading-more="loadingMore"
           :multi-day-end-date="multiDayEndDate"
           :get-registration-summary="getRegistrationSummary"
           :get-eligible-members="getEligibleMembers"
@@ -154,9 +156,6 @@ watch(loaded, (isLoaded) => {
           :format-time="formatTime"
           :format-deadline="formatDateTime"
           @update:view-mode="viewMode = $event"
-          @update:search="searchQuery = $event"
-          @update:category-id="selectedCategoryId = $event"
-          @update:needs-action="showNeedsAction = $event"
           @create="openCreateEvent"
           @attendance="goToAttendance"
           @register="upcoming.registerFor"

@@ -151,14 +151,7 @@ public class PublicPageRoutes implements Routes {
     }
 
     private int resolveStation(Context ctx) {
-        String param = ctx.pathParam("stationUid");
-        try {
-            UUID uid = UUID.fromString(param);
-            return stationRepository.resolveId(uid).orElseThrow(NotFoundResponse::new);
-        } catch (IllegalArgumentException e) {
-            // Not a UUID - try as public slug
-            return stationRepository.findBySlug(param).map(Station::id).orElseThrow(NotFoundResponse::new);
-        }
+        return stationRepository.resolveAddressedId(ctx.pathParam("stationUid")).orElseThrow(NotFoundResponse::new);
     }
 
     record PublicPageSummary(

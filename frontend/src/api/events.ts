@@ -275,10 +275,19 @@ export interface EventListParams {
     requiresRegistration?: boolean
 }
 
-export interface UpcomingParams {
+/**
+ * What a list of occurrences is asked for: which appointments to consider, which stretch of days to
+ * look at and which page of the answer to hand back.
+ *
+ * `from` and `to` are ISO dates (yyyy-MM-dd) and are both inclusive. The upcoming list starts at
+ * today and the past list ends at yesterday, whatever the window says.
+ */
+export interface OccurrenceParams {
     categoryId?: number
     requiresRegistration?: boolean
     search?: string
+    from?: string
+    to?: string
     limit?: number
     offset?: number
 }
@@ -286,6 +295,53 @@ export interface UpcomingParams {
 export interface UpcomingEventOccurrence {
     event: StationEvent
     date: string
+}
+
+/** Whether a page of appointments wants the ones that still come round or the ones that do not. */
+export const EventStates = {
+    CURRENT: 'current',
+    PAST: 'past',
+} as const
+
+export type EventStateName = (typeof EventStates)[keyof typeof EventStates]
+
+/** Which kind of appointment a page wants, the two being listed apart because they read apart. */
+export const EventKinds = {
+    ONE_TIME: 'one_time',
+    REPEATING: 'repeating',
+} as const
+
+export type EventKindName = (typeof EventKinds)[keyof typeof EventKinds]
+
+/**
+ * What a page of appointments is asked for.
+ *
+ * `state` defaults to the current ones, and leaving `kind` out asks for both kinds together. The
+ * window bounds the date the page is ordered by: the next date for the current ones, the date it
+ * last fell on for the past ones.
+ */
+export interface EventPageParams extends OccurrenceParams {
+    state?: EventStateName
+    kind?: EventKindName
+}
+
+/**
+ * An appointment as a page of appointments lists it, with the date it next falls on and the date it
+ * last fell on.
+ *
+ * This is the appointment and not one of its occurrences: a series that comes round every week is
+ * one entry here and many on a list of occurrences. `nextDate` is null exactly when the appointment
+ * has nothing left to come, which is what puts it on the past tab, and `previousDate` is null where
+ * it has yet to run at all.
+ *
+ * Both dates are on every row whichever tab it came from. Which one the page is ordered by does
+ * follow the tab: the current ones read by `nextDate` ascending, the past ones by `previousDate`
+ * descending.
+ */
+export interface DatedEvent {
+    event: StationEvent
+    nextDate: string | null
+    previousDate: string | null
 }
 
 /**
@@ -339,8 +395,24 @@ const templates = createCrudResource<
     void
 >('/event-templates')
 
-export async function listUpcomingOccurrences(params?: UpcomingParams): Promise<UpcomingEventOccurrence[]> {
+/** The occurrences from today on, earliest first, a page at a time. */
+export async function listUpcomingOccurrences(params?: OccurrenceParams): Promise<UpcomingEventOccurrence[]> {
     const res = await client.get<UpcomingEventOccurrence[]>('/events/upcoming', { params })
+    return res.data
+}
+
+/** The occurrences before today, newest first, a page at a time. */
+export async function listPastOccurrences(params?: OccurrenceParams): Promise<UpcomingEventOccurrence[]> {
+    const res = await client.get<UpcomingEventOccurrence[]>('/events/past', { params })
+    return res.data
+}
+
+/**
+ * A page of appointments themselves rather than of their occurrences, each with the date it next
+ * falls on.
+ */
+export async function listPagedEvents(params?: EventPageParams): Promise<DatedEvent[]> {
+    const res = await client.get<DatedEvent[]>('/events/paged', { params })
     return res.data
 }
 

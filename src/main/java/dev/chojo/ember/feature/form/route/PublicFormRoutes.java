@@ -282,17 +282,23 @@ public class PublicFormRoutes implements Routes {
         }
     }
 
+    /**
+     * The form a public address names.
+     *
+     * <p>The station part of the address is whatever the link was built from, its uid or its
+     * readable name, the same as every other public address of that station.
+     */
     private Form resolvePublicForm(Context ctx) {
-        UUID stationUid = pathUuid(ctx, "stationUid");
+        String stationAddress = ctx.pathParam("stationUid");
         UUID formUid = pathUuid(ctx, "publicUid");
         var station = stationRepository
-                .findByUid(stationUid)
-                .orElseThrow(() -> new NotFoundResponse("Unknown station: " + stationUid));
+                .findByAddress(stationAddress)
+                .orElseThrow(() -> new NotFoundResponse("Unknown station: " + stationAddress));
         var form = formService
                 .findByPublicUid(formUid)
                 .orElseThrow(() -> new NotFoundResponse("Unknown form: " + formUid));
         if (form.stationId() != station.id()) {
-            throw new NotFoundResponse("Form " + formUid + " does not belong to station " + stationUid);
+            throw new NotFoundResponse("Form " + formUid + " does not belong to station " + stationAddress);
         }
         if (form.purpose() != FormPurpose.CONTACT && form.purpose() != FormPurpose.POLL) {
             throw new NotFoundResponse("Form " + formUid + " has purpose " + form.purpose()

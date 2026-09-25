@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
@@ -80,14 +81,15 @@ class PublicStationInfoTimezoneTest {
 
     private static PublicStationRoutes.PublicStationInfo cardOf(String timezone) throws Exception {
         var stationRepository = mock(StationRepository.class);
-        when(stationRepository.findByUid(STATION_UID)).thenReturn(Optional.of(station(timezone)));
+        when(stationRepository.findByAddress(STATION_UID.toString())).thenReturn(Optional.of(station(timezone)));
         var routes = new PublicStationRoutes(
                 stationRepository,
                 mock(StationService.class),
                 mock(StationLogoService.class),
                 mock(PageService.class),
                 mock(WaitingListService.class),
-                mock(NewsService.class));
+                mock(NewsService.class),
+                mock(FormService.class));
 
         Context ctx = mock(Context.class);
         when(ctx.pathParam("stationUid")).thenReturn(STATION_UID.toString());

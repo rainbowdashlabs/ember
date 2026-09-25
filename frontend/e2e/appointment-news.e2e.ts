@@ -24,10 +24,9 @@ async function createAppointment(page: Page, name: string): Promise<number> {
     if (await times.count() > 1) await times.nth(1).fill('2026-12-03T20:00')
 
     await page.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
-    await page.waitForURL(/\/station\/events$/)
+    await page.waitForURL(/\/station\/events/)
 
-    // The name is on the page twice: once in the calendar preview, which leads nowhere, and once on
-    // the list entry. Only the entry opens the appointment.
+    await page.goto(`/station/events?search=${encodeURIComponent(name)}`)
     await page.getByTestId('event-entry').filter({hasText: name}).first().click()
     await page.waitForURL(/\/station\/events\/\d+/)
     return Number(/\/station\/events\/(\d+)/.exec(page.url())?.[1])

@@ -286,6 +286,31 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertTrue(stationRepo.findSetupCompletedAt(99999).isEmpty());
     }
 
+    /**
+     * A public address carries whichever name the link was built from, so both have to lead to the
+     * same station and neither may lead to another one.
+     */
+    @Test
+    @Order(44)
+    void aStationAnswersToItsUidAndToItsReadableName() {
+        stationRepo.updatePublicSlug(stationId, "test-station");
+        var uid = stationRepo.findById(stationId).orElseThrow().uid();
+
+        assertEquals(
+                stationId,
+                stationRepo.findByAddress(uid.toString()).orElseThrow().id());
+        assertEquals(
+                stationId,
+                stationRepo.findByAddress("test-station").orElseThrow().id());
+        assertEquals(stationId, stationRepo.resolveAddressedId(uid.toString()).orElseThrow());
+        assertEquals(stationId, stationRepo.resolveAddressedId("test-station").orElseThrow());
+
+        assertTrue(stationRepo.findByAddress("no-such-station").isEmpty());
+        assertTrue(stationRepo.resolveAddressedId("no-such-station").isEmpty());
+        assertTrue(stationRepo.findByAddress(UUID.randomUUID().toString()).isEmpty());
+        assertTrue(stationRepo.resolveAddressedId(UUID.randomUUID().toString()).isEmpty());
+    }
+
     @Test
     @Order(99)
     void delete() {

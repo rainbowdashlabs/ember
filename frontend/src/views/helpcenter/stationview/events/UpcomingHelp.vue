@@ -22,6 +22,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 
@@ -40,6 +41,11 @@ const activeView = ref('')
       <p>{{ t('helpCenter.eventsUpcoming.whatShownText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventsUpcoming.tabsTitle')">
+      <p>{{ t('helpCenter.eventsUpcoming.tabsText') }}</p>
+      <p>{{ t('helpCenter.eventsUpcoming.calendarText') }}</p>
+    </HelpSection>
+
     <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
 
     <!-- Dummy: Filter bar -->
@@ -50,6 +56,8 @@ const activeView = ref('')
         <SelectInput model-value="" disabled class="w-40">
           <option value="">{{ t('events.category') }}</option>
         </SelectInput>
+        <DateInput model-value="" disabled class="w-36"/>
+        <DateInput model-value="" disabled class="w-36"/>
         <div class="flex items-center gap-2">
           <ToggleInput :model-value="false"/>
           <span class="text-sm">{{ t('eventsUpcoming.needsAction') }}</span>

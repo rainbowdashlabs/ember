@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
+import dev.chojo.ember.feature.events.entity.DatedEvent;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventSummary;
@@ -50,10 +51,12 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -110,6 +113,8 @@ public class EventRoutes implements Routes {
         routes.get(prefix + "/events", this::list, StationPermission.USER);
         routes.get(prefix + "/events/search", this::searchPicker, StationPermission.PAGE_EDIT);
         routes.get(prefix + "/events/upcoming", this::listUpcoming, StationPermission.USER);
+        routes.get(prefix + "/events/past", this::listPast, StationPermission.USER);
+        routes.get(prefix + "/events/paged", this::listPaged, StationPermission.USER);
         routes.get(prefix + "/events/today", this::listToday, StationPermission.USER);
         routes.post(prefix + "/events", this::create, StationPermission.EVENT_EDIT);
 
@@ -220,25 +225,126 @@ public class EventRoutes implements Routes {
                         name = "limit",
                         type = Integer.class,
                         description = "Max number of occurrences (default 10)"),
-                @OpenApiParam(name = "offset", type = Integer.class, description = "Pagination offset (default 0)")
+                @OpenApiParam(name = "offset", type = Integer.class, description = "Pagination offset (default 0)"),
+                @OpenApiParam(name = "from", description = "Earliest date to list, ISO yyyy-MM-dd (default today)"),
+                @OpenApiParam(name = "to", description = "Latest date to list, ISO yyyy-MM-dd")
             },
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = UpcomingEventOccurrence[].class)))
     private void listUpcoming(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var filter = parseCategoryFilter(ctx);
-        String search = ctx.queryParam("search");
-        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
-        int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
-        List<Integer> memberIds = resolveVisibleMemberIds(session);
         ctx.json(occurrenceService.findUpcomingOccurrences(
-                session.stationId(),
-                memberIds,
+                session.stationId(), resolveVisibleMemberIds(session), parseOccurrenceQuery(ctx)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/past",
+            methods = HttpMethod.GET,
+            summary = "List event occurrences before today, newest first",
+            tags = {"Events"},
+            queryParams = {
+                @OpenApiParam(name = "categoryId", type = Integer.class, description = "Filter by category ID"),
+                @OpenApiParam(
+                        name = "requiresRegistration",
+                        type = Boolean.class,
+                        description = "Filter by registration requirement"),
+                @OpenApiParam(
+                        name = "search",
+                        description = "Free-text search over event name and description (case-insensitive)"),
+                @OpenApiParam(
+                        name = "limit",
+                        type = Integer.class,
+                        description = "Max number of occurrences (default 10)"),
+                @OpenApiParam(name = "offset", type = Integer.class, description = "Pagination offset (default 0)"),
+                @OpenApiParam(name = "from", description = "Earliest date to list, ISO yyyy-MM-dd"),
+                @OpenApiParam(name = "to", description = "Latest date to list, ISO yyyy-MM-dd (default yesterday)")
+            },
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = UpcomingEventOccurrence[].class)))
+    private void listPast(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(occurrenceService.findPastOccurrences(
+                session.stationId(), resolveVisibleMemberIds(session), parseOccurrenceQuery(ctx)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/paged",
+            methods = HttpMethod.GET,
+            summary = "List events with the dates they next fall on and last fell on, split into current and past",
+            tags = {"Events"},
+            queryParams = {
+                @OpenApiParam(
+                        name = "state",
+                        description = "current for events that still come round, past for the rest (default current)"),
+                @OpenApiParam(name = "kind", description = "one_time or repeating, both kinds when absent"),
+                @OpenApiParam(name = "categoryId", type = Integer.class, description = "Filter by category ID"),
+                @OpenApiParam(
+                        name = "requiresRegistration",
+                        type = Boolean.class,
+                        description = "Filter by registration requirement"),
+                @OpenApiParam(
+                        name = "search",
+                        description = "Free-text search over event name and description (case-insensitive)"),
+                @OpenApiParam(name = "limit", type = Integer.class, description = "Max number of events (default 10)"),
+                @OpenApiParam(name = "offset", type = Integer.class, description = "Pagination offset (default 0)"),
+                @OpenApiParam(name = "from", description = "Earliest ordering date to list, ISO yyyy-MM-dd"),
+                @OpenApiParam(name = "to", description = "Latest ordering date to list, ISO yyyy-MM-dd")
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DatedEvent[].class)))
+    private void listPaged(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var query = new EventOccurrenceService.EventPageQuery(
+                parseState(ctx.queryParam("state")), parseKind(ctx.queryParam("kind")), parseOccurrenceQuery(ctx));
+        ctx.json(occurrenceService.findEventsPage(session.stationId(), resolveVisibleMemberIds(session), query));
+    }
+
+    /** The filters, the window of days and the page that the three event listings all read alike. */
+    private EventOccurrenceService.OccurrenceQuery parseOccurrenceQuery(Context ctx) {
+        var filter = parseCategoryFilter(ctx);
+        return new EventOccurrenceService.OccurrenceQuery(
                 filter.categoryId(),
                 filter.requiresRegistration(),
-                search,
-                limit,
-                offset));
+                ctx.queryParam("search"),
+                parseDate(ctx.queryParam("from")),
+                parseDate(ctx.queryParam("to")),
+                ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10),
+                ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0));
+    }
+
+    /** An optional date bound, absent where the parameter was not sent or was sent empty. */
+    private static LocalDate parseDate(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return LocalDate.parse(value);
+        } catch (DateTimeParseException e) {
+            throw new BadRequestResponse("from and to must be dates of the form yyyy-MM-dd");
+        }
+    }
+
+    /**
+     * Reads which half of the appointments a page asks for, falling back to the ones still to come
+     * where the parameter is absent or names no known state.
+     */
+    private static EventOccurrenceService.EventState parseState(String value) {
+        if (value == null) return EventOccurrenceService.EventState.CURRENT;
+        try {
+            return EventOccurrenceService.EventState.valueOf(value.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return EventOccurrenceService.EventState.CURRENT;
+        }
+    }
+
+    /**
+     * Reads which kind of appointment a page asks for, answering null for both of them where the
+     * parameter is absent or names no known kind.
+     */
+    private static EventOccurrenceService.EventKind parseKind(String value) {
+        if (value == null) return null;
+        try {
+            return EventOccurrenceService.EventKind.valueOf(value.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     @OpenApi(

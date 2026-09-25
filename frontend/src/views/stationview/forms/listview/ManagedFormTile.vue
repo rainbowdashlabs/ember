@@ -17,12 +17,15 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import {FormPurpose, FormStatus, FormVisibility, type Form} from '@/api/forms'
+import {PublicFormState} from '@/api/publicForms'
+import {formStateOf} from '@/util/formState'
 import {formatDate} from '@/util/format'
 
 const props = defineProps<{
   form: Form
   canCreatePolls: boolean
-  statusLabel: (status: string) => string
+  /** Names whether a form is taking answers, which is not the same as its stored status. */
+  statusLabel: (state: string) => string
   /** The page the tile opens, or nothing where it opens none. */
   to: RouteLocationRaw | null
 }>()
@@ -33,11 +36,15 @@ const emit = defineEmits<{
   (e: 'edit', form: Form): void
   (e: 'analytics', form: Form): void
   (e: 'share', form: Form): void
+  (e: 'clear', form: Form): void
   (e: 'delete', form: Form): void
 }>()
 
 const {t} = useI18n()
 const menuOpen = ref(false)
+
+/** Whether the form is taking answers, which its dates decide as much as its status does. */
+const state = computed(() => formStateOf(props.form))
 
 /**
  * A form answered from outside that has been set to answer at its link and nowhere else. Worth
@@ -57,6 +64,7 @@ const menuActions = {
   edit: () => emit('edit', props.form),
   analytics: () => emit('analytics', props.form),
   share: () => emit('share', props.form),
+  clear: () => emit('clear', props.form),
   delete: () => emit('delete', props.form),
 }
 
@@ -80,9 +88,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
     <NeutralContainer class="relative cursor-pointer hover:border-primary transition-colors h-full">
       <div class="flex flex-col gap-2 pr-10 h-full">
         <div class="flex items-center gap-2 flex-wrap">
-          <SuccessBadge v-if="form.status === FormStatus.OPEN">{{ statusLabel(form.status) }}</SuccessBadge>
-          <ErrorBadge v-else-if="form.status === FormStatus.CLOSED">{{ statusLabel(form.status) }}</ErrorBadge>
-          <InfoBadge v-else>{{ statusLabel(form.status) }}</InfoBadge>
+          <SuccessBadge v-if="state === PublicFormState.OPEN">{{ statusLabel(state) }}</SuccessBadge>
+          <ErrorBadge v-else-if="state === PublicFormState.CLOSED">{{ statusLabel(state) }}</ErrorBadge>
+          <InfoBadge v-else>{{ statusLabel(state) }}</InfoBadge>
           <SecondaryBadge v-if="form.status !== FormStatus.DRAFT">
             {{ t('forms.responseCount', {count: form.responseCount}) }}
           </SecondaryBadge>
@@ -106,6 +114,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
           <DropdownMenuItem v-if="canCreatePolls && form.status === FormStatus.OPEN" :icon="['fas', 'lock']" @click="pick('close')">
             {{ t('forms.close') }}
           </DropdownMenuItem>
+          <DropdownMenuItem v-if="canCreatePolls && form.status === FormStatus.CLOSED" :icon="['fas', 'lock-open']" @click="pick('publish')">
+            {{ t('forms.reopen') }}
+          </DropdownMenuItem>
           <DropdownMenuItem v-if="canCreatePolls && form.status !== FormStatus.CLOSED" :icon="['fas', 'pen']" @click="pick('edit')">
             {{ t('forms.edit') }}
           </DropdownMenuItem>
@@ -114,6 +125,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
           </DropdownMenuItem>
           <DropdownMenuItem v-if="form.status !== FormStatus.DRAFT" :icon="['fas', 'chart-bar']" @click="pick('analytics')">
             {{ t('forms.viewAnalytics') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem v-if="canCreatePolls && form.responseCount > 0" :icon="['fas', 'rotate-left']" @click="pick('clear')">
+            {{ t('forms.clearResponses') }}
           </DropdownMenuItem>
           <DropdownMenuItem v-if="canCreatePolls" :icon="['fas', 'trash']" icon-class="w-4 text-(--error)" @click="pick('delete')">
             {{ t('forms.delete') }}

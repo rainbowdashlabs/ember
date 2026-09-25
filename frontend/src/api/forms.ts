@@ -299,6 +299,17 @@ export async function closeForm(id: number): Promise<Form> {
     return res.data
 }
 
+/**
+ * Throws away every answer the form has collected. The form and its questions stay, so it can be
+ * asked again.
+ *
+ * @returns how many answers were thrown away
+ */
+export async function clearFormResponses(id: number): Promise<number> {
+    const res = await client.delete<{cleared: number}>(`/forms/${id}/responses`)
+    return res.data.cleared
+}
+
 // -- Questions --
 
 export async function getQuestions(formId: number): Promise<FormQuestion[]> {

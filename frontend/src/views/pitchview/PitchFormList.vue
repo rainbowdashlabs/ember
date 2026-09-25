@@ -15,9 +15,14 @@ defineProps<{
 
 const {t} = useI18n()
 
-const STATUS = {DRAFT: 'forms.statusDraft', OPEN: 'forms.statusOpen', CLOSED: 'forms.statusClosed'}
+const STATE = {
+  NOT_PUBLISHED: 'forms.statusDraft',
+  OPEN: 'forms.statusOpen',
+  NOT_OPEN_YET: 'forms.statusScheduled',
+  CLOSED: 'forms.statusClosed',
+}
 
-const statusLabel = (status: string) => t(STATUS[status as keyof typeof STATUS] ?? 'forms.statusDraft')
+const statusLabel = (state: string) => t(STATE[state as keyof typeof STATE] ?? 'forms.statusDraft')
 
 /** The pitch shows the tiles rather than offering them, so none of them opens anything. */
 const noPage = () => null

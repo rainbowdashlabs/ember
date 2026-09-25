@@ -681,18 +681,7 @@ public class NewsRoutes implements Routes {
     }
 
     private int resolvePublicStation(Context ctx) {
-        String param = ctx.pathParam("stationUid");
-        try {
-            return stationRepository
-                    .findByUid(UUID.fromString(param))
-                    .orElseThrow(NotFoundResponse::new)
-                    .id();
-        } catch (IllegalArgumentException e) {
-            return stationRepository
-                    .findBySlug(param)
-                    .orElseThrow(NotFoundResponse::new)
-                    .id();
-        }
+        return stationRepository.resolveAddressedId(ctx.pathParam("stationUid")).orElseThrow(NotFoundResponse::new);
     }
 
     private void publicBlogList(Context ctx) {

@@ -132,6 +132,16 @@ public class FormService {
     }
 
     /**
+     * Whether the station has a form anybody outside it can reach at the form's own address.
+     *
+     * @param stationId the station ID
+     * @return whether one such form exists
+     */
+    public boolean hasOpenlyAddressedForms(int stationId) {
+        return repository.hasOpenlyAddressedForms(stationId);
+    }
+
+    /**
      * Retrieves all forms for a station with the given purpose.
      *
      * @param stationId the station ID
@@ -362,6 +372,22 @@ public class FormService {
             log.warn("Form close affected zero rows for form {}", id);
         }
         return updated;
+    }
+
+    /**
+     * Throws away every answer a form has collected, leaving the form itself to be used again.
+     *
+     * <p>The way to start a poll over rather than build the same one twice: a trial run, a round
+     * that went to the wrong people, or a question asked again next season. What goes is the
+     * answers, so whoever answered before may answer again.
+     *
+     * @param id the form to empty
+     * @return how many answers were thrown away
+     */
+    public int clearResponses(int id) {
+        int cleared = repository.deleteResponses(id);
+        log.info("Cleared {} responses from form {}", cleared, id);
+        return cleared;
     }
 
     /**
