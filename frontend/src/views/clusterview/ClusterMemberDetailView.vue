@@ -48,6 +48,13 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   saved.value = false
 })
 
+/**
+ * The person by name at the head of the page, because "Mitglied" stands above every one of them and
+ * is what the tab, the history and a bookmark carry. The plain word stands until the profile has
+ * arrived, and where it could not be fetched at all; the line underneath says what the page is for.
+ */
+const pageTitle = computed(() => profile.value?.name || t('pages.cluster-member-detail.title'))
+
 const fields = computed<LaidOutField[]>(() => (profile.value?.fields ?? []).map(f => ({
   id: f.id,
   name: f.name,
@@ -105,7 +112,7 @@ const {running: saving, error: saveError, run: save} = useAsyncAction(async () =
 </script>
 
 <template>
-  <ViewContent :subtitle="profile?.name ?? ''" :title="t('pages.cluster-member-detail.title')">
+  <ViewContent :subtitle="t('pages.cluster-member-detail.subtitle')" :title="pageTitle">
     <div class="space-y-4">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error || saveError" variant="error">{{ error || saveError }}</Alert>

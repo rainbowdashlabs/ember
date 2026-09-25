@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -49,6 +49,19 @@ const selectedItemIds = ref<Set<number>>(new Set())
 const loadingItems = ref(false)
 
 const requestId = Number(route.params.id)
+
+/**
+ * The station at the other end of the request, at the head of the page. Both sides open these by
+ * the handful, and "Ausleih-Anfrage" above every one of them is what the tab, the history and a
+ * bookmark carry. The plain wording stands while it loads and where it could not be fetched.
+ */
+const counterpartName = computed(() => (detail.value?.request.isOwner
+    ? detail.value.request.requestingStationName
+    : detail.value?.request.owningStationName))
+
+const pageTitle = computed(() => (counterpartName.value
+    ? t('pages.inventory-lending-request.titleNamed', {name: counterpartName.value})
+    : t('pages.inventory-lending-request.title')))
 
 const {loading, error, reload: loadData} = useAsyncLoader(async () => {
   detail.value = await lending.getRequest(requestId)
@@ -155,7 +168,7 @@ async function handleClose() {
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-lending-request.title')"
+      :title="pageTitle"
       :subtitle="t('pages.inventory-lending-request.subtitle')"
   >
     <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="router.push({name: routes.lending})">

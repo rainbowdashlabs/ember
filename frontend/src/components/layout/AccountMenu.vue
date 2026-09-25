@@ -16,12 +16,14 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'settings'): void
   (e: 'logout'): void
 }>()
 
 const {t} = useI18n()
 const route = useRoute()
+
+/** The account page, which the menu reaches as the link it is rather than as a press to be acted on. */
+const accountPage = {name: 'account'}
 
 function onEsc(e: KeyboardEvent) {
   if (e.key === 'Escape') emit('close')
@@ -31,11 +33,6 @@ onMounted(() => window.addEventListener('keydown', onEsc))
 onBeforeUnmount(() => window.removeEventListener('keydown', onEsc))
 
 watch(() => route.fullPath, () => emit('close'))
-
-function pickSettings() {
-  emit('settings')
-  emit('close')
-}
 
 function pickLogout() {
   emit('logout')
@@ -47,7 +44,7 @@ function pickLogout() {
   <template v-if="props.mode === 'dropdown'">
     <div v-if="props.open"
          class="absolute right-0 top-full mt-2 w-48 rounded-theme border border-(--border) bg-(--bg) shadow-lg z-50">
-      <DropdownMenuItem :icon="['fas', 'gear']" @click="pickSettings">
+      <DropdownMenuItem :icon="['fas', 'gear']" :to="accountPage">
         {{ t('header.accountSettings') }}
       </DropdownMenuItem>
       <DropdownMenuItem :icon="['fas', 'right-from-bracket']" @click="pickLogout">
@@ -61,7 +58,7 @@ function pickLogout() {
       <div v-if="props.open" class="fixed inset-0 z-50 flex" @click.self="emit('close')">
         <div class="absolute inset-0 bg-black/40" data-testid="account-drawer-backdrop" @click="emit('close')"/>
         <div class="relative ml-auto h-full w-72 bg-(--bg) shadow-xl flex flex-col gap-1 p-3">
-          <DropdownMenuItem :icon="['fas', 'gear']" @click="pickSettings">
+          <DropdownMenuItem :icon="['fas', 'gear']" :to="accountPage">
             {{ t('header.accountSettings') }}
           </DropdownMenuItem>
           <DropdownMenuItem :icon="['fas', 'right-from-bracket']" @click="pickLogout">

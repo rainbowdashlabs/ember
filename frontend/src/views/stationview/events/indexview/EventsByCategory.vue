@@ -14,6 +14,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -130,35 +131,36 @@ function detailRoute(ev: StationEvent) {
       </div>
       <SubHeader v-else class="text-sm font-semibold uppercase text-(--text-muted) pt-2">{{ t('events.uncategorized') }}</SubHeader>
 
-      <NeutralContainer v-for="ev in visibleEvents(group)" :key="ev.id" data-testid="event-entry"
-                        :data-registration="ev.requiresRegistration ? 'true' : 'false'"
-                        class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors"
-                        @click="router.push(detailRoute(ev))">
-        <div class="flex items-center gap-2 flex-wrap">
-          <SecondaryBadge v-if="isRecurringEvent(ev.eventType)">
-            <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>
-            {{ eventTypeLabel(ev.eventType) }}
-          </SecondaryBadge>
-          <span class="font-medium text-primary">{{ ev.name }}</span>
-          <MutedIcon v-if="ev.restricted" :icon="['fas', 'lock']" class="ml-1"/>
-          <span v-if="isRecurringEvent(ev.eventType)" class="text-sm text-(--text-muted)">{{
-              dayName(ev.dayOfWeek)
-            }}, {{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
-          <span v-else class="text-sm text-(--text-muted)">{{ formatDate(ev.startTime) }}, {{
-              formatTime(ev.startTime)
-            }} – {{ formatTime(ev.endTime) }}</span>
-          <span v-if="ev.templateId" class="text-xs text-primary">{{ templateName(ev.templateId, templates) }}</span>
-          <template v-if="overviewFields?.[ev.id]?.length">
-            <span v-for="f in overviewFields[ev.id]" :key="f.id" class="text-xs text-(--text-muted)">
-              {{ f.name }}: <EventFieldValue :field-type="f.fieldType" :value="f.value"/>
-            </span>
-          </template>
-        </div>
-        <div class="flex items-center gap-2">
-          <EditButton @click.stop="emit('editEvent', ev)"/>
-          <DeleteButton @click.stop="emit('deleteEvent', ev)"/>
-        </div>
-      </NeutralContainer>
+      <RowLink v-for="ev in visibleEvents(group)" :key="ev.id" :to="detailRoute(ev)">
+        <NeutralContainer data-testid="event-entry"
+                          :data-registration="ev.requiresRegistration ? 'true' : 'false'"
+                          class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors">
+          <div class="flex items-center gap-2 flex-wrap">
+            <SecondaryBadge v-if="isRecurringEvent(ev.eventType)">
+              <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>
+              {{ eventTypeLabel(ev.eventType) }}
+            </SecondaryBadge>
+            <span class="font-medium text-primary">{{ ev.name }}</span>
+            <MutedIcon v-if="ev.restricted" :icon="['fas', 'lock']" class="ml-1"/>
+            <span v-if="isRecurringEvent(ev.eventType)" class="text-sm text-(--text-muted)">{{
+                dayName(ev.dayOfWeek)
+              }}, {{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
+            <span v-else class="text-sm text-(--text-muted)">{{ formatDate(ev.startTime) }}, {{
+                formatTime(ev.startTime)
+              }} – {{ formatTime(ev.endTime) }}</span>
+            <span v-if="ev.templateId" class="text-xs text-primary">{{ templateName(ev.templateId, templates) }}</span>
+            <template v-if="overviewFields?.[ev.id]?.length">
+              <span v-for="f in overviewFields[ev.id]" :key="f.id" class="text-xs text-(--text-muted)">
+                {{ f.name }}: <EventFieldValue :field-type="f.fieldType" :value="f.value"/>
+              </span>
+            </template>
+          </div>
+          <div class="flex items-center gap-2">
+            <EditButton @click="emit('editEvent', ev)"/>
+            <DeleteButton @click="emit('deleteEvent', ev)"/>
+          </div>
+        </NeutralContainer>
+      </RowLink>
 
       <SecondaryButton v-if="hasMore(group)" class="w-full" @click="toggleExpand(group)">
         {{ t('events.loadMore', {count: group.events.length - (group.category?.maxShownEvents ?? 0)}) }}

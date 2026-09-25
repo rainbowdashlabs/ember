@@ -35,10 +35,22 @@ const presetTemplateId = computed(() => (route.query.template ? Number(route.que
 
 const form = useProcedureForm(editId, presetTemplateId)
 const {
-  name, description, dueAt, isPublic,
+  name, savedName, description, dueAt, isPublic,
   templates, selectedTemplateId, members, selectedAssigneeIds, items,
   isEditMode, loading, error,
 } = form
+
+/**
+ * A procedure being edited is named after itself; one being created has no name yet and keeps the
+ * words of the form.
+ */
+const pageTitle = computed(() => isEditMode.value
+    ? savedName.value || t('pages.procedure-edit.title')
+    : t('pages.procedure-create.title'))
+
+const pageSubtitle = computed(() => isEditMode.value
+    ? t('pages.procedure-edit.subtitle')
+    : t('pages.procedure-create.subtitle'))
 
 const {running: saving, error: saveError, run: runSubmit} = useAsyncAction(
     async () => router.push({name: 'procedure-detail', params: {id: await form.submit()}}),
@@ -58,8 +70,8 @@ watch(loaded, (v) => {
 
 <template>
   <ViewContent
-      :title="t('pages.procedure-create.title')"
-      :subtitle="t('pages.procedure-create.subtitle')"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
   >
     <Spinner v-if="loading"/>
     <Alert v-if="error || saveError" variant="error" class="mb-4">{{ error || saveError }}</Alert>

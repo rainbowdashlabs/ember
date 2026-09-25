@@ -4,23 +4,43 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, inject, onMounted, ref, type Ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRoute} from 'vue-router'
-import type {PublicStationInfo} from '@/api/discovery'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PublicEventList from './publicstationcalendarview/PublicEventList.vue'
-import {getIcalFeedUrl, getIcalSubscribeUrl, listPublicEvents, type PublicEvent} from '@/api/publicEvents'
+import {getIcalFeedUrl, getIcalSubscribeUrl, type PublicEvent} from '@/api/publicEvents'
+import {apiUrl} from '@/util/apiUrl'
+import {socialMeta, stationLogoImage, titleWithStation, useAbsoluteUrl} from '@/util/socialMeta'
+import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
 
 const {t} = useI18n()
-const route = useRoute()
 
-const publicStation = inject<Ref<PublicStationInfo | null>>('publicStation')
-const stationUid = computed(() => publicStation?.value?.stationUid ?? route.params.stationUid as string)
-const allEvents = ref<PublicEvent[]>([])
-const loading = ref(true)
+const {station, stationUid, stationTimezone} = usePublicStationAddress()
+const headTitle = computed(() => titleWithStation(t('publicStation.calendar'), station.value?.name))
+const absoluteUrl = useAbsoluteUrl()
+
+/**
+ * Resolved here rather than inside the loader: the address comes from the runtime configuration,
+ * and reading that needs the Nuxt instance, which a loader running on its own no longer has.
+ */
+const apiBase = apiUrl('')
+
+/**
+ * Fetched while the server renders rather than after mounting.
+ *
+ * <p>The appointments are what this page is. Fetched once the browser had taken over, what the
+ * server sent was a calendar with no dates in it, and the structured list of appointments beside it,
+ * which is the one thing a search engine can show a date from, was written after nobody was reading.
+ */
+const {data: allEvents, status} = await useAsyncData(
+    () => `public-events-${stationUid.value}`,
+    () => $fetch<PublicEvent[]>(`${apiBase}/public/events/${stationUid.value}`),
+    {default: (): PublicEvent[] => [], watch: [stationUid]},
+)
+
+const loading = computed(() => status.value === 'pending')
 
 const events = computed(() => {
   const now = new Date()
@@ -32,10 +52,18 @@ const events = computed(() => {
 })
 
 useHead(computed(() => {
+  const info = station.value
   const oneTimeEvents = events.value.filter(e => e.startTime && (!e.eventType || e.eventType === 'ONE_TIME'))
-  if (oneTimeEvents.length === 0) return {}
   return {
-    script: [
+    title: headTitle.value,
+    meta: info
+        ? socialMeta({
+          title: headTitle.value,
+          description: t('publicStation.meta.calendar', {station: info.name}),
+          imageUrl: absoluteUrl(stationLogoImage(info)),
+        })
+        : [],
+    script: oneTimeEvents.length === 0 ? [] : [
       {
         type: 'application/ld+json',
         innerHTML: JSON.stringify(oneTimeEvents.slice(0, 20).map(e => ({
@@ -51,14 +79,6 @@ useHead(computed(() => {
     ],
   }
 }))
-
-onMounted(async () => {
-  try {
-    allEvents.value = await listPublicEvents(stationUid.value)
-  } finally {
-    loading.value = false
-  }
-})
 </script>
 
 <template>
@@ -77,7 +97,7 @@ onMounted(async () => {
       </NeutralContainer>
 
       <Spinner v-if="loading"/>
-      <PublicEventList v-else :events="events"/>
+      <PublicEventList v-else :events="events" :timezone="stationTimezone"/>
     </div>
   </ViewContent>
 </template>

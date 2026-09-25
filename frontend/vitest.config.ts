@@ -28,7 +28,14 @@ export default defineVitestConfig({
          */
         hookTimeout: 30_000,
         globals: true,
-        include: ['src/**/*.{test,spec}.ts'],
+        /**
+         * The linters under `scripts/` are reached as well as the application.
+         *
+         * A linter's value is what it catches and what it leaves alone, and neither can be read off
+         * the regular expressions it is made of. The rule about rows that open a page decides what
+         * a sweep of sixty-odd files has to change, so it is worth holding to a test of its own.
+         */
+        include: ['src/**/*.{test,spec}.ts', 'scripts/**/*.{test,spec}.ts'],
         exclude: ['e2e/**', 'node_modules/**', '.nuxt/**'],
         setupFiles: ['src/test/setup.ts'],
         coverage: {

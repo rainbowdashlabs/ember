@@ -26,6 +26,7 @@ const single = computed(() => (props.actions.length === 1 ? props.actions[0] : n
 
 const hoverClass = computed(() =>
     props.hoverGroup ? 'opacity-0 group-hover:opacity-100 transition-opacity' : '')
+
 </script>
 
 <template>
@@ -35,13 +36,12 @@ const hoverClass = computed(() =>
             :icon="single.icon"
             :label="single.label"
             :class="[single.class, single.onHover ? hoverClass : '']"
-            @click.stop="single.run($event)"
+            @click="single.run($event)"
         />
         <ActionsMenu
             v-else
             :label="t('kb.itemActions')"
             :class="hoverClass"
-            @click.stop
         >
             <DropdownMenuItem
                 v-for="action in actions"

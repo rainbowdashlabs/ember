@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -14,27 +14,74 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {PublicBlogEntry} from '@/api/news'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import {news} from '@/api'
-import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {formatDateLong} from '@/util/format'
 import AttachmentList from '@/views/stationview/news/newsshared/AttachmentList.vue'
 import NewsBody from '@/views/stationview/news/newsshared/NewsBody.vue'
 import {publicContentContext} from '@/util/contentContext'
+import {apiUrl} from '@/util/apiUrl'
+import {plainTextExcerpt, socialMeta, stationLogoImage, useAbsoluteUrl} from '@/util/socialMeta'
+import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const stationUid = computed(() => route.params.stationUid as string)
+const {station, stationUid, stationTimezone, stationAddress} = usePublicStationAddress()
 const blogId = computed(() => Number(route.params.blogId))
 
-const entry = ref<PublicBlogEntry | null>(null)
+const absoluteUrl = useAbsoluteUrl()
 
-const {loading, error} = useAsyncLoader(async () => {
-  entry.value = await news.getPublicBlogEntry(stationUid.value, blogId.value)
-})
+/**
+ * Resolved here rather than inside the loader: the address comes from the runtime configuration,
+ * and reading that needs the Nuxt instance, which a loader running on its own no longer has.
+ */
+const apiBase = apiUrl('')
+
+/**
+ * Fetched while the server renders rather than after mounting.
+ *
+ * <p>An entry's own headline and the opening of its body are what a link to it unfurls as, and a
+ * body fetched once scripts have run is in no page a crawler or a chat client ever reads. It is the
+ * entry itself that is worth sharing here, so it has to travel in the page the server sends.
+ */
+const {data: entry, error: loadError, status} = await useAsyncData(
+    () => `public-blog-entry-${stationUid.value}-${blogId.value}`,
+    () => $fetch<PublicBlogEntry>(`${apiBase}/public/station/${stationUid.value}/blog/${blogId.value}`),
+    {watch: [stationUid, blogId]},
+)
+
+const loading = computed(() => status.value === 'pending')
+const error = computed(() => (loadError.value ? t('common.error') : ''))
+
+useHead(computed(() => {
+  const e = entry.value
+  if (!e) return {}
+  const info = station.value
+  const description = plainTextExcerpt(e.contentHtml)
+      || (info ? t('publicStation.meta.blogEntry', {station: info.name}) : e.title)
+  const image = absoluteUrl(stationLogoImage(info))
+  return {
+    title: e.title,
+    meta: socialMeta({title: e.title, description, imageUrl: image, type: 'article'}),
+    script: [
+      {
+        type: 'application/ld+json',
+        innerHTML: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: e.title,
+          description,
+          datePublished: e.publishedAt,
+          ...(e.authorName ? {author: {'@type': 'Person', name: e.authorName}} : {}),
+          ...(image ? {image} : {}),
+          ...(info ? {publisher: {'@type': 'Organization', name: info.name}} : {}),
+        }),
+      },
+    ],
+  }
+}))
 
 function goBack() {
-  router.push({name: 'public-blog', params: {stationUid: stationUid.value}})
+  router.push({name: 'public-blog', params: {stationUid: stationAddress.value}})
 }
 </script>
 
@@ -52,14 +99,14 @@ function goBack() {
       <SectionHeader>{{ entry.title }}</SectionHeader>
       <div class="flex items-center gap-3 text-sm text-(--text-muted)">
         <span v-if="entry.authorName">{{ t('publicStation.blogBy') }} {{ entry.authorName }}</span>
-        <span>{{ formatDateLong(entry.publishedAt) }}</span>
+        <span>{{ formatDateLong(entry.publishedAt, stationTimezone) }}</span>
       </div>
       <NeutralContainer>
         <NewsBody
             :mode="entry.contentMode"
             :rows="entry.rows ?? []"
             :html="entry.contentHtml"
-            :context="publicContentContext(stationUid, entry.title)"
+            :context="publicContentContext(stationUid, entry.title, stationTimezone)"
         />
 
         <AttachmentList :attachments="entry.attachments ?? []" :station-uid="stationUid"/>

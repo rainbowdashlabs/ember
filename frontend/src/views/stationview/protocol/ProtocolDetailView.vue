@@ -214,12 +214,19 @@ async function handleSaveProtocol() {
   } catch { error.value = t('common.error') }
 }
 
+/**
+ * The protocol's own name at the head of the page, because "Protokoll" is the word above every one
+ * of them and it is what the tab, the history and a bookmark carry. It holds the place while the
+ * protocol loads and where it cannot be loaded at all.
+ */
+const pageTitle = computed(() => proto.value?.name || t('pages.protocol-detail.title'))
+
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
   <ViewContent
-      :title="t('pages.protocol-detail.title')"
+      :title="pageTitle"
       :subtitle="t('pages.protocol-detail.subtitle')"
   >
     <div class="flex items-center gap-2 mb-4">

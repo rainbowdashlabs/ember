@@ -21,7 +21,7 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <div class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent" @click.stop>
+  <div class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
     <LinkButton
       class="!text-sm !text-(--text-muted) hover:!text-primary hover:!no-underline flex items-center gap-1.5"
       @click="emit('toggle')"

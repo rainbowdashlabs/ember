@@ -43,6 +43,14 @@ const {config: catalogName, loading, error, reload: loadData} = useConfigPanel<s
   immediate: false,
 })
 
+/**
+ * The catalog being filled out, with the job after its name, so two catalogs worked on at once are
+ * two tabs that say which is which.
+ */
+const pageTitle = computed(() => catalogName.value
+  ? t('pages.quiz-catalog-mc-fill.titleNamed', {name: catalogName.value})
+  : t('pages.quiz-catalog-mc-fill.title'))
+
 // Config phase
 const countMode = ref<string>('fillTo')
 const count = ref(6)
@@ -194,7 +202,7 @@ watch(loaded, v => { if (v) loadData() }, {immediate: true})
 </script>
 
 <template>
-  <ViewContent :title="t('pages.quiz-catalog-mc-fill.title')" :subtitle="t('pages.quiz-catalog-mc-fill.subtitle')">
+  <ViewContent :title="pageTitle" :subtitle="t('pages.quiz-catalog-mc-fill.subtitle')">
     <div class="flex items-center gap-2 mb-4">
       <SecondaryButton @click="router.push({name: 'quiz-catalog-detail', params: {id: catalogId}})">
         <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1"/>

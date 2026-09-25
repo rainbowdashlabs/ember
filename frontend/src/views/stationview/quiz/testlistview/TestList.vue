@@ -19,7 +19,6 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  navigate: [test: QuizTest]
   take: [test: QuizTest]
   edit: [test: QuizTest]
   remove: [test: QuizTest]
@@ -39,7 +38,6 @@ const emit = defineEmits<{
       :attempt-count="attemptCountFor(test)"
       :attempt-started-at="attemptStartedAtFor(test)"
       :attempt-submitted-at="attemptSubmittedAtFor(test)"
-      @navigate="emit('navigate', $event)"
       @take="emit('take', $event)"
       @edit="emit('edit', $event)"
       @remove="emit('remove', $event)"

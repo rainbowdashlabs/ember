@@ -259,12 +259,22 @@ function confirmDeleteChecklist() {
 const pageError = computed(() =>
     error.value || addMembersError.value || saveMetaError.value || deleteError.value)
 
+/**
+ * The list's own name at the head of the page, because "Checkliste" is the same word above every one
+ * of them and it is what the tab, the history and a bookmark end up carrying. The word stands until
+ * the list has arrived, and where it could not be fetched at all.
+ */
+const pageTitle = computed(() => detail.value?.name || t('pages.checklist-detail.title'))
+
+/** Once the name is the title, the line under it is where the list says what it is for. */
+const pageSubtitle = computed(() => detail.value?.description || t('pages.checklist-detail.subtitle'))
+
 </script>
 
 <template>
   <ViewContent
-      :title="t('pages.checklist-detail.title')"
-      :subtitle="t('pages.checklist-detail.subtitle')"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
   >
     <div v-if="loading" class="flex justify-center py-6"><Spinner/></div>
     <Alert v-else-if="pageError" variant="error" class="mb-4">{{ pageError }}</Alert>

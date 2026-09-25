@@ -13,6 +13,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import InventoryTabs from './clusterinventoryview/InventoryTabs.vue'
 import {useClusterQueueTable} from './clustermovementqueueview/useClusterQueueTable'
 import {clusterInventory} from '@/api'
@@ -35,9 +36,16 @@ const table = useClusterQueueTable(() => queue.value)
  * <p>An exchange arriving from a station shows up here like any other step, because from this end it
  * is one: somebody sent something and is waiting on the association. There is no separate list of
  * exchanges to work, since the queue already is the work.
+ *
+ * <p>A row of a table cannot be a link itself, so the address hangs on the cell naming the step and
+ * the rest of the row answers a press as it always did.
  */
+function movementPage(entry: ClusterQueueEntry) {
+  return {name: 'cluster-inventory-movement', params: {id: String(entry.movementId)}}
+}
+
 function open(entry: ClusterQueueEntry) {
-  void router.push({name: 'cluster-inventory-movement', params: {id: String(entry.movementId)}})
+  void router.push(movementPage(entry))
 }
 </script>
 
@@ -56,6 +64,9 @@ function open(entry: ClusterQueueEntry) {
       <Spinner v-if="loading" size="lg"/>
 
       <RecordTable v-else :table="table" clickable row-test-id="cluster-movement-row" test-id="cluster-movement-queue" @row-click="open">
+        <template #cell-step="{row, text}">
+          <RowLink :to="movementPage(row)">{{ text }}</RowLink>
+        </template>
         <template #cell-purpose="{text}">
           <SecondaryBadge>{{ text }}</SecondaryBadge>
         </template>

@@ -62,6 +62,15 @@ function onAddChildChoice(target: 'existing' | 'new') {
 }
 
 const containerId = computed(() => Number(route.params.id))
+
+/**
+ * The container's own name at the head of the page, because "Behälter" stands above every shelf and
+ * every box alike and is what the tab, the history and a bookmark carry. The plain word stands
+ * until the container has arrived, and where it could not be fetched at all.
+ */
+const pageTitle = computed(() =>
+    detail.value?.container.name || t('pages.inventory-container-detail.title'))
+
 const kindById = computed(() => {
   const map = new Map<number, InventoryContainerKind>()
   for (const k of kinds.value) map.set(k.id, k)
@@ -143,7 +152,7 @@ onMounted(load)
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-container-detail.title')"
+      :title="pageTitle"
       :subtitle="t('pages.inventory-container-detail.subtitle')"
   >
     <div v-if="loading" class="flex justify-center py-12">

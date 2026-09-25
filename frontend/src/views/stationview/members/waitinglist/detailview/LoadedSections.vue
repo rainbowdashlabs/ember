@@ -44,7 +44,6 @@ export interface DetailActions {
   onMoveToJoined: (id: number) => void
   onWithdraw: (id: number) => void
   onNavigateToEntry: (id: number) => void
-  onNavigateToMember: (id: number) => void
   onDeleteEntry: (entry: WaitingListEntryWithScore) => void
   onSetFields: (ids: number[], visible: boolean) => void
   onAddEntry: () => void
@@ -89,6 +88,7 @@ defineProps<{
   <WaitingSection
     :entries="entryGroups.waiting"
     :fields="fields"
+    :list-id="listId"
     :visible-field-ids="visibleFieldIds"
     :readonly="!permissions.canEdit"
     :can-add="permissions.canAdd"
@@ -104,17 +104,15 @@ defineProps<{
   <TestingSection
     :entries="entryGroups.testing"
     :attendance-threshold="list.attendanceThreshold ?? 5"
+    :list-id="listId"
     :readonly="!permissions.canEdit"
     @move-to-joined="actions.onMoveToJoined"
     @withdraw="actions.onWithdraw"
-    @navigate-to-entry="actions.onNavigateToEntry"
   />
 
   <FinishedSection
     :entries="entryGroups.finished"
     :can-link-member="permissions.canReadMembers"
-    @navigate-to-entry="actions.onNavigateToEntry"
-    @navigate-to-member="actions.onNavigateToMember"
   />
 
   <InvitesSection

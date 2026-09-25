@@ -18,10 +18,6 @@ const props = defineProps<{
     laneName: (laneId: number) => string
 }>()
 
-const emit = defineEmits<{
-    select: [ticket: BoardTicket]
-}>()
-
 const { t } = useI18n()
 
 const searchQuery = ref('')
@@ -41,12 +37,6 @@ function onSearchInput() {
         } catch { void 0 }
     }, 300)
 }
-
-function select(ticket: BoardTicket) {
-    emit('select', ticket)
-    searchQuery.value = ''
-    searchResults.value = null
-}
 </script>
 
 <template>
@@ -60,7 +50,6 @@ function select(ticket: BoardTicket) {
                 :short-key="shortKey"
                 :labels="labelsForTicket(result.id)"
                 :lane-name="laneName(result.laneId)"
-                @select="select(result)"
             />
         </div>
     </div>

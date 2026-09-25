@@ -1,5 +1,19 @@
 # Änderungsprotokoll
 
+## v26.19.1
+
+### Verbesserungen
+
+- **Zeilen und Karten, die eine Seite öffnen, lassen sich in einem neuen Tab öffnen.** Einträge in den Listen der Wache verhalten sich jetzt wie die Links, die sie immer schon waren: mit der mittleren Maustaste in einem eigenen Tab öffnen, mit der rechten die Adresse kopieren, mit der Tastatur erreichen und als Link vorgelesen bekommen. Am Klick selbst ändert sich nichts.
+- **Das öffentliche Wiki sieht aus wie das Wiki selbst.** Öffentlich zugängliche Ordner und Artikel werden jetzt so dargestellt, wie die Mitglieder der Wache sie sehen: dieselben Einträge, dieselben Suchergebnisse, die Bilder, die die Wache ihren Ordnern gegeben hat, und die Vorschau, die ein Foto oder ein Dokument auf seiner eigenen Kachel zeigt. Auch der Wechsel zwischen Kacheln und einzeiligen Einträgen steht zur Verfügung.
+- **Ein geteilter Link auf eine öffentliche Seite sagt, worum es geht.** Der Kalender, ein Blog-Beitrag, ein Wiki-Artikel und die Warteliste tragen jetzt einen eigenen Namen und eine kurze Beschreibung. Ein in einen Chat eingefügter Link zeigt damit eine Vorschau dieser Seite samt Logo der Wache statt der immer gleichen namenlosen Karte.
+- **Öffentliche Seiten kommen vollständig an.** Die Seiten einer Wache, ihr Kalender, ihre Blog-Beiträge und ihre Wiki-Artikel werden jetzt fertig vom Server ausgeliefert, statt einen Ladekreis zu zeigen, bis der Browser sie geholt hat. Erst dadurch sehen Suchmaschinen auch, was darauf steht.
+- **Datumsangaben auf öffentlichen Seiten gelten für die Wache.** Ein Termin, ein Blog-Beitrag und ein Wiki-Artikel zeigen Datum und Uhrzeit jetzt überall nach der Uhr der Wache, sodass ein Termin um sieben Uhr abends auch für eine Leserin in einem anderen Land sieben Uhr heißt.
+
+### Fehlerbehebungen
+
+- **Das öffentliche Wiki führte auf unleserliche Adressen zurück.** Ein Ordner oder ein Artikel im öffentlichen Wiki führte auf eine Adresse mit der internen Kennung der Wache statt mit ihrem Namen, sodass man von der lesbaren Adresse weggeführt wurde und beim Teilen den falschen Link kopierte. Alle Links auf den öffentlichen Seiten verwenden jetzt den lesbaren Namen, sofern die Wache einen hat.
+
 ## v26.19.0
 
 ### Neue Funktionen

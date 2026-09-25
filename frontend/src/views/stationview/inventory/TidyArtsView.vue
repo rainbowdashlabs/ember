@@ -64,6 +64,15 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   arts.value = allArts
 })
 
+/**
+ * Which inventory is being tidied, at the head of the page, so two of them open at once are told
+ * apart in the tab and in the history. The plain wording stands while it loads and where the
+ * inventory could not be fetched.
+ */
+const pageTitle = computed(() => (detail.value?.name
+    ? t('pages.inventory-tidy.titleNamed', {name: detail.value.name})
+    : t('pages.inventory-tidy.title')))
+
 /** Kinds live only in an inventory that holds a drawer of different things. */
 const heterogeneous = computed(() => detail.value?.homogeneous === false)
 
@@ -127,7 +136,7 @@ const {running: assigning, error: assignError, run: runAssign} = useAsyncAction(
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-tidy.title')"
+      :title="pageTitle"
       :subtitle="t('pages.inventory-tidy.subtitle')"
   >
     <div class="space-y-6">

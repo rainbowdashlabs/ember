@@ -31,7 +31,6 @@ defineProps<{
   itemKey: (item: UnifiedNewsItem) => string
   setNewsItemRef: (el: unknown, newsId: number) => void
   setViewBadgeRef: (el: unknown, newsId: number) => void
-  onOpen: (item: UnifiedNewsItem) => void
   onToggleComments: (item: UnifiedNewsItem) => void
   onRequestDelete: (entry: NewsEntry) => void
 }>()
@@ -61,7 +60,6 @@ defineProps<{
       :comments-open="commentsOpenKey === itemKey(item)"
       :set-view-badge-ref="setViewBadgeRef"
       :on-request-delete="onRequestDelete"
-      @open="onOpen(item)"
       @toggle-comments="onToggleComments(item)"
     />
   </div>

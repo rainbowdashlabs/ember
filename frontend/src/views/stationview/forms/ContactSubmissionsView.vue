@@ -30,6 +30,14 @@ const submissions = ref<FormResponse[]>([])
 const answersByResponse = ref<Map<number, FormAnswer[]>>(new Map())
 const ackInFlight = ref<Set<number>>(new Set())
 
+/**
+ * Which contact form these came in through, with the part after its name, so a station running
+ * several of them can tell one tab of submissions from another.
+ */
+const pageTitle = computed(() => form.value
+    ? t('pages.pages-forms-submissions.titleNamed', {name: form.value.title})
+    : t('pages.pages-forms-submissions.title'))
+
 const questionsById = computed(() => {
     const map = new Map<number, FormQuestion>()
     for (const q of questions.value) map.set(q.id, q)
@@ -113,7 +121,7 @@ function formatAnswer(answer: FormAnswer): string {
 
 <template>
     <ViewContent
-        :title="t('pages.pages-forms-submissions.title')"
+        :title="pageTitle"
         :subtitle="t('pages.pages-forms-submissions.subtitle')"
     >
         <div class="space-y-6 max-w-3xl">

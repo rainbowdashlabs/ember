@@ -13,12 +13,14 @@ import type {
     PastEventRecapConfig,
     UpcomingEventsConfig,
 } from '@/api/pageManage'
-import {formatDateTime} from '@/util/format'
+import {formatDateTime, formatDateTimeLong} from '@/util/format'
 
 const props = defineProps<{
     kind: LayoutKindName
     config: Record<string, unknown>
     stationUid?: string
+    /** The clock an appointment is written on, the reader's own where none is named. */
+    timezone?: string | null
 }>()
 
 function asCfg<T>(): T { return props.config as T }
@@ -123,10 +125,6 @@ watch(
     resolveUpcomingEvents,
     {immediate: false},
 )
-
-function formatLongDateTime(iso: string): string {
-    return new Date(iso).toLocaleString('de-DE', {dateStyle: 'long', timeStyle: 'short'})
-}
 </script>
 
 <template>
@@ -135,7 +133,7 @@ function formatLongDateTime(iso: string): string {
             <font-awesome-icon :icon="['fas', 'calendar-days']" class="text-2xl text-primary mt-1"/>
             <div class="flex-1 min-w-0">
                 <p class="font-semibold text-base">{{ featuredResolved.name }}</p>
-                <p v-if="featuredResolved.startTime" class="text-sm text-(--text-muted)">{{ formatLongDateTime(featuredResolved.startTime) }}</p>
+                <p v-if="featuredResolved.startTime" class="text-sm text-(--text-muted)">{{ formatDateTimeLong(featuredResolved.startTime, timezone) }}</p>
                 <p v-if="featuredResolved.categoryName" class="text-xs text-(--text-muted)">{{ featuredResolved.categoryName }}</p>
             </div>
         </div>
@@ -152,7 +150,7 @@ function formatLongDateTime(iso: string): string {
                 <font-awesome-icon :icon="['fas', 'calendar']" class="text-primary mt-0.5"/>
                 <div class="flex-1 min-w-0">
                     <a :href="item.href" class="font-medium hover:text-primary hover:underline">{{ item.name }}</a>
-                    <p class="text-xs text-(--text-muted)">{{ [item.startTime ? formatDateTime(item.startTime) : '', item.categoryName].filter(Boolean).join(' · ') }}</p>
+                    <p class="text-xs text-(--text-muted)">{{ [item.startTime ? formatDateTime(item.startTime, timezone) : '', item.categoryName].filter(Boolean).join(' · ') }}</p>
                 </div>
             </li>
             <li v-if="upcomingResolved.length === 0" class="text-xs text-(--text-muted) italic">Keine bevorstehenden Termine.</li>
@@ -164,7 +162,7 @@ function formatLongDateTime(iso: string): string {
             <p class="font-semibold">
                 <a :href="pastEventResolved.href" class="hover:text-primary hover:underline">{{ pastEventResolved.name }}</a>
             </p>
-            <p v-if="pastEventResolved.startTime" class="text-xs text-(--text-muted)">{{ formatLongDateTime(pastEventResolved.startTime) }}</p>
+            <p v-if="pastEventResolved.startTime" class="text-xs text-(--text-muted)">{{ formatDateTimeLong(pastEventResolved.startTime, timezone) }}</p>
             <p v-if="pastEvent.recapDescription" class="text-sm whitespace-pre-line">{{ pastEvent.recapDescription }}</p>
         </div>
     </div>

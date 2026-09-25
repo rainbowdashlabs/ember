@@ -9,6 +9,17 @@ import IconButton from '@/components/button/IconButton.vue'
 
 const {t} = useI18n()
 
+/**
+ * The bar across the top of a page, carrying what the page is called.
+ *
+ * <p>The heading is shown and hidden rather than added and removed, because on a page the server
+ * renders the two ends do not agree on whether it is there. The heading belongs to the page, and a
+ * page's own setup finishes after the frame around it has been drawn, so the server sends a header
+ * without one and the browser hydrates a header with one. Removing the element makes that a
+ * disagreement about the shape of the document, which the browser settles by rebuilding the part it
+ * disagrees about, and that rebuilding was dropping entries out of lists further down the page.
+ * Kept in place, the same disagreement is only a word to fill in.
+ */
 defineProps<{
   title?: string
   subtitle?: string
@@ -31,9 +42,9 @@ defineEmits<{
       <font-awesome-icon :icon="['fas', 'bars']" class="h-5 w-5"/>
     </IconButton>
 
-    <div v-if="title" class="flex flex-col justify-center min-w-0">
+    <div v-show="title" class="flex flex-col justify-center min-w-0">
       <span class="text-base font-semibold truncate">{{ title }}</span>
-      <span v-if="subtitle" class="text-xs text-[var(--text-muted)] line-clamp-2 sm:truncate">{{ subtitle }}</span>
+      <span v-show="subtitle" class="text-xs text-[var(--text-muted)] line-clamp-2 sm:truncate">{{ subtitle }}</span>
     </div>
 
     <div class="flex-1"/>

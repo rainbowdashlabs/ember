@@ -6,8 +6,8 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
@@ -31,7 +31,6 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const router = useRouter()
 
 /**
  * What the household has answered about the partner's appointment.
@@ -69,25 +68,23 @@ const detailRoute = computed(() => ({
   name: 'federated-event-detail',
   params: {stationUid: props.fed.partnerStationUid, eventId: props.fed.event.id},
 }))
-
-function openDetail() {
-  router.push(detailRoute.value)
-}
 </script>
 
 <template>
   <NeutralContainer class="space-y-2" data-testid="federated-event">
-    <div class="cursor-pointer" @click="openDetail">
-      <div class="flex items-center justify-between flex-wrap gap-2">
-        <EventHeadline
-            :name="fed.event.name" :to="detailRoute" :date="occurrenceDate" :end-date="null"
-            :start-time="fed.event.startTime" :end-time="fed.event.endTime" :format-time="formatTime">
-          <SecondaryBadge>{{ fed.partnerStationName }}</SecondaryBadge>
-          <InfoBadge v-if="fed.event.requiresRegistration">{{ t('eventsUpcoming.registrationRequired') }}</InfoBadge>
-        </EventHeadline>
+    <RowLink :to="detailRoute">
+      <div class="cursor-pointer">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <EventHeadline
+              :name="fed.event.name" :to="null" :date="occurrenceDate" :end-date="null"
+              :start-time="fed.event.startTime" :end-time="fed.event.endTime" :format-time="formatTime">
+            <SecondaryBadge>{{ fed.partnerStationName }}</SecondaryBadge>
+            <InfoBadge v-if="fed.event.requiresRegistration">{{ t('eventsUpcoming.registrationRequired') }}</InfoBadge>
+          </EventHeadline>
+        </div>
+        <ProseExcerpt :html="renderMarkdown(fed.event.description)" max-height="max-h-32"/>
       </div>
-      <ProseExcerpt :html="renderMarkdown(fed.event.description)" max-height="max-h-32"/>
-    </div>
+    </RowLink>
 
     <EventRegistrationActions
         v-if="fed.event.requiresRegistration"

@@ -30,7 +30,7 @@ import SessionContent from './sessionview/SessionContent.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {presentFile} from '@/util/documentFile'
 import {useSessionEventLink} from './sessionview/useSessionEventLink'
-import {localInputToInstant, timeOnDayOf} from '@/util/format'
+import {formatWeekdayDate, localInputToInstant, timeOnDayOf} from '@/util/format'
 import {reportCaughtError} from '@/util/devErrorReporter'
 
 const {t} = useI18n()
@@ -72,8 +72,24 @@ const error = ref('')
 
 const selectedMemberId = ref('')
 
+const eventName = ref('')
 const eventStartTime = ref<string | null>(null)
 const eventEndTime = ref<string | null>(null)
+
+/**
+ * What the sheet is called at the head of the page: its own title where somebody gave it one, and
+ * otherwise the appointment it was opened for. "Anwesenheit" stands over every sheet of the
+ * station, which is no help to a reader with several of them open, a history or a bookmark.
+ */
+const pageTitle = computed(() =>
+    session.value?.title?.trim() || eventName.value || t('pages.attendance-session.title'))
+
+/**
+ * The day the sheet was taken on, under its name. A repeating appointment has a sheet per date,
+ * and they are all called the same thing.
+ */
+const pageSubtitle = computed(() =>
+    formatWeekdayDate(session.value?.startTime) || t('pages.attendance-session.subtitle'))
 
 /** Whether the sheet runs into another day, which is when every time it shows needs its date. */
 const spansDays = computed(() => {
@@ -187,21 +203,24 @@ async function loadTemplateContext(templateId: number) {
 }
 
 /**
- * When the appointment behind the sheet runs, so the sheet can offer its times back.
+ * The appointment behind the sheet: what it is called, and when it runs so the sheet can offer its
+ * times back.
  *
- * <p>Only for the offer: the sheet's own times are what count from the moment it was made, and an
- * appointment that moves afterwards leaves the sheet where it is.
+ * <p>The times are only for the offer: the sheet's own times are what count from the moment it was
+ * made, and an appointment that moves afterwards leaves the sheet where it is.
  */
-async function loadEventTimes(eventId: number | null) {
+async function loadEventContext(eventId: number | null) {
+  eventName.value = ''
   eventStartTime.value = null
   eventEndTime.value = null
   if (!eventId) return
   try {
     const event = await events.getEvent(eventId)
+    eventName.value = event.name ?? ''
     eventStartTime.value = event.startTime ?? null
     eventEndTime.value = event.endTime ?? null
   } catch (e) {
-    reportCaughtError(e, 'attendance sheet appointment times')
+    reportCaughtError(e, 'attendance sheet appointment')
   }
 }
 
@@ -224,7 +243,7 @@ async function loadData() {
 
     if (session.value) {
       await loadTemplateContext(session.value.templateId)
-      await loadEventTimes(session.value.eventId ?? null)
+      await loadEventContext(session.value.eventId ?? null)
     }
 
     initFieldValues(sessionFields.value)
@@ -403,8 +422,8 @@ watch(loaded, (isLoaded) => {
 
 <template>
   <ViewContent
-      :title="t('pages.attendance-session.title')"
-      :subtitle="t('pages.attendance-session.subtitle')"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
   >
     <SessionContent
         v-model:selected-member-id="selectedMemberId"

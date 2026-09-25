@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
@@ -129,7 +130,8 @@ public class PublicStationRoutes implements Routes {
                 station.publicSlug(),
                 station.defaultTheme(),
                 station.defaultFeel() != null ? station.defaultFeel().name() : null,
-                station.customThemeColors());
+                station.customThemeColors(),
+                StationFormat.timezoneNameOf(station));
     }
 
     /**
@@ -157,6 +159,15 @@ public class PublicStationRoutes implements Routes {
         return station;
     }
 
+    /**
+     * What a station tells the open web about itself.
+     *
+     * <p>The timezone is here because a public page is written twice, once by the server and once by
+     * the browser, and neither of those two machines is where the reader is. A date put on whichever
+     * clock happened to write it comes out differently in the two copies. The station's own clock is
+     * the one answer both can agree on, and the honest one besides: an appointment at seven at the
+     * station is at seven whoever is reading about it.
+     */
     public record PublicStationInfo(
             String stationUid,
             String name,
@@ -171,5 +182,6 @@ public class PublicStationRoutes implements Routes {
             String publicSlug,
             String defaultTheme,
             String defaultFeel,
-            String customThemeColors) {}
+            String customThemeColors,
+            String timezone) {}
 }

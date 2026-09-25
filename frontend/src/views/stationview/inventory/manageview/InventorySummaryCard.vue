@@ -4,8 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -16,6 +18,7 @@ import LendingShareButton from '@/components/lending/LendingShareButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import {isLendableInventory, type InventorySummary} from '@/api/inventory'
 import type {ShareSetting} from '@/api/lending'
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useLendingShare} from '@/composables/useLendingShare'
 
 const props = defineProps<{
@@ -25,58 +28,62 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  open: [inv: InventorySummary]
   edit: [inv: InventorySummary]
   remove: [inv: InventorySummary]
   shareChanged: []
 }>()
 
 const {t} = useI18n()
+const routes = useInventoryRoutes()
 const {visible: sharing, stateLabel} = useLendingShare(() => isLendableInventory(props.inv.inventoryType))
+
+const detailPage = computed(() => ({name: routes.detail, params: {id: props.inv.id}}))
 </script>
 
 <template>
-  <NeutralContainer data-testid="inventory-card" clickable @click="emit('open', props.inv)">
-    <div class="flex items-center justify-between">
-      <div class="min-w-0 space-y-1">
-        <span class="flex items-center gap-2 font-medium">
-          <GearGlyph :glyph="glyphFor({icon: props.inv.icon, color: props.inv.color, homogeneous: props.inv.homogeneous})"/>
-          {{ props.inv.name }}
-        </span>
-        <InventoryBadges
-            :inventory-type="props.inv.inventoryType"
-            :has-sizes="props.inv.hasSizes"
-            :homogeneous="props.inv.homogeneous"
-            :art-count="props.inv.artCount"
-        >
-          <SecondaryBadge v-if="sharing" data-testid="inventory-badge-share">
-            {{ stateLabel(props.share) }}
-          </SecondaryBadge>
-        </InventoryBadges>
+  <RowLink :to="detailPage">
+    <NeutralContainer data-testid="inventory-card" clickable>
+      <div class="flex items-center justify-between">
+        <div class="min-w-0 space-y-1">
+          <span class="flex items-center gap-2 font-medium">
+            <GearGlyph :glyph="glyphFor({icon: props.inv.icon, color: props.inv.color, homogeneous: props.inv.homogeneous})"/>
+            {{ props.inv.name }}
+          </span>
+          <InventoryBadges
+              :inventory-type="props.inv.inventoryType"
+              :has-sizes="props.inv.hasSizes"
+              :homogeneous="props.inv.homogeneous"
+              :art-count="props.inv.artCount"
+          >
+            <SecondaryBadge v-if="sharing" data-testid="inventory-badge-share">
+              {{ stateLabel(props.share) }}
+            </SecondaryBadge>
+          </InventoryBadges>
+        </div>
+        <div class="flex items-center gap-2">
+          <LendingShareButton
+              :target-id="props.inv.id"
+              :target-name="props.inv.name ?? ''"
+              :lendable="isLendableInventory(props.inv.inventoryType)"
+              target="inventory"
+              @saved="emit('shareChanged')"
+          />
+          <EditButton @click="emit('edit', props.inv)" />
+          <DeleteButton @click="emit('remove', props.inv)" />
+        </div>
       </div>
-      <div class="flex items-center gap-2" @click.stop>
-        <LendingShareButton
-            :target-id="props.inv.id"
-            :target-name="props.inv.name ?? ''"
-            :lendable="isLendableInventory(props.inv.inventoryType)"
-            target="inventory"
-            @saved="emit('shareChanged')"
-        />
-        <EditButton @click="emit('edit', props.inv)" />
-        <DeleteButton @click="emit('remove', props.inv)" />
-      </div>
-    </div>
-    <MutedText tag="div" class="mt-1">
-      {{ t('inventory.manage.itemCount', {count: props.inv.itemCount}) }}
-      <template v-if="props.inv.lostCount > 0">
-        &middot; <span class="text-error">{{ t('inventory.manage.lostCount', {count: props.inv.lostCount}) }}</span>
-      </template>
-      <template v-if="props.inv.lentOutCount > 0">
-        &middot; <span class="text-secondary-accent dark:text-secondary">{{ t('inventory.manage.lentOutCount', {count: props.inv.lentOutCount}) }}</span>
-      </template>
-      <template v-if="props.inv.procurementCount > 0">
-        &middot; <span class="text-info-accent dark:text-info">{{ t('inventory.manage.procurementCount', {count: props.inv.procurementCount}) }}</span>
-      </template>
-    </MutedText>
-  </NeutralContainer>
+      <MutedText tag="div" class="mt-1">
+        {{ t('inventory.manage.itemCount', {count: props.inv.itemCount}) }}
+        <template v-if="props.inv.lostCount > 0">
+          &middot; <span class="text-error">{{ t('inventory.manage.lostCount', {count: props.inv.lostCount}) }}</span>
+        </template>
+        <template v-if="props.inv.lentOutCount > 0">
+          &middot; <span class="text-secondary-accent dark:text-secondary">{{ t('inventory.manage.lentOutCount', {count: props.inv.lentOutCount}) }}</span>
+        </template>
+        <template v-if="props.inv.procurementCount > 0">
+          &middot; <span class="text-info-accent dark:text-info">{{ t('inventory.manage.procurementCount', {count: props.inv.procurementCount}) }}</span>
+        </template>
+      </MutedText>
+    </NeutralContainer>
+  </RowLink>
 </template>

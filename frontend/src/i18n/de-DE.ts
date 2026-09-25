@@ -581,6 +581,39 @@ export default {
         retractMessage: 'Soll „{title}“ aus allen Wachen zurückgezogen werden? Die Meldung und die Kommentare darunter verschwinden überall.',
         empty: 'Noch keine Systemmeldung geschrieben.',
     },
+    pageModule: {
+        attendance: 'Anwesenheit',
+        boards: 'Boards',
+        checklists: 'Checklisten',
+        dashboard: 'Dashboard',
+        discovery: 'Verzeichnis',
+        events: 'Termine',
+        federation: 'Föderation',
+        forms: 'Umfragen',
+        inventory: 'Inventar',
+        knowledge: 'Wiki',
+        lostAndFound: 'Fundbüro',
+        manage: 'Verwalten',
+        media: 'Medien',
+        members: 'Mitglieder',
+        monitoring: 'Monitoring',
+        news: 'Neuigkeiten',
+        pages: 'Öffentliche Seiten',
+        procedures: 'Abläufe',
+        profile: 'Profil',
+        protocols: 'Prüfungsbögen',
+        quiz: 'Quiz',
+        requirements: 'Aufgaben',
+        setup: 'Einrichtung',
+        account: 'Konto',
+        admin: 'Admin Panel',
+        cluster: 'Verband',
+        helpCenter: 'Hilfe',
+        applications: 'Bewerbungen',
+        stations: 'Wachen',
+        storage: 'Speicher',
+        team: 'Team',
+    },
     sidebar: {
         collapse: 'Seitenleiste einklappen',
         expand: 'Seitenleiste ausklappen',
@@ -798,10 +831,12 @@ export default {
         },
         'forms-fill': {
             title: 'Umfrage ausfüllen',
+            titleNamed: '{name} ausfüllen',
             subtitle: 'Deine Antworten eingeben',
         },
         'forms-analytics': {
             title: 'Auswertung',
+            titleNamed: '{name} Auswertung',
             subtitle: 'Ergebnisse und Statistiken',
         },
         'procedure-list': {
@@ -842,14 +877,17 @@ export default {
         },
         'board-backlog': {
             title: 'Backlog',
+            titleNamed: '{name} Backlog',
             subtitle: '',
         },
         'board-archived': {
             title: 'Archiv',
+            titleNamed: '{name} Archiv',
             subtitle: '',
         },
         'board-settings': {
             title: 'Board-Einstellungen',
+            titleNamed: '{name} Einstellungen',
             subtitle: 'Board konfigurieren',
         },
         'ticket-detail': {
@@ -882,6 +920,7 @@ export default {
         },
         'members-edit': {
             title: 'Mitglied bearbeiten',
+            titleNamed: '{name} bearbeiten',
             subtitle: 'Rollen und Profilfelder bearbeiten',
         },
         'members-groups': {
@@ -922,6 +961,7 @@ export default {
         },
         'inventory-lending-request': {
             title: 'Ausleih-Anfrage',
+            titleNamed: '{name} Ausleih-Anfrage',
             subtitle: 'Details und Kommunikation',
         },
         'inventory-lending-blocks': {
@@ -938,6 +978,7 @@ export default {
         },
         'inventory-lending-collect': {
             title: 'Ausrüstung zusammenstellen',
+            titleNamed: '{name} Ausrüstung zusammenstellen',
             subtitle: 'Was ein Termin braucht, bei den Partnerwachen zusammensuchen',
         },
         'inventory-my': {
@@ -982,6 +1023,7 @@ export default {
         },
         'inventory-check-container-walk': {
             title: 'Behälter-Prüfung',
+            titleNamed: '{name} Prüfung',
             subtitle: 'Erwartete Items per Scan bestätigen, Abweichungen markieren.',
         },
         'attendance-session': {
@@ -1018,6 +1060,7 @@ export default {
         },
         'news-edit': {
             title: 'Neuigkeit bearbeiten',
+            titleNamed: '{name} bearbeiten',
             subtitle: 'Nachricht bearbeiten',
         },
         'profile-settings': {
@@ -1182,6 +1225,7 @@ export default {
         },
         'admin-station-import': {
             title: 'Wache importieren',
+            titleNamed: '{name} importieren',
             subtitle: 'Wache von einer anderen Instanz übernehmen',
         },
         'admin-station-applications': {
@@ -1282,6 +1326,7 @@ export default {
         },
         'waiting-list-fields': {
             title: 'Wartelisten-Felder',
+            titleNamed: '{name} Felder',
             subtitle: 'Felder konfigurieren',
         },
         'waiting-list-entry': {
@@ -1314,14 +1359,17 @@ export default {
         },
         'quiz-test-take': {
             title: 'Test schreiben',
+            titleNamed: '{name} schreiben',
             subtitle: 'Fragen beantworten',
         },
         'quiz-test-evaluate': {
             title: 'Test bewerten',
+            titleNamed: '{name} bewerten',
             subtitle: 'Antworten durchgehen und Punkte vergeben',
         },
         'quiz-catalog-generate': {
             title: 'Fragen generieren',
+            titleNamed: '{name} Fragen generieren',
             subtitle: 'Fragen mit KI erstellen',
         },
         'quiz-training': {
@@ -1498,6 +1546,7 @@ export default {
         },
         'ticket-create': {
             title: 'Ticket erstellen',
+            titleNamed: '{name} Neues Ticket',
             subtitle: 'Neues Ticket anlegen',
         },
         'checklist-list': {
@@ -1526,6 +1575,7 @@ export default {
         },
         'event-edit': {
             title: 'Termin bearbeiten',
+            titleNamed: '{name} bearbeiten',
             subtitle: 'Termin anpassen',
         },
         'event-categories': {
@@ -1538,6 +1588,7 @@ export default {
         },
         'event-template-edit': {
             title: 'Termin-Vorlage bearbeiten',
+            titleNamed: '{name} bearbeiten',
             subtitle: 'Vorlage anpassen',
         },
         'event-batch': {
@@ -1566,18 +1617,22 @@ export default {
         },
         'pages-forms-submissions': {
             title: 'Einreichungen',
+            titleNamed: '{name} Einreichungen',
             subtitle: 'Kontakt-Einreichungen ansehen',
         },
         'inventory-edit': {
             title: 'Inventar bearbeiten',
+            titleNamed: '{name} bearbeiten',
             subtitle: 'Bestand anpassen',
         },
         'inventory-move': {
             title: 'Gegenstände verschieben',
+            titleNamed: '{name} umlagern',
             subtitle: 'Ein Inventar aufteilen, ohne die Gegenstände neu anzulegen',
         },
         'inventory-tidy': {
             title: 'Arten aufräumen',
+            titleNamed: '{name} aufräumen',
             subtitle: 'Gleiche Dinge unter eine Art bringen und Tippfehler geraderücken',
         },
         'inventory-detail': {
@@ -1594,18 +1649,22 @@ export default {
         },
         'inventory-check-member': {
             title: 'Mitglieder-Prüfung',
+            titleNamed: '{name} Prüfung',
             subtitle: 'Items eines Mitglieds abgleichen',
         },
         'inventory-check-result': {
             title: 'Prüfungsergebnis',
+            titleNamed: '{name} Prüfungsergebnis',
             subtitle: 'Abweichungen ansehen',
         },
         'inventory-self-check': {
             title: 'Eigene Ausrüstung prüfen',
+            titleNamed: '{name} Selbstauskunft',
             subtitle: 'Sag uns, was du noch hast',
         },
         'inventory-self-check-review': {
             title: 'Selbstauskunft prüfen',
+            titleNamed: '{name} Selbstauskunft',
             subtitle: 'Angabe für Angabe entscheiden',
         },
         'inventory-lending-create': {
@@ -1690,6 +1749,7 @@ export default {
         },
         'waiting-list-create-entry': {
             title: 'Neuer Wartelisten-Eintrag',
+            titleNamed: '{name} Neuer Eintrag',
             subtitle: 'Eintrag anlegen',
         },
         'news-detail': {
@@ -1738,18 +1798,22 @@ export default {
         },
         'protocol-grade': {
             title: 'Bewertung',
+            titleNamed: '{name} Bewertung',
             subtitle: 'Prüfung eines Mitglieds bewerten',
         },
         'protocol-evaluation': {
             title: 'Auswertung',
+            titleNamed: '{name} Auswertung',
             subtitle: 'Prüfungs-Auswertung',
         },
         'quiz-catalog-mc-fill': {
             title: 'MC-Antworten ergänzen',
+            titleNamed: '{name} MC-Antworten ergänzen',
             subtitle: 'Multiple-Choice-Antworten mit KI ergänzen',
         },
         'quiz-catalog-import': {
             title: 'Fragen importieren',
+            titleNamed: '{name} Fragen importieren',
             subtitle: 'Fragen aus CSV-Datei importieren',
         },
         'profile-inventory': {
@@ -4090,6 +4154,7 @@ export default {
         intake: {
             open: 'Bestand aufnehmen',
             title: 'Bestand aufnehmen',
+            titleNamed: '{name} aufnehmen',
             subtitle: 'Vorhandene Ausrüstung eintragen und direkt zuweisen.',
             who: 'Wer kommt in die Liste',
             whoHint: 'Wähle, mit welchen Mitgliedern die Tabelle startet. Einzelne Zeilen kannst du danach '
@@ -5703,6 +5768,8 @@ export default {
             verifyTitle: 'E-Mail bestätigt',
             verifyText: 'Deine E-Mail-Adresse wurde bestätigt. Deine Anmeldung wird nun von einem Betreuer geprüft.',
             verifyError: 'Der Bestätigungslink ist ungültig oder abgelaufen.',
+            verifyPageTitle: 'E-Mail-Bestätigung',
+            verifyPageDescription: 'Bestätigung der E-Mail-Adresse für eine Anmeldung auf einer Warteliste.',
         },
     },
     csvImport: {
@@ -6599,6 +6666,7 @@ export default {
             download: 'Beleg herunterladen',
         },
         detailSubtitle: 'Bewegung #{id}',
+        detailSubtitlePurpose: '{purpose}, Bewegung #{id}',
         member: 'Mitglied: ',
         inventory: 'Inventar: ',
         reason: 'Grund: ',
@@ -9190,8 +9258,6 @@ export default {
     },
     publicKb: {
         search: 'Suche...',
-        searchResults: 'Suchergebnisse',
-        noResults: 'Keine Ergebnisse gefunden.',
         backToBrowse: 'Zurück',
         noContent: 'Kein Inhalt vorhanden.',
         openLink: 'Link öffnen',
@@ -9483,6 +9549,17 @@ export default {
         blogTitle: 'Neuigkeiten',
         blogNoEntries: 'Noch keine Blog-Beiträge.',
         blogBy: 'von',
+        meta: {
+            station: 'Öffentliche Seite der Wache {station}.',
+            calendar: 'Alle öffentlichen Termine und Veranstaltungen der Wache {station} auf einen Blick.',
+            blog: 'Neuigkeiten und Beiträge der Wache {station}.',
+            blogEntry: 'Ein Beitrag aus dem Blog der Wache {station}.',
+            knowledgeBase: 'Öffentliches Wiki der Wache {station}.',
+            knowledgeBaseFolder: '{folder} im öffentlichen Wiki der Wache {station}.',
+            knowledgeBaseFile: '{name} im öffentlichen Wiki der Wache {station}.',
+            waitlist: 'Auf die Warteliste der Wache {station} setzen lassen.',
+            form: 'Ein Formular der Wache {station} ausfüllen.',
+        },
     },
     registrationStats: {
         title: 'Anmelde-Statistik',

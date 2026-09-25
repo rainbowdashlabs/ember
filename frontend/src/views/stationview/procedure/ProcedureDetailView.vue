@@ -51,19 +51,26 @@ const isOverdue = computed(() => {
 })
 
 /**
- * Back to the appointment this was prepared for.
+ * The appointment this was prepared for, or nothing where it was prepared for no appointment.
  *
  * <p>A procedure made out of who is coming records the appointment and the date, so the preparation
  * and the occasion stay connected. One merely named after a Tuesday is connected to nothing.
  */
-function openAppointment() {
+const appointmentPage = computed(() => {
   const procedure = detail.value?.procedure
-  if (!procedure?.eventId || !procedure.eventDate) return
-  return router.push({
+  if (!procedure?.eventId || !procedure.eventDate) return null
+  return {
     name: 'event-detail-date',
     params: {id: procedure.eventId, date: procedure.eventDate},
-  })
-}
+  }
+})
+
+/**
+ * The procedure's own name at the head of the page, because "Ablauf-Details" stands above every one
+ * of them and it is what the tab, the history and a bookmark carry. The wording holds the place
+ * while the procedure loads and where it cannot be loaded at all.
+ */
+const pageTitle = computed(() => detail.value?.procedure.name || t('pages.procedure-detail.title'))
 
 const progress = computed(() => {
   if (!detail.value) return {checked: 0, total: 0, percent: 0}
@@ -188,7 +195,7 @@ watch(loaded, (v) => {
 
 <template>
   <ViewContent
-      :title="t('pages.procedure-detail.title')"
+      :title="pageTitle"
       :subtitle="t('pages.procedure-detail.subtitle')"
   >
     <Spinner v-if="loading"/>
@@ -213,16 +220,15 @@ watch(loaded, (v) => {
               <font-awesome-icon :icon="['fas', 'check-circle']" class="w-3 h-3"/>
               {{ formatDateTime(detail.procedure.resolvedAt) }}
             </span>
-            <button
-                v-if="detail.procedure.eventId && detail.procedure.eventDate"
-                type="button"
-                class="flex items-center gap-1 hover:underline"
+            <NuxtLink
+                v-if="appointmentPage"
+                :to="appointmentPage"
+                class="flex items-center gap-1 text-inherit no-underline hover:underline"
                 data-testid="procedure-appointment-link"
-                @click="openAppointment"
             >
               <font-awesome-icon :icon="['fas', 'calendar-days']" class="w-3 h-3"/>
               {{ t('procedures.fromEvent', {date: formatDate(detail.procedure.eventDate)}) }}
-            </button>
+            </NuxtLink>
           </div>
         </div>
         <ButtonRow v-if="canEdit" align="end" class="shrink-0">

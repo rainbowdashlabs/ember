@@ -91,6 +91,16 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
 
 const board = computed(() => boardDetail.value?.board ?? null)
 
+/**
+ * The partner's board by its own name at the head of the page. The static words stand until the
+ * partner has answered, and where the board could not be fetched at all.
+ */
+const pageTitle = computed(() => board.value?.name || t('pages.federated-board-view.title'))
+
+/** Once the name is the title, the line under it is what says whose board this is. */
+const pageSubtitle = computed(() => boardDetail.value?.stationName
+    || t('pages.federated-board-view.subtitle'))
+
 const visibleLanes = computed(() => lanes.value.filter(l => !board.value?.backlogLaneId || l.id !== board.value.backlogLaneId))
 
 function ticketsForLane(laneId: number): BoardTicket[] {
@@ -157,12 +167,16 @@ function onSearchInput() {
   }, 300)
 }
 
-function openTicketDetail(ticket: BoardTicket) {
-  router.push(`/station/federation/boards/${partnerUid.value}/${boardKey.value}/tickets/${ticket.ticketNumber}`)
+function ticketPage(ticket: BoardTicket) {
+  return `/station/federation/boards/${partnerUid.value}/${boardKey.value}/tickets/${ticket.ticketNumber}`
 }
 
-function onSearchPick(ticket: BoardTicket) {
-  openTicketDetail(ticket)
+function openTicketDetail(ticket: BoardTicket) {
+  router.push(ticketPage(ticket))
+}
+
+/** A hit opens as the link it is, which leaves the search itself to be put away. */
+function onSearchPick() {
   searchQuery.value = ''
   searchResults.value = null
 }
@@ -211,8 +225,8 @@ watch([partnerUid, boardKey], loadData)
 
 <template>
   <ViewContent
-      :title="t('pages.federated-board-view.title')"
-      :subtitle="t('pages.federated-board-view.subtitle')"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
   >
     <Spinner v-if="loading"/>
     <Alert v-else-if="error" variant="error">{{ error }}</Alert>
@@ -225,6 +239,7 @@ watch([partnerUid, boardKey], loadData)
           :can-manage-boards="canManageBoards()"
           v-model:search-query="searchQuery"
           :search-results="searchResults"
+          :ticket-page="ticketPage"
           :lane-name="laneName"
           :priority-icon="priorityIcon"
           :priority-color="priorityColor"

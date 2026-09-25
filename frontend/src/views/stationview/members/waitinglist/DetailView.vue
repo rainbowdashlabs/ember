@@ -71,6 +71,13 @@ const finishedEntries = computed(() =>
 
 const visibleFieldIds = computed(() => new Set(list.value?.visibleFields ?? []))
 
+/**
+ * The list's own name at the head of the page, because a station keeps several of them and
+ * "Warteliste" is the same word above each. The word stands there until the list has arrived, and
+ * where it could not be fetched at all.
+ */
+const pageTitle = computed(() => list.value?.name || t('pages.waiting-list-detail.title'))
+
 const entryGroups = computed(() => ({
   pending: pendingEntries.value,
   waiting: waitingEntries.value,
@@ -97,7 +104,6 @@ const sectionActions = computed(() => ({
   onMoveToJoined: transitions.moveToJoined,
   onWithdraw: transitions.withdraw,
   onNavigateToEntry: navigateToEntry,
-  onNavigateToMember: navigateToMember,
   onDeleteEntry: requestDeleteEntry,
   onSetFields: setFieldsVisible,
   onAddEntry: navigateToCreateEntry,
@@ -162,10 +168,6 @@ function navigateToEntry(entryId: number) {
   router.push({ name: 'waiting-list-entry', params: { id: listId.value, entryId } })
 }
 
-function navigateToMember(memberId: number) {
-  router.push({ name: 'members-detail', params: { id: memberId } })
-}
-
 function navigateToFields() {
   router.push({ name: 'waiting-list-fields', params: { id: listId.value } })
 }
@@ -200,7 +202,7 @@ function showErrorMessage(msg: string) {
 
 <template>
   <ViewContent
-      :title="t('pages.waiting-list-detail.title')"
+      :title="pageTitle"
       :subtitle="t('pages.waiting-list-detail.subtitle')"
   >
     <div class="space-y-6">

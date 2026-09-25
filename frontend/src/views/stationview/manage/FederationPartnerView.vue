@@ -53,6 +53,14 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
   localContract.value = info.contract
 }, {autoLoad: false})
 
+/**
+ * The partner by its own name at the head of the page, because "Partnerwache" stands above every
+ * one of them and is what the tab, the history and a bookmark carry. The plain word stands until
+ * the partner has arrived, and where it could not be fetched at all.
+ */
+const pageTitle = computed(() =>
+    partner.value?.partnerStationName || t('pages.station-federation-partner.title'))
+
 const compatibility = computed(() =>
   partner.value ? partnerCompatibility(localContract.value, partner.value.partner) : 'compatible')
 
@@ -116,7 +124,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 
 <template>
   <ViewContent
-      :title="t('pages.station-federation-partner.title')"
+      :title="pageTitle"
       :subtitle="t('pages.station-federation-partner.subtitle')"
   >
     <div class="flex items-center gap-2 mb-4">

@@ -20,6 +20,8 @@ export interface SharedBrand {
     defaultTheme: string | null
     defaultFeel: string | null
     customThemeColors: string | null
+    /** The clock every date on the page behind the link is written on. */
+    timezone: string
 }
 
 export interface SharedPage {

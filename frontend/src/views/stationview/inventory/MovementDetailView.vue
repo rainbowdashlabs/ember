@@ -32,6 +32,29 @@ const sizes = ref<InventorySize[]>([])
 const busy = ref(false)
 const actionError = ref('')
 
+/**
+ * What set out, at the head of the page: the piece where the movement names one, the inventory it
+ * came off otherwise. The kind of movement was standing there, which is the same handful of words
+ * above every one of them, so it moves to the line underneath and takes the number with it.
+ */
+const subject = computed(() => detail.value?.movement.itemName
+    || detail.value?.movement.incomingItemName
+    || detail.value?.movement.inventoryName
+    || '')
+
+const purposeLabel = computed(() =>
+    (detail.value ? t(`movements.purpose.${detail.value.movement.purpose}`) : ''))
+
+const pageTitle = computed(() => subject.value || purposeLabel.value || t('movements.chain'))
+
+const pageSubtitle = computed(() => {
+  if (!detail.value) return undefined
+  const id = detail.value.movement.id
+  return subject.value
+      ? t('movements.detailSubtitlePurpose', {purpose: purposeLabel.value, id})
+      : t('movements.detailSubtitle', {id})
+})
+
 const isManager = computed(() => hasPermission(StationPermission.INVENTORY_MANAGER))
 const open = computed(() => detail.value?.movement.state === MovementState.OPEN)
 const currentStep = computed(() => detail.value?.steps.find(s => s.current) ?? null)
@@ -103,8 +126,8 @@ function force(payload: AcknowledgePayload) {
 
 <template>
   <ViewContent
-      :subtitle="detail ? t('movements.detailSubtitle', {id: detail.movement.id}) : undefined"
-      :title="detail ? t(`movements.purpose.${detail.movement.purpose}`) : t('movements.chain')"
+      :subtitle="pageSubtitle"
+      :title="pageTitle"
   >
     <Spinner v-if="loading"/>
     <Alert v-else-if="error" variant="error">{{ error }}</Alert>

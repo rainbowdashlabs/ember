@@ -8,10 +8,12 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import {useDataTable} from '@/composables/useDataTable'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import type {Movement} from '@/api/movements'
 import MovementRecordTable from '../movementqueueview/MovementRecordTable.vue'
+import MovementSubjectCell from '../movementqueueview/MovementSubjectCell.vue'
 import {MovementColumn, type MovementColumnKey, useMovementColumns} from '../movementqueueview/movementColumns'
 
 /**
@@ -45,6 +47,8 @@ const table = useDataTable<Movement>({
   rowKey: movement => movement.id,
 })
 
+const queuePage = computed(() => routes.movements ? {name: routes.movements} : null)
+
 function toQueue() {
   if (routes.movements) void router.push({name: routes.movements})
 }
@@ -56,6 +60,12 @@ function toQueue() {
       <font-awesome-icon :icon="['fas', 'rotate']" class="mr-2"/>
       {{ t('inventory.overview.exchanges') }} ({{ props.movements.length }})
     </SubHeader>
-    <MovementRecordTable :table="table" clickable test-id="overview-movements" @row-click="toQueue"/>
+    <MovementRecordTable :table="table" clickable test-id="overview-movements" @row-click="toQueue">
+      <template #cell-subject="{row}">
+        <RowLink :to="queuePage">
+          <MovementSubjectCell :movement="row"/>
+        </RowLink>
+      </template>
+    </MovementRecordTable>
   </div>
 </template>

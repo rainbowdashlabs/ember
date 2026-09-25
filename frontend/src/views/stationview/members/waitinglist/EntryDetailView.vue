@@ -126,6 +126,13 @@ const entryFullName = computed(() => {
   return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
 })
 
+/**
+ * Who is waiting, at the head of the page, and nothing besides: what the page does with them is
+ * written on the line under it. The static wording stands until the entry has arrived, and where
+ * it could not be found at all.
+ */
+const pageTitle = computed(() => entryFullName.value || t('pages.waiting-list-entry.title'))
+
 function goBack() {
   router.push({ name: 'waiting-list-detail', params: { id: listId.value } })
 }
@@ -134,7 +141,7 @@ function goBack() {
 
 <template>
   <ViewContent
-      :title="t('pages.waiting-list-entry.title')"
+      :title="pageTitle"
       :subtitle="t('pages.waiting-list-entry.subtitle')"
   >
     <div class="space-y-6">

@@ -61,11 +61,6 @@ function showConfirm(message: string, action: () => Promise<void>) {
   confirmAction.request({message, action})
 }
 
-function testClickRoute(test: QuizTest) {
-  if (canReadResults()) return { name: 'quiz-test-detail', params: { id: test.id } }
-  return { name: 'quiz-test-take', params: { id: test.id } }
-}
-
 function attemptCount(test: QuizTest): number {
   const summary = testSummaries.value.find(s => s.test.id === test.id)
   return summary?.attemptCount ?? 0
@@ -140,7 +135,6 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           :attempt-count-for="attemptCount"
           :attempt-started-at-for="attemptStartedAt"
           :attempt-submitted-at-for="attemptSubmittedAt"
-          @navigate="(test) => router.push(testClickRoute(test))"
           @take="(test) => router.push({ name: 'quiz-test-take', params: { id: test.id } })"
           @edit="(test) => router.push({ name: 'quiz-test-edit', params: { id: test.id } })"
           @remove="deleteTest"
@@ -149,7 +143,6 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         <ResultsList
           v-if="activeTab === 'results'"
           :summaries="testSummaries"
-          @open="(summary) => router.push({ name: 'quiz-test-detail', params: { id: summary.test.id } })"
         />
       </template>
 

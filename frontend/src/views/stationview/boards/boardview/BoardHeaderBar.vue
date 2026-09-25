@@ -9,7 +9,7 @@ import { useRouter } from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import BoardSearchBox from './BoardSearchBox.vue'
-import type { BoardLabel, BoardTicket } from '@/api/boards'
+import type { BoardLabel } from '@/api/boards'
 import { useSession } from '@/composables/useSession'
 
 const props = defineProps<{
@@ -21,7 +21,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     create: []
-    'open-ticket': [ticket: BoardTicket]
 }>()
 
 const { t } = useI18n()
@@ -44,7 +43,6 @@ function openSettings() {
                 :short-key="shortKey"
                 :labels-for-ticket="labelsForTicket"
                 :lane-name="laneName"
-                @select="ticket => emit('open-ticket', ticket)"
             />
             <PrimaryButton @click="emit('create')">
                 <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />

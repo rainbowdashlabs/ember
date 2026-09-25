@@ -132,7 +132,7 @@ function isCharted(q: FormQuestionInfo): boolean {
  */
 function answersOf(q: FormQuestionInfo): string[] {
   const values = tallyOf(q)?.values ?? []
-  return q.questionType === QuestionTypes.DATE ? values.map(formatDate) : values
+  return q.questionType === QuestionTypes.DATE ? values.map(value => formatDate(value)) : values
 }
 </script>
 <template>

@@ -70,6 +70,17 @@ interface UpcomingEvent {
   dayLabel: string
 }
 
+/**
+ * The appointment behind a tile.
+ *
+ * <p>A series has one page per date, so the date goes into the address; a one-off has only itself.
+ */
+function eventPage(item: UpcomingEvent) {
+  return isRecurringEvent(item.event.eventType)
+      ? {name: 'event-detail-date', params: {id: item.event.id, date: item.date}}
+      : {name: 'event-detail', params: {id: item.event.id}}
+}
+
 const upcomingEvents = computed((): UpcomingEvent[] => {
   const now = new Date()
   const todayStr = todayIsoDate()
@@ -266,9 +277,7 @@ onMounted(loadData)
           :open-count="withoutAnswer(item).length"
           :show-names="managed.length > 0"
           :busy="decliningBusy"
-          @open="router.push(isRecurringEvent(item.event.eventType)
-            ? { name: 'event-detail-date', params: { id: item.event.id, date: item.date } }
-            : { name: 'event-detail', params: { id: item.event.id } })"
+          :to="eventPage(item)"
           @decline="decline(item)"
       />
     </div>

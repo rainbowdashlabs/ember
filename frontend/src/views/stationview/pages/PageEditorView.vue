@@ -50,6 +50,14 @@ const pageId = computed(() => Number(route.params.id))
 /** Held so that a save can tell the editor its draft is no longer a rescue worth keeping. */
 const editor = ref<{draftSaved: () => void} | null>(null)
 
+/**
+ * The page's own title at the head of the editor, because "Seite bearbeiten" stands above every one
+ * of them and it is what the tab, the history and a bookmark carry. The stored title is what is
+ * shown rather than the field being typed into, so the header does not change under the reader's
+ * hands, and the wording holds the place while the page loads.
+ */
+const pageTitle = computed(() => page.value?.title || t('pages.page-editor.title'))
+
 const parentOptions = computed(() =>
     allPages.value.filter(p => p.id !== pageId.value),
 )
@@ -134,7 +142,7 @@ async function save() {
 </script>
 
 <template>
-    <ViewContent :title="t('pages.page-editor.title')" :subtitle="t('pages.page-editor.subtitle')">
+    <ViewContent :title="pageTitle" :subtitle="t('pages.page-editor.subtitle')">
         <div class="space-y-4">
             <Spinner v-if="loading" size="lg"/>
 

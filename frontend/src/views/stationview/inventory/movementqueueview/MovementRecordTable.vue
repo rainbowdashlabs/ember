@@ -34,6 +34,8 @@ const emit = defineEmits<{
 defineSlots<{
   actions?: (scope: {row: Movement}) => unknown
   empty?: () => unknown
+  /** The naming cell, where a screen makes it the link to whatever a press on the row opens. */
+  'cell-subject'?: (scope: {row: Movement}) => unknown
 }>()
 </script>
 
@@ -46,7 +48,9 @@ defineSlots<{
       @row-click="emit('row-click', $event)"
   >
     <template #[`cell-${MovementColumn.SUBJECT}`]="{row}">
-      <MovementSubjectCell :movement="row"/>
+      <slot :row="row" name="cell-subject">
+        <MovementSubjectCell :movement="row"/>
+      </slot>
     </template>
     <template #[`cell-${MovementColumn.PURPOSE}`]="{row}">
       <MovementPurposeCell :movement="row"/>

@@ -6,8 +6,8 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -26,10 +26,11 @@ import {useSession} from '@/composables/useSession'
  * says whose it is.
  */
 const {t} = useI18n()
-const router = useRouter()
 const {isGuardian, sessionInfo} = useSession()
 
 const rows = ref<Movement[]>([])
+
+const movementsPage = {name: 'inventory-movements'}
 
 const open = computed(() => rows.value.filter(movement => movement.state === MovementState.OPEN))
 
@@ -64,25 +65,24 @@ onMounted(loadData)
     <div class="flex-1 space-y-2 overflow-y-auto">
       <EmptyState v-if="open.length === 0" compact>{{ t('dashboard.noExchanges') }}</EmptyState>
       <template v-else>
-        <NeutralContainer
-            v-for="movement in open"
-            :key="movement.id"
-            class="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 hover:bg-(--bg-accent)"
-            @click="router.push({name: 'inventory-movements'})"
-        >
-          <div class="min-w-0">
-            <MemberName v-if="isOtherMember(movement.memberId)" :identity="movement.memberIdentity ?? null"
-                        class="text-xs font-semibold text-primary"/>
-            <ItemChip :source="chipOf(movement)"/>
-            <p class="text-xs text-(--text-muted)">{{ movement.reason }}</p>
-          </div>
-          <div class="flex shrink-0 flex-col items-end gap-1">
-            <InfoBadge v-if="movement.reachedStepLabel">{{ movement.reachedStepLabel }}</InfoBadge>
-            <SecondaryBadge v-if="movement.currentStepActor">
-              {{ t(`movements.actor.${movement.currentStepActor}`) }}
-            </SecondaryBadge>
-          </div>
-        </NeutralContainer>
+        <RowLink v-for="movement in open" :key="movement.id" :to="movementsPage">
+          <NeutralContainer
+              class="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 hover:bg-(--bg-accent)"
+          >
+            <div class="min-w-0">
+              <MemberName v-if="isOtherMember(movement.memberId)" :identity="movement.memberIdentity ?? null"
+                          class="text-xs font-semibold text-primary"/>
+              <ItemChip :source="chipOf(movement)"/>
+              <p class="text-xs text-(--text-muted)">{{ movement.reason }}</p>
+            </div>
+            <div class="flex shrink-0 flex-col items-end gap-1">
+              <InfoBadge v-if="movement.reachedStepLabel">{{ movement.reachedStepLabel }}</InfoBadge>
+              <SecondaryBadge v-if="movement.currentStepActor">
+                {{ t(`movements.actor.${movement.currentStepActor}`) }}
+              </SecondaryBadge>
+            </div>
+          </NeutralContainer>
+        </RowLink>
       </template>
     </div>
   </NeutralContainer>

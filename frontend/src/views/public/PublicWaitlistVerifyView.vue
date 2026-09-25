@@ -4,18 +4,30 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {waitingList} from '@/api'
+import {socialMeta} from '@/util/socialMeta'
 
 const {t} = useI18n()
 const route = useRoute()
+
+useHead(computed(() => {
+  const title = t('waitingList.publicRegistration.verifyPageTitle')
+  return {
+    title,
+    meta: [
+      {name: 'robots', content: 'noindex, nofollow'},
+      {name: 'referrer', content: 'no-referrer'},
+      ...socialMeta({title, description: t('waitingList.publicRegistration.verifyPageDescription')}),
+    ],
+  }
+}))
 
 const loading = ref(true)
 const success = ref(false)

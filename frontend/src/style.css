@@ -106,12 +106,19 @@ select::placeholder {
     opacity: 1 !important;
 }
 
-a:not(:has(button)) {
+/*
+ * A link written as a link reads as one. A row, a card or a name that opens a page is a link too,
+ * and must not: it keeps the look it had before anybody noticed it was a link, which is what
+ * `.row-link` marks. The utilities that component carries cannot say this on their own, because
+ * they sit in Tailwind's utilities layer and an unlayered rule beats a layered one whatever the
+ * specificity, so the exception belongs here beside the rule it is an exception to.
+ */
+a:not(:has(button)):not(.row-link) {
     color: var(--link);
     text-decoration: none;
 }
 
-a:not(:has(button)):hover {
+a:not(:has(button)):not(.row-link):hover {
     text-decoration: underline;
 }
 

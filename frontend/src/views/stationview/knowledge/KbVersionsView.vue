@@ -57,6 +57,15 @@ const fileId = computed(() => Number(route.params.id))
  */
 const canRevert = computed(() => file.value?.contentMode !== ContentMode.RICH)
 
+/**
+ * The file's name before the word, because this page belongs to one file and "Versionen" alone is
+ * true of every file in the wiki. It is also what the browser tab reads, and two tabs of versions
+ * open on two files are otherwise the same tab twice.
+ */
+const pageTitle = computed(() => (file.value
+    ? `${file.value.name} ${t('kb.versions')}`
+    : t('pages.kb-versions.title')))
+
 const {loading, error, reload: loadData} = useAsyncLoader(async () => {
     file.value = (await knowledgeBase.getFile(fileId.value)).file
     versions.value = await knowledgeBase.listVersions(fileId.value)
@@ -89,10 +98,7 @@ watch(loaded, (isLoaded) => {
 </script>
 
 <template>
-    <ViewContent
-        :title="t('pages.kb-versions.title')"
-        :subtitle="t('pages.kb-versions.subtitle')"
-    >
+    <ViewContent :title="pageTitle" :subtitle="t('pages.kb-versions.subtitle')">
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
         <Spinner v-if="loading"/>
 

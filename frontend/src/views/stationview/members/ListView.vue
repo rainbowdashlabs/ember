@@ -55,8 +55,7 @@ const {
   },
 })
 
-function openResendSetup(member: StationMember, event: Event) {
-  event.stopPropagation()
+function openResendSetup(member: StationMember) {
   resendTarget.value = member
   clearResendError()
 }

@@ -14,6 +14,7 @@ import PublicFormBody from './publicformsubmitview/PublicFormBody.vue'
 import SharedLinkShell from './SharedLinkShell.vue'
 import {usePublicFormSubmission} from '@/composables/usePublicFormSubmission'
 import {apiUrl} from '@/util/apiUrl'
+import {socialMeta, stationLogoImage, useAbsoluteUrl} from '@/util/socialMeta'
 import type {PublicForm} from '@/api/publicForms'
 import type {SharedBrand} from '@/api/sharedLinks'
 
@@ -52,6 +53,8 @@ const {data: preview, error: previewError} = await useAsyncData(
 
 const preloadedForm = computed(() => preview.value?.form ?? null)
 
+const absoluteUrl = useAbsoluteUrl()
+
 const {
   form,
   open,
@@ -78,13 +81,7 @@ useHead(computed(() => {
     meta: [
       {name: 'robots', content: 'noindex, nofollow'},
       {name: 'referrer', content: 'no-referrer'},
-      {name: 'description', content: description},
-      {property: 'og:title', content: title},
-      {property: 'og:description', content: description},
-      {property: 'og:type', content: 'website'},
-      {name: 'twitter:card', content: 'summary'},
-      {name: 'twitter:title', content: title},
-      {name: 'twitter:description', content: description},
+      ...socialMeta({title, description, imageUrl: absoluteUrl(stationLogoImage(preview.value?.brand))}),
     ],
   }
 }))

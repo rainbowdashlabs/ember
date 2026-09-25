@@ -55,12 +55,19 @@ async function copyToStation() {
     }
 }
 
+/**
+ * The partner's protocol by its own name, so a tab opened on one shared protocol is told apart from
+ * a tab opened on another. The generic wording stands while it loads and where the partner cannot be
+ * reached.
+ */
+const pageTitle = computed(() => detail.value?.protocol.name || t('pages.federated-protocol.title'))
+
 watch(() => [props.stationUid, props.protocolId], () => reload())
 </script>
 
 <template>
     <ViewContent
-        :title="t('pages.federated-protocol.title')"
+        :title="pageTitle"
         :subtitle="t('pages.federated-protocol.subtitle')"
     >
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>

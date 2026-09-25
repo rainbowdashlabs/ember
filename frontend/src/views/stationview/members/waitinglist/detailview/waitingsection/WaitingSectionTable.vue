@@ -5,7 +5,9 @@
  */
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
 import RecordTable from '@/components/table/RecordTable.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import type { WaitingListEntryWithScore } from '@/api/waitingList'
 import type { DataTableApi } from '@/composables/useDataTable'
 import WaitingSectionActions from './WaitingSectionActions.vue'
@@ -20,6 +22,8 @@ import { BIRTH_DATE_KEY } from './waitingColumns'
 const props = defineProps<{
   table: DataTableApi<WaitingListEntryWithScore>
   readonly?: boolean
+  /** The list these people are on. Without it there is no entry page for a name to lead to. */
+  listId?: number
 }>()
 
 const emit = defineEmits<{
@@ -38,6 +42,12 @@ function toggleExpand(item: WaitingListEntryWithScore) {
   expandedId.value = expandedId.value === item.entry.id ? null : item.entry.id
 }
 
+function entryPage(item: WaitingListEntryWithScore): RouteLocationRaw | null {
+  return props.listId == null
+      ? null
+      : { name: 'waiting-list-entry', params: { id: props.listId, entryId: item.entry.id } }
+}
+
 function birthDateClass(item: WaitingListEntryWithScore): string {
   return item.belowJoinAge ? 'whitespace-nowrap text-warning font-medium' : 'whitespace-nowrap text-(--text-muted)'
 }
@@ -50,10 +60,11 @@ function birthDateClass(item: WaitingListEntryWithScore): string {
       <span class="text-(--text-muted)">{{ rankOf.get(row.entry.id) }}</span>
     </template>
     <template #cell-firstname="{row, text}">
-      <span class="text-primary hover:underline cursor-pointer" role="link" tabindex="0"
-            @click.stop="emit('navigateToEntry', row.entry.id)" @keydown.enter="emit('navigateToEntry', row.entry.id)">
-        {{ text }}
-      </span>
+      <RowLink :to="entryPage(row)">
+        <span class="text-primary hover:underline cursor-pointer">
+          {{ text }}
+        </span>
+      </RowLink>
     </template>
     <template #[`cell-${BIRTH_DATE_KEY}`]="{row, text}">
       <span v-if="text" :class="birthDateClass(row)">

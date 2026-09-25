@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -34,6 +34,12 @@ const { config: entry, loading, error, reload: loadData } = useConfigPanel<Feder
   fetch: () => news.getFederatedNews(stationUid.value, newsId.value),
 })
 
+/**
+ * The entry's own headline at the head of the page. The static words stand until the partner has
+ * answered, and where the entry could not be fetched at all.
+ */
+const pageTitle = computed(() => entry.value?.title || t('pages.federated-news-detail.title'))
+
 watch(() => [route.params.stationUid, route.params.newsId], () => {
   stationUid.value = route.params.stationUid as string
   newsId.value = Number(route.params.newsId)
@@ -43,7 +49,7 @@ watch(() => [route.params.stationUid, route.params.newsId], () => {
 
 <template>
   <ViewContent
-      :title="t('pages.federated-news-detail.title')"
+      :title="pageTitle"
       :subtitle="t('pages.federated-news-detail.subtitle')"
   >
     <div class="space-y-4">

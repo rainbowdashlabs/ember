@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AuthImage from '@/components/display/AuthImage.vue'
+import KbItemImage from './KbItemImage.vue'
 import type {KbItem} from './useKbItems'
 
 /**
@@ -21,17 +21,29 @@ defineProps<{
 </script>
 
 <template>
-    <div class="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-theme bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
-        <AuthImage v-if="item.picture" :src="item.picture" :alt="item.title" class="h-full w-full object-cover">
+    <div class="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-theme bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
+        <KbItemImage
+            v-if="item.picture"
+            :src="item.picture"
+            :alt="item.title"
+            :plain="item.publicImages"
+            class="absolute inset-0 h-full w-full object-cover"
+        >
             <template #error>
                 <font-awesome-icon :icon="item.icon" class="text-4xl" :class="item.iconClass"/>
             </template>
-        </AuthImage>
-        <AuthImage v-else-if="item.imageUrl" :src="item.imageUrl" :alt="item.title" class="h-16 w-16 rounded object-cover">
+        </KbItemImage>
+        <KbItemImage
+            v-else-if="item.imageUrl"
+            :src="item.imageUrl"
+            :alt="item.title"
+            :plain="item.publicImages"
+            class="h-16 w-16 rounded object-cover"
+        >
             <template #error>
                 <font-awesome-icon :icon="item.icon" class="text-4xl" :class="item.iconClass"/>
             </template>
-        </AuthImage>
+        </KbItemImage>
         <font-awesome-icon v-else :icon="item.icon" class="text-4xl" :class="item.iconClass"/>
     </div>
 </template>

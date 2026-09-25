@@ -53,6 +53,12 @@ const eventData = computed(() => detail.value?.event ?? null)
 const publicFields = computed(() => detail.value?.publicFields ?? [])
 
 /**
+ * The appointment's own name at the head of the page. The kind of thing it is stands there only
+ * until the partner has answered, and where the partner could not be reached at all.
+ */
+const pageTitle = computed(() => eventData.value?.name || t('pages.federated-event-detail.title'))
+
+/**
  * What the station holding this appointment has given us, where it has given anything.
  *
  * <p>Absent is the ordinary arrangement: they decide about each of our members, as they always did.
@@ -209,7 +215,7 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
 
 <template>
   <ViewContent
-      :title="t('pages.federated-event-detail.title')"
+      :title="pageTitle"
       :subtitle="t('pages.federated-event-detail.subtitle')"
   >
     <div class="space-y-4">

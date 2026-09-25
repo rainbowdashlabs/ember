@@ -80,6 +80,13 @@ function showConfirm(message: string, action: () => Promise<void>) {
 const test = computed(() => detail.value?.test ?? null)
 const sections = computed(() => detail.value?.sections ?? [])
 
+/**
+ * The test's own title at the head of the page, because "Test" is the word above every one of them
+ * and it is what the tab, the history and a bookmark carry. It holds the place while the test loads
+ * and where it cannot be loaded at all.
+ */
+const pageTitle = computed(() => test.value?.title || t('pages.quiz-test-detail.title'))
+
 function catalogName(catalogId: number): string {
   return catalogs.value.find(c => c.id === catalogId)?.name ?? `#${catalogId}`
 }
@@ -232,7 +239,7 @@ watch(loaded, (isLoaded) => { if (isLoaded) reload() })
 </script>
 
 <template>
-  <ViewContent :title="t('pages.quiz-test-detail.title')" :subtitle="t('pages.quiz-test-detail.subtitle')">
+  <ViewContent :title="pageTitle" :subtitle="t('pages.quiz-test-detail.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
       <FailureAlert :message="error"/>

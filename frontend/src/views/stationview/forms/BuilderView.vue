@@ -75,6 +75,17 @@ const heldBy = ref<PageUsingForm[]>([])
 /** The form as the server last gave it, for the panel that shows where it is reached. */
 const loadedForm = ref<Form | null>(null)
 
+/**
+ * A form being edited is named after itself; one being created has no name yet. What stands here is
+ * the stored title rather than the field being typed into, so the page header does not change under
+ * the reader's hands.
+ */
+const pageTitle = computed(() => loadedForm.value?.title
+    || t(formId.value ? 'pages.forms-edit.title' : 'pages.forms-create.title'))
+
+const pageSubtitle = computed(() =>
+    t(formId.value ? 'pages.forms-edit.subtitle' : 'pages.forms-create.subtitle'))
+
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 const allMembers = ref<StationMember[]>([])
@@ -280,8 +291,8 @@ async function save() {
 
 <template>
   <ViewContent
-      :title="t('pages.forms-create.title')"
-      :subtitle="t('pages.forms-create.subtitle')"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
   >
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />

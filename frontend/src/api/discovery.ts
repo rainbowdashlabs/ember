@@ -39,6 +39,8 @@ export interface PublicStationInfo {
     defaultTheme: string | null
     defaultFeel: string | null
     customThemeColors: string | null
+    /** The clock every date on the station's public pages is written on. */
+    timezone: string
 }
 
 export async function getPublicStationInfo(stationUid: string): Promise<PublicStationInfo> {

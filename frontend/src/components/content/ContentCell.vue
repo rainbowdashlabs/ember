@@ -95,6 +95,7 @@ function youtubeEmbedUrl(url: string): string | null {
         :content="cell.content"
         :config="cell.config as Record<string, unknown>"
         :station-uid="context.stationUid"
+        :timezone="context.timezone"
     />
 
     <!-- Nested rows carry their cells inside the config, so the render recurses into them. -->

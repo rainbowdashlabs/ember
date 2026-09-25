@@ -10,6 +10,7 @@ import {useRouter} from 'vue-router'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MemberInventoryLink from '@/components/inventory/MemberInventoryLink.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
 import type {ProcurementEntry} from '@/api/procurement'
@@ -51,6 +52,8 @@ const table = useDataTable<ProcurementEntry>({
   searchText: sizeOf,
 })
 
+const procurementPage = computed(() => ({name: routes.procurement}))
+
 function toProcurement() {
   void router.push({name: routes.procurement})
 }
@@ -64,8 +67,10 @@ function toProcurement() {
     </SubHeader>
     <RecordTable :table="table" clickable test-id="overview-procurement" @row-click="toProcurement">
       <template #cell-item="{row, text}">
-        {{ text }}
-        <SizeBadge>{{ sizeOf(row) }}</SizeBadge>
+        <RowLink :to="procurementPage">
+          {{ text }}
+          <SizeBadge>{{ sizeOf(row) }}</SizeBadge>
+        </RowLink>
       </template>
       <template #[`cell-${INVENTORY_TYPE_KEY}`]="{row, text}">
         <InventoryTypeCell :text="text" :type="props.inventoryTypeMap.get(row.inventoryId)"/>

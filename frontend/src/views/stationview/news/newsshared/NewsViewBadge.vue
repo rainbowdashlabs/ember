@@ -47,7 +47,7 @@ function open() {
     :icon="['fas', 'eye']"
     :label="t('news.views.openModal')"
     class="text-(--text-muted) hover:text-primary"
-    @click.stop="open"
+    @click="open"
   >
     <span class="inline-flex items-center gap-1.5">
       <font-awesome-icon :icon="['fas', 'eye']" class="h-4 w-4"/>

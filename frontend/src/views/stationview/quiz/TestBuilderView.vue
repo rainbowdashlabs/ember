@@ -31,7 +31,15 @@ const isEdit = computed(() => testId.value !== null)
 const routeKey = computed(() => isEdit.value ? 'quiz-test-edit' : 'quiz-test-create')
 
 const title = ref('')
+const savedTitle = ref('')
 const description = ref('')
+
+/**
+ * A test being edited is named after itself, a test being created has no name yet and keeps the
+ * word. What stands here is the saved title rather than the field being typed into, so the page
+ * header does not change under the reader's hands.
+ */
+const pageTitle = computed(() => savedTitle.value || t(`pages.${routeKey.value}.title`))
 const timeLimit = ref<number | undefined>(undefined)
 const timeLimitEnabled = ref(false)
 const shuffle = ref(false)
@@ -135,6 +143,7 @@ const { loading, error } = useAsyncLoader(async () => {
     const detail = await quiz.getTest(testId.value)
     const test = detail.test
     title.value = test.title
+    savedTitle.value = test.title
     description.value = test.description
     timeLimit.value = test.timeLimit ?? undefined
     timeLimitEnabled.value = test.timeLimit !== null
@@ -225,7 +234,7 @@ async function save() {
 </script>
 
 <template>
-  <ViewContent :title="t(`pages.${routeKey}.title`)" :subtitle="t(`pages.${routeKey}.subtitle`)">
+  <ViewContent :title="pageTitle" :subtitle="t(`pages.${routeKey}.subtitle`)">
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
       <FailureAlert :message="error"/>

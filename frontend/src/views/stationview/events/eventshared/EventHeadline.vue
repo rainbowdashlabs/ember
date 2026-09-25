@@ -16,7 +16,12 @@ import EventWhen from './EventWhen.vue'
  */
 defineProps<{
   name?: string
-  to: RouteLocationRaw
+  /**
+   * Where the name leads, or nothing where the whole row is already the link to it. Two nested
+   * links are one link too many: the reader hears the same destination twice and the markup is
+   * invalid besides.
+   */
+  to?: RouteLocationRaw | null
   date: string
   endDate: string | null
   startTime?: string
@@ -31,7 +36,8 @@ defineProps<{
         :date="date" :end-date="endDate" :start-time="startTime" :end-time="endTime"
         :format-time="formatTime"/>
     <div class="flex flex-wrap items-center gap-x-2">
-      <router-link :to="to" class="font-medium text-primary hover:underline">{{ name }}</router-link>
+      <router-link v-if="to" :to="to" class="font-medium text-primary hover:underline">{{ name }}</router-link>
+      <span v-else class="font-medium text-primary hover:underline">{{ name }}</span>
       <slot/>
     </div>
   </div>

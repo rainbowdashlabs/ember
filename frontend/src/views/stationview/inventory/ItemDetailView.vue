@@ -45,6 +45,15 @@ const {message: success, flash} = useFlashMessage(3000)
 const isManager = computed(() => hasPermission('INVENTORY_MANAGER') || hasPermission('STATION_ADMINISTRATOR'))
 
 /**
+ * The piece by what it is called, at the head of the page, because "Item-Details" stands above
+ * every one of them and is what the tab, the history and a bookmark carry. Where nobody named it,
+ * what is written on it is its name; the plain wording stands until it has arrived and where it
+ * could not be fetched at all.
+ */
+const pageTitle = computed(() =>
+    item.value?.name || item.value?.internalId || t('pages.inventory-item-detail.title'))
+
+/**
  * Whether this station may describe this piece of gear, which is not the same as being allowed to
  * describe gear.
  *
@@ -168,7 +177,7 @@ async function doMarkFound() {
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-item-detail.title')"
+      :title="pageTitle"
       :subtitle="t('pages.inventory-item-detail.subtitle')"
   >
     <div class="space-y-6">

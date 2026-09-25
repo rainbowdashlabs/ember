@@ -42,7 +42,7 @@ import {useKbFileMetadata} from '@/views/stationview/knowledge/kbfileview/useKbF
 import {useKbMoveTarget} from '@/views/stationview/knowledge/knowledgebaseview/useKbMoveTarget'
 import {STATION_KB_ROUTES, type KbRoutes} from '@/views/stationview/knowledge/knowledgebaseview/useKbNavigation'
 import {getItem} from '@/api/storage'
-import {downloadAuthed} from '@/util/downloadAuthed'
+import {useKbFileDownloads} from './kbfileview/useKbFileDownloads'
 import {formatDateTime} from '@/util/format'
 import {youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
 import {useFlashMessage} from '@/composables/useFlashMessage'
@@ -85,20 +85,23 @@ const {
 const showPresentation = ref(false)
 const showEditMetadataModal = ref(false)
 const showShareModal = ref(false)
-async function downloadOriginal() {
-    if (!file.value) return
-    await downloadAuthed(knowledgeBase.originalFileUrl(file.value.id), file.value.name)
-}
-
-async function downloadPdf() {
-    if (!file.value) return
-    const url = props.stationUid
-        ? knowledgeBase.federatedPdfExportUrl(props.stationUid, file.value.id)
-        : knowledgeBase.pdfExportUrl(file.value.id)
-    await downloadAuthed(url, `${file.value.name}.pdf`)
-}
+const {downloadOriginal, downloadPdf} = useKbFileDownloads(file, computed(() => props.stationUid))
 
 const isFederated = computed(() => props.stationUid != null)
+
+/**
+ * The file's own name at the head of the page, because "Datei" says nothing about which one is
+ * open: it is the same word above every file in the wiki, and it is what the tab, the history and a
+ * bookmark all end up carrying. The word is what stands there until the file has arrived, and where
+ * a partner's file cannot be fetched at all.
+ */
+const pageTitle = computed(() => file.value?.name
+    || (isFederated.value ? t('pages.federated-kb-file.title') : t('pages.kb-file.title')))
+
+/** Once the name is the title, the line under it is where the file says what kind of thing it is. */
+const pageSubtitle = computed(() => isFederated.value
+    ? t('pages.federated-kb-file.subtitle')
+    : (file.value?.description || t('pages.kb-file.subtitle')))
 
 const isTextual = computed(() =>
     file.value?.fileType === KbFileType.MARKDOWN || file.value?.fileType === KbFileType.TEXT)
@@ -349,10 +352,7 @@ watch(() => [props.fileId, props.stationUid], () => {
 </script>
 
 <template>
-    <ViewContent
-        :title="isFederated ? t('pages.federated-kb-file.title') : t('pages.kb-file.title')"
-        :subtitle="isFederated ? t('pages.federated-kb-file.subtitle') : t('pages.kb-file.subtitle')"
-    >
+    <ViewContent :title="pageTitle" :subtitle="pageSubtitle">
         <KbPartnerGoneNotice
             v-if="isFederated && !file && !loading && favourite.marked.value"
             @remove="favourite.toggle()"

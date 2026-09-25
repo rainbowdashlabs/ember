@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
+import dev.chojo.ember.feature.knowledgebase.service.KbFilePictureService;
 import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.knowledgebase.service.KbImageService;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfExportService;
@@ -20,6 +21,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
 import dev.chojo.ember.feature.knowledgebase.service.KbTagService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
@@ -64,6 +66,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     private final StationRepository stationRepository;
     private final KbIconService iconService;
     private final KbImageService imageService;
+    private final KbFilePictureService pictureService;
     private final KbPdfExportService pdfExportService;
 
     @Inject
@@ -77,6 +80,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             StationRepository stationRepository,
             KbIconService iconService,
             KbImageService imageService,
+            KbFilePictureService pictureService,
             KbPdfExportService pdfExportService) {
         this.kbService = kbService;
         this.contentService = contentService;
@@ -87,6 +91,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         this.stationRepository = stationRepository;
         this.iconService = iconService;
         this.imageService = imageService;
+        this.pictureService = pictureService;
         this.pdfExportService = pdfExportService;
     }
 
@@ -98,6 +103,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         routes.get(base + "/browse", this::browse);
         routes.get(base + "/files/{id}", this::getFile);
         routes.get(base + "/files/{id}/content", this::getFileContent);
+        routes.get(base + "/files/{id}/picture", this::getFilePicture);
         routes.get(base + "/files/{id}/html", this::getMarkdownHtml);
         routes.get(base + "/files/{id}/pdf", this::getFilePdf);
         routes.get(base + "/search", this::search);
@@ -132,17 +138,27 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     }
 
     /**
-     * Resolves the public station, loads the {@code id} file, and confirms it belongs to that
-     * station and is publicly visible, returning it. Answers 404 for a missing, cross-station, or
-     * non-public file.
+     * A file of a public knowledge base together with the station publishing it, which is what a
+     * route serving that file needs to know.
      */
-    private KbFile resolvePublicFile(Context ctx) {
+    private record PublicFile(Station station, KbFile file) {}
+
+    /**
+     * Resolves the public station, loads the {@code id} file, and confirms it belongs to that
+     * station and is publicly visible, returning both. Answers 404 for a missing, cross-station, or
+     * non-public file.
+     *
+     * <p>Every route serving a single file goes through here, so that what may leave the station is
+     * decided in one place: a second copy of the rule is a second thing to keep right, and the copy
+     * left behind is the one that serves a file nobody published.
+     */
+    private PublicFile resolvePublicFile(Context ctx) {
         var station = resolveStation(ctx);
         int id = pathInt(ctx, "id");
         var file = kbService.findFile(id).orElseThrow(NotFoundResponse::new);
         if (file.stationId() != station.id()) throw new NotFoundResponse();
         requirePubliclyVisible(station, null, id);
-        return file;
+        return new PublicFile(station, file);
     }
 
     @OpenApi(
@@ -157,7 +173,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             })
     private void getInfo(Context ctx) {
         var station = resolveStation(ctx);
-        ctx.json(new PublicKbInfo(station.name(), station.uid().toString()));
+        ctx.json(new PublicKbInfo(station.name(), station.uid().toString(), StationFormat.timezoneNameOf(station)));
     }
 
     @OpenApi(
@@ -208,7 +224,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getFile(Context ctx) {
-        ctx.json(resolvePublicFile(ctx));
+        ctx.json(resolvePublicFile(ctx).file());
     }
 
     @OpenApi(
@@ -225,7 +241,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getFileContent(Context ctx) {
-        var file = resolvePublicFile(ctx);
+        var file = resolvePublicFile(ctx).file();
         int id = file.id();
 
         switch (file.fileType()) {
@@ -249,6 +265,39 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         }
     }
 
+    /**
+     * The picture of a public file, so a tile on the public knowledge base shows what the file is
+     * rather than the icon of its kind, exactly as the station's own listing does.
+     *
+     * <p>Kept behind the same door as the file's own bytes, and opened by the same rule: a picture
+     * of a sheet is still the sheet, so only a file the station has published has one here. A file
+     * with no picture answers 404, and the tile draws its icon instead.
+     */
+    @OpenApi(
+            path = "/api/v1/public/kb/{stationUid}/files/{id}/picture",
+            methods = HttpMethod.GET,
+            summary = "Get the picture of a public knowledge base file",
+            tags = {"Public Knowledge Base"},
+            pathParams = {
+                @OpenApiParam(name = "stationUid", type = String.class, required = true),
+                @OpenApiParam(name = "id", type = Integer.class, required = true)
+            },
+            queryParams = @OpenApiParam(name = "size", type = Integer.class),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void getFilePicture(Context ctx) {
+        var file = resolvePublicFile(ctx).file();
+        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(256);
+        var picture = pictureService
+                .read(file.stationId(), file.id(), file.mimeType(), size)
+                .orElseThrow(NotFoundResponse::new);
+        ctx.contentType(picture.contentType());
+        ctx.header("Cache-Control", "public, max-age=300");
+        ctx.result(picture.data());
+    }
+
     @OpenApi(
             path = "/api/v1/public/kb/{stationUid}/files/{id}/html",
             methods = HttpMethod.GET,
@@ -263,7 +312,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getMarkdownHtml(Context ctx) {
-        var file = resolvePublicFile(ctx);
+        var file = resolvePublicFile(ctx).file();
         if (file.fileType() != KbFileType.MARKDOWN) throw new BadRequestResponse("Not a markdown file");
 
         var markdown = contentService.getMarkdownContent(file.id()).orElse("");
@@ -272,16 +321,13 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     }
 
     private void getFilePdf(Context ctx) {
-        var station = resolveStation(ctx);
-        int id = pathInt(ctx, "id");
-        var file = kbService.findFile(id).orElseThrow(NotFoundResponse::new);
-        if (file.stationId() != station.id()) throw new NotFoundResponse();
-        requirePubliclyVisible(station, null, id);
+        var published = resolvePublicFile(ctx);
+        var file = published.file();
         if (!KbPdfExportService.isExportable(file.fileType())) {
             throw new BadRequestResponse("Only markdown and text files can be rendered as PDF");
         }
         try {
-            byte[] pdf = pdfExportService.renderPublic(file, station);
+            byte[] pdf = pdfExportService.renderPublic(file, published.station());
             ctx.contentType("application/pdf");
             ctx.header(
                     "Content-Disposition",
@@ -291,7 +337,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             Thread.currentThread().interrupt();
             throw new InternalServerErrorResponse("Failed to render PDF");
         } catch (IOException e) {
-            log.warn("Failed to render public file {} as PDF", id, e);
+            log.warn("Failed to render public file {} as PDF", file.id(), e);
             throw new InternalServerErrorResponse("Failed to render PDF");
         }
     }
@@ -386,7 +432,15 @@ public class PublicKnowledgeBaseRoutes implements Routes {
 
     public record PublicBrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files) {}
 
-    public record PublicKbInfo(String stationName, String stationUid) {}
+    /**
+     * What a public wiki says about the station behind it.
+     *
+     * <p>The timezone is what a date in an article is written on. Neither the server that renders the
+     * page nor the browser that renders it again stands where the reader does, so a date put on
+     * whichever clock wrote it comes out differently in the two copies; the station's clock is the one
+     * both can be told to use.
+     */
+    public record PublicKbInfo(String stationName, String stationUid, String stationTimezone) {}
 
     public record YoutubeContentResponse(String youtubeUrl) {}
 

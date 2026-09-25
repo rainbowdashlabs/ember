@@ -6,6 +6,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import type { RouteLocationRaw } from 'vue-router'
+import RowLink from '@/components/navigation/RowLink.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
@@ -20,12 +22,13 @@ const props = defineProps<{
   entries: WaitingListEntryWithScore[]
   attendanceThreshold: number
   readonly?: boolean
+  /** The list these people are on. Without it there is no entry page for a name to lead to. */
+  listId?: number
 }>()
 
 const emit = defineEmits<{
   moveToJoined: [entryId: number]
   withdraw: [entryId: number]
-  navigateToEntry: [entryId: number]
 }>()
 
 const { t } = useI18n()
@@ -38,6 +41,12 @@ function toggleExpand(entryId: number) {
 function entryFullName(item: WaitingListEntryWithScore): string {
   const e = item.entry
   return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
+}
+
+function entryPage(item: WaitingListEntryWithScore): RouteLocationRaw | null {
+  return props.listId == null
+      ? null
+      : { name: 'waiting-list-entry', params: { id: props.listId, entryId: item.entry.id } }
 }
 </script>
 
@@ -56,9 +65,11 @@ function entryFullName(item: WaitingListEntryWithScore): string {
         @click="toggleExpand(item.entry.id)"
       >
         <div class="flex items-center justify-between">
-          <span class="font-semibold text-primary hover:underline cursor-pointer" role="link" tabindex="0" @click.stop="emit('navigateToEntry', item.entry.id)" @keydown.enter="emit('navigateToEntry', item.entry.id)">
-            {{ entryFullName(item) }}
-          </span>
+          <RowLink :to="entryPage(item)">
+            <span class="font-semibold text-primary hover:underline cursor-pointer">
+              {{ entryFullName(item) }}
+            </span>
+          </RowLink>
           <PrimaryBadge>{{ t('waitingList.status_TESTING') }}</PrimaryBadge>
         </div>
         <div class="text-xs text-(--text-muted)">{{ t('waitingList.createdAt') }}: {{ formatDate(item.entry.createdAt) }}</div>

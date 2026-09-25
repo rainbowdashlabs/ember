@@ -13,6 +13,8 @@ import ContentRow from '@/components/content/ContentRow.vue'
 import SharedLinkShell from './SharedLinkShell.vue'
 import {publicContentContext} from '@/util/contentContext'
 import {apiUrl} from '@/util/apiUrl'
+import {socialMeta, stationLogoImage, useAbsoluteUrl} from '@/util/socialMeta'
+import {publicPageImageUrl} from '@/api/publicPages'
 import type {SharedPage} from '@/api/sharedLinks'
 
 /**
@@ -35,6 +37,8 @@ const {data: shared, error} = await useAsyncData(
 
 const page = computed(() => shared.value?.page ?? null)
 
+const absoluteUrl = useAbsoluteUrl()
+
 /**
  * A page opened to the public since its link was sent moves to its ordinary address, but only where
  * that address answers: the slug path sits behind the station's public pages switch, so sending a
@@ -55,18 +59,16 @@ useHead(computed(() => {
   const p = page.value
   if (!p) return {meta: [{name: 'robots', content: 'noindex, nofollow'}]}
   const description = p.metaDescription || p.title
+  const station = shared.value?.station
+  const image = absoluteUrl(p.ogImageHash && station
+      ? publicPageImageUrl(station.stationUid, p.ogImageHash)
+      : stationLogoImage(station))
   return {
     title: p.title,
     meta: [
       {name: 'robots', content: 'noindex, nofollow'},
       {name: 'referrer', content: 'no-referrer'},
-      {name: 'description', content: description},
-      {property: 'og:title', content: p.title},
-      {property: 'og:description', content: description},
-      {property: 'og:type', content: 'website'},
-      {name: 'twitter:card', content: 'summary'},
-      {name: 'twitter:title', content: p.title},
-      {name: 'twitter:description', content: description},
+      ...socialMeta({title: p.title, description, imageUrl: image}),
     ],
   }
 }))
@@ -81,7 +83,7 @@ useHead(computed(() => {
                     v-for="row in page.rows"
                     :key="row.id"
                     :row="row"
-                    :context="publicContentContext(shared!.station.stationUid, page.title)"/>
+                    :context="publicContentContext(shared!.station.stationUid, page.title, shared!.station.timezone)"/>
             </div>
         </ViewContent>
     </SharedLinkShell>

@@ -24,33 +24,64 @@ function asDate(value: string): Date {
 }
 
 /**
+ * Writes a moment or a calendar date out in German, on a named clock where one is named.
+ *
+ * <p>A page rendered on the server and then again in the browser is written by two machines, and
+ * neither of them is where the reader is. Naming the clock is what lets the two agree, and on a
+ * public page the clock worth naming is the station's: an appointment at seven at the station is at
+ * seven whoever is reading about it.
+ *
+ * <p>A bare calendar date is never moved onto another clock. It stands for that day everywhere, and
+ * it reaches here as the reader's own midnight, so an hour of a zone either way would make it the
+ * day before. A clock it does not have is a clock it cannot be read on.
+ *
+ * <p>Falls back to the reader's own clock for a zone no runtime knows, the way everything else here
+ * that takes a zone does.
+ */
+function written(
+    value: string,
+    timezone: string | null | undefined,
+    options: Intl.DateTimeFormatOptions,
+): string {
+    const date = asDate(value)
+    if (Number.isNaN(date.getTime())) return ''
+    if (!timezone || CALENDAR_DATE.test(value)) return date.toLocaleString('de-DE', options)
+    try {
+        return date.toLocaleString('de-DE', {...options, timeZone: timezone})
+    } catch {
+        return date.toLocaleString('de-DE', options)
+    }
+}
+
+/**
  * Formats a moment, or a plain clock reading such as `18:00:00`, as `HH:mm`. Returns an empty
  * string when the input is missing.
  *
  * <p>A moment is read in the runtime's own time zone, which is where the reader is: an appointment
  * stored as `17:30Z` is half past seven to somebody in Berlin in summer, and that is what they are
  * told. A plain clock carries no zone and is simply shortened.
+ *
+ * @param timezone the clock to read it on instead, for a page written where no reader can be asked
  */
-export function formatTime(value?: string | null): string {
+export function formatTime(value?: string | null, timezone?: string | null): string {
     if (!value) return ''
     const clock = CLOCK.exec(value)
     if (clock) return `${pad2(Number(clock[1]))}:${clock[2]}`
     const d = new Date(value)
     if (Number.isNaN(d.getTime())) return ''
-    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+    if (!timezone) return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+    return stationClock(d, timezone)
 }
 
 /**
  * Formats a moment or a calendar date as `dd.MM.yyyy`. Returns an empty string when the input is
  * missing or is not a date at all.
+ *
+ * @param timezone the clock to read a moment on, as {@link written} describes
  */
-export function formatDate(value?: string | null): string {
+export function formatDate(value?: string | null, timezone?: string | null): string {
     if (!value) return ''
-    const date = asDate(value)
-    if (Number.isNaN(date.getTime())) return ''
-    return date.toLocaleDateString('de-DE', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-    })
+    return written(value, timezone, {day: '2-digit', month: '2-digit', year: 'numeric'})
 }
 
 /**
@@ -58,28 +89,29 @@ export function formatDate(value?: string | null): string {
  * places that name a single day and want it recognised at a glance. Returns an empty string when
  * the input is missing.
  *
- * @param value   the moment or calendar date
- * @param weekday whether the weekday is written out or shortened
+ * @param value    the moment or calendar date
+ * @param weekday  whether the weekday is written out or shortened
+ * @param timezone the clock to read a moment on, as {@link written} describes
  */
-export function formatWeekdayDate(value?: string | null, weekday: 'long' | 'short' = 'long'): string {
+export function formatWeekdayDate(
+    value?: string | null,
+    weekday: 'long' | 'short' = 'long',
+    timezone?: string | null,
+): string {
     if (!value) return ''
-    const date = asDate(value)
-    if (Number.isNaN(date.getTime())) return ''
-    return date.toLocaleDateString('de-DE', {
-        weekday, day: '2-digit', month: '2-digit', year: 'numeric',
-    })
+    return written(value, timezone, {weekday, day: '2-digit', month: '2-digit', year: 'numeric'})
 }
 
 /**
  * Formats a moment or a calendar date as `dd.MM.` for the narrow places, such as the deadline chip
  * on a board card, where the year would take room the card has not got. Returns an empty string
  * when the input is missing.
+ *
+ * @param timezone the clock to read a moment on, as {@link written} describes
  */
-export function formatDayMonth(value?: string | null): string {
+export function formatDayMonth(value?: string | null, timezone?: string | null): string {
     if (!value) return ''
-    const date = asDate(value)
-    if (Number.isNaN(date.getTime())) return ''
-    return date.toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit'})
+    return written(value, timezone, {day: '2-digit', month: '2-digit'})
 }
 
 const WEEKDAYS = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
@@ -95,28 +127,38 @@ export function weekdayName(dayOfWeek: number): string {
 /**
  * Formats a moment or a calendar date as a long German date - `27. Juli 2026` - for editorial
  * surfaces such as blog posts and release notes. Returns an empty string when the input is missing.
+ *
+ * @param timezone the clock to read a moment on, as {@link written} describes
  */
-export function formatDateLong(value?: string | null): string {
+export function formatDateLong(value?: string | null, timezone?: string | null): string {
     if (!value) return ''
-    const date = asDate(value)
-    if (Number.isNaN(date.getTime())) return ''
-    return date.toLocaleDateString('de-DE', {
-        year: 'numeric', month: 'long', day: 'numeric',
-    })
+    return written(value, timezone, {year: 'numeric', month: 'long', day: 'numeric'})
 }
 
 /**
  * Formats a moment as `dd.MM.yyyy, HH:mm` in the reader's own time zone. Returns an empty string
  * when the input is missing. Mirrors the most common date and time display used across views.
+ *
+ * @param timezone the clock to read it on instead, as {@link written} describes
  */
-export function formatDateTime(value?: string | null): string {
+export function formatDateTime(value?: string | null, timezone?: string | null): string {
     if (!value) return ''
-    const date = asDate(value)
-    if (Number.isNaN(date.getTime())) return ''
-    return date.toLocaleString('de-DE', {
+    return written(value, timezone, {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit',
     })
+}
+
+/**
+ * Formats a moment as a long German date and a short clock - `12. Oktober 2026 um 20:00` - for the
+ * blocks that give an appointment room enough to read as a sentence. Returns an empty string when
+ * the input is missing.
+ *
+ * @param timezone the clock to read it on, as {@link written} describes
+ */
+export function formatDateTimeLong(value?: string | null, timezone?: string | null): string {
+    if (!value) return ''
+    return written(value, timezone, {dateStyle: 'long', timeStyle: 'short'})
 }
 
 /**

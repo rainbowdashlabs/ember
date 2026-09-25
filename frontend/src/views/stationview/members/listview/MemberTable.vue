@@ -6,10 +6,12 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
+import type {RouteLocationRaw} from 'vue-router'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import type {CellValue} from '@/components/table/tableColumn'
 import type {ProfileField} from '@/api/profileFields'
 import type {StationMember} from '@/api/types'
@@ -19,6 +21,7 @@ import MemberExpansion from './MemberExpansion.vue'
 import MemberNameCell from './MemberNameCell.vue'
 import MemberRowLead from './MemberRowLead.vue'
 import MemberTypeBadge from './MemberTypeBadge.vue'
+import {useMemberRowExtras} from './memberRowExtras'
 import type {MemberListConfig} from './useMemberListConfig'
 
 /**
@@ -30,10 +33,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  resendSetup: [member: StationMember, event: Event]
+  resendSetup: [member: StationMember]
 }>()
 
 const {t} = useI18n()
+const extras = useMemberRowExtras()
 
 const c = props.config
 const table = c.table
@@ -69,6 +73,15 @@ function rowClass(member: StationMember): string {
   return c.expandedId.value === member.id ? 'bg-bg-light-accent/30 dark:bg-bg-dark-accent/30' : ''
 }
 
+/**
+ * Where a person's name leads: their own page, unless the list is choosing whom to export or this
+ * reader may not reach that person at all.
+ */
+function namePageOf(member: StationMember): RouteLocationRaw | null {
+  if (exportMode.value || extras.blockedReason(member.id)) return null
+  return c.detailRouteOf(member)
+}
+
 function onRowClick(member: StationMember) {
   if (exportMode.value) exporting.toggleRow(member.id)
   else c.toggleExpand(member)
@@ -92,7 +105,9 @@ function onRowClick(member: StationMember) {
       />
     </template>
     <template #cell-name="{row}">
-      <MemberNameCell :can-edit="c.canEdit.value" :member="row" @resend-setup="emit('resendSetup', row, $event)"/>
+      <RowLink :to="namePageOf(row)">
+        <MemberNameCell :can-edit="c.canEdit.value" :member="row" @resend-setup="emit('resendSetup', row)"/>
+      </RowLink>
     </template>
     <template #cell-userType="{row}">
       <MemberTypeBadge :user-type="row.userType"/>

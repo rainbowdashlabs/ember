@@ -5,8 +5,8 @@
  */
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -25,7 +25,6 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
-const router = useRouter()
 
 function memberName(memberId: number): string {
   const m = props.members.find(m => m.id === memberId)
@@ -39,8 +38,8 @@ function attemptStatusLabel(status: string): string {
   return status
 }
 
-function openAttempt(attemptId: number) {
-  router.push({name: 'quiz-test-evaluate', params: {id: props.testId, attemptId}})
+function attemptPage(attemptId: number) {
+  return {name: 'quiz-test-evaluate', params: {id: props.testId, attemptId}}
 }
 </script>
 
@@ -49,58 +48,60 @@ function openAttempt(attemptId: number) {
     <SubHeader>{{ title }}</SubHeader>
 
     <template v-if="isMobile">
-      <NeutralContainer
+      <RowLink
         v-for="attempt in attempts"
         :key="attempt.id"
-        class="cursor-pointer"
-        @click="openAttempt(attempt.id)"
+        :to="attemptPage(attempt.id)"
       >
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="font-medium text-sm">{{ memberName(attempt.memberId) }}</span>
-            <SuccessBadge v-if="graded">{{ attemptStatusLabel(attempt.status) }}</SuccessBadge>
-            <InfoBadge v-else-if="attempt.status === QuizAttemptStatus.SUBMITTED">{{ attemptStatusLabel(attempt.status) }}</InfoBadge>
-            <SecondaryBadge v-else>{{ attemptStatusLabel(attempt.status) }}</SecondaryBadge>
+        <NeutralContainer class="cursor-pointer">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-medium text-sm">{{ memberName(attempt.memberId) }}</span>
+              <SuccessBadge v-if="graded">{{ attemptStatusLabel(attempt.status) }}</SuccessBadge>
+              <InfoBadge v-else-if="attempt.status === QuizAttemptStatus.SUBMITTED">{{ attemptStatusLabel(attempt.status) }}</InfoBadge>
+              <SecondaryBadge v-else>{{ attemptStatusLabel(attempt.status) }}</SecondaryBadge>
+            </div>
+            <div class="flex items-center justify-between text-xs text-(--text-muted)">
+              <span>{{ formatDateTime(attempt.startedAt) }}</span>
+              <span v-if="graded">
+                {{ attempt.totalPoints }}/{{ attempt.maxPoints }} {{ t('quiz.attempt.points') }}
+              </span>
+            </div>
+            <div v-if="graded && attempt.gradedBy" class="text-xs text-(--text-muted)">
+              {{ t('quiz.evaluate.gradedBy') }}: {{ memberName(attempt.gradedBy) }}
+            </div>
           </div>
-          <div class="flex items-center justify-between text-xs text-(--text-muted)">
-            <span>{{ formatDateTime(attempt.startedAt) }}</span>
-            <span v-if="graded">
-              {{ attempt.totalPoints }}/{{ attempt.maxPoints }} {{ t('quiz.attempt.points') }}
-            </span>
-          </div>
-          <div v-if="graded && attempt.gradedBy" class="text-xs text-(--text-muted)">
-            {{ t('quiz.evaluate.gradedBy') }}: {{ memberName(attempt.gradedBy) }}
-          </div>
-        </div>
-      </NeutralContainer>
+        </NeutralContainer>
+      </RowLink>
     </template>
 
     <template v-else>
-      <NeutralContainer
+      <RowLink
         v-for="attempt in attempts"
         :key="attempt.id"
-        class="cursor-pointer"
-        @click="openAttempt(attempt.id)"
+        :to="attemptPage(attempt.id)"
       >
-        <div class="flex items-center justify-between gap-4">
-          <div class="flex items-center gap-2 flex-1">
-            <span class="font-medium text-sm">{{ memberName(attempt.memberId) }}</span>
-            <SuccessBadge v-if="graded">{{ attemptStatusLabel(attempt.status) }}</SuccessBadge>
-            <InfoBadge v-else-if="attempt.status === QuizAttemptStatus.SUBMITTED">{{ attemptStatusLabel(attempt.status) }}</InfoBadge>
-            <SecondaryBadge v-else>{{ attemptStatusLabel(attempt.status) }}</SecondaryBadge>
+        <NeutralContainer class="cursor-pointer">
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-2 flex-1">
+              <span class="font-medium text-sm">{{ memberName(attempt.memberId) }}</span>
+              <SuccessBadge v-if="graded">{{ attemptStatusLabel(attempt.status) }}</SuccessBadge>
+              <InfoBadge v-else-if="attempt.status === QuizAttemptStatus.SUBMITTED">{{ attemptStatusLabel(attempt.status) }}</InfoBadge>
+              <SecondaryBadge v-else>{{ attemptStatusLabel(attempt.status) }}</SecondaryBadge>
+            </div>
+            <div class="flex items-center gap-4 text-xs text-(--text-muted) shrink-0">
+              <span>{{ formatDateTime(attempt.startedAt) }}</span>
+              <span v-if="attempt.submittedAt">{{ formatDateTime(attempt.submittedAt) }}</span>
+              <span v-if="graded" class="font-medium text-sm text-(--text)">
+                {{ attempt.totalPoints }}/{{ attempt.maxPoints }} {{ t('quiz.attempt.points') }}
+              </span>
+              <span v-if="graded && attempt.gradedBy" class="text-xs">
+                {{ t('quiz.evaluate.gradedBy') }}: {{ memberName(attempt.gradedBy) }}
+              </span>
+            </div>
           </div>
-          <div class="flex items-center gap-4 text-xs text-(--text-muted) shrink-0">
-            <span>{{ formatDateTime(attempt.startedAt) }}</span>
-            <span v-if="attempt.submittedAt">{{ formatDateTime(attempt.submittedAt) }}</span>
-            <span v-if="graded" class="font-medium text-sm text-(--text)">
-              {{ attempt.totalPoints }}/{{ attempt.maxPoints }} {{ t('quiz.attempt.points') }}
-            </span>
-            <span v-if="graded && attempt.gradedBy" class="text-xs">
-              {{ t('quiz.evaluate.gradedBy') }}: {{ memberName(attempt.gradedBy) }}
-            </span>
-          </div>
-        </div>
-      </NeutralContainer>
+        </NeutralContainer>
+      </RowLink>
     </template>
   </div>
 </template>

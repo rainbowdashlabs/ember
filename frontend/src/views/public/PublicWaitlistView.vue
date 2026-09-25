@@ -4,9 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRoute} from 'vue-router'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -19,10 +18,27 @@ import type {GuardianInput, PublicWaitlistSummary, PublicWaitlistFormResponse, W
 import {waitingList} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {socialMeta, stationLogoImage, titleWithStation, useAbsoluteUrl} from '@/util/socialMeta'
+import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
 
 const {t} = useI18n()
-const route = useRoute()
-const stationUid = computed(() => route.params.stationUid as string)
+const {station, stationUid} = usePublicStationAddress()
+const headTitle = computed(() => titleWithStation(t('publicStation.waitlist'), station.value?.name))
+const absoluteUrl = useAbsoluteUrl()
+
+useHead(computed(() => {
+  const info = station.value
+  return {
+    title: headTitle.value,
+    meta: info
+        ? socialMeta({
+          title: headTitle.value,
+          description: t('publicStation.meta.waitlist', {station: info.name}),
+          imageUrl: absoluteUrl(stationLogoImage(info)),
+        })
+        : [],
+  }
+}))
 
 const lists = ref<PublicWaitlistSummary[]>([])
 const selectedListId = ref<number | null>(null)

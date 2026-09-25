@@ -22,6 +22,8 @@ defineProps<{
   isFull: boolean
   canManageBoards: boolean
   searchResults: BoardTicket[] | null
+  /** Where each hit of the search leads. */
+  ticketPage: (ticket: BoardTicket) => string
   laneName: (laneId: number) => string
   priorityIcon: (priority: TicketPriorityName) => string[]
   priorityColor: (priority: TicketPriorityName) => string
@@ -29,7 +31,7 @@ defineProps<{
 
 const emit = defineEmits<{
   'search-input': []
-  'pick-result': [ticket: BoardTicket]
+  'pick-result': []
   'open-override': []
   'open-create': []
 }>()
@@ -64,10 +66,11 @@ const router = useRouter()
             v-if="searchResults"
             :results="searchResults"
             :short-key="shortKey"
+            :ticket-page="ticketPage"
             :lane-name="laneName"
             :priority-icon="priorityIcon"
             :priority-color="priorityColor"
-            @pick="emit('pick-result', $event)"
+            @pick="emit('pick-result')"
         />
       </div>
       <ButtonRow pair align="end">

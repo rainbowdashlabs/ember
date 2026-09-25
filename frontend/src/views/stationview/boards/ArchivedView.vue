@@ -64,6 +64,18 @@ function labelsForTicket(ticket: BoardTicket): BoardLabel[] {
     return labelsByTicket.value.get(ticket.id) ?? []
 }
 
+/**
+ * Which board's archive is open, by the short key the reader already knows from the ticket numbers.
+ * Three boards otherwise leave three tabs all reading "Archiv". The word alone stands until the
+ * board has arrived, and where it could not be fetched at all.
+ */
+const pageTitle = computed(() => board.value
+    ? t('pages.board-archived.titleNamed', {name: board.value.shortKey})
+    : t('pages.board-archived.title'))
+
+/** The short key names the board above; the line under it spells the board out. */
+const pageSubtitle = computed(() => board.value?.name || t('pages.board-archived.subtitle'))
+
 const table = useTicketTable({
     id: 'board-archived',
     shortKey: () => board.value?.shortKey ?? '',
@@ -75,8 +87,8 @@ const table = useTicketTable({
 
 <template>
     <ViewContent
-        :title="t('pages.board-archived.title')"
-        :subtitle="t('pages.board-archived.subtitle')"
+        :title="pageTitle"
+        :subtitle="pageSubtitle"
     >
         <Spinner v-if="loading" />
         <Alert v-else-if="error" variant="error">{{ error }}</Alert>

@@ -6,8 +6,8 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import RowLink from '@/components/navigation/RowLink.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {selfChecks} from '@/api'
 import type {SelfCheckSummary} from '@/api/selfChecks'
@@ -21,9 +21,13 @@ import {formatDate} from '@/util/format'
  * whom it is about, because a guardian holds several and only the names tell them apart.
  */
 const {t} = useI18n()
-const router = useRouter()
 
 const tasks = ref<SelfCheckSummary[]>([])
+
+/** The check the row is about. */
+function selfCheckPage(task: SelfCheckSummary) {
+  return {name: 'inventory-self-check', params: {id: task.id}}
+}
 
 /**
  * Reads the list, and says nothing where it cannot be read.
@@ -49,21 +53,20 @@ onMounted(loadData)
       {{ t('dashboard.selfChecks') }}
     </SectionHeader>
     <div class="overflow-y-auto flex-1 space-y-2">
-      <NeutralContainer
-          v-for="task in tasks"
-          :key="task.id"
-          :data-testid="`self-check-row-${task.id}`"
-          class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
-          @click="router.push({name: 'inventory-self-check', params: {id: task.id}})"
-      >
-        <div>
-          <p class="text-sm font-medium">{{ task.memberName }}</p>
-          <p class="text-xs text-(--text-muted)">{{ t(`selfCheck.state.${task.state}`) }}</p>
-        </div>
-        <span v-if="task.dueOn" class="text-xs text-(--text-muted) shrink-0">
-          {{ t('selfCheck.dueOn', {date: formatDate(task.dueOn)}) }}
-        </span>
-      </NeutralContainer>
+      <RowLink v-for="task in tasks" :key="task.id" :to="selfCheckPage(task)">
+        <NeutralContainer
+            :data-testid="`self-check-row-${task.id}`"
+            class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
+        >
+          <div>
+            <p class="text-sm font-medium">{{ task.memberName }}</p>
+            <p class="text-xs text-(--text-muted)">{{ t(`selfCheck.state.${task.state}`) }}</p>
+          </div>
+          <span v-if="task.dueOn" class="text-xs text-(--text-muted) shrink-0">
+            {{ t('selfCheck.dueOn', {date: formatDate(task.dueOn)}) }}
+          </span>
+        </NeutralContainer>
+      </RowLink>
     </div>
   </NeutralContainer>
 </template>

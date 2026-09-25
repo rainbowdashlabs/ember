@@ -1,5 +1,19 @@
 # Changelog
 
+## v26.19.1
+
+### Improvements
+
+- **Rows and cards that open a page can be opened in a new tab.** Entries in the lists throughout the station now behave as the links they always were: middle-click one to open it in its own tab, right-click to copy its address, reach it with the keyboard, and hear it announced as a link. Nothing about the press itself changes.
+- **The public wiki looks like the wiki itself.** Folders and articles open to everybody are now drawn the way the station's own members see them, with the same entries, the same search results, the pictures the station gave its folders and the preview a photo or a document draws on its own tile. The switch between tiles and one entry to a line is there too.
+- **A shared link to a public page says what the page is.** The calendar, a blog entry, a wiki article and the waiting list each now carry their own name and a short description, so a link pasted into a chat draws a preview of that page with the station's logo instead of the same nameless card for everything.
+- **Public pages arrive with their content.** A station's pages, its calendar, its blog entries and its wiki articles now come from the server complete instead of showing a spinner until the browser has fetched them, which is also what lets a search engine see what is on them.
+- **Dates on public pages are the station's own.** An appointment, a blog entry and a wiki article now show the date and time on the station's clock wherever they are read, so an appointment at seven in the evening says seven to a reader in another country as well.
+
+### Fixes
+
+- **The public wiki led back to unreadable addresses.** Opening a folder or an article in a station's public wiki went to an address spelled with the station's internal identifier rather than its name, so a reader who had arrived at the readable address was taken off it and copied the wrong link when sharing the page. Every link on the public pages now uses the readable name wherever the station has one.
+
 ## v26.19.0
 
 ### New Features

@@ -5,7 +5,7 @@
  */
 import {computed, onMounted, type ComputedRef} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
+import {useRouter, type RouteLocationRaw} from 'vue-router'
 import type {StationMember} from '@/api/types'
 import {
     useMemberData, getMemberFirstName, getMemberLastName,
@@ -186,6 +186,11 @@ export function useMemberListConfig(port: MemberListPort) {
         exporting.cancelExport()
     }
 
+    /** The page a person's name leads to, or nothing where this reader has no such page. */
+    function detailRouteOf(member: StationMember): RouteLocationRaw | null {
+        return port.routes.detail ? {name: port.routes.detail, params: {id: member.id}} : null
+    }
+
     /** Opens a person's screen, or does nothing where this reader has no such screen to open. */
     function navigateTo(routeName: string | undefined, member: StationMember, event: Event) {
         event.stopPropagation()
@@ -214,7 +219,7 @@ export function useMemberListConfig(port: MemberListPort) {
         exporting, performExport,
         canExport: port.canExport,
         canEdit: port.canEdit,
-        navigateToDetail, navigateToEdit,
+        detailRouteOf, navigateToDetail, navigateToEdit,
     }
 }
 

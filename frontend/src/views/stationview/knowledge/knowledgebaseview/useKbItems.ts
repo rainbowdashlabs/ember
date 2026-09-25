@@ -5,6 +5,7 @@
  */
 import {computed, type ComputedRef, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import type {RouteLocationRaw} from 'vue-router'
 import {knowledgeBase} from '@/api'
 import {
     KbAccessLevel,
@@ -46,7 +47,7 @@ function partnerEntry(
  * each file and not its type. Asked of a type the listing never sends, every tile concluded it had
  * no picture and none was ever requested.
  */
-const PICTURED_TYPES: ReadonlySet<string> = new Set([KbFileType.IMAGE, KbFileType.PDF])
+export const PICTURED_TYPES: ReadonlySet<string> = new Set([KbFileType.IMAGE, KbFileType.PDF])
 
 /** What a member uploaded as a file, rather than wrote, embedded or linked. */
 const UPLOADED_TYPES: ReadonlySet<string> = new Set([
@@ -91,6 +92,11 @@ export interface KbItem {
      * URL that answers 404 where no picture could be made, and the icon takes its place then.
      */
     picture?: string
+    /**
+     * The addresses above are open to anybody, so a plain image fetches them rather than the
+     * reader's session. Set where the entry comes from the public wiki, where there is no session.
+     */
+    publicImages?: boolean
     title: string
     description?: string
     /** The column the list view shows between description and date. */
@@ -111,16 +117,19 @@ export interface KbItem {
     countLabel?: string
     /** Rich text the search results show under the title. */
     snippet?: string
-    /** Absent when the item cannot be opened, which also removes the pointer cursor. */
-    open?: () => void
+    /**
+     * Where the entry leads, said as an address so the tile can be the link it is. Absent when the
+     * entry cannot be opened, which also removes the pointer cursor.
+     */
+    to?: RouteLocationRaw | null
     actions: KbItemAction[]
 }
 
 interface KbItemHandlers {
-    openFolder: (id: number) => void
-    openFile: (file: Pick<KbFileSummary, 'id'>) => void
-    openFederatedFile: (stationUid: string, fileId: number) => void
-    openFavourites: () => void
+    folderPage: (id: number) => RouteLocationRaw
+    filePage: (file: Pick<KbFileSummary, 'id'>) => RouteLocationRaw
+    federatedFilePage: (stationUid: string, fileId: number) => RouteLocationRaw
+    favouritesPage: () => RouteLocationRaw
     editFolder: (folder: KbFolder) => void
     shareFolder: (folder: KbFolder) => void
     moveFolder: (folder: KbFolder) => void
@@ -132,7 +141,7 @@ interface KbItemHandlers {
     exportFilePdf: (file: KbFileSummary) => void
     downloadFile: (file: KbFileSummary) => void
     copySharedFile: (id: number) => void
-    openSharedFolder: (stationUid: string, folderId: number) => void
+    sharedFolderPage: (stationUid: string, folderId: number) => RouteLocationRaw
     toggleFavourite: (entry: FavouriteEntry, event?: MouseEvent) => void
 }
 
@@ -160,13 +169,12 @@ interface KbItemSources {
 }
 
 /**
- * Builds the browse entries and the search entries from the raw lists, attaching to each the
- * actions its kind allows. This is the only place that decides what an entry can do.
+ * The word naming what a file is, which every entry of the wiki carries wherever it is drawn.
  */
-export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
+export function useKbFileTypeLabel() {
     const {t} = useI18n()
 
-    function fileTypeLabel(fileType: string | undefined): string {
+    return function fileTypeLabel(fileType: string | undefined): string {
         switch (fileType) {
             case KbFileType.MARKDOWN:
                 return t('kb.typeArticle')
@@ -186,6 +194,15 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
                 return t('kb.typeFile')
         }
     }
+}
+
+/**
+ * Builds the browse entries and the search entries from the raw lists, attaching to each the
+ * actions its kind allows. This is the only place that decides what an entry can do.
+ */
+export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
+    const {t} = useI18n()
+    const fileTypeLabel = useKbFileTypeLabel()
 
     /**
      * The badge naming the level an entry leaves the reader with. Only someone whose station
@@ -299,7 +316,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             favourite: sources.favourites.isFavourite(fileEntry(file.id)),
             shared: reachOf(sources.fileKey(file.id)),
             levelLabel: levelLabel(sources.fileLevels.value[file.id]),
-            open: () => handlers.openFile(file),
+            to: handlers.filePage(file),
             actions: fileActions(file),
         }
     }
@@ -332,7 +349,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             stationName: shared.stationName,
             restricted: false,
             favourite: entry ? sources.favourites.isFavourite(entry) : false,
-            open: stationUid ? () => handlers.openSharedFolder(stationUid, shared.id) : undefined,
+            to: stationUid ? handlers.sharedFolderPage(stationUid, shared.id) : undefined,
             actions: entry ? [favouriteAction(entry)] : [],
         }
     }
@@ -350,7 +367,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             stationName: shared.stationName,
             restricted: false,
             favourite: entry ? sources.favourites.isFavourite(entry) : false,
-            open: stationUid ? () => handlers.openFederatedFile(stationUid, shared.file.id) : undefined,
+            to: stationUid ? handlers.federatedFilePage(stationUid, shared.file.id) : undefined,
             actions: [
                 {
                     key: 'copy',
@@ -384,22 +401,22 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             stationName: favourite.stationName ?? undefined,
             restricted: false,
             favourite: true,
-            open: () => openFavourite(favourite),
+            to: favouritePage(favourite),
             actions: [favouriteAction(favourite)],
         }
     }
 
-    function openFavourite(favourite: KbFavourite) {
+    function favouritePage(favourite: KbFavourite): RouteLocationRaw | undefined {
         const partner = favourite.partnerStationUid
         switch (favourite.target) {
             case KbFavouriteTarget.FILE:
-                return handlers.openFile({id: favourite.entryId})
+                return handlers.filePage({id: favourite.entryId})
             case KbFavouriteTarget.FOLDER:
-                return handlers.openFolder(favourite.entryId)
+                return handlers.folderPage(favourite.entryId)
             case KbFavouriteTarget.PARTNER_FILE:
-                return partner ? handlers.openFederatedFile(partner, favourite.entryId) : undefined
+                return partner ? handlers.federatedFilePage(partner, favourite.entryId) : undefined
             case KbFavouriteTarget.PARTNER_FOLDER:
-                return partner ? handlers.openSharedFolder(partner, favourite.entryId) : undefined
+                return partner ? handlers.sharedFolderPage(partner, favourite.entryId) : undefined
         }
     }
 
@@ -472,7 +489,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             restricted: folder.restricted === true,
             favourite: sources.favourites.isFavourite(folderEntry(folder.id)),
             levelLabel: levelLabel(sources.folderLevels.value[folder.id]),
-            open: () => handlers.openFolder(folder.id),
+            to: handlers.folderPage(folder.id),
             actions: [favouriteAction(folderEntry(folder.id)), ...folderActions(folder)],
         }
     }
@@ -492,7 +509,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             restricted: false,
             favourite: false,
             countLabel: t('kb.entryCount', {count}),
-            open: () => handlers.openFavourites(),
+            to: handlers.favouritesPage(),
             actions: [],
         }
     })
@@ -535,7 +552,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
                 stationName: result.stationName ?? undefined,
                 restricted: false,
                 favourite: false,
-                open: () => handlers.openFederatedFile(stationUid, result.file.id),
+                to: handlers.federatedFilePage(stationUid, result.file.id),
                 actions: [
                     {
                         key: 'copy',

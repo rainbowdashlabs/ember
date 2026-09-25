@@ -18,8 +18,11 @@ const {t} = useI18n()
 const STATUS = {DRAFT: 'forms.statusDraft', OPEN: 'forms.statusOpen', CLOSED: 'forms.statusClosed'}
 
 const statusLabel = (status: string) => t(STATUS[status as keyof typeof STATUS] ?? 'forms.statusDraft')
+
+/** The pitch shows the tiles rather than offering them, so none of them opens anything. */
+const noPage = () => null
 </script>
 
 <template>
-  <ManagedFormsSection :forms="forms" :can-create-polls="true" :status-label="statusLabel"/>
+  <ManagedFormsSection :forms="forms" :can-create-polls="true" :status-label="statusLabel" :form-page="noPage"/>
 </template>

@@ -5,14 +5,12 @@
  */
 <script setup lang="ts">
 import {computed, onBeforeUnmount, onMounted, ref} from 'vue'
-import {useRouter} from 'vue-router'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import AccountMenu from '@/components/layout/AccountMenu.vue'
 import IdentityButton from '@/components/button/IdentityButton.vue'
 import {useSession} from '@/composables/useSession'
 import {useLogout} from '@/composables/useLogout'
 
-const router = useRouter()
 const {sessionInfo, fullName} = useSession()
 const {logout} = useLogout()
 
@@ -48,10 +46,6 @@ const displayName = computed(() => fullName())
 function toggle() {
   open.value = !open.value
 }
-
-function goToSettings() {
-  router.push({name: 'account'})
-}
 </script>
 
 <template>
@@ -67,7 +61,6 @@ function goToSettings() {
 
     <AccountMenu :mode="isDesktop ? 'dropdown' : 'drawer'" :open="open"
                  @close="open = false"
-                 @settings="goToSettings"
                  @logout="logout"/>
   </div>
 </template>

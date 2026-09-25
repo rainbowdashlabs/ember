@@ -55,6 +55,15 @@ const {loading, error} = useAsyncLoader(async () => {
   inventories.value = all
 })
 
+/**
+ * Which inventory is being emptied, at the head of the page. Splitting three of them is three tabs
+ * that would otherwise read the same word, and the history and a bookmark carry it too. The plain
+ * wording stands while it loads and where the inventory could not be fetched.
+ */
+const pageTitle = computed(() => (detail.value?.name
+    ? t('pages.inventory-move.titleNamed', {name: detail.value.name})
+    : t('pages.inventory-move.title')))
+
 /** Everything of this station except the one being emptied: a piece cannot move to where it is. */
 const targets = computed(() => inventories.value.filter(i => i.id !== inventoryId.value))
 
@@ -104,7 +113,7 @@ const {running: moving, error: moveError, run: runMove} = useAsyncAction(async (
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-move.title')"
+      :title="pageTitle"
       :subtitle="t('pages.inventory-move.subtitle')"
   >
     <div class="space-y-6">

@@ -54,10 +54,6 @@ const {running: creating, error: createError, run: runCreate} = useAsyncAction(
 function onCreate(payload: ChecklistCreateRequest) {
   return runCreate(payload)
 }
-
-function open(item: ChecklistSummary) {
-  router.push({name: 'checklist-detail', params: {id: item.id}})
-}
 </script>
 
 <template>
@@ -83,7 +79,6 @@ function open(item: ChecklistSummary) {
             v-for="item in items"
             :key="item.id"
             :item="item"
-            @open="open(item)"
         />
       </div>
     </template>

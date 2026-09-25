@@ -11,6 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ManagedFormTile from './ManagedFormTile.vue'
+import type { RouteLocationRaw } from 'vue-router'
 import type { Form } from '@/api/forms'
 import { byDate, byValue, useSortable } from '@/composables/useSortable'
 
@@ -19,6 +20,11 @@ const props = defineProps<{
   canCreatePolls: boolean
   titleKey?: string
   statusLabel: (status: string) => string
+  /**
+   * Where a tile leads, which only the screen owning the routes can say. Nothing where the tiles
+   * are shown rather than offered, and then they are not links.
+   */
+  formPage: (form: Form) => RouteLocationRaw | null
 }>()
 
 type FormSortKey = 'activity' | 'created' | 'title'
@@ -36,7 +42,6 @@ const {sortKey, direction, sorted: sortedForms} = useSortable<Form, FormSortKey>
 
 const emit = defineEmits<{
   (e: 'create'): void
-  (e: 'open', form: Form): void
   (e: 'publish', form: Form): void
   (e: 'close', form: Form): void
   (e: 'edit', form: Form): void
@@ -84,7 +89,7 @@ const { t } = useI18n()
         :form="form"
         :can-create-polls="canCreatePolls"
         :status-label="statusLabel"
-        @open="emit('open', $event)"
+        :to="props.formPage(form)"
         @publish="emit('publish', $event)"
         @close="emit('close', $event)"
         @edit="emit('edit', $event)"

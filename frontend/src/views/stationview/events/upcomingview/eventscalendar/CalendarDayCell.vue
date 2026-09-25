@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import EventChipButton from '@/components/button/EventChipButton.vue'
+import type {RouteLocationRaw} from 'vue-router'
+import EventChipLink from '@/components/navigation/EventChipLink.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import type {StationEvent} from '@/api/events'
 import type {DayCell} from '@/composables/useEventCalendarGrid'
@@ -14,11 +15,9 @@ const props = defineProps<{
   dayIdx: number
   laneCount: number
   chipStyle: (ev: StationEvent) => {backgroundColor: string; color: string} | undefined
+  /** Where an appointment's chip leads on the day it falls on, or nothing where it may not be opened. */
+  detailRoute: (ev: StationEvent, date: string) => RouteLocationRaw | null
   formatTime: (iso?: string) => string
-}>()
-
-defineEmits<{
-  open: [ev: StationEvent, date: string]
 }>()
 
 void props
@@ -45,17 +44,17 @@ void props
     </div>
     <div :style="{height: `${laneCount * 1.25}rem`}" aria-hidden="true"/>
     <div class="flex flex-col gap-0.5 overflow-hidden min-h-0">
-      <EventChipButton
+      <EventChipLink
           v-for="evRef in cell.events.slice(0, 3)"
           :key="`${evRef.event.id}-${evRef.date}`"
           :title="`${evRef.event.name}${evRef.event.startTime ? ' · ' + formatTime(evRef.event.startTime) : ''}`"
           :custom-style="chipStyle(evRef.event)"
-          @click="$emit('open', evRef.event, evRef.date)"
+          :to="detailRoute(evRef.event, evRef.date)"
       >
         <MutedIcon v-if="evRef.event.restricted" :icon="['fas', 'lock']" class="mr-0.5 inline"/>
         <span class="hidden sm:inline">{{ formatTime(evRef.event.startTime) }}&nbsp;</span>
         <span>{{ evRef.event.name }}</span>
-      </EventChipButton>
+      </EventChipLink>
     </div>
   </div>
 </template>

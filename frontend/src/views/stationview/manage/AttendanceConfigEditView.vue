@@ -40,6 +40,16 @@ const availableGroups = ref<MemberGroup[]>([])
 const showFieldModal = ref(false)
 const editingField = ref<AttendanceTemplateField | null>(null)
 
+/**
+ * The template by its own name at the head of the page, because "Anwesenheits Vorlage" stands above
+ * every one of them and is what the tab, the history and a bookmark carry. The plain wording stands
+ * while the template loads, where it could not be fetched, and for one that is being created and
+ * has no name yet.
+ */
+const pageTitle = computed(() => (isEdit.value && name.value.trim()
+    ? name.value.trim()
+    : t('pages.station-attendance-config-edit.title')))
+
 const {loading, error} = useAsyncLoader(async () => {
   if (!templateId.value) return
   const [detail, groups] = await Promise.all([
@@ -160,7 +170,7 @@ function goBack() {
 
 <template>
   <ViewContent
-      :title="t('pages.station-attendance-config-edit.title')"
+      :title="pageTitle"
       :subtitle="t('pages.station-attendance-config-edit.subtitle')"
   >
     <div class="space-y-6">

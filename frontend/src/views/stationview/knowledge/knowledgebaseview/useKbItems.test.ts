@@ -64,10 +64,11 @@ function build(options: {favourites?: KbFavourite[]; favouritesView?: boolean} =
     const list = ref(options.favourites ?? [])
     const keys = computed(() => new Set(list.value.map(favouriteKey)))
     const handlers = {
-        openFolder: vi.fn(),
-        openFile: vi.fn(),
-        openFederatedFile: vi.fn(),
-        openFavourites: vi.fn(),
+        folderPage: (id: number) => ({name: 'kb-browse', query: {folderId: id}}),
+        filePage: (target: {id: number}) => ({name: 'kb-file', params: {id: target.id}}),
+        federatedFilePage: (stationUid: string, fileId: number) =>
+            ({name: 'federated-kb-file', params: {stationUid, fileId}}),
+        favouritesPage: () => ({name: 'kb-browse', query: {folderId: 'favourites'}}),
         editFolder: vi.fn(),
         shareFolder: vi.fn(),
         moveFolder: vi.fn(),
@@ -79,7 +80,8 @@ function build(options: {favourites?: KbFavourite[]; favouritesView?: boolean} =
         exportFilePdf: vi.fn(),
         downloadFile: vi.fn(),
         copySharedFile: vi.fn(),
-        openSharedFolder: vi.fn(),
+        sharedFolderPage: (stationUid: string, folderId: number) =>
+            ({name: 'kb-browse', query: {sharedStation: stationUid, sharedFolder: folderId}}),
         toggleFavourite: vi.fn(),
     }
     const {items} = useKbItems({
@@ -144,8 +146,8 @@ describe('useKbItems favourites', () => {
         expect(build({favourites: [favourite({})]}).items.value.some(item => item.key === 'favourites')).toBe(true)
     })
 
-    it('lists folders before files in the favourites view, and opens each where it lives', () => {
-        const {items, handlers} = build({
+    it('lists folders before files in the favourites view, and addresses each where it lives', () => {
+        const {items} = build({
             favouritesView: true,
             favourites: [
                 favourite({id: 1, target: KbFavouriteTarget.PARTNER_FILE, entryId: 4, partnerStationUid: PARTNER}),
@@ -154,7 +156,6 @@ describe('useKbItems favourites', () => {
         })
 
         expect(items.value.map(item => item.title)).toEqual(['Einsatz', 'Hydrantenplan'])
-        items.value[1]?.open?.()
-        expect(handlers.openFederatedFile).toHaveBeenCalledWith(PARTNER, 4)
+        expect(items.value[1]?.to).toEqual({name: 'federated-kb-file', params: {stationUid: PARTNER, fileId: 4}})
     })
 })

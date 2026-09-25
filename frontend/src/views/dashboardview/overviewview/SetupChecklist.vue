@@ -43,8 +43,9 @@ function backendToFrontend(id: string): WizardStepId {
     }
 }
 
-function goStep(id: string) {
-    router.push({name: stepRouteName(backendToFrontend(id))})
+/** The screen the step is done on. */
+function stepPage(id: string) {
+    return {name: stepRouteName(backendToFrontend(id))}
 }
 
 function resumeWizard() {
@@ -63,7 +64,7 @@ function resumeWizard() {
       <DropdownMenuItem
           v-for="step in requiredSteps"
           :key="step.id"
-          @click="goStep(step.id)"
+          :to="stepPage(step.id)"
       >
         <span :class="step.complete ? 'text-(--success)' : 'text-(--text-muted)'">
           {{ step.complete ? '✓' : '○' }}
@@ -75,7 +76,7 @@ function resumeWizard() {
           v-for="step in optionalSteps"
           :key="step.id"
           :disabled="!step.applicable"
-          @click="goStep(step.id)"
+          :to="stepPage(step.id)"
       >
         <span :class="step.complete ? 'text-(--success)' : 'text-(--text-muted)'">
           {{ step.complete ? '✓' : '○' }}
