@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
@@ -85,6 +86,7 @@ public class EventRoutes implements Routes {
     private final EventExportService eventExportService;
     private final EventRegistrationFieldService registrationFieldService;
     private final EventFieldRegistrationService fieldRegistrationService;
+    private final EventDateResolver dateResolver;
 
     @Inject
     public EventRoutes(
@@ -96,7 +98,9 @@ public class EventRoutes implements Routes {
             StationMemberService stationMemberService,
             EventExportService eventExportService,
             EventRegistrationFieldService registrationFieldService,
-            EventFieldRegistrationService fieldRegistrationService) {
+            EventFieldRegistrationService fieldRegistrationService,
+            EventDateResolver dateResolver) {
+        this.dateResolver = dateResolver;
         this.crudService = crudService;
         this.fieldRegistrationService = fieldRegistrationService;
         this.occurrenceService = occurrenceService;
@@ -129,6 +133,7 @@ public class EventRoutes implements Routes {
         routes.post(prefix + "/events/{id}/cancel", this::cancelEvent, StationPermission.EVENT_EDIT);
 
         routes.get(prefix + "/events/{id}", this::get, StationPermission.USER);
+        routes.get(prefix + "/events/{id}/next-date", this::getNextDate, StationPermission.USER);
         routes.put(prefix + "/events/{id}", this::update, StationPermission.EVENT_EDIT);
         routes.delete(prefix + "/events/{id}", this::delete, StationPermission.EVENT_EDIT);
 
@@ -405,6 +410,32 @@ public class EventRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         ctx.json(requireOwnedEvent(crudService, id, session));
+    }
+
+    /**
+     * The next day this appointment falls on, today counting as next.
+     *
+     * <p>Asked of the server rather than worked out from the appointment's weekday, because only
+     * the server knows the rule it repeats by, the weeks the station is off, and the date the series
+     * runs to. A page that worked it out itself could only step a week at a time, which named the
+     * wrong day for everything repeating less often than weekly and offered a sign-up for a day the
+     * appointment does not happen.
+     */
+    @OpenApi(
+            path = "/api/v1/events/{id}/next-date",
+            methods = HttpMethod.GET,
+            summary = "The next day an appointment falls on",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = NextDate.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void getNextDate(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        var event = requireOwnedEvent(crudService, id, session);
+        ctx.json(new NextDate(dateResolver.nextDate(event).orElse(null)));
     }
 
     @OpenApi(
@@ -758,6 +789,13 @@ public class EventRoutes implements Routes {
             Integer repeatCount) {}
 
     public record CancelEventRequest(String reason) {}
+
+    /**
+     * The next day an appointment falls on, or nothing for one that has no date at all.
+     *
+     * @param date the day, named the way the station's own clock names it
+     */
+    public record NextDate(LocalDate date) {}
 
     /**
      * Both audiences of an event, as the editor reads and writes them in one go.

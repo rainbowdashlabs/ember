@@ -14,6 +14,7 @@
 
 ### Fixes
 
+- **A monthly or quarterly appointment opened on the wrong day.** Opened without a day named in the address, it showed the next time its weekday came round instead of the day it actually falls on, so the sign-ups, the attendance and the questions on that page all belonged to a day the appointment does not happen. It now opens on the day it next falls on, with the weeks the station is off and the end of the series taken into account.
 - **A public survey could not be opened at the address it was handed out with.** The address offered for a survey open to everybody spelled the station's readable name, and only the address spelling its identifier was accepted, so every link copied from the survey's own page led to "not found".
 - **A station whose only public thing was a survey showed nothing at all.** A survey open to everybody is drawn inside the station's frame, and a station with no public pages, wiki, calendar, waiting list or blog answered nothing about itself, so the survey's page stayed empty for everybody it was sent to.
 - **A choice question limiting the answer to an exact number could not be saved.** Setting "exactly" on a question that takes several answers was refused when the survey was saved, and the survey came back unchanged with no explanation.

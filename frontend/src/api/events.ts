@@ -426,6 +426,18 @@ export async function listTodayEvents(): Promise<StationEvent[]> {
 }
 
 export const getEvent = events.get
+
+/**
+ * The next day an appointment falls on, today counting as next, or nothing where it has no date.
+ *
+ * <p>Asked of the server rather than worked out here: only it knows the rule the appointment
+ * repeats by, the weeks the station is off and the date the series runs to.
+ */
+export async function getNextDate(eventId: number): Promise<string | null> {
+    const res = await client.get<{date: string | null}>(`/events/${eventId}/next-date`)
+    return res.data.date
+}
+
 export const createEvent = events.create
 export const updateEvent = events.update
 export const deleteEvent = events.remove

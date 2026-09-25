@@ -87,6 +87,31 @@ test.describe('Events', () => {
     })
 
     /**
+     * A monthly appointment opens on the day it next falls on.
+     *
+     * <p>The page used to work that day out itself, by stepping from today to the next matching
+     * weekday. That is the rule a weekly appointment keeps and no other: a monthly one landed on
+     * whichever of its weekdays came round first, so the page named a day in the middle of the
+     * month and offered its sign-ups under a day the appointment does not happen on.
+     */
+    test('a monthly appointment opens on the day it next falls on', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const answer = await page.request.get('/api/v1/events', {headers})
+        expect(answer.ok(), 'the appointment list answers').toBeTruthy()
+
+        const appointments: {id: number, eventType: string}[] = await answer.json()
+        const monthly = appointments.find(appointment => appointment.eventType === 'MONTHLY_FIRST')
+        expect(monthly, 'the seeded station has an appointment repeating monthly').toBeTruthy()
+
+        await page.goto(`/station/events/${monthly!.id}`)
+
+        const shown = page.getByTestId('page-subtitle')
+        await expect(shown).not.toBeEmpty()
+        const dayOfMonth = Number((await shown.textContent())!.match(/(\d{2})\.\d{2}\.\d{4}/)![1])
+        expect(dayOfMonth, 'the first of its weekday in the month, so never past the seventh').toBeLessThanOrEqual(7)
+    })
+
+    /**
      * The registrations of an event load when the tab is opened. This is the story behind a fix
      * that shipped: the tab stayed empty because the list was asked for while the page was still
      * loading, and nothing asked again afterwards.

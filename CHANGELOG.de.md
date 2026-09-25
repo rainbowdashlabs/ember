@@ -14,6 +14,7 @@
 
 ### Fehlerbehebungen
 
+- **Ein monatlicher oder vierteljährlicher Termin öffnete sich am falschen Tag.** Ohne Tag in der Adresse zeigte er den nächsten Termin mit passendem Wochentag statt den Tag, an dem er tatsächlich stattfindet. Anmeldungen, Anwesenheit und die Fragen auf dieser Seite gehörten damit zu einem Tag, an dem der Termin nicht stattfindet. Er öffnet sich jetzt am nächsten tatsächlichen Termin, Ferien der Wache und das Ende der Serie eingerechnet.
 - **Eine öffentliche Umfrage war unter der ausgegebenen Adresse nicht erreichbar.** Die angebotene Adresse einer für alle offenen Umfrage enthielt den lesbaren Namen der Wache, angenommen wurde aber nur die Adresse mit ihrer Kennung. Jeder Link, den man von der Umfrage selbst kopiert hatte, führte damit ins Leere.
 - **Eine Wache, die außer einer Umfrage nichts öffentlich hatte, zeigte gar nichts.** Eine für alle offene Umfrage wird im Rahmen der Wache dargestellt. Eine Wache ohne öffentliche Seiten, Wiki, Kalender, Warteliste und Blog gab jedoch nichts über sich preis, sodass die Seite der Umfrage für alle Empfänger leer blieb.
 - **Eine Auswahlfrage mit einer genauen Anzahl ließ sich nicht speichern.** Die Einstellung "genau" bei einer Frage mit mehreren Antworten wurde beim Speichern abgelehnt, und die Umfrage kam ohne Erklärung unverändert zurück.

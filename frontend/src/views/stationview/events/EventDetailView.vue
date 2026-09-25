@@ -20,7 +20,7 @@ import EventDetailBody from './eventdetailview/EventDetailBody.vue'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import {useEventAnswer} from '@/composables/useEventAnswer'
 import type {AnswerablePerson} from '@/util/eventAnswers'
-import {formatTime, formatWeekdayDate, stationClock, stationDayOf, stationToday} from '@/util/format'
+import {formatTime, formatWeekdayDate, stationDayOf} from '@/util/format'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -63,54 +63,30 @@ async function reloadMyRegistrations() {
 }
 
 /**
- * The next date this repeating appointment falls on.
+ * The next date this appointment falls on, as the server names it.
  *
- * <p>Today counts as long as today's occurrence is still ahead. The comparison is against the clock
- * the appointment ends at rather than against the stored end of its very first occurrence, which lies
- * in the past for every series that has run once and used to send the reader a week forward on the
- * one day the appointment actually takes place.
+ * <p>Worked out here once, by stepping to the next matching weekday. That is only the rule a weekly
+ * appointment keeps: a monthly or quarterly one was sent to the wrong day of the month, and every
+ * series read straight past the weeks its station is off and past the date it runs to. The server
+ * holds all three rules already, for the feeds and the attendance sheets, so it is asked.
  */
-function nextOccurrence(dayOfWeek: number): string {
-  const today = new Date(`${stationToday(stationTimezone.value)}T12:00:00Z`)
-  const todayDow = today.getUTCDay() === 0 ? 7 : today.getUTCDay()
-  let daysAhead = dayOfWeek - todayDow
-  if (daysAhead < 0) daysAhead += 7
-  if (daysAhead === 0 && event.value?.endTime) {
-    const zone = stationTimezone.value
-    if (stationClock(new Date(), zone) > stationClock(new Date(event.value.endTime), zone)) {
-      daysAhead = 7
-    }
-  }
-  today.setUTCDate(today.getUTCDate() + daysAhead)
-  return today.toISOString().slice(0, 10)
-}
-
-const nextOccurrenceDate = computed(() => {
-  if (!event.value || !isRecurringEvent(event.value.eventType) || !event.value.dayOfWeek) return null
-  return nextOccurrence(event.value.dayOfWeek)
-})
+const nextOccurrenceDate = ref<string | null>(null)
 
 /**
- * The single date this view is bound to. Priority:
- *   1. {@link focusedDate} from the URL path - explicit user / notification deep link.
- *   2. {@link nextOccurrenceDate} for a recurring event without a path date - sensible default.
- *   3. The event's {@code startTime} date for one-time events.
+ * The single date this view is bound to: the one named in the address where somebody was sent to a
+ * particular day, and otherwise the next day the appointment falls on.
  *
  * <p>Every lookup keyed by an occurrence - absences, sign-ups, the gear claimed for it - reads from
  * here, so this is the name the server knows the occurrence by and not the day the reader sees. The
- * server names an occurrence after the day it falls on where the station stands, so that is the clock
- * this asks: reading the day off the stored moment put the page a day ahead of its own sign-ups for
- * every appointment made late in the evening, and reading it off the reader's clock does the same
- * to anybody sitting in another zone.
+ * server names an occurrence after the day it falls on where the station stands, so that is the
+ * clock this asks: reading the day off the stored moment put the page a day ahead of its own
+ * sign-ups for every appointment made late in the evening, and reading it off the reader's clock
+ * does the same to anybody sitting in another zone.
+ *
+ * <p>Nothing until the appointment has been read, which is why the body waits for it. A guess made
+ * in the meantime would be a day the page then asks its sign-ups under.
  */
-const effectiveDate = computed((): string | null => {
-  if (focusedDate.value) return focusedDate.value
-  if (nextOccurrenceDate.value) return nextOccurrenceDate.value
-  if (event.value?.startTime) {
-    return stationDayOf(new Date(event.value.startTime), stationTimezone.value)
-  }
-  return null
-})
+const effectiveDate = computed((): string | null => focusedDate.value ?? nextOccurrenceDate.value)
 
 /**
  * The day written above a time on this page.
@@ -188,13 +164,15 @@ const currentTemplateName = computed(() => {
 })
 
 const {loading, error, reload} = useAsyncLoader(async () => {
-  const [ev, cats, flds, completions] = await Promise.all([
+  const [ev, cats, flds, completions, nextDate] = await Promise.all([
     events.getEvent(eventId.value),
     events.listCategories(),
     events.getEventFields(eventId.value),
     stationMembers.listCompletions().catch(() => []),
+    events.getNextDate(eventId.value).catch(() => null),
   ])
   event.value = ev
+  nextOccurrenceDate.value = nextDate
   categories.value = cats
   fields.value = flds
   allMembers.value = completions.map(c => ({
