@@ -170,7 +170,7 @@ public class SessionInfoService {
                         .toList(),
                 !mailChainService.forInstance().isEmpty(),
                 currentStation != null && currentStation.pdfHidesInstanceUrl(),
-                StationFormat.timezoneOf(currentStation).getId());
+                StationFormat.timezoneNameOf(currentStation));
     }
 
     private ManagedMemberInfo toManagedMemberInfo(StationMember member) {

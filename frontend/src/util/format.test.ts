@@ -10,6 +10,7 @@ import {
     formatDate,
     formatDateLong,
     formatDateTime,
+    formatDateTimeLong,
     formatDayMonth,
     formatTime,
     formatWeekdayDate,
@@ -227,6 +228,71 @@ describe('a moment on the day a sheet runs on', () => {
     it('has nothing to say without a time', () => {
         expect(timeOnDayOf('2026-03-17T17:00:00.000Z', '')).toBe('')
         expect(timeOnDayOf('irgendwann', '20:15')).toBe('')
+    })
+})
+
+/**
+ * A public page is written twice, once by the server and once again by the browser, and neither
+ * machine stands where the reader does. Written on whichever clock happened to run, an article
+ * updated late in the evening carried one date into the page a crawler reads and another into the
+ * page the reader sees a moment later, and the browser said so in as many words.
+ */
+describe('a date on a page written where no reader can be asked', () => {
+    const lateOnTheTwentyFourth = '2026-09-24T21:21:00Z'
+
+    it('is written on the station\'s clock, not on the clock of whoever rendered it', () => {
+        readingFrom('Asia/Dubai')
+        expect(formatDateTime(lateOnTheTwentyFourth, 'Europe/Berlin')).toBe('24.09.2026, 23:21')
+        expect(formatDateTime(lateOnTheTwentyFourth)).toBe('25.09.2026, 01:21')
+    })
+
+    it('comes out the same on the server and in the browser, which is the whole point', () => {
+        readingFrom('UTC')
+        const asTheServerWroteIt = formatDateTime(lateOnTheTwentyFourth, 'Europe/Berlin')
+        readingFrom('Asia/Dubai')
+        expect(formatDateTime(lateOnTheTwentyFourth, 'Europe/Berlin')).toBe(asTheServerWroteIt)
+    })
+
+    it('reads the day, the weekday and the clock all off that one station', () => {
+        readingFrom('Asia/Dubai')
+        expect(formatDate(lateOnTheTwentyFourth, 'Europe/Berlin')).toBe('24.09.2026')
+        expect(formatDayMonth(lateOnTheTwentyFourth, 'Europe/Berlin')).toBe('24.09.')
+        expect(formatDateLong(lateOnTheTwentyFourth, 'Europe/Berlin')).toBe('24. September 2026')
+        expect(formatWeekdayDate(lateOnTheTwentyFourth, 'short', 'Europe/Berlin')).toBe('Do., 24.09.2026')
+        expect(formatTime(lateOnTheTwentyFourth, 'Europe/Berlin')).toBe('23:21')
+    })
+
+    it('writes a long date and a short clock together for the blocks with room for it', () => {
+        readingFrom('Asia/Dubai')
+        const written = formatDateTimeLong(lateOnTheTwentyFourth, 'Europe/Berlin')
+        expect(written).toContain('24. September 2026')
+        expect(written).toContain('23:21')
+    })
+
+    /**
+     * A calendar date stands for that day everywhere and has no clock to be read on. Auckland is
+     * thirteen hours ahead of London in October, so its midnight is the afternoon before in Berlin,
+     * and a zone applied to it would move a birthday a day back for everybody reading from there.
+     */
+    it('leaves a bare calendar date on its own day, whatever clock is named', () => {
+        readingFrom('Pacific/Auckland')
+        expect(formatDate('2026-10-12', 'Europe/Berlin')).toBe('12.10.2026')
+        expect(formatDayMonth('2026-10-12', 'Europe/Berlin')).toBe('12.10.')
+        expect(formatDateLong('2026-10-12', 'Europe/Berlin')).toBe('12. Oktober 2026')
+        expect(formatWeekdayDate('2026-10-12', 'long', 'Europe/Berlin')).toBe('Montag, 12.10.2026')
+    })
+
+    it('falls back to the reader for a clock no runtime knows', () => {
+        readingFrom('Europe/Berlin')
+        expect(formatDateTime(lateOnTheTwentyFourth, 'Nirgendwo/Nirgends')).toBe('24.09.2026, 23:21')
+        expect(formatTime(lateOnTheTwentyFourth, 'Nirgendwo/Nirgends')).toBe('23:21')
+    })
+
+    it('is the reader\'s own clock where no station names one, as every caller had it before', () => {
+        readingFrom('Europe/Berlin')
+        expect(formatDateTime(lateOnTheTwentyFourth, null)).toBe('24.09.2026, 23:21')
+        expect(formatDate(lateOnTheTwentyFourth, undefined)).toBe('24.09.2026')
+        expect(formatTime(lateOnTheTwentyFourth, null)).toBe('23:21')
     })
 })
 

@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import io.javalin.http.Context;
@@ -144,12 +145,21 @@ public class SharedPageRoutes implements Routes {
                 logoService.exists(station.id()),
                 station.defaultTheme(),
                 station.defaultFeel() != null ? station.defaultFeel().name() : null,
-                station.customThemeColors());
+                station.customThemeColors(),
+                StationFormat.timezoneNameOf(station));
     }
 
     @OpenApiName("SharedPage")
     public record SharedPage(SharedBrand station, StationPage page, String path, boolean ownAddressLive) {}
 
+    /**
+     * The station behind a link somebody was sent.
+     *
+     * <p>The timezone is what a date on the page is written on. The page is rendered once by the
+     * server and once again by the browser, and neither machine stands where the reader does, so a
+     * date put on whichever clock wrote it comes out differently in the two copies. The station's own
+     * clock is the one both can be told to use.
+     */
     @OpenApiName("SharedPageBrand")
     public record SharedBrand(
             String stationUid,
@@ -158,5 +168,6 @@ public class SharedPageRoutes implements Routes {
             boolean hasLogo,
             String defaultTheme,
             String defaultFeel,
-            String customThemeColors) {}
+            String customThemeColors,
+            String timezone) {}
 }

@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
 import dev.chojo.ember.feature.knowledgebase.service.KbTagService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
@@ -172,7 +173,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             })
     private void getInfo(Context ctx) {
         var station = resolveStation(ctx);
-        ctx.json(new PublicKbInfo(station.name(), station.uid().toString()));
+        ctx.json(new PublicKbInfo(station.name(), station.uid().toString(), StationFormat.timezoneNameOf(station)));
     }
 
     @OpenApi(
@@ -431,7 +432,15 @@ public class PublicKnowledgeBaseRoutes implements Routes {
 
     public record PublicBrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files) {}
 
-    public record PublicKbInfo(String stationName, String stationUid) {}
+    /**
+     * What a public wiki says about the station behind it.
+     *
+     * <p>The timezone is what a date in an article is written on. Neither the server that renders the
+     * page nor the browser that renders it again stands where the reader does, so a date put on
+     * whichever clock wrote it comes out differently in the two copies; the station's clock is the one
+     * both can be told to use.
+     */
+    public record PublicKbInfo(String stationName, String stationUid, String stationTimezone) {}
 
     public record YoutubeContentResponse(String youtubeUrl) {}
 

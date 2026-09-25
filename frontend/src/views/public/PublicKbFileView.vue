@@ -24,7 +24,7 @@ const {t} = useI18n()
 const router = useRouter()
 const route = useRoute()
 
-const {station, stationUid, stationAddress, basePath} = usePublicStationAddress()
+const {station, stationUid, stationTimezone, stationAddress, basePath} = usePublicStationAddress()
 /**
  * Which article the address names, or nothing where it names none.
  *
@@ -152,7 +152,7 @@ useHead(computed(() => {
             <Spinner v-if="loading"/>
 
             <template v-else-if="file">
-                <KbFileHeader :file="file" :station-uid="stationUid" @back="goBack"/>
+                <KbFileHeader :file="file" :station-uid="stationUid" :timezone="stationTimezone" @back="goBack"/>
                 <KbFileRenderer :file="file"
                                 :content-url="contentUrl"
                                 :youtube-embed-url="youtubeEmbedUrl"

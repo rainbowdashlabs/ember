@@ -48,7 +48,7 @@ import CodeBlockCell from './cells/CodeBlockCell.vue'
  * Top-level dispatcher for the public page renderer. Each cell type lives in its own component
  * under {@code ./cells/} (or in the grouped event renderer {@code CellLayoutRenderEvents} and
  * the member-spotlight renderer {@code CellPeopleRenders}); this file is intentionally just a
- * switch keyed by {@code kind}, with a uniform {@code (config, stationUid, content)} prop
+ * switch keyed by {@code kind}, with a uniform {@code (config, stationUid, timezone, content)} prop
  * shape across every cell.
  */
 const props = defineProps<{
@@ -56,6 +56,8 @@ const props = defineProps<{
     content: string
     config: Record<string, unknown>
     stationUid?: string
+    /** The clock a cell writes a date on, which a public page names and a station page leaves out. */
+    timezone?: string | null
 }>()
 
 function asCfg<T>(): T { return props.config as T }
@@ -73,11 +75,11 @@ function asCfg<T>(): T { return props.config as T }
 
     <CellLayoutRenderEvents
         v-else-if="kind === 'FEATURED_EVENT' || kind === 'UPCOMING_EVENTS' || kind === 'PAST_EVENT_RECAP'"
-        :kind="kind" :config="config" :station-uid="stationUid"
+        :kind="kind" :config="config" :station-uid="stationUid" :timezone="timezone"
     />
 
     <KbArticleCell v-else-if="kind === 'KB_ARTICLE'" :config="asCfg<KbArticleConfig>()" :station-uid="stationUid"/>
-    <NewsTeaserCell v-else-if="kind === 'NEWS_TEASER'" :config="asCfg<NewsTeaserConfig>()" :station-uid="stationUid"/>
+    <NewsTeaserCell v-else-if="kind === 'NEWS_TEASER'" :config="asCfg<NewsTeaserConfig>()" :station-uid="stationUid" :timezone="timezone"/>
     <PageLinkCell v-else-if="kind === 'PAGE_LINK'" :config="asCfg<PageLinkConfig>()" :station-uid="stationUid"/>
     <MapCell v-else-if="kind === 'MAP'" :config="asCfg<MapConfig>()"/>
     <AddressCardCell v-else-if="kind === 'ADDRESS_CARD'" :config="asCfg<AddressCardConfig>()"/>

@@ -25,7 +25,7 @@ import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {station, stationUid, stationAddress} = usePublicStationAddress()
+const {station, stationUid, stationTimezone, stationAddress} = usePublicStationAddress()
 const blogId = computed(() => Number(route.params.blogId))
 
 const absoluteUrl = useAbsoluteUrl()
@@ -99,14 +99,14 @@ function goBack() {
       <SectionHeader>{{ entry.title }}</SectionHeader>
       <div class="flex items-center gap-3 text-sm text-(--text-muted)">
         <span v-if="entry.authorName">{{ t('publicStation.blogBy') }} {{ entry.authorName }}</span>
-        <span>{{ formatDateLong(entry.publishedAt) }}</span>
+        <span>{{ formatDateLong(entry.publishedAt, stationTimezone) }}</span>
       </div>
       <NeutralContainer>
         <NewsBody
             :mode="entry.contentMode"
             :rows="entry.rows ?? []"
             :html="entry.contentHtml"
-            :context="publicContentContext(stationUid, entry.title)"
+            :context="publicContentContext(stationUid, entry.title, stationTimezone)"
         />
 
         <AttachmentList :attachments="entry.attachments ?? []" :station-uid="stationUid"/>

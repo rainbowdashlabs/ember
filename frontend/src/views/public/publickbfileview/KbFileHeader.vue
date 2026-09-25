@@ -18,6 +18,8 @@ import * as publicKb from '@/api/publicKb'
 const props = defineProps<{
   file: KbFile
   stationUid: string
+  /** The station's clock, which is what the article's date is written on out here. */
+  timezone?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -49,6 +51,6 @@ const pdfUrl = computed(() => publicKb.pdfExportUrl(props.stationUid, props.file
   </MutedText>
 
   <p v-if="props.file.updatedAt" class="text-xs text-[var(--text-muted)] mb-4">
-    {{ formatDateTime(props.file.updatedAt) }}
+    {{ formatDateTime(props.file.updatedAt, props.timezone) }}
   </p>
 </template>

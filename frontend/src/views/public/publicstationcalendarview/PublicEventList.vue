@@ -15,6 +15,8 @@ import ProseContent from '@/components/display/ProseContent.vue'
 
 defineProps<{
   events: PublicEvent[]
+  /** The station's clock, which is what an appointment is written on out here. */
+  timezone?: string | null
 }>()
 
 const {t} = useI18n()
@@ -43,10 +45,10 @@ function isRecurring(eventType?: string): boolean {
         </div>
         <span class="text-sm text-(--text-muted)">
           <template v-if="isRecurring(ev.eventType) && ev.dayOfWeek">
-            {{ weekdayName(ev.dayOfWeek) }}, {{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}
+            {{ weekdayName(ev.dayOfWeek) }}, {{ formatTime(ev.startTime, timezone) }} – {{ formatTime(ev.endTime, timezone) }}
           </template>
           <template v-else>
-            {{ formatWeekdayDate(ev.startTime, 'short') }}, {{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}
+            {{ formatWeekdayDate(ev.startTime, 'short', timezone) }}, {{ formatTime(ev.startTime, timezone) }} – {{ formatTime(ev.endTime, timezone) }}
           </template>
         </span>
       </div>

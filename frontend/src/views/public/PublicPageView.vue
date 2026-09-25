@@ -22,7 +22,7 @@ import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
 const {t} = useI18n()
 const route = useRoute()
 
-const {station, stationUid, canonicalPath} = usePublicStationAddress()
+const {station, stationUid, stationTimezone, canonicalPath} = usePublicStationAddress()
 const slug = computed((): string => {
   const param = route.params.slug
   // Nuxt catch-all routes provide an array; vue-router provides a string
@@ -93,7 +93,7 @@ useHead(computed(() => {
           v-for="row in page.rows"
           :key="row.id"
           :row="row"
-          :context="publicContentContext(stationUid, page.title)"
+          :context="publicContentContext(stationUid, page.title, stationTimezone)"
       />
     </div>
   </ViewContent>

@@ -14,6 +14,8 @@ const publicClient = axios.create({
 export interface PublicStationInfo {
     stationName: string
     stationUid: string
+    /** The clock every date in a public article is written on. */
+    stationTimezone: string
 }
 
 export interface PublicBrowseResponse {

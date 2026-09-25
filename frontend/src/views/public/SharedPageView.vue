@@ -83,7 +83,7 @@ useHead(computed(() => {
                     v-for="row in page.rows"
                     :key="row.id"
                     :row="row"
-                    :context="publicContentContext(shared!.station.stationUid, page.title)"/>
+                    :context="publicContentContext(shared!.station.stationUid, page.title, shared!.station.timezone)"/>
             </div>
         </ViewContent>
     </SharedLinkShell>

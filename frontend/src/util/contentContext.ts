@@ -48,13 +48,28 @@ export interface ContentRenderContext {
     widthHint: number
     /** Used as the accessible name of an embedded player. */
     title: string
+    /**
+     * The clock a date in a block is written on, or nothing to write it on the reader's own.
+     *
+     * <p>A page rendered on a server and then again in a browser is written by two machines, neither
+     * of which stands where the reader does, so a date put on whichever clock wrote it comes out
+     * differently in the two copies. A surface with no reader to ask names the station's clock here;
+     * a surface inside the station leaves it, because there the reader's clock is the right one.
+     */
+    timezone?: string | null
 }
 
 /**
  * A public page or a public blog entry: no session, so files are addressed by hash on the public
  * route and a reader anywhere can load them.
+ *
+ * @param timezone the station's clock, which every date on such a page is written on
  */
-export function publicContentContext(stationUid: string, title = ''): ContentRenderContext {
+export function publicContentContext(
+    stationUid: string,
+    title = '',
+    timezone: string | null = null,
+): ContentRenderContext {
     return {
         isPublic: true,
         stationUid,
@@ -62,6 +77,7 @@ export function publicContentContext(stationUid: string, title = ''): ContentRen
         imageUrl: (hash, width) => mediaImageUrlAt(stationUid, hash, width),
         widthHint: PAGE_WIDTH,
         title,
+        timezone,
     }
 }
 

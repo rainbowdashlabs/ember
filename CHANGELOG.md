@@ -8,6 +8,7 @@
 - **The public wiki looks like the wiki itself.** Folders and articles open to everybody are now drawn the way the station's own members see them, with the same entries, the same search results, the pictures the station gave its folders and the preview a photo or a document draws on its own tile. The switch between tiles and one entry to a line is there too.
 - **A shared link to a public page says what the page is.** The calendar, a blog entry, a wiki article and the waiting list each now carry their own name and a short description, so a link pasted into a chat draws a preview of that page with the station's logo instead of the same nameless card for everything.
 - **Public pages arrive with their content.** A station's pages, its calendar, its blog entries and its wiki articles now come from the server complete instead of showing a spinner until the browser has fetched them, which is also what lets a search engine see what is on them.
+- **Dates on public pages are the station's own.** An appointment, a blog entry and a wiki article now show the date and time on the station's clock wherever they are read, so an appointment at seven in the evening says seven to a reader in another country as well.
 
 ### Fixes
 

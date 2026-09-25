@@ -41,6 +41,23 @@ public final class StationFormat {
     }
 
     /**
+     * The station's zone written as a name a browser will accept, which is not always the name Java
+     * gives it.
+     *
+     * <p>A station that named no zone falls back to UTC, and Java spells that offset {@code Z}. No
+     * browser's date formatter knows that spelling and refuses it outright, so a page handed it falls
+     * back to the clock of whichever machine was writing, which is the one thing naming the zone was
+     * meant to prevent.
+     *
+     * @param station the station, or {@code null} when it could not be loaded
+     * @return the zone name to hand to a browser
+     */
+    public static String timezoneNameOf(Station station) {
+        ZoneId zone = timezoneOf(station);
+        return ZoneOffset.UTC.equals(zone) ? "UTC" : zone.getId();
+    }
+
+    /**
      * The language a station's documents are built in, which is German or English and nothing else,
      * because those are the two every template ships in.
      *

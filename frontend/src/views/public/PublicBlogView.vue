@@ -21,7 +21,7 @@ import {plainTextExcerpt, socialMeta, stationLogoImage, titleWithStation, useAbs
 import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
 
 const {t} = useI18n()
-const {station, stationUid, stationAddress} = usePublicStationAddress()
+const {station, stationUid, stationTimezone, stationAddress} = usePublicStationAddress()
 const rssUrl = computed(() => `/api/v1/public/station/${stationUid.value}/blog.rss`)
 const atomUrl = computed(() => `/api/v1/public/station/${stationUid.value}/blog.atom`)
 const headTitle = computed(() => titleWithStation(t('publicStation.blogTitle'), station.value?.name))
@@ -90,7 +90,7 @@ function openFeed(url: string) {
             <p class="text-sm text-(--text-muted) line-clamp-3">{{ plainTextExcerpt(entry.contentHtml) }}</p>
             <div class="mt-3 flex items-center gap-3 text-xs text-(--text-muted)">
               <span v-if="entry.authorName">{{ t('publicStation.blogBy') }} {{ entry.authorName }}</span>
-              <span>{{ formatDateLong(entry.publishedAt) }}</span>
+              <span>{{ formatDateLong(entry.publishedAt, stationTimezone) }}</span>
             </div>
           </NeutralContainer>
         </RowLink>

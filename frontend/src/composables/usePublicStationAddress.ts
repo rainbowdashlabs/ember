@@ -20,6 +20,11 @@ import type {PublicStationInfo} from '@/api/discovery'
  * <p>A station that was given no readable name is addressed by its identifier in both, because that
  * is the only address it has.
  *
+ * <p>The station's clock comes out of here as well, because every date a public page prints is
+ * written on it. The page is written once by the server and once again by the browser, and neither
+ * machine stands where the reader does, so a date put on whichever clock wrote it comes out
+ * differently in the two copies.
+ *
  * @param provided the station where the caller holds it already rather than taking it from the
  *                 shell above it, which the shell itself has to do: nothing provides to itself
  */
@@ -31,6 +36,7 @@ export function usePublicStationAddress(provided?: Ref<PublicStationInfo | null>
     const routeParam = computed(() => String(route.params.stationUid ?? ''))
 
     const stationUid = computed(() => station.value?.stationUid ?? routeParam.value)
+    const stationTimezone = computed(() => station.value?.timezone ?? null)
     const stationAddress = computed(() => station.value?.publicSlug || stationUid.value)
     const basePath = computed(() => `/public/station/${stationAddress.value}`)
 
@@ -38,5 +44,5 @@ export function usePublicStationAddress(provided?: Ref<PublicStationInfo | null>
         ? route.path.replace(`/public/station/${routeParam.value}`, basePath.value)
         : route.path))
 
-    return {station, stationUid, stationAddress, basePath, canonicalPath}
+    return {station, stationUid, stationTimezone, stationAddress, basePath, canonicalPath}
 }

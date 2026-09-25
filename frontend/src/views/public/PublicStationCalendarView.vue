@@ -17,7 +17,7 @@ import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
 
 const {t} = useI18n()
 
-const {station, stationUid} = usePublicStationAddress()
+const {station, stationUid, stationTimezone} = usePublicStationAddress()
 const headTitle = computed(() => titleWithStation(t('publicStation.calendar'), station.value?.name))
 const absoluteUrl = useAbsoluteUrl()
 
@@ -97,7 +97,7 @@ useHead(computed(() => {
       </NeutralContainer>
 
       <Spinner v-if="loading"/>
-      <PublicEventList v-else :events="events"/>
+      <PublicEventList v-else :events="events" :timezone="stationTimezone"/>
     </div>
   </ViewContent>
 </template>

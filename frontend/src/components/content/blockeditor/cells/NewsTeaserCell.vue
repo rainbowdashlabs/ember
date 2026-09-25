@@ -13,6 +13,8 @@ import {formatDate} from '@/util/format'
 const props = defineProps<{
     config: NewsTeaserConfig
     stationUid?: string
+    /** The clock the publication date is written on, the reader's own where none is named. */
+    timezone?: string | null
 }>()
 
 interface ResolvedNews {
@@ -63,7 +65,7 @@ watch(() => [props.stationUid, props.config.newsUid], resolve, {immediate: false
        class="block rounded-theme border border-(--border) hover:border-primary hover:bg-primary/5 transition-colors overflow-hidden">
         <div class="p-3 space-y-1">
             <p class="font-semibold">{{ resolved.title }}</p>
-            <p v-if="resolved.publishedAt" class="text-xs text-(--text-muted)">{{ formatDate(resolved.publishedAt) }}</p>
+            <p v-if="resolved.publishedAt" class="text-xs text-(--text-muted)">{{ formatDate(resolved.publishedAt, props.timezone) }}</p>
             <p v-if="resolved.summary" class="text-sm text-(--text-muted)">{{ resolved.summary }}</p>
         </div>
     </a>
