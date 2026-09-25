@@ -1,12 +1,17 @@
 # Changelog
 
-## v26.19.1
+## v26.19.2
 
 ### Improvements
 
 - **Appointments that have happened have a tab of their own.** Both appointment lists now separate what is coming from what is done, so a station that has been running for years no longer reads years of finished appointments to find next week's. A repeating appointment stays with the coming ones as long as it still comes round, shown against the date it next falls on.
 - **The appointment lists can be searched, narrowed to a stretch of dates and paged.** Every list on both pages takes a search, a category and a from and to, loads in pages instead of all at once, and keeps what you chose in the address, so the list you are looking at can be bookmarked or passed on.
 - **The planner reads by date.** Appointments that happen once stand in one list in the order they fall, each showing its category, and repeating appointments have a block of their own. Picking a category is now a filter rather than a heading to scroll to.
+
+## v26.19.1
+
+### Improvements
+
 - **Rows and cards that open a page can be opened in a new tab.** Entries in the lists throughout the station now behave as the links they always were: middle-click one to open it in its own tab, right-click to copy its address, reach it with the keyboard, and hear it announced as a link. Nothing about the press itself changes.
 - **The public wiki looks like the wiki itself.** Folders and articles open to everybody are now drawn the way the station's own members see them, with the same entries, the same search results, the pictures the station gave its folders and the preview a photo or a document draws on its own tile. The switch between tiles and one entry to a line is there too.
 - **A shared link to a public page says what the page is.** The calendar, a blog entry, a wiki article and the waiting list each now carry their own name and a short description, so a link pasted into a chat draws a preview of that page with the station's logo instead of the same nameless card for everything.
