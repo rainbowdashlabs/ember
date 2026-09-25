@@ -16,10 +16,11 @@ import LegalPlaceholderPanel from './adminlegalview/LegalPlaceholderPanel.vue'
 import SingleFieldModal from '@/components/feedback/SingleFieldModal.vue'
 import {adminSettings} from '@/api'
 import type {DocumentPlaceholder} from '@/api/adminSettings'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const legalTypes = ['privacy', 'tos', 'consent', 'imprint'] as const
 type LegalType = (typeof legalTypes)[number]
@@ -48,8 +49,9 @@ async function loadLocales(type: LegalType) {
     if (!locales.value.includes(activeLocale.value)) {
       activeLocale.value = locales.value[0] ?? 'de'
     }
-  } catch {
+  } catch (e) {
     locales.value = ['de']
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -65,8 +67,8 @@ async function addLocale() {
     await loadLocales(activeLegalTab.value)
     activeLocale.value = code
     await editor.value?.reload()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -81,7 +83,7 @@ onMounted(async () => {
 <template>
   <ViewContent :title="t('pages.admin-legal.title')" :subtitle="t('pages.admin-legal.subtitle')">
     <div class="space-y-6">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <NeutralContainer class="space-y-4">
         <TypeTabsBar v-model="activeLegalTab" :types="legalTypes"/>
@@ -95,7 +97,7 @@ onMounted(async () => {
             :type="activeLegalTab"
             :locale="activeLocale"
             :placeholder-values="placeholderValues"
-            @error="error = $event"
+            @error="failure = $event"
             @saved="placeholderPanel?.reload()"
         />
       </NeutralContainer>
@@ -103,7 +105,7 @@ onMounted(async () => {
       <LegalPlaceholderPanel
           ref="placeholderPanel"
           v-model:placeholders="placeholders"
-          @error="error = $event"
+          @error="failure = $event"
           @saved="editor?.reload()"
       />
 

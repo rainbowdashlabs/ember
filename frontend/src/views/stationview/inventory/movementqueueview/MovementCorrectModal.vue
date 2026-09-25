@@ -7,7 +7,7 @@
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -21,7 +21,7 @@ import CustodyChoice from './CustodyChoice.vue'
 import {movements} from '@/api'
 import type {ItemCustodyName} from '@/api/inventory'
 import {MovementState, type MovementStateName} from '@/api/movements'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * Putting a movement where somebody says it should have been.
@@ -50,7 +50,7 @@ const detach = ref(false)
 const closeAs = ref('')
 const reason = ref('')
 const busy = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 watch(model, open => {
   if (!open) return
@@ -59,12 +59,12 @@ watch(model, open => {
   detach.value = false
   closeAs.value = ''
   reason.value = ''
-  error.value = ''
+  failure.value = null
 })
 
 async function submit() {
   busy.value = true
-  error.value = ''
+  failure.value = null
   try {
     await movements.correctMovement(props.movementId, {
       outgoing: outgoing.value ? (outgoing.value as ItemCustodyName) : null,
@@ -76,7 +76,7 @@ async function submit() {
     model.value = false
     emit('done')
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   } finally {
     busy.value = false
   }
@@ -88,7 +88,7 @@ async function submit() {
     <div class="space-y-4" data-testid="movement-correct-modal">
       <SubHeader>{{ t('movements.queue.correctPanel.title') }}</SubHeader>
       <MutedText tag="p" size="sm">{{ t('movements.queue.correctPanel.hint') }}</MutedText>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :failure="failure"/>
 
       <div class="space-y-1">
         <CustodyChoice v-model="outgoing" :label="t('movements.queue.correctPanel.outgoing')"

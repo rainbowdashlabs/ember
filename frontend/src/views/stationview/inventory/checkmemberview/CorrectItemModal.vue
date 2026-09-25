@@ -13,8 +13,9 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import CorrectNewPiece from './correctitemmodal/CorrectNewPiece.vue'
+import type {Failure} from '@/util/failure'
 import {inventoryFields} from '@/api'
 import {InventoryTypes, ItemOwner, type InventoryItem, type ItemOwnerName} from '@/api/inventory'
 import type {CorrectItemRequest} from '@/api/inventoryCheck'
@@ -39,7 +40,7 @@ const props = defineProps<{
   availableItems: InventoryItem[]
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
   busy?: boolean
-  error?: string
+  failure?: Failure | null
   /**
    * The size the member already named, which the new piece starts on. Only a self-check carries one:
    * a checker standing in front of the piece reads the size off it.
@@ -120,7 +121,7 @@ function confirm() {
     <SubHeader class="mb-1">{{ t('inventory.check.correct.title') }}</SubHeader>
     <p class="mb-3 text-sm text-(--text-muted)">{{ item?.name }}</p>
 
-    <Alert v-if="error" variant="error" class="mb-3">{{ error }}</Alert>
+    <FailureAlert :failure="failure" class="mb-3"/>
 
     <p class="mb-2 text-sm">{{ t('inventory.check.correct.intro') }}</p>
     <p class="mb-4 text-sm text-(--text-muted)" data-testid="correct-old-piece">{{ oldPieceFate }}</p>

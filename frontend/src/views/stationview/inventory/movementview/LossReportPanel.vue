@@ -15,6 +15,7 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import {movements} from '@/api'
 import type {LossReport} from '@/api/movements'
 import {presentFile} from '@/util/documentFile'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * What a report that a piece of gear is gone carries, read at both ends.
@@ -29,14 +30,14 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 async function download() {
-  error.value = ''
+  failure.value = null
   try {
     await presentFile(await movements.downloadDocument(props.movementId))
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 </script>
@@ -57,7 +58,7 @@ async function download() {
       <MemberName v-if="props.report.memberNoteBy" :identity="props.report.memberNoteBy" class="text-xs"/>
     </div>
 
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <div v-if="props.report.documentName" class="flex items-center gap-2 text-sm">
       <span data-testid="loss-report-document">{{ props.report.documentName }}</span>

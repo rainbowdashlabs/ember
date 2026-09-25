@@ -10,6 +10,7 @@ import type { ProcedureTemplate, TemplateDetail } from '@/api/procedures'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { EditableItem } from '@/views/stationview/procedure/procedurecreateview/types'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { describeFailure } from '@/util/failure'
 import { dateToInstant, instantToDate } from '@/util/format'
 import { moveWithin } from '@/util/reorder'
 
@@ -90,6 +91,13 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     return editable
   }
 
+  /**
+   * Reads the chosen template and fills the form from it.
+   *
+   * <p>The sentence names the template rather than repeating what the server said, because a reader
+   * who has just picked one from the list needs to know the form in front of them is still empty.
+   * What to do about it, and whether it is worth reporting, still come from the failure itself.
+   */
   async function loadTemplate(id: number) {
     try {
       const detail = await procedures.getTemplate(id)
@@ -97,8 +105,8 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       name.value = detail.template.name
       description.value = detail.template.description ?? ''
       items.value = toEditableItems(detail.items, detail.dependencies, false)
-    } catch {
-      error.value = t('common.error')
+    } catch (e) {
+      failure.value = {...describeFailure(e, t), message: t('procedures.templateNotLoaded')}
     }
   }
 
@@ -115,7 +123,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     await loadTemplate(Number(idStr))
   }
 
-  const {loading, error, reload} = useAsyncLoader(async () => {
+  const {loading, failure, reload} = useAsyncLoader(async () => {
     const [tpls, mbrs] = await Promise.all([
       procedures.getTemplates(),
       stationMembers.listCompletions(),
@@ -273,7 +281,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     items,
     isEditMode,
     loading,
-    error,
+    failure,
     reload,
     handleTemplateChange,
     addItem,

@@ -28,6 +28,7 @@ import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import { useSession } from '@/composables/useSession'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { describeFailure } from '@/util/failure'
 import { procedures } from '@/api'
 import { StationPermission } from '@/api/types'
 import {ProcedureStatus, type Procedure, type ProcedureRequest, type ProcedureTemplate} from '@/api/procedures'
@@ -54,7 +55,7 @@ const newDescription = ref('')
 const newDueAt = ref('')
 const newTemplateId = ref<number | null>(null)
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const params: { status?: string; assignee?: string } = {}
   if (statusFilter.value) params.status = statusFilter.value
   if (assigneeFilter.value === 'me') params.assignee = 'me'
@@ -69,7 +70,7 @@ const {
 } = useConfirmAction<Procedure>({
   onConfirm: p => procedures.deleteProcedure(p.id),
   onSuccess: () => reload(),
-  error,
+  failure,
 })
 
 const filteredItems = computed(() => {
@@ -88,11 +89,12 @@ function procedurePage(p: Procedure) {
   return { name: 'procedure-detail', params: { id: p.id } }
 }
 
+/** An empty template list and one that could not be read are different answers, so they read so. */
 async function loadTemplates() {
   try {
     templates.value = (await procedures.getTemplates()).filter(tpl => !tpl.archived)
-  } catch {
-    return
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -117,8 +119,8 @@ async function handleCreate() {
     const created = await procedures.createProcedure(data)
     showCreateModal.value = false
     router.push({ name: 'procedure-detail', params: { id: created.id } })
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -160,7 +162,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
     <AsyncSection
       :empty="filteredItems.length === 0"
       :empty-message="t('procedures.empty')"
-      :error="error"
+      :failure="failure"
       :loading="loading"
     >
       <div class="space-y-2">

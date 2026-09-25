@@ -10,9 +10,11 @@ import {useRoute} from 'vue-router'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubmissionList from './contactsubmissionsview/SubmissionList.vue'
 import {acknowledgeContactResponse, FormAnalyticsBase, QuestionTypes, type Form, type FormAnswer, type FormQuestion, type FormResponse} from '@/api/forms'
 import {forms} from '@/api'
+import {describeFailure, type Failure} from '@/util/failure'
 import {formatDateTime} from '@/util/format'
 
 /**
@@ -44,7 +46,7 @@ const questionsById = computed(() => {
     return map
 })
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
     const [f, qs, list] = await Promise.all([
         forms.getForm(formId.value),
         forms.getQuestions(formId.value),
@@ -65,18 +67,35 @@ const {loading, error, reload} = useAsyncLoader(async () => {
     answersByResponse.value = answersMap
 })
 
+/**
+ * Marking a message handled, and the list refresh that follows, which are two things and not one.
+ *
+ * <p>They shared an attempt and the failure was swallowed whole: a message that really was marked,
+ * followed by a list that failed to come back, left the tick springing open again with no word about
+ * why, and a message that could not be marked at all looked exactly the same. Neither reader learned
+ * anything, and both had to guess whether the message was still waiting for somebody.
+ */
+const ackFailure = ref<Failure | null>(null)
+
 async function acknowledge(submission: FormResponse) {
     if (submission.acknowledgedAt) return
     const next = new Set(ackInFlight.value)
     next.add(submission.id)
     ackInFlight.value = next
+    ackFailure.value = null
     try {
         await acknowledgeContactResponse(formId.value, submission.id)
-        await reload()
-    } catch {
+    } catch (e) {
+        ackFailure.value = describeFailure(e, t)
         const cleared = new Set(ackInFlight.value)
         cleared.delete(submission.id)
         ackInFlight.value = cleared
+        return
+    }
+    await reload()
+    if (loadFailure.value) {
+        ackFailure.value = {...loadFailure.value, message: t('failure.staleAfterAction')}
+        loadFailure.value = null
     }
 }
 
@@ -125,10 +144,11 @@ function formatAnswer(answer: FormAnswer): string {
         :subtitle="t('pages.pages-forms-submissions.subtitle')"
     >
         <div class="space-y-6 max-w-3xl">
+            <FailureAlert :failure="ackFailure"/>
             <AsyncSection
                 :empty="submissions.length === 0"
                 :empty-message="t('forms.contactSubmissions.empty')"
-                :error="error"
+                :failure="loadFailure"
                 :loading="loading"
             >
                 <SubmissionList

@@ -17,6 +17,7 @@ import MailboxEditor from './stationmailimportview/MailboxEditor.vue'
 import MailImportLogPanel from './stationmailimportview/MailImportLogPanel.vue'
 import {mailImport} from '@/api'
 import type {Mailbox, MailImportSettings, MailboxRequest} from '@/api/mailImport'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * What a station reads for paperwork: the mailboxes it watches, the rules under each of them, and what
@@ -30,7 +31,7 @@ const {t} = useI18n()
 const settings = ref<MailImportSettings | null>(null)
 const mailboxes = ref<Mailbox[]>([])
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const editing = ref<Mailbox | null>(null)
 const adding = ref(false)
@@ -38,32 +39,38 @@ const adding = ref(false)
 const switchedOff = computed(() => settings.value !== null && !settings.value.enabled)
 const cannotStorePasswords = computed(() => settings.value !== null && !settings.value.canStorePasswords)
 
-async function reload() {
-  error.value = ''
+/** Records the failure, with a sentence of its own where this screen has a better one. */
+function record(e: unknown, message?: string) {
+  const described = describeFailure(e, t)
+  failure.value = message ? {...described, message} : described
+}
+
+async function reload(staleMessage?: string) {
   try {
     const [loadedSettings, loadedMailboxes] = await Promise.all([mailImport.settings(), mailImport.listMailboxes()])
     settings.value = loadedSettings
     mailboxes.value = loadedMailboxes
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    record(e, staleMessage)
   }
   loading.value = false
 }
 
+/**
+ * Carries the change out, then reloads.
+ *
+ * <p>Answered for separately, because a mailbox that was saved and a page that then failed to come
+ * back would otherwise both read as a mailbox that was not saved.
+ */
 async function act(action: Promise<unknown>) {
-  error.value = ''
+  failure.value = null
   try {
     await action
-    await reload()
   } catch (e) {
-    error.value = messageOf(e)
+    record(e)
+    return
   }
-}
-
-/** The server's own words where it has any: a refused rule says exactly what is wrong with it. */
-function messageOf(e: unknown): string {
-  const message = (e as {response?: {data?: {message?: string}}})?.response?.data?.message
-  return message && message.trim() ? message : t('common.error')
+  await reload(t('failure.staleAfterAction'))
 }
 
 async function saveMailbox(request: MailboxRequest) {
@@ -89,7 +96,7 @@ reload()
 <template>
   <ViewContent :title="t('pages.station-mail-import.title')" :subtitle="t('pages.station-mail-import.subtitle')">
     <div class="space-y-6">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <Alert v-if="switchedOff" variant="info">{{ t('mailImport.switchedOffForInstance') }}</Alert>
       <Alert v-else-if="cannotStorePasswords" variant="error">{{ t('mailImport.noEncryptionKey') }}</Alert>
@@ -122,8 +129,8 @@ reload()
             :mailbox="mailbox"
             :supported-types="settings?.supportedTypes ?? []"
             @edit="edit"
-            @changed="reload"
-            @error="error = $event"
+            @changed="reload()"
+            @error="failure = $event"
         />
 
         <MailImportLogPanel/>

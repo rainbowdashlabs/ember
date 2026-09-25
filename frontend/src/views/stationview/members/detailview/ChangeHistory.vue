@@ -32,7 +32,7 @@ const {
   acknowledgeComment,
   showCommentForChangeId,
   acknowledging,
-  error,
+  failure,
   isAcknowledgedByMe,
   unacknowledgedCount: countUnacknowledged,
   acknowledgeChange,
@@ -65,7 +65,7 @@ function acknowledgeAllChanges() {
       </SuccessButton>
     </div>
 
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <MutedText tag="div" size="sm" class="py-2" v-if="changes.length === 0">
       {{ t('memberDetail.noChanges') }}

@@ -21,6 +21,7 @@ import {publicContentContext} from '@/util/contentContext'
 import {apiUrl} from '@/util/apiUrl'
 import {plainTextExcerpt, socialMeta, stationLogoImage, useAbsoluteUrl} from '@/util/socialMeta'
 import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
+import {usePublicFailure} from '@/composables/usePublicFailure'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -50,7 +51,10 @@ const {data: entry, error: loadError, status} = await useAsyncData(
 )
 
 const loading = computed(() => status.value === 'pending')
-const error = computed(() => (loadError.value ? t('common.error') : ''))
+const failure = usePublicFailure(loadError, {
+  message: 'publicStation.blogEntryGone',
+  guidance: 'publicStation.blogEntryGoneGuidance',
+})
 
 useHead(computed(() => {
   const e = entry.value
@@ -93,7 +97,7 @@ function goBack() {
     </SecondaryButton>
 
     <Spinner v-if="loading" size="lg"/>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <template v-if="entry">
       <SectionHeader>{{ entry.title }}</SectionHeader>

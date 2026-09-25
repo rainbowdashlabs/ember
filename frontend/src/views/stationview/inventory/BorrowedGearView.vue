@@ -20,7 +20,7 @@ const {loaded} = useSession()
 
 const rows = ref<BorrowedItem[]>([])
 
-const {loading, error, reload} = useAsyncLoader(
+const {loading, failure, reload} = useAsyncLoader(
     async () => {
         if (!loaded.value) return
         rows.value = await inventory.listBorrowed()
@@ -40,7 +40,7 @@ watch(loaded, v => {
         <AsyncSection
             :empty="rows.length === 0"
             :empty-message="t('inventory.borrowed.empty')"
-            :error="error"
+            :failure="failure"
             :loading="loading"
         >
             <BorrowedGearTable :rows="rows" />

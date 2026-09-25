@@ -17,6 +17,7 @@ import InventoryKindField from '@/components/inventory/InventoryKindField.vue'
 import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
 import {InventoryTypes, switchRefusal, type InventoryDetail, type InventoryTypeName, type SwitchBlocker} from '@/api/inventory'
 import {inventory} from '@/api'
+import {describeFailure, type Failure} from '@/util/failure'
 import SwitchRefusalAlert from './SwitchRefusalAlert.vue'
 
 const {t} = useI18n()
@@ -27,7 +28,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   saved: []
-  error: [message: string]
+  error: [failure: Failure]
 }>()
 
 const editName = ref(props.detail.name ?? '')
@@ -46,6 +47,13 @@ watch(editHomogeneous, value => {
 const blockers = ref<SwitchBlocker[]>([])
 const refusalMessage = ref('')
 
+/**
+ * Writes the settings back, and tells the reader apart from the two ways it can fail.
+ *
+ * <p>A refused change of kind names what is in the way, so it belongs beside the control that was
+ * refused rather than as one more line at the top of the page. Everything else goes up as a described
+ * failure, so the page can say what the server said and offer a report where it is ours to fix.
+ */
 async function saveSettings() {
   blockers.value = []
   refusalMessage.value = ''
@@ -62,13 +70,11 @@ async function saveSettings() {
   } catch (e) {
     const refusal = switchRefusal(e)
     if (refusal) {
-      // The refusal names what is in the way, so it belongs beside the control that was refused
-      // rather than as one more line of "something went wrong" at the top of the page.
       blockers.value = refusal.blockers
       refusalMessage.value = t('inventory.edit.kindRefused')
       return
     }
-    emit('error', t('common.error'))
+    emit('error', describeFailure(e, t))
     throw e
   }
 }

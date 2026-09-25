@@ -4,12 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref, onMounted} from 'vue'
+import {ref, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -32,28 +33,26 @@ interface ManagedMemberInfo { id: number; name: string }
 
 const managedMembers = ref<ManagedMemberInfo[]>([])
 const exportingMemberId = ref<number | null>(null)
-const memberError = ref('')
+const memberFailure = ref<Failure | null>(null)
 const showDeleteAccountModal = ref(false)
 
-const {running: exportingGdpr, error: exportError, run: exportOwnData} = useAsyncAction(async () => {
+const {running: exportingGdpr, failure: exportFailure, run: exportOwnData} = useAsyncAction(async () => {
   await presentFile(await sessionApi.gdprExport())
 })
 
 async function exportManagedMemberData(memberId: number) {
-  exportingMemberId.value = memberId; memberError.value = ''
+  exportingMemberId.value = memberId; memberFailure.value = null
   try { await presentFile(await sessionApi.gdprExportManagedMember(memberId)) }
-  catch { memberError.value = t('common.error') }
+  catch (e) { memberFailure.value = describeFailure(e, t) }
   finally { exportingMemberId.value = null }
 }
 
-const {running: deletingAccount, error: deleteError, run: confirmDeleteAccount} = useAsyncAction(async () => {
+const {running: deletingAccount, failure: deleteFailure, run: confirmDeleteAccount} = useAsyncAction(async () => {
   await sessionApi.deleteAccount()
   localStorage.removeItem('session_token')
   localStorage.removeItem('session_expires_at')
   router.push({name: 'login'})
 })
-
-const error = computed(() => exportError.value || memberError.value || deleteError.value)
 
 onMounted(async () => {
   if (isGuardian()) {
@@ -68,7 +67,9 @@ onMounted(async () => {
 <template>
   <ViewContent :title="t('pages.account-gdpr.title')" :subtitle="t('pages.account-gdpr.subtitle')">
     <div class="space-y-6">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="exportFailure"/>
+      <FailureAlert :failure="memberFailure"/>
+      <FailureAlert :failure="deleteFailure"/>
 
       <StorageConsentSection/>
 

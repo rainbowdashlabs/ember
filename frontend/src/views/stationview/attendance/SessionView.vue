@@ -32,6 +32,7 @@ import {presentFile} from '@/util/documentFile'
 import {useSessionEventLink} from './sessionview/useSessionEventLink'
 import {formatWeekdayDate, localInputToInstant, timeOnDayOf} from '@/util/format'
 import {reportCaughtError} from '@/util/devErrorReporter'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -68,7 +69,7 @@ const allMembers = ref<StationMember[]>([])
 const groups = ref<MemberGroup[]>([])
 const groupMembers = ref<Map<number, StationMember[]>>(new Map())
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const selectedMemberId = ref('')
 
@@ -105,7 +106,7 @@ const {
   setSessionTitle,
   setCountedHours,
   takeEventTimes,
-} = useSessionMeta(sessionId, session, error)
+} = useSessionMeta(sessionId, session, failure)
 /**
  * Every name on the sheet that is still open, in the order the sheet reads.
  *
@@ -126,7 +127,7 @@ const openRows = computed((): CheckRow[] => {
 })
 
 const {checkMode, checkIndex, currentCheckRow, startCheckMode, checkSetStatus, skipCheck} = useCheckMode(openRows, markRow)
-const {fieldValues, parseFieldConfig, onFieldUpdate, setFieldMemberIds, initFieldValues} = useSessionFields(sessionId, templateFields, entries, error)
+const {fieldValues, parseFieldConfig, onFieldUpdate, setFieldMemberIds, initFieldValues} = useSessionFields(sessionId, templateFields, entries, failure)
 
 interface MemberSection {
   group: MemberGroup | null
@@ -226,7 +227,7 @@ async function loadEventContext(eventId: number | null) {
 
 async function loadData() {
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     const [detail, members, allGroups] = await Promise.all([
       attendance.getSession(sessionId.value),
@@ -247,22 +248,62 @@ async function loadData() {
     }
 
     initFieldValues(sessionFields.value)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
 }
 
+/**
+ * Doing something to the sheet and then reading it back, which are two things and not one.
+ *
+ * <p>Every one of these wrote a mark and then fetched the sheet again inside the same attempt, so a
+ * mark that really was recorded, followed by a read that failed, said the mark had failed. On an
+ * attendance sheet that is the costly direction to get wrong: the reader marks the same person a
+ * second time, or worse, writes down on paper that somebody was absent.
+ *
+ * @param change what to do
+ * @param after  how to read the sheet back, where fetching the entries is not the whole of it
+ */
+async function act(change: () => Promise<unknown>, after: () => Promise<unknown> = refreshEntries) {
+  failure.value = null
+  try {
+    await change()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
+  }
+  try {
+    await after()
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
+  }
+}
+
+async function refreshEntries() {
+  const detail = await attendance.getSession(sessionId.value)
+  entries.value = detail.entries ?? []
+}
+
+/**
+ * The whole sheet again, for changes that alter more than its entries. Fetching it keeps its own
+ * failure rather than letting one out, so the sentence is corrected here instead.
+ */
+async function refreshSheet() {
+  await loadData()
+  if (failure.value) {
+    failure.value = {...failure.value, message: t('failure.staleAfterAction')}
+  }
+}
+
 async function addMember() {
   if (!selectedMemberId.value) return
-  error.value = ''
-  try {
-    entries.value = await attendance.createEntry(sessionId.value, {memberId: Number(selectedMemberId.value)})
-    selectedMemberId.value = ''
-  } catch {
-    error.value = t('common.error')
-  }
+  const memberId = Number(selectedMemberId.value)
+  await act(
+      async () => { entries.value = await attendance.createEntry(sessionId.value, {memberId}) },
+      () => { selectedMemberId.value = ''; return Promise.resolve() },
+  )
 }
 
 /**
@@ -276,25 +317,15 @@ async function markRow(row: CheckRow, status: AttendanceStatus) {
     await setStatus(row.entryId, status)
     return
   }
-  error.value = ''
-  try {
+  await act(async () => {
     entries.value = await attendance.createEntry(sessionId.value, {memberId: row.memberId})
     const created = entries.value.find(e => e.memberId === row.memberId)
-    if (created) await setStatus(created.id, status)
-  } catch {
-    error.value = t('common.error')
-  }
+    if (created) await attendance.updateEntryStatus(created.id, status)
+  })
 }
 
 async function setStatus(entryId: number, status: AttendanceStatus) {
-  error.value = ''
-  try {
-    await attendance.updateEntryStatus(entryId, status)
-    const detail = await attendance.getSession(sessionId.value)
-    entries.value = detail.entries ?? []
-  } catch {
-    error.value = t('common.error')
-  }
+  await act(() => attendance.updateEntryStatus(entryId, status))
 }
 
 /**
@@ -311,80 +342,45 @@ function momentOnSheet(value: string): string {
 }
 
 async function setCheckIn(entryId: number, time: string) {
-  error.value = ''
-  try {
-    const moment = momentOnSheet(time)
-    if (moment) await attendance.checkIn(entryId, {time: moment})
-    const detail = await attendance.getSession(sessionId.value)
-    entries.value = detail.entries ?? []
-  } catch {
-    error.value = t('common.error')
-  }
+  const moment = momentOnSheet(time)
+  await act(() => (moment ? attendance.checkIn(entryId, {time: moment}) : Promise.resolve()))
 }
 
 async function setCheckOut(entryId: number, time: string) {
-  error.value = ''
-  try {
-    const moment = momentOnSheet(time)
-    if (moment) await attendance.checkOut(entryId, {time: moment})
-    const detail = await attendance.getSession(sessionId.value)
-    entries.value = detail.entries ?? []
-  } catch {
-    error.value = t('common.error')
-  }
+  const moment = momentOnSheet(time)
+  await act(() => (moment ? attendance.checkOut(entryId, {time: moment}) : Promise.resolve()))
 }
 
 async function resetEntryTimes(entryId: number) {
-  error.value = ''
-  try {
-    await attendance.resetTimes(entryId)
-    const detail = await attendance.getSession(sessionId.value)
-    entries.value = detail.entries ?? []
-  } catch {
-    error.value = t('common.error')
-  }
+  await act(() => attendance.resetTimes(entryId))
 }
 
 async function syncFromEvent() {
-  error.value = ''
-  try {
-    entries.value = await attendance.syncFromEvent(sessionId.value)
-  } catch {
-    error.value = t('common.error')
-  }
+  await act(
+      async () => { entries.value = await attendance.syncFromEvent(sessionId.value) },
+      () => Promise.resolve(),
+  )
 }
 
-const {memberNotes, loadNotes, moveSwap, dropSwap, signOffFound} = useSessionNotes(sessionId, error)
+const {memberNotes, loadNotes, moveSwap, dropSwap, signOffFound} = useSessionNotes(sessionId, failure)
 
 async function unlockSession() {
-  error.value = ''
-  try {
-    await attendance.unlockSession(sessionId.value)
-    await loadData()
-  } catch {
-    error.value = t('common.error')
-  }
+  await act(() => attendance.unlockSession(sessionId.value), refreshSheet)
 }
 
 async function lockSession() {
-  error.value = ''
-  try {
-    await attendance.lockSession(sessionId.value)
-    await loadData()
-  } catch {
-    error.value = t('common.error')
-  }
+  await act(() => attendance.lockSession(sessionId.value), refreshSheet)
 }
 
 const showExportOptions = ref(false)
 
 const {running: exporting, run: exportSheet} = useAsyncAction(async (options: SheetOptions) => {
-  error.value = ''
+  failure.value = null
   try {
     await presentFile(await attendance.exportPdf(sessionId.value, options))
     showExportOptions.value = false
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('attendanceSession.exportFailed')}
   }
 })
 
@@ -401,13 +397,13 @@ const {openEvent} = useSessionEventLink(session)
  * wrong appointment is undone here, and one filled in for the right one is not.
  */
 async function removeSession() {
-  error.value = ''
+  failure.value = null
   try {
     await attendance.deleteSession(sessionId.value)
     showDeleteConfirm.value = false
     router.push({name: 'attendance-past'})
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -428,7 +424,7 @@ watch(loaded, (isLoaded) => {
     <SessionContent
         v-model:selected-member-id="selectedMemberId"
         :loading="loading"
-        :error="error"
+        :failure="failure"
         :session="session"
         :can-edit="canEdit"
         :locked="locked"

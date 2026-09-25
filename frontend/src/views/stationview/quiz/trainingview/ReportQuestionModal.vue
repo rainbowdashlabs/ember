@@ -15,6 +15,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {quiz} from '@/api'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const open = defineModel<boolean>({required: true})
 
@@ -27,25 +28,25 @@ const {t} = useI18n()
 
 const note = ref('')
 const saving = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const sent = ref(false)
 
 watch(open, isOpen => {
   if (!isOpen) return
   note.value = ''
-  error.value = ''
+  failure.value = null
   sent.value = false
 })
 
 async function submit() {
   if (!note.value.trim()) return
   saving.value = true
-  error.value = ''
+  failure.value = null
   try {
     await quiz.reportQuestion(props.questionId, note.value.trim())
     sent.value = true
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     saving.value = false
   }
@@ -61,7 +62,7 @@ async function submit() {
         <MutedText class="block text-sm">{{ questionTitle }}</MutedText>
         <MutedText class="block text-xs">{{ t('quiz.report.hint') }}</MutedText>
         <TextAreaInput v-model="note" :placeholder="t('quiz.report.placeholder')" :rows="5" />
-        <FailureAlert :message="error"/>
+        <FailureAlert :failure="failure"/>
         <ButtonRow pair align="end">
           <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton :disabled="!note.trim() || saving" :icon="['fas', 'flag']" @click="submit">

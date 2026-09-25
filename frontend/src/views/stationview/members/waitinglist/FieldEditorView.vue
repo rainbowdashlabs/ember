@@ -10,7 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type { WaitingList, WaitingListField, WaitingListFieldConfig } from '@/api/waitingList'
 import { waitingList } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -20,6 +20,7 @@ import {usableOptions} from '@/util/choiceOptions'
 import FieldsList from './fieldeditorview/FieldsList.vue'
 import FieldModal from './fieldeditorview/FieldModal.vue'
 import DeleteFieldModal from './fieldeditorview/DeleteFieldModal.vue'
+import {describeFailure} from '@/util/failure'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -66,7 +67,7 @@ const pageTitle = computed(() => (list.value
   ? t('pages.waiting-list-fields.titleNamed', {name: list.value.name})
   : t('pages.waiting-list-fields.title')))
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [listData, fieldData] = await Promise.all([
     waitingList.getById(listId.value),
     waitingList.listFields(listId.value),
@@ -101,9 +102,9 @@ function buildConfig(): WaitingListFieldConfig {
   return {options}
 }
 
-const { running: savingField, error: saveFieldError, run: saveField } = useAsyncAction(async () => {
+const { running: savingField, failure: saveFieldFailure, run: saveField } = useAsyncAction(async () => {
   if (!fieldName.value.trim()) return
-  error.value = ''
+  failure.value = null
   const data = {
     name: fieldName.value.trim(),
     fieldType: fieldType.value,
@@ -117,8 +118,13 @@ const { running: savingField, error: saveFieldError, run: saveField } = useAsync
   } else {
     await waitingList.createField(listId.value, data)
   }
-  fields.value = await waitingList.listFields(listId.value)
   showFieldModal.value = false
+
+  try {
+    fields.value = await waitingList.listFields(listId.value)
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
+  }
 })
 
 const {
@@ -131,7 +137,7 @@ const {
   onSuccess: async () => {
     fields.value = await waitingList.listFields(listId.value)
   },
-  error,
+  failure,
 })
 
 async function moveField(index: number, direction: -1 | 1) {
@@ -140,7 +146,7 @@ async function moveField(index: number, direction: -1 | 1) {
   const fieldA = sorted[index]
   const fieldB = sorted[targetIndex]
   if (!fieldA || !fieldB) return
-  error.value = ''
+  failure.value = null
   try {
     await Promise.all([
       waitingList.updateField(listId.value, fieldA.id, {
@@ -161,8 +167,8 @@ async function moveField(index: number, direction: -1 | 1) {
       }),
     ])
     fields.value = await waitingList.listFields(listId.value)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -183,7 +189,7 @@ function goBack() {
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error || saveFieldError" variant="error">{{ error || saveFieldError }}</Alert>
+      <FailureAlert :failure="failure ?? saveFieldFailure"/>
 
       <FieldsList
         v-if="!loading && list"

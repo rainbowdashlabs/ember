@@ -18,6 +18,7 @@ import type {GuardianInput, PublicWaitlistSummary, PublicWaitlistFormResponse, W
 import {waitingList} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {describeFailure, type Failure} from '@/util/failure'
 import {socialMeta, stationLogoImage, titleWithStation, useAbsoluteUrl} from '@/util/socialMeta'
 import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
 
@@ -61,7 +62,7 @@ function removeGuardian(index: number) {
   guardians.value = guardians.value.filter((_, i) => i !== index)
 }
 
-const {loading, error: loadError} = useAsyncLoader(async () => {
+const {loading, failure: listsFailure} = useAsyncLoader(async () => {
   lists.value = await waitingList.listPublicWaitlists(stationUid.value)
   const [onlyList] = lists.value
   if (lists.value.length === 1 && onlyList) {
@@ -70,14 +71,17 @@ const {loading, error: loadError} = useAsyncLoader(async () => {
   }
 })
 
+const formFailure = ref<Failure | null>(null)
+
 async function loadForm() {
   if (!selectedListId.value) return
   loadingForm.value = true
+  formFailure.value = null
   try {
     form.value = await waitingList.getPublicWaitlistForm(stationUid.value, selectedListId.value)
     fieldValues.value = {}
-  } catch {
-    loadError.value = t('common.error')
+  } catch (e) {
+    formFailure.value = describeFailure(e, t)
   } finally {
     loadingForm.value = false
   }
@@ -113,7 +117,7 @@ const canSubmit = computed(() => {
   return true
 })
 
-const {running: submitting, error: submitError, run: submit} = useAsyncAction(async () => {
+const {running: submitting, failure: submitFailure, run: submit} = useAsyncAction(async () => {
   if (!selectedListId.value || !canSubmit.value) return
   const guardianData = guardians.value
       .filter(g => g.firstname.trim() || g.email.trim())
@@ -136,14 +140,19 @@ const {running: submitting, error: submitError, run: submit} = useAsyncAction(as
   submitted.value = true
 })
 
-const error = computed(() => loadError.value || submitError.value)
+/**
+ * The one failure to show, in the order that leaves the reader something to act on. A registration
+ * that could not be sent is the thing they were last doing, so it wins over anything the page failed
+ * to fetch behind it.
+ */
+const failure = computed(() => submitFailure.value ?? formFailure.value ?? listsFailure.value)
 </script>
 
 <template>
   <ViewContent :title="t('pages.public-waitlist.title')" :subtitle="t('pages.public-waitlist.subtitle')">
     <div class="max-w-2xl mx-auto space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <WaitlistSuccessPanel v-if="submitted" :confirmed-by-mail="form?.sendsMail ?? true"/>
 

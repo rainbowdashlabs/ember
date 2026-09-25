@@ -9,7 +9,8 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import {QuizAttemptStatus, QuizQuestionTypes, type QuizAttemptDetail, type QuizQuestion, type QuizTest, type QuizTestAnswer} from '@/api/quiz'
 import {StationPermission} from '@/api/types'
@@ -92,8 +93,13 @@ function setPoints(answerId: number, maxPts: number, value: number | undefined) 
   pointsOverrides.value.set(answerId, clamped)
 
   if (saveDebounce) clearTimeout(saveDebounce)
-  saveDebounce = setTimeout(() => {
-    quiz.gradeAnswer(answerId, clamped).catch(() => {})
+  saveDebounce = setTimeout(async () => {
+    try {
+      await quiz.gradeAnswer(answerId, clamped)
+      failure.value = null
+    } catch (e) {
+      failure.value = describeFailure(e, t)
+    }
   }, 500)
 }
 
@@ -126,7 +132,7 @@ function isGapCorrect(answerId: number, gapIndex: number): boolean {
   return (gapCorrectOverrides.value.get(answerId) ?? new Set()).has(gapIndex)
 }
 
-const {running: grading, error: gradeError, run: finishGrading} = useAsyncAction(
+const {running: grading, failure: gradeFailure, run: finishGrading} = useAsyncAction(
     async () => {
       for (const [answerId, pts] of pointsOverrides.value.entries()) {
         await quiz.gradeAnswer(answerId, pts)
@@ -148,18 +154,16 @@ const {running: grading, error: gradeError, run: finishGrading} = useAsyncAction
           return
         }
         router.push({name: 'quiz-test-detail', params: {id: testId.value}})
-      } catch {
-        return
+      } catch (e) {
+        failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
       }
-    },
-    {formatError: () => t('common.error')},
-)
+    })
 
 function goBack() {
   router.push({name: 'quiz-test-detail', params: {id: testId.value}})
 }
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const [detail, testDetail] = await Promise.all([
     quiz.getAttemptDetail(attemptId.value),
     quiz.getTest(testId.value),
@@ -217,7 +221,7 @@ function pointsForQuestion(aq: { questionId: number }): number {
   <ViewContent :title="pageTitle" :subtitle="t('pages.quiz-test-evaluate.subtitle')">
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error || gradeError" variant="error">{{ error || gradeError }}</Alert>
+      <FailureAlert :failure="failure ?? gradeFailure"/>
 
       <template v-if="!loading && attemptDetail">
         <EvaluationHeader

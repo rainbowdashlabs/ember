@@ -8,6 +8,8 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import KbBreadcrumb from './knowledgebaseview/KbBreadcrumb.vue'
 import KbBrowseSection from './knowledgebaseview/KbBrowseSection.vue'
@@ -60,7 +62,7 @@ const {
 } = navigation
 const {
     currentFolder, breadcrumbs, currentLevel, folderLevels, fileLevels,
-    loading, error, loadData, copySharedFile, sharedFolders,
+    loading, failure, loadData, copySharedFile, sharedFolders,
     publicIds, federatedIds, narrowIds, folderKey, fileKey, sharedTrail,
 } = browse
 const favourites = useKbFavourites()
@@ -68,8 +70,8 @@ const favourites = useKbFavourites()
 async function loadFavourites() {
     try {
         await favourites.load()
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = {...describeFailure(e, t), message: t('kb.favouritesLoadFailed')}
     }
 }
 
@@ -77,8 +79,8 @@ async function toggleFavourite(entry: FavouriteEntry, event?: MouseEvent) {
     event?.stopPropagation()
     try {
         await favourites.toggle(entry)
-    } catch {
-        error.value = t('kb.favouriteUnavailable')
+    } catch (e) {
+        failure.value = {...describeFailure(e, t), message: t('kb.favouriteUnavailable')}
     }
 }
 const {showFederated, filterStationId, filterTag, allKbTags, partnerStations, filteredFolders, filteredFiles, filteredSharedFiles, loadTags} = filters
@@ -103,7 +105,7 @@ const {
 } = useConfirmAction<KbFolder>({
     onConfirm: f => knowledgeBase.deleteFolder(f.id),
     onSuccess: () => loadData(),
-    error,
+    failure,
 })
 
 const {
@@ -114,22 +116,22 @@ const {
 } = useConfirmAction<KbFileSummary>({
     onConfirm: f => knowledgeBase.deleteFile(f.id),
     onSuccess: () => loadData(),
-    error,
+    failure,
 })
 
 async function exportFilePdf(file: KbFileSummary) {
     try {
         await downloadAuthed(knowledgeBase.pdfExportUrl(file.id), `${file.name}.pdf`)
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = {...describeFailure(e, t), message: t('kb.pdfExportFailed')}
     }
 }
 
 async function downloadFile(file: KbFileSummary) {
     try {
         await downloadAuthed(knowledgeBase.rawFileUrl(file))
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = {...describeFailure(e, t), message: t('kb.downloadFailed')}
     }
 }
 
@@ -224,7 +226,7 @@ watch(loaded, (isLoaded) => {
     >
         <slot name="before"/>
 
-        <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+        <FailureAlert :failure="failure" class="mb-4"/>
         <Alert v-if="notice" variant="info" class="mb-4" data-testid="kb-bulk-notice">{{ notice }}</Alert>
 
         <div v-if="!isTrashView" class="mb-4">
@@ -303,7 +305,7 @@ watch(loaded, (isLoaded) => {
             ref="createModalsRef"
             :current-folder-id="currentFolderId"
             @created="loadData()"
-            @error="(msg) => error = msg"
+            @error="(reported) => failure = reported"
         />
 
         <KbEditModals
@@ -331,7 +333,7 @@ watch(loaded, (isLoaded) => {
             :file="move.movingFile.value"
             :folders="move.folders.value"
             @moved="afterMove"
-            @error="(msg) => error = msg"
+            @error="(reported) => failure = reported"
         />
 
         <KbBulkModals
@@ -340,7 +342,7 @@ watch(loaded, (isLoaded) => {
             :file-ids="selection.selectedFileIds.value"
             :folders="move.folders.value"
             @done="afterBulk"
-            @error="(msg) => error = msg"
+            @error="(reported) => failure = reported"
         />
     </ViewContent>
 </template>

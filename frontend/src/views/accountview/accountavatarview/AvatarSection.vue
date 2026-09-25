@@ -12,6 +12,8 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FileUploadField from '@/components/input/FileUploadField.vue'
 import {session as sessionApi} from '@/api'
+import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   accountUid?: string | null
@@ -19,7 +21,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'error', message: string): void
+  (e: 'error', failure: Failure | null): void
 }>()
 
 const AVATAR_MAX_SIZE = 2 * 1024 * 1024
@@ -35,20 +37,20 @@ async function upload(file: File) {
   try {
     await sessionApi.uploadAvatar(file)
     avatarKey.value++
-  } catch {
-    uploadError.value = t('fileUpload.uploadFailed')
+  } catch (e) {
+    uploadError.value = apiErrorMessage(e) ?? describeFailure(e, t).message
   } finally {
     uploading.value = false
   }
 }
 
 async function remove() {
-  emit('error', '')
+  emit('error', null)
   try {
     await sessionApi.deleteAvatar()
     avatarKey.value++
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   }
 }
 </script>

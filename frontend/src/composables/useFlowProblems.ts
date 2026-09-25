@@ -6,6 +6,7 @@
 import {useI18n} from 'vue-i18n'
 import type {FlowProblem} from '@/api/movements'
 import {apiErrorBody, apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * Puts what is wrong with a chain into words.
@@ -36,8 +37,30 @@ export function useFlowProblems() {
     function refusalText(e: unknown): string {
         const body = apiErrorBody(e)
         if (body?.error === 'FlowRefusedException' && body.message) return textOf(body.message)
-        return apiErrorMessage(e) ?? t('common.error')
+        return refusalFailure(e).message
     }
 
-    return {problemText, refusalText}
+    /**
+     * The same refusal, described, for the places with room to say what to do about it.
+     *
+     * <p>Where the backend named a rule, that sentence wins and the failure supplies everything around
+     * it: what sort of failure this was and what to do next. It is marked as nothing to report, because
+     * a chain that may not be edited while a movement is walking it is the product working as intended,
+     * and a bug report filed against that buries the real ones.
+     *
+     * <p>Anything else is described as it stands, report button and all, because then it really is one.
+     *
+     * @param e the thing that was thrown
+     * @return the refusal, described
+     */
+    function refusalFailure(e: unknown): Failure {
+        const described = describeFailure(e, t)
+        const body = apiErrorBody(e)
+        if (body?.error === 'FlowRefusedException' && body.message) {
+            return {...described, message: textOf(body.message), reportable: false}
+        }
+        return described
+    }
+
+    return {problemText, refusalText, refusalFailure}
 }

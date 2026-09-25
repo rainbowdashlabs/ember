@@ -14,6 +14,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 
 const {t} = useI18n()
 
@@ -45,9 +46,14 @@ const germanStates = [
   {code: 'TH', name: 'Thüringen'},
 ]
 
-const {running: loading, error, run: importHolidays} = useAsyncAction(async () => {
+/**
+ * The school holidays come from a public directory outside Ember, so a failure here is that
+ * service being unreachable and never a fault in Ember worth reporting. The alert says which
+ * service could not be reached and offers no report.
+ */
+const {running: loading, failure, run: importHolidays} = useAsyncAction(async () => {
   const res = await fetch(`https://deutsche-schulferien-api.vercel.app/api/v2/${holidayYear.value}?states=${holidayState.value}`)
-  if (!res.ok) throw new Error('Failed to fetch holidays')
+  if (!res.ok) throw new Error(`Holiday directory answered ${res.status}`)
   const data: Array<{ name_cp: string; start: string; end: string }> = await res.json()
   const holidays = data.map(h => ({
     name: h.name_cp,
@@ -55,7 +61,7 @@ const {running: loading, error, run: importHolidays} = useAsyncAction(async () =
     endDate: h.end.slice(0, 10),
   }))
   emit('import', holidays)
-}, {formatError: () => t('common.error')})
+}, {formatError: () => t('events.importHolidaysUnreachable')})
 </script>
 
 <template>
@@ -78,7 +84,7 @@ const {running: loading, error, run: importHolidays} = useAsyncAction(async () =
         </SelectInput>
       </div>
 
-      <p v-if="error" class="text-sm text-error">{{ error }}</p>
+      <FailureAlert :failure="failure" expected/>
 
       <ButtonRow pair align="end">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>

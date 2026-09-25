@@ -16,27 +16,38 @@ import SaveButton from '@/components/button/SaveButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import { auth } from '@/api'
 import { apiErrorMessage } from '@/util/apiError'
+import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 import { PASSWORD_MIN_LENGTH } from '@/util/passwordPolicy'
 import TwoFactorSection from '@/views/stationview/profile/settingsview/TwoFactorSection.vue'
 import PasskeySection from '@/views/accountview/accountsecurityview/PasskeySection.vue'
 
 const { t, te } = useI18n()
 
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const currentPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 
+/** Something the form can see for itself, which is the reader's to put right and never a bug. */
+function typedWrong(message: string): Failure {
+  return {
+    kind: FailureKind.REJECTED,
+    message,
+    guidance: t(`failure.${FailureKind.REJECTED}.guidance`),
+    reportable: false,
+  }
+}
+
 async function changePassword() {
   if (newPassword.value !== confirmPassword.value) {
-    error.value = t('profile.passwordMismatch')
+    failure.value = typedWrong(t('profile.passwordMismatch'))
     throw new Error('mismatch')
   }
   if (newPassword.value.length < PASSWORD_MIN_LENGTH) {
-    error.value = t('profile.passwordTooShort', {count: PASSWORD_MIN_LENGTH})
+    failure.value = typedWrong(t('profile.passwordTooShort', {count: PASSWORD_MIN_LENGTH}))
     throw new Error('too short')
   }
-  error.value = ''
+  failure.value = null
   try {
     await auth.changePassword({
       currentPassword: currentPassword.value,
@@ -46,7 +57,7 @@ async function changePassword() {
     newPassword.value = ''
     confirmPassword.value = ''
   } catch (e) {
-    error.value = failureText(e)
+    failure.value = {...describeFailure(e, t), message: failureText(e)}
     throw e
   }
 }
@@ -66,7 +77,7 @@ function failureText(e: unknown): string {
 <template>
   <ViewContent :title="t('pages.account-security.title')" :subtitle="t('pages.account-security.subtitle')">
     <div class="max-w-2xl mx-auto space-y-8 p-4">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <NeutralContainer class="space-y-4">
         <SectionHeader>{{ t('profile.passwordTitle') }}</SectionHeader>

@@ -46,7 +46,7 @@ const port: FieldsPort = {
 const config = useFieldsConfig(port)
 const {
   availableStationGroups, selectedStationGroupId,
-  birthDateField, dateFields, showFieldModal, editingField, loading, error,
+  birthDateField, dateFields, showFieldModal, editingField, loading, failure,
   saveField, showDeleteModal, deleteTarget, confirmDelete,
 } = config
 
@@ -69,7 +69,7 @@ const activeStationGroup = computed({
   <ViewContent :subtitle="t('pages.cluster-fields.subtitle')" :title="t('pages.cluster-fields.title')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <p class="text-sm text-(--text-muted)">{{ t('clusterFields.hint') }}</p>
 

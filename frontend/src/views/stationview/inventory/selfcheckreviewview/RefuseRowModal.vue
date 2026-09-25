@@ -14,6 +14,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import type {Failure} from '@/util/failure'
 
 /**
  * Sending one answer back to the member with a reason.
@@ -27,7 +28,7 @@ const reason = defineModel<string>('reason', {required: true})
 const props = defineProps<{
   itemName: string
   busy: boolean
-  error: string
+  failure: Failure | null
 }>()
 
 const emit = defineEmits<{confirm: []}>()
@@ -49,7 +50,7 @@ const ready = computed(() => !props.busy && reason.value.trim().length > 0)
           :rows="3"
           data-testid="review-refuse-reason"
       />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <ButtonRow pair align="end">
         <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton :disabled="!ready" data-testid="review-refuse-confirm" @click="emit('confirm')">

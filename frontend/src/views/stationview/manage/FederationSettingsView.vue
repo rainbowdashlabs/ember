@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DiscoveryPanel from './federationsettingsview/DiscoveryPanel.vue'
 import PublicKbPanel from '@/components/knowledge/PublicKbPanel.vue'
 import PublicCalendarPanel from './federationsettingsview/PublicCalendarPanel.vue'
@@ -21,12 +21,16 @@ import {stationManage} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
+
+/** What the server answers when the wanted address is somebody else's, which is the reader's to fix. */
+const SLUG_TAKEN = 'Slug is already in use'
 
 const {t} = useI18n()
 const {loaded} = useSession()
 
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const saving = ref(false)
 const {message: savedMessage, flash: flashSaved} = useFlashMessage(2000)
 const initialized = ref(false)
@@ -58,7 +62,7 @@ const publicPagesUrl = computed(() => {
 
 async function loadSettings() {
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     const info = await stationManage.getStationInfo()
     stationId.value = info.id
@@ -72,8 +76,8 @@ async function loadSettings() {
     publicBlogEnabled.value = info.publicBlogEnabled ?? false
     publicSlug.value = info.publicSlug ?? ''
     setTimeout(() => { initialized.value = true }, 50)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
@@ -83,7 +87,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null
 
 async function save() {
   saving.value = true
-  error.value = ''
+  failure.value = null
   try {
     await stationManage.updateStationName({
       name: stationName.value,
@@ -98,12 +102,10 @@ async function save() {
     })
     flashSaved(t('common.saved'))
   } catch (e) {
-    const msg = apiErrorMessage(e)
-    if (msg === 'Slug is already in use') {
-      error.value = t('stationManage.publicSlug.taken')
-    } else {
-      error.value = t('common.error')
-    }
+    const described = describeFailure(e, t)
+    failure.value = apiErrorMessage(e) === SLUG_TAKEN
+        ? {...described, message: t('stationManage.publicSlug.taken'), reportable: false}
+        : described
   } finally {
     saving.value = false
   }
@@ -142,7 +144,7 @@ watch(loaded, (v) => { if (v) loadSettings() })
       </Transition>
     </div>
 
-    <Alert v-if="error" variant="error" class="mb-2">{{ error }}</Alert>
+    <FailureAlert :failure="failure" class="mb-2"/>
 
     <Spinner v-if="loading" />
 

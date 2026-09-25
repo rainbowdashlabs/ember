@@ -60,6 +60,13 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
   /**
    * Writes the share, and only then what each partner was given, because a partner that is no longer
    * shared with has nothing to arrange and the server would have nothing to hang it on.
+   *
+   * <p>Both of these used to swallow whatever came back, apparently on the belief that they refuse a
+   * no-op. They do not: taking a share away answers the same whether or not one was there, and
+   * setting a partner's places answers the same whether or not anything changed. So the only things
+   * either could ever have swallowed were real: an appointment that has gone, one belonging to
+   * another station, a missing permission, or a fault. Un-sharing an appointment and being told it
+   * worked whatever happened is the failure this whole change is about.
    */
   async function save(eventId: number) {
     if (!canFederate.value) return
@@ -67,10 +74,10 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
       const partnerIds = state.federationScope === 'SPECIFIC_PARTNERS' ? state.federationPartnerIds : undefined
       await events.setFederationShare(eventId, state.federationScope, partnerIds)
     } else {
-      await events.removeFederationShare(eventId).catch(() => {})
+      await events.removeFederationShare(eventId)
     }
     for (const [partnerId, place] of Object.entries(state.federationPlaces)) {
-      await events.setPartnerPlaces(eventId, Number(partnerId), place.budget, place.decides).catch(() => {})
+      await events.setPartnerPlaces(eventId, Number(partnerId), place.budget, place.decides)
     }
   }
 

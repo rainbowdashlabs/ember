@@ -16,7 +16,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import InventoryTabs from './clusterinventoryview/InventoryTabs.vue'
 import DispatchItemList from './clusterdispatchview/DispatchItemList.vue'
@@ -44,7 +44,7 @@ const stationUid = ref('')
 const picked = ref<number[]>([])
 const reason = ref('')
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   ;[stations.value, items.value] = await Promise.all([
     clusterStations.listStations(),
     clusterInventory.listSendable(),
@@ -53,7 +53,7 @@ const {loading, error, reload} = useAsyncLoader(async () => {
 
 const canSend = computed(() => stationUid.value !== '' && picked.value.length > 0)
 
-const {running, error: sendError, run: send} = useAsyncAction(async () => {
+const {running, failure: sendFailure, run: send} = useAsyncAction(async () => {
   await clusterInventory.dispatch(stationUid.value, picked.value, reason.value.trim())
   picked.value = []
   reason.value = ''
@@ -69,7 +69,8 @@ const {running, error: sendError, run: send} = useAsyncAction(async () => {
       <InventoryTabs/>
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error || sendError" variant="error">{{ error || sendError }}</Alert>
+      <FailureAlert :failure="failure"/>
+      <FailureAlert :failure="sendFailure"/>
 
       <template v-if="!loading">
         <EmptyState v-if="items.length === 0">{{ t('clusterInventory.dispatch.empty') }}</EmptyState>

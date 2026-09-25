@@ -20,6 +20,7 @@ import {quiz, ai} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {type AiCredentials, readAiCredentials} from '@/util/aiCredentials'
 import {reportCaughtError} from '@/util/devErrorReporter'
+import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
@@ -34,10 +35,19 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   done: []
-  error: [message: string]
+  error: [failure: Failure]
 }>()
 
 const progress = ref('')
+
+/**
+ * What the generator refused on, kept aside rather than thrown.
+ *
+ * <p>The other questions of the batch were written and must stay written, so the run finishes and
+ * the refusal is said afterwards. Nothing used to be said at all: a batch where every generation
+ * was turned down reported itself as done.
+ */
+const refusedWhileGenerating = ref<unknown>(null)
 
 const batchAutoPoints = ref(true)
 const batchPoints = ref(1)
@@ -57,7 +67,7 @@ function parseConfig(q: QuizQuestion): Record<string, unknown> {
   return { ...(q.config ?? {}) }
 }
 
-const {running: processing, run: runExecute} = useAsyncAction(async () => {
+const {running: processing, failure: executeFailure, run: runExecute} = useAsyncAction(async () => {
   const targets = props.questions
   let done = 0
 
@@ -103,7 +113,7 @@ const {running: processing, run: runExecute} = useAsyncAction(async () => {
       })
     }
   } else if (props.action === 'generate') {
-    await batchGenerate(targets)
+    refusedWhileGenerating.value = await batchGenerate(targets)
   }
 
   emit('done')
@@ -113,9 +123,11 @@ const {running: processing, run: runExecute} = useAsyncAction(async () => {
 
 async function execute() {
   if (processing.value) return
+  refusedWhileGenerating.value = null
   const ok = await runExecute()
   progress.value = ''
-  if (!ok) emit('error', t('common.error'))
+  if (!ok && executeFailure.value) emit('error', executeFailure.value)
+  else if (refusedWhileGenerating.value) emit('error', describeFailure(refusedWhileGenerating.value, t))
 }
 
 function generationPrompt(type: string): string | null {
@@ -158,10 +170,25 @@ async function regenerateQuestion(q: QuizQuestion, prompt: string, credentials: 
   }
 }
 
-async function batchGenerate(targets: QuizQuestion[]) {
+/**
+ * Regenerates each question of the batch, and hands back the first refusal.
+ *
+ * <p>A missing key is the reader's own setting rather than a fault in Ember, so it is said as such
+ * and no report is offered for it.
+ */
+async function batchGenerate(targets: QuizQuestion[]): Promise<unknown> {
   const credentials = readAiCredentials()
-  if (!credentials.apiKey) { emit('error', t('quiz.ai.noKeyConfigured')); return }
+  if (!credentials.apiKey) {
+    emit('error', {
+      kind: FailureKind.REJECTED,
+      message: t('quiz.ai.noKeyConfigured'),
+      guidance: '',
+      reportable: false,
+    })
+    return null
+  }
 
+  let refused: unknown = null
   let done = 0
   for (const q of targets) {
     done++; progress.value = `${done}/${targets.length}`
@@ -171,8 +198,10 @@ async function batchGenerate(targets: QuizQuestion[]) {
       await regenerateQuestion(q, prompt, credentials)
     } catch (e) {
       reportCaughtError(e, 'batch question generation')
+      refused ??= e
     }
   }
+  return refused
 }
 </script>
 

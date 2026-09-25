@@ -10,6 +10,7 @@ import BreakModal from './BreakModal.vue'
 import HolidayImportModal from './HolidayImportModal.vue'
 import ExportModal from './ExportModal.vue'
 import type {EventBreak, EventCategory, StationEvent} from '@/api/events'
+import type {Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
@@ -27,7 +28,7 @@ defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'error', message: string): void
+  (e: 'error', failure: Failure): void
   (e: 'save-break', data: { name: string; startDate: string; endDate: string }): void
   (e: 'import-holidays', holidays: Array<{ name: string; startDate: string; endDate: string }>): void
   (e: 'confirm-delete-event'): void
@@ -36,7 +37,7 @@ defineEmits<{
 </script>
 
 <template>
-  <ExportModal v-model="showExport" :categories="categories" @error="e => $emit('error', e)"/>
+  <ExportModal v-model="showExport" :categories="categories" @error="f => $emit('error', f)"/>
 
   <BreakModal
       v-model="showBreak"

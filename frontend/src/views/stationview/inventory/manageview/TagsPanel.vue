@@ -19,7 +19,6 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ColorInput from '@/components/input/ColorInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
@@ -27,7 +26,7 @@ import {inventoryTags} from '@/api'
 import type {CountedInventoryTag, RecommendedTag} from '@/api/inventoryTags'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The words this station puts on its things.
@@ -40,14 +39,14 @@ const {t} = useI18n()
 
 const tags = ref<CountedInventoryTag[]>([])
 const recommendations = ref<RecommendedTag[]>([])
-const saveError = ref('')
+const saveFailure = ref<Failure | null>(null)
 
 const showModal = ref(false)
 const editing = ref<CountedInventoryTag | null>(null)
 const name = ref('')
 const color = ref('')
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const [own, recommended] = await Promise.all([inventoryTags.listTags(), inventoryTags.recommendedTags()])
   tags.value = own
   recommendations.value = recommended
@@ -67,8 +66,15 @@ function openEdit(tag: CountedInventoryTag) {
   showModal.value = true
 }
 
+/**
+ * Writes the word back and fetches the list again.
+ *
+ * <p>A name already in use is the ordinary way this fails, and the server says which one, so what it
+ * wrote is shown as it stands and no bug report is invited for it. The fetch afterwards is caught on
+ * its own, because by then the word is saved and only the list behind the modal is out of date.
+ */
 async function save() {
-  saveError.value = ''
+  saveFailure.value = null
   try {
     const body = {name: name.value, color: color.value || null, position: editing.value?.position ?? tags.value.length}
     if (editing.value) {
@@ -76,16 +82,25 @@ async function save() {
     } else {
       await inventoryTags.createTag(body)
     }
-    showModal.value = false
-    await reload()
   } catch (e) {
-    saveError.value = apiErrorMessage(e) ?? t('common.error')
+    saveFailure.value = describeFailure(e, t)
     throw e
   }
+  showModal.value = false
+  await reloadAfterWrite()
+}
+
+async function reloadAfterWrite() {
+  await reload()
+  if (failure.value) failure.value = {...failure.value, message: t('failure.staleAfterAction')}
 }
 
 const {show: showDeleteModal, target: deleteTarget, requestDelete, confirm: confirmDelete} =
-    useConfirmDelete<CountedInventoryTag>({onDelete: tag => inventoryTags.deleteTag(tag.id), onSuccess: reload, error})
+    useConfirmDelete<CountedInventoryTag>({
+      onDelete: tag => inventoryTags.deleteTag(tag.id),
+      onSuccess: reloadAfterWrite,
+      failure,
+    })
 </script>
 
 <template>
@@ -99,7 +114,7 @@ const {show: showDeleteModal, target: deleteTarget, requestDelete, confirm: conf
     <MutedText size="sm">{{ t('inventory.tag.intro') }}</MutedText>
 
     <Spinner v-if="loading" size="sm"/>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <div
         v-for="tag in tags"
@@ -136,7 +151,7 @@ const {show: showDeleteModal, target: deleteTarget, requestDelete, confirm: conf
   <Modal v-model="showModal">
     <div class="space-y-4">
       <SectionHeader>{{ editing ? t('inventory.tag.edit') : t('inventory.tag.add') }}</SectionHeader>
-      <Alert v-if="saveError" variant="error">{{ saveError }}</Alert>
+      <FailureAlert :failure="saveFailure"/>
       <div class="space-y-1">
         <FieldLabel>{{ t('inventory.tag.name') }}</FieldLabel>
         <TextInput v-model="name" data-testid="tag-name" :placeholder="t('inventory.tag.namePlaceholder')"/>

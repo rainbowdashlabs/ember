@@ -14,7 +14,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -61,9 +62,26 @@ const showDepModal = ref(false)
 const depTargetItem = ref<ProcedureTemplateItem | null>(null)
 const depSelectedId = ref<number | null>(null)
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   detail.value = await procedures.getTemplate(templateId.value)
 }, {autoLoad: false})
+
+/**
+ * Writes one change, then reads the template back.
+ *
+ * <p>The two are answered for separately, so a step the server had already stored, followed by a
+ * page that would not refresh, does not read as a step that was refused and get added twice.
+ */
+async function writeThenReload(write: () => Promise<void>) {
+  failure.value = null
+  try {
+    await write()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
+  }
+  await reload()
+}
 
 function openEditModal() {
   if (!detail.value) return
@@ -74,16 +92,13 @@ function openEditModal() {
 
 async function handleEdit() {
   if (!editName.value.trim()) return
-  try {
+  await writeThenReload(async () => {
     await procedures.updateTemplate(templateId.value, {
       name: editName.value.trim(),
       description: editDescription.value || undefined,
     })
     showEditModal.value = false
-    await reload()
-  } catch {
-    error.value = t('common.error')
-  }
+  })
 }
 
 function openAddItemModal() {
@@ -106,7 +121,7 @@ function openEditItemModal(item: ProcedureTemplateItem) {
 
 async function handleSaveItem() {
   if (!itemTitle.value.trim()) return
-  try {
+  await writeThenReload(async () => {
     if (editingItem.value) {
       await procedures.updateTemplateItem(templateId.value, editingItem.value.id, {
         title: itemTitle.value.trim(),
@@ -123,19 +138,11 @@ async function handleSaveItem() {
       })
     }
     showItemModal.value = false
-    await reload()
-  } catch {
-    error.value = t('common.error')
-  }
+  })
 }
 
 async function handleDeleteItem(itemId: number) {
-  try {
-    await procedures.deleteTemplateItem(templateId.value, itemId)
-    await reload()
-  } catch {
-    error.value = t('common.error')
-  }
+  await writeThenReload(() => procedures.deleteTemplateItem(templateId.value, itemId))
 }
 
 function getDepsForItem(itemId: number): number[] {
@@ -156,24 +163,16 @@ function openDepModal(item: ProcedureTemplateItem) {
 async function addDependency() {
   if (!depTargetItem.value || depSelectedId.value == null || !detail.value) return
   const newDeps = [...detail.value.dependencies, [depSelectedId.value, depTargetItem.value.id]]
-  try {
+  await writeThenReload(async () => {
     await procedures.setTemplateDependencies(templateId.value, newDeps)
     depSelectedId.value = null
-    await reload()
-  } catch {
-    error.value = t('common.error')
-  }
+  })
 }
 
 async function removeDependency(fromId: number, toId: number) {
   if (!detail.value) return
   const newDeps = detail.value.dependencies.filter(d => !(d[0] === fromId && d[1] === toId))
-  try {
-    await procedures.setTemplateDependencies(templateId.value, newDeps)
-    await reload()
-  } catch {
-    error.value = t('common.error')
-  }
+  await writeThenReload(() => procedures.setTemplateDependencies(templateId.value, newDeps))
 }
 
 watch(loaded, (v) => { if (v) reload() }, { immediate: true })
@@ -185,7 +184,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       :subtitle="t('pages.procedure-template-edit.subtitle')"
   >
     <Spinner v-if="loading" />
-    <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+    <FailureAlert :failure="failure" class="mb-4"/>
 
     <template v-if="detail && !loading">
       <!-- Header -->

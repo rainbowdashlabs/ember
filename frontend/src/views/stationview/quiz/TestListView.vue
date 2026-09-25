@@ -47,20 +47,6 @@ interface PendingConfirm {
   action: () => Promise<void>
 }
 
-const confirmAction = useConfirmAction<PendingConfirm>({
-  onConfirm: async (pending) => {
-    try {
-      await pending.action()
-    } catch {
-      return
-    }
-  },
-})
-
-function showConfirm(message: string, action: () => Promise<void>) {
-  confirmAction.request({message, action})
-}
-
 function attemptCount(test: QuizTest): number {
   const summary = testSummaries.value.find(s => s.test.id === test.id)
   return summary?.attemptCount ?? 0
@@ -76,7 +62,7 @@ function isSubmitted(test: QuizTest): boolean {
   return status === 'SUBMITTED' || status === 'GRADED'
 }
 
-const { loading, error, reload: loadData } = useAsyncLoader(async () => {
+const { loading, failure, reload: loadData } = useAsyncLoader(async () => {
   if (canReadResults()) {
     testSummaries.value = await quiz.listTests()
     tests.value = testSummaries.value.map(s => s.test)
@@ -88,11 +74,25 @@ const { loading, error, reload: loadData } = useAsyncLoader(async () => {
   }
 }, { autoLoad: false })
 
+/**
+ * Deleting a test, asked about first and followed by reading the list back.
+ *
+ * <p>The two halves belong to the lifecycle, so a test that is gone and a list that then failed to
+ * refresh does not read as a test that would not go. The refusal itself used to be caught and
+ * dropped: a delete the server turned down said nothing whatever.
+ */
+const confirmAction = useConfirmAction<PendingConfirm>({
+  onConfirm: pending => pending.action(),
+  onSuccess: () => loadData(),
+  failure,
+})
+
+function showConfirm(message: string, action: () => Promise<void>) {
+  confirmAction.request({message, action})
+}
+
 function deleteTest(test: QuizTest) {
-  showConfirm(t('quiz.tests.confirmDelete'), async () => {
-    await quiz.deleteTest(test.id)
-    await loadData()
-  })
+  showConfirm(t('quiz.tests.confirmDelete'), () => quiz.deleteTest(test.id))
 }
 
 function attemptStartedAt(test: QuizTest): string | null {
@@ -112,7 +112,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
   <ViewContent :title="t('pages.quiz-tests.title')" :subtitle="t('pages.quiz-tests.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <div class="flex items-center justify-end">

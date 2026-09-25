@@ -10,6 +10,7 @@ import type {NeedCoverage} from '@/api/equipment'
 import type {Inventory, InventoryItem} from '@/api/inventory'
 import type {InventoryArt} from '@/api/inventoryArts'
 import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /** How the modal's hours reach the line, which counts in minutes because a lead is not whole days. */
 const MINUTES_PER_HOUR = 60
@@ -20,10 +21,10 @@ const MINUTES_PER_HOUR = 60
  * <p>The pickers need the station's own gear, which is loaded once: every inventory, every piece in
  * them and every kind of every mixed inventory, so one picker covers the lot.
  *
- * <p>Reading and writing keep their failures apart: {@code error} is what the panel could not read,
- * {@code saveError} is what a line could not be written as, which is what the dialog shows while it
- * is open. A read that failed says so rather than showing an empty list, because nothing planned and
- * nothing readable are different answers.
+ * <p>Reading and writing keep their failures apart: {@code failure} is what the panel could not
+ * read, {@code saveFailure} is what a line could not be written as, which is what the dialog shows
+ * while it is open. A read that failed says so rather than showing an empty list, because nothing
+ * planned and nothing readable are different answers.
  */
 export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>) {
   const {t} = useI18n()
@@ -33,12 +34,23 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
   const arts = ref<InventoryArt[]>([])
   const loading = ref(false)
   const saving = ref(false)
-  const error = ref('')
-  const saveError = ref('')
+  const failure = ref<Failure | null>(null)
+  const saveFailure = ref<Failure | null>(null)
 
-  /** What the server said went wrong, or a general refusal when it said nothing at all. */
-  function failureText(e: unknown): string {
-    return apiErrorMessage(e) ?? t('common.error')
+  /**
+   * What went wrong, in the terms the reader can act on.
+   *
+   * <p>Where the server wrote a sentence it wins, because it names the rule that was broken and this
+   * screen cannot: not enough of a thing in stock, an art that is not kept in that inventory, a line
+   * already handed out. Such a refusal is marked as nothing to report, since the reader ran into the
+   * product working as intended and a bug filed against that buries the real ones. Everything else,
+   * a server that fell over or a request that never arrived, is described as it stands, report
+   * button and all, because then it really is one.
+   */
+  function refusalFailure(e: unknown): Failure {
+    const described = describeFailure(e, t)
+    const said = apiErrorMessage(e)
+    return said ? {...described, message: said, reportable: false} : described
   }
 
   async function loadCoverage() {
@@ -49,10 +61,10 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
     loading.value = true
     try {
       coverage.value = await equipment.coverage(eventId.value, date.value)
-      error.value = ''
+      failure.value = null
     } catch (e) {
       coverage.value = []
-      error.value = failureText(e)
+      failure.value = refusalFailure(e)
     } finally {
       loading.value = false
     }
@@ -83,7 +95,7 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
     thisDateOnly: boolean
   }) {
     saving.value = true
-    saveError.value = ''
+    saveFailure.value = null
     try {
       await equipment.add(eventId.value, {
         itemId: payload.kind === 'item' ? Number(payload.itemId) : null,
@@ -97,7 +109,7 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
       await loadCoverage()
       return true
     } catch (e) {
-      saveError.value = failureText(e)
+      saveFailure.value = refusalFailure(e)
       return false
     } finally {
       saving.value = false
@@ -105,21 +117,21 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
   }
 
   async function remove(needId: number) {
-    saveError.value = ''
+    saveFailure.value = null
     try {
       await equipment.remove(eventId.value, needId)
       await loadCoverage()
     } catch (e) {
-      saveError.value = failureText(e)
+      saveFailure.value = refusalFailure(e)
     }
   }
 
-  function clearSaveError() {
-    saveError.value = ''
+  function clearSaveFailure() {
+    saveFailure.value = null
   }
 
   return {
-    coverage, inventories, items, arts, loading, saving, error, saveError,
-    loadCoverage, loadPickers, add, remove, clearSaveError,
+    coverage, inventories, items, arts, loading, saving, failure, saveFailure,
+    loadCoverage, loadPickers, add, remove, clearSaveFailure,
   }
 }

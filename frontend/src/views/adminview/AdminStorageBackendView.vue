@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -35,6 +35,8 @@ import {
     sftpFormFrom,
     smbFormFrom,
 } from '@/util/storageBackendForm'
+import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 import StorageBackendForm from '@/components/storage/StorageBackendForm.vue'
 import BackendSummaryCard from './adminstoragebackendview/BackendSummaryCard.vue'
 import BackendApplyConfirmModal from './adminstoragebackendview/BackendApplyConfirmModal.vue'
@@ -50,7 +52,7 @@ watch(loaded, (isLoaded) => {
 }, {immediate: true})
 
 const loading = ref(true)
-const loadError = ref('')
+const loadFailure = ref<Failure | null>(null)
 const success = ref('')
 const backend = ref<InstanceBackendSummary | null>(null)
 const probeOutcome = ref<ProbeResult | null>(null)
@@ -73,19 +75,22 @@ const summaryLabel = computed(() => {
 onMounted(loadAll)
 
 function backendError(e: unknown, fallback: string): string {
-    const err = e as {response?: {data?: {title?: string}}; message?: string}
-    return err?.response?.data?.title ?? err?.message ?? fallback
+    return apiErrorMessage(e) ?? fallback
 }
 
 async function loadAll() {
     loading.value = true
-    loadError.value = ''
+    loadFailure.value = null
     try {
         backend.value = await getInstanceBackend()
         migrationStatus.value = await getInstanceMigrationStatus()
         seedFormFromBackend()
     } catch (e) {
-        loadError.value = backendError(e, t('adminStorageBackend.errors.loadFailed'))
+        const described = describeFailure(e, t)
+        loadFailure.value = {
+            ...described,
+            message: backendError(e, t('adminStorageBackend.errors.loadFailed')),
+        }
     } finally {
         loading.value = false
     }
@@ -116,7 +121,7 @@ function currentRequest(): InstanceBackendRequest {
 function failedProbe(e: unknown): ProbeResult {
     return {
         healthy: false,
-        error: backendError(e, t('adminStorageBackend.errors.probeFailed')),
+        error: backendError(e, describeFailure(e, t).message),
         checkedAt: new Date().toISOString(),
     }
 }
@@ -139,7 +144,7 @@ const {running: probingConfig, run: probeConfig} = useAsyncAction(async () => {
     }
 })
 
-const {running: saving, error: applyError, run: runApply} = useAsyncAction(async () => {
+const {running: saving, failure: applyFailure, run: runApply} = useAsyncAction(async () => {
     confirmApply.value = false
     success.value = ''
     const result = await applyInstanceBackend({target: currentRequest(), keepSource: keepSource.value})
@@ -150,8 +155,6 @@ const {running: saving, error: applyError, run: runApply} = useAsyncAction(async
     })
     await loadAll()
 }, {formatError: (e) => backendError(e, t('adminStorageBackend.errors.applyFailed'))})
-
-const error = computed(() => loadError.value || applyError.value)
 
 </script>
 
@@ -172,7 +175,8 @@ const error = computed(() => loadError.value || applyError.value)
             <Alert v-if="migrationStatus?.migrationInFlight" variant="info">
                 {{ t('adminStorageBackend.banner.inFlight') }}
             </Alert>
-            <FailureAlert :message="error"/>
+            <FailureAlert :failure="loadFailure"/>
+            <FailureAlert :failure="applyFailure"/>
             <Alert v-if="success" variant="success">{{ success }}</Alert>
 
             <Spinner v-if="loading" size="lg"/>

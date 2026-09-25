@@ -7,6 +7,7 @@
 import {computed, onMounted, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -14,6 +15,7 @@ import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue
 import PublicQuestionFields from '@/components/forms/fill/PublicQuestionFields.vue'
 import PublicFormClosedNotice from '@/components/forms/fill/PublicFormClosedNotice.vue'
 import {usePublicFormSubmission} from '@/composables/usePublicFormSubmission'
+import {FailureKind} from '@/util/failure'
 
 const props = defineProps<{
   stationUid: string | null
@@ -32,7 +34,7 @@ const {
   open,
   answers,
   loading,
-  loadError: error,
+  loadFailure,
   submitted,
   validationError,
   consentAccepted,
@@ -40,7 +42,7 @@ const {
   privacyVersion,
   tosVersion,
   submitting,
-  submitError,
+  submitFailure,
   load,
   toggleChoice,
   updateText,
@@ -53,6 +55,13 @@ const {
 
 onMounted(load)
 watch(() => [props.stationUid, props.formPublicUid], load)
+
+/**
+ * Whether the form is genuinely not answerable from this page, as opposed to merely not having
+ * arrived. Only the server saying it is gone means the former: a dropped connection left the reader
+ * being told the form was unreachable here, which sends them away from one that is still open.
+ */
+const unreachable = computed(() => !loadFailure.value || loadFailure.value.kind === FailureKind.GONE)
 </script>
 
 <template>
@@ -72,9 +81,8 @@ watch(() => [props.stationUid, props.formPublicUid], load)
                 <MutedText v-if="form.description" tag="p" size="sm">{{ form.description }}</MutedText>
             </div>
 
-            <Alert v-if="error || submitError || validationError" variant="error">
-                {{ error || submitError || validationError }}
-            </Alert>
+            <FailureAlert :failure="loadFailure ?? submitFailure"/>
+            <FailureAlert :message="validationError" expected/>
 
             <PublicFormClosedNotice v-if="!open" :state="form.state"/>
 
@@ -108,6 +116,9 @@ watch(() => [props.stationUid, props.formPublicUid], load)
             <p v-else class="text-success text-sm">{{ t('publicForm.thanksText') }}</p>
         </template>
 
-        <Alert v-else-if="!loading" variant="error">{{ t('publicForm.unreachableHere') }}</Alert>
+        <template v-else-if="!loading">
+            <Alert v-if="unreachable" variant="error">{{ t('publicForm.unreachableHere') }}</Alert>
+            <FailureAlert v-else :failure="loadFailure"/>
+        </template>
     </div>
 </template>

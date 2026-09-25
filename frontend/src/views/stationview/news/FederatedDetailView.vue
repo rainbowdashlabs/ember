@@ -29,7 +29,7 @@ const newsRoutes = useNewsRoutes()
 const stationUid = ref(route.params.stationUid as string)
 const newsId = ref(Number(route.params.newsId))
 
-const { config: entry, loading, error, reload: loadData } = useConfigPanel<FederatedNewsDetail | null>({
+const { config: entry, loading, failure, reload: loadData } = useConfigPanel<FederatedNewsDetail | null>({
   initial: null,
   fetch: () => news.getFederatedNews(stationUid.value, newsId.value),
 })
@@ -58,7 +58,7 @@ watch(() => [route.params.stationUid, route.params.newsId], () => {
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <NeutralContainer v-if="entry" class="space-y-3">
         <div>

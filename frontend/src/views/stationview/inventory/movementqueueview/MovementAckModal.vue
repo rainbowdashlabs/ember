@@ -7,7 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -18,7 +18,7 @@ import type {InventorySize} from '@/api/inventory'
 import type {MovementDetail} from '@/api/movements'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * Acknowledging the step a movement stands on, from the queue rather than from the page about one.
@@ -46,7 +46,7 @@ const detail = ref<MovementDetail | null>(null)
 const sizes = ref<InventorySize[]>([])
 const loading = ref(false)
 const busy = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const currentStep = computed(() => detail.value?.steps.find(step => step.current) ?? null)
 const mayRecord = computed(() => detail.value?.movement.ownerAnswersHere === false)
@@ -57,14 +57,14 @@ const mayPick = computed(() => hasPermission(StationPermission.INVENTORY_READ))
 
 async function load() {
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     detail.value = await movements.getMovement(props.movementId)
     const naming = mayPick.value && detail.value.steps.some(step => step.current && step.picksItem)
     const inventoryId = detail.value.movement.inventoryId
     sizes.value = naming && inventoryId ? await inventory.listSizes(inventoryId) : []
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
@@ -76,13 +76,13 @@ watch(model, open => {
 
 async function run(action: () => Promise<MovementDetail>) {
   busy.value = true
-  error.value = ''
+  failure.value = null
   try {
     await action()
     model.value = false
     emit('done')
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   } finally {
     busy.value = false
   }
@@ -106,7 +106,7 @@ function force(payload: AcknowledgePayload) {
     <div class="space-y-4" data-testid="movement-ack-modal">
       <SubHeader>{{ t('movements.queue.acknowledge') }}</SubHeader>
       <Spinner v-if="loading"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="detail && currentStep">
         <MutedText tag="p" size="sm">{{ currentStep.label }}</MutedText>

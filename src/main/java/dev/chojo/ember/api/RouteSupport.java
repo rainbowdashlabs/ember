@@ -6,7 +6,6 @@
 package dev.chojo.ember.api;
 
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -39,7 +38,7 @@ public final class RouteSupport {
         try {
             return UUID.fromString(ctx.pathParam(name));
         } catch (IllegalArgumentException e) {
-            throw new NotFoundResponse();
+            throw Refusal.ADDRESS_NOT_AN_IDENTIFIER.raise();
         }
     }
 
@@ -59,7 +58,7 @@ public final class RouteSupport {
      */
     public static void requireSameStation(UserSession session, int entityStationId) {
         if (session.stationId() == null || entityStationId != session.stationId()) {
-            throw new NotFoundResponse();
+            throw Refusal.NOT_HERE_OR_NOT_YOURS.raise();
         }
     }
 
@@ -76,9 +75,9 @@ public final class RouteSupport {
      */
     public static <T> T requireOwnedOrNotFound(
             Context ctx, int id, IntFunction<Optional<T>> finder, ToIntFunction<T> stationOf) {
-        T entity = finder.apply(id).orElseThrow(NotFoundResponse::new);
+        T entity = finder.apply(id).orElseThrow(Refusal.NOT_HERE_OR_NOT_YOURS::raise);
         if (stationOf.applyAsInt(entity) != UserSession.from(ctx).stationId()) {
-            throw new NotFoundResponse();
+            throw Refusal.NOT_HERE_OR_NOT_YOURS.raise();
         }
         return entity;
     }

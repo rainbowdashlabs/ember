@@ -13,6 +13,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PublicFormBody from './publicformsubmitview/PublicFormBody.vue'
 import SharedLinkShell from './SharedLinkShell.vue'
 import {usePublicFormSubmission} from '@/composables/usePublicFormSubmission'
+import {usePublicFailure} from '@/composables/usePublicFailure'
 import {apiUrl} from '@/util/apiUrl'
 import {socialMeta, stationLogoImage, useAbsoluteUrl} from '@/util/socialMeta'
 import type {PublicForm} from '@/api/publicForms'
@@ -65,12 +66,18 @@ const {
   privacyVersion,
   tosVersion,
   submitting,
-  error,
+  failure,
+  validationError,
   toggleChoice,
   updateText,
   updateDate,
   submit,
 } = usePublicFormSubmission(stationUid, publicUid, token, preloadedForm)
+
+const linkFailure = usePublicFailure(previewError, {
+  message: 'shareLink.gone',
+  guidance: 'shareLink.goneGuidance',
+})
 
 useHead(computed(() => {
   const f = preview.value?.form
@@ -90,7 +97,8 @@ useHead(computed(() => {
 <template>
     <SharedLinkShell :brand="preview?.brand ?? null">
         <div class="space-y-6">
-            <FailureAlert :message="previewError ? t('publicForm.notFound') : error"/>
+            <FailureAlert :failure="linkFailure ?? failure"/>
+            <FailureAlert :message="validationError" expected/>
 
             <SuccessContainer v-if="submitted">
                 <SectionHeader>{{ t('publicForm.thanksTitle') }}</SectionHeader>

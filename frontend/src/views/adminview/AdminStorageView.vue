@@ -16,7 +16,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import StatValue from '@/components/typography/StatValue.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import {RouterLink} from 'vue-router'
 import StoragePresetPanel from './adminstorageview/StoragePresetPanel.vue'
@@ -74,7 +74,7 @@ const port: StorageQuotasPort = {
 }
 
 const {
-  stations, tiers: presets, loading, error: loadError, reload,
+  stations, tiers: presets, loading, loadFailure, writeFailure, reload,
   saveTier, removeTier, applyTier, resetStation, recalculateStation: recount,
 } = useStorageQuotas(port, {canRecalculate: true, showsOrigin: false, deferToCluster: true})
 
@@ -98,12 +98,10 @@ const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
 
 const categoryLabel = buildStorageCategoryLabeler(t)
 
-const {running: reconciling, error: reconcileError, run: handleRecalculateAll} = useAsyncAction(async () => {
+const {running: reconciling, failure: reconcileFailure, run: handleRecalculateAll} = useAsyncAction(async () => {
   await recalculateAll()
   setTimeout(() => reload(), 2000)
 })
-
-const error = computed(() => loadError.value || reconcileError.value)
 
 const topStationsChart = computed(() => {
   const top = [...stations.value].filter(s => s.totalBytes > 0).sort((a, b) => b.totalBytes - a.totalBytes).slice(0, 15)
@@ -159,8 +157,9 @@ const categoryPieChart = computed(() => {
       </RouterLink>
     </div>
     <Spinner v-if="loading" size="lg"/>
-    <Alert v-else-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert v-else-if="loadFailure" :failure="loadFailure"/>
     <template v-else>
+      <FailureAlert :failure="writeFailure"/>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <NeutralContainer class="text-center">
           <StatValue>{{ formatBytes(totalUsage) }}</StatValue>
@@ -196,6 +195,7 @@ const categoryPieChart = computed(() => {
           {{ t('storageMonitoring.recalculateAll') }}
         </PrimaryButton>
       </div>
+      <FailureAlert :failure="reconcileFailure" class="mb-6"/>
 
       <StoragePresetPanel :stations="stations" :tiers="presets"
                           @apply="applyTier" @remove="removeTier" @save="saveTier"/>

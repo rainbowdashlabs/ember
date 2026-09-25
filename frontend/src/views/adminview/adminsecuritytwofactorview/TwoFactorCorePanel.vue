@@ -27,7 +27,7 @@ import { useConfigPanel } from '@/composables/useConfigPanel'
 const { t } = useI18n()
 
 const generating = ref(false)
-const { config, loading, error, runWith } = useConfigPanel<TwoFactorCoreConfigResponse>({
+const { config, loading, failure, runWith } = useConfigPanel<TwoFactorCoreConfigResponse>({
   initial: {
     enabled: true,
     stepUpFreshnessSeconds: 300,
@@ -58,7 +58,7 @@ async function generateKey() {
 <template>
   <div class="space-y-6">
     <Spinner v-if="loading" size="md"/>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <template v-if="!loading">
       <NeutralContainer class="space-y-4">

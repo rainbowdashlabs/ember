@@ -24,6 +24,8 @@ import type {
   DiscoveryPeerSource,
   DiscoverySettings,
 } from '@/api/discovery'
+import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure} from '@/util/failure'
 import DiscoveryIdentityCard from './DiscoveryIdentityCard.vue'
 import DiscoverySettingsCard from './DiscoverySettingsCard.vue'
 import AddPeerCard from './AddPeerCard.vue'
@@ -59,7 +61,7 @@ const sourceLabel: Record<DiscoveryPeerSource, string> = {
   MANUAL: t('adminDiscovery.sourceManual'),
 }
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [id, set, pl, bl] = await Promise.all([
     discovery.getDiscoveryIdentity(),
     discovery.getDiscoverySettings(),
@@ -75,6 +77,11 @@ const {loading, error} = useAsyncLoader(async () => {
   draftInterval.value = set.pingIntervalMinutes
 })
 
+/** Records what went wrong into the one alert this page carries. */
+function record(e: unknown) {
+  failure.value = describeFailure(e, t)
+}
+
 async function saveSettings() {
   if (!settings.value) return
   try {
@@ -84,15 +91,22 @@ async function saveSettings() {
       pingIntervalMinutes: draftInterval.value,
     })
   } catch (e) {
-    error.value = t('common.error')
+    record(e)
     throw e
   }
 }
 
-const {running: probing, error: probeError, run: probe} = useAsyncAction(async () => {
+/**
+ * Asks a peer who it is, and keeps its answer.
+ *
+ * <p>The whole point of the button is to find out why an address does not work, so the reason the
+ * peer or the network gave is the result. It used to be replaced by "the probe failed", which is
+ * the one thing the reader already knew.
+ */
+const {running: probing, failure: probeFailure, run: probe} = useAsyncAction(async () => {
   probeResult.value = null
   probeResult.value = await discovery.probeDiscoveryPeer(probeBaseUrl.value.trim())
-}, {formatError: () => t('adminDiscovery.probeFailed')})
+}, {formatError: (e) => apiErrorMessage(e) ?? t('adminDiscovery.probeFailed')})
 
 async function addPeer() {
   if (!probeBaseUrl.value.trim()) return
@@ -103,8 +117,8 @@ async function addPeer() {
     probeResult.value = null
     showFlash(t('adminDiscovery.added'))
     peers.value = await discovery.listDiscoveryPeers()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    record(e)
   }
 }
 
@@ -113,8 +127,8 @@ async function runPeerAction(p: DiscoveryPeer, action: () => Promise<unknown>) {
   try {
     await action()
     peers.value = await discovery.listDiscoveryPeers()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    record(e)
   } finally {
     peerActionInFlight.value = null
   }
@@ -122,7 +136,7 @@ async function runPeerAction(p: DiscoveryPeer, action: () => Promise<unknown>) {
 
 const {show: showDeletePeer, request: requestDeletePeer, confirm: confirmDeletePeer} = useConfirmAction<DiscoveryPeer>({
   onConfirm: (p) => runPeerAction(p, () => discovery.deleteDiscoveryPeer(p.publicKey)),
-  error,
+  failure,
 })
 
 async function discoverNow() {
@@ -133,8 +147,8 @@ async function discoverNow() {
       stations: result.stationsFetched,
     }))
     peers.value = await discovery.listDiscoveryPeers()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    record(e)
   }
 }
 
@@ -143,8 +157,8 @@ async function seedFederation() {
     const count = await discovery.seedFromFederation()
     showFlash(t('adminDiscovery.seedFederationResult', {count}))
     peers.value = await discovery.listDiscoveryPeers()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    record(e)
   }
 }
 
@@ -155,8 +169,8 @@ async function addToBlocklist() {
     blocklistValue.value = ''
     blocklistNote.value = ''
     blocklist.value = await discovery.listDiscoveryBlocklist()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    record(e)
   }
 }
 
@@ -164,8 +178,8 @@ async function removeFromBlocklist(entry: DiscoveryBlocklistEntry) {
   try {
     await discovery.removeFromBlocklist(entry.value)
     blocklist.value = await discovery.listDiscoveryBlocklist()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    record(e)
   }
 }
 
@@ -177,7 +191,7 @@ const sortedPeers = computed(() =>
 
 <template>
   <Spinner v-if="loading" size="lg"/>
-  <FailureAlert :message="error"/>
+  <FailureAlert :failure="failure"/>
   <Alert v-if="flash" variant="success">{{ flash }}</Alert>
 
   <template v-if="!loading && identity">
@@ -198,7 +212,7 @@ const sortedPeers = computed(() =>
         v-model:base-url="probeBaseUrl"
         v-model:expected-key="probeExpectedKey"
         :probing="probing"
-        :probe-error="probeError"
+        :probe-failure="probeFailure"
         :probe-result="probeResult"
         @probe="probe"
         @add="addPeer"

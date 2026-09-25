@@ -15,7 +15,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import {adminSettings} from '@/api'
 import type {BulkRetireResult, ResidueEntry} from '@/api/adminSettings'
 import {formatDate} from '@/util/format'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
  * The residue and the retiring. The list holds password owners with no exercised passkey; all
@@ -26,31 +27,22 @@ import {apiErrorMessage} from '@/util/apiError'
 const {t} = useI18n()
 
 const residue = ref<ResidueEntry[] | null>(null)
-const loading = ref(false)
-const error = ref('')
 const bulkResult = ref<BulkRetireResult | null>(null)
 
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    residue.value = await adminSettings.getPasskeyResidue()
-  } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, failure, reload: load} = useAsyncLoader(async () => {
+  residue.value = await adminSettings.getPasskeyResidue()
+}, {autoLoad: false})
 
 async function retireAll() {
-  error.value = ''
+  failure.value = null
   bulkResult.value = null
   try {
     bulkResult.value = await adminSettings.retireAllPasswords()
-    await load()
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
+    return
   }
+  await load()
 }
 
 function reachability(entry: ResidueEntry): string {
@@ -70,7 +62,7 @@ function reachability(entry: ResidueEntry): string {
         {{ t('adminSecurity.passkeys.retireAll') }}
       </SecondaryButton>
     </ButtonRow>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <Alert v-if="bulkResult" variant="info">
       {{ t('adminSecurity.passkeys.retireAllResult', {retired: bulkResult.retired, passedOver: bulkResult.passedOver}) }}
     </Alert>

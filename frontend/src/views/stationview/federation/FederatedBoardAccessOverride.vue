@@ -8,6 +8,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
@@ -31,7 +32,7 @@ const allTags = ref<UserTag[]>([])
 const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
 const editRestriction = ref<RestrictionSelection>(emptyRestriction())
 
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 async function loadData() {
     try {
@@ -56,13 +57,13 @@ async function loadData() {
             memberIds: [],
             mode: 'AND',
         }
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = describeFailure(e, t)
     }
 }
 
 async function save() {
-    error.value = ''
+    failure.value = null
     try {
         await federatedBoards.setAccessOverride(props.partnerUid, props.boardKey, {
             viewUserTypes: viewRestriction.value.userTypes,
@@ -73,7 +74,7 @@ async function save() {
             editTagIds: editRestriction.value.tagIds,
         })
     } catch (e) {
-        error.value = t('common.error')
+        failure.value = describeFailure(e, t)
         throw e
     }
 }
@@ -107,7 +108,7 @@ onMounted(loadData)
                 />
             </div>
 
-            <FailureAlert :message="error"/>
+            <FailureAlert :failure="failure"/>
 
             <div class="flex justify-end">
                 <SaveButton :action="save"/>

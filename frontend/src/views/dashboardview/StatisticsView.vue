@@ -35,7 +35,7 @@ const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
 const mutedColor = computed(() => isDark.value ? '#9ca3af' : '#666666')
 
 
-const {config: stats, loading, error, reload: loadStats} = useConfigPanel<StatsData | null>({
+const {config: stats, loading, failure, reload: loadStats} = useConfigPanel<StatsData | null>({
   initial: null,
   fetch: async () => (await client.get<StatsData>('/statistics')).data,
   immediate: false,
@@ -194,7 +194,7 @@ watch(loaded, (isLoaded) => {
   <ViewContent :title="t('pages.dashboard-statistics.title')" :subtitle="t('pages.dashboard-statistics.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading && stats">
         <SummaryCards :stats="stats"/>

@@ -39,7 +39,7 @@ onMounted(async () => {
     loading.value = false
 })
 
-const {running: saving, error, failure, run: save} = useAsyncAction(async () => {
+const {running: saving, failure, run: save} = useAsyncAction(async () => {
     await stationManage.updateStationName({
         name: stationName.value,
         discoveryVisibility: visibility.value,

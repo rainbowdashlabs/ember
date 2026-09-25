@@ -12,11 +12,14 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {DiscoveryInfoProbe} from '@/api/discovery'
+import type {Failure} from '@/util/failure'
 
 defineProps<{
   probing: boolean
-  probeError: string
+  /** Why the probe did not come back. A probe says something about the peer, never about Ember. */
+  probeFailure: Failure | null
   probeResult: DiscoveryInfoProbe | null
 }>()
 
@@ -47,7 +50,7 @@ const {t} = useI18n()
         {{ t('adminDiscovery.add') }}
       </SuccessButton>
     </ButtonRow>
-    <Alert v-if="probeError" variant="error">{{ probeError }}</Alert>
+    <FailureAlert :failure="probeFailure" expected/>
     <Alert v-if="probeResult" variant="success">
       {{ t('adminDiscovery.probeOk') }}
       <code class="ml-2 text-xs break-all">{{ probeResult.instanceId }}</code>

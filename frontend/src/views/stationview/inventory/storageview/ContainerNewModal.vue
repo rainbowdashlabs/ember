@@ -13,11 +13,12 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import ContainerKindPicker from '@/views/stationview/inventory/storageview/ContainerKindPicker.vue'
 import ContainerParentPicker from '@/views/stationview/inventory/storageview/ContainerParentPicker.vue'
-import {mapContainerError} from '@/views/stationview/inventory/storageview/containerErrors'
+import {mapContainerFailure} from '@/views/stationview/inventory/storageview/containerErrors'
+import type {Failure} from '@/util/failure'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {inventoryContainers} from '@/api'
@@ -46,19 +47,24 @@ const kindId = ref<number | null>(null)
 const kindPicker = ref<InstanceType<typeof ContainerKindPicker> | null>(null)
 const validationError = ref('')
 
-const {running: submitting, error: createError, run: runCreate} = useAsyncAction(async () => {
-  const resolvedKindId = (await kindPicker.value?.resolve()) ?? null
-  await inventoryContainers.createContainer({
-    parentId: parentId.value,
-    internalId: internalId.value.trim() || null,
-    name: name.value.trim(),
-    kindId: resolvedKindId,
-    description: description.value.trim(),
-  })
-  emit('created')
-}, {formatError: (e) => mapContainerError(t, e, 'inventory.storage.errors.createFailed')})
+const createFailure = ref<Failure | null>(null)
 
-const error = computed(() => validationError.value || createError.value)
+const {running: submitting, run: runCreate} = useAsyncAction(async () => {
+  const resolvedKindId = (await kindPicker.value?.resolve()) ?? null
+  try {
+    await inventoryContainers.createContainer({
+      parentId: parentId.value,
+      internalId: internalId.value.trim() || null,
+      name: name.value.trim(),
+      kindId: resolvedKindId,
+      description: description.value.trim(),
+    })
+  } catch (e) {
+    createFailure.value = mapContainerFailure(t, e)
+    return
+  }
+  emit('created')
+})
 
 /**
  * A container that has not been named yet takes the name of what it is.
@@ -72,6 +78,7 @@ function nameAfterKind(kind: InventoryContainerKind) {
 
 async function submit() {
   validationError.value = ''
+  createFailure.value = null
   if (!name.value.trim()) {
     validationError.value = t('inventory.storage.errors.nameRequired')
     return
@@ -88,8 +95,9 @@ function onClose() {
 <template>
   <Modal v-model="open" size="md" @update:modelValue="(v) => { if (!v) onClose() }">
     <SubHeader class="mb-3">{{ t('inventory.storage.newContainer') }}</SubHeader>
-    <div v-if="error" class="mb-3">
-      <Alert variant="error">{{ error }}</Alert>
+    <div v-if="validationError || createFailure" class="mb-3 space-y-2">
+      <FailureAlert :message="validationError" expected/>
+      <FailureAlert :failure="createFailure"/>
     </div>
     <div class="flex flex-col gap-3">
       <label class="flex flex-col gap-1 text-sm">

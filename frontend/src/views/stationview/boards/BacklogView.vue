@@ -11,7 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import { boards, stationMembers } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
@@ -29,7 +29,7 @@ const board = ref<Board | null>(null)
 const tickets = ref<BoardTicket[]>([])
 const members = ref<MemberCompletion[]>([])
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
     const [b, t, m] = await Promise.all([boards.getBoard(boardKey.value), boards.listTickets(boardKey.value), stationMembers.listCompletions()])
     board.value = b
     members.value = m
@@ -64,7 +64,7 @@ const table = useTicketTable({
         :subtitle="pageSubtitle"
     >
         <Spinner v-if="loading" />
-        <Alert v-else-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert v-else-if="failure" :failure="failure"/>
         <template v-else-if="board">
             <div class="flex items-center gap-3 mb-6">
                 <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.shortKey}`)" />

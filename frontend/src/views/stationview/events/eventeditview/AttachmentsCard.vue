@@ -13,17 +13,18 @@ import DragList from '@/components/input/DragList.vue'
 import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {formatSize} from '@/util/format'
 import type {StationFile} from '@/api/media'
 import type {EventAttachment} from '@/api/events'
+import type {Failure} from '@/util/failure'
 
 const attachments = defineModel<EventAttachment[]>('attachments', {required: true})
 
 defineProps<{
   stationUid: string
-  /** What went wrong the last time something was written, or empty while everything has landed. */
-  failure?: string
+  /** What went wrong the last time something was written, or null while everything has landed. */
+  failure?: Failure | null
 }>()
 
 const emit = defineEmits<{
@@ -64,9 +65,7 @@ function keepBack(attachment: EventAttachment, internal: boolean) {
 
     <p class="text-xs text-(--text-muted)">{{ t('events.attachments.internalHint') }}</p>
 
-    <Alert v-if="failure" variant="error" data-testid="event-attachment-failure">
-      {{ t('events.attachments.failed') }}
-    </Alert>
+    <FailureAlert :failure="failure" data-testid="event-attachment-failure"/>
 
     <p v-if="attachments.length === 0" class="text-sm text-(--text-muted)">
       {{ t('events.attachments.empty') }}

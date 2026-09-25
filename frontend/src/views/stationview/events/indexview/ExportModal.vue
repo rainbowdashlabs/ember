@@ -15,6 +15,7 @@ import type {EventCategory} from '@/api/events'
 import {events} from '@/api'
 import {presentFile} from '@/util/documentFile'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {describeFailure, type Failure} from '@/util/failure'
 import TimeRangeSection from './exportmodal/TimeRangeSection.vue'
 import CategoriesSection from './exportmodal/CategoriesSection.vue'
 import ColumnsSection, {type ExportColumn} from './exportmodal/ColumnsSection.vue'
@@ -29,7 +30,7 @@ const props = defineProps<{
 const modelValue = defineModel<boolean>({required: true})
 
 const emit = defineEmits<{
-  error: [message: string]
+  error: [failure: Failure]
 }>()
 
 const exportMode = ref('year')
@@ -122,8 +123,8 @@ const {running: exporting, run: doExport} = useAsyncAction(async () => {
       to,
     }))
     modelValue.value = false
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   }
 })
 </script>

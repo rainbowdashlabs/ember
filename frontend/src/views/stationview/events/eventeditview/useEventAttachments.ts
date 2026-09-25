@@ -8,6 +8,7 @@ import {events} from '@/api'
 import type {EventAttachment} from '@/api/events'
 import type {StationFile} from '@/api/media'
 import {moveWithin} from '@/util/reorder'
+import {describeFailure, type Failure, type Translate} from '@/util/failure'
 
 /**
  * The files an event hands over, while somebody is editing it.
@@ -19,11 +20,19 @@ import {moveWithin} from '@/util/reorder'
  * <p>A change that could not be written is said so and taken back off the screen. What the switch
  * shows is a claim about who may read the file, and a screen saying "kept back" over a file that is
  * still open to everyone is worse than no screen at all.
+ *
+ * <p>What went wrong is kept described rather than as the name of the step that failed. The name
+ * of the step was never shown to anybody: the card drew one sentence for all five of them, so a
+ * file refused because it is too large and a file refused because the session had run out read the
+ * same. The translator is handed in rather than looked up so this stays callable from a test.
+ *
+ * @param eventId the event being edited, or null while it is being created
+ * @param t       the translator, for describing whatever the server refuses with
  */
-export function useEventAttachments(eventId: () => number | null) {
+export function useEventAttachments(eventId: () => number | null, t: Translate) {
     const attachments = ref<EventAttachment[]>([])
     const loading = ref(false)
-    const error = ref('')
+    const failure = ref<Failure | null>(null)
 
     async function load() {
         const id = eventId()
@@ -31,9 +40,9 @@ export function useEventAttachments(eventId: () => number | null) {
         loading.value = true
         try {
             attachments.value = await events.listEventAttachments(id)
-            error.value = ''
-        } catch {
-            error.value = 'load'
+            failure.value = null
+        } catch (e) {
+            failure.value = describeFailure(e, t)
         } finally {
             loading.value = false
         }
@@ -45,9 +54,9 @@ export function useEventAttachments(eventId: () => number | null) {
         if (id === null) return
         try {
             attachments.value = [...attachments.value, await events.attachEventFile(id, file.id, null, false)]
-            error.value = ''
-        } catch {
-            error.value = 'add'
+            failure.value = null
+        } catch (e) {
+            failure.value = describeFailure(e, t)
         }
     }
 
@@ -56,10 +65,11 @@ export function useEventAttachments(eventId: () => number | null) {
         if (id === null) return
         try {
             await events.updateEventAttachment(id, attachment.id, attachment.label, attachment.internal)
-            error.value = ''
-        } catch {
+            failure.value = null
+        } catch (e) {
+            const refused = describeFailure(e, t)
             await load()
-            error.value = 'save'
+            failure.value = refused
         }
     }
 
@@ -70,9 +80,9 @@ export function useEventAttachments(eventId: () => number | null) {
         try {
             await events.detachEventFile(id, attachment.id)
             attachments.value = attachments.value.filter((_, at) => at !== index)
-            error.value = ''
-        } catch {
-            error.value = 'remove'
+            failure.value = null
+        } catch (e) {
+            failure.value = describeFailure(e, t)
         }
     }
 
@@ -83,12 +93,12 @@ export function useEventAttachments(eventId: () => number | null) {
         attachments.value = moveWithin(attachments.value, fromIndex, toIndex)
         try {
             await events.reorderEventAttachments(id, attachments.value.map(attachment => attachment.id))
-            error.value = ''
-        } catch {
+            failure.value = null
+        } catch (e) {
             attachments.value = before
-            error.value = 'reorder'
+            failure.value = describeFailure(e, t)
         }
     }
 
-    return {attachments, loading, error, load, add, save, remove, reorder}
+    return {attachments, loading, failure, load, add, save, remove, reorder}
 }

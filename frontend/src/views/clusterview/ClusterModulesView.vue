@@ -59,7 +59,7 @@ const activeTab = computed({
   set: (key: string) => { stationGroupId.value = key ? Number(key) : null },
 })
 
-const {config: denied, loading, error, runWith} = useConfigPanel<string[]>({
+const {config: denied, loading, failure, runWith} = useConfigPanel<string[]>({
   initial: [],
   fetch: async () => {
     groups.value = await clusterStationGroups.listGroups()
@@ -93,7 +93,7 @@ async function save() {
 <template>
   <ViewContent :subtitle="t('pages.cluster-modules.subtitle')" :title="t('pages.cluster-modules.title')">
     <div class="space-y-4">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <Alert v-if="saved" variant="success">{{ t('clusterModules.saved') }}</Alert>
 
       <Spinner v-if="loading" size="lg"/>

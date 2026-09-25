@@ -20,7 +20,8 @@ import PasskeySwitches from '@/views/accountview/accountsecurityview/PasskeySwit
 import {getPasskeysStatus, removePasskey, renamePasskey, setAskWithPassword, setPasswordLogin} from '@/api/passkeys'
 import type {PasskeyEntry, PasskeysStatus} from '@/api/passkeys'
 import {isWebAuthnSupported, signalAcceptedCredentials} from '@/util/webauthn'
-import {apiErrorMessage, apiErrorStatus} from '@/util/apiError'
+import {apiErrorStatus} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 
 /**
@@ -31,7 +32,7 @@ import {useConfirmDelete} from '@/composables/useConfirmDelete'
 const {t} = useI18n()
 
 const status = ref<PasskeysStatus | null>(null)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const notice = ref('')
 const showCreate = ref(false)
 const renameTarget = ref<PasskeyEntry | null>(null)
@@ -42,7 +43,7 @@ async function reload() {
   try {
     status.value = await getPasskeysStatus()
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -63,16 +64,23 @@ const removal = useConfirmDelete<PasskeyEntry>({
     }
     await reload()
   },
-  error,
+  failure,
 })
 
+/**
+ * Removes the passkey, and says which refusal it was.
+ *
+ * <p>The one worth naming is the last passkey on an account with no password: that leaves nobody a
+ * way back in, so the server turns it down and the reader has to set a password first.
+ */
 async function confirmRemoval() {
   try {
     await removal.confirm()
   } catch (e) {
-    error.value = apiErrorStatus(e) === 409
-        ? t('passkeys.section.removeRefusedNoPassword')
-        : (apiErrorMessage(e) ?? t('common.error'))
+    const described = describeFailure(e, t)
+    failure.value = apiErrorStatus(e) === 409
+        ? {...described, message: t('passkeys.section.removeRefusedNoPassword'), reportable: false}
+        : described
   }
 }
 
@@ -82,28 +90,28 @@ async function saveRename(id: number, label: string) {
     renameTarget.value = null
     await reload()
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   }
 }
 
 async function togglePasswordLogin(enabled: boolean) {
-  error.value = ''
+  failure.value = null
   try {
     await setPasswordLogin(enabled)
     notice.value = enabled ? '' : t('passkeys.section.passwordOffDone')
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   } finally {
     await reload()
   }
 }
 
 async function toggleAskWithPassword(enabled: boolean) {
-  error.value = ''
+  failure.value = null
   try {
     await setAskWithPassword(enabled)
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   } finally {
     await reload()
   }
@@ -115,7 +123,7 @@ async function toggleAskWithPassword(enabled: boolean) {
     <SectionHeader>{{ t('passkeys.section.title') }}</SectionHeader>
     <MutedText tag="p" size="sm">{{ t('passkeys.explainer') }}</MutedText>
 
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <Alert v-if="notice" variant="info">{{ notice }}</Alert>
 
     <PasskeyList v-if="status.passkeys.length" :passkeys="status.passkeys"

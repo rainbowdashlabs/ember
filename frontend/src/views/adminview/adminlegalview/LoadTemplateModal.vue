@@ -10,12 +10,14 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import TemplateChoiceRow from './TemplateChoiceRow.vue'
 import {adminSettings} from '@/api'
 import type {LegalTemplate} from '@/api/adminSettings'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
@@ -37,15 +39,23 @@ const emit = defineEmits<{
 const templates = ref<LegalTemplate[]>([])
 const selected = ref<Set<string>>(new Set())
 const loading = ref(false)
+const failure = ref<Failure | null>(null)
 
+/**
+ * Fetches the templates on offer, and says so when it cannot.
+ *
+ * <p>It used to swallow the failure and leave the list empty, which reads as an installation that
+ * ships no templates at all rather than one that could not be asked.
+ */
 async function load() {
   loading.value = true
+  failure.value = null
   templates.value = []
   selected.value = new Set()
   try {
     templates.value = await adminSettings.getLegalTemplates(props.type, props.locale)
-  } catch {
-    templates.value = []
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
@@ -84,6 +94,7 @@ watch(show, open => {
       <MutedText tag="p" size="sm">{{ t('adminSettings.legal.loadTemplateHint') }}</MutedText>
 
       <Spinner v-if="loading" size="md"/>
+      <FailureAlert v-else-if="failure" :failure="failure"/>
       <MutedText v-else-if="templates.length === 0" tag="p" size="sm">
         {{ t('adminSettings.legal.noTemplates') }}
       </MutedText>

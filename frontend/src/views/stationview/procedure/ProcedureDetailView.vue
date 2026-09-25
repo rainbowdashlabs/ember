@@ -16,7 +16,8 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -128,7 +129,7 @@ const sortedItems = computed(() => {
   return result
 })
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   detail.value = await procedures.getProcedure(procedureId.value)
 }, {autoLoad: false})
 
@@ -157,24 +158,32 @@ async function toggleItem(item: ProcedureItem) {
           : i),
     }
   }
+  failure.value = null
   try {
     await procedures.patchItem(procedureId.value, item.id, {checked: !item.checked})
-    await refreshSilently()
-  } catch {
-    error.value = t('common.error')
-    await refreshSilently()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
+  await refreshSilently()
 }
 
 async function updateNote(item: ProcedureItem, note: string) {
+  failure.value = null
   try {
     await procedures.patchItem(procedureId.value, item.id, {note: note || undefined})
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
+/**
+ * Closes the list, or opens it again, and then reads it back.
+ *
+ * <p>The two are answered for separately. A list the server had already closed, followed by a page
+ * that would not refresh, used to say the list would not close, and pressing again reopens it.
+ */
 async function handleResolve() {
+  failure.value = null
   try {
     if (detail.value?.procedure.status === ProcedureStatus.OPEN) {
       await procedures.resolveProcedure(procedureId.value)
@@ -182,10 +191,11 @@ async function handleResolve() {
       await procedures.reopenProcedure(procedureId.value)
     }
     showResolveModal.value = false
-    await reload()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await reload()
 }
 
 watch(loaded, (v) => {
@@ -199,7 +209,7 @@ watch(loaded, (v) => {
       :subtitle="t('pages.procedure-detail.subtitle')"
   >
     <Spinner v-if="loading"/>
-    <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+    <FailureAlert :failure="failure" class="mb-4"/>
 
     <template v-if="detail && !loading">
       <!-- Header -->

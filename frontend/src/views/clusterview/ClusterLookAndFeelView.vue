@@ -28,7 +28,7 @@ const FEELS = ['ROUNDED', 'CORNERS']
 const busy = ref(false)
 const saved = ref(false)
 
-const {config: look, loading, error, runWith} = useConfigPanel<ClusterLookAndFeel>({
+const {config: look, loading, failure, runWith} = useConfigPanel<ClusterLookAndFeel>({
   initial: {themeLocked: false, colorsLocked: false, feelLocked: false, logoLocked: false},
   fetch: () => clusterGovernance.getLookAndFeel(),
 })
@@ -46,7 +46,7 @@ async function save() {
 <template>
   <ViewContent :subtitle="t('pages.cluster-look-and-feel.subtitle')" :title="t('pages.cluster-look-and-feel.title')">
     <div class="space-y-4">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <Alert v-if="saved" variant="success">{{ t('clusterLookAndFeel.saved') }}</Alert>
 
       <Spinner v-if="loading" size="lg"/>

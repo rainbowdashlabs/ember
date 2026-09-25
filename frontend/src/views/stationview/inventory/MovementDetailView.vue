@@ -9,14 +9,14 @@ import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {inventory, movements} from '@/api'
 import type {InventorySize} from '@/api/inventory'
 import {MovementState, type MovementDetail} from '@/api/movements'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 import MovementChain from './movementview/MovementChain.vue'
 import type {AcknowledgePayload} from './movementview/MovementActionPanel.vue'
 import MovementSummary from './movementview/MovementSummary.vue'
@@ -30,7 +30,7 @@ const movementId = computed(() => Number(route.params.id))
 const detail = ref<MovementDetail | null>(null)
 const sizes = ref<InventorySize[]>([])
 const busy = ref(false)
-const actionError = ref('')
+const actionFailure = ref<Failure | null>(null)
 
 /**
  * What set out, at the head of the page: the piece where the movement names one, the inventory it
@@ -70,7 +70,7 @@ const mayRecord = computed(() => detail.value?.movement.ownerAnswersHere === fal
 /** Whether the reader may name the arriving piece, which is whether they may read the shelf. */
 const mayPick = computed(() => hasPermission(StationPermission.INVENTORY_READ))
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   detail.value = await movements.getMovement(movementId.value)
   const naming = mayPick.value && detail.value.steps.some(s => s.current && s.picksItem)
   sizes.value = naming ? await sizesOfInventory() : []
@@ -94,17 +94,29 @@ async function sizesOfInventory(): Promise<InventorySize[]> {
 }
 
 
+/**
+ * Answers the step the movement stands on, then reads the movement back.
+ *
+ * <p>The answer and the reading back are caught apart. Once the step is acknowledged it is acknowledged,
+ * and a reader told otherwise answers it again on a movement that has already walked on.
+ */
 async function run(action: () => Promise<MovementDetail>) {
   busy.value = true
-  actionError.value = ''
+  actionFailure.value = null
   try {
     detail.value = await action()
-    await reload()
   } catch (e) {
-    actionError.value = apiErrorMessage(e) ?? t('common.error')
-  } finally {
+    actionFailure.value = describeFailure(e, t)
     busy.value = false
+    return
   }
+
+  await reload()
+  if (failure.value) {
+    actionFailure.value = {...failure.value, message: t('failure.staleAfterAction')}
+    failure.value = null
+  }
+  busy.value = false
 }
 
 function acknowledge(payload: AcknowledgePayload) {
@@ -113,8 +125,8 @@ function acknowledge(payload: AcknowledgePayload) {
   void run(() => movements.acknowledgeStep(movementId.value, {stepId, ...payload}))
 }
 
-function refuse(message: string) {
-  actionError.value = message
+function refuse(reported: Failure | null) {
+  actionFailure.value = reported
 }
 
 function force(payload: AcknowledgePayload) {
@@ -130,7 +142,7 @@ function force(payload: AcknowledgePayload) {
       :title="pageTitle"
   >
     <Spinner v-if="loading"/>
-    <Alert v-else-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert v-else-if="failure" :failure="failure"/>
 
     <div v-else-if="detail" class="space-y-4">
       <MovementSummary :movement="detail.movement"/>
@@ -140,7 +152,7 @@ function force(payload: AcknowledgePayload) {
       <MovementChain
           :busy="busy"
           :detail="detail"
-          :error="actionError"
+          :failure="actionFailure"
           :is-manager="isManager"
           :may-record="mayRecord"
           :open="open"

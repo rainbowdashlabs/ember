@@ -16,7 +16,7 @@ import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()
 
-const { config: boardList, loading, error } = useConfigPanel<Board[]>({
+const { config: boardList, loading, failure } = useConfigPanel<Board[]>({
     initial: [],
     fetch: () => boards.listBoards(true),
 })
@@ -34,7 +34,7 @@ function boardPage(board: Board): string {
         <AsyncSection
             :empty="boardList.length === 0"
             :empty-message="t('boards.noBoards')"
-            :error="error"
+            :failure="failure"
             :loading="loading"
         >
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

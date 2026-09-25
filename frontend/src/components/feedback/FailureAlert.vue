@@ -49,10 +49,20 @@ const reportable = computed(() => {
   return shown.value !== '' && shown.value === t('common.error')
 })
 
+/**
+ * The name the backend gave this refusal, shown quietly and carried on the report.
+ *
+ * <p>A reader cannot act on it and is not asked to. It is there because a short code on a screen is
+ * the one thing people do quote verbatim, and quoting it points whoever reads the report at the line
+ * that threw instead of at the wording.
+ */
+const code = computed(() => props.failure?.code)
+
 function report() {
   openProblemReport({
     summary: shown.value,
     technical: props.failure?.technical,
+    code: code.value,
   })
 }
 </script>
@@ -62,6 +72,7 @@ function report() {
     <div class="space-y-2">
       <p class="break-words">{{ shown }}</p>
       <p v-if="guidance" class="break-words opacity-90">{{ guidance }}</p>
+      <p v-if="code" class="font-mono text-xs opacity-70 select-all" data-testid="failure-code">{{ code }}</p>
       <div v-if="reportable">
         <SecondaryButton :icon="['fas', 'bug']" data-testid="failure-report" size="sm" @click="report">
           {{ t('failure.report') }}

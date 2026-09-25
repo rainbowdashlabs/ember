@@ -7,11 +7,12 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PublicKbPanel from '@/components/knowledge/PublicKbPanel.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {clusterGovernance} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {ClusterPermission} from '@/api/clusters'
 import {showToast} from '@/util/toast'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * Whether the association's wiki stands on the public web.
@@ -29,7 +30,7 @@ const {hasClusterPermission} = useSession()
 
 const mode = ref('OFF')
 const stationUid = ref('')
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const loaded = ref(false)
 
 const mayManage = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_KNOWLEDGE_MANAGER))
@@ -49,8 +50,8 @@ watch(mayManage, async (may) => {
         const current = await clusterGovernance.getPublicKb()
         mode.value = current.mode
         stationUid.value = current.stationUid
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = describeFailure(e, t)
     } finally {
         loaded.value = true
     }
@@ -61,16 +62,16 @@ watch(mode, async (next, previous) => {
     try {
         await clusterGovernance.setPublicKb(next)
         showToast(t('stationManage.publicKb.saved'), 'success')
-    } catch {
+    } catch (e) {
         mode.value = previous
-        error.value = t('common.error')
+        failure.value = describeFailure(e, t)
     }
 })
 </script>
 
 <template>
     <div v-if="mayManage && loaded" class="mb-4">
-        <Alert v-if="error" variant="error" class="mb-2">{{ error }}</Alert>
+        <FailureAlert :failure="failure" class="mb-2"/>
         <PublicKbPanel v-model:mode="mode" :public-url="publicUrl"/>
     </div>
 </template>

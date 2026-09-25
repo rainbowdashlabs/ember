@@ -16,6 +16,7 @@ import {asAsked, type ProfileFieldAssignment} from '@/util/profileFields'
 import type {StationGroup} from '@/api/clusterStationGroups'
 import type {MemberGroup} from '@/api/types'
 import {moveWithin} from '@/util/reorder'
+import {describeFailure} from '@/util/failure'
 
 /**
  * Where a set of profile fields lives, and which choices whoever owns them may make.
@@ -203,7 +204,31 @@ export function useFieldsConfig(port: FieldsPort) {
         }
     }
 
-    const {loading, error, reload} = useAsyncLoader(fetchAll)
+    const {loading, failure, reload} = useAsyncLoader(fetchAll)
+
+    /**
+     * Records what went wrong, with a sentence of its own where this screen has a better one.
+     *
+     * <p>Every write here used to write "that did not work" over the failure, so a question refused
+     * for a name already in use, a type the server does not know or a permission the reader does not
+     * have all read the same. The server names which it was and that name is now what is shown.
+     */
+    function record(e: unknown, message?: string) {
+        const described = describeFailure(e, t)
+        failure.value = message ? {...described, message} : described
+    }
+
+    /**
+     * Fetches everything back after a write that already succeeded.
+     *
+     * <p>A failure here is the screen falling behind, not the write being refused, and it says so.
+     * The two used to share one `catch`: a question that was created and a list that then failed to
+     * come back reported a refused creation, and the reader writes the question a second time.
+     */
+    async function reloadAfterWrite() {
+        await reload()
+        if (failure.value) failure.value = {...failure.value, message: t('failure.staleAfterAction')}
+    }
 
     /**
      * Reads everything back without putting the screen through its loading state.
@@ -213,11 +238,11 @@ export function useFieldsConfig(port: FieldsPort) {
      * place again after every switch you flick. The modal's writes still use the loud one, because
      * there the screen is behind a dialog and the list genuinely changes underneath.
      */
-    async function refresh() {
+    async function refresh(staleMessage?: string) {
         try {
             await fetchAll()
-        } catch {
-            error.value = t('common.error')
+        } catch (e) {
+            record(e, staleMessage)
         }
     }
 
@@ -344,7 +369,7 @@ export function useFieldsConfig(port: FieldsPort) {
      * guessing one here is how a question ends up on a form nobody meant it to be on.
      */
     async function saveField(data: ProfileFieldRequest) {
-        error.value = ''
+        failure.value = null
         try {
             if (editingField.value) {
                 await port.update(editingField.value.id, withTarget(data))
@@ -353,10 +378,11 @@ export function useFieldsConfig(port: FieldsPort) {
                 selectedFieldId.value = created?.id ?? null
             }
             showFieldModal.value = false
-            await reload()
-        } catch {
-            error.value = t('common.error')
+        } catch (e) {
+            record(e)
+            return
         }
+        await reloadAfterWrite()
     }
 
     async function toggleKeepOnArchive(field: ProfileField, value: boolean) {
@@ -399,9 +425,9 @@ export function useFieldsConfig(port: FieldsPort) {
         allFields.value = allFields.value.map(f => f.id === field.id ? {...f, ...patch} : f)
         try {
             await port.update(field.id, requestFor(field, patch))
-        } catch {
-            error.value = t('common.error')
+        } catch (e) {
             await reload()
+            record(e)
         }
     }
 
@@ -416,13 +442,14 @@ export function useFieldsConfig(port: FieldsPort) {
     /** Stops asking one audience. The question stays, and so do the answers already given. */
     async function removeAudience(target: AssignmentTarget) {
         if (selectedFieldId.value === null) return
-        error.value = ''
+        failure.value = null
         try {
             await port.unassign(selectedFieldId.value, target)
-            await refresh()
-        } catch {
-            error.value = t('common.error')
+        } catch (e) {
+            record(e)
+            return
         }
+        await refresh(t('failure.staleAfterAction'))
     }
 
     /** Changes how the selected question is put to one audience. */
@@ -452,13 +479,14 @@ export function useFieldsConfig(port: FieldsPort) {
     }
 
     async function writeAssignment(fieldId: number, assignment: AssignmentRequest) {
-        error.value = ''
+        failure.value = null
         try {
             await port.assign(fieldId, assignment)
-            await refresh()
-        } catch {
-            error.value = t('common.error')
+        } catch (e) {
+            record(e)
+            return
         }
+        await refresh(t('failure.staleAfterAction'))
     }
 
     const {
@@ -469,7 +497,7 @@ export function useFieldsConfig(port: FieldsPort) {
     } = useConfirmDelete<ProfileField>({
         onDelete: async (field) => { await port.remove(field.id) },
         onSuccess: () => reload(),
-        error,
+        failure,
     })
 
     /**
@@ -491,9 +519,9 @@ export function useFieldsConfig(port: FieldsPort) {
                 : assignment)
         try {
             await port.reorder(role, ordered)
-        } catch {
+        } catch (e) {
             allAssignments.value = before
-            error.value = t('common.error')
+            record(e)
         }
     }
 
@@ -532,7 +560,7 @@ export function useFieldsConfig(port: FieldsPort) {
      */
     async function assignCheckedTo(target: AssignmentTarget) {
         if (checkedIds.value.size === 0) return
-        error.value = ''
+        failure.value = null
         const role = target.role
         let position = role ? formFor(role).length : 0
         try {
@@ -541,11 +569,12 @@ export function useFieldsConfig(port: FieldsPort) {
                 await port.assign(fieldId, {...target, position})
             }
             clearChecked()
+        } catch (e) {
             await refresh()
-        } catch {
-            error.value = t('common.error')
-            await refresh()
+            record(e)
+            return
         }
+        await refresh(t('failure.staleAfterAction'))
     }
 
     /**
@@ -577,7 +606,7 @@ export function useFieldsConfig(port: FieldsPort) {
         template: {fields: Array<{name: string; fieldType: string; config: ProfileFieldConfig}>},
         role: string,
     ) {
-        error.value = ''
+        failure.value = null
         try {
             const startPosition = formFor(role).length
             for (const [i, f] of template.fields.entries()) {
@@ -590,10 +619,11 @@ export function useFieldsConfig(port: FieldsPort) {
                     await port.assign(created.id, {role, position: startPosition + i})
                 }
             }
-            await reload()
-        } catch {
-            error.value = t('common.error')
+        } catch (e) {
+            record(e)
+            return
         }
+        await reloadAfterWrite()
     }
 
     return {
@@ -618,7 +648,7 @@ export function useFieldsConfig(port: FieldsPort) {
         showFieldModal,
         editingField,
         loading,
-        error,
+        failure,
         reload,
         select,
         openAddField,

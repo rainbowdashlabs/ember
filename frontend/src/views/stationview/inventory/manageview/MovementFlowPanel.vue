@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -26,16 +26,17 @@ import {
 } from '@/api/movements'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlowProblems} from '@/composables/useFlowProblems'
+import type {Failure} from '@/util/failure'
 import FlowCard from '../flowview/FlowCard.vue'
 
 const {t} = useI18n()
-const {refusalText} = useFlowProblems()
+const {refusalFailure} = useFlowProblems()
 
 const flows = ref<MovementFlow[]>([])
 const bindings = ref<MovementFlowBinding[]>([])
 const busy = ref(false)
-const actionError = ref('')
-const flowErrors = ref<Record<number, string>>({})
+const actionFailure = ref<Failure | null>(null)
+const flowFailures = ref<Record<number, Failure | null>>({})
 
 /** The purposes in the order a piece of gear meets them, which is also the order the page reads in. */
 const PURPOSES: MovementPurposeName[] = [
@@ -48,7 +49,7 @@ const PURPOSES: MovementPurposeName[] = [
 const newName = ref('')
 const newPurpose = ref<MovementPurposeName>(MovementPurpose.EXCHANGE)
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   ;[flows.value, bindings.value] = await Promise.all([movements.listFlows(), movements.listBindings()])
 })
 
@@ -93,11 +94,11 @@ const groups = computed(() =>
  */
 async function runOnFlow(flowId: number, action: () => Promise<MovementFlow>) {
   busy.value = true
-  flowErrors.value = {...flowErrors.value, [flowId]: ''}
+  flowFailures.value = {...flowFailures.value, [flowId]: null}
   try {
     replace(await action())
   } catch (e) {
-    flowErrors.value = {...flowErrors.value, [flowId]: refusalText(e)}
+    flowFailures.value = {...flowFailures.value, [flowId]: refusalFailure(e)}
   } finally {
     busy.value = false
   }
@@ -108,8 +109,8 @@ function replace(flow: MovementFlow) {
 }
 
 /** A refusal a card worded for itself, put in the same place as the ones this panel words. */
-function showFlowError(flowId: number, message: string) {
-  flowErrors.value = {...flowErrors.value, [flowId]: message}
+function showFlowFailure(flowId: number, reported: Failure | null) {
+  flowFailures.value = {...flowFailures.value, [flowId]: reported}
 }
 
 /**
@@ -124,18 +125,25 @@ async function addStep(flowId: number, step: StepRequest): Promise<MovementFlow>
   return movements.getFlow(flowId)
 }
 
-/** A change that is not about one chain, which leaves only writing a new one. */
+/**
+ * A change that is not about one chain, which leaves only writing a new one.
+ *
+ * <p>The writing and the reading back afterwards are caught apart. The chain exists once the first is
+ * through, and a reader told the writing failed writes a second one with the same name.
+ */
 async function run(action: () => Promise<unknown>) {
   busy.value = true
-  actionError.value = ''
+  actionFailure.value = null
   try {
     await action()
-    await reload()
   } catch (e) {
-    actionError.value = refusalText(e)
-  } finally {
+    actionFailure.value = refusalFailure(e)
     busy.value = false
+    return
   }
+  await reload()
+  if (failure.value) failure.value = {...failure.value, message: t('failure.staleAfterAction')}
+  busy.value = false
 }
 
 function createFlow() {
@@ -154,10 +162,10 @@ function createFlow() {
     <MutedText size="sm" tag="p">{{ t('flows.intro') }}</MutedText>
 
     <Spinner v-if="loading"/>
-    <Alert v-else-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert v-else-if="failure" :failure="failure"/>
 
     <template v-else>
-      <Alert v-if="actionError" variant="error">{{ actionError }}</Alert>
+      <FailureAlert :failure="actionFailure"/>
 
       <div v-for="group in groups" :key="group.purpose" class="space-y-2">
         <SubHeader>{{ t(`movements.purpose.${group.purpose}`) }}</SubHeader>
@@ -166,7 +174,7 @@ function createFlow() {
             :key="flow.id"
             :binding="bindingOf.get(flow.id)"
             :busy="busy"
-            :error="flowErrors[flow.id]"
+            :failure="flowFailures[flow.id]"
             :flow="flow"
             @add-step="(flowId: number, step: StepRequest) => runOnFlow(flowId, () => addStep(flowId, step))"
             @archive-step="(stepId: number) => runOnFlow(flow.id, () => movements.archiveStep(stepId))"
@@ -174,7 +182,7 @@ function createFlow() {
             @save-step="(stepId: number, step: StepRequest) => runOnFlow(flow.id, () => movements.updateStep(stepId, step))"
             @reorder="(flowId: number, stepIds: number[]) => runOnFlow(flowId, () => movements.reorderSteps(flowId, stepIds))"
             @restore="(flowId: number, mappings: FlowStepMapping[]) => runOnFlow(flowId, () => movements.restoreFlow(flowId, mappings))"
-            @restore-refused="showFlowError"
+            @restore-refused="showFlowFailure"
         />
       </div>
 

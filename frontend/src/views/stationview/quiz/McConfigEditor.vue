@@ -18,6 +18,7 @@ import FieldHint from '@/components/typography/FieldHint.vue'
 import {ai} from '@/api'
 import {getItem} from '@/api/storage'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 
 const {t} = useI18n()
 
@@ -49,7 +50,11 @@ function toggleMcOptionCorrect(option: McOption) {
 const aiCountMode = ref<'add' | 'fillTo'>('add')
 const aiCount = ref(3)
 
-const {running: aiGenerating, error: aiError, run: generateWrongAnswers} = useAsyncAction(async () => {
+/** No key is set for the generator, which is a setting of the reader's and not a fault in Ember. */
+const noKey = ref(false)
+
+const {running: aiGenerating, failure: aiFailure, run: generateWrongAnswers} = useAsyncAction(async () => {
+  noKey.value = false
   const options = (config.value.options as { text: string; correct: boolean }[]) || []
   const correctAnswer = options.filter(o => o.correct).map(o => o.text).join(', ')
   if (!correctAnswer || !props.questionTitle) return
@@ -58,7 +63,10 @@ const {running: aiGenerating, error: aiError, run: generateWrongAnswers} = useAs
   const apiKey = getItem('ai_api_key') || ''
   const model = getItem('ai_model') || ''
 
-  if (!apiKey) throw new Error(t('quiz.ai.noKeyConfigured'))
+  if (!apiKey) {
+    noKey.value = true
+    return
+  }
 
   const count = aiCountMode.value === 'fillTo'
       ? Math.max(0, aiCount.value - options.length)
@@ -73,7 +81,7 @@ const {running: aiGenerating, error: aiError, run: generateWrongAnswers} = useAs
     const newOptions = [...options, ...results.map(text => ({text, correct: false}))]
     config.value = {...config.value, options: newOptions}
   }
-}, {formatError: e => e instanceof Error ? e.message : String(e)})
+})
 </script>
 
 <template>
@@ -113,6 +121,7 @@ const {running: aiGenerating, error: aiError, run: generateWrongAnswers} = useAs
         <NumberInput v-model="aiCount" class="w-14"/>
       </template>
     </QuestionOptionsEditor>
-    <div v-if="aiError" class="text-xs text-error">{{ aiError }}</div>
+    <FailureAlert v-if="noKey" :message="t('quiz.ai.noKeyConfigured')" expected/>
+    <FailureAlert v-else :failure="aiFailure"/>
   </div>
 </template>

@@ -11,7 +11,8 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
@@ -63,7 +64,10 @@ const pageTitle = computed(() => (counterpartName.value
     ? t('pages.inventory-lending-request.titleNamed', {name: counterpartName.value})
     : t('pages.inventory-lending-request.title')))
 
-const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+/** What an answer to this request ran into, kept apart from what stopped the page loading. */
+const actionFailure = ref<Failure | null>(null)
+
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   detail.value = await lending.getRequest(requestId)
   messages.value = await lending.getMessages(requestId)
   await loadAvailableItems()
@@ -95,7 +99,9 @@ async function loadAvailableItems() {
         }
       }
     }
-  } catch { void 0 } finally {
+  } catch (e) {
+    actionFailure.value = {...describeFailure(e, t), message: t('lending.availableUnreadable')}
+  } finally {
     loadingItems.value = false
   }
 }
@@ -131,38 +137,43 @@ const {running: sending, run: handleSendMessage} = useAsyncAction(async () => {
   messages.value = await lending.getMessages(requestId)
 })
 
-async function handleApprove() {
+/**
+ * Runs one answer to the request and then reads it back.
+ *
+ * <p>All four of these used to swallow whatever came back, so approving a request somebody else had
+ * already answered looked exactly like a button that does nothing. The answer is caught on its own and
+ * the reading back afterwards belongs to the loader, which has its own words for a stale screen.
+ */
+async function answer(action: () => Promise<unknown>) {
+  actionFailure.value = null
   try {
-    await lending.approveRequest(requestId)
-    await loadData()
-    refreshSidebarCounts()
-  } catch { void 0 }
+    await action()
+  } catch (e) {
+    actionFailure.value = describeFailure(e, t)
+    return
+  }
+  await loadData()
+  refreshSidebarCounts()
 }
 
-async function handleDecline() {
-  try {
+function handleApprove() {
+  return answer(() => lending.approveRequest(requestId))
+}
+
+function handleDecline() {
+  return answer(async () => {
     await lending.declineRequest(requestId, declineReason.value)
     showDeclineModal.value = false
     declineReason.value = ''
-    await loadData()
-    refreshSidebarCounts()
-  } catch { void 0 }
+  })
 }
 
-async function handleMarkReturned() {
-  try {
-    await lending.markReturned(requestId)
-    await loadData()
-    refreshSidebarCounts()
-  } catch { void 0 }
+function handleMarkReturned() {
+  return answer(() => lending.markReturned(requestId))
 }
 
-async function handleClose() {
-  try {
-    await lending.closeRequest(requestId)
-    await loadData()
-    refreshSidebarCounts()
-  } catch { void 0 }
+function handleClose() {
+  return answer(() => lending.closeRequest(requestId))
 }
 </script>
 
@@ -176,9 +187,10 @@ async function handleClose() {
     </SecondaryButton>
 
     <Spinner v-if="loading"/>
-    <Alert v-else-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert v-else-if="failure" :failure="failure"/>
 
     <template v-else-if="detail">
+      <FailureAlert :failure="actionFailure" class="mb-4"/>
       <LendingRequestHeader :detail="detail"/>
       <LendingRequestInfo :detail="detail"/>
       <LendingItemsTable :detail="detail"/>

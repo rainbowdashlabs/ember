@@ -12,6 +12,8 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 import {events} from '@/api'
 import type {EventRegistrationFieldDefinition} from '@/api/events'
 import {StationPermission} from '@/api/types'
@@ -39,7 +41,7 @@ const isEdit = computed(() => eventId.value !== null)
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
 const form = useEventForm()
-const attachments = useEventAttachments(() => eventId.value)
+const attachments = useEventAttachments(() => eventId.value, t)
 const data = useEventEditData(
     () => form.state.templateId,
     () => form.state.fields.map(f => f.attendanceFieldId).filter((id): id is number => id != null),
@@ -48,7 +50,13 @@ const fieldDefaults = useEventFieldDefaults()
 const federationShare = useEventFederationShare(canFederate)
 
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
+
+/**
+ * What the editor itself turned down, as opposed to what the server did. An end before its own
+ * start is the reader's own typing, so it is said plainly and never offered as a bug to report.
+ */
+const refused = ref('')
 const registrationFields = ref<EventRegistrationFieldDefinition[]>([])
 const {message: templateAppliedMessage, flash: flashTemplateApplied} = useFlashMessage(3000)
 
@@ -73,7 +81,10 @@ async function applyEventTemplate(templateId: string | undefined) {
   try {
     form.applyTemplate(await events.getTemplate(Number(templateId)))
     flashTemplateApplied(t('eventTemplates.applied'))
-  } catch (e) { reportCaughtError(e, 'applyEventTemplate'); error.value = t('common.error') }
+  } catch (e) {
+    reportCaughtError(e, 'applyEventTemplate')
+    failure.value = describeFailure(e, t)
+  }
 }
 
 /**
@@ -92,7 +103,7 @@ async function loadRegistrationFields(id: number) {
 
 async function loadData() {
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     await data.load()
     if (isEdit.value) {
@@ -107,19 +118,13 @@ async function loadData() {
     }
   } catch (e) {
     reportCaughtError(e, 'EventEditView.loadData')
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
 }
 
-const {running: saving, error: saveError, run: submit} = useAsyncAction(async () => {
-  error.value = ''
-  if (form.endsBeforeItStarts.value) {
-    error.value = t('events.endBeforeStart')
-    return
-  }
-
+async function writeEvent() {
   let savedEventId: number
   if (isEdit.value) {
     await events.updateEvent(eventId.value!, form.buildPayload())
@@ -134,12 +139,25 @@ const {running: saving, error: saveError, run: submit} = useAsyncAction(async ()
   await events.setEventFields(savedEventId, {fields: form.namedFields()})
   await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name.trim() !== ''))
   await federationShare.save(savedEventId)
+}
+
+const {running: saving, failure: saveFailure, run: submit} = useAsyncAction(async () => {
+  failure.value = null
+  refused.value = ''
+  if (form.endsBeforeItStarts.value) {
+    refused.value = t('events.endBeforeStart')
+    return
+  }
+
+  try {
+    await writeEvent()
+  } catch (e) {
+    reportCaughtError(e, 'EventEditView.submit')
+    throw e
+  }
 
   leaveEditor()
-}, {formatError: (e) => {
-  reportCaughtError(e, 'EventEditView.submit')
-  return t('common.error')
-}})
+})
 
 function leaveEditor() {
   const returnTo = typeof route.query.returnTo === 'string' ? route.query.returnTo : null
@@ -195,7 +213,8 @@ const bodyHandlers = {
       </div>
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error || saveError" variant="error">{{ error || saveError }}</Alert>
+      <FailureAlert v-if="refused" :message="refused" expected/>
+      <FailureAlert v-else :failure="failure ?? saveFailure"/>
       <Alert v-if="templateAppliedMessage" variant="success">{{ templateAppliedMessage }}</Alert>
 
       <EventEditBody
@@ -209,7 +228,7 @@ const bodyHandlers = {
           v-if="!loading && isEdit"
           v-model:attachments="attachments.attachments.value"
           :station-uid="stationUid"
-          :failure="attachments.error.value"
+          :failure="attachments.failure.value"
           @add="attachments.add"
           @save="attachments.save"
           @remove="attachments.remove"

@@ -30,7 +30,7 @@ const busy = ref(false)
 const chosenCluster = ref('')
 const available = ref<AvailableCluster[]>([])
 
-const {config: state, loading, error, runWith} = useConfigPanel<StationCluster>({
+const {config: state, loading, failure, runWith} = useConfigPanel<StationCluster>({
   initial: {applications: []},
   fetch: async () => {
     const current = await clusterStations.getStationCluster()
@@ -69,7 +69,7 @@ async function withdraw() {
 <template>
   <ViewContent :subtitle="t('pages.station-manage-cluster.subtitle')" :title="t('pages.station-manage-cluster.title')">
     <div class="space-y-6">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <Spinner v-if="loading" size="lg"/>
 

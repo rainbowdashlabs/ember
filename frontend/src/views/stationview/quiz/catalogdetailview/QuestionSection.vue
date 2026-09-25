@@ -25,6 +25,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import BatchActionModal from './BatchActionModal.vue'
 import type { QuizCategory, QuizQuestion, QuizQuestionReport } from '@/api/quiz'
 import { quiz } from '@/api'
+import type { Failure } from '@/util/failure'
 
 const props = defineProps<{
   catalogId: number
@@ -42,7 +43,7 @@ function reportsFor(questionId: number): QuizQuestionReport[] {
 
 const emit = defineEmits<{
   updated: []
-  error: [message: string]
+  error: [failure: Failure]
 }>()
 
 const { t } = useI18n()
@@ -66,7 +67,7 @@ const {
   onImageSelected,
   removeImage,
   saveQuestion,
-} = useQuestionForm(toRef(props, 'catalogId'), () => emit('updated'), () => emit('error', t('common.error')))
+} = useQuestionForm(toRef(props, 'catalogId'), () => emit('updated'), refused => emit('error', refused))
 
 const {
   filterType,
@@ -82,7 +83,7 @@ const {
   selectedHasMc,
 } = useQuestionListState(toRef(props, 'questions'), type => t(`quiz.questionTypes.${type}`))
 
-const deleteError = ref('')
+const deleteFailure = ref<Failure | null>(null)
 
 const {
   show: showDeleteQuestionModal,
@@ -94,13 +95,13 @@ const {
     if (expandedQuestion.value === q.id) expandedQuestion.value = null
     emit('updated')
   },
-  error: deleteError,
+  failure: deleteFailure,
 })
 
-watch(deleteError, message => {
-  if (!message) return
-  deleteError.value = ''
-  emit('error', message)
+watch(deleteFailure, refused => {
+  if (!refused) return
+  deleteFailure.value = null
+  emit('error', refused)
 })
 
 function getCategoryName(catId: number | null): string {
@@ -198,7 +199,7 @@ function onBatchDone() {
         @save="saveQuestion"
         @cancel="collapseQuestion"
         @report-acknowledged="emit('updated')"
-        @report-error="(message: string) => emit('error', message)"
+        @report-error="(refused: Failure) => emit('error', refused)"
       />
     </div>
   </div>

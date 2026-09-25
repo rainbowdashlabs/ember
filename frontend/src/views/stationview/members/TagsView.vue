@@ -8,7 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {StationPermission, type StationMember, type UserTag} from '@/api/types'
 import {stationMembers, userTags} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -22,6 +22,7 @@ import TagFormModal from './tagsview/TagFormModal.vue'
 import TagDeleteModal from './tagsview/TagDeleteModal.vue'
 import TagConvertModal from './tagsview/TagConvertModal.vue'
 import {useMemberAssignment} from './useMemberAssignment'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const {hasPermission} = useSession()
@@ -41,7 +42,7 @@ const tagColor = ref('')
 const tagVisible = ref(false)
 const tagPosition = ref(0)
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, error, failure} = useAsyncLoader(async () => {
   const [tagList, members] = await Promise.all([
     userTags.listTags(),
     stationMembers.listMembers(),
@@ -64,7 +65,7 @@ const {
     }
     tags.value = await userTags.listTags()
   },
-  error,
+  failure,
 })
 
 const {
@@ -81,7 +82,7 @@ const {
     }
     tags.value = await userTags.listTags()
   },
-  error,
+  failure,
 })
 
 const {
@@ -97,6 +98,7 @@ const {
       return userTags.getTagMembers(selectedTag.value!.id)
     },
     error,
+    failure,
 )
 
 async function selectTag(tag: UserTag) {
@@ -104,8 +106,8 @@ async function selectTag(tag: UserTag) {
   tagLoading.value = true
   try {
     tagMembers.value = await userTags.getTagMembers(tag.id)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
     tagMembers.value = []
   } finally {
     tagLoading.value = false
@@ -130,9 +132,16 @@ function openEditTag(tag: UserTag) {
   showTagModal.value = true
 }
 
+/**
+ * Writes the word back, then fetches the list again.
+ *
+ * <p>Caught apart, because the word is saved by the time the list is fetched and a reader told that
+ * saving failed saves the same word twice. A name already in use is the ordinary refusal here, and the
+ * server names it.
+ */
 const {
   running: tagSaving,
-  error: tagSaveError,
+  failure: tagSaveFailure,
   run: saveTag,
 } = useAsyncAction(async () => {
   if (editingTag.value) {
@@ -141,11 +150,17 @@ const {
     await userTags.createTag({name: tagName.value, color: tagColor.value || null, visible: tagVisible.value, position: tagPosition.value})
   }
   showTagModal.value = false
-  tags.value = await userTags.listTags()
+
+  try {
+    tags.value = await userTags.listTags()
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
+    return
+  }
   if (selectedTag.value && editingTag.value?.id === selectedTag.value.id) {
     selectedTag.value = tags.value.find(t => t.id === selectedTag.value!.id) ?? null
   }
-}, {formatError: () => t('common.error')})
+})
 
 
 </script>
@@ -157,7 +172,7 @@ const {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error || tagSaveError" variant="error">{{ error || tagSaveError }}</Alert>
+      <FailureAlert :failure="failure ?? tagSaveFailure"/>
 
       <div v-if="!loading" class="grid gap-6 lg:grid-cols-2">
         <TagListPanel :tags="tags" :selected-tag="selectedTag" :can-convert-to-group="canConvertToGroup"

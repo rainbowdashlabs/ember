@@ -7,11 +7,13 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useFlashMessage} from '@/composables/useFlashMessage'
+import type {Failure} from '@/util/failure'
 
 /**
  * The link something is sent with, with a way to copy it and a way to end it.
@@ -31,7 +33,8 @@ const props = defineProps<{
   /** What to say about who this address reaches, where the general line does not fit. */
   hint?: string
   busy?: boolean
-  error?: string
+  /** What went wrong with the link, described, so the panel can say what to do about it. */
+  failure?: Failure | null
 }>()
 
 const emit = defineEmits<{
@@ -58,7 +61,7 @@ function replace() {
 
 <template>
     <div class="space-y-3">
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert :failure="failure"/>
 
         <div class="rounded-theme border border-(--border) px-3 py-2 font-mono text-sm break-all">{{ url }}</div>
 

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.media.route;
 
+import dev.chojo.ember.api.Failures;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -18,12 +20,13 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -112,11 +115,11 @@ public class MediaRoutes implements Routes {
         String hash = ctx.pathParam("hash");
         if (!session.permissions().contains(StationPermission.EVENT_INTERNAL)
                 && media.keptBack(session.stationId(), hash)) {
-            throw new NotFoundResponse();
+            throw Refusal.FILE_NOT_HERE.raise();
         }
         Integer width = parseOptionalWidth(ctx.queryParam("w"));
         var fileData = media.readVariant(session.stationId(), hash, width, ctx.header("Accept"))
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.FILE_NOT_HERE::raise);
         String stored = fileData.contentType();
         ctx.contentType(SafeInlineMime.safeContentType(stored));
         var disposition = SafeInlineMime.isInlineSafe(stored)
@@ -140,10 +143,10 @@ public class MediaRoutes implements Routes {
         String hash = ctx.pathParam("hash");
         if (!session.permissions().contains(StationPermission.EVENT_INTERNAL)
                 && media.keptBack(session.stationId(), hash)) {
-            throw new NotFoundResponse();
+            throw Refusal.PICTURE_NOT_HERE.raise();
         }
         var picture = media.readPicture(session.stationId(), hash, parseOptionalWidth(ctx.queryParam("w")))
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.PICTURE_NOT_HERE::raise);
         String stored = picture.contentType();
         ctx.contentType(SafeInlineMime.safeContentType(stored));
         ctx.header(
@@ -184,26 +187,36 @@ public class MediaRoutes implements Routes {
      */
     private UserSession requireStation(UserSession session) {
         if (session.stationId() == null) {
-            throw new BadRequestResponse("No station selected");
+            throw Refusal.NO_STATION_CHOSEN.raise();
         }
         return session;
     }
 
+    /**
+     * Takes a file into the library.
+     *
+     * <p>A file too big for the instance and a station out of room are the sender's to act on and
+     * say so. Anything else that goes wrong while the bytes are being kept is Ember's: it used to
+     * be answered as a bad request, which told somebody whose file was perfectly good to go and
+     * fix it.
+     */
     private void upload(Context ctx) {
         var session = UserSession.from(ctx);
         int memberId = requireMember(session);
         var file = ctx.uploadedFile("file");
-        if (file == null) throw new BadRequestResponse("file is required");
-        if (file.size() > apiConfig.maxUploadSizeBytes()) throw new BadRequestResponse("File too large");
+        if (file == null) throw Refusal.UPLOAD_MISSING_FILE.raise();
+        if (file.size() > apiConfig.maxUploadSizeBytes()) throw Refusal.UPLOAD_TOO_LARGE.raise();
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             var stored = media.upload(session.stationId(), null, memberId, file.filename(), file.contentType(), data);
             ctx.status(HttpStatus.CREATED).json(stored);
         } catch (StorageQuotaService.StorageQuotaExceededException | IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
-        } catch (Exception e) {
+            throw Failures.readable(e.getMessage())
+                    .map(Refusal.UPLOAD_NOT_SAVED::raise)
+                    .orElseGet(Refusal.UPLOAD_NOT_SAVED::raise);
+        } catch (IOException e) {
             log.warn("Failed to upload media file", e);
-            throw new BadRequestResponse("Failed to upload file");
+            throw Refusal.UPLOAD_NOT_PROCESSED.raise();
         }
     }
 
@@ -218,7 +231,7 @@ public class MediaRoutes implements Routes {
         requireOwnedOrNotFound(ctx, fileId, media::findFile, StationFile::stationId);
 
         if (session.hasPermission(StationPermission.PAGE_MANAGER)) {
-            if (!media.deleteFile(fileId)) throw new NotFoundResponse();
+            if (!media.deleteFile(fileId)) throw Refusal.FILE_NOT_HERE.raise();
             ctx.status(HttpStatus.NO_CONTENT);
             return;
         }
@@ -240,7 +253,7 @@ public class MediaRoutes implements Routes {
         int fileId = pathInt(ctx, "fileId");
         var body = ctx.bodyAsClass(FileMetaRequest.class);
         if (!media.updateFileMeta(session.stationId(), fileId, body.altText(), body.description())) {
-            throw new NotFoundResponse();
+            throw Refusal.FILE_NOT_HERE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -250,7 +263,7 @@ public class MediaRoutes implements Routes {
         int fileId = pathInt(ctx, "fileId");
         var body = ctx.bodyAsClass(MoveFileRequest.class);
         if (!media.moveFileToFolder(session.stationId(), fileId, body.folderId())) {
-            throw new NotFoundResponse();
+            throw Refusal.FILE_NOT_HERE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -278,14 +291,16 @@ public class MediaRoutes implements Routes {
                 body.parentId(),
                 body.name(),
                 body.sortOrder() != null ? body.sortOrder() : 0)) {
-            throw new NotFoundResponse();
+            throw Refusal.FOLDER_NOT_HERE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private void deleteFolder(Context ctx) {
         var session = UserSession.from(ctx);
-        if (!media.deleteFolder(session.stationId(), pathInt(ctx, "folderId"))) throw new NotFoundResponse();
+        if (!media.deleteFolder(session.stationId(), pathInt(ctx, "folderId"))) {
+            throw Refusal.FOLDER_NOT_HERE.raise();
+        }
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -304,21 +319,23 @@ public class MediaRoutes implements Routes {
         var session = UserSession.from(ctx);
         var body = ctx.bodyAsClass(TagRequest.class);
         if (!media.updateTag(session.stationId(), pathInt(ctx, "tagId"), body.name(), body.color())) {
-            throw new NotFoundResponse();
+            throw Refusal.FILE_TAG_NOT_HERE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private void deleteTag(Context ctx) {
         var session = UserSession.from(ctx);
-        if (!media.deleteTag(session.stationId(), pathInt(ctx, "tagId"))) throw new NotFoundResponse();
+        if (!media.deleteTag(session.stationId(), pathInt(ctx, "tagId"))) {
+            throw Refusal.FILE_TAG_NOT_HERE.raise();
+        }
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private void assignTag(Context ctx) {
         var session = UserSession.from(ctx);
         if (!media.assignTag(session.stationId(), pathInt(ctx, "fileId"), pathInt(ctx, "tagId"))) {
-            throw new NotFoundResponse();
+            throw Refusal.FILE_TAG_NOT_HERE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -326,7 +343,7 @@ public class MediaRoutes implements Routes {
     private void unassignTag(Context ctx) {
         var session = UserSession.from(ctx);
         if (!media.unassignTag(session.stationId(), pathInt(ctx, "fileId"), pathInt(ctx, "tagId"))) {
-            throw new NotFoundResponse();
+            throw Refusal.FILE_TAG_NOT_HERE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }

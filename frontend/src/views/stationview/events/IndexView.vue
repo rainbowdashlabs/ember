@@ -20,6 +20,7 @@ import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useSession} from '@/composables/useSession'
 import {StationPermission} from '@/api/types'
+import {describeFailure, type Failure} from '@/util/failure'
 
 defineProps<{
   /** The heading, when the station's own wording is not the right one. */
@@ -76,7 +77,7 @@ const showExportModal = ref(false)
  * events page got an error instead of the station's events, because one of the calls beside them
  * was refused.
  */
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const [ev, today, br, cats, ovFields] = await Promise.all([
     events.listEvents(),
     events.listTodayEvents(),
@@ -103,7 +104,7 @@ const {
 } = useConfirmDelete<StationEvent>({
   onDelete: ev => events.deleteEvent(ev.id),
   onSuccess: () => reload(),
-  error,
+  failure,
 })
 
 const {
@@ -114,7 +115,7 @@ const {
 } = useConfirmDelete<EventBreak>({
   onDelete: br => events.deleteBreak(br.id),
   onSuccess: () => reload(),
-  error,
+  failure,
 })
 
 function openAddEvent() {
@@ -135,8 +136,21 @@ function openEditBreak(br: EventBreak) {
   showBreakModal.value = true
 }
 
+/** Puts a failure on the page, whether it happened here or in one of the dialogs. */
+function show(described: Failure) {
+  failure.value = described
+}
+
+function clearFailure() {
+  failure.value = null
+}
+
+/**
+ * Saving the break and reading the dashboard back are answered for separately: a break that was
+ * stored and a page that then failed to refresh must not read as a break that was not stored.
+ */
 async function saveBreak(data: { name: string; startDate: string; endDate: string }) {
-  error.value = ''
+  clearFailure()
   try {
     if (editingBreak.value) {
       await events.updateBreak(editingBreak.value.id, data)
@@ -144,23 +158,25 @@ async function saveBreak(data: { name: string; startDate: string; endDate: strin
       await events.createBreak(data)
     }
     showBreakModal.value = false
-    await reload()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    show(describeFailure(e, t))
+    return
   }
+  await reload()
 }
 
 async function onImportHolidays(holidays: Array<{ name: string; startDate: string; endDate: string }>) {
-  error.value = ''
+  clearFailure()
   try {
     for (const h of holidays) {
       await events.createBreak(h)
     }
     showHolidayModal.value = false
-    await reload()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    show(describeFailure(e, t))
+    return
   }
+  await reload()
 }
 
 function goToAttendance(ev: StationEvent) {
@@ -178,7 +194,7 @@ function goToAttendance(ev: StationEvent) {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <EventDashboardBody
           v-if="!loading"
@@ -209,7 +225,7 @@ function goToAttendance(ev: StationEvent) {
           :editing-break="editingBreak"
           :delete-event-target="deleteEventTarget"
           :delete-break-target="deleteBreakTarget"
-          @error="e => error = e"
+          @error="show"
           @save-break="saveBreak"
           @import-holidays="onImportHolidays"
           @confirm-delete-event="confirmDeleteEvent"

@@ -9,7 +9,6 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import InstanceMailPanel from './adminmailingview/InstanceMailPanel.vue'
 import ClearProvidersModal from '@/components/mail/ClearProvidersModal.vue'
 import MailWebhookPanel from '@/components/mail/MailWebhookPanel.vue'
@@ -26,25 +25,32 @@ import {adminSettings} from '@/api'
 import type {MailingConfig} from '@/api/adminSettings'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
-function describeAxiosError(e: unknown): string {
-  const data = (e as {response?: {data?: {title?: string; message?: string}}})?.response?.data
-  const raw = data?.title ?? data?.message
-  return raw ? t('adminSettings.mailing.saveFailed', {error: raw}) : t('common.error')
+/**
+ * The mail provider's own words where it wrote any, and the described failure otherwise.
+ *
+ * <p>A mail chain refuses for reasons only the provider knows: a rejected key, a sender address it
+ * will not accept, a quota. Losing that sentence leaves the one person who could fix it guessing.
+ */
+function mailingFailed(e: unknown): string {
+  const said = apiErrorMessage(e)
+  return said ? t('adminSettings.mailing.saveFailed', {error: said}) : describeFailure(e, t).message
 }
 
-const {config: mailingConfig, loading, error: panelError, runWith, reload} = useConfigPanel<MailingConfig>({
+const {config: mailingConfig, loading, failure: configFailure, runWith, reload} = useConfigPanel<MailingConfig>({
   initial: {notificationDigestIntervalMinutes: 60},
   fetch: () => adminSettings.getMailingConfig(),
-  formatError: describeAxiosError,
+  formatError: mailingFailed,
 })
 
 const showClearModal = ref(false)
 const testMailSent = ref(false)
 /** Only the list failing to load, which is a page-level problem rather than one entry's. */
-const loadError = ref('')
+const chainFailure = ref<Failure | null>(null)
 
 const {sessionInfo} = useSession()
 const ownAddress = computed(() => sessionInfo.value?.account?.email ?? '')
@@ -70,8 +76,12 @@ async function test(position: number, recipient: string) {
           ? {ok: true, message: t('mailChain.testOk', {position: position + 1, recipient})}
           : {ok: false, message: t('mailChain.testFailed', {position: position + 1, error: result.error ?? ''})},
     }
-  } catch {
-    testResults.value = {...testResults.value, [position]: {ok: false, message: t('common.error')}}
+  } catch (e) {
+    const reason = apiErrorMessage(e) ?? describeFailure(e, t).message
+    testResults.value = {
+      ...testResults.value,
+      [position]: {ok: false, message: t('mailChain.testFailed', {position: position + 1, error: reason})},
+    }
   } finally {
     testingPosition.value = null
   }
@@ -82,8 +92,8 @@ onMounted(async () => {
     const chain = await getInstanceProviders()
     providers.value = chain.fallbacks ?? []
     providersLoaded.value = true
-  } catch {
-    loadError.value = t('mailChain.loadFailed')
+  } catch (e) {
+    chainFailure.value = {...describeFailure(e, t), message: t('mailChain.loadFailed')}
   }
 })
 
@@ -97,30 +107,30 @@ async function saveMailingConfig() {
   await runWith(() => adminSettings.updateMailingConfig(mailingConfig.value), {rethrow: true})
 }
 
-const {running: sendingTestMail, error: testMailError, run: sendTestMail} = useAsyncAction(async () => {
+const {running: sendingTestMail, failure: testMailFailure, run: sendTestMail} = useAsyncAction(async () => {
   testMailSent.value = false
   await adminSettings.sendTestMail()
   testMailSent.value = true
-}, {formatError: describeAxiosError})
+}, {formatError: mailingFailed})
 
-const {running: clearing, error: clearError, run: clearMailingConfig} = useAsyncAction(async () => {
+const {running: clearing, failure: clearFailure, run: clearMailingConfig} = useAsyncAction(async () => {
   await adminSettings.clearMailingConfig()
   showClearModal.value = false
   providers.value = []
   await reload()
-}, {formatError: describeAxiosError})
-
-const error = computed(() => panelError.value || testMailError.value || clearError.value)
+}, {formatError: mailingFailed})
 </script>
 
 <template>
   <ViewContent :title="t('pages.admin-mailing.title')" :subtitle="t('pages.admin-mailing.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="configFailure"/>
+      <FailureAlert :failure="testMailFailure"/>
+      <FailureAlert :failure="clearFailure"/>
 
       <template v-if="!loading">
-        <Alert v-if="loadError" variant="error">{{ loadError }}</Alert>
+        <FailureAlert :failure="chainFailure"/>
 
         <MailProviderChain
             v-model:providers="providers"

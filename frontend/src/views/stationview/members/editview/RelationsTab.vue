@@ -15,6 +15,7 @@ import { memberDisplayName } from '../listview/useMemberData'
 import { StationUserType, type StationMember } from '@/api/types'
 import { profileFields, stationMembers } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import type { Failure } from '@/util/failure'
 
 const props = defineProps<{
   memberId: number
@@ -24,7 +25,9 @@ const props = defineProps<{
 
 const memberId = toRef(props, 'memberId')
 const allMembers = ref<StationMember[]>([...props.allMembers])
-const error = ref('')
+
+/** One channel for everything this tab can fail at, the first load included. */
+const failure = ref<Failure | null>(null)
 
 const userType = toRef(props, 'userType')
 const { fields, fieldsForUserType, setValues, loadAudiences } = useMemberProfileFields(userType)
@@ -38,17 +41,17 @@ const {
   linkManager,
   removeManager,
   createManager,
-} = useMemberManagers(memberId, allMembers, fieldsForUserType, error)
+} = useMemberManagers(memberId, allMembers, fieldsForUserType, failure)
 
 const {managedMembers, availableManaged, linkManaged, removeManaged} =
-    useManagedMembers(memberId, allMembers, error)
+    useManagedMembers(memberId, allMembers, failure)
 
 const showGuardians = computed(() =>
     props.userType === StationUserType.MEMBER || props.userType === StationUserType.TRIAL)
 
 const showManaged = computed(() => props.userType === StationUserType.GUARDIAN)
 
-const { loading } = useAsyncLoader(async () => {
+const { loading, failure: loadFailure } = useAsyncLoader(async () => {
   const [allFields, mgrs, managed, values] = await Promise.all([
     profileFields.getMemberFields(memberId.value),
     stationMembers.getManagers(memberId.value),
@@ -67,7 +70,7 @@ const { loading } = useAsyncLoader(async () => {
 <template>
   <div class="space-y-6">
     <Spinner v-if="loading" size="md"/>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="loadFailure ?? failure"/>
 
     <MemberRelationsPanel
         v-if="!loading"

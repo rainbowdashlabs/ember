@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -36,7 +37,6 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.InternalServerErrorResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -348,7 +348,7 @@ public class EventRoutes implements Routes {
                             ctx.json(saved);
                         },
                         () -> {
-                            throw new NotFoundResponse();
+                            throw Refusal.EVENT_NOT_HERE.raise();
                         });
     }
 
@@ -369,7 +369,7 @@ public class EventRoutes implements Routes {
         if (crudService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.EVENT_NOT_HERE.raise();
         }
     }
 
@@ -378,7 +378,7 @@ public class EventRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(CancelEventRequest.class);
         if (!crudService.cancelEvent(session.stationId(), id, req.reason())) {
-            throw new NotFoundResponse();
+            throw Refusal.EVENT_NOT_HERE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }

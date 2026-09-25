@@ -12,10 +12,11 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import EventGroupCard from './registrationsview/EventGroupCard.vue'
 import {events} from '@/api'
-import {RegistrationStatus, type EventRegistrationEntry, type MemberRegistrationStats, type StationEvent} from '@/api/events'
+import {RegistrationStatus, type EventRegistrationEntry, type MemberRegistrationStats, type RegistrationStatusName, type StationEvent} from '@/api/events'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 import {formatDateTime} from '@/util/format'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 
@@ -121,7 +122,9 @@ async function toggleExpand(eventId: number) {
     ])
     registrationStats.value = stats
     expandedRegistrations.value = regs
-  } catch { /* ignore */ }
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+  }
   finally { expandedLoading.value = false }
 }
 
@@ -135,30 +138,31 @@ async function refreshExpanded() {
     ])
     expandedRegistrations.value = regs
     registrationCounts.value = counts
-  } catch {
-    /* ignore */
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
   }
 }
 
-async function accept(regId: number) {
-  error.value = ''
+/**
+ * Answers one sign-up, then reads the event back.
+ *
+ * <p>The two are answered for separately. Reading back is a refresh, and a refusal that was written
+ * followed by a refresh that failed used to read as a refusal that was not written: the row was gone
+ * from the list and the page said it had not worked.
+ */
+async function decide(regId: number, status: RegistrationStatusName) {
+  failure.value = null
   try {
-    await events.updateRegistrationStatus(regId, RegistrationStatus.ACCEPTED)
+    await events.updateRegistrationStatus(regId, status)
     pendingRegistrations.value = pendingRegistrations.value.filter(r => r.id !== regId)
-    await refreshExpanded()
-  } catch { error.value = t('common.error') }
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
+  }
+  await refreshExpanded()
 }
 
-async function deny(regId: number) {
-  error.value = ''
-  try {
-    await events.updateRegistrationStatus(regId, RegistrationStatus.DENIED)
-    pendingRegistrations.value = pendingRegistrations.value.filter(r => r.id !== regId)
-    await refreshExpanded()
-  } catch { error.value = t('common.error') }
-}
-
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [regs, evs] = await Promise.all([
     events.listPendingRegistrations(),
     events.listEvents(),
@@ -176,7 +180,7 @@ const {loading, error} = useAsyncLoader(async () => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <EmptyState v-if="eventGroups.length === 0">{{ t('eventsRegistrations.empty') }}</EmptyState>
@@ -193,8 +197,8 @@ const {loading, error} = useAsyncLoader(async () => {
               :registration-stats="registrationStats"
               :format-deadline="formatDateTime"
               @toggle="toggleExpand(group.event.id)"
-              @accept="accept"
-              @deny="deny"
+              @accept="id => decide(id, RegistrationStatus.ACCEPTED)"
+              @deny="id => decide(id, RegistrationStatus.DENIED)"
           />
         </div>
       </template>

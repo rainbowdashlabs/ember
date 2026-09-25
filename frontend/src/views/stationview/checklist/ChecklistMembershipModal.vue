@@ -22,6 +22,7 @@ import type {
 } from '@/api/checklists'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 import {formatDate} from '@/util/format'
+import type {Failure} from '@/util/failure'
 
 /**
  * Changes what an existing list is made of, which nothing could do before.
@@ -40,7 +41,8 @@ const props = defineProps<{
   tags: UserTag[]
   members: StationMember[]
   saving: boolean
-  error?: string
+  /** What the last save ran into, described, or nothing where nothing has. */
+  failure?: Failure | null
 }>()
 
 const emit = defineEmits<{
@@ -105,7 +107,7 @@ function submit() {
           :selected-occurrence-label="initialLabel"
       />
 
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <ButtonRow pair align="end" class="pt-2">
         <SecondaryButton data-cancel @click="visible = false">{{ t('checklist.cancel') }}</SecondaryButton>

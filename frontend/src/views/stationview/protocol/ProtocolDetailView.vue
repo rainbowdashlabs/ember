@@ -18,6 +18,7 @@ import StationBadge from '@/components/badge/StationBadge.vue'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, federation } from '@/api'
+import { describeFailure } from '@/util/failure'
 import { getItem } from '@/api/storage'
 import type { TestProtocol, TestProtocolSection, TestProtocolItem } from '@/api/protocol'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -60,19 +61,37 @@ const itemLabel = ref('')
 const itemDescription = ref('')
 const itemPoints = ref(1)
 
-const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   const data = await protocol.getProtocol(protocolId.value)
   proto.value = data.protocol
   sections.value = data.sections
   items.value = data.items
 }, {autoLoad: false})
 
+/**
+ * Writes one change, then reads the protocol back.
+ *
+ * <p>The two are answered for separately. A section the server had already stored, followed by a
+ * page that would not refresh, used to say the section had been refused, and a reader told that
+ * adds it a second time.
+ */
+async function writeThenReload(write: () => Promise<void>) {
+  failure.value = null
+  try {
+    await write()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
+  }
+  await loadData()
+}
+
 async function copyToStation() {
   if (!proto.value) return
   try {
     await federation.copyProtocol(proto.value.id)
     router.push({ name: 'protocol-list' })
-  } catch { error.value = t('common.error') }
+  } catch (e) { failure.value = describeFailure(e, t) }
 }
 
 function topSections() { return sections.value.filter(s => !s.parentId).sort((a, b) => a.position - b.position) }
@@ -113,7 +132,7 @@ function openEditSection(s: TestProtocolSection) {
 
 async function handleSaveSection() {
   if (!sectionName.value.trim()) return
-  try {
+  await writeThenReload(async () => {
     if (editSectionId.value) {
       await protocol.updateSection(editSectionId.value, {
         name: sectionName.value.trim(),
@@ -133,13 +152,11 @@ async function handleSaveSection() {
       })
     }
     showSectionModal.value = false
-    await loadData()
-  } catch { error.value = t('common.error') }
+  })
 }
 
 async function handleDeleteSection(id: number) {
-  try { await protocol.deleteSection(id); await loadData() }
-  catch { error.value = t('common.error') }
+  await writeThenReload(() => protocol.deleteSection(id))
 }
 
 function openAddItem(sectionId: number) {
@@ -162,7 +179,7 @@ function openEditItem(item: TestProtocolItem) {
 
 async function handleSaveItem() {
   if (!itemLabel.value.trim()) return
-  try {
+  await writeThenReload(async () => {
     if (editItemId.value) {
       await protocol.updateItem(editItemId.value, {
         label: itemLabel.value.trim(),
@@ -179,13 +196,11 @@ async function handleSaveItem() {
       })
     }
     showItemModal.value = false
-    await loadData()
-  } catch { error.value = t('common.error') }
+  })
 }
 
 async function handleDeleteItem(id: number) {
-  try { await protocol.deleteItem(id); await loadData() }
-  catch { error.value = t('common.error') }
+  await writeThenReload(() => protocol.deleteItem(id))
 }
 
 const showEditProtocolModal = ref(false)
@@ -203,15 +218,14 @@ function openEditProtocol() {
 
 async function handleSaveProtocol() {
   if (!proto.value || !editProtoName.value.trim()) return
-  try {
-    await protocol.updateProtocol(proto.value.id, {
+  await writeThenReload(async () => {
+    await protocol.updateProtocol(proto.value!.id, {
       name: editProtoName.value.trim(),
       description: editProtoDescription.value,
       passThreshold: editProtoPassThreshold.value ?? null,
     })
     showEditProtocolModal.value = false
-    await loadData()
-  } catch { error.value = t('common.error') }
+  })
 }
 
 /**
@@ -246,7 +260,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
     </div>
 
     <Spinner v-if="loading" />
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <template v-if="!loading && proto">
       <MutedText v-if="proto.description" tag="p" size="sm">{{ proto.description }}</MutedText>

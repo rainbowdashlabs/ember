@@ -22,6 +22,7 @@ import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { events, managedMembers as managedMembersApi, memberGroups, userTags } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useEventAnswer } from '@/composables/useEventAnswer'
+import { describeFailure } from '@/util/failure'
 import { toIsoDate } from '@/util/format'
 
 const PAGE_SIZE = 10
@@ -98,7 +99,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     return params
   }
 
-  const {loading, error, reload} = useAsyncLoader(async () => {
+  const {loading, failure, reload} = useAsyncLoader(async () => {
     const [upcoming, today, regs, elig, counts, ovFields, cats, allEv, brs, restr, grps, tgs] = await Promise.all([
       events.listUpcomingOccurrences(buildUpcomingParams()),
       events.listTodayEvents(),
@@ -149,16 +150,23 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   const {
     registering, answerPrompt, registerFor, declineFor, withdrawRegistration,
     confirmAnswerPrompt, cancelAnswerPrompt,
-  } = useEventAnswer(currentMemberId, reloadRegistrations, error)
+  } = useEventAnswer(currentMemberId, reloadRegistrations, failure)
 
+  /**
+   * Reads the list again after a filter, a search or a category changed.
+   *
+   * <p>The sentence names this list rather than repeating what the server said, because a reader who
+   * has just typed in the search box needs to know that what stands below it is stale. What to do
+   * about it, and whether it is worth reporting, still come from the failure itself.
+   */
   async function reloadUpcoming() {
     if (loading.value) return
     try {
       const upcoming = await events.listUpcomingOccurrences(buildUpcomingParams())
       upcomingOccurrences.value = upcoming
       hasMore.value = upcoming.length >= PAGE_SIZE
-    } catch {
-      error.value = t('common.error')
+    } catch (e) {
+      failure.value = {...describeFailure(e, t), message: t('eventsUpcoming.listNotLoaded')}
     }
   }
 
@@ -169,8 +177,8 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
         buildUpcomingParams(upcomingOccurrences.value.length))
       upcomingOccurrences.value = [...upcomingOccurrences.value, ...more]
       hasMore.value = more.length >= PAGE_SIZE
-    } catch {
-      error.value = t('common.error')
+    } catch (e) {
+      failure.value = {...describeFailure(e, t), message: t('eventsUpcoming.moreNotLoaded')}
     } finally {
       loadingMore.value = false
     }
@@ -207,7 +215,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     upcomingOccurrences,
     multiDayEndDate,
     loading,
-    error,
+    failure,
     reload,
     registerFor,
     declineFor,

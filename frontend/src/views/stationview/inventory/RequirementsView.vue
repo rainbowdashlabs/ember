@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import type { Inventory, InventoryRequirement } from '@/api/inventory'
 import type { MemberGroup } from '@/api/types'
@@ -23,6 +23,7 @@ import { userTypeFriendlyNames, type RequirementGroup } from './requirementsview
 import { clusterStationGroups } from '@/api'
 import type { StationGroup } from '@/api/clusterStationGroups'
 import { moveWithin } from '@/util/reorder'
+import { describeFailure } from '@/util/failure'
 
 const { t } = useI18n()
 const routes = useInventoryRoutes()
@@ -101,8 +102,13 @@ const grouped = computed((): RequirementGroup[] => {
   return [...userTypeGroups, ...memberGroupGroups]
 })
 
-const {loading, error} = useAsyncLoader(async () => {
-  // Groups are the station's own, so an association has none and asking is refused rather than empty
+/**
+ * What is required of whom, and the lists the requirements are written against.
+ *
+ * <p>Groups are the station's own, so an association has none and asking for them is refused rather
+ * than answered empty.
+ */
+const {loading, failure} = useAsyncLoader(async () => {
   const [invs, reqs, groups] = await Promise.all([
     inventory.listInventories(),
     inventory.listAllRequirements(),
@@ -124,12 +130,12 @@ function openAdd(preselect?: { type: 'userType' | 'group'; key: string }) {
   showAddModal.value = true
 }
 
-const {running: saving, error: addError, run: submitAdd} = useAsyncAction(async () => {
+const {running: saving, failure: addFailure, run: submitAdd} = useAsyncAction(async () => {
   if (!addInventoryId.value) return
   if (addTargetType.value === 'userType' && !addUserType.value) return
   if (addTargetType.value === 'group' && !addGroupId.value) return
 
-  error.value = ''
+  failure.value = null
   await inventory.createRequirement({
     inventoryId: Number(addInventoryId.value),
     userType: addTargetType.value === 'userType' ? addUserType.value : undefined,
@@ -138,38 +144,60 @@ const {running: saving, error: addError, run: submitAdd} = useAsyncAction(async 
     quantity: addQuantity.value,
   })
   showAddModal.value = false
-  requirements.value = await inventory.listAllRequirements()
-}, {formatError: () => t('common.error')})
+  await refreshAfterWrite()
+})
+
+/**
+ * Reads the requirements again after one was written, and says a stale screen rather than a failed
+ * change: the change is in by then, and a reader told otherwise makes the same change twice.
+ */
+async function refreshAfterWrite() {
+  try {
+    requirements.value = await inventory.listAllRequirements()
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
+  }
+}
 
 async function updateQuantity(req: InventoryRequirement, newQuantity: number) {
   if (newQuantity < 1) return
+  failure.value = null
   try {
     await inventory.updateRequirement(req.id, { quantity: newQuantity })
-    requirements.value = await inventory.listAllRequirements()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await refreshAfterWrite()
 }
 
 async function removeRequirement(req: InventoryRequirement) {
+  failure.value = null
   try {
     await inventory.deleteRequirement(req.id)
-    requirements.value = await inventory.listAllRequirements()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await refreshAfterWrite()
 }
 
+/**
+ * Writes the new order back one requirement at a time. A failure halfway leaves the order part
+ * written, which is what the guidance to reload is for here.
+ */
 async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: number) {
   const items = moveWithin(group.items, fromIndex, toIndex)
+  failure.value = null
   try {
     for (const [i, item] of items.entries()) {
       await inventory.updateRequirementPosition(item.id, i)
     }
-    requirements.value = await inventory.listAllRequirements()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await refreshAfterWrite()
 }
 </script>
 
@@ -182,7 +210,7 @@ async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: nu
 
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error || addError" variant="error">{{ error || addError }}</Alert>
+      <FailureAlert :failure="failure ?? addFailure"/>
 
       <template v-if="!loading">
         <div class="flex items-center justify-end">

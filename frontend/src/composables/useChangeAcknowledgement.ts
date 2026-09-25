@@ -7,8 +7,8 @@ import { ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { profileFieldChanges } from '@/api'
 import type { ProfileFieldChange } from '@/api/profileFieldChanges'
-import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
+import { describeFailure, type Failure } from '@/util/failure'
 
 /**
  * Acknowledging profile field changes, shared by the station-wide review list and the change
@@ -34,14 +34,36 @@ export function useChangeAcknowledgement(
   const acknowledgeComment = ref('')
   const showCommentForChangeId: Ref<number | null> = ref(null)
 
-  const {running: acknowledging, error, run: runAcknowledge} = useAsyncAction(
-    async (work: () => Promise<void>) => {
+  const acknowledging = ref(false)
+  const failure = ref<Failure | null>(null)
+
+  /**
+   * Records the acknowledgement, then catches the caller up.
+   *
+   * <p>The two are caught apart. Once the acknowledgement is in it is in, and a reader told that it
+   * failed acknowledges the same change again while the badge that brought them here stays up.
+   */
+  async function runAcknowledge(work: () => Promise<void>) {
+    if (acknowledging.value) return
+    acknowledging.value = true
+    failure.value = null
+    try {
       await work()
-      refreshSidebarCounts()
+    } catch (e) {
+      failure.value = describeFailure(e, t)
+      acknowledging.value = false
+      return
+    }
+
+    refreshSidebarCounts()
+    try {
       await onAcknowledged()
-    },
-    {formatError: () => t('common.error')},
-  )
+    } catch (e) {
+      failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
+    } finally {
+      acknowledging.value = false
+    }
+  }
 
   function isAcknowledgedByMe(change: ProfileFieldChange): boolean {
     return change.acknowledgements.some(a => a.acknowledgedBy === currentMemberId())
@@ -82,7 +104,7 @@ export function useChangeAcknowledgement(
     acknowledgeComment,
     showCommentForChangeId,
     acknowledging,
-    error,
+    failure,
     isAcknowledgedByMe,
     unacknowledgedCount,
     acknowledgeChange,

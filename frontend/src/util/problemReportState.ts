@@ -15,6 +15,14 @@ import {readonly, ref} from 'vue'
 export interface ReportAbout {
     summary: string
     technical?: string
+    /**
+     * The name the backend gave the refusal, which leads to the line that threw it.
+     *
+     * <p>The one part of a report that does not depend on the reader describing anything accurately,
+     * and the part that saves whoever reads it from reproducing the failure to find out where it came
+     * from.
+     */
+    code?: string
 }
 
 const open = ref(false)

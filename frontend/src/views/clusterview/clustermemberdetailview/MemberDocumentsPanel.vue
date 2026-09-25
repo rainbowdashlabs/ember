@@ -23,6 +23,7 @@ import FileInput from '@/components/input/FileInput.vue'
 import {clusterMembers} from '@/api'
 import type {ManagedMemberDocument} from '@/api/clusterMembers'
 import {formatDate, formatSize} from '@/util/format'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * What is filed about one person at one of the association's stations.
@@ -41,24 +42,26 @@ const {t} = useI18n()
 
 const documents = ref<ManagedMemberDocument[]>([])
 const loading = ref(false)
-const error = ref('')
+const loadFailure = ref<Failure | null>(null)
+const actionFailure = ref<Failure | null>(null)
 const showUpload = ref(false)
 const file = ref<File | null>(null)
 const title = ref('')
 const saving = ref(false)
 
-async function reload() {
+async function reload(staleMessage?: string) {
   loading.value = true
-  error.value = ''
+  loadFailure.value = null
   try {
     documents.value = await clusterMembers.listManagedMemberDocuments(props.memberId)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    const described = describeFailure(e, t)
+    loadFailure.value = staleMessage ? {...described, message: staleMessage} : described
   }
   loading.value = false
 }
 
-watch(() => props.memberId, reload, {immediate: true})
+watch(() => props.memberId, () => reload(), {immediate: true})
 
 watch(showUpload, (open) => {
   if (open) return
@@ -72,27 +75,35 @@ function onFile(chosen: File) {
   if (!title.value) title.value = chosen.name
 }
 
+/**
+ * Puts a document up, then fetches the list again.
+ *
+ * <p>Answered for separately, because a document that arrived and a list that then failed to come
+ * back used to read as a refused upload, and the reader uploads the same file a second time.
+ */
 async function upload() {
   if (!file.value) return
   saving.value = true
-  error.value = ''
+  actionFailure.value = null
   try {
     await clusterMembers.uploadManagedMemberDocument(
         props.memberId, file.value, title.value.trim() || file.value.name)
     showUpload.value = false
-    await reload()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    actionFailure.value = describeFailure(e, t)
+    saving.value = false
+    return
   }
   saving.value = false
+  await reload(t('failure.staleAfterAction'))
 }
 
 async function download(document: ManagedMemberDocument) {
-  error.value = ''
+  actionFailure.value = null
   try {
     await clusterMembers.downloadManagedMemberDocument(document.id, document.fileName)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    actionFailure.value = describeFailure(e, t)
   }
 }
 </script>
@@ -113,7 +124,8 @@ async function download(document: ManagedMemberDocument) {
 
     <MutedText size="sm">{{ t('clusterMemberDetail.documents.hint') }}</MutedText>
 
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="loadFailure"/>
+    <FailureAlert :failure="actionFailure"/>
     <Spinner v-if="loading" size="md"/>
     <EmptyHint v-else-if="documents.length === 0">{{ t('clusterMemberDetail.documents.none') }}</EmptyHint>
     <ul v-else class="space-y-2">

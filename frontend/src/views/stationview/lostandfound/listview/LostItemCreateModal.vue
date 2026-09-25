@@ -7,6 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -16,6 +17,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import LostItemImageField from './LostItemImageField.vue'
+import type {Failure} from '@/util/failure'
 import {todayIsoDate} from '@/util/format'
 
 export interface LostItemCreatePayload {
@@ -34,7 +36,8 @@ const props = defineProps<{
    * in the list without a picture.
    */
   savedWithoutImage: boolean
-  error?: string
+  /** Why filing it did not work, described, or nothing where nothing went wrong. */
+  failure?: Failure | null
 }>()
 
 const emit = defineEmits<{
@@ -89,7 +92,7 @@ watch(visible, (value, previous) => {
       <Alert v-if="savedWithoutImage" variant="info" data-testid="saved-without-image">
         {{ t('lostAndFound.savedWithoutImage') }}
       </Alert>
-      <Alert v-if="error" variant="error" data-testid="create-error">{{ error }}</Alert>
+      <FailureAlert :failure="failure" data-testid="create-error"/>
 
       <LostItemImageField ref="imageField" v-model="newImageFile"/>
 

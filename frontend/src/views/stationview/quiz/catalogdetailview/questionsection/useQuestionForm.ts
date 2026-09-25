@@ -9,15 +9,19 @@ import {QuizQuestionTypes, type QuizQuestion, type QuizQuestionTypeName} from '@
 import { quiz } from '@/api'
 import { defaultConfigFor } from './questionDefaultConfig'
 import { useQuestionImage } from './useQuestionImage'
+import type { Failure } from '@/util/failure'
 
 /**
  * Owns the inline question editor: which card is expanded, the draft values it
  * edits and the create or update round trip that closes it again.
+ *
+ * <p>A save the server refused is handed on described rather than as a bare signal that something
+ * went wrong, so the section above can say which field it was refused over.
  */
 export function useQuestionForm(
     catalogId: Ref<number>,
     onUpdated: () => void,
-    onSaveFailed: () => void,
+    onSaveFailed: (failure: Failure) => void,
 ) {
   const image = useQuestionImage()
 
@@ -78,7 +82,7 @@ export function useQuestionForm(
     return image.remove(editingQuestion.value?.id ?? null)
   }
 
-  const {running: savingQuestion, run: runSaveQuestion} = useAsyncAction(async () => {
+  const {running: savingQuestion, failure: saveFailure, run: runSaveQuestion} = useAsyncAction(async () => {
     const data: Record<string, unknown> = {
       title: questionTitle.value.trim(),
       description: questionDescription.value.trim(),
@@ -106,7 +110,7 @@ export function useQuestionForm(
   async function saveQuestion() {
     if (!questionTitle.value.trim() || savingQuestion.value) return
     const saved = await runSaveQuestion()
-    if (!saved) onSaveFailed()
+    if (!saved && saveFailure.value) onSaveFailed(saveFailure.value)
   }
 
   return {

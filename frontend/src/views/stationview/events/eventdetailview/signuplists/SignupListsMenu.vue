@@ -89,7 +89,7 @@ const existingProcedure = ref<Procedure | null>(null)
  * accepted sign-ups from it, so the two agree on the first day and only the following one can still
  * agree on the next.
  */
-const {running: creating, error, run: runCreateChecklist} = useAsyncAction(
+const {running: creating, failure: checklistFailure, run: runCreateChecklist} = useAsyncAction(
     async (payload: {name: string; description: string; column: string; following: boolean}) => {
       const following = payload.following && props.effectiveDate !== null
       const detail = await checklists.createChecklist({
@@ -122,7 +122,7 @@ const {running: creating, error, run: runCreateChecklist} = useAsyncAction(
  * is meant for is a second call. It stays a draft until somebody publishes it, and that is left to
  * the person, because a survey with no questions in it is not one anybody should be sent.
  */
-const {running: creatingSurvey, error: surveyError, run: runCreateSurvey} = useAsyncAction(
+const {running: creatingSurvey, failure: surveyFailure, run: runCreateSurvey} = useAsyncAction(
     async (payload: {name: string}) => {
       const form = await forms.createForm({title: payload.name, purpose: FormPurpose.INTERNAL})
       await forms.setRestrictions(form.id, {
@@ -143,7 +143,7 @@ const {running: creatingSurvey, error: surveyError, run: runCreateSurvey} = useA
  * What the dialog needs before it can offer anything: the templates it must pick one of, and
  * whatever was already prepared for this same date.
  */
-const {running: loadingProcedure, run: runLoadProcedure} = useAsyncAction(
+const {running: loadingProcedure, failure: procedureLoadFailure, run: runLoadProcedure} = useAsyncAction(
     async () => {
       const [templates, prepared] = await Promise.all([
         procedures.getTemplates(),
@@ -152,7 +152,7 @@ const {running: loadingProcedure, run: runLoadProcedure} = useAsyncAction(
       procedureTemplates.value = templates.filter(template => !template.archived)
       existingProcedure.value = prepared[0] ?? null
     },
-    {formatError: () => t('signupLists.createError')},
+    {formatError: () => t('signupLists.loadError')},
 )
 
 async function openProcedure() {
@@ -175,7 +175,7 @@ function openExistingProcedure(procedure: Procedure) {
  * private one is closed to an assignee who may not read every procedure of the station. Its steps
  * are marked as assigned to the user, because that is the mark a non-manager is allowed to tick.
  */
-const {running: creatingProcedure, error: procedureError, run: runCreateProcedure} = useAsyncAction(
+const {running: creatingProcedure, failure: procedureFailure, run: runCreateProcedure} = useAsyncAction(
     async (payload: {templateId: number; name: string; description: string; dueAt: string}) => {
       const created = await procedures.createProcedure({
         templateId: payload.templateId,
@@ -243,7 +243,7 @@ const {running: creatingProcedure, error: procedureError, run: runCreateProcedur
   <SignupChecklistDialog
       v-model="showChecklist"
       :creating="creating"
-      :error="error"
+      :failure="checklistFailure"
       :member-set="memberSet"
       :date-label="dateLabel"
       :suggested-name="suggestedName"
@@ -253,7 +253,7 @@ const {running: creatingProcedure, error: procedureError, run: runCreateProcedur
   <SignupSurveyDialog
       v-model="showSurvey"
       :creating="creatingSurvey"
-      :error="surveyError"
+      :failure="surveyFailure"
       :member-set="memberSet"
       :date-label="dateLabel"
       :suggested-name="suggestedName"
@@ -264,7 +264,7 @@ const {running: creatingProcedure, error: procedureError, run: runCreateProcedur
       v-model="showProcedure"
       :loading="loadingProcedure"
       :creating="creatingProcedure"
-      :error="procedureError"
+      :failure="procedureLoadFailure ?? procedureFailure"
       :member-set="memberSet"
       :date-label="dateLabel"
       :suggested-name="suggestedName"

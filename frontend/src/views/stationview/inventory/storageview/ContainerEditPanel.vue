@@ -16,7 +16,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import ContainerKindPicker from '@/views/stationview/inventory/storageview/ContainerKindPicker.vue'
 import ContainerParentPicker from '@/views/stationview/inventory/storageview/ContainerParentPicker.vue'
-import {mapContainerError} from '@/views/stationview/inventory/storageview/containerErrors'
+import {mapContainerFailure} from '@/views/stationview/inventory/storageview/containerErrors'
+import type {Failure} from '@/util/failure'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
@@ -31,7 +32,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   saved: []
   cancel: []
-  error: [message: string]
+  error: [failure: Failure]
 }>()
 
 const {t} = useI18n()
@@ -51,22 +52,28 @@ watch(() => props.container, (c) => {
   parentId.value = c.parentId ?? null
 }, {deep: true})
 
-const {running: submitting, error: saveError, run: runSave} = useAsyncAction(async () => {
-  const resolvedKindId = (await kindPicker.value?.resolve()) ?? null
-  await inventoryContainers.updateContainer(props.container.id, {
-    parentId: parentId.value,
-    internalId: internalId.value.trim() || null,
-    name: name.value.trim(),
-    kindId: resolvedKindId,
-    description: description.value,
-  })
+/**
+ * Saves, and hands whatever went wrong up to the page, which is where this panel's failures are shown.
+ *
+ * <p>A shelf that would end up inside itself, or a name with a slash in it, is a rule rather than a
+ * fault, so it is worded here and nothing is offered to report for it.
+ */
+const {running: submitting, run: save} = useAsyncAction(async () => {
+  try {
+    const resolvedKindId = (await kindPicker.value?.resolve()) ?? null
+    await inventoryContainers.updateContainer(props.container.id, {
+      parentId: parentId.value,
+      internalId: internalId.value.trim() || null,
+      name: name.value.trim(),
+      kindId: resolvedKindId,
+      description: description.value,
+    })
+  } catch (e) {
+    emit('error', mapContainerFailure(t, e))
+    return
+  }
   emit('saved')
-}, {formatError: (e) => mapContainerError(t, e, 'inventory.storage.errors.updateFailed')})
-
-async function save() {
-  await runSave()
-  if (saveError.value) emit('error', saveError.value)
-}
+})
 </script>
 
 <template>

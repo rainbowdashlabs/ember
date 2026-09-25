@@ -22,7 +22,7 @@ import {twoFactorAdmin} from '@/api'
 import type {MemberStatus, TwoFactorPolicy} from '@/api/twoFactorAdmin'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const {hasPermission, loaded} = useSession()
@@ -35,7 +35,7 @@ watch(loaded, (isLoaded) => {
 }, {immediate: true})
 
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const userTypes = ref<string[]>([])
 const policies = ref<TwoFactorPolicy[]>([])
 const members = ref<MemberStatus[]>([])
@@ -49,9 +49,9 @@ const policyByUserType = computed(() => {
   return map
 })
 
-async function load() {
+async function load(staleMessage?: string) {
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     const [t, p, m] = await Promise.all([
       twoFactorAdmin.listAssignableUserTypes(),
@@ -62,11 +62,18 @@ async function load() {
     policies.value = p
     members.value = m
   } catch (e) {
-    error.value = apiErrorMessage(e) || t('common.error')
+    const described = describeFailure(e, t)
+    failure.value = staleMessage ? {...described, message: staleMessage} : described
   }
   loading.value = false
 }
 
+/**
+ * Turns the requirement on or off for one kind of member, then reads the page back.
+ *
+ * <p>The read is answered for separately: a policy that was written and a page that then failed to
+ * refresh used to report a refused write, and the reader flicks the switch again.
+ */
 async function togglePolicy(userType: string) {
   const existing = policyByUserType.value.get(userType)
   saving.value = userType
@@ -76,11 +83,13 @@ async function togglePolicy(userType: string) {
     } else {
       await twoFactorAdmin.upsertStationPolicy(userType, true)
     }
-    await load()
   } catch (e) {
-    error.value = apiErrorMessage(e) || t('common.error')
+    failure.value = describeFailure(e, t)
+    saving.value = null
+    return
   }
   saving.value = null
+  await load(t('failure.staleAfterAction'))
 }
 
 function userTypeLabel(name: string): string {
@@ -102,11 +111,13 @@ async function confirmReset() {
   try {
     await twoFactorAdmin.resetAccount2FAByStationAdmin(resetTarget.value.accountId)
     resetTarget.value = null
-    await load()
   } catch (e) {
-    error.value = apiErrorMessage(e) || t('common.error')
+    failure.value = describeFailure(e, t)
+    resetLoading.value = false
+    return
   }
   resetLoading.value = false
+  await load(t('failure.staleAfterAction'))
 }
 
 onMounted(load)
@@ -119,7 +130,7 @@ onMounted(load)
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="md"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <PoliciesPanel

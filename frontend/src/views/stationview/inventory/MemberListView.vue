@@ -9,7 +9,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ExportFormatModal from '@/components/documents/ExportFormatModal.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import MemberListHeader from './memberlistview/MemberListHeader.vue'
@@ -110,7 +110,7 @@ const visibleInventoryIds = computed(() => new Set(table.visibleColumns
 
 const displayedInventories = computed(() => inventories.value.filter(inv => visibleInventoryIds.value.has(inv.id)))
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [mems, invs, grps, tgs] = await Promise.all([
     stationMembers.listMembers(),
     inventory.listInventories(),
@@ -176,7 +176,7 @@ const {
   selectedFieldIds: selectedExportFields,
   allFields,
   exporting,
-  exportError,
+  exportFailure,
   enter: enterExportMode,
   cancel: cancelExport,
   toggleField: toggleExportField,
@@ -222,7 +222,7 @@ function goToMember(memberId: number) {
           @export="runExport"
       />
 
-      <Alert v-if="error || exportError" variant="error">{{ error || exportError }}</Alert>
+      <FailureAlert :failure="failure ?? exportFailure"/>
 
       <AsyncSection :loading="loading">
         <SearchInput v-model="table.search" :placeholder="t('membersList.filter')" autofocus />

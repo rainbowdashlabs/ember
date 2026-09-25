@@ -33,7 +33,7 @@ const runId = computed(() => Number(route.params.id))
 const evalData = ref<EvaluationResponse | null>(null)
 const memberMap = ref<Map<number, StationMember>>(new Map())
 
-const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   const [ev, members] = await Promise.all([
     protocol.getEvaluation(runId.value),
     stationMembers.listMembers(),
@@ -87,7 +87,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
     </div>
 
     <Spinner v-if="loading" />
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <template v-if="!loading && evalData">
       <MutedText tag="p" size="sm">

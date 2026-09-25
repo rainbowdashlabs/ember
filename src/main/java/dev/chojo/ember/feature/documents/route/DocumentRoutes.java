@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.documents.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -22,9 +23,7 @@ import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.http.UploadedFile;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -85,7 +84,7 @@ public class DocumentRoutes implements Routes {
      */
     private void requireModule(int stationId) {
         if (stationService.findDisabledModules(stationId).contains(StationModule.DOCUMENTS)) {
-            throw new NotFoundResponse();
+            throw Refusal.DOCUMENTS_SWITCHED_OFF.raise();
         }
     }
 
@@ -150,7 +149,7 @@ public class DocumentRoutes implements Routes {
         var session = UserSession.from(ctx);
         int stationId = requireMemberStation(ctx, memberId);
         boolean readsOthers = session.hasPermission(StationPermission.DOCUMENT_READ_MEMBER);
-        if (!readsOthers && !ownAndManaged(session).contains(memberId)) throw new ForbiddenResponse();
+        if (!readsOthers && !ownAndManaged(session).contains(memberId)) throw Refusal.DOCUMENT_NOT_YOURS.raise();
         ctx.json(documentRepository.findByMember(stationId, memberId, readsOthers).stream()
                 .map(this::toResponse)
                 .toList());
@@ -189,7 +188,9 @@ public class DocumentRoutes implements Routes {
         if (title == null || title.isBlank()) title = file.filename();
         boolean hidden = Boolean.parseBoolean(ctx.formParam("hidden"));
         boolean keepOnArchive = Boolean.parseBoolean(ctx.formParam("keepOnArchive"));
-        if (hidden && !session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) throw new ForbiddenResponse();
+        if (hidden && !session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
+            throw Refusal.DOCUMENT_HIDING_NOT_ALLOWED.raise();
+        }
 
         byte[] data;
         try (var in = file.content()) {
@@ -235,7 +236,7 @@ public class DocumentRoutes implements Routes {
 
     /** The station the reader is signed in to, which every document belongs to. */
     private static int requireStation(UserSession session) {
-        if (session.stationId() == null) throw new ForbiddenResponse();
+        if (session.stationId() == null) throw Refusal.NO_STATION_CHOSEN.raise();
         return session.stationId();
     }
 
@@ -322,7 +323,7 @@ public class DocumentRoutes implements Routes {
                 .map(Integer::valueOf)
                 .toList();
         if (!ids.isEmpty() && !UserSession.from(ctx).hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
-            throw new ForbiddenResponse();
+            throw Refusal.DOCUMENT_NOT_YOURS_TO_ADD.raise();
         }
         for (int memberId : ids) {
             requireMemberStation(ctx, memberId);
@@ -369,7 +370,7 @@ public class DocumentRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void content(Context ctx) {
         var document = requireReadable(ctx);
-        var data = documentService.read(document).orElseThrow(NotFoundResponse::new);
+        var data = documentService.read(document).orElseThrow(Refusal.DOCUMENT_NOT_HERE::raise);
         var disposition = SafeInlineMime.isInlineSafe(document.mimeType())
                 ? SafeContentDisposition.Disposition.INLINE
                 : SafeContentDisposition.Disposition.ATTACHMENT;
@@ -388,7 +389,7 @@ public class DocumentRoutes implements Routes {
     private void thumbnail(Context ctx) {
         var document = requireReadable(ctx);
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(256);
-        var picture = documentService.thumbnail(document, size).orElseThrow(NotFoundResponse::new);
+        var picture = documentService.thumbnail(document, size).orElseThrow(Refusal.PICTURE_NOT_HERE::raise);
         ctx.contentType(picture.contentType());
         ctx.result(picture.data());
     }
@@ -446,9 +447,9 @@ public class DocumentRoutes implements Routes {
         var session = UserSession.from(ctx);
         var document = requireOwnedDocument(ctx, id);
         if (mayRead(session, id)) return document;
-        if (document.hidden()) throw new NotFoundResponse();
+        if (document.hidden()) throw Refusal.DOCUMENT_NOT_HERE.raise();
         if (ownAndManaged(session).stream().noneMatch(member -> documentRepository.isBoundTo(id, member))) {
-            throw new ForbiddenResponse();
+            throw Refusal.DOCUMENT_NOT_YOURS.raise();
         }
         return document;
     }
@@ -481,13 +482,13 @@ public class DocumentRoutes implements Routes {
         var needed = documentRepository.hasNoMembers(id)
                 ? StationPermission.DOCUMENT_EDIT
                 : StationPermission.DOCUMENT_EDIT_MEMBER;
-        if (!session.hasPermission(needed)) throw new ForbiddenResponse();
+        if (!session.hasPermission(needed)) throw Refusal.DOCUMENT_NOT_YOURS_TO_CHANGE.raise();
     }
 
     private void requireMayUpload(UserSession session, int memberId) {
         if (session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) return;
         if (isSelf(session, memberId) && session.hasPermission(StationPermission.MEMBER_SELF_UPLOAD)) return;
-        throw new ForbiddenResponse();
+        throw Refusal.DOCUMENT_NOT_YOURS_TO_ADD.raise();
     }
 
     private static boolean isSelf(UserSession session, int memberId) {

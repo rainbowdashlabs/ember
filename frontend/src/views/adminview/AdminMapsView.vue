@@ -22,7 +22,7 @@ import {maps} from '@/api'
 import {useMapsConfig} from '@/composables/useMapsConfig'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure} from '@/util/failure'
 import type {
   AdminMapsConfig,
   MapsGeocodingConfig,
@@ -51,7 +51,7 @@ const tileCacheMaxMb = ref(500)
 const cacheStats = ref<maps.TileCacheStats | null>(null)
 const showPurgeModal = ref(false)
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [config, stats] = await Promise.all([
     maps.getAdminMapsConfig(),
     maps.getCacheStats().catch(() => null),
@@ -63,7 +63,7 @@ const {loading, error} = useAsyncLoader(async () => {
 })
 
 async function save() {
-  error.value = ''
+  failure.value = null
   try {
     const payload: AdminMapsConfig = {
       tiles: tiles.value,
@@ -76,7 +76,7 @@ async function save() {
     tileCacheMaxMb.value = saved.tileCacheMaxMb
     await reloadMapsConfig()
   } catch (err) {
-    error.value = apiErrorMessage(err) || t('common.error')
+    failure.value = describeFailure(err, t)
     throw err
   }
 }
@@ -86,8 +86,8 @@ async function purgeCache() {
     const stats = await maps.purgeCache()
     cacheStats.value = stats
     showFlash(t('adminMaps.cachePurged'))
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     showPurgeModal.value = false
   }
@@ -102,7 +102,7 @@ async function purgeCache() {
       </div>
 
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <Alert v-if="flash" variant="success">{{ flash }}</Alert>
 
       <template v-if="!loading">

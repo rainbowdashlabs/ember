@@ -73,7 +73,7 @@ function statusLabel(status: string): string {
   return te(key) ? t(key) : status
 }
 
-const {config: stats, loading, error} = useConfigPanel<AdminStats | null>({
+const {config: stats, loading, failure} = useConfigPanel<AdminStats | null>({
   initial: null,
   fetch: async () => (await client.get<AdminStats>('/admin/statistics')).data,
 })
@@ -228,7 +228,7 @@ const emailStatusOption = computed(() => {
   <ViewContent :title="t('pages.admin-statistics.title')" :subtitle="t('pages.admin-statistics.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading && stats">
         <EmailStatsSection

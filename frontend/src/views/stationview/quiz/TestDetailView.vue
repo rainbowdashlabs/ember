@@ -22,6 +22,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import TestDetailBody from './testdetailview/TestDetailBody.vue'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { instantToLocalInput } from '@/util/format'
+import { describeFailure } from '@/util/failure'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -60,21 +61,8 @@ const restrictionsDirty = ref(false)
 
 interface PendingConfirm {
   message: string
-  action: () => Promise<void>
-}
-
-const confirmAction = useConfirmAction<PendingConfirm>({
-  onConfirm: async (pending) => {
-    try {
-      await pending.action()
-    } catch {
-      return
-    }
-  },
-})
-
-function showConfirm(message: string, action: () => Promise<void>) {
-  confirmAction.request({message, action})
+  /** Whatever the act answers with is ignored; the page is caught up separately afterwards. */
+  action: () => Promise<unknown>
 }
 
 const test = computed(() => detail.value?.test ?? null)
@@ -97,9 +85,15 @@ const timesDirty = ref(false)
 
 function markTimesDirty() { timesDirty.value = true }
 
+/**
+ * Writes the opening and closing times, then reads the test back.
+ *
+ * <p>The two are answered for separately: times the server had already taken, followed by a page
+ * that would not refresh, used to say the times had been refused.
+ */
 async function saveTimes() {
   if (!test.value) return
-  error.value = ''
+  failure.value = null
   try {
     await quiz.updateTest(test.value.id, {
       title: test.value.title, description: test.value.description,
@@ -108,14 +102,14 @@ async function saveTimes() {
       endAt: editEndAt.value ? new Date(editEndAt.value).toISOString() : null,
     })
     timesDirty.value = false
-    await reload()
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
+  await reload()
 }
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const [d, catalogList] = await Promise.all([quiz.getTest(testId.value), quiz.listCatalogs()])
   detail.value = d
   catalogs.value = catalogList.catalogs
@@ -143,16 +137,37 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   }
 }, {autoLoad: loaded.value})
 
+/**
+ * Opening and closing a test, both asked about first and both followed by reading the test back.
+ *
+ * <p>The two halves are the lifecycle's to keep apart, so a test that was opened and a page that
+ * then failed to refresh does not read as a test that would not open. What this used to do was
+ * worse than either: the refusal was caught and dropped, and a test that stayed shut said nothing.
+ */
+const confirmAction = useConfirmAction<PendingConfirm>({
+  onConfirm: async pending => { await pending.action() },
+  onSuccess: () => reload(),
+  failure,
+})
+
+function showConfirm(message: string, action: () => Promise<unknown>) {
+  confirmAction.request({message, action})
+}
+
+/** An empty question sheet and one that could not be read are different answers, so they read so. */
 async function loadFrozenQuestions() {
   try { frozenQuestions.value = await quiz.listFrozenQuestions(testId.value) }
-  catch { frozenQuestions.value = [] }
+  catch (e) {
+    frozenQuestions.value = []
+    failure.value = describeFailure(e, t)
+  }
 }
 
 async function generateQuestions() {
   frozenLoading.value = true
-  error.value = ''
+  failure.value = null
   try { frozenQuestions.value = await quiz.generateFrozenQuestions(testId.value) }
-  catch { error.value = t('common.error') }
+  catch (e) { failure.value = describeFailure(e, t) }
   finally { frozenLoading.value = false }
 }
 
@@ -161,29 +176,29 @@ function questionTypeName(q: QuizQuestion): string {
 }
 
 async function randomReplace(position: number) {
-  error.value = ''
+  failure.value = null
   try { frozenQuestions.value = await quiz.randomReplaceFrozenQuestion(testId.value, position) }
-  catch { error.value = t('common.error') }
+  catch (e) { failure.value = describeFailure(e, t) }
 }
 
 async function openPickModal(position: number) {
   pickPosition.value = position
   pickSearch.value = ''
-  error.value = ''
+  failure.value = null
   try {
     availableQuestions.value = await quiz.listAvailableReplacements(testId.value)
     showPickModal.value = true
-  } catch { error.value = t('common.error') }
+  } catch (e) { failure.value = describeFailure(e, t) }
 }
 
 async function pickQuestion(questionId: number) {
   if (pickPosition.value === null) return
-  error.value = ''
+  failure.value = null
   try {
     frozenQuestions.value = await quiz.replaceFrozenQuestion(testId.value, pickPosition.value, questionId)
     showPickModal.value = false
     pickPosition.value = null
-  } catch { error.value = t('common.error') }
+  } catch (e) { failure.value = describeFailure(e, t) }
 }
 
 const filteredAvailableQuestions = computed(() => {
@@ -195,11 +210,11 @@ const filteredAvailableQuestions = computed(() => {
 })
 
 function activateTest() {
-  showConfirm(t('quiz.tests.confirmActivate'), async () => { await quiz.activateTest(testId.value); await reload() })
+  showConfirm(t('quiz.tests.confirmActivate'), () => quiz.activateTest(testId.value))
 }
 
 function closeTest() {
-  showConfirm(t('quiz.tests.confirmClose'), async () => { await quiz.closeTest(testId.value); await reload() })
+  showConfirm(t('quiz.tests.confirmClose'), () => quiz.closeTest(testId.value))
 }
 
 function onUserTypesUpdate(types: string[]) {
@@ -218,7 +233,7 @@ function onTagIdsUpdate(ids: number[]) {
 }
 
 async function saveRestrictions() {
-  error.value = ''
+  failure.value = null
   try {
     await quiz.setRestrictions(testId.value, {
       userTypes: selectedUserTypes.value,
@@ -226,13 +241,13 @@ async function saveRestrictions() {
       tagIds: selectedTagIds.value,
     })
     restrictionsDirty.value = false
-  } catch { error.value = t('common.error') }
+  } catch (e) { failure.value = describeFailure(e, t) }
 }
 
 async function grantAccess(memberId: number, closesAt: string | null) {
-  error.value = ''
+  failure.value = null
   try { await quiz.grantAccess(testId.value, memberId, closesAt) }
-  catch { error.value = t('common.error') }
+  catch (e) { failure.value = describeFailure(e, t) }
 }
 
 watch(loaded, (isLoaded) => { if (isLoaded) reload() })
@@ -242,7 +257,7 @@ watch(loaded, (isLoaded) => { if (isLoaded) reload() })
   <ViewContent :title="pageTitle" :subtitle="t('pages.quiz-test-detail.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <TestDetailBody
           v-if="!loading && test" :test="test" :detail="detail" :sections="sections"

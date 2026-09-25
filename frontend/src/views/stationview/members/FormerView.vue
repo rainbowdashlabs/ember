@@ -21,7 +21,7 @@ import { useConfirmAction } from '@/composables/useConfirmAction'
 
 const { t } = useI18n()
 
-const { config: members, loading, error, reload: loadData } = useConfigPanel<StationMember[]>({
+const { config: members, loading, failure, reload: loadData } = useConfigPanel<StationMember[]>({
   initial: [],
   fetch: () => stationMembers.listFormerMembers(),
 })
@@ -38,7 +38,7 @@ const {
     success.value = t('formerMembers.reactivated')
     await loadData()
   },
-  error,
+  failure,
 })
 </script>
 
@@ -49,7 +49,7 @@ const {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading">

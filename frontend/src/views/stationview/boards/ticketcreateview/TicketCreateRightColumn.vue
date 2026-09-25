@@ -13,6 +13,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import TicketCreateMetaFields from './TicketCreateMetaFields.vue'
 import type { TicketPriorityName, BoardLane, BoardLabel } from '@/api/boards'
 import type { MemberCompletion } from '@/api/stationMembers'
+import type { Failure } from '@/util/failure'
 
 defineProps<{
     createLaneOptions: BoardLane[]
@@ -20,7 +21,10 @@ defineProps<{
     assignableMembers: MemberCompletion[]
     allLabels: BoardLabel[]
     selectedLabels: BoardLabel[]
-    error: string
+    /** What went wrong on the last attempt, described, or nothing where nothing has. */
+    failure: Failure | null
+    /** What the reader left out, which is theirs to correct and no fault of Ember's. */
+    validationError: string
     submitting: boolean
     cancelTo: string
 }>()
@@ -58,7 +62,8 @@ const { t } = useI18n()
             @toggle-label="id => emit('toggleLabel', id)"
             @create-label="name => emit('createLabel', name)"
         />
-        <FailureAlert :message="error"/>
+        <FailureAlert :message="validationError" expected/>
+        <FailureAlert :failure="failure"/>
         <ButtonRow pair>
             <SecondaryButton class="sm:flex-1" @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton class="sm:flex-1" :disabled="submitting" @click="emit('submit')">

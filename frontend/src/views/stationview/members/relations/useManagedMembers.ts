@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { StationUserType, type StationMember } from '@/api/types'
 import { stationMembers } from '@/api'
 import { memberDisplayName } from '../listview/useMemberData'
+import { describeFailure, type Failure } from '@/util/failure'
 
 /**
  * The other half of the guardian relation: the members somebody looks after.
@@ -23,7 +24,7 @@ import { memberDisplayName } from '../listview/useMemberData'
 export function useManagedMembers(
     memberId: Ref<number>,
     allMembers: Ref<StationMember[]>,
-    error: Ref<string>,
+    failure: Ref<Failure | null>,
 ) {
   const { t } = useI18n()
 
@@ -44,11 +45,11 @@ export function useManagedMembers(
   })
 
   async function write(ids: number[]) {
-    error.value = ''
+    failure.value = null
     try {
       managedMembers.value = await stationMembers.setManaged(memberId.value, ids)
-    } catch {
-      error.value = t('common.error')
+    } catch (e) {
+      failure.value = describeFailure(e, t)
     }
   }
 

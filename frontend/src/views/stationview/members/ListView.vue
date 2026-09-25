@@ -13,6 +13,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {StationPermission, type StationMember} from '@/api/types'
 import { STATION_MEMBER_SOURCE } from './listview/useMemberData'
 import { useAsyncAction } from '@/composables/useAsyncAction'
@@ -40,7 +41,7 @@ const resendSuccess = ref('')
 
 const {
   running: resending,
-  error: resendError,
+  failure: resendFailure,
   run: confirmResendSetup,
   clearError: clearResendError,
 } = useAsyncAction(async () => {
@@ -48,11 +49,6 @@ const {
   await stationMembers.resendSetupMail(resendTarget.value.id)
   resendSuccess.value = t('membersList.resendSuccess')
   resendTarget.value = null
-}, {
-  formatError: e => {
-    const data = (e as {response?: {data?: {title?: string; message?: string}}})?.response?.data
-    return data?.title ?? data?.message ?? t('common.error')
-  },
 })
 
 function openResendSetup(member: StationMember) {
@@ -71,7 +67,7 @@ function openResendSetup(member: StationMember) {
     <Modal v-if="resendTarget" model-value @update:model-value="(v) => { if (!v) resendTarget = null }">
       <div class="space-y-4">
         <p>{{ t('membersList.resendConfirm', {name: resendTarget?.name ?? ''}) }}</p>
-        <Alert v-if="resendError" variant="error">{{ resendError }}</Alert>
+        <FailureAlert :failure="resendFailure"/>
         <ButtonRow align="end">
           <SecondaryButton :disabled="resending" @click="resendTarget = null">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton :icon="['fas', 'paper-plane']" :disabled="resending" @click="confirmResendSetup">

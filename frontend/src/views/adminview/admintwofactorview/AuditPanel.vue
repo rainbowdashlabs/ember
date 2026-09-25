@@ -18,7 +18,7 @@ import AccountSearchPicker from '@/components/input/search/AccountSearchPicker.v
 import {twoFactorAdmin} from '@/api'
 import type {AccountSearchResult, AuditEntry} from '@/api/twoFactorAdmin'
 import {useDataTable} from '@/composables/useDataTable'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 import {auditColumns} from './auditColumns'
 
 const {t} = useI18n()
@@ -30,7 +30,7 @@ const auditPageSize = 50
 const auditHasMore = ref(false)
 const auditAccountFilter = ref<number | null>(null)
 const auditFilterUid = ref<string | null>(null)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 /**
  * The two-factor audit log, a page at a time, narrowed to one account where one is picked.
@@ -63,7 +63,7 @@ async function loadAudit(reset = false) {
     auditHasMore.value = entries.length === auditPageSize
     auditOffset.value += entries.length
   } catch (e) {
-    error.value = apiErrorMessage(e) || t('common.error')
+    failure.value = describeFailure(e, t)
   }
   auditLoading.value = false
 }
@@ -88,7 +88,7 @@ onMounted(() => loadAudit(true))
 <template>
   <NeutralContainer class="space-y-3">
     <SubHeader>{{ t('twoFactor.admin.audit.title') }}</SubHeader>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <div class="flex items-end gap-2">
       <div class="flex-1">
         <MutedText tag="label" size="sm">{{ t('twoFactor.admin.audit.filterAccount') }}</MutedText>

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -26,7 +27,6 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.SlugGenerator;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -475,7 +475,7 @@ public class StationService {
         if (slug != null) {
             var existing = stationRepository.findBySlug(slug);
             if (existing.isPresent() && existing.get().id() != stationId) {
-                throw new BadRequestResponse("Slug is already in use");
+                throw Refusal.STATION_SLUG_TAKEN.raise();
             }
         }
         stationRepository.updatePublicSlug(stationId, slug);

@@ -10,7 +10,7 @@ import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import WaitingListsGrid from './listview/WaitingListsGrid.vue'
 import CreateListModal from './listview/CreateListModal.vue'
@@ -26,7 +26,7 @@ const router = useRouter()
 const { hasPermission } = useSession()
 const canEdit = computed(() => hasPermission(StationPermission.WAITLIST_EDIT))
 
-const { config: lists, loading, error } = useConfigPanel<WaitingListWithCount[]>({
+const { config: lists, loading, failure } = useConfigPanel<WaitingListWithCount[]>({
   initial: [],
   fetch: () => waitingList.listAll(),
 })
@@ -43,9 +43,9 @@ function openCreate() {
   showCreateModal.value = true
 }
 
-const { running: creating, error: createError, run: createList } = useAsyncAction(async () => {
+const { running: creating, failure: createFailure, run: createList } = useAsyncAction(async () => {
   if (!newName.value.trim()) return
-  error.value = ''
+  failure.value = null
   const created = await waitingList.create({
     name: newName.value.trim(),
     description: newDescription.value.trim(),
@@ -69,7 +69,7 @@ const { running: creating, error: createError, run: createList } = useAsyncActio
       </div>
 
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error || createError" variant="error">{{ error || createError }}</Alert>
+      <FailureAlert :failure="failure ?? createFailure"/>
 
       <template v-if="!loading">
         <EmptyState v-if="lists.length === 0">{{ t('waitingList.noLists') }}</EmptyState>

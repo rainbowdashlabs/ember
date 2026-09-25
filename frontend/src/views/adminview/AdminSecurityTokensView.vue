@@ -17,7 +17,7 @@ import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
 const generating = ref(false)
-const {config, loading, error, runWith} = useConfigPanel<TokensConfigResponse>({
+const {config, loading, failure, runWith} = useConfigPanel<TokensConfigResponse>({
   initial: {
     tokenBytes: 32,
     verifyTokenHours: 24,
@@ -53,7 +53,7 @@ async function generatePepper() {
   <ViewContent :title="t('pages.admin-security-tokens.title')" :subtitle="t('pages.admin-security-tokens.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <TokenConfigPanel :config="config" :save="save"/>

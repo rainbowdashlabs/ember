@@ -77,7 +77,7 @@ describe('useEquipmentNeeds', () => {
         await needs.loadCoverage()
 
         expect(needs.coverage.value, 'nothing was read').toEqual([])
-        expect(needs.error.value, 'and the screen is told so').toBe('Kein Zugriff auf das Inventar')
+        expect(needs.failure.value?.message, 'and the screen is told so').toBe('Kein Zugriff auf das Inventar')
     })
 
     it('keeps a coverage that was read clear of an earlier failure', async () => {
@@ -87,7 +87,7 @@ describe('useEquipmentNeeds', () => {
 
         await needs.loadCoverage()
 
-        expect(needs.error.value).toBe('')
+        expect(needs.failure.value).toBeNull()
     })
 
     /**
@@ -101,16 +101,21 @@ describe('useEquipmentNeeds', () => {
         const done = await needs.add(line())
 
         expect(done, 'the line was not written').toBe(false)
-        expect(needs.saveError.value, 'and the dialog has something to show').not.toBe('')
+        expect(needs.saveFailure.value?.message, 'and the dialog has something to show').toBeTruthy()
     })
 
-    it('repeats what the server said about a line it would not take', async () => {
+    /**
+     * A rule the reader ran into is not a fault in Ember, so no report is offered for it. Inviting
+     * one over a line the inventory does not keep buries the reports that are about real faults.
+     */
+    it('repeats what the server said about a line it would not take, and offers no report', async () => {
         addNeed.mockRejectedValue(refusal('Diese Art gibt es hier nicht'))
         const needs = needsFor('2026-09-04')
 
         await needs.add(line())
 
-        expect(needs.saveError.value).toBe('Diese Art gibt es hier nicht')
+        expect(needs.saveFailure.value?.message).toBe('Diese Art gibt es hier nicht')
+        expect(needs.saveFailure.value?.reportable).toBe(false)
     })
 
     it('leaves nothing of the last failure behind once a line is written', async () => {
@@ -122,7 +127,7 @@ describe('useEquipmentNeeds', () => {
         const done = await needs.add(line())
 
         expect(done).toBe(true)
-        expect(needs.saveError.value).toBe('')
+        expect(needs.saveFailure.value).toBeNull()
     })
 
     /** Removing a line is a request like any other, and it is refused like any other. */
@@ -132,7 +137,7 @@ describe('useEquipmentNeeds', () => {
 
         await needs.remove(12)
 
-        expect(needs.saveError.value).toBe('Die Zeile ist bereits ausgegeben')
+        expect(needs.saveFailure.value?.message).toBe('Die Zeile ist bereits ausgegeben')
     })
 
     it('reads nothing without a date to read for', async () => {
@@ -141,6 +146,6 @@ describe('useEquipmentNeeds', () => {
         await needs.loadCoverage()
 
         expect(coverage).not.toHaveBeenCalled()
-        expect(needs.error.value).toBe('')
+        expect(needs.failure.value).toBeNull()
     })
 })

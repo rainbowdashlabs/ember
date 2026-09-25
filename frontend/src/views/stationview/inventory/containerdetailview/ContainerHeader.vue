@@ -8,17 +8,18 @@ import AppIcon from '@/components/display/AppIcon.vue'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useI18n} from 'vue-i18n'
 import PageHeader from '@/components/typography/PageHeader.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import type {ContainerDetail, InventoryContainerKind} from '@/api/inventoryContainers'
+import type {Failure} from '@/util/failure'
 
 const routes = useInventoryRoutes()
 
 const props = defineProps<{
   detail: ContainerDetail
   kindById: Map<number, InventoryContainerKind>
-  error: string
+  failure: Failure | null
 }>()
 
 const emit = defineEmits<{
@@ -62,8 +63,8 @@ const {t} = useI18n()
       </div>
     </div>
 
-    <div v-if="props.error" class="mb-4">
-      <Alert variant="error">{{ props.error }}</Alert>
+    <div v-if="props.failure" class="mb-4">
+      <FailureAlert :failure="props.failure"/>
     </div>
   </div>
 </template>

@@ -25,7 +25,7 @@ import {formatDate, formatTime} from '@/util/format'
 const {t} = useI18n()
 const {loaded} = useSession()
 
-const {config: sessions, loading, error, reload: loadData} = useConfigPanel<SessionSummary[]>({
+const {config: sessions, loading, failure, reload: loadData} = useConfigPanel<SessionSummary[]>({
   initial: [],
   fetch: () => attendance.listSessionSummaries(),
   immediate: false,
@@ -47,7 +47,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <div v-if="sessions.length === 0" class="text-(--text-muted) text-sm text-center py-4">

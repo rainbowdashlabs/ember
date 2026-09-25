@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -23,7 +23,7 @@ import {inventory, inventoryContainers} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import type {InventoryItem, InventorySize} from '@/api/inventory'
 import type {InventoryContainer} from '@/api/inventoryContainers'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   targetContainerId: number
@@ -39,7 +39,11 @@ const {t} = useI18n()
 
 const open = ref(true)
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
+
+/** What the scanner turned up that the reader has to sort out, which is no fault of Ember's. */
+const scanNote = ref('')
+
 const search = ref('')
 const onlyUnstored = ref(false)
 const items = ref<InventoryItem[]>([])
@@ -92,8 +96,8 @@ async function loadItems() {
     const [allItems, allSizes] = await Promise.all([inventory.listAllItems(), inventory.listAllSizes()])
     items.value = allItems
     sizes.value = allSizes
-  } catch {
-    error.value = t('inventory.storage.loadError')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
@@ -102,22 +106,28 @@ async function loadItems() {
 function onScan(value: string) {
   const term = normaliseScannedPayload(value).trim()
   if (!term) return
-  error.value = ''
+  scanNote.value = ''
   const match = items.value.find(i => (i.internalId ?? '').toLowerCase() === term.toLowerCase())
   if (!match) {
-    error.value = t('inventory.storage.addItems.scanNotFound', {scan: term})
+    scanNote.value = t('inventory.storage.addItems.scanNotFound', {scan: term})
     return
   }
   if (match.containerId === props.targetContainerId) {
-    error.value = t('inventory.storage.scan.itemAlreadyHere', {name: match.name ?? ''})
+    scanNote.value = t('inventory.storage.scan.itemAlreadyHere', {name: match.name ?? ''})
     return
   }
   selectedIds.value.add(match.id)
 }
 
+/**
+ * Puts the ticked pieces on this shelf, one at a time.
+ *
+ * <p>The ones that went through stay off the list, so what is left ticked when this stops is exactly
+ * what still has to be moved, and pressing the button again finishes the job rather than repeating it.
+ */
 const {running: submitting, run: submit} = useAsyncAction(async () => {
   if (selectedIds.value.size === 0) return
-  error.value = ''
+  failure.value = null
   let added = false
   try {
     for (const id of [...selectedIds.value]) {
@@ -127,7 +137,7 @@ const {running: submitting, run: submit} = useAsyncAction(async () => {
     }
     onClose()
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('inventory.storage.addItems.addFailed')
+    failure.value = describeFailure(e, t)
   } finally {
     if (added) emit('added')
   }
@@ -146,7 +156,8 @@ onMounted(loadItems)
     <SubHeader class="mb-2">{{ t('inventory.storage.addItems.title') }}</SubHeader>
     <p class="text-xs text-(--text-muted) mb-3">{{ t('inventory.storage.addItems.intro') }}</p>
 
-    <Alert v-if="error" variant="error" class="mb-3">{{ error }}</Alert>
+    <FailureAlert :failure="failure" class="mb-3"/>
+    <FailureAlert :message="scanNote" expected class="mb-3"/>
 
     <div class="flex items-center gap-2 mb-2">
       <SearchInput v-model="search" :placeholder="t('inventory.storage.addItems.searchPlaceholder')" class="flex-1" autofocus />

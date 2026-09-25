@@ -17,6 +17,7 @@ import type {
   WaitingListInvite,
 } from '@/api/waitingList'
 import type {MemberGroup} from '@/api/types'
+import type {Failure} from '@/util/failure'
 
 export interface EntryGroups {
   pending: WaitingListEntryWithScore[]
@@ -34,7 +35,7 @@ export interface DetailPermissions {
 
 export interface DetailActions {
   onListUpdated: (list: WaitingList) => void
-  onError: (message: string) => void
+  onError: (failure: Failure) => void
   onSuccess: (message: string) => void
   onApprove: (id: number) => void
   onReject: (id: number) => void

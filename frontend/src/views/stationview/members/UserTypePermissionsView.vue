@@ -16,11 +16,11 @@ import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import {StationUserType, type PermissionGrant} from '@/api/types'
 import {stationMembers} from '@/api'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 
-const {config: allRoles, loading, error} = useConfigPanel<PermissionGrant[]>({
+const {config: allRoles, loading, failure} = useConfigPanel<PermissionGrant[]>({
   initial: [],
   fetch: () => stationMembers.listAllPermissions(),
 })
@@ -47,20 +47,28 @@ async function selectType(userType: string) {
   typeLoading.value = true
   try {
     typePermissions.value = await stationMembers.getUserTypePermissions(userType)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
     typePermissions.value = []
   } finally {
     typeLoading.value = false
   }
 }
 
+/**
+ * Writes the ticked rights back for a whole member kind.
+ *
+ * <p>The picker keeps the new ticks whatever the answer is, so a refusal here is invisible unless it
+ * is said: granting a right nobody at this station holds is the ordinary way it is refused, and the
+ * server names which right that was.
+ */
 async function syncPermissions(newIds: Set<number>) {
   if (!selectedType.value) return
+  failure.value = null
   try {
     typePermissions.value = await stationMembers.setUserTypePermissions(selectedType.value, [...newIds])
-  } catch (e: unknown) {
-    error.value = apiErrorMessage(e) || t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 </script>
@@ -72,7 +80,7 @@ async function syncPermissions(newIds: Set<number>) {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <div v-if="!loading" class="grid gap-6 lg:grid-cols-2">
         <div class="space-y-4">
@@ -92,7 +100,6 @@ async function syncPermissions(newIds: Set<number>) {
           </div>
         </div>
 
-        <!-- Permission picker -->
         <div v-if="selectedType" class="space-y-4">
           <SectionHeader>{{ USER_TYPES.find(ut => ut.value === selectedType)?.label }}</SectionHeader>
 

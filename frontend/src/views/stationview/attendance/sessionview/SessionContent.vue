@@ -23,6 +23,7 @@ import CheckModePanel from './CheckModePanel.vue'
 import SessionFieldsPanel from './SessionFieldsPanel.vue'
 import AttendanceSummary from './AttendanceSummary.vue'
 import MemberListPanel from './MemberListPanel.vue'
+import type {Failure} from '@/util/failure'
 
 interface MemberSection {
   group: MemberGroup | null
@@ -35,7 +36,8 @@ const selectedMemberId = defineModel<string>('selectedMemberId', {required: true
 
 defineProps<{
   loading: boolean
-  error: string
+  /** What the last action or load ran into, described, or nothing where nothing has. */
+  failure: Failure | null
   session: AttendanceSession | null
   canEdit: boolean
   locked: boolean
@@ -116,7 +118,7 @@ const emit = defineEmits<{
     <Alert v-if="locked" variant="info">
       {{ canManage ? t('attendanceSession.frozenForManager') : t('attendanceSession.frozen') }}
     </Alert>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <template v-if="!loading && session">
       <SessionHeader

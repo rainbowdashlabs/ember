@@ -12,6 +12,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import {formatDateTime} from '@/util/format'
 import {quiz} from '@/api'
 import type {QuizQuestionReport} from '@/api/quiz'
+import {describeFailure, type Failure} from '@/util/failure'
 
 defineProps<{
   reports: QuizQuestionReport[]
@@ -20,7 +21,7 @@ defineProps<{
 
 const emit = defineEmits<{
   acknowledged: []
-  error: [message: string]
+  error: [failure: Failure]
 }>()
 
 const {t} = useI18n()
@@ -32,8 +33,8 @@ async function acknowledge(report: QuizQuestionReport) {
   try {
     await quiz.acknowledgeReport(report.id)
     emit('acknowledged')
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   } finally {
     working.value = null
   }

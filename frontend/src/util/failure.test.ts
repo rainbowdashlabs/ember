@@ -14,6 +14,53 @@ function rejected(status: number, body?: Record<string, unknown>) {
     return {response: {status, data: body ?? {}}}
 }
 
+/**
+ * A translator that has German for one refusal and nothing for any other, which is what adopting
+ * these one at a time looks like. Everything unwritten comes back as its key, the way vue-i18n
+ * answers for a key nobody has written.
+ */
+const translating = (key: string) => (key === 'refusal.FORM_ALREADY_ANSWERED'
+    ? 'Dieses Formular hast du bereits ausgefüllt.'
+    : key)
+
+describe('a refusal said in the reader\'s language', () => {
+    it('prefers what we wrote over what the server said', () => {
+        const failure = describeFailure(
+            rejected(409, {code: 'FORM_ALREADY_ANSWERED', message: 'You have already answered this form'}),
+            translating,
+        )
+
+        expect(failure.message).toBe('Dieses Formular hast du bereits ausgefüllt.')
+        expect(failure.code).toBe('FORM_ALREADY_ANSWERED')
+    })
+
+    /** The server's own sentence still says what happened, which beats a German sentence that does not. */
+    it('keeps the server\'s sentence for a refusal nobody has translated yet', () => {
+        const failure = describeFailure(
+            rejected(409, {code: 'QUIZ_ALREADY_HANDED_IN', message: 'The paper is already in'}),
+            translating,
+        )
+
+        expect(failure.message).toBe('The paper is already in')
+    })
+
+    it('keeps the server\'s own words for the report even when it shows ours', () => {
+        const failure = describeFailure(
+            rejected(409, {code: 'FORM_ALREADY_ANSWERED', message: 'You have already answered this form'}),
+            translating,
+        )
+
+        expect(failure.technical).toBe('You have already answered this form')
+    })
+
+    it('says nothing different where the refusal carries no code', () => {
+        const failure = describeFailure(rejected(409, {message: 'You have already answered this form'}), translating)
+
+        expect(failure.message).toBe('You have already answered this form')
+        expect(failure.code).toBeUndefined()
+    })
+})
+
 describe('describeFailure', () => {
     it('reads the kind off the status', () => {
         expect(describeFailure(rejected(401), t).kind).toBe(FailureKind.SIGNED_OUT)

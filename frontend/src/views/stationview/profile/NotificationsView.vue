@@ -18,7 +18,7 @@ import FeedSection from './settingsview/FeedSection.vue'
 
 const {t} = useI18n()
 
-const {config: settings, loading, error, runWith} = useConfigPanel<UserSettings | null>({
+const {config: settings, loading, failure, runWith} = useConfigPanel<UserSettings | null>({
   initial: null,
   fetch: () => userSettings.getSettings(),
 })
@@ -74,7 +74,7 @@ function toggleFeed(type: string) {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <Alert v-if="saved" variant="success">{{ t('userSettings.saved') }}</Alert>
 
       <template v-if="!loading && settings">

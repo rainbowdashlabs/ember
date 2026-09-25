@@ -7,12 +7,13 @@ import {type Ref, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {attendance} from '@/api'
 import type {AttendanceEntry, AttendanceTemplateField} from '@/api/attendance'
+import {describeFailure, type Failure} from '@/util/failure'
 
 export function useSessionFields(
     sessionId: Ref<number>,
     templateFields: Ref<AttendanceTemplateField[]>,
     entries: Ref<AttendanceEntry[]>,
-    error: Ref<string>,
+    failure: Ref<Failure | null>,
 ) {
   const {t} = useI18n()
   const fieldValues = ref<Map<number, string>>(new Map())
@@ -34,8 +35,8 @@ export function useSessionFields(
       await attendance.setSessionFields(sessionId.value, {
         fields: [{fieldId, value: JSON.stringify(getFieldValue(fieldId))}],
       })
-    } catch {
-      error.value = t('common.error')
+    } catch (e) {
+      failure.value = {...describeFailure(e, t), message: t('attendanceSession.fieldUnsaved')}
     }
   }
 

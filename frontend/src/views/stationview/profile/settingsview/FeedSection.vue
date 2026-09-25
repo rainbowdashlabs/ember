@@ -27,7 +27,7 @@ import RssFallback from './feedsection/RssFallback.vue'
 
 const {t} = useI18n()
 
-const {config: token, loading, error, runWith} = useConfigPanel<FeedTokenResponse | null>({
+const {config: token, loading, failure, runWith} = useConfigPanel<FeedTokenResponse | null>({
   initial: null,
   fetch: async () => {
     try { return await feedToken.getFeedToken() } catch { return null }
@@ -79,7 +79,7 @@ async function copyUrl(url: string) {
     <SubHeader>{{ t('userSettings.feedTitle') }}</SubHeader>
     <p class="text-sm text-(--text-muted)">{{ t('userSettings.feedHint') }}</p>
 
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <template v-if="!loading">
       <template v-if="token">

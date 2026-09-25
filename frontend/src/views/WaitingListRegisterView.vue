@@ -25,7 +25,7 @@ const {
   credential: code,
   data: inviteInfo,
   loading,
-  error: pageError,
+  failure: linkFailure,
   load: loadInviteInfo,
 } = useLinkAccessedResource<WaitingListInviteInfo>(
     'code',
@@ -63,7 +63,7 @@ function removeGuardian(index: number) {
   guardians.value = guardians.value.filter((_, i) => i !== index)
 }
 
-const { running: submitting, error: submitError, run: runSubmit } = useAsyncAction(async () => {
+const { running: submitting, failure, run: runSubmit } = useAsyncAction(async () => {
   const values: Record<number, string> = {}
   for (const [fieldId, value] of fieldValues.value) {
     if (value.trim()) {
@@ -85,28 +85,30 @@ const { running: submitting, error: submitError, run: runSubmit } = useAsyncActi
   submitted.value = true
 })
 
-const error = computed(() => pageError.value || submitError.value)
+
+/** What the reader has left to fill in, which is theirs to correct and never a fault in Ember. */
+const missing = ref('')
 
 function submit() {
   if (!firstname.value.trim() || !guardians.value.some(g => g.email.trim())) {
-    pageError.value = t('waitingList.register.requiredFields')
+    missing.value = t('waitingList.register.requiredFields')
     return
   }
   if (!consentAccepted.value) {
-    pageError.value = t('publicConsent.required')
+    missing.value = t('publicConsent.required')
     return
   }
 
   if (inviteInfo.value) {
     for (const field of inviteInfo.value.fields) {
       if (field.required && !getFieldValue(field.id).trim()) {
-        pageError.value = t('waitingList.register.requiredField', { name: field.name })
+        missing.value = t('waitingList.register.requiredField', { name: field.name })
         return
       }
     }
   }
 
-  pageError.value = ''
+  missing.value = ''
   void runSubmit()
 }
 
@@ -124,7 +126,8 @@ onMounted(loadInviteInfo)
       </div>
 
       <Spinner v-if="loading" size="md" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :message="missing" expected/>
+      <FailureAlert :failure="failure ?? linkFailure"/>
 
       <template v-if="!loading && inviteInfo && !submitted">
         <InviteHeader :invite-info="inviteInfo" />

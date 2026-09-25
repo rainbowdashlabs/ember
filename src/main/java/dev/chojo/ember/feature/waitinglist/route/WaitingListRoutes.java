@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.waitinglist.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationFree;
@@ -220,7 +221,7 @@ public class WaitingListRoutes implements Routes {
      */
     private void verifyFieldInList(int listId, int fieldId) {
         if (service.findFieldsByList(listId).stream().noneMatch(f -> f.id() == fieldId)) {
-            throw new NotFoundResponse();
+            throw Refusal.WAITING_LIST_FIELD_NOT_HERE.raise();
         }
     }
 
@@ -229,7 +230,7 @@ public class WaitingListRoutes implements Routes {
      */
     private void verifyInviteInList(int listId, int inviteId) {
         if (service.findInvitesByList(listId).stream().noneMatch(i -> i.id() == inviteId)) {
-            throw new NotFoundResponse();
+            throw Refusal.WAITING_LIST_INVITE_UNKNOWN.raise();
         }
     }
 
@@ -237,9 +238,9 @@ public class WaitingListRoutes implements Routes {
      * Asserts the given entry belongs to the given list.
      */
     private void verifyEntryInList(int listId, int entryId) {
-        var entry = service.findEntryById(entryId).orElseThrow(NotFoundResponse::new);
+        var entry = service.findEntryById(entryId).orElseThrow(Refusal.WAITING_LIST_ENTRY_NOT_HERE::raise);
         if (entry.listId() != listId) {
-            throw new NotFoundResponse();
+            throw Refusal.WAITING_LIST_ENTRY_NOT_HERE.raise();
         }
     }
 
@@ -252,11 +253,11 @@ public class WaitingListRoutes implements Routes {
     @StationFree("an invite code names the list it belongs to; whoever holds it is meant to see that form")
     private void getInviteInfo(Context ctx) {
         String code = ctx.pathParam("code");
-        var invite = service.findInviteByCode(code).orElseThrow(NotFoundResponse::new);
+        var invite = service.findInviteByCode(code).orElseThrow(Refusal.WAITING_LIST_INVITE_UNKNOWN::raise);
         if (!invite.hasUsesLeft() || invite.isExpired()) {
             throw new ForbiddenResponse("Invite is no longer valid");
         }
-        var list = service.findById(invite.listId()).orElseThrow(NotFoundResponse::new);
+        var list = service.findById(invite.listId()).orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
         var fields = service.findFieldsByList(invite.listId());
         ctx.json(new InviteInfoResponse(list.name(), list.description(), fields));
     }
@@ -273,11 +274,8 @@ public class WaitingListRoutes implements Routes {
         if (request.inviteCode() == null || request.firstname() == null) {
             throw new BadRequestResponse("inviteCode and firstname are required");
         }
-        var retryAfter = rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), request.inviteCode());
-        if (retryAfter.isPresent()) {
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .header("Retry-After", String.valueOf(retryAfter.get()))
-                    .json(new ErrorResponseWrapper("Rate limit exceeded"));
+        if (answerWhenLimited(
+                ctx, rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), request.inviteCode()))) {
             return;
         }
         var consent = consentService.requireAcceptance(
@@ -312,10 +310,10 @@ public class WaitingListRoutes implements Routes {
     private void getEntryByToken(Context ctx) {
         String token = ctx.pathParam("token");
         if (readRateLimited(ctx)) return;
-        var entry = service.findEntryByToken(token).orElseThrow(NotFoundResponse::new);
+        var entry = service.findEntryByToken(token).orElseThrow(Refusal.WAITING_LIST_ENTRY_NOT_HERE::raise);
         var values = service.findEntryValues(entry.id());
         var guardians = service.findGuardiansByEntry(entry.id());
-        var list = service.findById(entry.listId()).orElseThrow(NotFoundResponse::new);
+        var list = service.findById(entry.listId()).orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
         var fields = service.findFieldsByList(entry.listId());
         int position = service.findWaitingPositionByScore(entry);
         ctx.json(new PublicStatusResponse(
@@ -346,7 +344,7 @@ public class WaitingListRoutes implements Routes {
     private PublicInvitationResponse describeInvitation(int stationId, WaitingListEntry entry) {
         var invitation = entry.invitation();
         if (invitation == null) return null;
-        var station = stationRepository.findById(stationId).orElseThrow(NotFoundResponse::new);
+        var station = stationRepository.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE::raise);
         var details = invitationMessage.describe(station, invitation);
         return new PublicInvitationResponse(
                 invitation.eventId(),
@@ -396,7 +394,7 @@ public class WaitingListRoutes implements Routes {
             ctx.status(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
             log.warn("No waiting-list entry for the token answering an invitation", e);
-            throw new NotFoundResponse(e.getMessage());
+            throw Refusal.WAITING_LIST_ENTRY_NOT_HERE.raise();
         }
     }
 
@@ -428,11 +426,17 @@ public class WaitingListRoutes implements Routes {
                 ctx, rateLimiter.tryAcquireRead(ClientIp.resolve(ctx, network).getHostAddress()));
     }
 
+    /**
+     * Answers a caller who is asking faster than the list allows, saying so and when to come back.
+     *
+     * @return whether the request was answered here and the handler should go no further
+     */
     private boolean answerWhenLimited(Context ctx, Optional<Long> retryAfter) {
         if (retryAfter.isEmpty()) return false;
-        ctx.status(HttpStatus.TOO_MANY_REQUESTS)
+        ctx.status(Refusal.WAITING_LIST_TOO_OFTEN.status())
                 .header("Retry-After", String.valueOf(retryAfter.get()))
-                .json(new ErrorResponseWrapper("Rate limit exceeded"));
+                .json(ErrorResponseWrapper.of(
+                        Refusal.WAITING_LIST_TOO_OFTEN, Refusal.WAITING_LIST_TOO_OFTEN.message(), retryAfter.get()));
         return true;
     }
 
@@ -512,7 +516,7 @@ public class WaitingListRoutes implements Routes {
     private void getById(Context ctx) {
         int id = pathInt(ctx, "id");
         verifyListOwnership(ctx, id);
-        var list = service.findById(id).orElseThrow(NotFoundResponse::new);
+        var list = service.findById(id).orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
         ctx.json(list);
     }
 
@@ -544,7 +548,7 @@ public class WaitingListRoutes implements Routes {
                         request.sendsMail() == null || request.sendsMail(),
                         request.minAgeRegister(),
                         request.minAgeJoin())
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
         ctx.json(updated);
     }
 
@@ -567,7 +571,8 @@ public class WaitingListRoutes implements Routes {
         int id = pathInt(ctx, "id");
         verifyListOwnership(ctx, id);
         var request = ctx.bodyAsClass(VisibleFieldsRequest.class);
-        var list = service.updateVisibleFields(id, toJson(request.fieldIds())).orElseThrow(NotFoundResponse::new);
+        var list = service.updateVisibleFields(id, toJson(request.fieldIds()))
+                .orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
         ctx.json(list);
     }
 
@@ -606,7 +611,7 @@ public class WaitingListRoutes implements Routes {
                         request.position(),
                         request.required(),
                         request.isPublic() == null || request.isPublic())
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.WAITING_LIST_FIELD_NOT_HERE::raise);
         ctx.json(field);
     }
 
@@ -662,7 +667,7 @@ public class WaitingListRoutes implements Routes {
         int listId = pathInt(ctx, "id");
         verifyListOwnership(ctx, listId);
         var entries = service.findEntriesByList(listId);
-        var list = service.findById(listId).orElseThrow(NotFoundResponse::new);
+        var list = service.findById(listId).orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
         var fields = service.findFieldsByList(listId);
         var allGuardians = service.findGuardiansByList(listId);
         var guardianMap = new HashMap<Integer, List<WaitingListEntryGuardian>>();
@@ -711,7 +716,7 @@ public class WaitingListRoutes implements Routes {
                 guardians,
                 request.notes(),
                 request.values());
-        var updated = service.findEntryById(entryId).orElseThrow(NotFoundResponse::new);
+        var updated = service.findEntryById(entryId).orElseThrow(Refusal.WAITING_LIST_ENTRY_NOT_HERE::raise);
         ctx.json(updated);
     }
 
@@ -722,7 +727,7 @@ public class WaitingListRoutes implements Routes {
         verifyEntryInList(listId, entryId);
         var request = ctx.bodyAsClass(CreatedAtRequest.class);
         service.updateCreatedAt(entryId, request.createdAt());
-        var updated = service.findEntryById(entryId).orElseThrow(NotFoundResponse::new);
+        var updated = service.findEntryById(entryId).orElseThrow(Refusal.WAITING_LIST_ENTRY_NOT_HERE::raise);
         ctx.json(updated);
     }
 
@@ -884,8 +889,8 @@ public class WaitingListRoutes implements Routes {
                         return Optional.empty();
                     }
                 })
-                .orElseThrow(NotFoundResponse::new);
-        if (!station.publicWaitlistEnabled()) throw new NotFoundResponse();
+                .orElseThrow(Refusal.STATION_NOT_HERE::raise);
+        if (!station.publicWaitlistEnabled()) throw Refusal.WAITING_LIST_NOT_HERE.raise();
         return station.id();
     }
 
@@ -900,8 +905,8 @@ public class WaitingListRoutes implements Routes {
     private void getPublicForm(Context ctx) {
         int stationId = resolveStation(ctx);
         int wid = pathInt(ctx, "wid");
-        var list = service.findById(wid).orElseThrow(NotFoundResponse::new);
-        if (list.stationId() != stationId || !list.isPublic()) throw new NotFoundResponse();
+        var list = service.findById(wid).orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
+        if (list.stationId() != stationId || !list.isPublic()) throw Refusal.WAITING_LIST_NOT_HERE.raise();
         var fields = service.findPublicFieldsByList(wid);
         ctx.json(new PublicFormResponse(list.name(), list.description(), list.sendsMail(), fields));
     }
@@ -909,8 +914,8 @@ public class WaitingListRoutes implements Routes {
     private void submitPublicRegistration(Context ctx) {
         int stationId = resolveStation(ctx);
         int wid = pathInt(ctx, "wid");
-        var list = service.findById(wid).orElseThrow(NotFoundResponse::new);
-        if (list.stationId() != stationId || !list.isPublic()) throw new NotFoundResponse();
+        var list = service.findById(wid).orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
+        if (list.stationId() != stationId || !list.isPublic()) throw Refusal.WAITING_LIST_NOT_HERE.raise();
         var request = ctx.bodyAsClass(PublicRegistrationRequest.class);
         if (request.firstname() == null || request.firstname().isBlank()) {
             throw new BadRequestResponse("firstname is required");
@@ -918,11 +923,8 @@ public class WaitingListRoutes implements Routes {
         if (list.sendsMail() && (request.email() == null || request.email().isBlank())) {
             throw new BadRequestResponse("email is required");
         }
-        var retryAfter = rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), "list:" + wid);
-        if (retryAfter.isPresent()) {
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .header("Retry-After", String.valueOf(retryAfter.get()))
-                    .json(new ErrorResponseWrapper("Rate limit exceeded"));
+        if (answerWhenLimited(
+                ctx, rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), "list:" + wid))) {
             return;
         }
         service.requireOldEnoughToRegister(list, request.values() != null ? request.values() : Map.of());

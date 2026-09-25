@@ -15,7 +15,7 @@ import EntitySearchPicker from '@/components/input/search/EntitySearchPicker.vue
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {selfChecks} from '@/api'
 import type {MemberCheckSummary} from '@/api/inventoryCheck'
 import type {SelfCheckTask} from '@/api/selfChecks'
@@ -39,7 +39,7 @@ const props = defineProps<{
 const {t} = useI18n()
 const router = useRouter()
 
-const {config: tasks, loading, error, reload} = useConfigPanel<SelfCheckTask[]>({
+const {config: tasks, loading, failure, reload} = useConfigPanel<SelfCheckTask[]>({
   initial: [],
   fetch: () => selfChecks.listTasks(false),
 })
@@ -73,7 +73,7 @@ const askedMemberName = computed(() => {
   return picked ? memberName(picked) : null
 })
 
-const {running: asking, error: askError, run: ask} = useAsyncAction(async () => {
+const {running: asking, failure: askFailure, run: ask} = useAsyncAction(async () => {
   if (!askMemberId.value) return
   await selfChecks.handOut([Number(askMemberId.value)], dueOn.value || null)
   askMemberId.value = ''
@@ -91,7 +91,7 @@ function open(task: SelfCheckTask) {
     <SubHeader>{{ t('selfCheck.panel.title') }}</SubHeader>
     <MutedText size="sm" tag="p">{{ t('selfCheck.panel.hint') }}</MutedText>
 
-    <Alert v-if="error || askError" variant="error">{{ error || askError }}</Alert>
+    <FailureAlert :failure="failure ?? askFailure"/>
 
     <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
       <div class="flex-1 space-y-1">

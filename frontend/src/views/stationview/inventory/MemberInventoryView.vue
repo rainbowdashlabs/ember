@@ -9,7 +9,7 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {inventory, movements, stationMembers} from '@/api'
 import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
@@ -29,7 +29,7 @@ import MovementsPanel from '@/components/inventory/MovementsPanel.vue'
 import MovementWizard from './movementwizard/MovementWizard.vue'
 import type {WizardPrefill} from './movementwizard/useMovementWizard'
 import {MovementPurpose} from '@/api/movements'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const routes = useInventoryRoutes()
 
@@ -45,8 +45,10 @@ const scanValue = ref('')
 const handOutMode = ref<HandOutMode>('NOW')
 const unknownScanCode = ref<string | null>(null)
 
-const {message: scanError, flash: flashScanError} = useFlashMessage(3500)
 const {message: scanSuccess, flash: flashScanSuccess} = useFlashMessage(2500)
+
+/** A handover that was refused, kept on the screen rather than flashed past. */
+const handoverFailure = ref<Failure | null>(null)
 
 /** Hands the scanned piece over, or writes down that it is to be handed over. */
 async function assignToCurrentMember(item: InventoryItem | {id: number; name?: string; inventoryId?: number}) {
@@ -69,7 +71,13 @@ async function onCameraScan(value: string) {
   await handleScanAssign()
 }
 
-const {running: scanBusy, error: scanAssignError, run: runScanAssign} = useAsyncAction(async (term: string) => {
+/**
+ * Follows a scanned code and hands the piece to this member.
+ *
+ * <p>A refusal is kept on the screen rather than flashed past, because somebody at a counter with the
+ * piece in their hand takes a message that disappears for one they missed reading.
+ */
+const {running: scanBusy, failure: scanFailure, run: runScanAssign} = useAsyncAction(async (term: string) => {
   const item = await inventory.findByInternalId(term)
   if (!item) {
     unknownScanCode.value = term
@@ -80,22 +88,23 @@ const {running: scanBusy, error: scanAssignError, run: runScanAssign} = useAsync
     return
   }
   await assignToCurrentMember(item)
-}, {formatError: (e) => apiErrorMessage(e) ?? t('inventory.assign.errors.failed')})
+})
 
 async function handleScanAssign() {
   const term = scanValue.value.trim()
   if (!term) return
   scanValue.value = ''
+  handoverFailure.value = null
   await runScanAssign(term)
-  if (scanAssignError.value) flashScanError(scanAssignError.value)
 }
 
 async function onUnknownScanCreated(item: InventoryItem) {
   unknownScanCode.value = null
+  handoverFailure.value = null
   try {
     await assignToCurrentMember(item)
   } catch (e) {
-    flashScanError(apiErrorMessage(e) ?? t('inventory.assign.errors.failed'))
+    handoverFailure.value = describeFailure(e, t)
   }
 }
 
@@ -138,7 +147,7 @@ const grouped = computed((): InventoryGroup[] => {
   return groups
 })
 
-const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   const mid = memberId.value
   const [memberItems, allMembers] = await Promise.all([
     inventory.memberItems(mid),
@@ -184,7 +193,7 @@ watch(memberId, loadData)
     <div class="space-y-6">
       <MemberInventoryHeader :member="member" @back="goBack" />
 
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :failure="failure"/>
       <ReturnEverythingBar v-if="canManage && items.length > 0" :member-id="memberId" @done="loadData"/>
 
       <AsyncSection :loading="loading">
@@ -193,7 +202,7 @@ watch(memberId, loadData)
             v-model:hand-out-mode="handOutMode"
             v-model:scan-value="scanValue"
             :scan-busy="scanBusy"
-            :scan-error="scanError"
+            :scan-failure="scanFailure ?? handoverFailure"
             :scan-success="scanSuccess"
             @submit="handleScanAssign"
             @decoded="onCameraScan"

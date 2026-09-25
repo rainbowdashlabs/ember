@@ -15,6 +15,8 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import type {Failure} from '@/util/failure'
 
 interface Category {
   id: number
@@ -24,7 +26,7 @@ interface Category {
 const props = defineProps<{
   categories: Category[]
   generating: boolean
-  error: string
+  failure: Failure | null
 }>()
 
 const emit = defineEmits<{
@@ -81,7 +83,7 @@ const genUserPrompt = ref('')
       <FieldLabel hint class="mb-1">{{ t('quiz.ai.userPrompt') }}</FieldLabel>
       <TextAreaInput v-model="genUserPrompt" :placeholder="t('quiz.ai.userPromptPlaceholder')" />
     </div>
-    <p v-if="props.error" class="text-xs text-error">{{ props.error }}</p>
+    <FailureAlert :failure="props.failure"/>
     <div class="flex justify-end gap-3">
       <PrimaryButton :disabled="props.generating || genEntries.every(e => e.count < 1)" @click="emit('generate', genEntries, genUserPrompt)">
         <Spinner v-if="props.generating" size="sm" class="mr-1" />

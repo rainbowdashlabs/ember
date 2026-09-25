@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import UnknownScanForm from '@/views/stationview/inventory/unknownscanmodal/UnknownScanForm.vue'
 import {buildItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
@@ -19,7 +19,7 @@ import {InventoryTypes, ItemOwner, type Inventory, type InventoryItem, type Inve
 import {inventory, inventoryFields} from '@/api'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   scannedCode: string
@@ -36,7 +36,10 @@ const {t} = useI18n()
 const open = ref(true)
 const inventories = ref<Inventory[]>([])
 const loading = ref(true)
-const error = ref('')
+/** What the form itself objects to, which is the reader's to put right and never a fault in Ember. */
+const validation = ref('')
+
+const loadFailure = ref<Failure | null>(null)
 
 const targetInventoryId = ref<number | 'new'>('new')
 const newInventoryName = ref('')
@@ -78,7 +81,7 @@ const sortedFieldDefs = computed(() =>
 
 async function load() {
   loading.value = true
-  error.value = ''
+  loadFailure.value = null
   try {
     inventories.value = await inventory.listInventories()
     const first = inventories.value[0]
@@ -86,7 +89,7 @@ async function load() {
       targetInventoryId.value = first.id
     }
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('inventory.unknownScan.errors.loadFailed')
+    loadFailure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
@@ -180,7 +183,18 @@ function validate(): string | null {
   return null
 }
 
-const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction(async () => {
+/** Whether an inventory was written along the way, which changes what a later failure has to say. */
+let inventoryMade = false
+
+/**
+ * Writes the piece down, and the inventory to put it in where the reader asked for a new one.
+ *
+ * <p>Where the inventory was created first and something after it failed, a reader told plainly that
+ * it did not work presses the button again and ends up with two inventories of the same name. The
+ * screen says so instead, because the server answering the second call knows nothing of the first.
+ */
+const {running: submitting, failure: submitFailure, run: runSubmit} = useAsyncAction(async () => {
+  inventoryMade = false
   let inventoryId: number
   let sizes: InventorySize[]
   if (isCreatingInventory.value) {
@@ -190,6 +204,7 @@ const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction
       hasSizes: newInventoryHasSizes.value,
     })
     inventoryId = created.id
+    inventoryMade = true
     if (newInventoryHasSizes.value) {
       for (let i = 0; i < cleanedNewSizes.value.length; i++) {
         await inventory.createSize(inventoryId, {label: cleanedNewSizes.value[i], position: i, note: ''})
@@ -206,7 +221,7 @@ const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction
   if (effectiveHasSizes.value) {
     const match = sizes.find(s => s.label === pickedSizeLabel.value)
     if (!match) {
-      error.value = t('inventory.unknownScan.errors.sizeRequired')
+      validation.value = t('inventory.unknownScan.errors.sizeRequired')
       return
     }
     sizeId = match.id
@@ -219,15 +234,19 @@ const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction
     metadata: buildMetadata(),
   })
   emit('created', item)
-}, {formatError: (e) => apiErrorMessage(e) ?? t('inventory.unknownScan.errors.createFailed')})
+}, {
+  formatError: e => (inventoryMade
+      ? t('inventory.unknownScan.errors.inventoryMadeButNotTheItem')
+      : describeFailure(e, t).message),
+})
 
 async function submit() {
-  const validation = validate()
-  if (validation) {
-    error.value = validation
+  const objection = validate()
+  if (objection) {
+    validation.value = objection
     return
   }
-  error.value = ''
+  validation.value = ''
   await runSubmit()
 }
 
@@ -250,7 +269,8 @@ load()
       <code class="ml-2 font-mono">{{ scannedCode }}</code>
     </p>
 
-    <Alert v-if="error || submitError" variant="error" class="mb-3">{{ error || submitError }}</Alert>
+    <FailureAlert :message="validation" expected class="mb-3"/>
+    <FailureAlert :failure="loadFailure ?? submitFailure" class="mb-3"/>
 
     <div v-if="loading" class="flex justify-center py-6">
       <Spinner size="md" />

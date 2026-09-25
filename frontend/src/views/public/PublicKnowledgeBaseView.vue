@@ -7,7 +7,8 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, useRoute} from 'vue-router'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {usePublicFailure} from '@/composables/usePublicFailure'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import * as publicKb from '@/api/publicKb'
@@ -77,7 +78,10 @@ const currentFolder = computed<KbFolder | null>(() => wiki.value?.browsed.curren
 const folders = computed<KbFolder[]>(() => wiki.value?.browsed.folders ?? [])
 const files = computed<KbFile[]>(() => wiki.value?.browsed.files ?? [])
 const loading = computed(() => status.value === 'pending')
-const error = computed(() => (loadError.value ? t('common.error') : ''))
+const failure = usePublicFailure(loadError, {
+    message: 'publicStation.knowledgeBaseGone',
+    guidance: 'publicStation.knowledgeBaseGoneGuidance',
+})
 
 const {items, toSearchItems} = usePublicKbItems({stationUid, stationAddress, folders, files})
 const searchItems = computed(() => toSearchItems(searchResults.value))
@@ -126,7 +130,7 @@ useHead(computed(() => {
 <template>
     <ViewContent :title="t('pages.public-knowledge-base.title')" :subtitle="t('pages.public-knowledge-base.subtitle')">
         <div class="space-y-6">
-            <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+            <FailureAlert :failure="failure" class="mb-4"/>
 
             <div class="mb-4">
                 <SearchInput

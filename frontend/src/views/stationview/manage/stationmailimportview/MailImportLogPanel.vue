@@ -14,9 +14,11 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {mailImport} from '@/api'
 import {MailImportOutcome, wasImported, type MailImportLogEntry} from '@/api/mailImport'
 import {formatDateTime} from '@/util/format'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * What was looked at and what became of it.
@@ -31,18 +33,27 @@ const entries = ref<MailImportLogEntry[]>([])
 const total = ref(0)
 const page = ref(0)
 const loading = ref(true)
+const failure = ref<Failure | null>(null)
 
 const pageSize = 50
 const pages = computed(() => Math.max(Math.ceil(total.value / pageSize), 1))
 
+/**
+ * Fetches a page of the log, and says so when it cannot.
+ *
+ * <p>It used to empty the list on a failure, which reads on screen as a mailbox that has imported
+ * nothing. The log exists to answer exactly that question, so a silent empty list is the one
+ * outcome it must never show for a failure.
+ */
 async function reload() {
   loading.value = entries.value.length === 0
+  failure.value = null
   try {
     const result = await mailImport.log(page.value, pageSize)
     entries.value = result.entries
     total.value = result.total
-  } catch {
-    entries.value = []
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
   loading.value = false
 }
@@ -72,6 +83,7 @@ reload()
       <MutedText size="sm" tag="p">{{ t('mailImport.logHint') }}</MutedText>
 
       <Spinner v-if="loading" size="sm"/>
+      <FailureAlert v-else-if="failure" :failure="failure"/>
       <MutedText v-else-if="entries.length === 0" size="sm">{{ t('mailImport.logEmpty') }}</MutedText>
 
       <ul v-else class="space-y-2" data-testid="mail-import-log">

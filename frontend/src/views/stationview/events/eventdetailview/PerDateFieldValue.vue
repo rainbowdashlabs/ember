@@ -12,6 +12,8 @@ import type {EventField} from '@/api/events'
 import type {StationMember} from '@/api/types'
 import {events} from '@/api'
 import {showToast} from '@/util/toast'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * Answering one question of an appointment for the date on screen.
@@ -35,19 +37,28 @@ const {t} = useI18n()
 
 const draft = ref(props.field.value ?? '')
 const saving = ref(false)
+const failure = ref<Failure | null>(null)
 
 watch(() => [props.field.id, props.field.value, props.date], () => {
   draft.value = props.field.value ?? ''
 })
 
+/**
+ * Writes the answer for this one date.
+ *
+ * <p>A save that worked is a toast and gone; one that did not stays on the screen next to the box
+ * still holding the typed answer. A toast carries no reason and no way to act on one, and this is
+ * the moment a reader most needs both: their answer is not stored and they cannot see why.
+ */
 async function save() {
   if (saving.value) return
   saving.value = true
+  failure.value = null
   try {
     emit('saved', await events.setEventFieldValueOn(props.eventId, props.field.id, props.date, draft.value))
     showToast(t('eventFields.valueSaved'), 'success')
-  } catch {
-    showToast(t('eventFields.valueSaveFailed'), 'error')
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('eventFields.valueSaveFailed')}
   } finally {
     saving.value = false
   }
@@ -66,5 +77,6 @@ async function save() {
     <PrimaryButton :disabled="saving || draft === (field.value ?? '')" compact class="text-sm" @click="save">
       {{ t('eventFields.saveValue') }}
     </PrimaryButton>
+    <FailureAlert :failure="failure"/>
   </div>
 </template>

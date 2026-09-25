@@ -6,6 +6,7 @@
 import {inject, provide, ref, type InjectionKey, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 import type {CategoryUsage, QuotaOriginName} from '@/api/storageMonitoring'
 
 /**
@@ -114,36 +115,51 @@ export function useStorageQuotas(port: StorageQuotasPort, capabilities: StorageC
     const tiers: Ref<QuotaTier[]> = ref([])
     const loading = ref(true)
     const busy = ref(false)
-    const error = ref('')
+    const loadFailure = ref<Failure | null>(null)
+    const writeFailure = ref<Failure | null>(null)
 
-    async function reload() {
+    /** The described failure, with the server's own sentence kept in front of it where it wrote one. */
+    function describe(e: unknown, message?: string): Failure {
+        const described = describeFailure(e, t)
+        const said = message ?? apiErrorMessage(e)
+        return said ? {...described, message: said} : described
+    }
+
+    async function reload(staleMessage?: string) {
         loading.value = true
-        error.value = ''
+        loadFailure.value = null
         try {
             const loaded = await port.load()
             stations.value = loaded.stations
             tiers.value = loaded.tiers
         } catch (e) {
-            error.value = apiErrorMessage(e) ?? t('common.error')
+            loadFailure.value = describe(e, staleMessage)
         } finally {
             loading.value = false
         }
     }
 
-    /** Runs a write and reloads, so every panel sees the same picture again afterwards. */
+    /**
+     * Runs a write and reloads, so every panel sees the same picture again afterwards.
+     *
+     * <p>The two are answered for separately and only the write decides the return value. They used to
+     * share one `try`, so a tier that was saved and a list that then failed to come back reported a
+     * failed save and sent the caller back to its form: the reader saves it a second time, on top of a
+     * tier that already exists.
+     */
     async function run(write: () => Promise<unknown>): Promise<boolean> {
         busy.value = true
-        error.value = ''
+        writeFailure.value = null
         try {
             await write()
-            await reload()
-            return true
         } catch (e) {
-            error.value = apiErrorMessage(e) ?? t('common.error')
+            writeFailure.value = describe(e)
             return false
         } finally {
             busy.value = false
         }
+        await reload(t('failure.staleAfterAction'))
+        return true
     }
 
     function saveTier(values: QuotaTierValues, tierId: number | null) {
@@ -168,7 +184,7 @@ export function useStorageQuotas(port: StorageQuotasPort, capabilities: StorageC
     }
 
     return {
-        stations, tiers, loading, busy, error,
+        stations, tiers, loading, busy, loadFailure, writeFailure,
         reload, run, saveTier, removeTier, applyTier, resetStation, recalculateStation,
     }
 }

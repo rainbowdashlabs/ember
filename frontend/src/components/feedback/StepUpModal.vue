@@ -29,6 +29,7 @@ import {
 import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
 import {useStepUpPrompt, type StepUpProofName} from '@/util/stepUp'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {FailureKind, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const {current, complete, cancel} = useStepUpPrompt()
@@ -80,7 +81,7 @@ const categoryHint = computed(() => {
   }
 })
 
-const {running: submitting, error: submitError, run: runSubmit, clearError: clearSubmitError} = useAsyncAction(async () => {
+const {running: submitting, failure: submitFailure, run: runSubmit, clearError: clearSubmitError} = useAsyncAction(async () => {
   if (!current.value) return
   if (offersPassword.value && !useBackupCode.value) {
     if (!password.value) return
@@ -95,7 +96,7 @@ const {running: submitting, error: submitError, run: runSubmit, clearError: clea
       ? t('twoFactor.stepUp.wrongPassword')
       : t('twoFactor.stepUp.invalidCode')})
 
-const {running: passkeyRunning, error: passkeyError, run: runPasskey, clearError: clearPasskeyError} = useAsyncAction(async () => {
+const {running: passkeyRunning, failure: passkeyFailure, run: runPasskey, clearError: clearPasskeyError} = useAsyncAction(async () => {
   const begin = await passkeyStepUpBegin()
   const credentialJson = await getWebAuthnCredential(begin.optionsJson)
   await passkeyStepUpFinish(begin.challengeToken, credentialJson)
@@ -107,7 +108,7 @@ const {running: passkeyRunning, error: passkeyError, run: runPasskey, clearError
   return t('twoFactor.stepUp.passkeyFailed')
 }})
 
-const {running: webauthnRunning, error: webauthnError, run: runWebAuthn, clearError: clearWebauthnError} = useAsyncAction(async () => {
+const {running: webauthnRunning, failure: webauthnFailure, run: runWebAuthn, clearError: clearWebauthnError} = useAsyncAction(async () => {
   const begin = await webauthnStepUpBegin()
   const credentialJson = await getWebAuthnCredential(begin.optionsJson)
   await webauthnStepUpFinish(begin.challengeToken, credentialJson)
@@ -120,7 +121,32 @@ const {running: webauthnRunning, error: webauthnError, run: runWebAuthn, clearEr
 }})
 
 const loading = computed(() => submitting.value || passkeyRunning.value || webauthnRunning.value)
-const error = computed(() => submitError.value || passkeyError.value || webauthnError.value)
+/**
+ * Whichever way of proving who you are last went wrong. Only one is ever tried at a time, so the
+ * three cannot collide; the one that failed is the one that has something to say.
+ */
+const failure = computed<Failure | null>(() => {
+  const described = submitFailure.value ?? passkeyFailure.value ?? webauthnFailure.value
+  if (!described) return null
+  if (!theirOwnDoing(described)) return described
+  return {...described, guidance: t('twoFactor.stepUp.tryAgainGuidance'), reportable: false}
+})
+
+/**
+ * Whether the reader, rather than Ember, is why this did not go through.
+ *
+ * <p>Three things land here that no bug report would help with: a mistyped password or code, which
+ * the server answers as a refusal; a passkey prompt the reader dismissed; and a browser that cannot
+ * do passkeys at all. All three arrived carrying advice about signing in again or reporting a fault,
+ * which is nonsense in the dialog where you are signing in, and the last two offered a bug report for
+ * somebody pressing cancel.
+ */
+function theirOwnDoing(described: Failure): boolean {
+  if (described.technical === 'webauthn-cancelled' || described.technical === 'webauthn-unsupported') return true
+  return described.kind === FailureKind.SIGNED_OUT
+      || described.kind === FailureKind.REJECTED
+      || described.kind === FailureKind.DENIED
+}
 const submitReady = computed(() => offersPassword.value && !useBackupCode.value ? !!password.value : !!code.value)
 
 watch(current, (v) => {
@@ -193,7 +219,7 @@ function onCancel() {
             autocomplete="one-time-code"
             inputmode="numeric"
         />
-        <FailureAlert :message="error"/>
+        <FailureAlert :failure="failure"/>
         <ButtonRow pair align="between">
           <SecondaryButton type="button" :disabled="loading" @click="onCancel">
             {{ t('twoFactor.stepUp.cancel') }}
@@ -204,7 +230,7 @@ function onCancel() {
         </ButtonRow>
       </form>
       <template v-else>
-        <FailureAlert :message="error"/>
+        <FailureAlert :failure="failure"/>
         <Alert v-if="offersNothing" variant="info">{{ t('twoFactor.stepUp.noProofs') }}</Alert>
         <div class="flex justify-between gap-2">
           <SecondaryButton type="button" :disabled="loading" @click="onCancel">

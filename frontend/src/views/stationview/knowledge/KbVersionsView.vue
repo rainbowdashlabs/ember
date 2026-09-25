@@ -11,6 +11,8 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import DiffView from '@/components/display/DiffView.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -66,7 +68,7 @@ const pageTitle = computed(() => (file.value
     ? `${file.value.name} ${t('kb.versions')}`
     : t('pages.kb-versions.title')))
 
-const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
     file.value = (await knowledgeBase.getFile(fileId.value)).file
     versions.value = await knowledgeBase.listVersions(fileId.value)
 }, {autoLoad: false})
@@ -78,15 +80,15 @@ const {
 } = useConfirmAction<KbFileVersion>({
     onConfirm: v => knowledgeBase.revertToVersion(fileId.value, v.version),
     onSuccess: () => { router.push({name: routes.value.file, params: {id: fileId.value}}) },
-    error,
+    failure,
 })
 
 async function viewVersion(version: KbFileVersion) {
     loadingVersion.value = true
     try {
         selectedVersion.value = await knowledgeBase.getVersion(fileId.value, version.version)
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = {...describeFailure(e, t), message: t('kb.versionsLoadFailed')}
     } finally {
         loadingVersion.value = false
     }
@@ -99,7 +101,7 @@ watch(loaded, (isLoaded) => {
 
 <template>
     <ViewContent :title="pageTitle" :subtitle="t('pages.kb-versions.subtitle')">
-        <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+        <FailureAlert :failure="failure" class="mb-4"/>
         <Spinner v-if="loading"/>
 
         <template v-else>

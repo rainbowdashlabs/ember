@@ -16,6 +16,7 @@ import {fromMember, type MemberOption} from '@/components/input/select/memberOpt
 import {stationManage, stationMembers} from '@/api'
 import {StationPermission} from '@/api/types'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import type {Failure} from '@/util/failure'
 
 const props = defineProps<{
   stationId: string
@@ -23,7 +24,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  error: [msg: string]
+  error: [failure: Failure]
   success: [msg: string]
   ownerChanged: []
 }>()
@@ -63,7 +64,7 @@ async function loadManagers() {
   }
 }
 
-const {running: transferringOwnership, error: transferError, run: runTransferOwnership} = useAsyncAction(
+const {running: transferringOwnership, failure: transferFailure, run: runTransferOwnership} = useAsyncAction(
     async (id: number) => {
       await stationManage.transferOwnership(id)
       emit('success', t('stationManage.ownerHandoverSuccess'))
@@ -75,17 +76,17 @@ async function transferOwnershipAction() {
   const id = Number(newOwnerId.value)
   if (!id) return
   await runTransferOwnership(id)
-  if (transferError.value) emit('error', transferError.value)
+  if (transferFailure.value) emit('error', transferFailure.value)
 }
 
-const {running: requestingDelete, error: deleteError, run: runRequestDelete} = useAsyncAction(async () => {
+const {running: requestingDelete, failure: deleteFailure, run: runRequestDelete} = useAsyncAction(async () => {
   const result = await stationManage.requestStationDeletion()
   emit('success', result.deleted ? t('stationManage.deleteDone') : t('stationManage.deleteRequested'))
 })
 
 async function requestDelete() {
   await runRequestDelete()
-  if (deleteError.value) emit('error', deleteError.value)
+  if (deleteFailure.value) emit('error', deleteFailure.value)
 }
 
 onMounted(loadManagers)

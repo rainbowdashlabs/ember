@@ -5,6 +5,7 @@
  */
 import type {Ref} from 'vue'
 import {useConfirmAction, type ConfirmActionState} from './useConfirmAction'
+import type {Failure} from '@/util/failure'
 
 /**
  * Delete-specific shape kept for back-compat with existing call sites that bind
@@ -16,12 +17,16 @@ export interface ConfirmDeleteState<T> {
     requestDelete: (item: T) => void
     confirm: () => Promise<void>
     error: Ref<string>
+    /** The same failure described, as {@link useConfirmAction} gives it. */
+    failure: Ref<Failure | null>
 }
 
 export interface UseConfirmDeleteOptions<T> {
     onDelete: (item: T) => Promise<void>
     onSuccess?: (item: T) => void | Promise<void>
     error?: Ref<string>
+    /** The counterpart of {@link error}, for a page funnelling its failures into one alert. */
+    failure?: Ref<Failure | null>
 }
 
 /**
@@ -34,6 +39,7 @@ export function useConfirmDelete<T>(options: UseConfirmDeleteOptions<T>): Confir
         onConfirm: options.onDelete,
         onSuccess: options.onSuccess,
         error: options.error,
+        failure: options.failure,
     })
     return {
         show: state.show,
@@ -41,5 +47,6 @@ export function useConfirmDelete<T>(options: UseConfirmDeleteOptions<T>): Confir
         requestDelete: state.request,
         confirm: state.confirm,
         error: state.error,
+        failure: state.failure,
     }
 }

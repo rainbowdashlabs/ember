@@ -19,6 +19,7 @@ import StoragePlacementTable from '@/components/storage/StoragePlacementTable.vu
 import ClusterStoragePolicyPanel from '@/views/clusterview/clusterstoragebackendview/ClusterStoragePolicyPanel.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 import {
     ClusterBackendReach,
     type ClusterBackendPolicy,
@@ -39,7 +40,8 @@ import {newS3, newSftp, newSmb, s3FormFrom, sftpFormFrom, smbFormFrom} from '@/u
 const {t} = useI18n()
 
 const loading = ref(true)
-const error = ref('')
+const loadFailure = ref<Failure | null>(null)
+const actionFailure = ref<Failure | null>(null)
 const success = ref('')
 const policy = ref<ClusterBackendPolicy | null>(null)
 const placements = ref<StoragePlacement[]>([])
@@ -57,9 +59,14 @@ const hasBackend = computed(() => policy.value?.backend != null)
 
 onMounted(loadAll)
 
+/** Whatever the backend said, and the wording this screen has for it where it said nothing. */
+function storageFailure(e: unknown, fallbackKey: string): Failure {
+    return {...describeFailure(e, t), message: apiErrorMessage(e) ?? t(fallbackKey)}
+}
+
 async function loadAll() {
     loading.value = true
-    error.value = ''
+    loadFailure.value = null
     try {
         policy.value = await getClusterBackend()
         reach.value = policy.value.reach
@@ -67,7 +74,7 @@ async function loadAll() {
         seedForm()
         placements.value = await getClusterPlacements()
     } catch (e) {
-        error.value = apiErrorMessage(e) || t('clusterStorageBackend.errors.loadFailed')
+        loadFailure.value = storageFailure(e, 'clusterStorageBackend.errors.loadFailed')
     } finally {
         loading.value = false
     }
@@ -95,7 +102,7 @@ const {running: probing, run: runProbe} = useAsyncAction(async (call: () => Prom
     } catch (e) {
         probeOutcome.value = {
             healthy: false,
-            error: apiErrorMessage(e) || t('clusterStorageBackend.errors.probeFailed'),
+            error: apiErrorMessage(e) ?? describeFailure(e, t).message,
             checkedAt: new Date().toISOString(),
         }
     }
@@ -113,14 +120,15 @@ function probeLive() {
 }
 
 const {running: saving, run: runAction} = useAsyncAction(async (act: () => Promise<string>) => {
-    error.value = ''
+    actionFailure.value = null
     success.value = ''
     try {
         success.value = await act()
-        await loadAll()
     } catch (e) {
-        error.value = apiErrorMessage(e) || t('clusterStorageBackend.errors.saveFailed')
+        actionFailure.value = storageFailure(e, 'clusterStorageBackend.errors.saveFailed')
+        return
     }
+    await loadAll()
 })
 
 function savePolicy() {
@@ -168,7 +176,8 @@ function move(stationUid: string) {
                 </RouterLink>
             </div>
 
-            <FailureAlert :message="error"/>
+            <FailureAlert :failure="loadFailure"/>
+            <FailureAlert :failure="actionFailure"/>
             <Alert v-if="success" variant="success">{{ success }}</Alert>
 
             <Spinner v-if="loading" size="lg"/>

@@ -19,6 +19,9 @@ import {inventory} from '@/api'
 import {isAvailable, type Inventory} from '@/api/inventory'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const routes = useInventoryRoutes()
 
@@ -27,7 +30,6 @@ const router = useRouter()
 const {loaded} = useSession()
 
 const inventories = ref<Inventory[]>([])
-const loadingInventories = ref(true)
 
 const blockFrom = ref('')
 const blockTo = ref('')
@@ -41,16 +43,14 @@ const availableInventories = computed(() =>
 
 const isFullBlock = computed(() => entries.value.length === 0)
 
-async function loadInventories() {
-  loadingInventories.value = true
-  try {
-    inventories.value = await inventory.listInventories()
-  } catch {
-    void 0
-  } finally {
-    loadingInventories.value = false
-  }
-}
+/** What could not be read while the form was being filled in, which used to vanish without a word. */
+const {
+  loading: loadingInventories,
+  failure: loadFailure,
+  reload: loadInventories,
+} = useAsyncLoader(async () => {
+  inventories.value = await inventory.listInventories()
+}, {autoLoad: false})
 
 async function addEntry() {
   const invId = Number(addInventoryId.value)
@@ -72,10 +72,9 @@ async function addEntry() {
   try {
     const items = await inventory.listItems(invId)
     // Custody, not the assignment: gear in transit or already with a partner is not free either
-    const available = items.filter(item => isAvailable(item.custody))
-    entry.items = available
-  } catch {
-    void 0
+    entry.items = items.filter(item => isAvailable(item.custody))
+  } catch (e) {
+    loadFailure.value = {...describeFailure(e, t), message: t('lending.availableUnreadable')}
   } finally {
     entry.loadingItems = false
   }
@@ -105,7 +104,13 @@ watch(loaded, (v) => {
   if (v) loadInventories()
 })
 
-const {running: saving, run: handleCreate} = useAsyncAction(async () => {
+/**
+ * Writes the block, which is one row for a whole stop and one per inventory or piece otherwise.
+ *
+ * <p>Several rows behind one button, so a failure halfway leaves the ones before it standing. The
+ * failure's guidance is to look again, which here means the list of blocks rather than this form.
+ */
+const {running: saving, failure: saveFailure, run: handleCreate} = useAsyncAction(async () => {
   if (!blockFrom.value || !blockTo.value) return
   if (isFullBlock.value) {
     await lending.createBlock({
@@ -154,6 +159,8 @@ function goBack() {
       </SecondaryButton>
       <SectionHeader>{{ t('lending.addBlock') }}</SectionHeader>
     </div>
+
+    <FailureAlert :failure="loadFailure ?? saveFailure" class="mb-4"/>
 
     <Spinner v-if="loadingInventories"/>
 

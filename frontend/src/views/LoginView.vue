@@ -35,6 +35,7 @@ import LegalModal from '@/views/loginview/LegalModal.vue'
 import LoginForm from '@/views/loginview/LoginForm.vue'
 import DevDemoFooter from '@/views/loginview/DevDemoFooter.vue'
 import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure} from '@/util/failure'
 import {decideSignInLanding} from '@/util/signInLanding'
 
 const {t} = useI18n()
@@ -204,7 +205,7 @@ const {running: loggingIn, error: loginError, run: handleLogin} = useAsyncAction
   const message = apiErrorMessage(e)
   // The one refusal a member walks into on purpose gets their language, with the way in named.
   if (message?.startsWith('Password sign-in is switched off')) return t('login.passwordOff')
-  return message || t('common.error')
+  return message || describeFailure(e, t).message
 }})
 
 const {running: passkeySigningIn, error: passkeyError, run: handlePasskeyLogin} = useAsyncAction(async () => {

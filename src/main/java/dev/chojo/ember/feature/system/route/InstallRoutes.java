@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.conf.file.elements.Network;
@@ -13,7 +14,6 @@ import dev.chojo.ember.feature.system.service.InstallPresetService;
 import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -82,9 +82,10 @@ public class InstallRoutes implements Routes {
     private void readPreset(Context ctx) {
         var retryAfter = presets.tryLookup(ClientIp.resolve(ctx, network).getHostAddress());
         if (retryAfter.isPresent()) {
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS)
+            ctx.status(Refusal.SETUP_TOO_OFTEN.status())
                     .header("Retry-After", String.valueOf(retryAfter.get()))
-                    .json(new ErrorResponseWrapper("Rate limit exceeded"));
+                    .json(ErrorResponseWrapper.of(
+                            Refusal.SETUP_TOO_OFTEN, Refusal.SETUP_TOO_OFTEN.message(), retryAfter.get()));
             return;
         }
         var options = presets.find(ctx.pathParam("code"))

@@ -11,10 +11,12 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import StorageBackendSummary from './stationstoragebackendview/StorageBackendSummary.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import StorageBackendAuditTable from '@/components/storage/StorageBackendAuditTable.vue'
@@ -45,6 +47,8 @@ import {
     sftpFormFrom,
     smbFormFrom,
 } from '@/util/storageBackendForm'
+import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const {hasPermission, loaded} = useSession()
@@ -57,7 +61,7 @@ watch(loaded, (isLoaded) => {
 }, {immediate: true})
 
 const loading = ref(true)
-const error = ref('')
+const loadFailure = ref<Failure | null>(null)
 const success = ref('')
 const backend = ref<BackendOverrideResponse | null>(null)
 const auditEntries = ref<AuditEntry[]>([])
@@ -106,13 +110,16 @@ onMounted(loadAll)
 
 async function loadAll() {
     loading.value = true
-    error.value = ''
+    loadFailure.value = null
     try {
         backend.value = await getStationBackend()
         seedFormFromBackend()
         auditEntries.value = await getStationStorageAudit()
     } catch (e) {
-        error.value = apiErrorTitle(e, t('stationStorageBackend.errors.loadFailed'))
+        loadFailure.value = {
+            ...describeFailure(e, t),
+            message: apiErrorTitle(e, t('stationStorageBackend.errors.loadFailed')),
+        }
     } finally {
         loading.value = false
     }
@@ -135,8 +142,7 @@ function seedFormFromBackend() {
 }
 
 function apiErrorTitle(e: unknown, fallback: string): string {
-    const err = e as {response?: {data?: {title?: string}}; message?: string}
-    return err?.response?.data?.title ?? err?.message ?? fallback
+    return apiErrorMessage(e) ?? fallback
 }
 
 function currentRequest(): StationBackendRequest | null {
@@ -152,7 +158,7 @@ const {running: probing, run: runProbe} = useAsyncAction(async (call: () => Prom
     } catch (e) {
         probeOutcome.value = {
             healthy: false,
-            error: apiErrorTitle(e, t('stationStorageBackend.errors.probeFailed')),
+            error: apiErrorTitle(e, describeFailure(e, t).message),
             checkedAt: new Date().toISOString(),
         }
     }
@@ -183,10 +189,9 @@ function applyRequest(): StationApplyRequest {
     return currentRequest()!
 }
 
-const {running: saving, error: applyError, run: runApply} = useAsyncAction(
+const {running: saving, failure: applyFailure, run: runApply} = useAsyncAction(
     async () => {
         confirmApply.value = false
-        error.value = ''
         success.value = ''
         const result = await applyStationBackend(applyRequest())
         success.value = t('stationStorageBackend.feedback.applied', {
@@ -213,19 +218,17 @@ const {running: saving, error: applyError, run: runApply} = useAsyncAction(
                 </RouterLink>
             </div>
 
-            <Alert v-if="error || applyError" variant="error">{{ error || applyError }}</Alert>
+            <FailureAlert :failure="loadFailure"/>
+            <FailureAlert :failure="applyFailure"/>
             <Alert v-if="success" variant="success">{{ success }}</Alert>
 
             <Spinner v-if="loading" size="lg" />
 
             <template v-else-if="backend">
-                <NeutralContainer class="space-y-2">
-                    <SubHeader>{{ t('stationStorageBackend.summary.title') }}</SubHeader>
-                    <MutedText tag="p" size="sm" data-testid="station-storage-where">{{ activeBackendLabel }}</MutedText>
-                    <MutedText tag="p" size="sm">
-                        {{ t('stationStorageBackend.summary.instanceDefault', {type: backend.instanceDefault}) }}
-                    </MutedText>
-                </NeutralContainer>
+                <StorageBackendSummary
+                    :where="activeBackendLabel"
+                    :instance-default="backend.instanceDefault"
+                />
 
                 <Alert v-if="locked" variant="info" data-testid="station-storage-locked">
                     {{ t('stationStorageBackend.lockedByCluster', {cluster: backend.clusterName ?? ''}) }}

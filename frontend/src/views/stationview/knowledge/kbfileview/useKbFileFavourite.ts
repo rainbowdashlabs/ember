@@ -7,6 +7,7 @@ import {computed, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {KbFavouriteTarget, type FavouriteEntry} from '@/api/knowledgeBase'
 import {useKbFavourites} from '@/composables/useKbFavourites'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * Whether the file being read is one of the reader's favourites, and the star that changes it.
@@ -17,12 +18,12 @@ import {useKbFavourites} from '@/composables/useKbFavourites'
  *
  * @param fileId            the file being read
  * @param partnerStationUid the partner serving it, when it is a partner's
- * @param error             where a failure is reported, the page's own error line
+ * @param failure           where a failure is reported, the page's own alert
  */
 export function useKbFileFavourite(
     fileId: () => number,
     partnerStationUid: () => string | undefined,
-    error: Ref<string>,
+    failure: Ref<Failure | null>,
 ) {
     const {t} = useI18n()
     const favourites = useKbFavourites()
@@ -39,16 +40,16 @@ export function useKbFileFavourite(
     async function load() {
         try {
             await favourites.load()
-        } catch {
-            error.value = t('common.error')
+        } catch (e) {
+            failure.value = {...describeFailure(e, t), message: t('kb.favouritesLoadFailed')}
         }
     }
 
     async function toggle() {
         try {
             await favourites.toggle(entry.value)
-        } catch {
-            error.value = t('kb.favouriteUnavailable')
+        } catch (e) {
+            failure.value = {...describeFailure(e, t), message: t('kb.favouriteUnavailable')}
         }
     }
 

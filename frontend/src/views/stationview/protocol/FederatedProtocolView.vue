@@ -17,7 +17,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import type {ProtocolDetailResponse} from '@/api/protocol'
 import {federation, protocol} from '@/api'
 import {useConfigPanel} from '@/composables/useConfigPanel'
@@ -30,7 +31,7 @@ const props = defineProps<{
 const {t} = useI18n()
 const router = useRouter()
 
-const {config: detail, loading, error, reload} = useConfigPanel<ProtocolDetailResponse | null>({
+const {config: detail, loading, failure, reload} = useConfigPanel<ProtocolDetailResponse | null>({
     initial: null,
     fetch: () => protocol.getFederatedProtocol(props.stationUid, props.protocolId),
 })
@@ -50,8 +51,8 @@ async function copyToStation() {
     try {
         await federation.copyProtocol(props.protocolId)
         router.push({name: 'protocol-list'})
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = describeFailure(e, t)
     }
 }
 
@@ -70,7 +71,7 @@ watch(() => [props.stationUid, props.protocolId], () => reload())
         :title="pageTitle"
         :subtitle="t('pages.federated-protocol.subtitle')"
     >
-        <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+        <FailureAlert :failure="failure" class="mb-4"/>
         <Spinner v-if="loading" size="lg"/>
 
         <template v-else-if="detail">

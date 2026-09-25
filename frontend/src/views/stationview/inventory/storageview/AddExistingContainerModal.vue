@@ -12,11 +12,12 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import {mapContainerError} from '@/views/stationview/inventory/storageview/containerErrors'
+import {mapContainerFailure} from '@/views/stationview/inventory/storageview/containerErrors'
+import type {Failure} from '@/util/failure'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
@@ -86,25 +87,30 @@ async function loadDescendants() {
   }
 }
 
-const {running: submitting, error: moveError, run: runMove, clearError: clearMoveError} = useAsyncAction(
+const moveFailure = ref<Failure | null>(null)
+
+const {running: submitting, run: runMove, clearError: clearMoveError} = useAsyncAction(
     async (c: InventoryContainer) => {
-      await inventoryContainers.updateContainer(c.id, {
-        parentId: props.targetContainerId,
-        internalId: c.internalId ?? null,
-        name: c.name,
-        kindId: c.kindId,
-        description: c.description ?? '',
-      })
+      try {
+        await inventoryContainers.updateContainer(c.id, {
+          parentId: props.targetContainerId,
+          internalId: c.internalId ?? null,
+          name: c.name,
+          kindId: c.kindId,
+          description: c.description ?? '',
+        })
+      } catch (e) {
+        moveFailure.value = mapContainerFailure(t, e)
+        return
+      }
       movedIds.value.add(c.id)
       emit('moved')
     },
-    {formatError: (e) => mapContainerError(t, e, 'inventory.storage.addExisting.moveFailed')},
 )
-
-const error = computed(() => scanError.value || moveError.value)
 
 async function moveHere(c: InventoryContainer) {
   scanError.value = ''
+  moveFailure.value = null
   await runMove(c)
 }
 
@@ -119,6 +125,7 @@ async function onScan(value: string) {
   const term = normaliseScannedPayload(value).trim()
   if (!term || submitting.value) return
   scanError.value = ''
+  moveFailure.value = null
   clearMoveError()
   const container = await inventoryContainers.resolveContainerByScan(term)
   if (!container) {
@@ -153,7 +160,8 @@ onMounted(loadDescendants)
     <SubHeader class="mb-2">{{ t('inventory.storage.addExisting.title') }}</SubHeader>
     <p class="text-xs text-(--text-muted) mb-3">{{ t('inventory.storage.addExisting.intro') }}</p>
 
-    <Alert v-if="error" variant="error" class="mb-3">{{ error }}</Alert>
+    <FailureAlert :message="scanError" expected class="mb-3"/>
+    <FailureAlert :failure="moveFailure" class="mb-3"/>
 
     <div class="flex items-center gap-2 mb-3">
       <SearchInput v-model="search" :placeholder="t('inventory.storage.addExisting.searchPlaceholder')" class="flex-1" />

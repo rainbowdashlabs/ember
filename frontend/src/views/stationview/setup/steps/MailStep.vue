@@ -52,7 +52,7 @@ onMounted(async () => {
     loading.value = false
 })
 
-const {running: saving, error, failure, run: save} = useAsyncAction(async () => {
+const {running: saving, failure, run: save} = useAsyncAction(async () => {
     await updateStationProviders(cfg.value.provider === 'NONE' ? [] : [cfg.value])
     await reload()
     goToNextStep(router, 'mail')

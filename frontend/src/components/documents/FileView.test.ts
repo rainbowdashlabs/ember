@@ -114,7 +114,7 @@ describe('FileView', () => {
         await flushPromises()
 
         expect(view.find('[data-testid="pdf-canvas"]').exists()).toBe(false)
-        expect(view.text()).toContain('common.error')
+        expect(view.text()).toContain('failure.UNKNOWN.message')
     })
 
     it('never asks for a kind it could not draw anyway', async () => {

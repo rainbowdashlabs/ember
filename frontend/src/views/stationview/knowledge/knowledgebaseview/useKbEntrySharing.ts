@@ -11,6 +11,7 @@ import type { MemberGroup, UserTag } from '@/api/types'
 import { emptyRestriction, type RestrictionSelection } from '@/components/input/restriction'
 import { grantKey, groupKey, tagKey, userTypeKey, type GrantLevels } from './kbGrantLevels'
 import type { KbEntryApi, KbEntryTarget } from './useKbEntryEditor'
+import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 
 /**
  * Who may see one knowledge base entry: the audience it is restricted to and whether it stands on the
@@ -40,7 +41,16 @@ export function useKbEntrySharing(
   const publicVisibility = ref<string>('default')
   const allGroups = ref<MemberGroup[]>([])
   const allTags = ref<UserTag[]>([])
-  const error = ref('')
+  const failure = ref<Failure | null>(null)
+
+  /**
+   * Whether the audience currently stored is actually in hand.
+   *
+   * <p>A failed fetch used to be swallowed and the dialog opened showing the default, empty audience,
+   * which is indistinguishable from an entry that restricts nobody. Saving then wrote that back, and
+   * who may read the entry changed without the reader ever seeing what it had been.
+   */
+  const audienceLoaded = ref(false)
 
   watch(show, async (visible) => {
     const target = entry()
@@ -48,14 +58,15 @@ export function useKbEntrySharing(
     restriction.value = emptyRestriction()
     grantLevels.value = {}
     publicVisibility.value = 'default'
-    error.value = ''
+    audienceLoaded.value = false
+    failure.value = null
 
     try {
       const [groupList, tagList] = await Promise.all([memberGroups.listGroups(), userTags.listTags()])
       allGroups.value = groupList
       allTags.value = tagList
-    } catch {
-      error.value = ''
+    } catch (e) {
+      failure.value = {...describeFailure(e, t), message: t('kb.audienceChoicesFailed')}
     }
 
     try {
@@ -79,8 +90,9 @@ export function useKbEntrySharing(
       publicVisibility.value = visibility.visible === true
         ? 'public'
         : visibility.visible === false ? 'hidden' : 'default'
-    } catch {
-      error.value = ''
+      audienceLoaded.value = true
+    } catch (e) {
+      failure.value = {...describeFailure(e, t), message: t('kb.audienceLoadFailed')}
     }
   })
 
@@ -98,9 +110,17 @@ export function useKbEntrySharing(
     ]
   }
 
+  /**
+   * Writes the chosen audience, but only where the stored one was read first. Saving a dialog that
+   * never managed to read it would silently replace who may see the entry with the default.
+   */
   async function save(): Promise<boolean> {
     const target = entry()
     if (!target) return false
+    if (!audienceLoaded.value) {
+      failure.value = notLoaded()
+      return false
+    }
     const visible = publicVisibility.value === 'public'
       ? true
       : publicVisibility.value === 'hidden' ? false : null
@@ -117,9 +137,19 @@ export function useKbEntrySharing(
       ])
       show.value = false
       return true
-    } catch {
-      error.value = t('common.error')
+    } catch (e) {
+      failure.value = describeFailure(e, t)
       return false
+    }
+  }
+
+  /** Refusing to save because the stored audience never arrived, which is nobody's mistake to report. */
+  function notLoaded(): Failure {
+    return {
+      kind: FailureKind.UNKNOWN,
+      message: t('kb.audienceNotSaved'),
+      guidance: t('kb.audienceNotSavedGuidance'),
+      reportable: false,
     }
   }
 
@@ -129,7 +159,8 @@ export function useKbEntrySharing(
     publicVisibility,
     allGroups,
     allTags,
-    error,
+    audienceLoaded,
+    failure,
     save,
   }
 }

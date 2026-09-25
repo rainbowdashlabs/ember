@@ -187,7 +187,7 @@ const currentTemplateName = computed(() => {
   return templates.value.find(tmpl => tmpl.id === id)?.name ?? ''
 })
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const [ev, cats, flds, completions] = await Promise.all([
     events.getEvent(eventId.value),
     events.listCategories(),
@@ -242,7 +242,7 @@ async function loadAbsences() {
   } catch { absentMembers.value = [] }
 }
 
-const answer = useEventAnswer(currentMemberId, reloadMyRegistrations, error)
+const answer = useEventAnswer(currentMemberId, reloadMyRegistrations, failure)
 
 /** Signing up and refusing both need the appointment and the date they are about. */
 async function onRegister(people: AnswerablePerson[]) {
@@ -271,7 +271,7 @@ function onFieldUpdated(field: EventField) {
       :subtitle="pageSubtitle"
   >
     <Spinner v-if="loading" size="lg"/>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <EventDetailBody
         v-if="!loading && event"
         :event="event"

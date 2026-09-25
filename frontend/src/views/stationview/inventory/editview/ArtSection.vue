@@ -30,7 +30,7 @@ import type {ArtStock, InventoryArt} from '@/api/inventoryArts'
 import {isLendableInventory, type InventoryTypeName} from '@/api/inventory'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The kinds of thing an inventory holds.
@@ -50,7 +50,7 @@ const routes = useInventoryRoutes()
 
 const arts = ref<InventoryArt[]>([])
 const stock = ref<ArtStock[]>([])
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const showModal = ref(false)
 const editingArt = ref<InventoryArt | null>(null)
@@ -61,17 +61,33 @@ const artColor = ref<string | null>(null)
 
 const stockByArt = computed(() => new Map(stock.value.map(row => [row.artId, row])))
 
+async function fetchArts() {
+  const [allArts, counts] = await Promise.all([
+    inventoryArts.listArts(props.inventoryId),
+    inventoryArts.artStock(props.inventoryId),
+  ])
+  arts.value = allArts
+  stock.value = counts
+}
+
 async function load() {
-  error.value = ''
+  failure.value = null
   try {
-    const [allArts, counts] = await Promise.all([
-      inventoryArts.listArts(props.inventoryId),
-      inventoryArts.artStock(props.inventoryId),
-    ])
-    arts.value = allArts
-    stock.value = counts
+    await fetchArts()
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
+  }
+}
+
+/**
+ * Fetches the list again after a kind was written, and says so as a stale screen rather than a
+ * failed write. The write is already through at this point, and a reader told otherwise saves twice.
+ */
+async function refreshAfterWrite() {
+  try {
+    await fetchArts()
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
   }
 }
 
@@ -94,7 +110,7 @@ function openEdit(art: InventoryArt) {
 }
 
 async function saveArt() {
-  error.value = ''
+  failure.value = null
   try {
     if (editingArt.value) {
       await inventoryArts.updateArt(props.inventoryId, editingArt.value.id, {
@@ -113,12 +129,12 @@ async function saveArt() {
         color: artColor.value,
       })
     }
-    showModal.value = false
-    await load()
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
+  showModal.value = false
+  await refreshAfterWrite()
 }
 
 const {
@@ -128,8 +144,8 @@ const {
   confirm: confirmDelete,
 } = useConfirmDelete<InventoryArt>({
   onDelete: art => inventoryArts.deleteArt(props.inventoryId, art.id),
-  onSuccess: () => load(),
-  error,
+  onSuccess: () => fetchArts(),
+  failure,
 })
 
 watch(() => props.inventoryId, load, {immediate: true})
@@ -151,7 +167,7 @@ watch(() => props.inventoryId, load, {immediate: true})
     </div>
     <p class="text-sm text-(--text-muted)">{{ t('inventory.art.intro') }}</p>
 
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <div v-for="art in arts" :key="art.id" :data-testid="`art-row-${art.name}`"
          class="flex items-center justify-between px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">

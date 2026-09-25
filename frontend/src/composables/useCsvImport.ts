@@ -7,6 +7,7 @@ import {computed, ref, shallowRef, type ComputedRef, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {ParsedCsv} from '@/api/util'
 import {readCsvText} from '@/util/csvText'
+import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 export const CsvImportSteps = {
     UPLOAD: 'upload',
@@ -58,6 +59,8 @@ export interface CsvImportController {
     step: Ref<CsvImportStepName>
     loading: Ref<boolean>
     error: Ref<string>
+    /** The same failure described, which is what the wizard renders. */
+    failure: Ref<Failure | null>
     separator: Ref<string>
     fileName: ComputedRef<string>
     lineCount: ComputedRef<number>
@@ -102,6 +105,7 @@ export function useCsvImport<TMapping, TPreview = unknown, TResult = unknown>(
     const result = ref<TResult | null>(null)
     const loading = ref(false)
     const error = ref('')
+    const failure = ref<Failure | null>(null)
 
     function source(): CsvSource {
         return {file: file.value, text: text.value, separator: separator.value}
@@ -121,14 +125,25 @@ export function useCsvImport<TMapping, TPreview = unknown, TResult = unknown>(
         return {...source(), headers: headers.value, rows: rows.value, mapping: mapping.value}
     }
 
+    /**
+     * A step of the import that the server refused, described.
+     *
+     * <p>It used to dig the server's message out of the response by hand and fall back to "that did
+     * not work", which threw away both the kind of failure and what to do about it. The wizard's own
+     * `formatError` still names the step where it has better words, and everything around that
+     * sentence now comes from the failure.
+     */
     function fail(thrown: unknown) {
-        const message = (thrown as {response?: {data?: {message?: string}}})?.response?.data?.message
-        error.value = options.formatError?.(thrown) ?? message ?? t('common.error')
+        const described = describeFailure(thrown, t)
+        const named = options.formatError?.(thrown)
+        failure.value = named ? {...described, message: named} : described
+        error.value = failure.value.message
     }
 
     async function runStep(action: () => Promise<void>) {
         loading.value = true
         error.value = ''
+        failure.value = null
         try {
             await action()
         } catch (thrown) {
@@ -138,9 +153,21 @@ export function useCsvImport<TMapping, TPreview = unknown, TResult = unknown>(
         }
     }
 
+    /**
+     * A refusal the wizard worked out for itself: a column nobody mapped, a file with no rows.
+     *
+     * <p>Marked as the reader's to put right rather than a fault, because it is. Offering to report
+     * an unmapped column as a bug in Ember is how the real reports get buried.
+     */
     function rejected(message: string | null | undefined): boolean {
         if (!message) return false
         error.value = message
+        failure.value = {
+            kind: FailureKind.REJECTED,
+            message,
+            guidance: t('failure.REJECTED.guidance'),
+            reportable: false,
+        }
         return true
     }
 
@@ -158,6 +185,7 @@ export function useCsvImport<TMapping, TPreview = unknown, TResult = unknown>(
             return
         }
         error.value = ''
+        failure.value = null
         file.value = picked
         text.value = await readCsvText(picked)
         step.value = CsvImportSteps.UPLOAD
@@ -197,6 +225,7 @@ export function useCsvImport<TMapping, TPreview = unknown, TResult = unknown>(
 
     function goBack() {
         error.value = ''
+        failure.value = null
         if (step.value === CsvImportSteps.PREVIEW) step.value = CsvImportSteps.MAPPING
         else if (step.value === CsvImportSteps.MAPPING) step.value = CsvImportSteps.UPLOAD
     }
@@ -206,6 +235,7 @@ export function useCsvImport<TMapping, TPreview = unknown, TResult = unknown>(
         file.value = null
         text.value = ''
         error.value = ''
+        failure.value = null
         clearParsed()
     }
 
@@ -225,6 +255,7 @@ export function useCsvImport<TMapping, TPreview = unknown, TResult = unknown>(
         result,
         loading,
         error,
+        failure,
         selectFile,
         parse,
         showPreview,

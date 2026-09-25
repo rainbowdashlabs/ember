@@ -10,6 +10,7 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 import ImportProgressChecklist from '@/components/transfer/ImportProgressChecklist.vue'
 import {transfer} from '@/api'
 import type {ImportProgress} from '@/api/transfer'
@@ -20,7 +21,7 @@ const {t} = useI18n()
 
 const stationUid = (route.params.stationUid as string) ?? ''
 const progress = ref<ImportProgress | null>(null)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
 /**
@@ -38,8 +39,8 @@ async function tick() {
     if (progress.value.status === 'COMPLETED' || progress.value.status === 'FAILED') {
       stopPolling()
     }
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
     stopPolling()
   }
 }
@@ -73,7 +74,7 @@ function backToStations() {
           {{ t('adminStationImport.backToStations') }}
         </SecondaryButton>
       </div>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <ImportProgressChecklist v-if="progress" :progress="progress"/>
     </div>
   </ViewContent>

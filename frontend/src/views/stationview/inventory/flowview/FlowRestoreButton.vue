@@ -16,6 +16,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import {movements} from '@/api'
 import type {FlowStepMapping, RestorePlan} from '@/api/movements'
 import {useFlowProblems} from '@/composables/useFlowProblems'
+import type {Failure} from '@/util/failure'
 import FlowRestoreMappingList from './FlowRestoreMappingList.vue'
 
 /**
@@ -29,7 +30,7 @@ import FlowRestoreMappingList from './FlowRestoreMappingList.vue'
  * afterwards where their movements went.
  */
 const {t} = useI18n()
-const {refusalText} = useFlowProblems()
+const {refusalFailure} = useFlowProblems()
 
 const props = defineProps<{
   flowId: number
@@ -38,8 +39,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   confirm: [mappings: FlowStepMapping[]]
-  /** Why the plan could not be read, worded for the card that shows it. */
-  refused: [message: string]
+  /** Why the plan could not be read, described for the card that shows it, or null to clear it. */
+  refused: [failure: Failure | null]
 }>()
 
 const asking = ref(false)
@@ -51,7 +52,7 @@ async function ask() {
   asking.value = true
   plan.value = null
   choices.value = {}
-  emit('refused', '')
+  emit('refused', null)
   try {
     const read = await movements.restorePlan(props.flowId)
     const suggested: Record<number, number | null> = {}
@@ -60,7 +61,7 @@ async function ask() {
     plan.value = read
   } catch (e) {
     asking.value = false
-    emit('refused', refusalText(e))
+    emit('refused', refusalFailure(e))
   }
 }
 

@@ -18,6 +18,7 @@ import type {GuardianInput, WaitingList, WaitingListField} from '@/api/waitingLi
 import {waitingList} from '@/api'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import EntryFormCard from './createentryview/EntryFormCard.vue'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -27,7 +28,7 @@ const listId = computed(() => Number(route.params.id))
 
 const list = ref<WaitingList | null>(null)
 
-const {config: fields, loading, error} = useConfigPanel<WaitingListField[]>({
+const {config: fields, loading, failure} = useConfigPanel<WaitingListField[]>({
   initial: [],
   fetch: async () => {
     const [listData, fieldData] = await Promise.all([
@@ -37,7 +38,6 @@ const {config: fields, loading, error} = useConfigPanel<WaitingListField[]>({
     list.value = listData
     return fieldData
   },
-  formatError: () => '',
 })
 
 /**
@@ -74,7 +74,7 @@ const canSave = computed(() =>
 
 async function save() {
   if (!canSave.value) return
-  error.value = ''
+  failure.value = null
   try {
     const values: Record<number, unknown> = {}
     for (const [k, v] of Object.entries(fieldValues.value)) {
@@ -89,7 +89,7 @@ async function save() {
     })
     router.push({name: 'waiting-list-detail', params: {id: listId.value}})
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -111,7 +111,7 @@ function goBack() {
 
       <SectionHeader>{{ t('waitingList.addEntry') }}</SectionHeader>
 
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <Spinner v-if="loading" size="lg"/>
 
       <template v-if="!loading">

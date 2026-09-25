@@ -10,6 +10,7 @@ import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SelfCheckHeader from './selfcheckview/SelfCheckHeader.vue'
 import SelfCheckSubmitBar from './selfcheckview/SelfCheckSubmitBar.vue'
 import SelfCheckSection from './selfcheckview/SelfCheckSection.vue'
@@ -35,7 +36,7 @@ const route = useRoute()
 
 const taskId = computed(() => Number(route.params.id))
 
-const {config: task, loading, error, reload} = useConfigPanel<SelfCheckResponse | null>({
+const {config: task, loading, failure, reload} = useConfigPanel<SelfCheckResponse | null>({
   initial: null,
   fetch: async () => {
     const loaded = await selfChecks.readTask(taskId.value)
@@ -117,13 +118,13 @@ function setSizeId(key: string, sizeId: string) {
  *
  * <p>Nothing is handed in by saving: the task stays open and the answers stay the member's to change.
  */
-const {running: saving, error: saveError, run: save} = useAsyncAction(async () => {
+const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async () => {
   if (check.pending.value.length === 0) return
   await selfChecks.saveAnswers(taskId.value, check.pending.value)
   saved.value = t('selfCheck.saved')
 })
 
-const {running: submitting, error: submitError, run: submit} = useAsyncAction(async () => {
+const {running: submitting, failure: submitFailure, run: submit} = useAsyncAction(async () => {
   if (check.pending.value.length > 0) await selfChecks.saveAnswers(taskId.value, check.pending.value)
   await selfChecks.submitTask(taskId.value)
   await reload()
@@ -155,7 +156,7 @@ async function openLost(entry: SelfCheckEntry) {
   showLost.value = true
 }
 
-const {running: submittingLost, error: lostError, run: submitLost, clearError: clearLostError} = useAsyncAction(
+const {running: submittingLost, failure: lostFailure, run: submitLost, clearError: clearLostError} = useAsyncAction(
     async () => {
       const entry = lostEntry.value
       if (entry?.type !== 'piece') return
@@ -215,7 +216,7 @@ async function openExchange(entry: SelfCheckEntry, cause: ExchangeCauseName) {
  */
 const {
   running: submittingExchange,
-  error: exchangeError,
+  failure: exchangeFailure,
   run: submitExchange,
   clearError: clearExchangeError,
 } = useAsyncAction(async () => {
@@ -248,7 +249,7 @@ const {
   await reload()
 })
 
-const anyError = computed(() => error.value || saveError.value || submitError.value || '')
+const anyFailure = computed(() => failure.value ?? saveFailure.value ?? submitFailure.value)
 
 /**
  * The piece as the dialogs name it, at the size the member says it is.
@@ -282,7 +283,7 @@ const exchangePiece = computed(() =>
   <ViewContent :title="pageTitle" :subtitle="t('pages.inventory-self-check.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="anyError" variant="error">{{ anyError }}</Alert>
+      <FailureAlert :failure="anyFailure"/>
 
       <template v-if="!loading && task">
         <SelfCheckHeader :task="task.task" :outstanding-count="outstandingRows.length"/>
@@ -324,7 +325,7 @@ const exchangePiece = computed(() =>
         :item="lostPiece"
         :note-required="lostNoteRequired"
         :submitting="submittingLost"
-        :error="lostError"
+        :failure="lostFailure"
         @cancel="showLost = false"
         @submit="submitLost"
     />
@@ -338,7 +339,7 @@ const exchangePiece = computed(() =>
         :cause="causeText"
         :size-required="wantsAnotherSize"
         :submitting="submittingExchange"
-        :error="exchangeError"
+        :failure="exchangeFailure"
         @cancel="showExchange = false"
         @submit="submitExchange"
     />

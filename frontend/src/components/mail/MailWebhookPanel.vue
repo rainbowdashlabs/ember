@@ -17,6 +17,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The address a mail provider reports delivery events to, with the steps for the provider that is
@@ -47,7 +48,13 @@ const {t, te} = useI18n()
 const current = ref(props.url ?? '')
 const copied = ref(false)
 const replacing = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
+
+/**
+ * A clipboard the browser would not write to, which is the browser's refusal and not Ember's doing.
+ * The address is on screen and can be selected by hand, so there is nothing here to report.
+ */
+const copyRefused = ref('')
 
 watch(() => props.url, value => {
   if (value) current.value = value
@@ -85,7 +92,7 @@ async function copy() {
     copied.value = true
     setTimeout(() => (copied.value = false), 2000)
   } catch {
-    error.value = t('mailWebhook.copyFailed')
+    copyRefused.value = t('mailWebhook.copyFailed')
   }
 }
 
@@ -99,12 +106,12 @@ async function saveSecret() {
 
 async function replace() {
   if (!props.regenerate) return
-  error.value = ''
+  failure.value = null
   replacing.value = true
   try {
     current.value = await props.regenerate()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('mailWebhook.replaceFailed')}
   } finally {
     replacing.value = false
   }
@@ -117,7 +124,8 @@ async function replace() {
     <MutedText tag="p" size="sm">{{ t('mailWebhook.intro') }}</MutedText>
     <MutedText tag="p" size="sm">{{ t('mailWebhook.purpose') }}</MutedText>
 
-    <FailureAlert :message="error"/>
+    <FailureAlert :message="copyRefused" expected/>
+    <FailureAlert :failure="failure"/>
     <Alert v-if="copied" variant="success">{{ t('mailWebhook.copied') }}</Alert>
 
     <code data-testid="mail-webhook-url"

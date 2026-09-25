@@ -20,6 +20,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SignupSetNotes from './SignupSetNotes.vue'
 import type {ProcedureTemplate} from '@/api/procedures'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
+import type {Failure} from '@/util/failure'
 
 /**
  * What is asked before a preparation list is written: which template its steps come from, what it
@@ -37,7 +38,7 @@ const props = defineProps<{
   selectedTemplate: string
   templates: ProcedureTemplate[]
   creating: boolean
-  error: string
+  failure: Failure | null
   memberSet: SignupMemberSet
   /** The occurrence the set belongs to, already written the way a reader reads a date. */
   dateLabel: string
@@ -92,7 +93,7 @@ const canSubmit = computed(() =>
     <SignupSetNotes :member-set="memberSet" :date-label="dateLabel"/>
 
     <Alert variant="info">{{ t('signupLists.procedureAssignees', {count: memberSet.count}) }}</Alert>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <ButtonRow pair align="end" class="pt-2">
       <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>

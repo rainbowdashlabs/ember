@@ -13,6 +13,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {Inventory, InventoryDetail, InventoryItem} from '@/api/inventory'
 import {inventory} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -44,7 +45,7 @@ const selected = ref<Set<number>>(new Set())
 const targetId = ref('')
 const moved = ref(0)
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [inv, invItems, all] = await Promise.all([
     inventory.getInventory(inventoryId.value),
     inventory.listItems(inventoryId.value),
@@ -98,7 +99,7 @@ function toggleAll() {
       : new Set(items.value.map(item => item.id))
 }
 
-const {running: moving, error: moveError, run: runMove} = useAsyncAction(async () => {
+const {running: moving, failure: moveFailure, run: runMove} = useAsyncAction(async () => {
   const id = Number(targetId.value)
   const chosen = [...selected.value]
   for (const itemId of chosen) {
@@ -122,11 +123,11 @@ const {running: moving, error: moveError, run: runMove} = useAsyncAction(async (
         {{ t('inventory.move.back') }}
       </SecondaryButton>
 
-      <AsyncSection :loading="loading" :error="error">
+      <AsyncSection :loading="loading" :failure="failure">
         <div class="space-y-6">
           <MoveTargetPicker v-model="targetId" :targets="targets" @selected="onTargetSelected"/>
 
-          <Alert v-if="moveError" variant="error">{{ moveError }}</Alert>
+          <FailureAlert :failure="moveFailure"/>
           <!--
             What was moved has to stay legible after the list it came from has emptied, which is the
             usual way a split ends: the last piece leaves and the page would otherwise say only that

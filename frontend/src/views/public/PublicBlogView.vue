@@ -47,7 +47,7 @@ useHead(computed(() => {
 
 const entries = ref<PublicBlogEntry[]>([])
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   entries.value = await news.listPublicBlog(stationUid.value)
 })
 
@@ -80,7 +80,7 @@ function openFeed(url: string) {
     <AsyncSection
         :empty="entries.length === 0"
         :empty-message="t('publicStation.blogNoEntries')"
-        :error="error"
+        :failure="failure"
         :loading="loading"
     >
       <div class="space-y-4">

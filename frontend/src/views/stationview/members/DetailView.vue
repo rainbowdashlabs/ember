@@ -10,6 +10,7 @@ import { useRoute } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DetailModals from './detailview/DetailModals.vue'
 import DetailHeader from './detailview/DetailHeader.vue'
 import LoadedTabs from './detailview/LoadedTabs.vue'
@@ -24,6 +25,7 @@ import {StationModules, StationPermission, StationUserType, type MemberGroup, ty
 import { memberGroups, profileFieldChanges, profileFields, stationMembers, userTags } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { describeFailure } from '@/util/failure'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -48,7 +50,7 @@ const memberTagList = ref<UserTag[]>([])
 
 const modalsRef = ref<InstanceType<typeof DetailModals> | null>(null)
 
-const { loading, error } = useAsyncLoader(loadDetail)
+const { loading, failure } = useAsyncLoader(loadDetail)
 
 const {
   fields, applicableFields, fieldsForUserType, getFieldValue, setValues, loadAudiences,
@@ -63,10 +65,10 @@ const {
   linkManager,
   removeManager,
   createManager,
-} = useMemberManagers(memberId, allMembers, fieldsForUserType, error)
+} = useMemberManagers(memberId, allMembers, fieldsForUserType, failure)
 
 const {managedMembers, availableManaged, linkManaged, removeManaged} =
-    useManagedMembers(memberId, allMembers, error)
+    useManagedMembers(memberId, allMembers, failure)
 
 const {
   items: memberInventory,
@@ -77,7 +79,7 @@ const {
   handOutNewItem,
   unassignItem,
   reassignItem,
-} = useMemberInventory(memberId, error)
+} = useMemberInventory(memberId, failure)
 
 const {
   formerSuccess,
@@ -85,12 +87,12 @@ const {
   formerBlockReasons,
   canMarkFormer,
   markingFormer,
-  formerError,
+  formerFailure,
   markFormer,
   deletingMember,
-  deleteError,
+  deleteFailure,
   deleteMember,
-} = useMemberLifecycle(memberId, member, memberUserType, memberInventory, error)
+} = useMemberLifecycle(memberId, member, memberUserType, memberInventory, failure)
 
 const tabs = computed(() => {
   const t_ = [
@@ -135,8 +137,19 @@ const relationsTabLabel = computed(() =>
 const pageTitle = computed(() =>
   member.value ? memberDisplayName(member.value) : t('pages.members-detail.title'))
 
+/**
+ * Reads the record of what has been changed about this member.
+ *
+ * <p>Said out loud when it fails, because an empty history reads as a profile nobody has ever touched,
+ * which on a page whose whole point is who changed what is the opposite of no answer.
+ */
 async function loadChanges() {
-  try { changes.value = await profileFieldChanges.getChanges(memberId.value) } catch { void 0 }
+  try {
+    changes.value = await profileFieldChanges.getChanges(memberId.value)
+  } catch (e) {
+    changes.value = []
+    failure.value = {...describeFailure(e, t), message: t('memberDetail.changesUnreadable')}
+  }
 }
 
 async function loadDetail() {
@@ -229,7 +242,7 @@ const detailModalsProps = computed(() => ({
       />
 
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error || formerError || deleteError" variant="error">{{ error || formerError || deleteError }}</Alert>
+      <FailureAlert :failure="failure ?? formerFailure ?? deleteFailure"/>
 
       <LoadedTabs
         v-if="!loading && member"

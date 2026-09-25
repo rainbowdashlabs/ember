@@ -15,8 +15,8 @@ import GearGlyph from '@/components/inventory/GearGlyph.vue'
 import {glyphFor} from '@/util/glyph'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainerKind} from '@/api/inventoryContainers'
-import {showToast} from '@/util/toast'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 
 const props = defineProps<{
   kinds: InventoryContainerKind[]
@@ -117,7 +117,7 @@ function slugify(label: string): string {
       .slice(0, 32)
 }
 
-const {running: creating, run: runCreateKind} = useAsyncAction(async (iconName: string, color: string | null) => {
+const {running: creating, failure: createFailure, run: runCreateKind} = useAsyncAction(async (iconName: string, color: string | null) => {
   const slugBase = slugify(pendingLabel.value) || 'kind'
   let key = slugBase
   const existing = new Set(props.kinds.map(k => k.key))
@@ -143,10 +143,16 @@ const {running: creating, run: runCreateKind} = useAsyncAction(async (iconName: 
   return true
 })
 
+/**
+ * Writes down the new kind the reader typed.
+ *
+ * <p>A refusal stays beside the picker rather than passing as a toast: the form around it goes on to
+ * save without a kind, and somebody who missed a message that lasted three seconds has no way of
+ * telling that from a form that simply did not ask.
+ */
 async function commitPendingKind() {
   if (creating.value || !pendingIcon.value) return
-  const ok = await runCreateKind(pendingIcon.value, pendingColor.value)
-  if (!ok) showToast(t('inventory.storage.fields.kindCreateFailed'), 'error')
+  await runCreateKind(pendingIcon.value, pendingColor.value)
 }
 
 function cancelIconPicker() {
@@ -169,6 +175,7 @@ defineExpose({resolve})
 
 <template>
   <div class="flex flex-col gap-2">
+    <FailureAlert :failure="createFailure"/>
     <div v-if="selectedKind" class="inline-flex items-center gap-2 self-start rounded-theme bg-(--bg-accent) px-2 py-1 text-sm">
       <GearGlyph :glyph="glyphFor({icon: selectedKind.icon, color: selectedKind.color, homogeneous: false})"
                  surface="accent"/>

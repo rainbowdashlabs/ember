@@ -192,7 +192,7 @@ const noSizeItems = computed(() => {
 
 const allSizeStats = computed(() => [...sizeDistribution.value, ...noSizeItems.value])
 
-const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   const [inv, allItems, members, allContainers] = await Promise.all([
     inventory.getInventory(inventoryId.value),
     inventory.listItems(inventoryId.value),
@@ -243,7 +243,7 @@ function goEdit() { router.push({ name: routes.edit, params: { id: inventoryId.v
       />
 
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <DetailLoadedContent
         v-if="!loading && detail"
@@ -270,7 +270,7 @@ function goEdit() { router.push({ name: routes.edit, params: { id: inventoryId.v
         :member-map="memberMap"
         :unassigned-members="unassignedMembers"
         @reload="loadData"
-        @error="error = $event"
+        @error="failure = $event"
       />
     </div>
   </ViewContent>

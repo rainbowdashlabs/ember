@@ -16,6 +16,7 @@ import {
 } from '@/api/quiz'
 import {createQuizCsvMapping, type ImportDraft} from '../csvimportview/quizCsvImport'
 import {NO_METADATA, readCatalogFile, toTransfer, usedCategories} from './catalogImport'
+import {describeFailure, type Failure} from '@/util/failure'
 
 export type ImportStep = 'source' | 'mapping' | 'preview' | 'done'
 
@@ -33,7 +34,15 @@ export function useCatalogImport(catalogId: () => number | null) {
 
     const step = ref<ImportStep>('source')
     const loading = ref(false)
+
+    /**
+     * What the reader can see for themselves: a file that is not a catalog, a column left unmapped,
+     * nothing ticked. None of it is a fault in Ember and none of it is offered as one to report.
+     */
     const error = ref('')
+
+    /** What went wrong on the way to the server, described, where the reader could not have known. */
+    const failure = ref<Failure | null>(null)
     const problems = ref<CatalogTransferProblem[]>([])
 
     const file = ref<File | null>(null)
@@ -70,14 +79,23 @@ export function useCatalogImport(catalogId: () => number | null) {
         if (Array.isArray(rejected) && rejected.length > 0) {
             problems.value = rejected
             error.value = t('quiz.catalogs.importRejected')
-        } else {
-            error.value = cause instanceof SyntaxError ? t('quiz.catalogs.importNotReadable') : t('common.error')
+            return
         }
+        if (cause instanceof SyntaxError) {
+            error.value = t('quiz.catalogs.importNotReadable')
+            return
+        }
+        failure.value = describeFailure(cause, t)
+    }
+
+    function clear() {
+        error.value = ''
+        failure.value = null
     }
 
     function selectFile(picked: File) {
         file.value = picked
-        error.value = ''
+        clear()
         problems.value = []
     }
 
@@ -99,7 +117,7 @@ export function useCatalogImport(catalogId: () => number | null) {
     async function advanceFromSource() {
         if (!file.value) return
         loading.value = true
-        error.value = ''
+        clear()
         try {
             if (!isSheet.value) {
                 loadFromFile(await readCatalogFile(file.value))
@@ -123,7 +141,7 @@ export function useCatalogImport(catalogId: () => number | null) {
             return
         }
         loading.value = true
-        error.value = ''
+        clear()
         try {
             const draft = await quiz.draftFromCsv(sheetText.value, mapping.value)
             categories.value = draft.categories
@@ -189,7 +207,7 @@ export function useCatalogImport(catalogId: () => number | null) {
             return
         }
         loading.value = true
-        error.value = ''
+        clear()
         problems.value = []
         try {
             const transfer = toTransfer(
@@ -223,7 +241,7 @@ export function useCatalogImport(catalogId: () => number | null) {
         drafts.value = []
         categories.value = []
         problems.value = []
-        error.value = ''
+        clear()
         step.value = 'source'
     }
 
@@ -232,6 +250,7 @@ export function useCatalogImport(catalogId: () => number | null) {
         step,
         loading,
         error,
+        failure,
         problems,
         file,
         separator,

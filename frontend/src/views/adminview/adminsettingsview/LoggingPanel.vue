@@ -8,6 +8,7 @@ import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -27,14 +28,14 @@ import {getLoggingConfig, LOG_LEVELS, updateLoggingConfig, type LoggingConfig} f
 const {t} = useI18n()
 
 const config = ref<LoggingConfig>({databaseEnabled: false, databaseLevel: 'DEBUG', retentionDays: 14})
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const saved = ref(false)
 
 onMounted(async () => {
   try {
     config.value = await getLoggingConfig()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 })
 
@@ -50,7 +51,7 @@ async function save() {
     <SectionHeader>{{ t('adminSettings.logging.title') }}</SectionHeader>
     <MutedText tag="p" size="sm">{{ t('adminSettings.logging.hint') }}</MutedText>
 
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <Alert v-if="saved" variant="success">{{ t('adminSettings.logging.saved') }}</Alert>
 
     <div class="flex items-center justify-between gap-3">

@@ -11,7 +11,7 @@ import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
 import ThemeDefaultsPanel from '@/views/stationview/manage/stationthemeview/ThemeDefaultsPanel.vue'
 import CustomColorsPanel from '@/views/stationview/manage/stationthemeview/CustomColorsPanel.vue'
 import LogoSection from '@/views/stationview/manage/stationview/LogoSection.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {stationManage} from '@/api'
 import {THEMES, type ModeColors, type ThemeColors} from '@/theme/themes'
@@ -20,6 +20,7 @@ import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAuthImage} from '@/composables/useAuthImage'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -38,7 +39,7 @@ const hasLogo = ref(false)
 const logoUrl = ref<string | null>(null)
 const {src: logoObjectUrl} = useAuthImage(logoUrl)
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 function defaultColors(): ThemeColors {
     const mode: ModeColors = {
@@ -79,28 +80,29 @@ onMounted(async () => {
         }
         hasLogo.value = info.hasLogo
         if (info.hasLogo) logoUrl.value = LOGO_URL
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = describeFailure(e, t)
     } finally {
         loading.value = false
     }
 })
 
-const {running: uploading, error: logoError, run: handleLogoUpload} = useAsyncAction(async (file: File) => {
+const {running: uploading, failure: logoFailure, run: handleLogoUpload} = useAsyncAction(async (file: File) => {
     await stationManage.uploadLogo(file)
     hasLogo.value = true
     logoUrl.value = null
     await nextTick()
     logoUrl.value = LOGO_URL
-}, {formatError: () => t('fileUpload.uploadFailed')})
+})
 
 async function removeLogo() {
+    failure.value = null
     try {
         await stationManage.deleteLogo()
         hasLogo.value = false
         logoUrl.value = null
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = describeFailure(e, t)
     }
 }
 
@@ -108,7 +110,7 @@ function removeCustomColors() {
     customEnabled.value = false
 }
 
-const {running: saving, error: saveError, run: runSave} = useAsyncAction(async () => {
+const {running: saving, failure: saveFailure, run: runSave} = useAsyncAction(async () => {
     await stationManage.updateStationName({
         name: stationName.value,
         defaultTheme: themeCtrl.activeTheme.value,
@@ -121,17 +123,21 @@ const {running: saving, error: saveError, run: runSave} = useAsyncAction(async (
     goToNextStep(router, 'branding')
 })
 
-const displayError = computed(() => error.value || saveError.value)
+/**
+ * What to show above the step. The logo is in here too, because the picker beside it can only take a
+ * sentence: the guidance and, where it is ours to fix, the way to report it, need the full alert.
+ */
+const displayFailure = computed(() => saveFailure.value ?? logoFailure.value ?? failure.value)
 
 function save() {
-    error.value = ''
+    failure.value = null
     return runSave()
 }
 </script>
 
 <template>
   <SetupLayout step-id="branding" skippable :saving="saving" @save="save">
-    <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
+    <FailureAlert :failure="displayFailure"/>
     <Spinner v-if="loading" size="lg"/>
     <template v-else>
       <ThemeDefaultsPanel v-model:lock-theme="lockTheme" v-model:lock-feel="lockFeel"/>
@@ -146,7 +152,7 @@ function save() {
           :has-logo="hasLogo"
           :logo-object-url="logoObjectUrl"
           :uploading="uploading"
-          :logo-error="logoError || null"
+          :logo-error="logoFailure?.message ?? null"
           :max-size="LOGO_MAX_SIZE"
           @upload="handleLogoUpload"
           @remove="removeLogo"

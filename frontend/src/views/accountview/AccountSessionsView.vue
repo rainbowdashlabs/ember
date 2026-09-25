@@ -10,6 +10,7 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
@@ -27,30 +28,30 @@ const router = useRouter()
 const sessions = ref<ActiveSession[]>([])
 const showInvalidateAllModal = ref(false)
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   sessions.value = await sessionApi.getActiveSessions()
 })
 
 async function invalidateSession(id: number) {
-  error.value = ''
+  failure.value = null
   try {
     await sessionApi.invalidateSession(id)
     sessions.value = sessions.value.filter(s => s.id !== id)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
 async function invalidateAll() {
-  error.value = ''
+  failure.value = null
   try {
     await sessionApi.invalidateAllSessions()
     showInvalidateAllModal.value = false
     localStorage.removeItem('session_token')
     localStorage.removeItem('session_expires_at')
     router.push({name: 'login'})
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 </script>
@@ -59,7 +60,7 @@ async function invalidateAll() {
   <ViewContent :title="t('pages.account-sessions.title')" :subtitle="t('pages.account-sessions.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <SessionsSection

@@ -30,13 +30,16 @@ import DanglingRefAudit from './datatrackingview/DanglingRefAudit.vue'
 import {findDanglingMemberRefs} from './datatrackingview/danglingMemberRefs'
 import TableFilterBar from './datatrackingview/TableFilterBar.vue'
 import BatchToolbar from './datatrackingview/BatchToolbar.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
 const tracking = ref<DataTracking | null>(null)
 const summary = ref<DataTrackingSummary | null>(null)
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const selectedTable = ref<string | null>(null)
 
 const selectedForBatch = ref<Set<string>>(new Set())
@@ -62,7 +65,7 @@ const verifiedPct = computed(() => {
 
 async function loadData() {
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     const [tk, sm] = await Promise.all([
       dataTracking.getDataTracking(),
@@ -71,7 +74,7 @@ async function loadData() {
     tracking.value = tk
     summary.value = sm
   } catch (e) {
-    error.value = (e as Error).message || t('common.error')
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
@@ -139,7 +142,7 @@ const {running: batchSaving, run: applyBatch} = useAsyncAction(async () => {
       const updated = await dataTracking.updateDataTrackingTable(name, payload)
       successUpdates[name] = updated
     } catch (e) {
-      failures.push(`${name}: ${(e as Error).message ?? 'unknown error'}`)
+      failures.push(`${name}: ${apiErrorMessage(e) ?? describeFailure(e, t).message}`)
     }
   }
 
@@ -170,7 +173,7 @@ onMounted(async () => {
       <span class="text-sm text-(--text-muted)">{{ t('adminDataTracking.devOnlyNotice') }}</span>
     </div>
 
-    <Alert v-if="error" class="mb-4" variant="error">{{ error }}</Alert>
+    <FailureAlert :failure="failure" class="mb-4"/>
 
     <Spinner v-if="loading"/>
 

@@ -14,6 +14,7 @@ import type {
 } from '@/api/boards'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type {PriorityOption, KbSearchResult} from './types'
+import type { Failure } from '@/util/failure'
 
 
 
@@ -41,7 +42,8 @@ defineProps<{
     canEdit: boolean
     federated: boolean
     partnerUid?: string
-    error: string
+    /** What the last action or load ran into, described, or nothing where nothing has. */
+    failure: Failure | null
 }>()
 
 const title = defineModel<string>('title', { default: '' })
@@ -112,7 +114,7 @@ const emit = defineEmits<{
             v-model:due-date="dueDate" v-model:field-values="fieldValues"
             :ticket="ticket" :lanes="lanes" :members="members" :assignable-members="assignableMembers" :all-labels="allLabels"
             :ticket-labels="ticketLabels" :board-fields="boardFields"
-            :priority-options="priorityOptions" :can-edit="canEdit" :error="error"
+            :priority-options="priorityOptions" :can-edit="canEdit" :failure="failure"
             @move-to="emit('moveTo', $event)" @save-ticket="emit('saveTicket')"
             @toggle-label="emit('toggleLabel', $event)" @create-label="emit('createLabel', $event)"
             @save-field="(id, type, value) => emit('saveField', id, type, value)"

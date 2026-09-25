@@ -21,7 +21,7 @@ import PasskeyCodeDisplay from '@/components/passkey/PasskeyCodeDisplay.vue'
 import {managedMembers, passkeys} from '@/api'
 import type {ManagedAccess, PasskeyCode} from '@/api/managedMembers'
 import type {PasskeyModeName} from '@/api/adminSettings'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The access a guardian manages for one member in their care: the address the account is reached
@@ -39,12 +39,12 @@ const email = ref('')
 const username = ref('')
 const password = ref('')
 const loading = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const notice = ref('')
 
 async function load() {
   loading.value = true
-  error.value = ''
+  failure.value = null
   notice.value = ''
   try {
     access.value = await managedMembers.getAccess(props.memberId)
@@ -53,47 +53,47 @@ async function load() {
     password.value = ''
   } catch (e) {
     access.value = null
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
 }
 
 async function saveEmail() {
-  error.value = ''
+  failure.value = null
   notice.value = ''
   try {
     access.value = await managedMembers.setEmail(props.memberId, email.value)
     email.value = access.value.email ?? ''
     notice.value = t('profileManaged.access.emailSaved')
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
 
 async function saveUsername() {
-  error.value = ''
+  failure.value = null
   notice.value = ''
   try {
     access.value = await managedMembers.setUsername(props.memberId, username.value)
     username.value = access.value.username ?? ''
     notice.value = t('profileManaged.access.usernameSaved')
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
 
 async function savePassword() {
-  error.value = ''
+  failure.value = null
   notice.value = ''
   try {
     access.value = await managedMembers.setPassword(props.memberId, password.value)
     password.value = ''
     notice.value = t('profileManaged.access.passwordSaved')
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -107,11 +107,11 @@ onMounted(() => {
 })
 
 async function issueCode() {
-  error.value = ''
+  failure.value = null
   try {
     passkeyCode.value = await managedMembers.issuePasskeyCode(props.memberId)
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -127,13 +127,13 @@ async function revokeCode() {
 }
 
 async function toggleLogin(enabled: boolean) {
-  error.value = ''
+  failure.value = null
   notice.value = ''
   try {
     access.value = await managedMembers.setLogin(props.memberId, enabled)
     notice.value = enabled ? t('profileManaged.access.loginOn') : t('profileManaged.access.loginOff')
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
     await load()
   }
 }
@@ -147,7 +147,7 @@ watch(() => props.memberId, load, {immediate: true})
     <MutedText tag="p" size="sm">{{ t('profileManaged.access.hint') }}</MutedText>
 
     <Spinner v-if="loading" size="md"/>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <Alert v-if="notice" variant="success">{{ notice }}</Alert>
 
     <template v-if="access && !loading">

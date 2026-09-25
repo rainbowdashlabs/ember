@@ -16,6 +16,7 @@ import LendingSharePanel from '@/components/lending/LendingSharePanel.vue'
 import {ItemOwner, type InventoryItem, type InventoryItemHistory, type InventorySize} from '@/api/inventory'
 import type {ItemCheckHistoryEntry, ItemLocationResponse} from '@/api/inventoryContainers'
 import type {StationMember} from '@/api/types'
+import type {Failure} from '@/util/failure'
 
 /**
  * Everything one piece of gear shows below its heading, in the order it is read: what it is, what a
@@ -38,7 +39,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   updated: [item: InventoryItem]
-  error: []
+  error: [failure: Failure]
   reload: []
   assign: []
   unassign: []
@@ -55,7 +56,7 @@ const emit = defineEmits<{
       :location="props.location"
       :can-edit-item="props.canEditItem"
       @updated="emit('updated', $event)"
-      @error="emit('error')"
+      @error="emit('error', $event)"
   />
 
   <OwnedElsewherePanel v-if="props.ownedElsewhere" :item="props.item" @started="emit('reload')"/>

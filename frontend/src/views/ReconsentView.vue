@@ -11,6 +11,7 @@ import {session} from '@/api'
 import {acceptStorage} from '@/api/storage'
 import {useConsentGuard} from '@/composables/useConsentGuard'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {describeFailure, type Failure} from '@/util/failure'
 import type {ConsentChangesResponse} from '@/api/session'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -23,7 +24,7 @@ const {t} = useI18n()
 const router = useRouter()
 
 const loading = ref(true)
-const loadError = ref('')
+const loadFailure = ref<Failure | null>(null)
 const changes = ref<ConsentChangesResponse | null>(null)
 
 onMounted(async () => {
@@ -34,13 +35,13 @@ onMounted(async () => {
       return
     }
     changes.value = await session.getConsentChanges()
-  } catch {
-    loadError.value = t('common.error')
+  } catch (e) {
+    loadFailure.value = describeFailure(e, t)
   }
   loading.value = false
 })
 
-const {running: submitting, error: submitError, run: handleAccept} = useAsyncAction(async () => {
+const {running: submitting, failure: submitFailure, run: handleAccept} = useAsyncAction(async () => {
   if (!changes.value) return
   await session.recordConsent({
     consentVersion: changes.value.currentConsentVersion,
@@ -57,7 +58,13 @@ const {running: submitting, error: submitError, run: handleAccept} = useAsyncAct
   await router.replace({name: 'dashboard-overview'})
 })
 
-const error = computed(() => loadError.value || submitError.value)
+/**
+ * The one alert this page has, fed by whichever of the two failed.
+ *
+ * <p>Reading the consent changes and accepting them are separate acts, so whichever went wrong is
+ * the one described: they never overlap, because nothing can be accepted until it has been read.
+ */
+const failure = computed(() => loadFailure.value ?? submitFailure.value)
 </script>
 
 <template>
@@ -67,7 +74,7 @@ const error = computed(() => loadError.value || submitError.value)
       <p class="text-sm text-(--text-muted)">{{ t('reconsent.description') }}</p>
 
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="changes && !loading">
         <PolicyChangeSection v-if="changes.privacyChanged"

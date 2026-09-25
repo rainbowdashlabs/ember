@@ -27,7 +27,7 @@ const {t} = useI18n()
 const slots = useSlots()
 
 const importer = props.importer
-const {step, loading, error, separator, fileName, lineCount, hasFile} = importer
+const {step, loading, failure, separator, fileName, lineCount, hasFile} = importer
 
 const separatorChoices = computed(() => [
   {label: ';', value: ';'},
@@ -45,7 +45,7 @@ function advanceFromMapping() {
 
 <template>
   <div class="space-y-6">
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <NeutralContainer v-if="step === CsvImportSteps.UPLOAD" class="space-y-4">
       <SubHeader>{{ t('csvImport.uploadTitle') }}</SubHeader>

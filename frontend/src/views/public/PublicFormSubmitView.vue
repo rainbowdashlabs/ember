@@ -66,7 +66,8 @@ const {
   privacyVersion,
   tosVersion,
   submitting,
-  error,
+  failure,
+  validationError,
   load,
   toggleChoice,
   updateText,
@@ -92,7 +93,8 @@ onMounted(load)
   <ViewContent :title="t('pages.public-form-submit.title')" :subtitle="t('pages.public-form-submit.subtitle')">
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
+      <FailureAlert :message="validationError" expected/>
 
       <SuccessContainer v-if="submitted">
         <SectionHeader>{{ t('publicForm.thanksTitle') }}</SectionHeader>

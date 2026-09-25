@@ -7,10 +7,11 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import ContentRow from '@/components/content/ContentRow.vue'
 import SharedLinkShell from './SharedLinkShell.vue'
+import {usePublicFailure} from '@/composables/usePublicFailure'
 import {publicContentContext} from '@/util/contentContext'
 import {apiUrl} from '@/util/apiUrl'
 import {socialMeta, stationLogoImage, useAbsoluteUrl} from '@/util/socialMeta'
@@ -36,6 +37,16 @@ const {data: shared, error} = await useAsyncData(
 )
 
 const page = computed(() => shared.value?.page ?? null)
+
+/**
+ * A fetch that succeeded and still left no page behind counts as the link being gone: from where the
+ * reader stands there is nothing to tell the two apart, and both are answered by asking whoever sent
+ * the link for a current one.
+ */
+const linkFailure = usePublicFailure(
+    computed(() => error.value ?? (page.value ? null : {response: {status: 404}})),
+    {message: 'shareLink.gone', guidance: 'shareLink.goneGuidance'},
+)
 
 const absoluteUrl = useAbsoluteUrl()
 
@@ -76,8 +87,8 @@ useHead(computed(() => {
 
 <template>
     <SharedLinkShell :brand="shared?.station ?? null">
-        <Alert v-if="error || !page" variant="error">{{ t('common.notFound') }}</Alert>
-        <ViewContent v-else :title="page.title">
+        <FailureAlert v-if="linkFailure" :failure="linkFailure"/>
+        <ViewContent v-else-if="page" :title="page.title">
             <div class="space-y-0">
                 <ContentRow
                     v-for="row in page.rows"

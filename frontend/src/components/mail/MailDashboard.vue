@@ -13,6 +13,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -21,6 +22,7 @@ import MailRecordTable from '@/components/mail/MailRecordTable.vue'
 import MailProviderStanding from '@/components/mail/MailProviderStanding.vue'
 import {useMailRecordTable} from '@/components/mail/useMailRecordTable'
 import {showToast} from '@/util/toast'
+import {describeFailure, type Failure} from '@/util/failure'
 import {MailDeliveryStatus, type MailDashboard, type ProviderBlock, type RequeuedMails} from '@/api/mailProviders'
 
 /**
@@ -44,19 +46,35 @@ const {t} = useI18n()
 
 const data = ref<MailDashboard | null>(null)
 const loading = ref(true)
-const error = ref('')
+const loadFailure = ref<Failure | null>(null)
+const actionFailure = ref<Failure | null>(null)
 
 const statusFilter = ref('')
 
 async function reload() {
   loading.value = true
-  error.value = ''
+  loadFailure.value = null
   try {
     data.value = await props.load()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    loadFailure.value = describeFailure(e, t)
   } finally {
     loading.value = false
+  }
+}
+
+/**
+ * Fetching the dashboard again after something was done to it, which is not part of doing it.
+ *
+ * <p>Sharing one attempt meant a block that really was lifted, or a queue that really was sent again,
+ * followed by a dashboard that failed to come back, read as the action having failed. Sending a queue
+ * a second time on that advice is how one mail becomes two.
+ */
+async function catchUp() {
+  await reload()
+  if (loadFailure.value) {
+    actionFailure.value = {...loadFailure.value, message: t('failure.staleAfterAction')}
+    loadFailure.value = null
   }
 }
 
@@ -65,14 +83,16 @@ const lifting = ref<string | null>(null)
 async function doLift(block: ProviderBlock) {
   if (!props.lift) return
   lifting.value = `${block.provider}-${block.recipientDomain}`
+  actionFailure.value = null
   try {
     await props.lift(block.provider, block.recipientDomain)
-    await reload()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    actionFailure.value = describeFailure(e, t)
+    return
   } finally {
     lifting.value = null
   }
+  await catchUp()
 }
 
 const requeueing = ref(false)
@@ -80,15 +100,17 @@ const requeueing = ref(false)
 async function doRequeue(id?: number) {
   if (!props.requeue) return
   requeueing.value = true
+  actionFailure.value = null
   try {
     const result = await props.requeue(id)
     showToast(t('mailDashboard.requeued', {count: result.requeued}), 'success')
-    await reload()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    actionFailure.value = describeFailure(e, t)
+    return
   } finally {
     requeueing.value = false
   }
+  await catchUp()
 }
 
 onMounted(reload)
@@ -115,8 +137,10 @@ const stuckTable = useMailRecordTable('mail-stuck', () => data.value?.stuckMails
     </div>
     <MutedText tag="p" size="sm">{{ t('mailDashboard.hint') }}</MutedText>
 
+    <FailureAlert :failure="actionFailure"/>
+
     <Spinner v-if="loading" size="md"/>
-    <Alert v-else-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert v-else-if="loadFailure" :failure="loadFailure"/>
 
     <template v-else-if="data">
       <div class="grid grid-cols-2 md:grid-cols-5 gap-3">

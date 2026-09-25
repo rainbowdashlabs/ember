@@ -31,6 +31,8 @@ import {
 } from '@/api/mailProviders'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const {hasPermission, loaded, sessionInfo} = useSession()
@@ -42,11 +44,17 @@ watch(loaded, (isLoaded) => {
   }
 }, {immediate: true})
 
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const success = ref('')
 
-function handleError(msg: string) { error.value = msg; success.value = '' }
-function handleSuccess(msg: string) { success.value = msg; error.value = '' }
+/** Records what went wrong, keeping this screen's wording where it names what was being done. */
+function handleFailure(e: unknown, message?: string) {
+  const described = describeFailure(e, t)
+  failure.value = message ? {...described, message} : described
+  success.value = ''
+}
+
+function handleSuccess(msg: string) { success.value = msg; failure.value = null }
 
 const providers = ref<MailProvider[]>([])
 const signingSecretSet = ref(false)
@@ -59,8 +67,8 @@ onMounted(async () => {
     providers.value = entries
     signingSecretSet.value = webhook.signingSecretSet
     providersLoaded.value = true
-  } catch {
-    handleError(t('mailChain.loadFailed'))
+  } catch (e) {
+    handleFailure(e, t('mailChain.loadFailed'))
   }
 })
 
@@ -84,8 +92,8 @@ async function clearProviders() {
     providers.value = []
     showClearModal.value = false
     handleSuccess(t('mailChain.cleared'))
-  } catch {
-    handleError(t('common.error'))
+  } catch (e) {
+    handleFailure(e)
   } finally {
     clearing.value = false
   }
@@ -114,8 +122,12 @@ async function test(position: number, recipient: string) {
           ? {ok: true, message: t('mailChain.testOk', {position: position + 1, recipient})}
           : {ok: false, message: t('mailChain.testFailed', {position: position + 1, error: result.error ?? ''})},
     }
-  } catch {
-    testResults.value = {...testResults.value, [position]: {ok: false, message: t('common.error')}}
+  } catch (e) {
+    const reason = apiErrorMessage(e) ?? describeFailure(e, t).message
+    testResults.value = {
+      ...testResults.value,
+      [position]: {ok: false, message: t('mailChain.testFailed', {position: position + 1, error: reason})},
+    }
   } finally {
     testingPosition.value = null
   }
@@ -128,7 +140,7 @@ async function test(position: number, recipient: string) {
       :subtitle="t('pages.station-mailing.subtitle')"
   >
     <div class="space-y-6">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
       <MailProviderChain
           v-model:providers="providers"

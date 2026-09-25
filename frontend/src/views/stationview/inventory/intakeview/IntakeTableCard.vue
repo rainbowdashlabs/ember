@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -18,6 +18,7 @@ import IntakeTable from './IntakeTable.vue'
 import type {IntakeLine} from './intakeLines'
 import {ItemOwner, type InventorySize, type ItemOwnerName} from '@/api/inventory'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {Failure} from '@/util/failure'
 
 /**
  * The filled-in half of a stock-taking: the table, who else can be added to it, and saving it.
@@ -39,7 +40,7 @@ defineProps<{
   userTypes: string[]
   filled: number
   saving: boolean
-  saveError?: string
+  saveFailure?: Failure | null
 }>()
 
 const emit = defineEmits<{
@@ -84,7 +85,7 @@ const {picked, take} = useMemberPick(memberId => emit('add', memberId))
     </div>
 
     <div class="space-y-2">
-      <Alert v-if="saveError" variant="error" data-testid="intake-error">{{ saveError }}</Alert>
+      <FailureAlert :failure="saveFailure" data-testid="intake-error"/>
       <div class="flex flex-wrap items-center justify-between gap-2">
         <MutedText size="sm">{{ t('inventory.intake.filled', {count: filled}) }}</MutedText>
         <PrimaryButton :disabled="saving || filled === 0" data-testid="intake-save" @click="emit('save')">

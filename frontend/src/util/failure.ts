@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {apiErrorBody, apiErrorMessage, apiErrorStatus} from './apiError'
+import {apiErrorBody, apiErrorCode, apiErrorMessage, apiErrorStatus} from './apiError'
 
 /**
  * What kind of failure something was, which is what decides what the reader should do about it.
@@ -50,6 +50,7 @@ export type FailureKindName = (typeof FailureKind)[keyof typeof FailureKind]
  *                   station can put right, which is what decides whether a report is offered
  * @param technical  the server's own words, kept for the report and shown only where a reader asks
  * @param status     the HTTP status, where there was one
+ * @param code       which refusal this was, named by the backend, where it named one
  */
 export interface Failure {
     kind: FailureKindName
@@ -58,6 +59,14 @@ export interface Failure {
     reportable: boolean
     technical?: string
     status?: number
+    /**
+     * The name the backend gave this refusal, which leads to the line that threw it.
+     *
+     * <p>Shown quietly beside the message and carried on the report. A reader cannot act on it and is
+     * not asked to; it is there so that quoting it, which is what people do with a short code on a
+     * screen, saves whoever reads the report from guessing.
+     */
+    code?: string
 }
 
 /**
@@ -83,9 +92,10 @@ const KEY = 'failure'
  */
 export function describeFailure(e: unknown, t: Translate): Failure {
     const status = apiErrorStatus(e)
-    const said = apiErrorMessage(e)
+    const code = apiErrorCode(e)
+    const said = translatedRefusal(code, t) ?? apiErrorMessage(e)
     const kind = kindOf(e, status)
-    const technical = said ?? thrownMessage(e)
+    const technical = apiErrorMessage(e) ?? thrownMessage(e)
 
     return {
         kind,
@@ -96,7 +106,41 @@ export function describeFailure(e: unknown, t: Translate): Failure {
             || kind === FailureKind.TIMEOUT,
         technical: technical && technical !== messageFor(kind, said, t) ? technical : undefined,
         status,
+        code,
     }
+}
+
+/**
+ * The same failure with a different sentence, where the screen has better words than the server.
+ *
+ * <p>Everything else is kept: what to do about it, whether it is worth reporting, the server's own
+ * words for the report and the code that leads to the line that threw. A screen replacing the whole
+ * failure to change its first line loses all of that, which is the mistake this exists to prevent.
+ *
+ * @param failure what happened
+ * @param message what to say about it instead
+ */
+export function saying(failure: Failure, message: string): Failure {
+    return {...failure, message}
+}
+
+/**
+ * The refusal said in the reader's own language, where we have written it.
+ *
+ * <p>The backend writes its sentences in English and this product is read in German, so quoting the
+ * server verbatim answers a German reader in a language the rest of the screen does not use. A
+ * refusal that arrives with a code can be said properly: the code names the refusal, and
+ * `refusal.<CODE>` is where its German lives.
+ *
+ * <p>Where no translation has been written the server's own sentence still shows, which is what
+ * makes this safe to adopt one refusal at a time: an English sentence that says what happened beats
+ * a German one that says nothing, and it was what a reader saw anyway.
+ */
+function translatedRefusal(code: string | undefined, t: Translate): string | undefined {
+    if (!code) return undefined
+    const key = `refusal.${code}`
+    const written = t(key)
+    return written === key ? undefined : written
 }
 
 /**

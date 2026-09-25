@@ -12,7 +12,8 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -43,7 +44,7 @@ const note = ref('')
 
 const availableItems = ref<lending.AvailableInventoryEntry[]>([])
 const loadingItems = ref(true)
-const itemsError = ref('')
+const itemsFailure = ref<Failure | null>(null)
 
 const selectedEntry = computed(() =>
     availableItems.value.find(e => e.inventoryId === inventoryId && e.stationId === stationId),
@@ -75,20 +76,20 @@ watch(selectedEntry, (entry) => {
  */
 async function loadItems() {
   loadingItems.value = true
-  itemsError.value = ''
+  itemsFailure.value = null
   try {
     const options: {from?: string; to?: string} = {}
     if (dateFrom.value) options.from = dateFrom.value
     if (dateTo.value) options.to = dateTo.value
     availableItems.value = (await lending.listAvailable(options)).entries
-  } catch {
-    itemsError.value = t('lending.loadError')
+  } catch (e) {
+    itemsFailure.value = describeFailure(e, t)
   } finally {
     loadingItems.value = false
   }
 }
 
-const {running: submitting, error: submitError, run: handleSubmit} = useAsyncAction(async () => {
+const {running: submitting, failure: submitFailure, run: handleSubmit} = useAsyncAction(async () => {
   if (!dateFrom.value) return
   const result = await lending.createRequest({
     owningStationId: stationId,
@@ -97,7 +98,7 @@ const {running: submitting, error: submitError, run: handleSubmit} = useAsyncAct
     items: [{inventoryId, quantity: quantity.value}],
   })
   await router.push({name: routes.lendingRequest, params: {id: result.request.id}})
-}, {formatError: () => t('lending.createError')})
+})
 
 onMounted(() => {
   if (loaded.value) loadItems()
@@ -124,10 +125,9 @@ watch([dateFrom, dateTo], () => {
     <SectionHeader class="mb-4">{{ t('lending.createRequest') }}</SectionHeader>
 
     <Spinner v-if="loadingItems"/>
-    <Alert v-else-if="itemsError" variant="error">{{ itemsError }}</Alert>
+    <FailureAlert v-else-if="itemsFailure" :failure="itemsFailure"/>
 
     <template v-else>
-      <!-- Selected inventory and station -->
       <NeutralContainer class="mb-4">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="font-medium text-lg">{{ inventoryName }}</span>
@@ -139,7 +139,7 @@ watch([dateFrom, dateTo], () => {
         <span v-else class="text-sm text-[var(--text-muted)]">{{ t('lending.nothingFree') }}</span>
       </NeutralContainer>
 
-      <Alert v-if="submitError" variant="error" class="mb-4">{{ submitError }}</Alert>
+      <FailureAlert :failure="submitFailure" class="mb-4"/>
 
       <div class="flex flex-col gap-4">
         <!-- Date range -->

@@ -44,6 +44,8 @@ function attachment(id: number, overrides: Partial<EventAttachment> = {}): Event
 
 const pickedFile = {id: 77, fileName: 'laufzettel.pdf'} as StationFile
 
+const t = (key: string) => key
+
 /**
  * The files of an event while somebody is editing it.
  *
@@ -63,7 +65,7 @@ describe('useEventAttachments', () => {
     })
 
     it('hangs a picked file on the event, open to the room until somebody says otherwise', async () => {
-        const files = useEventAttachments(() => 12)
+        const files = useEventAttachments(() => 12, t)
 
         await files.add(pickedFile)
 
@@ -72,7 +74,7 @@ describe('useEventAttachments', () => {
     })
 
     it('writes the switch as it is flipped', async () => {
-        const files = useEventAttachments(() => 12)
+        const files = useEventAttachments(() => 12, t)
         listEventAttachments.mockResolvedValue([attachment(1)])
         await files.load()
 
@@ -85,7 +87,7 @@ describe('useEventAttachments', () => {
     })
 
     it('drops a detached file from the list it just left', async () => {
-        const files = useEventAttachments(() => 12)
+        const files = useEventAttachments(() => 12, t)
         listEventAttachments.mockResolvedValue([attachment(1), attachment(2)])
         await files.load()
 
@@ -96,7 +98,7 @@ describe('useEventAttachments', () => {
     })
 
     it('sends the order the editor dragged them into', async () => {
-        const files = useEventAttachments(() => 12)
+        const files = useEventAttachments(() => 12, t)
         listEventAttachments.mockResolvedValue([attachment(1), attachment(2), attachment(3)])
         await files.load()
 
@@ -108,7 +110,7 @@ describe('useEventAttachments', () => {
 
     /** An event that has not been created has nothing to hang a file on. */
     it('asks nothing of an event that is not there yet', async () => {
-        const files = useEventAttachments(() => null)
+        const files = useEventAttachments(() => null, t)
 
         await files.load()
         await files.add(pickedFile)
@@ -126,7 +128,7 @@ describe('useEventAttachments', () => {
      * partner stations included, is worse than no screen at all.
      */
     it('takes a refused switch back off the screen and says so', async () => {
-        const files = useEventAttachments(() => 12)
+        const files = useEventAttachments(() => 12, t)
         listEventAttachments.mockImplementation(async () => [attachment(1)])
         await files.load()
         updateEventAttachment.mockRejectedValue(new Error('nope'))
@@ -135,12 +137,12 @@ describe('useEventAttachments', () => {
         first.internal = true
         await files.save(first)
 
-        expect(files.error.value).toBe('save')
+        expect(files.failure.value?.technical, 'what the server said is kept for the report').toBe('nope')
         expect(files.attachments.value[0]!.internal, 'the list is read back from the station').toBe(false)
     })
 
     it('puts the order back where the move could not be written', async () => {
-        const files = useEventAttachments(() => 12)
+        const files = useEventAttachments(() => 12, t)
         listEventAttachments.mockResolvedValue([attachment(1), attachment(2)])
         await files.load()
         reorderEventAttachments.mockRejectedValue(new Error('nope'))
@@ -148,21 +150,21 @@ describe('useEventAttachments', () => {
         await files.reorder(1, 0)
 
         expect(files.attachments.value.map(a => a.id)).toEqual([1, 2])
-        expect(files.error.value).toBe('reorder')
+        expect(files.failure.value?.technical).toBe('nope')
     })
 
     it('says so where a picked file could not be hung on the event', async () => {
-        const files = useEventAttachments(() => 12)
+        const files = useEventAttachments(() => 12, t)
         attachEventFile.mockRejectedValue(new Error('nope'))
 
         await files.add(pickedFile)
 
         expect(files.attachments.value).toEqual([])
-        expect(files.error.value).toBe('add')
+        expect(files.failure.value?.technical).toBe('nope')
     })
 
     it('keeps the file where it could not be detached', async () => {
-        const files = useEventAttachments(() => 12)
+        const files = useEventAttachments(() => 12, t)
         listEventAttachments.mockResolvedValue([attachment(1)])
         await files.load()
         detachEventFile.mockRejectedValue(new Error('nope'))
@@ -170,17 +172,17 @@ describe('useEventAttachments', () => {
         await files.remove(0)
 
         expect(files.attachments.value.map(a => a.id)).toEqual([1])
-        expect(files.error.value).toBe('remove')
+        expect(files.failure.value?.technical).toBe('nope')
     })
 
     it('keeps the list it had where the files could not be asked for', async () => {
-        const files = useEventAttachments(() => 12)
+        const files = useEventAttachments(() => 12, t)
         listEventAttachments.mockRejectedValue(new Error('nope'))
 
         await files.load()
 
         expect(files.attachments.value).toEqual([])
-        expect(files.error.value).toBe('load')
+        expect(files.failure.value?.technical).toBe('nope')
         expect(files.loading.value).toBe(false)
     })
 })

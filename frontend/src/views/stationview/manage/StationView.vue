@@ -13,6 +13,7 @@ import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAuthImages} from '@/composables/useAuthImage'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {hasPermission, loaded} = useSession()
 const router = useRouter()
@@ -61,7 +62,7 @@ const ownerMemberId = ref<number | null>(null)
 const success = ref('')
 const {srcFor, load: loadLogoImage, revokeAll: revokeLogo} = useAuthImages<string>()
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const info = await stationManage.getStationInfo()
   name.value = info.name ?? ''
   timezone.value = info.timezone ?? 'Europe/Berlin'
@@ -82,7 +83,7 @@ function loadLogoBlob() {
 }
 
 async function saveName() {
-  error.value = ''
+  failure.value = null
   try {
     const info = await stationManage.updateStationName({
       name: name.value,
@@ -95,7 +96,7 @@ async function saveName() {
     pdfHidesInstanceUrl.value = info.pdfHidesInstanceUrl ?? false
     nicknamesEnabled.value = info.nicknamesEnabled ?? true
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -110,30 +111,29 @@ const {running: uploading, error: logoError, run: handleLogoUpload} = useAsyncAc
       await loadLogoBlob()
       success.value = t('stationManage.logoUploaded')
     },
-    {formatError: () => t('fileUpload.uploadFailed')},
 )
 
 async function removeLogo() {
-  error.value = ''
+  failure.value = null
   success.value = ''
   try {
     await stationManage.deleteLogo()
     hasLogo.value = false
     revokeLogo()
     success.value = t('stationManage.logoDeleted')
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
-function handleError(msg: string) {
-  error.value = msg
+function handleFailure(reported: Failure) {
+  failure.value = reported
   success.value = ''
 }
 
 function handleSuccess(msg: string) {
   success.value = msg
-  error.value = ''
+  failure.value = null
 }
 
 </script>
@@ -146,7 +146,7 @@ function handleSuccess(msg: string) {
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
 
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <GeneralSection
@@ -175,7 +175,7 @@ function handleSuccess(msg: string) {
 
       <LocationSection
           v-if="!loading"
-          @error="handleError"
+          @error="handleFailure"
           @success="handleSuccess"
       />
 
@@ -183,7 +183,7 @@ function handleSuccess(msg: string) {
           v-if="!loading && isOwner"
           :station-id="stationId"
           :owner-member-id="ownerMemberId"
-          @error="handleError"
+          @error="handleFailure"
           @success="handleSuccess"
           @owner-changed="isOwner = false"
       />

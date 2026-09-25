@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.page.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
@@ -16,7 +17,6 @@ import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -77,7 +77,7 @@ public class SharedPageRoutes implements Routes {
     @StationFree("the link is the authorisation, and which station the page belongs to is the answer rather than"
             + " part of the question: the reader holds a token and nothing else")
     private void getSharedPage(Context ctx) {
-        var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(NotFoundResponse::new);
+        var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(Refusal.PAGE_LINK_UNKNOWN::raise);
         var station = openStationOf(page);
 
         ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
@@ -104,7 +104,7 @@ public class SharedPageRoutes implements Routes {
             })
     @StationFree("the same link, answering only the name and colours of the station it leads to")
     private void getBrand(Context ctx) {
-        var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(NotFoundResponse::new);
+        var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(Refusal.PAGE_LINK_UNKNOWN::raise);
         ctx.json(brandOf(openStationOf(page)));
     }
 
@@ -118,7 +118,7 @@ public class SharedPageRoutes implements Routes {
         return stationRepository
                 .findById(page.stationId())
                 .filter(Station::publicPagesEnabled)
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.PAGE_LINK_UNKNOWN::raise);
     }
 
     /**

@@ -18,9 +18,10 @@ import Modal from '@/components/feedback/Modal.vue'
 import ImportProgressChecklist from '@/components/transfer/ImportProgressChecklist.vue'
 import {stationManage} from '@/api'
 import type {StationImportProgress} from '@/api/stationManage'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const emit = defineEmits<{
-  error: [msg: string]
+  error: [failure: Failure]
   success: [msg: string]
 }>()
 
@@ -44,8 +45,8 @@ async function startStationImport() {
   try {
     await stationManage.importStation(importTokenInput.value)
     pollStationImport()
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
     importingStation.value = false
   }
 }
@@ -60,10 +61,11 @@ function pollStationImport() {
         importPollTimer = null
         importingStation.value = false
       }
-    } catch {
+    } catch (e) {
       if (importPollTimer) clearInterval(importPollTimer)
       importPollTimer = null
       importingStation.value = false
+      emit('error', describeFailure(e, t))
     }
   }, 1000)
 }

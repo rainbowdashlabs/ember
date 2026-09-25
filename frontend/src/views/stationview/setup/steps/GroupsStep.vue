@@ -8,7 +8,7 @@ import {computed, onMounted, reactive, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -19,7 +19,7 @@ import type {MemberGroup, PermissionGrant} from '@/api/types'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -28,7 +28,7 @@ const {reload} = useSetupStatus()
 const groups = ref<MemberGroup[]>([])
 const draft = ref('')
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const allRoles = ref<PermissionGrant[]>([])
 const permissionsByGroup = reactive<Record<number, Set<number>>>({})
@@ -48,8 +48,8 @@ onMounted(async () => {
         allRoles.value = rolesRes
         const firstGroup = groups.value[0]
         if (firstGroup) await selectGroup(firstGroup.id)
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = describeFailure(e, t)
     } finally {
         loading.value = false
     }
@@ -59,7 +59,7 @@ function sortByPosition(list: MemberGroup[]): MemberGroup[] {
     return [...list].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
 }
 
-const {running: adding, error: addError, run: runAddGroup} = useAsyncAction(async () => {
+const {running: adding, failure: addFailure, run: runAddGroup} = useAsyncAction(async () => {
     const nextPosition = (groups.value[groups.value.length - 1]?.position ?? -1) + 1
     const created = await memberGroups.createGroup({name: draft.value.trim(), position: nextPosition})
     groups.value = sortByPosition([...groups.value, created])
@@ -68,11 +68,11 @@ const {running: adding, error: addError, run: runAddGroup} = useAsyncAction(asyn
     await selectGroup(created.id)
 })
 
-const displayError = computed(() => error.value || addError.value)
+const displayFailure = computed(() => failure.value ?? addFailure.value)
 
 function addGroup() {
     if (!draft.value.trim()) return
-    error.value = ''
+    failure.value = null
     return runAddGroup()
 }
 
@@ -85,8 +85,8 @@ async function removeGroup(id: number) {
             selectedId.value = groups.value[0]?.id ?? null
             if (selectedId.value) await selectGroup(selectedId.value)
         }
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = describeFailure(e, t)
     }
 }
 
@@ -98,8 +98,8 @@ async function selectGroup(id: number) {
         try {
             const grants = await memberGroups.getGroupPermissions(id)
             permissionsByGroup[id] = new Set(grants.map((g) => g.id))
-        } catch {
-            error.value = t('common.error')
+        } catch (e) {
+            failure.value = {...describeFailure(e, t), message: t('setup.steps.groups.permissionsLoadFailed')}
             permissionsByGroup[id] = new Set()
         } finally {
             permissionLoading[id] = false
@@ -115,8 +115,8 @@ async function persistGroup(group: MemberGroup, patch: Partial<MemberGroup>) {
             position: patch.position ?? group.position,
         })
         groups.value = sortByPosition(groups.value.map((g) => (g.id === group.id ? {...g, ...updated} : g)))
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = describeFailure(e, t)
     }
 }
 
@@ -143,7 +143,7 @@ async function onPermissionsChange(groupId: number, newIds: Set<number>) {
     try {
         await memberGroups.setGroupPermissions(groupId, {permissionIds: [...newIds]})
     } catch (e: unknown) {
-        error.value = apiErrorMessage(e) || t('common.error')
+        failure.value = describeFailure(e, t)
     }
 }
 
@@ -155,7 +155,7 @@ const {running: saving, run: save} = useAsyncAction(async () => {
 
 <template>
   <SetupLayout step-id="groups" skippable :saving="saving || adding" @save="save">
-    <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
+    <FailureAlert :failure="displayFailure"/>
 
     <InfoContainer class="space-y-2">
       <p class="font-medium text-sm">{{ t('setup.steps.groups.aboutTitle') }}</p>

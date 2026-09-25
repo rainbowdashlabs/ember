@@ -8,7 +8,7 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -54,7 +54,7 @@ onMounted(async () => {
 watch(date, () => needs.loadCoverage())
 
 function openModal() {
-  needs.clearSaveError()
+  needs.clearSaveFailure()
   itemId.value = ''
   artId.value = ''
   inventoryId.value = ''
@@ -92,14 +92,14 @@ async function submit() {
       </PrimaryButton>
     </div>
 
-    <Alert v-if="needs.error.value" variant="error" data-testid="equipment-error">{{ needs.error.value }}</Alert>
-    <Alert v-if="needs.saveError.value && !showModal" variant="error">{{ needs.saveError.value }}</Alert>
+    <FailureAlert :failure="needs.failure.value" data-testid="equipment-error"/>
+    <FailureAlert v-if="!showModal" :failure="needs.saveFailure.value"/>
     <Spinner v-if="needs.loading.value" size="sm"/>
 
     <p v-else-if="!effectiveDate" class="text-sm text-(--text-muted)">{{ t('eventEquipment.noDate') }}</p>
 
     <p
-        v-else-if="!needs.error.value && needs.coverage.value.length === 0"
+        v-else-if="!needs.failure.value && needs.coverage.value.length === 0"
         class="text-sm text-(--text-muted)"
         data-testid="equipment-empty"
     >
@@ -135,7 +135,7 @@ async function submit() {
         :arts="needs.arts.value"
         :recurring="recurring"
         :saving="needs.saving.value"
-        :error="needs.saveError.value"
+        :failure="needs.saveFailure.value"
         @submit="submit"
     />
   </NeutralContainer>

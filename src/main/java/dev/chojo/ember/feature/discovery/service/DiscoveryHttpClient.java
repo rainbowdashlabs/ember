@@ -5,20 +5,27 @@
  */
 package dev.chojo.ember.feature.discovery.service;
 
+import dev.chojo.ember.api.Failures;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.net.ConnectException;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.Optional;
+
+import javax.net.ssl.SSLException;
 
 /**
  * HTTP client for discovery-protocol traffic.
@@ -92,6 +99,110 @@ public class DiscoveryHttpClient {
         } catch (Exception e) {
             log.debug("Discovery GET {} on {} failed: {}", path, baseUrl, e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Reaches for something a peer publishes, and says what stopped it when nothing came back.
+     *
+     * <p>{@link #get} answers {@code null} for a name that does not resolve, a certificate that
+     * will not verify, a port nothing is listening on, a host that timed out and a host that
+     * answered with something else entirely. Those are five different problems with five different
+     * fixes, and an operator told only that the peer "did not respond" cannot tell a mistyped
+     * hostname from a firewall. This tells them which.
+     *
+     * <p>What comes back is written for an operator and never carries anything of Ember's: the
+     * address is the one they typed, and any words taken from the failure itself pass
+     * {@link Failures#readable} first.
+     *
+     * @param baseUrl      the peer's base URL, as the operator wrote it
+     * @param path         the path to ask for
+     * @param responseType what the answer is read as
+     * @return what the peer said, or a sentence saying why it said nothing
+     */
+    public <T> Probe<T> probe(String baseUrl, String path, Class<T> responseType) {
+        String url;
+        try {
+            url = joinUrl(baseUrl, path);
+        } catch (RuntimeException e) {
+            return Probe.stoppedBy("That address could not be read as a web address");
+        }
+        if (!urlValidator.isAllowed(url)) {
+            log.warn("Discovery probe rejected by RemoteUrlValidator: {}", url);
+            return Probe.stoppedBy("This instance may not reach that address. Addresses on the local network, "
+                    + "on loopback and in private ranges are refused before the request is sent");
+        }
+        try {
+            var request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(REQUEST_TIMEOUT)
+                    .GET()
+                    .build();
+            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                return Probe.stoppedBy("The address answered with HTTP " + response.statusCode()
+                        + ". Something is running there, but it is not offering what a peer offers, "
+                        + "so it may not be an Ember instance");
+            }
+            return Probe.reachedWith(mapper.readValue(response.body(), responseType));
+        } catch (JacksonException e) {
+            log.debug("Discovery probe {} on {} answered with something unreadable", path, baseUrl, e);
+            return Probe.stoppedBy("The address answered, but not with anything a peer would send. "
+                    + "It is probably not an Ember instance");
+        } catch (Exception e) {
+            log.debug("Discovery probe {} on {} failed", path, baseUrl, e);
+            return Probe.stoppedBy(whyItFailed(e));
+        }
+    }
+
+    /**
+     * Turns a transport failure into the sentence that names the fix.
+     */
+    private static String whyItFailed(Exception failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause() == cause ? null : cause.getCause()) {
+            if (cause instanceof UnknownHostException unknown) {
+                return "The name " + unknown.getMessage() + " does not resolve. Check the spelling of the address";
+            }
+            if (cause instanceof SSLException) {
+                return "The secure connection could not be set up. The certificate may be self-signed, "
+                        + "out of date, or issued for a different name";
+            }
+            if (cause instanceof HttpTimeoutException) {
+                return "The address did not answer within " + REQUEST_TIMEOUT.toSeconds()
+                        + " seconds. The instance may be down, or a firewall may be dropping the connection";
+            }
+            if (cause instanceof ConnectException) {
+                return "The connection was refused. The address resolves, but nothing is listening on that port";
+            }
+        }
+        return Failures.readable(failure.getMessage())
+                .map(said -> "The address could not be reached: " + said)
+                .orElse("The address could not be reached, and what went wrong is only in the log");
+    }
+
+    /**
+     * What came of reaching for something a peer publishes.
+     *
+     * @param value   what the peer sent, or {@code null} where nothing usable came back
+     * @param problem why nothing came back, in a sentence an operator can act on, or {@code null}
+     *         where something did
+     */
+    public record Probe<T>(T value, String problem) {
+        static <T> Probe<T> reachedWith(T value) {
+            return new Probe<>(value, null);
+        }
+
+        static <T> Probe<T> stoppedBy(String problem) {
+            return new Probe<>(null, problem);
+        }
+
+        /**
+         * Whether the peer answered with what was asked for.
+         *
+         * @return true when {@link #value} is there to be used
+         */
+        public boolean reached() {
+            return value != null;
         }
     }
 

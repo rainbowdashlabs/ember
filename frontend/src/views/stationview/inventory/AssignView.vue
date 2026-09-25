@@ -17,6 +17,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -32,7 +33,7 @@ import type {InventoryItem} from '@/api/inventory'
 import type {StationMember} from '@/api/types'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import {formatTime} from '@/util/format'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 interface AssignmentEvent {
   id: number
@@ -47,11 +48,19 @@ interface AssignmentEvent {
 
 const {t} = useI18n()
 
-const {config: members, loading, error} = useConfigPanel<StationMember[]>({
+const {config: members, loading, failure} = useConfigPanel<StationMember[]>({
   initial: [],
   fetch: () => stationMembers.listMembers(),
-  formatError: (e) => apiErrorMessage(e) ?? t('inventory.assign.loadError'),
 })
+
+/**
+ * A refused handover, which stays on the screen rather than flashing past.
+ *
+ * <p>This is the counter: somebody is standing there with a scanner and a jacket in their hand, and a
+ * refusal that disappears after three seconds leaves them believing the jacket was handed out. What
+ * went through still flashes, because that is the one somebody watches for and then moves on from.
+ */
+const assignFailure = ref<Failure | null>(null)
 const memberId = ref<number | null>(null)
 const memberUid = ref('')
 const pickedItemId = ref<number | null>(null)
@@ -90,7 +99,14 @@ async function onMemberPicked(uid: string | null) {
     memberId.value = known.id
     return
   }
-  const fetched = await stationMembers.getMemberByUid(uid)
+  let fetched: StationMember | null
+  try {
+    fetched = await stationMembers.getMemberByUid(uid)
+  } catch (e) {
+    assignFailure.value = describeFailure(e, t)
+    memberId.value = null
+    return
+  }
   if (!fetched) {
     flashError(t('inventory.assign.errors.memberLookupFailed'))
     memberId.value = null
@@ -117,6 +133,7 @@ async function onItemPicked(item: InventoryItem) {
     return
   }
   if (submitting.value) return
+  assignFailure.value = null
 
   if (item.assignedTo && item.assignedTo !== memberId.value) {
     reassign.request(item)
@@ -133,7 +150,7 @@ async function onItemPicked(item: InventoryItem) {
       }
       await assignToSelectedMember(item)
     } catch (e) {
-      flashError(apiErrorMessage(e) ?? t('inventory.assign.errors.failed'))
+      assignFailure.value = describeFailure(e, t)
     }
   })
   pickedItemId.value = null
@@ -167,11 +184,12 @@ async function assignToSelectedMember(item: InventoryItem) {
  */
 const reassign = useConfirmAction<InventoryItem>({
   onConfirm: async item => {
+    assignFailure.value = null
     await runMutation(async () => {
       try {
         await assignToSelectedMember(item)
       } catch (e) {
-        flashError(apiErrorMessage(e) ?? t('inventory.assign.errors.failed'))
+        assignFailure.value = describeFailure(e, t)
       }
     })
     pickedItemId.value = null
@@ -202,6 +220,7 @@ function pushRecent(action: 'ASSIGN' | 'RETURN', item: InventoryItem, member: St
 async function undoLast() {
   const last = recent.value[0]
   if (!last) return
+  assignFailure.value = null
   await runMutation(async () => {
     try {
       if (last.action === 'ASSIGN') {
@@ -215,7 +234,7 @@ async function undoLast() {
       recent.value.shift()
       flashSuccess(t('inventory.assign.undone'))
     } catch (e) {
-      flashError(apiErrorMessage(e) ?? t('inventory.assign.errors.failed'))
+      assignFailure.value = describeFailure(e, t)
     }
   })
 }
@@ -226,10 +245,11 @@ async function onUnknownScanCreated(item: InventoryItem) {
     flashError(t('inventory.assign.errors.pickMember'))
     return
   }
+  assignFailure.value = null
   try {
     await assignToSelectedMember(item)
   } catch (e) {
-    flashError(apiErrorMessage(e) ?? t('inventory.assign.errors.failed'))
+    assignFailure.value = describeFailure(e, t)
   }
 }
 </script>
@@ -239,7 +259,7 @@ async function onUnknownScanCreated(item: InventoryItem) {
       :title="t('pages.inventory-assign.title')"
       :subtitle="t('pages.inventory-assign.subtitle')"
   >
-    <Alert v-if="error" variant="error" class="mb-3">{{ error }}</Alert>
+    <FailureAlert :failure="failure ?? assignFailure" class="mb-3"/>
     <Alert v-if="flashMessage" :variant="flashKind" class="mb-3">{{ flashMessage }}</Alert>
 
     <div v-if="loading" class="flex justify-center py-12">

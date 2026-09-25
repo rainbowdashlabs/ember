@@ -16,11 +16,15 @@ import {QuizQuestionTypes, type QuizCatalog, type QuizQuestion} from '@/api/quiz
 import { quiz } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { moveWithin } from '@/util/reorder'
+import { describeFailure } from '@/util/failure'
 
 const { t } = useI18n()
 
 const phase = ref<'select' | 'training' | 'finished'>('select')
-const { config: catalogs, loading, error } = useConfigPanel<QuizCatalog[]>({
+
+/** The chosen catalogues hold nothing to practise on. The reader's own pick, so no fault of ours. */
+const noQuestions = ref(false)
+const { config: catalogs, loading, failure } = useConfigPanel<QuizCatalog[]>({
   initial: [],
   fetch: () => quiz.listTrainingCatalogs(),
 })
@@ -103,10 +107,17 @@ function setFillGap(gapIndex: number, value: string) {
   userFillGaps.value = { ...userFillGaps.value, [String(gapIndex)]: value }
 }
 
+/**
+ * Gathers the questions of every chosen catalogue and starts.
+ *
+ * <p>Catalogues that hold no training questions are not a fault: the reader picked them and can
+ * pick others, so that is said plainly and no report is offered for it.
+ */
 async function startTraining() {
   if (selectedCatalogIds.value.size === 0) return
   loading.value = true
-  error.value = ''
+  failure.value = null
+  noQuestions.value = false
   try {
     const allQuestions: QuizQuestion[] = []
     for (const catalogId of selectedCatalogIds.value) {
@@ -114,7 +125,7 @@ async function startTraining() {
       allQuestions.push(...qs)
     }
     if (allQuestions.length === 0) {
-      error.value = t('quiz.training.noQuestions')
+      noQuestions.value = true
       loading.value = false
       return
     }
@@ -125,8 +136,8 @@ async function startTraining() {
     const first = shuffled[0]
     if (first) initQuestionState(first)
     phase.value = 'training'
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
@@ -169,7 +180,8 @@ function restart() {
   <ViewContent :title="t('pages.quiz-training.title')" :subtitle="t('pages.quiz-training.subtitle')">
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert v-if="noQuestions" :message="t('quiz.training.noQuestions')" expected/>
+      <FailureAlert v-else :failure="failure"/>
 
       <TrainingCatalogSelect
         v-if="phase === 'select' && !loading"

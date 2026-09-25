@@ -17,6 +17,7 @@ import type {ItemLocationResponse} from '@/api/inventoryContainers'
 import ItemEditForm from './ItemEditForm.vue'
 import ItemMetadataDisplay from './ItemMetadataDisplay.vue'
 import {parseItemMetadata} from '../detailview/itemMetadata'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   item: InventoryItem
@@ -28,7 +29,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   updated: [item: InventoryItem]
-  error: []
+  error: [failure: Failure]
 }>()
 
 const {t} = useI18n()
@@ -68,9 +69,13 @@ function startEdit() {
   editing.value = true
 }
 
+/**
+ * Writes the piece's description back.
+ *
+ * <p>A kind typed into the picker reaches the server only now, together with the piece it was typed for.
+ */
 async function saveEdit() {
   try {
-    // A kind typed in reaches the server only now, together with the piece it was typed for.
     const resolvedArt = editArtDraft.value
         ? await inventoryArts.ensureArt(props.item.inventoryId, arts.value, editArtDraft.value)
         : editArtId.value
@@ -85,7 +90,7 @@ async function saveEdit() {
     if (editArtDraft.value) await loadArts()
     emit('updated', updated)
   } catch (e) {
-    emit('error')
+    emit('error', describeFailure(e, t))
     throw e
   }
 }

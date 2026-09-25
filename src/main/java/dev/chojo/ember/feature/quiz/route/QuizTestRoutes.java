@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -27,7 +28,6 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.InternalServerErrorResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -206,10 +206,10 @@ public class QuizTestRoutes implements Routes {
                 req.forced() != null && req.forced(),
                 req.startAt(),
                 req.endAt())) {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_TEST_NOT_HERE.raise();
         }
         testService.findTest(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_TEST_NOT_HERE.raise();
         });
     }
 
@@ -219,7 +219,7 @@ public class QuizTestRoutes implements Routes {
         if (testService.deleteTest(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_TEST_NOT_HERE.raise();
         }
     }
 
@@ -229,16 +229,16 @@ public class QuizTestRoutes implements Routes {
         if (test.status() != TestStatus.DRAFT) throw new BadRequestResponse("Test is not in DRAFT status");
         testService.activateTest(id);
         testService.findTest(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_TEST_NOT_HERE.raise();
         });
     }
 
     private void closeTest(Context ctx) {
         int id = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, id);
-        if (!testService.closeTest(id)) throw new NotFoundResponse();
+        if (!testService.closeTest(id)) throw Refusal.QUIZ_TEST_NOT_HERE.raise();
         testService.findTest(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_TEST_NOT_HERE.raise();
         });
     }
 

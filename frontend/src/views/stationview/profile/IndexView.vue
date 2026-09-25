@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import { managedMembers as managedMembersApi, profileFields } from '@/api'
 import type { ManagedMember } from '@/api/managedMembers'
 import {
@@ -86,7 +87,7 @@ function setValue(fieldId: number, val: string) {
   setFieldValue(values, fieldId, val)
 }
 
-const { loading, error, reload } = useAsyncLoader(async () => {
+const { loading, failure, reload } = useAsyncLoader(async () => {
   if (!memberId.value) return
   const [allFields, profileValues] = await Promise.all([
     profileFields.getMemberFields(memberId.value),
@@ -98,7 +99,7 @@ const { loading, error, reload } = useAsyncLoader(async () => {
 
 async function saveProfile() {
   if (!memberId.value) return
-  error.value = ''
+  failure.value = null
   try {
     const entries = valueFields(editableFields.value)
       .filter(f => !f.readonly)
@@ -106,7 +107,7 @@ async function saveProfile() {
     await profileFields.setValues(memberId.value, { values: entries })
     refreshSidebarCounts()
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -123,7 +124,7 @@ watch(memberId, (newId) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading && memberId">
         <AccountCard

@@ -18,6 +18,7 @@ import { news } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { describeFailure } from '@/util/failure'
 
 const { t } = useI18n()
 defineProps<{
@@ -40,7 +41,7 @@ const hasMore = ref(true)
 
 const federatedNews = ref<FederatedNewsItem[]>([])
 
-const { loading, error, reload } = useAsyncLoader(async () => {
+const { loading, failure, reload } = useAsyncLoader(async () => {
   const [batch, fed] = await Promise.all([
     news.listNews(0, PAGE_SIZE),
     news.listFederatedNews().catch(() => [] as FederatedNewsItem[]),
@@ -58,7 +59,7 @@ const {
 } = useConfirmDelete<NewsEntry>({
   onDelete: e => news.deleteNews(e.id),
   onSuccess: () => reload(),
-  error,
+  failure,
 })
 
 const commentsOpenId = ref<string | null>(null)
@@ -151,8 +152,8 @@ async function loadMore() {
     const fresh = batch.filter(e => !known.has(e.id))
     entries.value = [...entries.value, ...fresh]
     hasMore.value = batch.length >= PAGE_SIZE
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('news.loadMoreFailed')}
   } finally {
     loadingMore.value = false
   }
@@ -238,7 +239,7 @@ watch(() => entries.value.length, async () => {
       <AsyncSection
         :empty="allNews.length === 0"
         :empty-message="t('news.empty')"
-        :error="error"
+        :failure="failure"
         :loading="loading"
       >
         <NewsList

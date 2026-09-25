@@ -8,7 +8,8 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {usePublicFailure} from '@/composables/usePublicFailure'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import {publicPageImageUrl} from '@/api/publicPages'
 import {CellContentType, type StationPage} from '@/api/pageManage'
@@ -52,7 +53,10 @@ const {data: page, error: loadError, status} = await useAsyncData(
 )
 
 const loading = computed(() => status.value === 'pending')
-const error = computed(() => (loadError.value ? t('common.notFound') : ''))
+const failure = usePublicFailure(loadError, {
+  message: 'publicStation.pageGone',
+  guidance: 'publicStation.pageGoneGuidance',
+})
 
 useCanonical(() => canonicalPath.value)
 
@@ -86,7 +90,7 @@ useHead(computed(() => {
 
 <template>
   <Spinner v-if="loading" size="lg" class="mt-16"/>
-  <Alert v-else-if="error" variant="error" class="m-4">{{ error }}</Alert>
+  <FailureAlert v-else-if="failure" :failure="failure" class="m-4"/>
   <ViewContent v-else-if="page" :title="page.title">
     <div class="space-y-0 max-w-5xl mx-auto">
       <ContentRow

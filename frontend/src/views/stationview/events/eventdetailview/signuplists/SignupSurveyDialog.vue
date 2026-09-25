@@ -17,6 +17,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SignupSetNotes from './SignupSetNotes.vue'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
+import type {Failure} from '@/util/failure'
 
 /**
  * Names the survey before it is made, and says plainly what it will and will not be yet.
@@ -29,7 +30,7 @@ const visible = defineModel<boolean>({required: true})
 
 const props = defineProps<{
   creating: boolean
-  error: string
+  failure: Failure | null
   memberSet: SignupMemberSet
   /** The occurrence the set belongs to, already written the way a reader reads a date. */
   dateLabel: string
@@ -68,7 +69,7 @@ function submit() {
       <SignupSetNotes :member-set="memberSet" :date-label="dateLabel"/>
 
       <Alert variant="info">{{ t('signupLists.surveyDraft') }}</Alert>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <ButtonRow pair align="end" class="pt-2">
         <SecondaryButton @click="visible = false">{{ t('common.cancel') }}</SecondaryButton>

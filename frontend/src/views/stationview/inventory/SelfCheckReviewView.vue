@@ -25,17 +25,15 @@ import {SelfCheckAnswer, type SelfCheckReview, type SelfCheckReviewRow} from '@/
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {formatDate} from '@/util/format'
-import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const route = useRoute()
 
 const taskId = computed(() => Number(route.params.id))
 
-const {config: review, loading, error, runWith} = useConfigPanel<SelfCheckReview | null>({
+const {config: review, loading, failure, runWith} = useConfigPanel<SelfCheckReview | null>({
   initial: null,
   fetch: () => selfChecks.readReview(taskId.value),
-  formatError: e => apiErrorMessage(e) ?? t('common.error'),
 })
 
 const busy = ref(false)
@@ -91,7 +89,7 @@ function openCorrect(row: SelfCheckReviewRow) {
   showCorrect.value = true
 }
 
-const {running: correctBusy, error: correctError, run: applyCorrection, clearError: clearCorrectError} =
+const {running: correctBusy, failure: correctFailure, run: applyCorrection, clearError: clearCorrectError} =
     useAsyncAction(async (payload: CorrectItemRequest) => {
       const row = correcting.value
       if (!row) return
@@ -117,7 +115,7 @@ function openRefuse(row: SelfCheckReviewRow) {
   showRefuse.value = true
 }
 
-const {running: refuseBusy, error: refuseError, run: applyRefusal, clearError: clearRefuseError} =
+const {running: refuseBusy, failure: refuseFailure, run: applyRefusal, clearError: clearRefuseError} =
     useAsyncAction(async () => {
       const row = refusing.value
       if (!row) return
@@ -135,7 +133,7 @@ const outstanding = computed(() => (review.value?.rows ?? []).filter(row => row.
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading && review">
         <NeutralContainer class="space-y-1">
@@ -180,7 +178,7 @@ const outstanding = computed(() => (review.value?.rows ?? []).filter(row => row.
         v-model="showCorrect"
         :available-items="correcting ? freeStockOf(correcting.row.inventoryId) : []"
         :busy="correctBusy"
-        :error="correctError"
+        :failure="correctFailure"
         :item="correcting?.item ?? null"
         :item-label="itemLabel"
         :req="correcting ? requirementOf(correcting) : null"
@@ -192,7 +190,7 @@ const outstanding = computed(() => (review.value?.rows ?? []).filter(row => row.
         v-model="showRefuse"
         v-model:reason="refuseReason"
         :busy="refuseBusy"
-        :error="refuseError"
+        :failure="refuseFailure"
         :item-name="refusing?.item?.name ?? refusing?.inventoryName ?? ''"
         @confirm="applyRefusal"
     />

@@ -18,6 +18,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import {presentDocument} from '@/util/documentView'
+import {describeFailure} from '@/util/failure'
 import CatalogToolbar from './cataloglistview/CatalogToolbar.vue'
 import CatalogList from './cataloglistview/CatalogList.vue'
 import CreateCatalogModal from './cataloglistview/CreateCatalogModal.vue'
@@ -31,7 +32,7 @@ const { isMobile } = useBreakpoint()
 const catalogs = ref<QuizCatalog[]>([])
 const sharedCatalogs = ref<SharedCatalogEntry[]>([])
 
-const { loading, error, reload: loadData } = useAsyncLoader(async () => {
+const { loading, failure, reload: loadData } = useAsyncLoader(async () => {
   const response = await quiz.listCatalogs()
   if (Array.isArray(response)) {
     catalogs.value = response as unknown as typeof catalogs.value
@@ -93,7 +94,7 @@ const {
 } = useConfirmDelete<QuizCatalog>({
   onDelete: c => quiz.deleteCatalog(c.id),
   onSuccess: () => loadData(),
-  error,
+  failure,
 })
 
 function openCreateModal() {
@@ -103,9 +104,16 @@ function openCreateModal() {
   showCreateModal.value = true
 }
 
+/**
+ * Writes the catalogue, then reads the list back.
+ *
+ * <p>The two are answered for separately, and this is the case where running them together costs
+ * the most: a catalogue the server had already written, followed by a list that would not come
+ * back, said the catalogue had not been written, and the reader wrote a second one of the same name.
+ */
 async function createCatalog() {
   if (!createName.value.trim()) return
-  error.value = ''
+  failure.value = null
   try {
     await quiz.createCatalog({
       name: createName.value.trim(),
@@ -113,20 +121,21 @@ async function createCatalog() {
       trainingEnabled: createTrainingEnabled.value,
     })
     showCreateModal.value = false
-    await loadData()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await loadData()
 }
 
 async function exportCatalog(catalog: QuizCatalog) {
-  error.value = ''
+  failure.value = null
   try {
     const data = await quiz.exportCatalog(catalog.id)
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     await presentDocument(blob, `${catalog.name.replace(/\s+/g, '_')}.json`)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -135,13 +144,14 @@ function triggerImport() {
 }
 
 async function copySharedCatalog(catalogId: number) {
-  error.value = ''
+  failure.value = null
   try {
     await federation.copyQuizCatalog(catalogId)
-    await loadData()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await loadData()
 }
 
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
@@ -160,7 +170,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       />
 
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <EmptyState v-if="filteredCatalogs.length === 0 && filteredSharedCatalogs.length === 0">{{ t('quiz.catalogs.noCatalogs') }}</EmptyState>

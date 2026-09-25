@@ -10,7 +10,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
@@ -29,7 +29,7 @@ import WalkScanPanel from './checkcontainerwalkview/WalkScanPanel.vue'
 import {useWalkPlan} from './checkcontainerwalkview/useWalkPlan'
 import {countWalkResults, toCheckItems} from './checkcontainerwalkview/walkResults'
 import type {ExpectedRow, ExtraRow} from './checkcontainerwalkview/types'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 import {reportCaughtError} from '@/util/devErrorReporter'
 
 const routes = useInventoryRoutes()
@@ -45,7 +45,7 @@ const expectedRows = ref<ExpectedRow[]>([])
 const extraRows = ref<ExtraRow[]>([])
 const deep = ref(false)
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const scanValue = ref('')
 const finishedCheck = ref<unknown | null>(null)
 const {message: scanFlash, flash: flashScan} = useFlashMessage()
@@ -85,7 +85,7 @@ const counts = computed(() => countWalkResults(expectedRows.value, extraRows.val
 
 async function load() {
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     const [d, items, lastResults, all] = await Promise.all([
       inventoryContainers.getContainer(containerId.value),
@@ -101,7 +101,7 @@ async function load() {
     extraRows.value = []
     walkIdx.value = 0
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('inventory.checkContainer.loadError')
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
@@ -169,15 +169,15 @@ function prevContainer() {
   if (walkIdx.value > 0) walkIdx.value--
 }
 
-const {running: submitting, error: finishError, run: finishCheck} = useAsyncAction(async () => {
+const {running: submitting, failure: finishFailure, run: finishCheck} = useAsyncAction(async () => {
   if (!detail.value) return
   finishedCheck.value = await inventoryContainers.completeContainerCheck(containerId.value, {
     deep: deep.value,
     items: toCheckItems(expectedRows.value, extraRows.value),
   })
-}, {formatError: (e) => apiErrorMessage(e) ?? t('inventory.checkContainer.completeError')})
+})
 
-const displayError = computed(() => scanError.value || finishError.value || error.value)
+const displayFailure = computed(() => failure.value ?? finishFailure.value)
 
 function backToOverview() {
   router.push({name: routes.checkContainerOverview})
@@ -201,8 +201,9 @@ onMounted(load)
 
       <WalkDeepToggle v-model:deep="deep" @change="load" />
 
-      <div v-if="displayError" class="mb-4">
-        <Alert variant="error">{{ displayError }}</Alert>
+      <div v-if="displayFailure || scanError" class="mb-4 space-y-2">
+        <FailureAlert :failure="displayFailure"/>
+        <FailureAlert :message="scanError" expected/>
       </div>
 
       <WalkCompletedPanel v-if="finishedCheck" @back="backToOverview" />
@@ -252,6 +253,6 @@ onMounted(load)
         </ButtonRow>
       </template>
     </template>
-    <Alert v-else variant="error">{{ error }}</Alert>
+    <FailureAlert v-else :failure="failure"/>
   </ViewContent>
 </template>

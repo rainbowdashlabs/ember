@@ -47,7 +47,7 @@ const lostItemsSorted = computed(() => lostItems.value
     .slice()
     .sort((a, b) => (a.item.lostAt ?? '').localeCompare(b.item.lostAt ?? '')))
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const stationId = activeStation.value?.stationId
   if (!stationId) return
 
@@ -110,7 +110,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <RequestFromOwnerPanel :owner-name="ownerAbove" @requested="reload" />

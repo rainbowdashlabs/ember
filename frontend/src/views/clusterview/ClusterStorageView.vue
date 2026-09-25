@@ -77,7 +77,7 @@ const port: StorageQuotasPort = {
 }
 
 const {
-  stations, tiers, loading, busy, error, reload, run, saveTier, removeTier, applyTier, resetStation,
+  stations, tiers, loading, busy, loadFailure, writeFailure, reload, run, saveTier, removeTier, applyTier, resetStation,
 } = useStorageQuotas(port, {canRecalculate: false, showsOrigin: true, deferToCluster: false})
 
 onMounted(reload)
@@ -118,7 +118,8 @@ function saveDefaults(next: QuotaDimensions) {
         </RouterLink>
       </div>
 
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="loadFailure"/>
+      <FailureAlert :failure="writeFailure"/>
 
       <Spinner v-if="loading" size="lg"/>
 

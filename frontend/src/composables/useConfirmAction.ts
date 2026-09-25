@@ -6,6 +6,7 @@
 import {ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {shiftIsHeld} from '@/util/modifierKeys'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * Reactive state returned by {@link useConfirmAction}. Views typically bind `show`
@@ -30,6 +31,12 @@ export interface ConfirmActionState<T> {
     confirm: () => Promise<void>
     /** Localised error message; empty string when no error is shown. */
     error: Ref<string>
+    /**
+     * The same failure described: what sort it was, what to do about it, and whether it is a fault
+     * worth reporting. It also tells the two apart: the action failing and the screen failing to
+     * catch up afterwards are not the same news.
+     */
+    failure: Ref<Failure | null>
 }
 
 /**
@@ -49,6 +56,12 @@ export interface UseConfirmActionOptions<T> {
      * `error` ref for the page.
      */
     error?: Ref<string>
+    /**
+     * Optional external failure ref, the counterpart of {@link error}. A page funnelling its
+     * failures into one alert has to pass both, or the sentence arrives there while the guidance
+     * and the offer to report it stay behind in this composable's own ref.
+     */
+    failure?: Ref<Failure | null>
 }
 
 /**
@@ -61,6 +74,7 @@ export function useConfirmAction<T>(options: UseConfirmActionOptions<T>): Confir
     const show = ref(false)
     const target = ref<T | null>(null) as Ref<T | null>
     const error = options.error ?? ref('')
+    const failure = options.failure ?? ref<Failure | null>(null)
 
     /**
      * Shift skips the question, everywhere one is asked.
@@ -78,6 +92,14 @@ export function useConfirmAction<T>(options: UseConfirmActionOptions<T>): Confir
         show.value = true
     }
 
+    /**
+     * Carries the action out, then tells whoever asked to catch up.
+     *
+     * <p>The two are answered for separately, which is not tidiness. They used to share one `try`,
+     * and `onSuccess` is the list reloading almost everywhere it is passed, so a deletion that
+     * worked and a list that then failed to refresh said the same sentence. A reader told that
+     * deleting did not work does it again, on a thing that is already gone.
+     */
     async function confirm() {
         const item = target.value
         if (!item) return
@@ -85,11 +107,25 @@ export function useConfirmAction<T>(options: UseConfirmActionOptions<T>): Confir
             await options.onConfirm(item)
             show.value = false
             target.value = null
-            if (options.onSuccess) await options.onSuccess(item)
-        } catch {
-            error.value = t('common.error')
+        } catch (e) {
+            record(e)
+            return
+        }
+
+        if (!options.onSuccess) return
+        try {
+            await options.onSuccess(item)
+        } catch (e) {
+            record(e, t('failure.staleAfterAction'))
         }
     }
 
-    return {show, target, request, confirm, error}
+    /** Records what went wrong, with a sentence of its own where the caller has a better one. */
+    function record(e: unknown, message?: string) {
+        const described = describeFailure(e, t)
+        failure.value = message ? {...described, message} : described
+        error.value = failure.value.message
+    }
+
+    return {show, target, request, confirm, error, failure}
 }

@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {computed, toRef} from 'vue'
 import {useI18n} from 'vue-i18n'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FlowDiagram from '@/components/movement/FlowDiagram.vue'
 import MovementStep from './MovementStep.vue'
@@ -15,6 +15,7 @@ import MovementRechainButton from './MovementRechainButton.vue'
 import {useMovementParties} from '@/composables/useMovementParties'
 import type {InventorySize} from '@/api/inventory'
 import type {MovementDetail} from '@/api/movements'
+import type {Failure} from '@/util/failure'
 
 /**
  * The chain a movement walks: drawn, then listed step by step, with the answer to the step it stands
@@ -33,7 +34,7 @@ const props = defineProps<{
   sizes: InventorySize[]
   /** Whether the arriving piece may be written down here rather than picked. */
   mayRecord: boolean
-  error: string
+  failure: Failure | null
 }>()
 
 const emit = defineEmits<{
@@ -42,7 +43,7 @@ const emit = defineEmits<{
   decline: [reason: string]
   cancel: [reason: string]
   rechain: [stepIndex: number | null]
-  refused: [message: string]
+  refused: [failure: Failure | null]
 }>()
 
 const {t} = useI18n()
@@ -73,11 +74,11 @@ const drawnSteps = computed(() =>
           :disabled="props.busy"
           :movement-id="movement.id"
           @confirm="stepIndex => emit('rechain', stepIndex)"
-          @refused="message => emit('refused', message)"
+          @refused="reported => emit('refused', reported)"
       />
     </div>
 
-    <Alert v-if="props.error" variant="error" class="mb-2">{{ props.error }}</Alert>
+    <FailureAlert :failure="props.failure" class="mb-2"/>
 
     <FlowDiagram
         :owner-kind="movement.ownerKind"

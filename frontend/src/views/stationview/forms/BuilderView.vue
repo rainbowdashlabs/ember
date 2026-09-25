@@ -23,6 +23,7 @@ import type { QuestionDraft } from './builderview/types'
 import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, QuestionTypes, type Form, type FormPurposeName, type FormQuestionRequest, type FormVisibilityName, type PageUsingForm, type QuestionType} from '@/api/forms'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
+import { describeFailure, type Failure } from '@/util/failure'
 import { instantToLocalInput } from '@/util/format'
 
 const { t } = useI18n()
@@ -142,7 +143,7 @@ function moveQuestion(index: number, direction: -1 | 1) {
   questions.value[newIndex] = current
 }
 
-const { loading, error } = useAsyncLoader(async () => {
+const { loading, failure: loadFailure } = useAsyncLoader(async () => {
   const [groups, tags, members] = await Promise.all([
     memberGroups.listGroups(),
     userTags.listTags(),
@@ -251,8 +252,8 @@ watch(visibility, async now => {
     }
     loadedForm.value = saved
     heldBy.value = stillHeldBy
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    actionFailure.value = {...describeFailure(e, t), message: t('forms.visibilityFailed')}
   }
 })
 
@@ -268,8 +269,15 @@ async function saveQuestions(id: number) {
   await forms.setQuestions(id, questionRequests)
 }
 
+/**
+ * What the reader's last action ran into, kept apart from what the page failed to load. A save that
+ * was refused and a form that never arrived call for different things, and one line holding whichever
+ * happened last told them neither.
+ */
+const actionFailure = ref<Failure | null>(null)
+
 async function save() {
-  error.value = ''
+  actionFailure.value = null
   try {
     const id = await saveForm()
     await saveQuestions(id)
@@ -283,7 +291,7 @@ async function save() {
     }
     router.push({ name: returnRouteName.value })
   } catch (e) {
-    error.value = t('common.error')
+    actionFailure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -296,7 +304,7 @@ async function save() {
   >
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="actionFailure ?? loadFailure"/>
 
       <template v-if="!loading">
         <FormMetadataEditor

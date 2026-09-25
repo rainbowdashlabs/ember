@@ -18,6 +18,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {BatchRow, EventFieldEntry} from '@/api/events'
 import {events} from '@/api'
 import {readCsvText} from '@/util/csvText'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   fieldDefs: EventFieldEntry[]
@@ -25,7 +26,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   done: [rows: BatchRow[]]
-  error: [msg: string]
+  error: [failure: Failure]
 }>()
 
 const {t} = useI18n()
@@ -81,8 +82,8 @@ async function generateScheduleDates() {
       ignoreBreaks: ignoreBreaks.value,
     })
     emit('done', generated.map(r => ({...r, fieldValues: {}})))
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   }
 }
 

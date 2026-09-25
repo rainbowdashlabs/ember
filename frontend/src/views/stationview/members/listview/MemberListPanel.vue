@@ -30,7 +30,7 @@ const c = props.config
 
 <template>
   <Spinner v-if="c.loading.value" size="lg"/>
-  <FailureAlert :message="c.error.value"/>
+  <FailureAlert :failure="c.failure.value ?? c.filterFailure.value"/>
 
   <div v-if="!c.loading.value" class="space-y-4">
     <TabBar v-model="c.activeTab.value" :tabs="c.tabs.value"/>

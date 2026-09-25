@@ -30,6 +30,7 @@ import Td from '@/components/table/Td.vue'
 import Th from '@/components/table/Th.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import { partnerCompatibility, resolveFederationVersion } from '@/util/federationVersion'
+import { describeFailure } from '@/util/failure'
 import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
@@ -42,7 +43,7 @@ const partner = ref<PartnerResponse | null>(null)
 const capabilities = ref<FederationCapability[]>([])
 const localContract = ref<FederationContract | null>(null)
 
-const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   const [p, caps, info] = await Promise.all([
     federation.getPartner(partnerId.value),
     federation.getCapabilities(partnerId.value),
@@ -94,29 +95,34 @@ const capRows = computed<CapRow[]>(() => {
   }))
 })
 
+/** Records what went wrong into the one alert this page carries. */
+function record(e: unknown) {
+  failure.value = describeFailure(e, t)
+}
+
 async function toggleCap(capability: string, direction: string, currentEnabled: boolean) {
   try {
     capabilities.value = await federation.setCapabilities(partnerId.value, [
       { capability, direction, enabled: !currentEnabled },
     ])
-  } catch { error.value = t('common.error') }
+  } catch (e) { record(e) }
 }
 
 async function handleSuspend() {
   try { await federation.suspendPartner(partnerId.value); await loadData() }
-  catch { error.value = t('common.error') }
+  catch (e) { record(e) }
 }
 
 async function handleResume() {
   try { await federation.resumePartner(partnerId.value); await loadData() }
-  catch { error.value = t('common.error') }
+  catch (e) { record(e) }
 }
 
 async function handleEnd() {
   try {
     await federation.endFederation(partnerId.value)
     router.push({ name: 'station-federation' })
-  } catch { error.value = t('common.error') }
+  } catch (e) { record(e) }
 }
 
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
@@ -149,7 +155,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
     </div>
 
     <Spinner v-if="loading" />
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <template v-if="!loading && partner">
       <MutedText tag="p" size="sm">

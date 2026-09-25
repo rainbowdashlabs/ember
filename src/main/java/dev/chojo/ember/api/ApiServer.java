@@ -70,11 +70,13 @@ import jakarta.servlet.http.HttpServletResponseWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
 import tools.jackson.core.exc.StreamReadException;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.exc.MismatchedInputException;
 import tools.jackson.databind.exc.UnrecognizedPropertyException;
+import tools.jackson.databind.exc.ValueInstantiationException;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.InputStream;
@@ -925,6 +927,15 @@ public class ApiServer {
 
     /**
      * Registers exception handlers that convert exceptions into standardized JSON error responses.
+     *
+     * <p>Every one of them answers with a sentence. A status on its own leaves the reader unable to
+     * tell whether they sent something wrong or Ember fell over, which is the one thing they need
+     * to know before deciding whether to fix it or report it, so the body always carries prose and
+     * the status is chosen to say honestly whose problem this is.
+     *
+     * <p>The technical half of a fault never reaches the reader. A stack trace, a statement, a
+     * constraint name and a file path all stay in the log, and the response carries only the short
+     * reference that finds the log line.
      */
     private void setupExceptionHandlers(RoutesConfig routes) {
         boolean devErrors = demoConfig.dev();
@@ -942,31 +953,19 @@ public class ApiServer {
         });
 
         routes.exception(ApiException.class, (err, ctx) -> {
-            int code = err.status().getCode();
-            if (code >= 500) {
-                log.error("API error {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage(), err);
-                if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
-            } else if (code == 404) {
-                logNotFound(ctx, err.getMessage());
-                if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
-            } else if (code >= 400 && code != 401) {
-                log.warn("API error {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage());
-            }
+            logFailure(ctx, err.status().getCode(), err.getMessage(), err, devErrors);
             ctx.json(new ErrorResponseWrapper(err.getClass().getSimpleName(), err.getMessage()))
                     .status(err.status());
         });
 
+        routes.exception(RefusalResponse.class, (err, ctx) -> {
+            logFailure(ctx, err.getStatus(), err.getMessage(), err, devErrors);
+            ctx.json(ErrorResponseWrapper.of(err.refusal(), err.getMessage())).status(err.getStatus());
+        });
+
         routes.exception(HttpResponseException.class, (err, ctx) -> {
             int code = err.getStatus();
-            if (code >= 500) {
-                log.error("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage(), err);
-                if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
-            } else if (code == 404) {
-                logNotFound(ctx, err.getMessage());
-                if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
-            } else if (code >= 400 && code != 401) {
-                log.warn("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage());
-            }
+            logFailure(ctx, code, err.getMessage(), err, devErrors);
             Long retryAfter = null;
             if (err instanceof RateLimits.TooManyRequestsException refused) {
                 retryAfter = refused.retryAfterSeconds();
@@ -978,7 +977,8 @@ public class ApiServer {
 
         routes.exception(IllegalArgumentException.class, (err, ctx) -> {
             log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage(), err);
-            ctx.json(new ErrorResponseWrapper("Invalid Input", "Invalid input")).status(HttpStatus.BAD_REQUEST);
+            String said = Failures.readable(err.getMessage()).orElse(Refusal.INPUT_NOT_USABLE.message());
+            ctx.json(ErrorResponseWrapper.of(Refusal.INPUT_NOT_USABLE, said)).status(Refusal.INPUT_NOT_USABLE.status());
         });
 
         // A copy that cannot be made is a refusal with a reason, not a fault. It reaches here from the acts
@@ -1002,23 +1002,104 @@ public class ApiServer {
 
         routes.exception(StreamReadException.class, (err, ctx) -> {
             log.warn("Malformed body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            ctx.json(new ErrorResponseWrapper("Bad Request", "The request body is not valid JSON"))
-                    .status(HttpStatus.BAD_REQUEST);
+            answerRefusal(ctx, Refusal.BODY_NOT_JSON, Refusal.BODY_NOT_JSON.message());
         });
 
         routes.exception(MismatchedInputException.class, (err, ctx) -> {
-            String detail = err instanceof UnrecognizedPropertyException unknown
-                    ? "The request body carries a field this endpoint does not accept: " + unknown.getPropertyName()
-                    : "The request body does not match what this endpoint expects";
             log.warn("Rejected body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            ctx.json(new ErrorResponseWrapper("Bad Request", detail)).status(HttpStatus.BAD_REQUEST);
+            if (err instanceof UnrecognizedPropertyException unknown) {
+                answerRefusal(
+                        ctx,
+                        Refusal.BODY_UNEXPECTED_FIELD,
+                        Refusal.BODY_UNEXPECTED_FIELD.message() + ": " + unknown.getPropertyName());
+                return;
+            }
+            answerRefusal(ctx, Refusal.BODY_DOES_NOT_MATCH, atFieldPath(Refusal.BODY_DOES_NOT_MATCH, err.getPath()));
+        });
+
+        routes.exception(ValueInstantiationException.class, (err, ctx) -> {
+            log.warn("Rejected value in body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            answerRefusal(ctx, Refusal.BODY_VALUE_REJECTED, rejectedValueDetail(err));
         });
 
         routes.exception(Exception.class, (err, ctx) -> {
-            log.error("Unhandled exception on route {} {}", ctx.method(), ctx.path(), err);
+            var refusal = Failures.describe(err);
+            String reference = Failures.reference();
+            boolean ours = refusal.status().getCode() >= 500;
+            if (ours) {
+                log.error("Unhandled exception on route {} {}, reference {}", ctx.method(), ctx.path(), reference, err);
+            } else {
+                log.warn("Request refused on route {} {}, reference {}", ctx.method(), ctx.path(), reference, err);
+            }
             if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
-            ctx.json(new ErrorResponseWrapper("Internal Server Error")).status(HttpStatus.INTERNAL_SERVER_ERROR);
+            ctx.json(new ErrorResponseWrapper(
+                            refusal.status().getMessage(),
+                            refusal.message(),
+                            refusal.name(),
+                            null,
+                            ours ? reference : null))
+                    .status(refusal.status());
         });
+    }
+
+    /**
+     * Writes a named refusal as the error body and status it stands for.
+     */
+    private static void answerRefusal(Context ctx, Refusal refusal, String message) {
+        ctx.json(ErrorResponseWrapper.of(refusal, message)).status(refusal.status());
+    }
+
+    /**
+     * Records a failure on its way out, at the volume its status deserves.
+     *
+     * <p>A fault is an error with its stack trace, a miss is whatever {@link #logNotFound} decides,
+     * and an ordinary refusal is a warning without one, because a reader sending something wrong is
+     * not an event an operator needs a trace for. A {@code 401} is left silent: an expired session
+     * is the most ordinary thing that happens here.
+     */
+    private void logFailure(Context ctx, int code, String message, Throwable err, boolean devErrors) {
+        if (code >= 500) {
+            log.error("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), message, err);
+            if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
+            return;
+        }
+        if (code == 404) {
+            logNotFound(ctx, message);
+            if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
+            return;
+        }
+        if (code >= 400 && code != 401) {
+            log.warn("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), message);
+        }
+    }
+
+    /**
+     * Names the place in a body a refusal was about, where Jackson recorded one.
+     *
+     * <p>Naming the place is the difference between a reader guessing and a reader looking. The
+     * place is spelled the way the sender wrote it, out of their own field names, so nothing of
+     * the type it failed to become is revealed.
+     */
+    private static String atFieldPath(Refusal refusal, List<JacksonException.Reference> path) {
+        return Failures.fieldPath(path)
+                .map(where -> refusal.message() + ", at " + where)
+                .orElse(refusal.message());
+    }
+
+    /**
+     * Says what was wrong with a value the body carried that whatever it describes refused to take.
+     *
+     * <p>This is the refusal a record writes in its own constructor, so its wording is the most
+     * useful thing there is to pass on, and it is passed on wherever it reads as prose rather than
+     * as machinery.
+     */
+    private static String rejectedValueDetail(ValueInstantiationException err) {
+        String where =
+                Failures.fieldPath(err.getPath()).map(path -> ", at " + path).orElse("");
+        String said = err.getCause() == null ? null : err.getCause().getMessage();
+        return Failures.readable(said)
+                .map(prose -> prose + where)
+                .orElse(Refusal.BODY_VALUE_REJECTED.message() + where);
     }
 
     /**

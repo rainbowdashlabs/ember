@@ -23,7 +23,7 @@ const { t } = useI18n()
 
 const TOTP_ALGORITHMS = ['SHA1', 'SHA256', 'SHA512'] as const
 
-const { config, loading, error, runWith } = useConfigPanel<TotpConfig>({
+const { config, loading, failure, runWith } = useConfigPanel<TotpConfig>({
   initial: {
     digits: 6,
     periodSeconds: 30,
@@ -42,7 +42,7 @@ async function save() {
 <template>
   <div>
     <Spinner v-if="loading" size="md"/>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <NeutralContainer v-if="!loading" class="space-y-4">
       <SectionHeader>{{ t('adminSecurity.totp.title') }}</SectionHeader>

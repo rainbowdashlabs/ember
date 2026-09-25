@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -33,6 +33,7 @@ import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {moveWithin} from '@/util/reorder'
+import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -82,11 +83,37 @@ const topLevelPages = computed(() =>
     pages.value.filter(p => p.parentId == null),
 )
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
     const result = await listPages()
     pages.value = result.pages
     landingPageId.value = result.landingPageId
 })
+
+/** What the reader's last action ran into, kept apart from the list never having arrived. */
+const actionFailure = ref<Failure | null>(null)
+
+/**
+ * Doing something to a page and then fetching the list again, which are two things and not one.
+ *
+ * <p>They shared an attempt, so a page that really was created or duplicated, followed by a list that
+ * failed to come back, read as a creation that had failed, and pressing the button again made a
+ * second copy of it.
+ */
+async function act(change: () => Promise<unknown>) {
+    actionFailure.value = null
+    try {
+        await change()
+    } catch (e) {
+        actionFailure.value = describeFailure(e, t)
+        return false
+    }
+    await reload()
+    if (loadFailure.value) {
+        actionFailure.value = {...loadFailure.value, message: t('failure.staleAfterAction')}
+        loadFailure.value = null
+    }
+    return true
+}
 
 function openCreateModal() {
     newTitle.value = ''
@@ -96,14 +123,9 @@ function openCreateModal() {
 
 async function confirmCreate() {
     if (!newTitle.value.trim()) return
-    try {
-        const parentIdNum = newParentId.value ? Number(newParentId.value) : null
-        await createPage(newTitle.value.trim(), parentIdNum)
-        showCreateModal.value = false
-        await reload()
-    } catch {
-        error.value = t('common.error')
-    }
+    const parentIdNum = newParentId.value ? Number(newParentId.value) : null
+    const title = newTitle.value.trim()
+    if (await act(() => createPage(title, parentIdNum))) showCreateModal.value = false
 }
 
 const {
@@ -114,62 +136,71 @@ const {
 } = useConfirmDelete<StationPage>({
     onDelete: p => deletePage(p.id),
     onSuccess: () => reload(),
-    error,
+    failure: actionFailure,
 })
 
 async function onDuplicate(page: StationPage) {
-    try {
-        await duplicatePage(page.id)
-        await reload()
-    } catch {
-        error.value = t('common.error')
-    }
+    await act(() => duplicatePage(page.id))
 }
 
 const visibilityPage = ref<StationPage | null>(null)
-const visibilityError = ref('')
+const visibilityFailure = ref<Failure | null>(null)
 
 const sharePage = ref<StationPage | null>(null)
 const shareOpen = ref(false)
 const shareToken = ref<string | null>(null)
-const shareError = ref('')
+const shareFailure = ref<Failure | null>(null)
 const shareBusy = ref(false)
 
 async function onChooseVisibility(visibility: PageVisibilityName) {
     const page = visibilityPage.value
     if (!page) return
-    visibilityError.value = ''
+    visibilityFailure.value = null
     try {
         await setVisibility(page.id, visibility)
-        visibilityPage.value = null
-        await reload()
     } catch (e) {
-        const said = (e as {response?: {data?: {message?: string}}})?.response?.data?.message
-        visibilityError.value = said || t('common.error')
+        visibilityFailure.value = describeFailure(e, t)
+        return
+    }
+    visibilityPage.value = null
+    await reload()
+    if (loadFailure.value) {
+        actionFailure.value = {...loadFailure.value, message: t('failure.staleAfterAction')}
+        loadFailure.value = null
     }
 }
 
 async function onShareLink(page: StationPage) {
     sharePage.value = page
-    shareError.value = ''
+    shareFailure.value = null
     shareToken.value = null
     shareOpen.value = true
     try {
         shareToken.value = await getPageShareLink(page.id)
-    } catch {
-        shareError.value = t('common.error')
+    } catch (e) {
+        shareFailure.value = describeFailure(e, t)
     }
 }
 
+/**
+ * Puts a new link in place of the one the page has.
+ *
+ * <p>A refusal used to be reported as somebody else having replaced it first, whatever had actually
+ * happened. Only the server saying the link had moved on means that; a missing right or a dropped
+ * connection means something else entirely, and reloading to see the newer link gets nowhere.
+ */
 async function onReplaceShareLink() {
     const page = sharePage.value
     if (!page) return
     shareBusy.value = true
-    shareError.value = ''
+    shareFailure.value = null
     try {
         shareToken.value = await replacePageShareLink(page.id, shareToken.value)
-    } catch {
-        shareError.value = t('shareLink.replaceConflict')
+    } catch (e) {
+        const described = describeFailure(e, t)
+        shareFailure.value = described.kind === FailureKind.CONFLICT
+            ? {...described, message: t('shareLink.replaceConflict')}
+            : described
     } finally {
         shareBusy.value = false
     }
@@ -185,23 +216,27 @@ async function onCreateShareLink() {
     const page = sharePage.value
     if (!page) return
     shareBusy.value = true
-    shareError.value = ''
+    shareFailure.value = null
     try {
         shareToken.value = await replacePageShareLink(page.id, null)
-    } catch {
-        shareError.value = t('shareLink.createFailed')
+    } catch (e) {
+        const described = describeFailure(e, t)
+        shareFailure.value = described.kind === FailureKind.REJECTED
+            ? {...described, message: t('shareLink.createFailed')}
+            : described
     } finally {
         shareBusy.value = false
     }
 }
 
 async function onSetLandingPage(page: StationPage) {
+    const newLandingId = landingPageId.value === page.id ? null : page.id
+    actionFailure.value = null
     try {
-        const newLandingId = landingPageId.value === page.id ? null : page.id
         await setLandingPage(newLandingId)
         landingPageId.value = newLandingId
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        actionFailure.value = describeFailure(e, t)
     }
 }
 
@@ -226,7 +261,7 @@ function onReorder(fromIndex: number, toIndex: number) {
             :can-edit="canEdit"
             :can-manage="canManage"
             :loading="loading"
-            :error="error"
+            :failure="actionFailure ?? loadFailure"
             :flat-pages="flatPages"
             :landing-page-id="landingPageId"
             :top-level-pages="topLevelPages"
@@ -236,7 +271,7 @@ function onReorder(fromIndex: number, toIndex: number) {
             @reorder="onReorder"
             @edit="navigateToEdit"
             @duplicate="onDuplicate"
-            @change-visibility="(p: StationPage) => { visibilityPage = p; visibilityError = '' }"
+            @change-visibility="(p: StationPage) => { visibilityPage = p; visibilityFailure = null }"
             @share-link="onShareLink"
             @set-landing="onSetLandingPage"
             @request-delete="requestDelete"
@@ -245,7 +280,7 @@ function onReorder(fromIndex: number, toIndex: number) {
 
         <PageVisibilityModal
             :page="visibilityPage"
-            :error="visibilityError"
+            :failure="visibilityFailure"
             @choose="onChooseVisibility"
             @close="visibilityPage = null"
         />
@@ -257,11 +292,11 @@ function onReorder(fromIndex: number, toIndex: number) {
                     v-if="shareToken"
                     :path="`/s/${shareToken}`"
                     :busy="shareBusy"
-                    :error="shareError"
+                    :failure="shareFailure"
                     replaceable
                     @replace="onReplaceShareLink"
                 />
-                <Alert v-else-if="shareError" variant="error">{{ shareError }}</Alert>
+                <FailureAlert v-else-if="shareFailure" :failure="shareFailure"/>
                 <div v-else class="space-y-3">
                     <MutedText tag="p" size="sm">{{ t('shareLink.none') }}</MutedText>
                     <ButtonRow align="end">

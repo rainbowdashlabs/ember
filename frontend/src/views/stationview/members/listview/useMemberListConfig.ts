@@ -70,7 +70,7 @@ export function useMemberListConfig(port: MemberListPort) {
     const {
         members, fields, assignments, allGroups, allTags,
         memberRolesMap, memberGroupsMap, memberTagsMap, memberManagers,
-        loading, error, expandedId, overviewFields,
+        loading, error, failure, expandedId, overviewFields,
         getFieldValue, getFieldValueAsString, getMemberType, getMemberGroups, getMemberTags,
         toggleExpand, reload,
     } = useMemberData(port.source)
@@ -78,7 +78,7 @@ export function useMemberListConfig(port: MemberListPort) {
     const {activeTab, tabStates, currentTabState, tabs, tabScopedFields, isAskedOf} =
         useMemberListTabs(fields, assignments)
 
-    const {savedFilters, loadSavedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters} =
+    const {savedFilters, filterFailure, loadSavedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters} =
         useSavedFilters(tabStates, activeTab)
 
     const {
@@ -210,11 +210,11 @@ export function useMemberListConfig(port: MemberListPort) {
     return {
         members, fields, allGroups, allTags,
         memberRolesMap, memberManagers,
-        loading, error, expandedId, overviewFields,
+        loading, error, failure, expandedId, overviewFields,
         getFieldValue, toggleExpand, reload,
         activeTab, tabs, table, answerCells,
         isAskedOf,
-        savedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters,
+        savedFilters, filterFailure, saveCurrentFilter, applyFilter, deleteFilter, clearFilters,
         onMemberFilter,
         exporting, performExport,
         canExport: port.canExport,

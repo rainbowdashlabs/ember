@@ -4,7 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref, type Ref} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {waitingList} from '@/api'
+import {describeFailure, type Failure} from '@/util/failure'
 import type {WaitingListEntryWithScore} from '@/api/waitingList'
 import type {EventOccurrenceRef} from '@/api/events'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -19,13 +21,15 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
  *
  * @param listId  the list being worked on
  * @param entries the entry list, reloaded once the invitation has gone out
- * @param error   the view's error channel
+ * @param failure the view's failure channel
  */
 export function useEntryInvitation(
   listId: Ref<number>,
   entries: Ref<WaitingListEntryWithScore[]>,
-  error: Ref<string>,
+  failure: Ref<Failure | null>,
 ) {
+  const {t} = useI18n()
+
   const target = ref<WaitingListEntryWithScore | null>(null)
   const occurrence = ref<EventOccurrenceRef | null>(null)
   const arrivalTime = ref('')
@@ -42,16 +46,28 @@ export function useEntryInvitation(
     target.value = null
   }
 
-  const {running, error: inviteError, run: confirm} = useAsyncAction(async () => {
+  /**
+   * Sends the invitation, then fetches the list again.
+   *
+   * <p>The fetch is caught on its own, because the invitation has reached the person by then. A reader
+   * told that inviting failed invites them again, and somebody who has never heard from this station
+   * before gets two messages about the same evening.
+   */
+  const {running, failure: inviteFailure, run: confirm} = useAsyncAction(async () => {
     if (!target.value) return
-    error.value = ''
+    failure.value = null
     const picked = occurrence.value
     await waitingList.inviteEntry(listId.value, target.value.entry.id, picked
       ? {eventId: picked.eventId, date: picked.date, arrivalTime: arrivalTime.value || null}
       : null)
-    entries.value = await waitingList.listEntries(listId.value)
     target.value = null
+
+    try {
+      entries.value = await waitingList.listEntries(listId.value)
+    } catch (e) {
+      failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
+    }
   })
 
-  return {target, occurrence, arrivalTime, running, error: inviteError, request, cancel, confirm}
+  return {target, occurrence, arrivalTime, running, failure: inviteFailure, request, cancel, confirm}
 }

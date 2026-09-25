@@ -10,6 +10,8 @@ import type { StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api
 import { profileFields, stationMembers } from '@/api'
 import type { RichMember } from '@/api/stationMembers'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useI18n } from 'vue-i18n'
+import { describeFailure } from '@/util/failure'
 
 /**
  * What to call somebody in a list. Takes the little of a person this needs rather than a station
@@ -119,7 +121,9 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
     return memberTagsMap.value.get(memberId) ?? []
   }
 
-  const {loading, error, reload} = useAsyncLoader(async () => {
+  const {t} = useI18n()
+
+  const {loading, error, failure, reload} = useAsyncLoader(async () => {
     const {members: richMembers, fields: allFields, assignments: allAssignments, roles} = await source.load()
     fields.value = allFields
     assignments.value = allAssignments
@@ -181,6 +185,12 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
     allTags.value = Array.from(tagSet.values())
   })
 
+  /**
+   * Opens a row and fetches who manages that person.
+   *
+   * <p>A failure here used to be swallowed, and the open row then read as though nobody managed them,
+   * which for a young member is the opposite of the truth. It is said out loud instead.
+   */
   async function toggleExpand(member: StationMember) {
     if (expandedId.value === member.id) { expandedId.value = null; return }
     expandedId.value = member.id
@@ -188,7 +198,9 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
       try {
         const managers = await source.loadManagers(member.id)
         memberManagers.value = new Map([...memberManagers.value, [member.id, managers]])
-      } catch { /* ignore */ }
+      } catch (e) {
+        failure.value = {...describeFailure(e, t), message: t('membersList.managersUnreadable')}
+      }
     }
   }
 
@@ -206,6 +218,7 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
     memberManagers,
     loading,
     error,
+    failure,
     expandedId,
     overviewFields,
     getFieldValue,

@@ -23,6 +23,7 @@ import type {EventTemplate} from '@/api/events'
 import {events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 import {configOf} from '@/components/profilefields/fieldLayout'
 
 const {t} = useI18n()
@@ -34,11 +35,15 @@ const templates = ref<EventTemplate[]>([])
 const createOpen = ref(false)
 const createName = ref('')
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   templates.value = await events.listTemplates()
 }, {autoLoad: loaded.value})
 
 watch(loaded, (v) => { if (v) reload() })
+
+function record(e: unknown) {
+  failure.value = describeFailure(e, t)
+}
 
 async function createTemplate() {
   if (!createName.value.trim()) return
@@ -47,7 +52,7 @@ async function createTemplate() {
     createOpen.value = false
     createName.value = ''
     router.push({name: 'event-template-edit', params: {id: tpl.id}})
-  } catch { error.value = t('common.error') }
+  } catch (e) { record(e) }
 }
 
 /**
@@ -95,14 +100,21 @@ async function duplicateTemplate(id: number) {
       await events.setTemplateReminders(copy.id, reminderDays)
     }
     router.push({name: 'event-template-edit', params: {id: copy.id}})
-  } catch { error.value = t('common.error') }
+  } catch (e) { record(e) }
 }
 
+/**
+ * Deleting and reading the list back are answered for separately, so a template that is gone and a
+ * list that then failed to refresh does not read as a template that is still there.
+ */
 async function deleteTemplate(id: number) {
   try {
     await events.deleteTemplate(id)
-    await reload()
-  } catch { error.value = t('common.error') }
+  } catch (e) {
+    record(e)
+    return
+  }
+  await reload()
 }
 </script>
 
@@ -119,7 +131,7 @@ async function deleteTemplate(id: number) {
       <AsyncSection
           :empty="templates.length === 0"
           :empty-message="t('eventTemplates.empty')"
-          :error="error"
+          :failure="failure"
           :loading="loading"
       >
         <div class="space-y-2">

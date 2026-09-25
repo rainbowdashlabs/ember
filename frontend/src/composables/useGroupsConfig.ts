@@ -9,7 +9,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import type {PermissionScope} from '@/composables/usePermissionTree'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure} from '@/util/failure'
 import type {MemberGroup, MemberIdentity, PermissionGrant} from '@/api/types'
 
 /**
@@ -128,7 +128,7 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
     const groupColor = ref('')
     const groupPosition = ref(0)
 
-    const {loading, error} = useAsyncLoader(async () => {
+    const {loading, error, failure} = useAsyncLoader(async () => {
         const [g, m, r] = await Promise.all([
             port.listGroups(),
             port.listCandidates(),
@@ -151,13 +151,20 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
             const detail = await port.getDetail(group.id)
             groupMembers.value = detail.members
             groupRoles.value = detail.roles ?? []
-        } catch {
-            error.value = t('common.error')
+        } catch (e) {
+            record(e)
             groupMembers.value = []
             groupRoles.value = []
         } finally {
             groupLoading.value = false
         }
+    }
+
+    /** Records what went wrong into the one channel this screen renders, described rather than flattened. */
+    function record(e: unknown, message?: string) {
+        const described = describeFailure(e, t)
+        failure.value = message ? {...described, message} : described
+        error.value = failure.value.message
     }
 
     /** Forgets whichever group is open, for when it has just stopped existing. */
@@ -178,6 +185,7 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
         onDelete: async g => { await port.deleteGroup(g.id) },
         onSuccess: deleted => refreshAfter(deleted.id),
         error,
+        failure,
     })
 
     function openCreateGroup() {
@@ -196,8 +204,21 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
         showGroupModal.value = true
     }
 
-    const {running: groupSaving, error: groupSaveError, run: saveGroup} = useAsyncAction(async () => {
+    /**
+     * Writes the group, then catches the list up, and answers for the two separately.
+     *
+     * <p>They used to share one attempt, so a group that was written and a list that then failed to
+     * reload both reported a failed save. A reader told the group was not saved writes it again, and
+     * the second one is a duplicate of a group that already exists under that name.
+     */
+    const {
+        running: groupSaving,
+        error: groupSaveError,
+        failure: groupSaveFailure,
+        run: saveGroup,
+    } = useAsyncAction(async () => {
         error.value = ''
+        failure.value = null
         const patch = {
             name: groupName.value,
             color: groupColor.value || null,
@@ -206,12 +227,17 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
         if (editingGroup.value) await port.updateGroup(editingGroup.value.id, patch)
         else await port.createGroup(patch)
         showGroupModal.value = false
-        groups.value = await port.listGroups()
-        const open = selectedGroup.value
-        if (open && editingGroup.value?.id === open.id) {
-            selectedGroup.value = groups.value.find(g => g.id === open.id) ?? null
+
+        try {
+            groups.value = await port.listGroups()
+            const open = selectedGroup.value
+            if (open && editingGroup.value?.id === open.id) {
+                selectedGroup.value = groups.value.find(g => g.id === open.id) ?? null
+            }
+        } catch (e) {
+            record(e, t('failure.staleAfterAction'))
         }
-    }, {formatError: () => t('common.error')})
+    })
 
     async function syncGroupRoles(newIds: Set<number>) {
         const open = selectedGroup.value
@@ -219,7 +245,7 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
         try {
             groupRoles.value = await port.setRoles(open.id, [...newIds])
         } catch (e: unknown) {
-            error.value = apiErrorMessage(e) || t('common.error')
+            record(e)
         }
     }
 
@@ -240,6 +266,7 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
         groupLoading,
         loading,
         error,
+        failure,
         showGroupModal,
         editingGroup,
         groupName,
@@ -247,6 +274,7 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
         groupPosition,
         groupSaving,
         groupSaveError,
+        groupSaveFailure,
         selectGroup,
         openCreateGroup,
         openEditGroup,

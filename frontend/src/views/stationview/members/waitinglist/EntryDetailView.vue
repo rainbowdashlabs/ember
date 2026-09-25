@@ -20,6 +20,7 @@ import { waitingList } from '@/api'
 import { setFieldValue as writeFieldValue } from '@/util/profileFields'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { instantToLocalInput } from '@/util/format'
+import { describeFailure, FailureKind } from '@/util/failure'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -39,14 +40,19 @@ const editValues = ref<Map<number, string>>(new Map())
 const editingCreatedAt = ref(false)
 const editCreatedAtValue = ref('')
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const [entries, fieldData] = await Promise.all([
     waitingList.listEntries(listId.value),
     waitingList.listFields(listId.value),
   ])
   const found = entries.find(e => e.entry.id === entryId.value)
   if (!found) {
-    error.value = t('waitingList.entryNotFound')
+    failure.value = {
+      kind: FailureKind.GONE,
+      message: t('waitingList.entryNotFound'),
+      guidance: t(`failure.${FailureKind.GONE}.guidance`),
+      reportable: false,
+    }
     return
   }
   entry.value = found
@@ -84,7 +90,7 @@ const canSave = computed(() =>
 
 async function save() {
   if (!canSave.value) return
-  error.value = ''
+  failure.value = null
   try {
     const values: Record<number, unknown> = {}
     for (const [fieldId, value] of editValues.value) {
@@ -98,7 +104,7 @@ async function save() {
       values,
     })
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -111,13 +117,15 @@ function startEditCreatedAt() {
 
 async function saveCreatedAt() {
   if (!entry.value || !editCreatedAtValue.value) return
+  failure.value = null
   try {
     await waitingList.updateCreatedAt(listId.value, entryId.value, new Date(editCreatedAtValue.value).toISOString())
-    await reload()
-    editingCreatedAt.value = false
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  editingCreatedAt.value = false
+  await reload()
 }
 
 const entryFullName = computed(() => {
@@ -152,7 +160,7 @@ function goBack() {
       </div>
 
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading && entry">
         <EntryHeaderInfo

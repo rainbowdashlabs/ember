@@ -12,6 +12,7 @@ import type {MemberCompletion} from '@/api/stationMembers'
 import type {SpecialMention} from '@/components/comment/MentionInput.vue'
 import {comments as commentsApi, stationMembers, memberGroups} from '@/api'
 import {useCommentHighlight} from '@/composables/useCommentHighlight'
+import {describeFailure, type Failure} from '@/util/failure'
 import CommentThread from './CommentThread.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -35,7 +36,7 @@ const commentsList = ref<Comment[]>([])
 const members = ref<MemberCompletion[]>([])
 const groups = ref<MemberGroup[]>([])
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const specialMentions = computed<SpecialMention[]>(() => [
   {type: 'EVENT', entityId: props.eventId, label: t('comments.mentionEvent'), icon: ['fas', 'calendar-days']},
@@ -54,36 +55,51 @@ async function loadComments() {
     commentsList.value = c
     members.value = m
     groups.value = g
-  } catch { error.value = t('common.error') }
+  } catch (e) { failure.value = describeFailure(e, t) }
   finally { loading.value = false }
 }
 
-async function createComment(parentId: number | null, content: string) {
+/**
+ * Changing the thread and then fetching it again, which are two things and not one.
+ *
+ * <p>They shared an attempt, so a comment that really was posted, followed by a thread that failed to
+ * come back, read as a comment that had not been posted. The reader wrote it again and the thread
+ * then held it twice. A thread that is merely out of date says so and asks for nothing.
+ */
+async function act(change: () => Promise<unknown>) {
+  failure.value = null
   try {
-    // Stamp new comments with the focused date so the thread stays scoped to this
-    // occurrence on subsequent reloads. Whole-event views (no eventDate) keep
-    // eventDate undefined → backend stores NULL.
-    await commentsApi.createEventComment(props.eventId, {
-      parentId,
-      content,
-      eventDate: props.eventDate ?? undefined,
-    })
+    await change()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
+  }
+  try {
     commentsList.value = await commentsApi.listEventComments(props.eventId, props.eventDate ?? undefined)
-  } catch { error.value = t('common.error') }
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
+  }
 }
 
-async function updateComment(commentId: number, content: string) {
-  try {
-    await commentsApi.updateComment(commentId, {content})
-    commentsList.value = await commentsApi.listEventComments(props.eventId, props.eventDate ?? undefined)
-  } catch { error.value = t('common.error') }
+/**
+ * A new comment carries the date being looked at, so the thread stays scoped to this one occurrence
+ * when it is fetched again. A view of the whole event names no date and the comment is stored without
+ * one.
+ */
+function createComment(parentId: number | null, content: string) {
+  return act(() => commentsApi.createEventComment(props.eventId, {
+    parentId,
+    content,
+    eventDate: props.eventDate ?? undefined,
+  }))
 }
 
-async function deleteComment(commentId: number) {
-  try {
-    await commentsApi.deleteComment(commentId)
-    commentsList.value = await commentsApi.listEventComments(props.eventId, props.eventDate ?? undefined)
-  } catch { error.value = t('common.error') }
+function updateComment(commentId: number, content: string) {
+  return act(() => commentsApi.updateComment(commentId, {content}))
+}
+
+function deleteComment(commentId: number) {
+  return act(() => commentsApi.deleteComment(commentId))
 }
 
 onMounted(async () => {
@@ -95,7 +111,7 @@ onMounted(async () => {
 <template>
   <div class="space-y-4">
     <SubHeader>{{ t('comments.title') }}</SubHeader>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <Spinner v-if="loading" size="sm"/>
 
     <template v-if="!loading">

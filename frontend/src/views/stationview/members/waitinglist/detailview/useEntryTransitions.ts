@@ -4,8 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { ref, type Ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { waitingList } from '@/api'
+import { describeFailure, type Failure } from '@/util/failure'
 import type { WaitingListEntryWithScore } from '@/api/waitingList'
 import { StationPermission } from '@/api/types'
 import { useAsyncAction } from '@/composables/useAsyncAction'
@@ -31,13 +33,14 @@ export interface PendingTransition {
  *
  * @param listId  the list being worked on
  * @param entries the entry list, reloaded after each move
- * @param error   the view's error channel
+ * @param failure the view's failure channel
  */
 export function useEntryTransitions(
   listId: Ref<number>,
   entries: Ref<WaitingListEntryWithScore[]>,
-  error: Ref<string>,
+  failure: Ref<Failure | null>,
 ) {
+  const { t } = useI18n()
   const router = useRouter()
   const { hasPermission } = useSession()
   const { refresh: refreshSidebarCounts } = useSidebarCounts()
@@ -50,11 +53,17 @@ export function useEntryTransitions(
     pending.value = {entry, kind}
   }
 
-  const { running, error: transitionError, run: confirm } = useAsyncAction(async () => {
+  /**
+   * Carries the move out, then fetches the list again.
+   *
+   * <p>The fetch is caught on its own. Joining creates a member, and a reader told that joining failed
+   * when only the list failed to refresh joins the same applicant a second time and gets two of them.
+   */
+  const { running, failure: transitionFailure, run: confirm } = useAsyncAction(async () => {
     if (!pending.value) return
     const { entry, kind } = pending.value
     const entryId = entry.entry.id
-    error.value = ''
+    failure.value = null
 
     if (kind === 'join') {
       const result = await waitingList.moveToJoined(listId.value, entryId)
@@ -76,15 +85,19 @@ export function useEntryTransitions(
       await waitingList.withdrawEntry(listId.value, entryId)
     }
 
-    entries.value = await waitingList.listEntries(listId.value)
-    refreshSidebarCounts()
     pending.value = null
+    refreshSidebarCounts()
+    try {
+      entries.value = await waitingList.listEntries(listId.value)
+    } catch (e) {
+      failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
+    }
   })
 
   return {
     pending,
     running,
-    error: transitionError,
+    failure: transitionFailure,
     confirm,
     backToWaiting: (id: number) => request(id, 'backToWaiting'),
     moveToTesting: (id: number) => request(id, 'testing'),

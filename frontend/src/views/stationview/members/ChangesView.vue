@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import type {MemberChangeSummary, ProfileFieldChange} from '@/api/profileFieldChanges'
 import {profileFieldChanges} from '@/api'
@@ -20,6 +20,7 @@ import {useChangeAcknowledgement} from '@/composables/useChangeAcknowledgement'
 import PendingTabContent from './changesview/PendingTabContent.vue'
 import HistoryTabContent from './changesview/HistoryTabContent.vue'
 import {formatDateTime} from '@/util/format'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -45,7 +46,7 @@ const loadingHistory = ref(false)
 
 const currentMemberId = () => sessionInfo.value?.member?.id ?? 0
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   summaries.value = await profileFieldChanges.getPendingSummary()
 })
 
@@ -60,8 +61,8 @@ async function toggleMember(memberId: number) {
   try {
     const allChanges = await profileFieldChanges.getChanges(memberId)
     memberChanges.value = allChanges.filter(c => c.requiresAcknowledgement)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     loadingChanges.value = false
   }
@@ -71,7 +72,7 @@ const {
   acknowledgeComment,
   showCommentForChangeId,
   acknowledging,
-  error: acknowledgeError,
+  failure: acknowledgeFailure,
   isAcknowledgedByMe,
   acknowledgeChange,
   acknowledgeAll: acknowledgeAllForMember,
@@ -99,13 +100,13 @@ function goToDetail(memberId: number) {
 
 async function loadHistory() {
   loadingHistory.value = true
-  error.value = ''
+  failure.value = null
   try {
     const res = await profileFieldChanges.getAllChanges(historyOffset.value, historyLimit)
     historyChanges.value = res.changes
     historyTotal.value = res.total
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     loadingHistory.value = false
   }
@@ -143,7 +144,7 @@ function onTabChange(tab: string) {
     <div class="space-y-6">
       <TabBar :tabs="tabs" :model-value="activeTab" @update:model-value="onTabChange"/>
 
-      <Alert v-if="error || acknowledgeError" variant="error">{{ error || acknowledgeError }}</Alert>
+      <FailureAlert :failure="failure ?? acknowledgeFailure"/>
 
       <PendingTabContent
           v-if="activeTab === 'pending'"

@@ -19,7 +19,7 @@ import type {AvailableInventoryEntry} from '@/api/lending'
 import type {LineCheck, NeedCoverage} from '@/api/equipment'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -44,12 +44,7 @@ const pageTitle = computed(() => (occasion.value
     ? t('pages.inventory-lending-collect.titleNamed', {name: occasion.value})
     : t('pages.inventory-lending-collect.title')))
 
-/** What the server said went wrong, or a general refusal when it said nothing at all. */
-function failureText(e: unknown): string {
-  return apiErrorMessage(e) ?? t('common.error')
-}
-
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const answer = await lending.listAvailable(date.value ? {from: date.value, to: date.value} : undefined)
   offers.value = answer.entries
   emptyReason.value = answer.emptyReason
@@ -86,41 +81,65 @@ async function refreshChecks() {
   checks.value = answer.lines
 }
 
-const {error: recheckError, run: recheck} = useAsyncAction(refreshChecks, {formatError: failureText})
+const {failure: recheckFailure, run: recheck} = useAsyncAction(refreshChecks)
+
+const sending = ref(false)
+const sendFailure = ref<Failure | null>(null)
 
 /**
  * Sends the list, one request per station. Availability is counted again first and what has moved is
  * shown, because nothing was held while the list was assembled.
+ *
+ * <p>One request per station means a failure halfway leaves the stations before it already asked. The
+ * server answering the fourth request knows nothing of the three that went through, so the count is
+ * kept here and said out loud: a reader who presses send again otherwise asks three stations twice for
+ * the same gear, and somebody at each of them has to work out which of the two to refuse.
  */
-const {running: sending, error: sendError, run: send} = useAsyncAction(async () => {
+async function send() {
   if (!date.value) return
+  sending.value = true
+  sendFailure.value = null
   sent.value = ''
-  await refreshChecks()
+
   const stations = [...new Set(entries.value.map(entry => entry.owningStationId))]
-  for (const stationId of stations) {
-    await lending.createRequest({
-      owningStationId: stationId,
-      dateFrom: date.value,
-      dateTo: date.value,
-      eventId: eventId.value,
-      eventDate: date.value,
-      items: entries.value
-          .filter(entry => entry.owningStationId === stationId)
-          .map(entry => ({
-            inventoryId: entry.inventoryId,
-            itemId: null,
-            artId: entry.artId,
-            quantity: entry.quantity,
-            needId: entry.needId,
-          })),
-    })
+  let reached = 0
+  try {
+    await refreshChecks()
+    for (const stationId of stations) {
+      await lending.createRequest({
+        owningStationId: stationId,
+        dateFrom: date.value,
+        dateTo: date.value,
+        eventId: eventId.value,
+        eventDate: date.value,
+        items: entries.value
+            .filter(entry => entry.owningStationId === stationId)
+            .map(entry => ({
+              inventoryId: entry.inventoryId,
+              itemId: null,
+              artId: entry.artId,
+              quantity: entry.quantity,
+              needId: entry.needId,
+            })),
+      })
+      reached++
+    }
+  } catch (e) {
+    const described = describeFailure(e, t)
+    sendFailure.value = reached > 0
+        ? {...described, message: t('lendingCollect.sentPartly', {count: reached})}
+        : described
+    return
+  } finally {
+    sending.value = false
   }
+
   sent.value = t('lendingCollect.sentCount', {count: stations.length})
   entries.value = []
   checks.value = []
-}, {formatError: failureText})
+}
 
-const actionError = computed(() => sendError.value || recheckError.value)
+const actionFailure = computed(() => sendFailure.value ?? recheckFailure.value)
 
 async function pick(offer: AvailableInventoryEntry) {
   const key = `${offer.stationId}-${offer.inventoryId}-${offer.artId ?? 'all'}`
@@ -149,8 +168,8 @@ function remove(key: string) {
 <template>
   <ViewContent :title="pageTitle" :subtitle="t('pages.inventory-lending-collect.subtitle')">
     <Spinner v-if="loading" size="lg"/>
-    <FailureAlert :message="error"/>
-    <Alert v-if="actionError" variant="error" data-testid="collected-error">{{ actionError }}</Alert>
+    <FailureAlert :failure="failure"/>
+    <FailureAlert :failure="actionFailure" data-testid="collected-error"/>
     <Alert v-if="!date" variant="info" data-testid="collect-no-date">{{ t('lendingCollect.noDate') }}</Alert>
     <Alert v-if="sent" variant="success" data-testid="collected-sent">{{ sent }}</Alert>
 

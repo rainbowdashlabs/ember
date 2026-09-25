@@ -19,7 +19,7 @@ import type {AdminOverview, RecentEntry} from './adminoverviewview/types'
 
 const {t} = useI18n()
 
-const {config: overview, loading, error} = useConfigPanel<AdminOverview | null>({
+const {config: overview, loading, failure} = useConfigPanel<AdminOverview | null>({
   initial: null,
   fetch: async () => (await client.get<AdminOverview>('/admin/overview')).data,
 })
@@ -54,7 +54,7 @@ const totalAttention = computed(() => {
     <div class="space-y-6">
       <OnboardingTaskCard level="INSTANCE"/>
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading && overview">
         <SuccessContainer v-if="totalAttention === 0" class="text-center">

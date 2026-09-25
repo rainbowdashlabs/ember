@@ -96,7 +96,7 @@ const expandedBulk = computed(() => {
     }))
 })
 
-const {running: saving, error, failure, run: runSave, clearError} = useAsyncAction(async (payload: InviteEntry[]) => {
+const {running: saving, failure, run: runSave, clearError} = useAsyncAction(async (payload: InviteEntry[]) => {
     const result = await stationMemberInvites.createInvites({
         invites: payload,
         sendSetupMail: sendSetupMail.value,

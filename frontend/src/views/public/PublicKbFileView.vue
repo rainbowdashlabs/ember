@@ -9,7 +9,8 @@ import {useI18n} from 'vue-i18n'
 import {useRouter, useRoute} from 'vue-router'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {usePublicFailure} from '@/composables/usePublicFailure'
 import * as publicKb from '@/api/publicKb'
 import type {PublicStationInfo} from '@/api/publicKb'
 import {KbFileType, type KbFile, type MarkdownHtmlResponse} from '@/api/knowledgeBase'
@@ -98,7 +99,10 @@ const file = computed<KbFile | null>(() => article.value?.file ?? null)
 const renderedHtml = computed(() => article.value?.renderedHtml ?? '')
 const textContent = computed(() => article.value?.textContent ?? '')
 const loading = computed(() => status.value === 'pending')
-const error = computed(() => (loadError.value ? t('common.error') : ''))
+const failure = usePublicFailure(loadError, {
+    message: 'publicStation.articleGone',
+    guidance: 'publicStation.articleGoneGuidance',
+})
 
 const youtubeEmbedUrl = computed(() => {
     if (!file.value?.youtubeUrl) return null
@@ -148,7 +152,7 @@ useHead(computed(() => {
 <template>
     <ViewContent :title="file?.name || t('pages.public-kb-file.title')">
         <div class="space-y-6">
-            <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+            <FailureAlert :failure="failure" class="mb-4"/>
             <Spinner v-if="loading"/>
 
             <template v-else-if="file">

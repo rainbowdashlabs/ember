@@ -21,7 +21,8 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import AiSettingsPanel from './cataloggenerateview/AiSettingsPanel.vue'
 import {quiz, ai} from '@/api'
 import {type AiCredentials, readAiCredentials} from '@/util/aiCredentials'
@@ -37,7 +38,7 @@ const router = useRouter()
 const {loaded} = useSession()
 
 const catalogId = computed(() => Number(route.params.id))
-const {config: catalogName, loading, error, reload: loadData} = useConfigPanel<string>({
+const {config: catalogName, loading, failure, reload: loadData} = useConfigPanel<string>({
   initial: '',
   fetch: async () => (await quiz.getCatalog(catalogId.value)).name,
   immediate: false,
@@ -58,6 +59,9 @@ const count = ref(6)
 // Generation phase
 const generating = ref(false)
 const generatingProgress = ref('')
+
+/** No key is set for the generator, which is the reader's own setting and not a fault in Ember. */
+const noKey = ref(false)
 
 interface ReviewQuestion {
   questionId: number
@@ -111,15 +115,22 @@ async function buildReviewItem(q: QuizQuestion, credentials: AiCredentials): Pro
   }
 }
 
+/**
+ * Generates the missing wrong answers for every multiple-choice question of the catalogue.
+ *
+ * <p>A missing key is the reader's own setting rather than a fault in Ember, so it is said without
+ * offering a report.
+ */
 async function generate() {
   const credentials = readAiCredentials()
+  noKey.value = false
   if (!credentials.apiKey) {
-    error.value = t('quiz.ai.noKeyConfigured')
+    noKey.value = true
     return
   }
 
   generating.value = true
-  error.value = ''
+  failure.value = null
   reviewItems.value = []
 
   try {
@@ -139,8 +150,8 @@ async function generate() {
     }
 
     phase.value = 'review'
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     generating.value = false
     generatingProgress.value = ''
@@ -163,8 +174,16 @@ function removeQuestion(qIdx: number) {
 
 const totalNewAnswers = computed(() => reviewItems.value.reduce((sum, q) => sum + q.newAnswers.length, 0))
 
+/**
+ * Writes every reviewed question back.
+ *
+ * <p>How many of them landed before the refusal is kept in the counter beside the button, because
+ * a run that stopped in the middle must not read as a run that did nothing: the questions already
+ * written are written, and starting over would generate a second set of answers for them.
+ */
 async function saveAll() {
   savedCount.value = 0
+  failure.value = null
   try {
     for (const item of reviewItems.value) {
       if (item.newAnswers.length === 0) continue
@@ -193,7 +212,7 @@ async function saveAll() {
     }
     router.push({name: 'quiz-catalog-detail', params: {id: catalogId.value}})
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -212,7 +231,8 @@ watch(loaded, v => { if (v) loadData() }, {immediate: true})
     </div>
 
     <Spinner v-if="loading"/>
-    <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+    <FailureAlert v-if="noKey" :message="t('quiz.ai.noKeyConfigured')" expected class="mb-4"/>
+    <FailureAlert v-else :failure="failure" class="mb-4"/>
 
     <!-- Config phase -->
     <template v-if="phase === 'config' && !loading">

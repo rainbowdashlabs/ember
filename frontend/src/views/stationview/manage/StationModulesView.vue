@@ -17,6 +17,7 @@ import {stationManage} from '@/api'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {hasPermission, loaded, load: reloadSession} = useSession()
 const router = useRouter()
@@ -58,7 +59,9 @@ function isLockedByCluster(key: string): boolean {
   return clusterDenied.value.has(key)
 }
 
-const {running: modulesSaving, error, failure, run: toggleModule} = useAsyncAction(async (key: string) => {
+const loadFailure = ref<Failure | null>(null)
+
+const {running: modulesSaving, failure, run: toggleModule} = useAsyncAction(async (key: string) => {
   const next = new Set(disabledModules.value)
   if (next.has(key)) next.delete(key)
   else next.add(key)
@@ -76,9 +79,8 @@ function apply(res: stationManage.ModulesResponse) {
 onMounted(async () => {
   try {
     apply(await stationManage.getDisabledModules())
-  } catch {
-    loading.value = false
-    return
+  } catch (e) {
+    loadFailure.value = describeFailure(e, t)
   }
   loading.value = false
 })
@@ -91,6 +93,7 @@ onMounted(async () => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
+      <FailureAlert :failure="loadFailure"/>
       <FailureAlert :failure="failure"/>
 
       <NeutralContainer v-if="!loading" class="space-y-4">

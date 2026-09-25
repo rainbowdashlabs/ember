@@ -21,6 +21,7 @@ import TableSchemaSection from './TableSchemaSection.vue'
 import TableTransferSection from './TableTransferSection.vue'
 import TableExportSection from './TableExportSection.vue'
 import TableDeletionSection from './TableDeletionSection.vue'
+import type {Failure} from '@/util/failure'
 
 defineProps<{
   entry: TableEntry
@@ -31,7 +32,7 @@ defineProps<{
   statuses: TrackingStatusName[]
   strategies: readonly string[]
   columnOptions: { value: string; label: string; group?: string }[]
-  error: string
+  failure: Failure | null
   save: () => Promise<void>
 }>()
 
@@ -47,7 +48,7 @@ const {t} = useI18n()
 
 <template>
   <div class="p-4 space-y-6">
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <TableColumnList
         :columns="columns"

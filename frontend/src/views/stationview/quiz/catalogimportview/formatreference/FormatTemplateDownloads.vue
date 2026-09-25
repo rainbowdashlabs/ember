@@ -8,7 +8,9 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {quiz} from '@/api'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   format: 'csv' | 'json'
@@ -16,14 +18,14 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const failed = ref(false)
+const failure = ref<Failure | null>(null)
 
 async function download() {
-  failed.value = false
+  failure.value = null
   try {
     await quiz.downloadCatalogTemplate(props.format)
-  } catch {
-    failed.value = true
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 </script>
@@ -33,7 +35,7 @@ async function download() {
     <SecondaryButton :icon="['fas', 'download']" @click="download">
       {{ format === 'csv' ? t('quiz.format.downloadSheet') : t('quiz.format.downloadFile') }}
     </SecondaryButton>
-    <MutedText v-if="!failed" class="block text-xs">{{ t('quiz.format.downloadHint') }}</MutedText>
-    <MutedText v-else class="block text-xs text-error">{{ t('common.error') }}</MutedText>
+    <MutedText v-if="!failure" class="block text-xs">{{ t('quiz.format.downloadHint') }}</MutedText>
+    <FailureAlert :failure="failure"/>
   </div>
 </template>

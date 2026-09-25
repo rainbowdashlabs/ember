@@ -17,7 +17,9 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {getNotificationSchedule, saveNotificationSchedule} from '@/api/mailProviders'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * When this station's gathered notifications are mailed out.
@@ -39,7 +41,7 @@ const floorMinutes = ref(60)
 const loading = ref(true)
 const saving = ref(false)
 const saved = ref(false)
-const failed = ref(false)
+const failure = ref<Failure | null>(null)
 
 const HOURLY = Array.from({length: 24}, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
 
@@ -58,8 +60,8 @@ onMounted(async () => {
             mode.value = 'times'
             times.value = stored
         }
-    } catch {
-        failed.value = true
+    } catch (e) {
+        failure.value = describeFailure(e, t)
     }
     loading.value = false
 })
@@ -93,12 +95,12 @@ function chosenTimes(): string[] {
 async function save() {
     saving.value = true
     saved.value = false
-    failed.value = false
+    failure.value = null
     try {
         await saveNotificationSchedule(chosenTimes())
         saved.value = true
-    } catch {
-        failed.value = true
+    } catch (e) {
+        failure.value = describeFailure(e, t)
     }
     saving.value = false
 }
@@ -131,7 +133,7 @@ async function save() {
 
     <Alert v-if="askingTooOften" variant="info">{{ t('notificationSchedule.floorHint', {minutes: floorMinutes}) }}</Alert>
     <Alert v-if="saved" variant="success">{{ t('notificationSchedule.saved') }}</Alert>
-    <Alert v-if="failed" variant="error">{{ t('common.error') }}</Alert>
+    <FailureAlert :failure="failure"/>
 
     <ButtonRow>
       <PrimaryButton :disabled="saving" @click="save">{{ t('common.save') }}</PrimaryButton>

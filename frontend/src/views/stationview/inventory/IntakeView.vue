@@ -53,7 +53,7 @@ const lines = ref<IntakeLine[]>([])
 const bulkSize = ref('')
 const loaded = ref(false)
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [inv, defs, people, memberGroups] = await Promise.all([
     inventory.getInventory(inventoryId.value),
     inventoryFields.listFields(inventoryId.value).catch(() => []),
@@ -126,13 +126,13 @@ const filled = computed(() => lines.value.filter(namesAPiece).length)
 const holdsBoth = computed(() => detail.value?.inventoryType === InventoryTypes.MIXED)
 const ownerKind = ref<ItemOwnerName>(ItemOwner.STATION)
 
-const {running: saving, error: saveError, run: save} = useAsyncAction(async () => {
+const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async () => {
   const written = await inventory.takeStock(
       inventoryId.value,
       rowsOf(lines.value, fields.value, holdsBoth.value ? ownerKind.value : undefined))
   router.push({name: routes.detail, params: {id: inventoryId.value}})
   return written
-}, {formatError: (e) => (e as {response?: {data?: {message?: string}}})?.response?.data?.message ?? t('common.error')})
+})
 </script>
 
 <template>
@@ -145,7 +145,7 @@ const {running: saving, error: saveError, run: save} = useAsyncAction(async () =
       </div>
 
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading && detail">
         <NeutralContainer class="space-y-3">
@@ -173,7 +173,7 @@ const {running: saving, error: saveError, run: save} = useAsyncAction(async () =
             :user-types="offeredUserTypes"
             :filled="filled"
             :saving="saving"
-            :save-error="saveError"
+            :save-failure="saveFailure"
             @apply-to-empty="applyToEmpty"
             @add="addByHand"
             @save="save"
