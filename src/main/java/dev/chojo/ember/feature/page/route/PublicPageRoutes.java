@@ -58,9 +58,12 @@ public class PublicPageRoutes implements Routes {
      * When {@code uids} is supplied (comma-separated UUIDs), returns resolved metadata for each
      * requested UID - first from the host's federation partners, then falling back to the public
      * discovery cache so cells can reference any publicly discoverable station.
+     *
+     * <p>Behind the same switch as the pages it serves: it exists for the cells on them, so a
+     * station that has closed its pages has closed this too.
      */
     private void listPartners(Context ctx) {
-        int stationId = resolveStation(ctx);
+        int stationId = resolveOpenStation(ctx);
         String uidParam = ctx.queryParam("uids");
         if (uidParam == null || uidParam.isBlank()) {
             ctx.json(federationRepository.findActivePartnerSummaries(stationId));

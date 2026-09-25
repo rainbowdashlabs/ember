@@ -30,6 +30,7 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -78,6 +79,7 @@ public class FormRoutes implements Routes {
     private final FormAnalyticsAssembler analyticsAssembler;
     private final FormResponseExportService exportService;
     private final StationRepository stationRepository;
+    private final PageRepository pageRepository;
 
     @Inject
     public FormRoutes(
@@ -85,12 +87,14 @@ public class FormRoutes implements Routes {
             StationMemberService stationMemberService,
             FormAnalyticsAssembler analyticsAssembler,
             FormResponseExportService exportService,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            PageRepository pageRepository) {
         this.formService = formService;
         this.stationMemberService = stationMemberService;
         this.analyticsAssembler = analyticsAssembler;
         this.exportService = exportService;
         this.stationRepository = stationRepository;
+        this.pageRepository = pageRepository;
     }
 
     /**
@@ -420,12 +424,12 @@ public class FormRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = VisibilityRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = Form.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = VisibilityResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setVisibility(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedForm(id, UserSession.from(ctx));
+        var form = requireOwnedForm(id, UserSession.from(ctx));
         var request = ctx.bodyAsClass(VisibilityRequest.class);
         if (request.visibility() == null) {
             throw new BadRequestResponse("Say how far the form is to reach");
@@ -433,8 +437,26 @@ public class FormRoutes implements Routes {
         if (!formService.setVisibility(id, request.visibility())) {
             throw new NotFoundResponse();
         }
-        ctx.json(formService.findById(id).orElseThrow());
+        ctx.json(new VisibilityResponse(
+                formService.findById(id).orElseThrow(), stillHeldBy(form, request.visibility())));
     }
+
+    /**
+     * The pages that put this form on themselves, where closing it to its link has just stopped it
+     * working on them.
+     *
+     * <p>Answered with the change rather than refusing it: an editor may well mean to take the form
+     * off the public site, and the cells are theirs to tidy. What they cannot do is notice by
+     * themselves, because the pages go on rendering with a poll on them that nobody can answer.
+     */
+    private List<PageRepository.PageUsingForm> stillHeldBy(Form form, FormVisibility visibility) {
+        if (visibility != FormVisibility.UNLISTED || form.publicUid() == null) return List.of();
+        return pageRepository.findPagesEmbedding(
+                form.stationId(), form.publicUid().toString());
+    }
+
+    @OpenApiName("FormVisibilityResponse")
+    public record VisibilityResponse(Form form, List<PageRepository.PageUsingForm> stillHeldBy) {}
 
     /**
      * The link this form is sent with, minted the first time it is asked for so a form nobody sends
@@ -448,12 +470,30 @@ public class FormRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareLinkResponse.class)),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getShareLink(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedForm(id, UserSession.from(ctx));
+        var session = UserSession.from(ctx);
+        var form = requireOwnedForm(id, session);
+        requireSendableByLink(form);
         ctx.json(new ShareLinkResponse(formService.shareLink(id).orElse(null)));
+    }
+
+    /**
+     * Refuses a form that is not sent by link at all, in the same words wherever it is asked.
+     *
+     * <p>Reading and replacing used to disagree: reading answered a null link, which is also what a
+     * form that simply has none yet answers, so a caller could not tell "this form never has one"
+     * from "this one has not been given one yet". The second is the case the button offering to make
+     * the first link stands on.
+     *
+     * @throws BadRequestResponse where the form is answered by the station's own members
+     */
+    private static void requireSendableByLink(Form form) {
+        if (form.purpose() == FormPurpose.INTERNAL) {
+            throw new BadRequestResponse("A form for the station's own members is not sent by link");
+        }
     }
 
     @OpenApi(

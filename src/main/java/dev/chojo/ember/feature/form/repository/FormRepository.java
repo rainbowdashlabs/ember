@@ -259,34 +259,6 @@ public class FormRepository {
         return SqlSupport.deleteById("form", id);
     }
 
-    /**
-     * Updates the status of a form. When closing, the {@code closed_at} timestamp is set automatically.
-     *
-     * @param id     the form ID
-     * @param status the new status
-     * @return {@code true} if a row was updated
-     */
-    /**
-     * The link this form is sent with, minting one where it has none.
-     *
-     * <p>One statement, so two administrators pressing the button at the same moment are handed the
-     * same link rather than one of them ending the other's before it has even been copied.
-     *
-     * @param id    the form
-     * @param token a fresh token, used only where the form holds none
-     * @return the link the form now carries
-     */
-    public Optional<String> mintShareToken(int id, String token) {
-        return query("""
-                UPDATE form
-                SET share_token = COALESCE(share_token, :token)
-                WHERE id = :id
-                RETURNING share_token;""")
-                .single(call().bind("id", id).bind("token", token))
-                .map(row -> row.getString("share_token"))
-                .first();
-    }
-
     public Optional<String> findShareToken(int id) {
         return query("SELECT share_token FROM form WHERE id = :id;")
                 .single(call().bind("id", id))

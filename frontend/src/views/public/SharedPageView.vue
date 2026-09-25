@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRoute, useRouter} from 'vue-router'
+import {useRoute} from 'vue-router'
 import Alert from '@/components/feedback/Alert.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import ContentRow from '@/components/content/ContentRow.vue'
@@ -24,7 +24,6 @@ import type {SharedPage} from '@/api/sharedLinks'
  */
 const {t} = useI18n()
 const route = useRoute()
-const router = useRouter()
 
 const token = computed(() => String(route.params.token))
 
@@ -40,10 +39,15 @@ const page = computed(() => shared.value?.page ?? null)
  * A page opened to the public since its link was sent moves to its ordinary address, but only where
  * that address answers: the slug path sits behind the station's public pages switch, so sending a
  * reader there blindly would send them from a working link to an error.
+ *
+ * <p>Through Nuxt's own move rather than the router's, because this runs while the page is rendered
+ * on the server and the router cannot answer a request with a redirect there. It rendered and sent
+ * the link's own page instead, and only moved once scripts had run, so a reader without them and
+ * anything unfurling the link stayed on an address marked not to be indexed.
  */
 watch(shared, value => {
   if (value?.ownAddressLive && value.station.publicSlug) {
-    void router.replace(`/public/station/${value.station.publicSlug}/page/${value.path}`)
+    void navigateTo(`/public/station/${value.station.publicSlug}/page/${value.path}`, {replace: true})
   }
 }, {immediate: true})
 

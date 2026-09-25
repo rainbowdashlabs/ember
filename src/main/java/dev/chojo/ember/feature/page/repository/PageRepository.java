@@ -110,6 +110,52 @@ public class PageRepository {
     }
 
     /**
+     * The pages that put a given form on themselves, by title.
+     *
+     * <p>Asked before a form is closed to its link alone, because that shuts the address these
+     * cells fetch it at and there is no other sign of it: the page goes on rendering and the poll
+     * on it stops working for everybody who opens it.
+     *
+     * @param stationId  the station whose pages are searched
+     * @param formPublicUid the form as a cell names it
+     * @return the pages holding it, listed ones first, each named once however many cells it has
+     */
+    public List<PageUsingForm> findPagesEmbedding(int stationId, String formPublicUid) {
+        return query("""
+                SELECT DISTINCT p.id, p.title, p.visibility
+                FROM page_cell c
+                JOIN page_row r ON r.id = c.row_id
+                JOIN station_page p ON p.container_id = r.container_id
+                WHERE p.station_id = :station_id
+                  AND c.config ->> 'formPublicUid' = :form_uid
+                ORDER BY p.visibility DESC, p.title;""")
+                .single(call().bind("station_id", stationId).bind("form_uid", formPublicUid))
+                .map(row -> new PageUsingForm(
+                        row.getInt("id"), row.getString("title"), row.getEnum("visibility", PageVisibility.class)))
+                .all();
+    }
+
+    /** One page holding a form, and how far that page itself reaches. */
+    public record PageUsingForm(int id, String title, PageVisibility visibility) {}
+
+    /**
+     * Whether the station has a page in its menu, without reading any of them.
+     *
+     * <p>The sitemap index asks this of every station it knows, and the public station endpoint
+     * asks it on every render of every public page.
+     */
+    public boolean anyListed(int stationId) {
+        return query("""
+                SELECT EXISTS(
+                    SELECT 1 FROM station_page WHERE station_id = :station_id AND visibility = 'PUBLIC'
+                ) AS present;""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> row.getBoolean("present"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
      * Editor's page link picker. Returns a compact shape - {@code publicUid},
      * {@code title}, {@code slug}, {@code updatedAt} - for the pages of the supplied station that
      * somebody outside can open, optionally filtered by case-insensitive title substring. Empty

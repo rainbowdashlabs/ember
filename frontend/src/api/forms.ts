@@ -512,7 +512,23 @@ export async function replaceFormShareLink(formId: number, currentToken: string 
 }
 
 /** Sets whether a public form answers at its own address or only at the link it was sent with. */
-export async function setFormVisibility(formId: number, visibility: FormVisibilityName): Promise<Form> {
-    const res = await client.put<Form>(`/forms/${formId}/visibility`, {visibility})
+/** One page that puts this form on itself, and how far that page reaches. */
+export interface PageUsingForm {
+    id: number
+    title: string
+    visibility: string
+}
+
+export interface FormVisibilityResponse {
+    form: Form
+    /** The pages holding the form, where closing it to its link has just stopped it working on them. */
+    stillHeldBy: PageUsingForm[]
+}
+
+export async function setFormVisibility(
+    formId: number,
+    visibility: FormVisibilityName,
+): Promise<FormVisibilityResponse> {
+    const res = await client.put<FormVisibilityResponse>(`/forms/${formId}/visibility`, {visibility})
     return res.data
 }

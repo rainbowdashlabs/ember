@@ -258,12 +258,6 @@ public class FormService {
     }
 
     /**
-     * Publishes a form by transitioning its status to OPEN.
-     *
-     * @param id the form ID
-     * @return {@code true} if the status was updated
-     */
-    /**
      * Opens a form for answers.
      *
      * <p>Only an internal form tells the station about it. A contact form and a public poll are

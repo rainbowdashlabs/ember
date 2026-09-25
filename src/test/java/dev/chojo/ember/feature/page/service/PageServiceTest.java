@@ -462,6 +462,59 @@ class PageServiceTest extends RepositoryTestBase {
         assertTrue(renderedHtml.contains("<h1") || renderedHtml.contains("<strong"));
     }
 
+    /**
+     * A page keeps the one link it was given, however its reach changes afterwards.
+     *
+     * <p>Opening it to everybody and closing it again used to be the moment to worry about: a link
+     * already handed out has to go on working, and only the button that says so ends it.
+     */
+    @Test
+    @Order(90)
+    void aPageKeepsItsLinkThroughEveryChangeOfReach() {
+        int id = service.create(station.id(), "Kept Link", null, member.id()).id();
+        service.setVisibility(id, PageVisibility.UNLISTED);
+        String first = service.shareToken(id).orElseThrow();
+
+        service.setVisibility(id, PageVisibility.PUBLIC);
+        assertEquals(first, service.shareToken(id).orElseThrow(), "a public page still shows the link it has");
+
+        service.setVisibility(id, PageVisibility.UNLISTED);
+        assertEquals(first, service.shareToken(id).orElseThrow());
+
+        String replaced = service.replaceShareToken(id, first).orElseThrow();
+        assertNotEquals(first, replaced, "ending the link is the one thing that changes it");
+        assertEquals(replaced, service.shareToken(id).orElseThrow());
+
+        service.deletePage(id);
+    }
+
+    /** A draft nobody outside can open is not reached by a link either. */
+    @Test
+    @Order(91)
+    void aDraftIsGivenNoLink() {
+        int id = service.create(station.id(), "No Link Yet", null, member.id()).id();
+        assertTrue(service.shareToken(id).isEmpty());
+        assertThrows(BadRequestResponse.class, () -> service.replaceShareToken(id, null));
+        service.deletePage(id);
+    }
+
+    /** A link opens a page that is public as readily as one that is reachable by link alone. */
+    @Test
+    @Order(92)
+    void aLinkOpensAPublicPageToo() {
+        int id = service.create(station.id(), "Opened Up", null, member.id()).id();
+        service.setVisibility(id, PageVisibility.UNLISTED);
+        String token = service.shareToken(id).orElseThrow();
+        assertTrue(service.getSharedPage(token).isPresent());
+
+        service.setVisibility(id, PageVisibility.PUBLIC);
+        assertTrue(service.getSharedPage(token).isPresent(), "opening the page up does not end its link");
+
+        service.setVisibility(id, PageVisibility.DRAFT);
+        assertTrue(service.getSharedPage(token).isEmpty(), "a draft is reached by nothing at all");
+        service.deletePage(id);
+    }
+
     @Test
     @Order(100)
     void deleteChild() {

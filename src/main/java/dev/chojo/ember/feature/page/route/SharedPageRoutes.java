@@ -33,9 +33,11 @@ import jakarta.inject.Singleton;
  * there. The token is unique across the installation, which is what makes a lookup by it alone
  * sound, and it is long enough that holding one is the whole of the permission.
  *
- * <p>Nothing here asks whether the station has opened its pages to the world. That switch decides
- * whether a station has a public site; a page sent to somebody is not part of one, and asking would
- * take the feature away from exactly the station it is for.
+ * <p>The station's own switch still governs it. Switching the public pages off is the one lever an
+ * operator has for stopping everything outside reaching in, and a switch that every link already
+ * handed out went on ignoring would not be that lever at all. A station that wants its links to keep
+ * working keeps the switch on and leaves its pages unlisted, which reaches exactly the people it was
+ * meant to.
  *
  * <p>The answer carries the station's name, picture and colours as well as the page, so the wrapper
  * around it can be drawn without a second call, and it says whether the page also has an ordinary
@@ -75,7 +77,7 @@ public class SharedPageRoutes implements Routes {
             + " part of the question: the reader holds a token and nothing else")
     private void getSharedPage(Context ctx) {
         var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(NotFoundResponse::new);
-        var station = stationRepository.findById(page.stationId()).orElseThrow(NotFoundResponse::new);
+        var station = openStationOf(page);
 
         ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
         ctx.json(new SharedPage(brandOf(station), page, pageService.getPagePath(page), ownAddressLive(page, station)));
@@ -102,8 +104,20 @@ public class SharedPageRoutes implements Routes {
     @StationFree("the same link, answering only the name and colours of the station it leads to")
     private void getBrand(Context ctx) {
         var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(NotFoundResponse::new);
-        var station = stationRepository.findById(page.stationId()).orElseThrow(NotFoundResponse::new);
-        ctx.json(brandOf(station));
+        ctx.json(brandOf(openStationOf(page)));
+    }
+
+    /**
+     * The station the page belongs to, where it is still letting anybody outside in.
+     *
+     * <p>Answered as a page nobody knows rather than as a station that has closed, because the
+     * reader holds a link and is owed nothing about which of the two it was.
+     */
+    private Station openStationOf(StationPage page) {
+        return stationRepository
+                .findById(page.stationId())
+                .filter(Station::publicPagesEnabled)
+                .orElseThrow(NotFoundResponse::new);
     }
 
     /**

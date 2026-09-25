@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -69,10 +70,19 @@ public class StationPageAddressing implements CellDescriptions.PageAddressing {
                 .map(station -> "/public/station/" + station + "/page/" + pathOf(page));
     }
 
+    /**
+     * The slugs of the line above a page, spelling the address it answers at.
+     *
+     * <p>The walk stops on a page it has already been through. Nothing is supposed to be able to
+     * make a page its own ancestor, but this runs while a public page is being rendered, and a line
+     * that closed on itself would not report a broken tree: it would build a string until the
+     * request died of it.
+     */
     private String pathOf(StationPage page) {
         var segments = new StringBuilder(page.slug());
         var parentId = page.parentId();
-        while (parentId != null) {
+        var seen = new HashSet<Integer>();
+        while (parentId != null && seen.add(parentId)) {
             var parent = pageRepository.findById(parentId).orElse(null);
             if (parent == null) break;
             segments.insert(0, parent.slug() + "/");

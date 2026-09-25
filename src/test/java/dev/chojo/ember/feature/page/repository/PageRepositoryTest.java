@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.page.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -16,6 +18,8 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -218,6 +222,42 @@ class PageRepositoryTest extends RepositoryTestBase {
     void deleteChild() {
         assertTrue(pageRepo.delete(childPageId));
         assertTrue(pageRepo.findById(childPageId).isEmpty());
+    }
+
+    /**
+     * Which pages put a given form on themselves, which is what a poll being closed to its link has
+     * to be able to say before it breaks them.
+     */
+    @Test
+    @Order(90)
+    void findsThePagesHoldingAForm() {
+        String formUid = UUID.randomUUID().toString();
+        var container = contentContainerRepo.create(station.id());
+        pageRepo.setContainer(pageId, container.id());
+        int rowId = contentContainerRepo.insertRow(container.id(), 0);
+        contentContainerRepo.insertCell(
+                rowId, 0, 100.0, CellContentType.POLL_EMBED, "", new CellConfig.PollEmbedConfig(formUid, true));
+
+        var holding = pageRepo.findPagesEmbedding(station.id(), formUid);
+        assertEquals(1, holding.size());
+        assertEquals(pageId, holding.getFirst().id());
+
+        assertTrue(
+                pageRepo.findPagesEmbedding(station.id(), UUID.randomUUID().toString())
+                        .isEmpty(),
+                "a form nothing holds is held by nothing");
+    }
+
+    /** Whether the station has anything in its menu, answered without reading the pages. */
+    @Test
+    @Order(91)
+    void saysWhetherAnyPageIsListed() {
+        pageRepo.setVisibility(pageId, PageVisibility.DRAFT, null);
+        pageRepo.setVisibility(childPageId, PageVisibility.DRAFT, null);
+        assertFalse(pageRepo.anyListed(station.id()));
+
+        pageRepo.setVisibility(pageId, PageVisibility.PUBLIC, null);
+        assertTrue(pageRepo.anyListed(station.id()));
     }
 
     @Test

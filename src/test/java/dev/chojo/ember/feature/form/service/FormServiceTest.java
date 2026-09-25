@@ -657,6 +657,48 @@ class FormServiceTest extends RepositoryTestBase {
 
     // -- Delete --
 
+    /**
+     * A form keeps the one link it was given, whichever way its reach is turned afterwards.
+     *
+     * <p>Opening it to everybody and closing it again leaves the link alone, so one already handed
+     * out still works; only ending it explicitly changes it.
+     */
+    @Test
+    @Order(90)
+    void aPublicFormKeepsItsLinkThroughEveryChangeOfReach() {
+        var form = service.create(
+                station.id(), "Sent By Link", "", false, true, false, null, null, member.id(), FormPurpose.POLL);
+
+        service.setVisibility(form.id(), FormVisibility.UNLISTED);
+        String first = service.replaceShareLink(form.id(), null).orElseThrow();
+
+        service.setVisibility(form.id(), FormVisibility.PUBLIC);
+        assertEquals(first, service.shareLink(form.id()).orElseThrow(), "a public form still carries its link");
+
+        service.setVisibility(form.id(), FormVisibility.UNLISTED);
+        assertEquals(first, service.shareLink(form.id()).orElseThrow());
+
+        String replaced = service.replaceShareLink(form.id(), first).orElseThrow();
+        assertNotEquals(first, replaced);
+        assertTrue(service.findByShareToken(replaced).isPresent());
+
+        service.delete(form.id());
+    }
+
+    /** A form for the station's own members is not sent by link, and says so the same way twice. */
+    @Test
+    @Order(91)
+    void anInternalFormIsNotSentByLink() {
+        var form = service.create(
+                station.id(), "Members Only", "", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
+
+        assertTrue(service.shareLink(form.id()).isEmpty());
+        assertThrows(BadRequestResponse.class, () -> service.replaceShareLink(form.id(), null));
+        assertThrows(BadRequestResponse.class, () -> service.setVisibility(form.id(), FormVisibility.UNLISTED));
+
+        service.delete(form.id());
+    }
+
     @Test
     @Order(99)
     void delete() {

@@ -26,11 +26,12 @@ import org.slf4j.LoggerFactory;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 @Singleton
 public class PageService {
@@ -152,20 +153,28 @@ public class PageService {
      */
     public List<StationPage> listListedPages(int stationId) {
         var all = pageRepository.findListedByStation(stationId);
-        Set<Integer> listedIds = new HashSet<>();
+        var listed = new HashMap<Integer, StationPage>();
         for (var page : all) {
-            listedIds.add(page.id());
+            listed.put(page.id(), page);
         }
-        return all.stream().filter(page -> lineIsListed(page, listedIds)).toList();
+        return all.stream().filter(page -> lineIsListed(page, listed)).toList();
     }
 
-    private boolean lineIsListed(StationPage page, Set<Integer> listedIds) {
+    /**
+     * Whether every page above this one is listed too.
+     *
+     * <p>The walk reads the pages it was handed rather than asking for each ancestor again: an
+     * ancestor it may continue through is by definition one of them, since the step before checked
+     * exactly that. Asking anyway cost a query per ancestor per page, on the menu, the sitemap and
+     * every public render.
+     */
+    private boolean lineIsListed(StationPage page, Map<Integer, StationPage> listed) {
         var parentId = page.parentId();
         var seen = new HashSet<Integer>();
         while (parentId != null) {
-            if (!listedIds.contains(parentId) || !seen.add(parentId)) return false;
-            parentId =
-                    pageRepository.findById(parentId).map(StationPage::parentId).orElse(null);
+            var parent = listed.get(parentId);
+            if (parent == null || !seen.add(parentId)) return false;
+            parentId = parent.parentId();
         }
         return true;
     }
@@ -256,7 +265,8 @@ public class PageService {
             throw new BadRequestResponse("A page with pages under it cannot be reached by a link alone");
         }
 
-        boolean changed = pageRepository.setVisibility(pageId, visibility, shareTokens.mint());
+        boolean minting = visibility == PageVisibility.UNLISTED;
+        boolean changed = pageRepository.setVisibility(pageId, visibility, minting ? shareTokens.mint() : null);
         if (!changed) return false;
         log.info("Page {} visibility set to {}", pageId, visibility);
 
@@ -276,25 +286,38 @@ public class PageService {
     /**
      * The link a page reachable by one is reached at, for the screen that shows it.
      *
+     * <p>A page keeps the one link it was given. Opening it to everybody does not end it and does
+     * not hide it either, because the link goes on working and somebody who handed it out is owed
+     * the ability to see it and to replace it. Only a draft has none to show: nobody outside can
+     * open it by any address at all.
+     *
      * @param pageId the page
-     * @return its token, or empty where it has none or is not reachable by one
+     * @return its token, or empty where it has none or nobody outside could use one
      */
     public Optional<String> shareToken(int pageId) {
         return pageRepository
                 .findById(pageId)
-                .filter(page -> page.visibility() == PageVisibility.UNLISTED)
+                .filter(page -> page.visibility().reachable())
                 .flatMap(page -> pageRepository.findShareToken(pageId));
     }
 
     /**
-     * Replaces a page's link, ending every copy of the one it held.
+     * Replaces a page's link, ending every copy of the one it held. Where it had none, this is how
+     * the first one is made.
      *
      * @param pageId   the page
      * @param expected the link the caller was shown, so two administrators cannot take it in turns
      *                 to end each other's without being told
      * @return the new link, or empty where the page has since been given a different one
+     * @throws BadRequestResponse where nobody outside the station could open the page anyway, so a
+     *                            link to it would be one that leads nowhere
      */
     public Optional<String> replaceShareToken(int pageId, String expected) {
+        var page = pageRepository.findById(pageId).orElse(null);
+        if (page == null) return Optional.empty();
+        if (!page.visibility().reachable()) {
+            throw new BadRequestResponse("A page nobody outside can open is not reached by a link either");
+        }
         String replacement = shareTokens.mint();
         if (!pageRepository.replaceShareToken(pageId, expected, replacement)) return Optional.empty();
         log.info("Page {} share link replaced", pageId);
@@ -381,8 +404,15 @@ public class PageService {
      * link has no public site, and saying otherwise would put an empty pages menu on it and name it
      * in the sitemap on the strength of a page nobody is meant to find.
      */
+    /**
+     * Whether the station has any page in its menu at all.
+     *
+     * <p>Asked once per station while the sitemap index is built and once per public station
+     * request, so it asks the database whether one exists rather than reading every listed page in
+     * order to look at the size of the list.
+     */
     public boolean hasListedPages(int stationId) {
-        return !pageRepository.findListedByStation(stationId).isEmpty();
+        return pageRepository.anyListed(stationId);
     }
 
     public Optional<Integer> getLandingPageId(int stationId) {

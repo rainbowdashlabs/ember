@@ -6224,6 +6224,7 @@ export default {
         alreadyAnswered: 'Dieses Formular hast du bereits ausgefüllt.',
         rateLimited: 'Du hast in kurzer Zeit zu viele Antworten gesendet. Bitte versuche es später noch einmal.',
         notFound: 'Dieses Formular ist nicht verfügbar.',
+        unreachableHere: 'Diese Umfrage ist von außen nicht mehr erreichbar und kann auf dieser Seite nicht beantwortet werden. Sie ist nur noch über ihren Link zugänglich oder wurde gelöscht.',
         submitError: 'Beim Absenden ist ein Fehler aufgetreten. Bitte versuche es erneut.',
         cellPollUnpicked: 'Noch keine Umfrage ausgewählt.',
         cellContactUnpicked: 'Noch kein Kontaktformular ausgewählt.',
@@ -6231,6 +6232,7 @@ export default {
         notOpenYet: 'Dieses Formular ist noch nicht geöffnet. Schau später noch einmal vorbei.',
         closed: 'Dieses Formular nimmt keine Antworten mehr an.',
         closedWhileOpen: 'Dieses Formular wurde geschlossen, während du es ausgefüllt hast. Deine Antwort konnte nicht mehr gespeichert werden.',
+        answerRefused: 'Deine Antwort konnte nicht angenommen werden. Lade die Seite neu und versuche es noch einmal.',
     },
     shareLink: {
         hint: 'Wer diesen Link hat, kann antworten. Er steht in keinem Menü und wird von Suchmaschinen nicht erfasst.',
@@ -7039,6 +7041,7 @@ export default {
         shuffleQuestions: 'Fragen mischen',
         allowEdit: 'Antworten bearbeitbar',
         forced: 'Pflichtumfrage',
+        stillHeldBy: 'Diese Umfrage steht noch auf folgenden Seiten: {pages}. Dort kann sie jetzt niemand mehr beantworten, bis du sie von diesen Seiten nimmst.',
         fillForm: 'Ausfüllen',
         fillForWhom: 'Für wen möchtest du die Umfrage ausfüllen?',
         fillForSelf: 'Für mich ({name})',

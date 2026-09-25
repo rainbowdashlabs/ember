@@ -24,6 +24,7 @@ import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
+import io.javalin.http.GoneResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -236,6 +237,7 @@ public class PublicFormRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "410", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "429", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void submitAnonymous(Context ctx) {
@@ -251,7 +253,7 @@ public class PublicFormRoutes implements Routes {
      */
     private void submit(Context ctx, Form form) {
         if (!formService.isAcceptingResponses(form)) {
-            throw new BadRequestResponse("This form is not taking answers");
+            throw new GoneResponse("This form is not taking answers");
         }
 
         InetAddress clientIp = ClientIp.resolve(ctx, network);

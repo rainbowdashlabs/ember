@@ -153,11 +153,20 @@ export function usePublicFormSubmission(
     }
     submitted.value = true
   }, {
+    /**
+     * What went wrong, told apart by what the server answered.
+     *
+     * <p>A plain refusal used to be reported as the form having closed, which is only one of the
+     * three things it means: the legal documents changing while the page stood open, and an answer
+     * the form does not take, both arrive the same way and both are put right by reloading. Being
+     * told the form closed sends somebody away from an answer they could still give.
+     */
     formatError: (e) => {
       const status = (e as {response?: {status?: number}}).response?.status
       if (status === 409) return t('publicForm.alreadyAnswered')
       if (status === 429) return t('publicForm.rateLimited')
-      if (status === 400) return t('publicForm.closedWhileOpen')
+      if (status === 410) return t('publicForm.closedWhileOpen')
+      if (status === 400) return t('publicForm.answerRefused')
       return t('publicForm.submitError')
     },
   })

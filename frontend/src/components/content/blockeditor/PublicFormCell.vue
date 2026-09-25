@@ -108,6 +108,6 @@ watch(() => [props.stationUid, props.formPublicUid], load)
             <p v-else class="text-success text-sm">{{ t('publicForm.thanksText') }}</p>
         </template>
 
-        <EmptyHint v-else-if="!loading">{{ t('publicForm.notFound') }}</EmptyHint>
+        <Alert v-else-if="!loading" variant="error">{{ t('publicForm.unreachableHere') }}</Alert>
     </div>
 </template>
