@@ -35,7 +35,6 @@ import {
     sftpFormFrom,
     smbFormFrom,
 } from '@/util/storageBackendForm'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 import StorageBackendForm from '@/components/storage/StorageBackendForm.vue'
 import BackendSummaryCard from './adminstoragebackendview/BackendSummaryCard.vue'
@@ -74,10 +73,6 @@ const summaryLabel = computed(() => {
 
 onMounted(loadAll)
 
-function backendError(e: unknown, fallback: string): string {
-    return apiErrorMessage(e) ?? fallback
-}
-
 async function loadAll() {
     loading.value = true
     loadFailure.value = null
@@ -86,11 +81,7 @@ async function loadAll() {
         migrationStatus.value = await getInstanceMigrationStatus()
         seedFormFromBackend()
     } catch (e) {
-        const described = describeFailure(e, t)
-        loadFailure.value = {
-            ...described,
-            message: backendError(e, t('adminStorageBackend.errors.loadFailed')),
-        }
+        loadFailure.value = describeFailure(e, t)
     } finally {
         loading.value = false
     }
@@ -121,7 +112,7 @@ function currentRequest(): InstanceBackendRequest {
 function failedProbe(e: unknown): ProbeResult {
     return {
         healthy: false,
-        error: backendError(e, describeFailure(e, t).message),
+        error: describeFailure(e, t).message,
         checkedAt: new Date().toISOString(),
     }
 }
@@ -154,7 +145,7 @@ const {running: saving, failure: applyFailure, run: runApply} = useAsyncAction(a
         deleted: result.deleted,
     })
     await loadAll()
-}, {formatError: (e) => backendError(e, t('adminStorageBackend.errors.applyFailed'))})
+}, {formatError: (e) => describeFailure(e, t).message})
 
 </script>
 

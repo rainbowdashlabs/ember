@@ -15,7 +15,7 @@ import FilesGrid from './mediabrowsemodal/FilesGrid.vue'
 import MediaFileEditModal from '@/components/media/MediaFileEditModal.vue'
 import {INSTANCE_MEDIA_SCOPE, mediaFileUrl, pruneMediaFiles, updateMediaFileMeta, uploadInstanceMediaFile, uploadMediaFile, type StationFile} from '@/api/media'
 import {useMediaLibrary} from '@/composables/useMediaLibrary'
-import type {AxiosError} from 'axios'
+import {describeFailure} from '@/util/failure'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useSession} from '@/composables/useSession'
 import {StationPermission} from '@/api/types'
@@ -137,8 +137,7 @@ const {running: uploading, run: uploadBatch} = useAsyncAction(async (picked: Fil
         }
     }
     if (lastErr) {
-        const axiosErr = lastErr as AxiosError<{message?: string}>
-        uploadError.value = axiosErr.response?.data?.message ?? t('stationPages.editor.uploadFailed')
+        uploadError.value = describeFailure(lastErr, t).message
     }
     const first = stored[0]
     if (!first) return

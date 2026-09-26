@@ -16,8 +16,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import ContainerKindPicker from '@/views/stationview/inventory/storageview/ContainerKindPicker.vue'
 import ContainerParentPicker from '@/views/stationview/inventory/storageview/ContainerParentPicker.vue'
-import {mapContainerFailure} from '@/views/stationview/inventory/storageview/containerErrors'
-import type {Failure} from '@/util/failure'
+import {describeFailure, type Failure} from '@/util/failure'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
@@ -69,7 +68,7 @@ const {running: submitting, run: save} = useAsyncAction(async () => {
       description: description.value,
     })
   } catch (e) {
-    emit('error', mapContainerFailure(t, e))
+    emit('error', describeFailure(e, t))
     return
   }
   emit('saved')

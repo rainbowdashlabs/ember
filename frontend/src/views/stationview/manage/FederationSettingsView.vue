@@ -20,11 +20,7 @@ import PublicSlugPanel from './federationsettingsview/PublicSlugPanel.vue'
 import {stationManage} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useFlashMessage} from '@/composables/useFlashMessage'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
-
-/** What the server answers when the wanted address is somebody else's, which is the reader's to fix. */
-const SLUG_TAKEN = 'Slug is already in use'
 
 const {t} = useI18n()
 const {loaded} = useSession()
@@ -102,10 +98,7 @@ async function save() {
     })
     flashSaved(t('common.saved'))
   } catch (e) {
-    const described = describeFailure(e, t)
-    failure.value = apiErrorMessage(e) === SLUG_TAKEN
-        ? {...described, message: t('stationManage.publicSlug.taken'), reportable: false}
-        : described
+    failure.value = describeFailure(e, t)
   } finally {
     saving.value = false
   }

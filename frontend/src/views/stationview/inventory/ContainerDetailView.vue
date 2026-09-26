@@ -17,7 +17,6 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
 import ContainerEditPanel from '@/views/stationview/inventory/storageview/ContainerEditPanel.vue'
 import AddExistingContainerModal from '@/views/stationview/inventory/storageview/AddExistingContainerModal.vue'
-import {mapContainerFailure} from '@/views/stationview/inventory/storageview/containerErrors'
 import AddChildChoiceModal from '@/views/stationview/inventory/storageview/AddChildChoiceModal.vue'
 import ContainerHeader from '@/views/stationview/inventory/containerdetailview/ContainerHeader.vue'
 import ContainerContentsSection from '@/views/stationview/inventory/containerdetailview/ContainerContentsSection.vue'
@@ -121,7 +120,7 @@ const {run: confirmDelete} = useAsyncAction(async () => {
     await inventoryContainers.deleteContainer(detail.value.container.id)
     router.push({name: routes.storage})
   } catch (e) {
-    failure.value = mapContainerFailure(t, e)
+    failure.value = describeFailure(e, t)
     showDeleteConfirm.value = false
   }
 })

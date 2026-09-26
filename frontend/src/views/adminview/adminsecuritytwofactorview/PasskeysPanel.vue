@@ -18,7 +18,6 @@ import Alert from '@/components/feedback/Alert.vue'
 import PasskeysInsights from '@/views/adminview/adminsecuritytwofactorview/PasskeysInsights.vue'
 import {adminSettings} from '@/api'
 import {PasskeyMode, type PasskeysConfig, type PasskeyModeName} from '@/api/adminSettings'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
@@ -50,10 +49,7 @@ async function save() {
   try {
     await runWith(() => adminSettings.updatePasskeysConfig(config.value.mode as PasskeyModeName), {rethrow: true})
   } catch (e) {
-    saveFailure.value = {
-      ...describeFailure(e, t),
-      message: apiErrorMessage(e) ?? t('adminSecurity.passkeys.saveFailed'),
-    }
+    saveFailure.value = describeFailure(e, t)
     await reload()
     throw e
   }

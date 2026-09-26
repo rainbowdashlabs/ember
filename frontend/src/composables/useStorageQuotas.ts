@@ -5,8 +5,7 @@
  */
 import {inject, provide, ref, type InjectionKey, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {apiErrorMessage} from '@/util/apiError'
-import {describeFailure, type Failure} from '@/util/failure'
+import {describeFailure, saying, type Failure} from '@/util/failure'
 import type {CategoryUsage, QuotaOriginName} from '@/api/storageMonitoring'
 
 /**
@@ -118,11 +117,10 @@ export function useStorageQuotas(port: StorageQuotasPort, capabilities: StorageC
     const loadFailure = ref<Failure | null>(null)
     const writeFailure = ref<Failure | null>(null)
 
-    /** The described failure, with the server's own sentence kept in front of it where it wrote one. */
+    /** The described failure, said in this screen's own words where the caller brought some. */
     function describe(e: unknown, message?: string): Failure {
         const described = describeFailure(e, t)
-        const said = message ?? apiErrorMessage(e)
-        return said ? {...described, message: said} : described
+        return message ? saying(described, message) : described
     }
 
     async function reload(staleMessage?: string) {

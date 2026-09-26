@@ -20,7 +20,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import {apiErrorMessage, apiErrorStatus, errorMessage} from '@/util/apiError'
+import {apiErrorStatus, errorMessage} from '@/util/apiError'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 const props = defineProps<{
@@ -61,7 +61,7 @@ function enrollmentFailure(e: unknown): Failure {
   if (said === 'webauthn-unsupported') {
     return fromBrowser(t('twoFactor.webauthn.unsupported'), t('twoFactor.webauthn.unsupportedGuidance'))
   }
-  return {...describeFailure(e, t), message: apiErrorMessage(e) ?? t('twoFactor.webauthn.failed')}
+  return describeFailure(e, t)
 }
 
 const renameTarget = ref<FactorInfo | null>(null)

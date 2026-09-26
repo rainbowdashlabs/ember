@@ -40,8 +40,8 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
   /**
    * What went wrong, in the terms the reader can act on.
    *
-   * <p>Where the server wrote a sentence it wins, because it names the rule that was broken and this
-   * screen cannot: not enough of a thing in stock, an art that is not kept in that inventory, a line
+   * <p>A refusal the server wrote a sentence for names the rule that was broken and this screen
+   * cannot: not enough of a thing in stock, an art that is not kept in that inventory, a line
    * already handed out. Such a refusal is marked as nothing to report, since the reader ran into the
    * product working as intended and a bug filed against that buries the real ones. Everything else,
    * a server that fell over or a request that never arrived, is described as it stands, report
@@ -49,8 +49,7 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
    */
   function refusalFailure(e: unknown): Failure {
     const described = describeFailure(e, t)
-    const said = apiErrorMessage(e)
-    return said ? {...described, message: said, reportable: false} : described
+    return apiErrorMessage(e) ? {...described, reportable: false} : described
   }
 
   async function loadCoverage() {

@@ -20,7 +20,6 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useAuthImages} from '@/composables/useAuthImage'
 import {StationPermission} from '@/api/types'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 import {UnreadableImageError} from '@/util/imageUpload'
 import LostItemCard from './listview/LostItemCard.vue'
@@ -51,15 +50,15 @@ const imageTargetId = ref<number | null>(null)
 const imageInputRef = ref<HTMLInputElement | null>(null)
 
 /**
- * What went wrong, in the server's own words where it said anything.
+ * What went wrong, in one sentence.
  *
- * <p>Where it said nothing, the described sentence stands rather than the general one: a dropped
- * connection and a request that timed out both say so, and only a failure nobody can name falls back
- * to admitting that.
+ * <p>A picture the browser could not read never reached the server, so this screen is the only one
+ * with words for it. Everything else is described: a dropped connection and a request that timed out
+ * both say so, and only a failure nobody can name falls back to admitting that.
  */
 function failureText(e: unknown): string {
   if (e instanceof UnreadableImageError) return t('lostAndFound.imageUnreadable')
-  return apiErrorMessage(e) ?? describeFailure(e, t).message
+  return describeFailure(e, t).message
 }
 
 /**

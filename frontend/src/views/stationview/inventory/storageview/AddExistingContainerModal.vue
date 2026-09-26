@@ -16,8 +16,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import {mapContainerFailure} from '@/views/stationview/inventory/storageview/containerErrors'
-import type {Failure} from '@/util/failure'
+import {describeFailure, type Failure} from '@/util/failure'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
@@ -100,7 +99,7 @@ const {running: submitting, run: runMove, clearError: clearMoveError} = useAsync
           description: c.description ?? '',
         })
       } catch (e) {
-        moveFailure.value = mapContainerFailure(t, e)
+        moveFailure.value = describeFailure(e, t)
         return
       }
       movedIds.value.add(c.id)

@@ -22,6 +22,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useSession} from '@/composables/useSession'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
 import {getActingStation} from '@/util/actingStationState'
+import {describeFailure} from '@/util/failure'
 import {dateToInstant, formatDate} from '@/util/format'
 import {showToast} from '@/util/toast'
 
@@ -111,7 +112,7 @@ const {running: creating, failure: checklistFailure, run: runCreateChecklist} = 
       showToast(t('signupLists.checklistCreated', {count: props.memberSet.count}), 'success')
       await router.push({name: 'checklist-detail', params: {id: detail.id}})
     },
-    {formatError: () => t('signupLists.createError')},
+    {formatError: (e) => describeFailure(e, t).message},
 )
 
 /**
@@ -136,7 +137,7 @@ const {running: creatingSurvey, failure: surveyFailure, run: runCreateSurvey} = 
       showToast(t('signupLists.surveyCreated', {count: props.memberSet.count}), 'success')
       await router.push({name: 'forms-edit', params: {id: form.id}})
     },
-    {formatError: () => t('signupLists.createError')},
+    {formatError: (e) => describeFailure(e, t).message},
 )
 
 /**
@@ -152,7 +153,7 @@ const {running: loadingProcedure, failure: procedureLoadFailure, run: runLoadPro
       procedureTemplates.value = templates.filter(template => !template.archived)
       existingProcedure.value = prepared[0] ?? null
     },
-    {formatError: () => t('signupLists.loadError')},
+    {formatError: (e) => describeFailure(e, t).message},
 )
 
 async function openProcedure() {
@@ -202,7 +203,7 @@ const {running: creatingProcedure, failure: procedureFailure, run: runCreateProc
       showToast(t('signupLists.procedureCreated', {count: props.memberSet.count}), 'success')
       await router.push({name: 'procedure-detail', params: {id: created.id}})
     },
-    {formatError: () => t('signupLists.createError')},
+    {formatError: (e) => describeFailure(e, t).message},
 )
 </script>
 

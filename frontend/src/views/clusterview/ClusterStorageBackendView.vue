@@ -18,7 +18,6 @@ import StorageBackendForm from '@/components/storage/StorageBackendForm.vue'
 import StoragePlacementTable from '@/components/storage/StoragePlacementTable.vue'
 import ClusterStoragePolicyPanel from '@/views/clusterview/clusterstoragebackendview/ClusterStoragePolicyPanel.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 import {
     ClusterBackendReach,
@@ -59,11 +58,6 @@ const hasBackend = computed(() => policy.value?.backend != null)
 
 onMounted(loadAll)
 
-/** Whatever the backend said, and the wording this screen has for it where it said nothing. */
-function storageFailure(e: unknown, fallbackKey: string): Failure {
-    return {...describeFailure(e, t), message: apiErrorMessage(e) ?? t(fallbackKey)}
-}
-
 async function loadAll() {
     loading.value = true
     loadFailure.value = null
@@ -74,7 +68,7 @@ async function loadAll() {
         seedForm()
         placements.value = await getClusterPlacements()
     } catch (e) {
-        loadFailure.value = storageFailure(e, 'clusterStorageBackend.errors.loadFailed')
+        loadFailure.value = describeFailure(e, t)
     } finally {
         loading.value = false
     }
@@ -102,7 +96,7 @@ const {running: probing, run: runProbe} = useAsyncAction(async (call: () => Prom
     } catch (e) {
         probeOutcome.value = {
             healthy: false,
-            error: apiErrorMessage(e) ?? describeFailure(e, t).message,
+            error: describeFailure(e, t).message,
             checkedAt: new Date().toISOString(),
         }
     }
@@ -125,7 +119,7 @@ const {running: saving, run: runAction} = useAsyncAction(async (act: () => Promi
     try {
         success.value = await act()
     } catch (e) {
-        actionFailure.value = storageFailure(e, 'clusterStorageBackend.errors.saveFailed')
+        actionFailure.value = describeFailure(e, t)
         return
     }
     await loadAll()

@@ -25,20 +25,18 @@ import {adminSettings} from '@/api'
 import type {MailingConfig} from '@/api/adminSettings'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
 /**
- * The mail provider's own words where it wrote any, and the described failure otherwise.
+ * What the mail chain refused, named as a mail failure rather than a bare sentence.
  *
  * <p>A mail chain refuses for reasons only the provider knows: a rejected key, a sender address it
- * will not accept, a quota. Losing that sentence leaves the one person who could fix it guessing.
+ * will not accept, a quota. Losing that reason leaves the one person who could fix it guessing.
  */
 function mailingFailed(e: unknown): string {
-  const said = apiErrorMessage(e)
-  return said ? t('adminSettings.mailing.saveFailed', {error: said}) : describeFailure(e, t).message
+  return t('adminSettings.mailing.saveFailed', {error: describeFailure(e, t).message})
 }
 
 const {config: mailingConfig, loading, failure: configFailure, runWith, reload} = useConfigPanel<MailingConfig>({
@@ -77,7 +75,7 @@ async function test(position: number, recipient: string) {
           : {ok: false, message: t('mailChain.testFailed', {position: position + 1, error: result.error ?? ''})},
     }
   } catch (e) {
-    const reason = apiErrorMessage(e) ?? describeFailure(e, t).message
+    const reason = describeFailure(e, t).message
     testResults.value = {
       ...testResults.value,
       [position]: {ok: false, message: t('mailChain.testFailed', {position: position + 1, error: reason})},

@@ -15,13 +15,12 @@ import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import { auth } from '@/api'
-import { apiErrorMessage } from '@/util/apiError'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 import { PASSWORD_MIN_LENGTH } from '@/util/passwordPolicy'
 import TwoFactorSection from '@/views/stationview/profile/settingsview/TwoFactorSection.vue'
 import PasskeySection from '@/views/accountview/accountsecurityview/PasskeySection.vue'
 
-const { t, te } = useI18n()
+const { t } = useI18n()
 
 const failure = ref<Failure | null>(null)
 const currentPassword = ref('')
@@ -57,20 +56,9 @@ async function changePassword() {
     newPassword.value = ''
     confirmPassword.value = ''
   } catch (e) {
-    failure.value = {...describeFailure(e, t), message: failureText(e)}
+    failure.value = describeFailure(e, t)
     throw e
   }
-}
-
-/**
- * What to show for a rejected change. The endpoint answers with an i18n key naming the actual
- * cause, so the reason the member reads is the reason the server had, rather than the guess this
- * form used to print over every failure alike.
- */
-function failureText(e: unknown): string {
-  const raw = apiErrorMessage(e)
-  if (!raw) return t('profile.passwordError')
-  return te(raw) ? t(raw) : raw
 }
 </script>
 

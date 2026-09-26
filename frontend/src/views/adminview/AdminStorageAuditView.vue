@@ -20,7 +20,6 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import StorageBackendAuditTable from '@/components/storage/StorageBackendAuditTable.vue'
 import {useSession} from '@/composables/useSession'
 import {type AuditEntry, getInstanceStorageAudit} from '@/api/storageBackend'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -52,10 +51,7 @@ async function applyFilters() {
             limit: limit.value,
         })
     } catch (e) {
-        failure.value = {
-            ...describeFailure(e, t),
-            message: apiErrorMessage(e) ?? t('adminStorageAudit.errors.loadFailed'),
-        }
+        failure.value = describeFailure(e, t)
     } finally {
         loading.value = false
     }

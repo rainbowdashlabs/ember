@@ -29,7 +29,7 @@ import {
 import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
 import {useStepUpPrompt, type StepUpProofName} from '@/util/stepUp'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {FailureKind, type Failure} from '@/util/failure'
+import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const {current, complete, cancel} = useStepUpPrompt()
@@ -92,9 +92,7 @@ const {running: submitting, failure: submitFailure, run: runSubmit, clearError: 
     await stepUp(factor, code.value)
   }
   complete()
-}, {formatError: () => offersPassword.value && !useBackupCode.value
-      ? t('twoFactor.stepUp.wrongPassword')
-      : t('twoFactor.stepUp.invalidCode')})
+}, {formatError: (e) => describeFailure(e, t).message})
 
 const {running: passkeyRunning, failure: passkeyFailure, run: runPasskey, clearError: clearPasskeyError} = useAsyncAction(async () => {
   const begin = await passkeyStepUpBegin()
@@ -105,7 +103,7 @@ const {running: passkeyRunning, failure: passkeyFailure, run: runPasskey, clearE
   const message = (e as Error | undefined)?.message
   if (message === 'webauthn-cancelled') return t('twoFactor.webauthn.cancelled')
   if (message === 'webauthn-unsupported') return t('twoFactor.webauthn.unsupported')
-  return t('twoFactor.stepUp.passkeyFailed')
+  return describeFailure(e, t).message
 }})
 
 const {running: webauthnRunning, failure: webauthnFailure, run: runWebAuthn, clearError: clearWebauthnError} = useAsyncAction(async () => {
@@ -117,7 +115,7 @@ const {running: webauthnRunning, failure: webauthnFailure, run: runWebAuthn, cle
   const message = (e as Error | undefined)?.message
   if (message === 'webauthn-cancelled') return t('twoFactor.webauthn.cancelled')
   if (message === 'webauthn-unsupported') return t('twoFactor.webauthn.unsupported')
-  return t('twoFactor.stepUp.invalidCode')
+  return describeFailure(e, t).message
 }})
 
 const loading = computed(() => submitting.value || passkeyRunning.value || webauthnRunning.value)
