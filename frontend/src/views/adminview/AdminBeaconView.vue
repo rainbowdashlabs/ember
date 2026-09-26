@@ -8,7 +8,7 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import BeaconSettingsPanel from './adminbeaconview/BeaconSettingsPanel.vue'
@@ -18,6 +18,7 @@ import BeaconMetricsTable from './adminbeaconview/BeaconMetricsTable.vue'
 import {beacon} from '@/api'
 import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
 import type {BeaconFault, BeaconMetricsRow, BeaconReport, BeaconStatus} from '@/api/beacon'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * What other instances have reported here, which is this instance's own error log and its own
@@ -49,14 +50,14 @@ const faults = ref<BeaconFault[]>([])
 const reports = ref<BeaconReport[]>([])
 const metrics = ref<BeaconMetricsRow[]>([])
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const showAcknowledged = ref(false)
 
 const isBeacon = computed(() => status.value?.receiving === true)
 
 async function load() {
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     status.value = await beacon.getStatus()
     if (!status.value.receiving) return
@@ -68,8 +69,8 @@ async function load() {
     faults.value = f
     reports.value = r
     metrics.value = m
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
@@ -108,7 +109,7 @@ function onSaved(stored: BeaconStatus) {
 
 <template>
   <ViewContent :subtitle="t(`pages.${pageKey}.subtitle`)" :title="t(`pages.${pageKey}.title`)">
-    <Alert v-if="error" class="mb-4" variant="error">{{ error }}</Alert>
+    <FailureAlert :failure="failure" class="mb-4"/>
     <Spinner v-if="loading"/>
 
     <template v-else>

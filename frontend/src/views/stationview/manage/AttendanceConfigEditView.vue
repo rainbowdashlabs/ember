@@ -10,7 +10,7 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import AttendanceFieldModal from './attendanceconfigedit/FieldModal.vue'
 import EditContent from './attendanceconfigedit/EditContent.vue'
@@ -19,6 +19,7 @@ import type {MemberGroup} from '@/api/types'
 import {attendance, memberGroups} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {describeFailure} from '@/util/failure'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {moveWithin} from '@/util/reorder'
 
@@ -50,7 +51,7 @@ const pageTitle = computed(() => (isEdit.value && name.value.trim()
     ? name.value.trim()
     : t('pages.station-attendance-config-edit.title')))
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   if (!templateId.value) return
   const [detail, groups] = await Promise.all([
     attendance.getTemplate(templateId.value),
@@ -63,7 +64,7 @@ const {loading, error} = useAsyncLoader(async () => {
 })
 
 async function saveTemplate() {
-  error.value = ''
+  failure.value = null
   try {
     if (isEdit.value) {
       await attendance.updateTemplate(templateId.value!, {name: name.value})
@@ -73,7 +74,7 @@ async function saveTemplate() {
       availableGroups.value = await memberGroups.listGroups()
     }
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -100,8 +101,8 @@ async function saveGroups() {
   if (!templateId.value) return
   try {
     templateGroups.value = await attendance.setTemplateGroups(templateId.value, {groups: templateGroups.value})
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -115,7 +116,7 @@ function openEditField(field: AttendanceTemplateField) {
   showFieldModal.value = true
 }
 
-const {running: fieldSaving, error: fieldSaveError, run: saveField} = useAsyncAction(
+const {running: fieldSaving, failure: fieldSaveFailure, run: saveField} = useAsyncAction(
     async (data: { name: string; fieldType: string; config: Record<string, unknown>; position: number }) => {
       if (!templateId.value) return
       if (editingField.value) {
@@ -125,7 +126,6 @@ const {running: fieldSaving, error: fieldSaveError, run: saveField} = useAsyncAc
       }
       showFieldModal.value = false
     },
-    {formatError: () => t('common.error')},
 )
 
 async function reorderFields(fromIndex: number, toIndex: number) {
@@ -142,8 +142,8 @@ async function reorderFields(fromIndex: number, toIndex: number) {
       })
     }
     fields.value = await attendance.listTemplateFields(templateId.value!)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -157,10 +157,8 @@ const {
     if (!templateId.value) return
     fields.value = await attendance.deleteTemplateField(templateId.value, field.id)
   },
-  error,
+  failure,
 })
-
-const displayError = computed(() => error.value || fieldSaveError.value)
 
 function goBack() {
   router.push({name: 'station-attendance-config'})
@@ -180,7 +178,8 @@ function goBack() {
 
       <Spinner v-if="loading" size="lg"/>
 
-      <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
+      <FailureAlert :failure="failure"/>
+      <FailureAlert :failure="fieldSaveFailure"/>
 
       <EditContent
           v-if="!loading"

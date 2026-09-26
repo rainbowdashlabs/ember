@@ -25,6 +25,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { describeFailure } from '@/util/failure'
 import { protocol, federation } from '@/api'
 import type { TestProtocol, SharedProtocolEntry } from '@/api/protocol'
 
@@ -77,7 +78,7 @@ const filteredShared = computed(() => {
   return result
 })
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const data = await protocol.listProtocols()
   if (Array.isArray(data)) {
     protocols.value = data as unknown as typeof protocols.value
@@ -96,7 +97,7 @@ const {
 } = useConfirmAction<TestProtocol>({
   onConfirm: p => protocol.deleteProtocol(p.id),
   onSuccess: () => reload(),
-  error,
+  failure,
 })
 
 async function handleCreate() {
@@ -112,14 +113,24 @@ async function handleCreate() {
     newDescription.value = ''
     newPassThreshold.value = undefined
     router.push({ name: 'protocol-detail', params: { id: created.id } })
-  } catch { error.value = t('common.error') }
+  } catch (e) { failure.value = describeFailure(e, t) }
 }
 
+/**
+ * Copies the partner's protocol, then reads the list back.
+ *
+ * <p>Answered for separately, so a copy the server had already made, followed by a list that would
+ * not come back, does not read as a copy that failed and get made a second time.
+ */
 async function copySharedProtocol(protocolId: number) {
+  failure.value = null
   try {
     await federation.copyProtocol(protocolId)
-    await reload()
-  } catch { error.value = t('common.error') }
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
+  }
+  await reload()
 }
 
 watch(loaded, (v) => { if (v) reload() }, { immediate: true })
@@ -163,7 +174,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
     <AsyncSection
       :empty="filteredProtocols.length === 0 && filteredShared.length === 0"
       :empty-message="t('protocol.empty')"
-      :error="error"
+      :failure="failure"
       :loading="loading"
     >
       <div class="space-y-2">

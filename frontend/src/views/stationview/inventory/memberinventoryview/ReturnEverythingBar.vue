@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {movements} from '@/api'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * Asks a member for everything they hold, each piece on the chain that fits it.
@@ -28,19 +28,19 @@ const emit = defineEmits<{done: []}>()
 const {t} = useI18n()
 
 const busy = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const success = ref('')
 
 async function returnEverything() {
   busy.value = true
-  error.value = ''
+  failure.value = null
   success.value = ''
   try {
     const started = await movements.returnEverything(props.memberId)
     success.value = t('inventory.member.returnEverythingDone', {count: started.length})
     emit('done')
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   } finally {
     busy.value = false
   }
@@ -49,7 +49,7 @@ async function returnEverything() {
 
 <template>
   <div class="space-y-2">
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <Alert v-if="success" variant="success">{{ success }}</Alert>
     <SecondaryButton :disabled="busy" data-testid="return-everything" @click="returnEverything">
       {{ t('inventory.member.returnEverything') }}

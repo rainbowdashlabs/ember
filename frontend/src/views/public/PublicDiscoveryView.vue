@@ -8,6 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
@@ -19,6 +20,7 @@ import {discovery} from '@/api'
 import type {DiscoveryEntry} from '@/api/discovery'
 import {useSession} from '@/composables/useSession'
 import {useFlashMessage} from '@/composables/useFlashMessage'
+import {describeFailure, type Failure} from '@/util/failure'
 import {apiUrl} from '@/util/apiUrl'
 
 const {t} = useI18n()
@@ -37,7 +39,7 @@ const {data: stations, status, refresh} = await useAsyncData(
 )
 
 const loading = computed(() => status.value === 'pending')
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const {message: success, flash} = useFlashMessage(3000)
 const inviteCode = ref('')
 const tab = ref<'list' | 'map'>('list')
@@ -55,21 +57,35 @@ const mapStations = computed<MapStation[]>(() => stations.value
     })),
 )
 
+/**
+ * Asking to federate, and refreshing the list afterwards, which are two things and not one.
+ *
+ * <p>They shared a `catch`, so a request that went through and a list that failed to come back
+ * afterwards read as a request that failed, and the reader asked a second time. The request's own
+ * failure is the one worth showing; a stale list is put right by reloading the page.
+ */
 async function handleConnect(station: DiscoveryEntry) {
+  failure.value = null
   try {
     await discovery.requestFederation(station.stationUid)
-    flash(t('discovery.requestSent'))
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
+  }
+  flash(t('discovery.requestSent'))
+  try {
     await refresh()
-  } catch {
-    error.value = t('discovery.requestError')
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
   }
 }
 
 async function handleInvite(station: DiscoveryEntry) {
+  failure.value = null
   try {
     inviteCode.value = await discovery.generateInvite(station.stationUid)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 </script>
@@ -79,7 +95,7 @@ async function handleInvite(station: DiscoveryEntry) {
   <div class="max-w-5xl mx-auto px-4 py-8">
     <MutedText tag="p" class="mb-6">{{ t('discovery.subtitle') }}</MutedText>
 
-    <Alert v-if="error" variant="error" class="mb-2">{{ error }}</Alert>
+    <FailureAlert :failure="failure" class="mb-2"/>
     <Alert v-if="success" variant="success" class="mb-2">{{ success }}</Alert>
 
     <div v-if="inviteCode" class="mb-6 p-4 rounded bg-[var(--bg-accent)] border border-[var(--border)]">

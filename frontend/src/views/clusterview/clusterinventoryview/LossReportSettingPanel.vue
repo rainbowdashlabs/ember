@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {clusterInventory} from '@/api'
 import {LossReportRequirement, type LossReportRequirementName} from '@/api/inventory'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -25,11 +25,11 @@ const {t} = useI18n()
 
 const requires = ref<LossReportRequirementName>(LossReportRequirement.NOTHING)
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   requires.value = (await clusterInventory.getLossReportSettings()).requires
 })
 
-const {running: saving, error: saveError, run: save} = useAsyncAction(async (value: LossReportRequirementName) => {
+const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async (value: LossReportRequirementName) => {
   await clusterInventory.setLossReportSettings(value)
   requires.value = value
 })
@@ -39,7 +39,8 @@ const {running: saving, error: saveError, run: save} = useAsyncAction(async (val
   <NeutralContainer class="space-y-3" data-testid="loss-report-setting">
     <SectionHeader>{{ t('clusterInventory.lossReportTitle') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('clusterInventory.lossReportHint') }}</p>
-    <Alert v-if="error || saveError" variant="error">{{ error || saveError }}</Alert>
+    <FailureAlert :failure="failure"/>
+    <FailureAlert :failure="saveFailure"/>
     <SelectInput
         v-if="!loading"
         :disabled="saving"

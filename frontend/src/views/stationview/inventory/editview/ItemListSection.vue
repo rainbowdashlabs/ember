@@ -14,6 +14,7 @@ import {useItemTable} from '../itemtable/useItemTable'
 import {InventoryTypes, type InventoryDetail, type InventoryItem} from '@/api/inventory'
 import type {StationMember} from '@/api/types'
 import {inventory} from '@/api'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
@@ -25,7 +26,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   itemsChanged: []
-  error: [message: string]
+  error: [failure: Failure]
 }>()
 
 const modals = ref<InstanceType<typeof ItemModals> | null>(null)
@@ -64,8 +65,8 @@ async function unassignItem(item: InventoryItem) {
       await inventory.assignItem(item.id, {memberId: null, memberName: ''})
     }
     emit('itemsChanged')
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   }
 }
 
@@ -73,8 +74,8 @@ async function doMarkLost(item: InventoryItem) {
   try {
     await inventory.markLost(item.id)
     emit('itemsChanged')
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   }
 }
 
@@ -82,8 +83,8 @@ async function doMarkFound(item: InventoryItem) {
   try {
     await inventory.markFound(item.id)
     emit('itemsChanged')
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   }
 }
 </script>

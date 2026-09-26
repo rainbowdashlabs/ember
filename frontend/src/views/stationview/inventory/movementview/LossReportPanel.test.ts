@@ -56,13 +56,15 @@ describe('LossReportPanel', () => {
         expect(presentFile).toHaveBeenCalledWith(file)
     })
 
+    /** A refusal is described rather than waved at, so the reader is told what to do about it. */
     it('reports a refused download instead of handing anything over', async () => {
         downloadDocument.mockRejectedValue(new Error('denied'))
 
         const panel = mountPanel('verlust.pdf')
         await panel.get('[data-testid="loss-report-download"]').trigger('click')
-        await vi.waitFor(() => expect(panel.text()).toContain('common.error'))
+        await vi.waitFor(() => expect(panel.text()).toContain('failure.UNKNOWN.message'))
 
+        expect(panel.text()).toContain('failure.UNKNOWN.guidance')
         expect(presentFile).not.toHaveBeenCalled()
     })
 })

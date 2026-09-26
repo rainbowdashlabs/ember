@@ -10,7 +10,7 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import StepDispatcher from './createview/StepDispatcher.vue'
 import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import {StationUserType, type MemberGroup, type StationMember} from '@/api/types'
@@ -20,6 +20,7 @@ import {todayIsoDate} from '@/util/format'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useFieldAudiences} from '@/composables/useFieldAudiences'
+import {describeFailure, FailureKind} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -50,7 +51,7 @@ const audiences = useFieldAudiences()
 /** The questions this kind of member is asked, on the form they will be asked them. */
 const scopeFields = computed(() => audiences.fieldsFor(allFields.value, selectedUserType.value))
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [fields, groups, mems] = await Promise.all([
     profileFields.listFields(),
     memberGroups.listGroups(),
@@ -109,36 +110,66 @@ function setManagers(ids: number[]) {
  * whatever kind was chosen for them.
  */
 async function createNewManager(data: { firstName: string; lastName: string; email: string }) {
-  error.value = ''
+  failure.value = null
+
+  let invitedId: number
   try {
-    const invited = await members.invite({...data, sendSetupMail: sendSetupMail.value})
+    invitedId = (await members.invite({...data, sendSetupMail: sendSetupMail.value})).id
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
+  }
+
+  try {
     const membersList = await stationMembers.listMembers()
-    const newMember = membersList.find(m => m.accountId === invited.id)
-    if (newMember) {
-      await stationMembers.setUserType(newMember.id, StationUserType.GUARDIAN)
-      createdManagers.value = [...createdManagers.value, {
-        id: invited.id,
-        memberId: newMember.id,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-      }]
-      selectedManagerIds.value = new Set([...selectedManagerIds.value, newMember.id])
-      allMembers.value = membersList
+    const newMember = membersList.find(m => m.accountId === invitedId)
+    if (!newMember) {
+      failure.value = {
+        kind: FailureKind.UNKNOWN,
+        message: t('memberDetail.invitedButNotLinked'),
+        guidance: t('memberDetail.invitedButNotLinkedGuidance'),
+        reportable: true,
+      }
+      return
     }
-  } catch {
-    error.value = t('common.error')
+    await stationMembers.setUserType(newMember.id, StationUserType.GUARDIAN)
+    createdManagers.value = [...createdManagers.value, {
+      id: invitedId,
+      memberId: newMember.id,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+    }]
+    selectedManagerIds.value = new Set([...selectedManagerIds.value, newMember.id])
+    allMembers.value = membersList
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('memberDetail.invitedButNotLinked')}
   }
 }
 
-const {running: saving, error: createError, run: createAccount, clearError: clearCreateError} = useAsyncAction(async () => {
-  error.value = ''
+/** Whether the account is already in, which is what decides how a later failure has to be worded. */
+let accountMade = false
+
+/**
+ * Creates the member from everything the wizard collected, which is one button and several writes.
+ *
+ * <p>The account comes first, and once it is there the rest, the kind, the answers, the groups and the
+ * guardians, is added to a person who already exists. A reader told plainly that creating failed starts
+ * the wizard again and is refused for an address that is now taken, with a half-filled member left in
+ * the roll and nothing said about it. Where the account is in, the screen says so and sends them to the
+ * member's own page to finish it.
+ */
+const {running: saving, failure: createFailure, run: createAccount, clearError: clearCreateError} = useAsyncAction(async () => {
+  failure.value = null
+  accountMade = false
   const invited = await members.invite({
     email: canLogin.value ? email.value : undefined,
     firstName: firstName.value,
     lastName: lastName.value,
     sendSetupMail: sendSetupMail.value,
   })
+
+  accountMade = true
 
   const membersList = await stationMembers.listMembers()
   const newMember = membersList.find(m => m.accountId === invited.id)
@@ -166,7 +197,11 @@ const {running: saving, error: createError, run: createAccount, clearError: clea
   }
 
   step.value = 'done'
-}, {formatError: () => t('common.error')})
+}, {
+  formatError: e => (accountMade
+      ? t('membersCreate.createdButIncomplete')
+      : describeFailure(e, t).message),
+})
 
 function startOver() {
   step.value = 'userType'
@@ -180,7 +215,7 @@ function startOver() {
   selectedGroupIds.value = new Set()
   selectedManagerIds.value = new Set()
   createdManagers.value = []
-  error.value = ''
+  failure.value = null
   clearCreateError()
 }
 
@@ -198,7 +233,7 @@ function startOver() {
         </SecondaryButton>
       </div>
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error || createError" variant="error">{{ error || createError }}</Alert>
+      <FailureAlert :failure="failure ?? createFailure"/>
 
       <StepDispatcher
           v-if="!loading"

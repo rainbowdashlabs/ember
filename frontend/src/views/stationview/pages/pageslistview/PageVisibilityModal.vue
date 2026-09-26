@@ -7,7 +7,8 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import type {Failure} from '@/util/failure'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -23,7 +24,8 @@ import {PageVisibility, type PageVisibilityName, type StationPage} from '@/api/p
  */
 const props = defineProps<{
   page: StationPage | null
-  error: string
+  /** Why the chosen visibility was refused, described, or nothing where nothing was. */
+  failure: Failure | null
 }>()
 
 const emit = defineEmits<{
@@ -65,7 +67,7 @@ const options: {value: PageVisibilityName; labelKey: string; hintKey: string}[] 
     <Modal v-model="open">
         <div class="space-y-3">
             <SubHeader>{{ t('stationPages.changeVisibility') }}</SubHeader>
-            <Alert v-if="error" variant="error">{{ error }}</Alert>
+            <FailureAlert :failure="failure"/>
 
             <div
                 v-for="option in options"

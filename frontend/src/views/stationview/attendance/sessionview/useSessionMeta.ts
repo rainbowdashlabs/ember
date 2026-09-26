@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import {attendance} from '@/api'
 import type {AttendanceSession} from '@/api/attendance'
 import {localInputToInstant} from '@/util/format'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The sheet's own title, time frame and worth.
@@ -20,7 +21,7 @@ import {localInputToInstant} from '@/util/format'
 export function useSessionMeta(
     sessionId: Ref<number>,
     session: Ref<AttendanceSession | null>,
-    error: Ref<string>,
+    failure: Ref<Failure | null>,
 ) {
   const {t} = useI18n()
 
@@ -33,7 +34,7 @@ export function useSessionMeta(
 
   async function saveSessionMeta() {
     if (!session.value) return
-    error.value = ''
+    failure.value = null
     try {
       const s = session.value
       await attendance.updateSession(sessionId.value, {
@@ -42,8 +43,8 @@ export function useSessionMeta(
         title: s.title,
         countedMinutes: s.countedMinutes ?? null,
       })
-    } catch {
-      error.value = t('common.error')
+    } catch (e) {
+      failure.value = {...describeFailure(e, t), message: t('attendanceSession.detailsUnsaved')}
     }
   }
 

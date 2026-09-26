@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.form.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -41,7 +42,6 @@ import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.InternalServerErrorResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -103,9 +103,16 @@ public class FormRoutes implements Routes {
      * one station cannot be read, answered, or have its analytics and responses exposed to another.
      */
     private Form requireOwnedForm(int formId, UserSession session) {
-        var form = formService.findById(formId).orElseThrow(NotFoundResponse::new);
+        var form = formService.findById(formId).orElseThrow(Refusal.FORM_NOT_HERE::raise);
         RouteSupport.requireSameStation(session, form.stationId());
         return form;
+    }
+
+    /**
+     * Answers with the form as it now stands, which is what every act on one ends with.
+     */
+    private void respondWithForm(Context ctx, int formId) {
+        ctx.json(formService.findById(formId).orElseThrow(Refusal.FORM_NOT_HERE_ON_REREAD::raise));
     }
 
     /**
@@ -369,11 +376,9 @@ public class FormRoutes implements Routes {
                 req.forced() != null && req.forced(),
                 req.startAt(),
                 req.endAt())) {
-            throw new NotFoundResponse();
+            throw Refusal.FORM_NOT_HERE_ON_CHANGE.raise();
         }
-        formService.findById(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
-        });
+        respondWithForm(ctx, id);
     }
 
     @OpenApi(
@@ -392,7 +397,7 @@ public class FormRoutes implements Routes {
         if (formService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.FORM_NOT_HERE_ON_DELETE.raise();
         }
     }
 
@@ -412,9 +417,7 @@ public class FormRoutes implements Routes {
         if (form.status() != Form.FormStatus.DRAFT) throw new BadRequestResponse("Form is not in DRAFT status");
         formService.publish(id);
 
-        formService.findById(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
-        });
+        respondWithForm(ctx, id);
     }
 
     @OpenApi(
@@ -436,7 +439,7 @@ public class FormRoutes implements Routes {
             throw new BadRequestResponse("Say how far the form is to reach");
         }
         if (!formService.setVisibility(id, request.visibility())) {
-            throw new NotFoundResponse();
+            throw Refusal.FORM_NOT_HERE_ON_VISIBILITY_CHANGE.raise();
         }
         ctx.json(new VisibilityResponse(
                 formService.findById(id).orElseThrow(), stillHeldBy(form, request.visibility())));
@@ -535,10 +538,8 @@ public class FormRoutes implements Routes {
     private void close(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedForm(id, UserSession.from(ctx));
-        if (!formService.close(id)) throw new NotFoundResponse();
-        formService.findById(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
-        });
+        if (!formService.close(id)) throw Refusal.FORM_NOT_HERE_ON_CLOSE.raise();
+        respondWithForm(ctx, id);
     }
 
     @OpenApi(
@@ -895,7 +896,9 @@ public class FormRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, session);
-        var station = stationRepository.findById(session.stationId()).orElseThrow(NotFoundResponse::new);
+        var station = stationRepository
+                .findById(session.stationId())
+                .orElseThrow(Refusal.STATION_NOT_HERE_FOR_FORM_EXPORT::raise);
         boolean asSpreadsheet = !"pdf".equalsIgnoreCase(ctx.queryParam("format"));
         try {
             var document = exportService.export(

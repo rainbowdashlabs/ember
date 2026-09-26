@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import FormLabel from '@/components/input/FormLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -20,6 +20,7 @@ import type {ClusterFlow} from '@/api/clusterInventory'
 import {MovementPurpose, type MovementFlow, type StepRequest} from '@/api/movements'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlowProblems} from '@/composables/useFlowProblems'
+import type {Failure} from '@/util/failure'
 
 /**
  * The chains the association's own gear walks.
@@ -30,17 +31,17 @@ import {useFlowProblems} from '@/composables/useFlowProblems'
  * purpose before it ever looks at a binding.
  */
 const {t} = useI18n()
-const {refusalText} = useFlowProblems()
+const {refusalFailure} = useFlowProblems()
 
 const flows = ref<ClusterFlow[]>([])
 const busy = ref(false)
-const actionError = ref('')
-const flowErrors = ref<Record<number, string>>({})
+const actionFailure = ref<Failure | null>(null)
+const flowFailures = ref<Record<number, Failure | null>>({})
 
 const newName = ref('')
 const newPurpose = ref<string>(MovementPurpose.ISSUE)
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   flows.value = await clusterInventory.listFlows()
 })
 
@@ -54,21 +55,26 @@ const cards = computed<MovementFlow[]>(() => flows.value.map(flow => ({...flow, 
  * Runs one change and reloads. Refusals are shown rather than swallowed: a step cannot be changed while
  * a movement is walking the chain, and a second chain for a purpose already covered is refused naming
  * the one in the way.
+ *
+ * <p>The change and the reading back afterwards are caught apart, because once the first is through the
+ * change is made and only the screen is behind. Saying otherwise sends the reader to make it twice.
  */
 async function run(action: () => Promise<unknown>, flowId?: number) {
   busy.value = true
-  actionError.value = ''
-  if (flowId !== undefined) flowErrors.value = {...flowErrors.value, [flowId]: ''}
+  actionFailure.value = null
+  if (flowId !== undefined) flowFailures.value = {...flowFailures.value, [flowId]: null}
   try {
     await action()
-    await reload()
   } catch (e) {
-    const message = refusalText(e)
-    if (flowId === undefined) actionError.value = message
-    else flowErrors.value = {...flowErrors.value, [flowId]: message}
-  } finally {
+    const described = refusalFailure(e)
+    if (flowId === undefined) actionFailure.value = described
+    else flowFailures.value = {...flowFailures.value, [flowId]: described}
     busy.value = false
+    return
   }
+  await reload()
+  if (failure.value) failure.value = {...failure.value, message: t('failure.staleAfterAction')}
+  busy.value = false
 }
 
 function createFlow() {
@@ -85,7 +91,7 @@ function createFlow() {
   <NeutralContainer class="space-y-4" data-testid="inventory-flow-setting">
     <SectionHeader>{{ t('clusterInventory.flowsTitle') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('clusterInventory.flowsHint') }}</p>
-    <Alert v-if="error || actionError" variant="error">{{ error || actionError }}</Alert>
+    <FailureAlert :failure="failure ?? actionFailure"/>
 
     <EmptyState v-if="!loading && flows.length === 0" compact>{{ t('clusterInventory.flowsEmpty') }}</EmptyState>
     <div v-else class="space-y-2">
@@ -94,7 +100,7 @@ function createFlow() {
           :key="flow.id"
           :busy="busy"
           :data-testid="`cluster-flow-${flow.id}`"
-          :error="flowErrors[flow.id]"
+          :failure="flowFailures[flow.id]"
           :flow="flow"
           @add-step="(flowId: number, step: StepRequest) => run(() => clusterInventory.addStep(flowId, step), flowId)"
           @archive-step="(stepId: number) => run(() => clusterInventory.archiveStep(stepId), flow.id)"

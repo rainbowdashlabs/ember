@@ -6,6 +6,7 @@
 import {ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {attendance, lostAndFound, movements} from '@/api'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * What is outstanding for the people on one sheet, and the two things that can be settled from it.
@@ -16,19 +17,48 @@ import {attendance, lostAndFound, movements} from '@/api'
  * losing them must not stop the check.
  *
  * @param sessionId the sheet being worked through
- * @param error     the view's error channel, set when settling something fails
+ * @param failure   the view's failure channel, set when settling something fails
  */
-export function useSessionNotes(sessionId: Ref<number>, error: Ref<string>) {
+export function useSessionNotes(sessionId: Ref<number>, failure: Ref<Failure | null>) {
     const {t} = useI18n()
 
     const memberNotes = ref<Map<number, attendance.MemberNotes>>(new Map())
 
+    async function refreshNotes() {
+        const notes = await attendance.getMemberNotes(sessionId.value)
+        memberNotes.value = new Map(notes.map(note => [note.memberId, note]))
+    }
+
+    /**
+     * The notes as the sheet opens, where a failure stays quiet on purpose: they sit beside the check
+     * as a convenience, and a reader who may not see them must still be able to take attendance.
+     */
     async function loadNotes() {
         try {
-            const notes = await attendance.getMemberNotes(sessionId.value)
-            memberNotes.value = new Map(notes.map(note => [note.memberId, note]))
+            await refreshNotes()
         } catch {
             memberNotes.value = new Map()
+        }
+    }
+
+    /**
+     * Settling something from beside a name, then reading the notes again, which are two things and
+     * not one. They shared an attempt, so a swap that really was handed over, followed by notes that
+     * failed to come back, read as a swap that had not gone through, and the same step was
+     * acknowledged twice.
+     */
+    async function settle(change: () => Promise<unknown>) {
+        failure.value = null
+        try {
+            await change()
+        } catch (e) {
+            failure.value = describeFailure(e, t)
+            return
+        }
+        try {
+            await refreshNotes()
+        } catch (e) {
+            failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
         }
     }
 
@@ -40,13 +70,7 @@ export function useSessionNotes(sessionId: Ref<number>, error: Ref<string>) {
      * answered.
      */
     async function moveSwap(movementId: number, stepId: number, replacementItemId: number | null) {
-        error.value = ''
-        try {
-            await movements.acknowledgeStep(movementId, {stepId, pickedItemId: replacementItemId})
-            await loadNotes()
-        } catch {
-            error.value = t('common.error')
-        }
+        await settle(() => movements.acknowledgeStep(movementId, {stepId, pickedItemId: replacementItemId}))
     }
 
     /**
@@ -54,23 +78,11 @@ export function useSessionNotes(sessionId: Ref<number>, error: Ref<string>) {
      * has changed hands stand beside a name here, so there is never anything to put back.
      */
     async function dropSwap(movementId: number) {
-        error.value = ''
-        try {
-            await movements.deleteMovement(movementId)
-            await loadNotes()
-        } catch {
-            error.value = t('common.error')
-        }
+        await settle(() => movements.deleteMovement(movementId))
     }
 
     async function signOffFound(itemId: number) {
-        error.value = ''
-        try {
-            await lostAndFound.markProvided(itemId)
-            await loadNotes()
-        } catch {
-            error.value = t('common.error')
-        }
+        await settle(() => lostAndFound.markProvided(itemId))
     }
 
     return {memberNotes, loadNotes, moveSwap, dropSwap, signOffFound}

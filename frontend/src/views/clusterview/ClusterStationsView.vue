@@ -30,7 +30,7 @@ const {hasClusterPermission} = useSession()
 const newName = ref('')
 const busy = ref(false)
 
-const {config: stations, loading, error, runWith} = useConfigPanel<ClusterStation[]>({
+const {config: stations, loading, failure, runWith} = useConfigPanel<ClusterStation[]>({
   initial: [],
   fetch: () => clusterStations.listStations(),
 })
@@ -60,7 +60,7 @@ async function confirmRelease() {
 <template>
   <ViewContent :subtitle="t('pages.cluster-stations.subtitle')" :title="t('pages.cluster-stations.title')">
     <div class="space-y-6">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <NeutralContainer v-if="hasClusterPermission(ClusterPermission.CLUSTER_STATIONS)" class="space-y-4">
         <SectionHeader>{{ t('clusterStations.createTitle') }}</SectionHeader>

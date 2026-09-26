@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -118,20 +119,30 @@ public class QuizAttemptRoutes implements Routes {
         var session = UserSession.from(ctx);
         var attempt = guards.requireMemberAttempt(ctx, session);
         if (attempt.status() != AttemptStatus.IN_PROGRESS) {
-            throw new BadRequestResponse("Attempt already submitted");
+            throw Refusal.QUIZ_ALREADY_HANDED_IN.raise();
         }
         var req = ctx.bodyAsClass(AnswerRequest.class);
         attemptService.saveAnswer(attempt.id(), req.questionId(), req.answer());
         ctx.json(new QuizSuccessResponse(true));
     }
 
+    /**
+     * Hands a paper in.
+     *
+     * <p>A paper that was not still being written is refused rather than answered as though it had
+     * been taken. It used to answer with the attempt whatever happened, so somebody whose time had
+     * run out, or whose paper was already in, was told it had gone through and had no reason to
+     * look again.
+     */
     private void submitAttempt(Context ctx) {
         var session = UserSession.from(ctx);
         var attempt = guards.requireMemberAttempt(ctx, session);
-        attemptService.submitAttempt(attempt.id());
-        attemptService.findAttemptById(attempt.id()).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
-        });
+        if (!attemptService.submitAttempt(attempt.id())) {
+            throw Refusal.QUIZ_NOT_HANDED_IN.raise();
+        }
+        ctx.json(attemptService
+                .findAttemptById(attempt.id())
+                .orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE_AFTER_HANDING_IN::raise));
     }
 
     private void listAttempts(Context ctx) {

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.discovery.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
@@ -216,16 +217,19 @@ public class AdminDiscoveryRoutes implements Routes {
         ctx.json(responses);
     }
 
+    /**
+     * Knocks on a peer's door and reports what happened.
+     *
+     * <p>Whatever stopped it is the whole answer here, because an operator diagnosing a peer that
+     * will not connect is the one person who needs to know which of five things went wrong. It used
+     * to answer that the peer "did not respond" for all of them alike.
+     */
     private void probePeer(Context ctx) {
         var body = ctx.bodyAsClass(ProbeRequest.class);
         if (body.baseUrl() == null || body.baseUrl().isBlank()) {
             throw new BadRequestResponse("baseUrl required");
         }
-        var info = httpClient.get(body.baseUrl(), "/api/v1/public/discovery/info", DiscoveryInfoResponse.class);
-        if (info == null) {
-            throw new NotFoundResponse("Peer did not respond with discovery info");
-        }
-        ctx.json(info);
+        ctx.json(reachPeer(body.baseUrl()));
     }
 
     private void addPeer(Context ctx) {
@@ -233,9 +237,10 @@ public class AdminDiscoveryRoutes implements Routes {
         if (body.baseUrl() == null || body.baseUrl().isBlank()) {
             throw new BadRequestResponse("baseUrl required");
         }
-        var info = httpClient.get(body.baseUrl(), "/api/v1/public/discovery/info", DiscoveryInfoResponse.class);
-        if (info == null || info.publicKey() == null) {
-            throw new BadRequestResponse("Peer did not return a usable discovery identity");
+        var info = reachPeer(body.baseUrl());
+        if (info.publicKey() == null) {
+            throw Refusal.PEER_NAMED_NO_KEY.raise(
+                    "The address answered as a peer would, but named no key to recognise it by");
         }
         if (body.expectedPublicKey() != null
                 && !body.expectedPublicKey().isBlank()
@@ -253,6 +258,15 @@ public class AdminDiscoveryRoutes implements Routes {
             // Probing failures don't roll back the insert.
         }
         ctx.json(toResponse(peer));
+    }
+
+    /**
+     * Fetches a peer's discovery card, refusing with the reason it could not be had.
+     */
+    private DiscoveryInfoResponse reachPeer(String baseUrl) {
+        var probe = httpClient.probe(baseUrl, "/api/v1/public/discovery/info", DiscoveryInfoResponse.class);
+        if (!probe.reached()) throw Refusal.PEER_DID_NOT_ANSWER.raise(probe.problem());
+        return probe.value();
     }
 
     private void deletePeer(Context ctx) {

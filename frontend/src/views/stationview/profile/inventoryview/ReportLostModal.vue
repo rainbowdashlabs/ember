@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import type {Failure} from '@/util/failure'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
@@ -32,7 +33,7 @@ const props = defineProps<{
   /** Whether this station asks for a note before it accepts the report. */
   noteRequired: boolean
   submitting: boolean
-  error: string
+  failure: Failure | null
 }>()
 
 const emit = defineEmits<{
@@ -60,7 +61,7 @@ const canSubmit = computed(() => !props.submitting && (!props.noteRequired || no
           :rows="3"
           data-testid="report-lost-note"
       />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <ButtonRow pair align="end">
         <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton :disabled="!canSubmit" data-testid="report-lost-submit" @click="emit('submit')">

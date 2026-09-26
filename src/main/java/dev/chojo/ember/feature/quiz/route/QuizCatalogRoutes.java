@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationFree;
@@ -26,7 +27,6 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -142,7 +142,7 @@ public class QuizCatalogRoutes implements Routes {
                                     catalog.updatedAt()));
                         },
                         () -> {
-                            throw new NotFoundResponse();
+                            throw Refusal.QUIZ_CATALOG_NOT_HERE.raise();
                         });
     }
 
@@ -169,10 +169,10 @@ public class QuizCatalogRoutes implements Routes {
                 req.description() != null ? req.description() : "",
                 req.trainingEnabled() != null && req.trainingEnabled(),
                 CatalogMetadata.orNone(req.metadata()))) {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_CATALOG_NOT_CHANGED.raise();
         }
         catalogService.findCatalog(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_CATALOG_NOT_HERE_AFTER_CHANGE.raise();
         });
     }
 
@@ -182,7 +182,7 @@ public class QuizCatalogRoutes implements Routes {
         if (catalogService.deleteCatalog(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_CATALOG_NOT_DELETED.raise();
         }
     }
 
@@ -212,7 +212,7 @@ public class QuizCatalogRoutes implements Routes {
                 req.name(),
                 req.description() != null ? req.description() : "",
                 req.position() != null ? req.position() : 0)) {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_CATEGORY_NOT_CHANGED.raise();
         }
         ctx.status(HttpStatus.OK).json(new QuizSuccessResponse(true));
     }
@@ -223,7 +223,7 @@ public class QuizCatalogRoutes implements Routes {
         if (catalogService.deleteCategory(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_CATEGORY_NOT_DELETED.raise();
         }
     }
 
@@ -297,7 +297,7 @@ public class QuizCatalogRoutes implements Routes {
     @StationFree("the parameter is a file format, not a row; the example file is the same for every station")
     private void downloadTemplate(Context ctx) {
         var template = QuizCatalogTemplate.byFormat(ctx.pathParam("format"));
-        if (template == null) throw new NotFoundResponse();
+        if (template == null) throw Refusal.QUIZ_TEMPLATE_FORMAT_UNKNOWN.raise();
         ctx.contentType(template.contentType())
                 .header(
                         "Content-Disposition",

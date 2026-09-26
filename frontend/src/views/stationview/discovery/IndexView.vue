@@ -105,7 +105,7 @@ const mapStations = computed<MapStation[]>(() => filtered.value
     }),
 )
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [list, location] = await Promise.all([
     discovery.listDiscoveredStations(),
     stationManage.getStationLocation().catch(() => null),
@@ -131,7 +131,7 @@ function focusStation(uid: string) {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <DiscoveryFilterBar

@@ -5,6 +5,7 @@
  */
 import {onMounted, ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * State container returned by {@link useConfigPanel} - wraps a single remote
@@ -20,6 +21,12 @@ export interface ConfigPanelState<T> {
     loading: Ref<boolean>
     /** Localised error message; empty string when no error is shown. */
     error: Ref<string>
+    /**
+     * The same failure described: what sort it was, what to do about it, and whether it looks like a
+     * fault in Ember worth reporting. Render it with `FailureAlert` and the reader is told all three
+     * instead of only that something went wrong.
+     */
+    failure: Ref<Failure | null>
     /** Refetches via {@link UseConfigPanelOptions.fetch} and resets `error`. */
     reload: () => Promise<void>
     /**
@@ -64,18 +71,32 @@ export function useConfigPanel<T>(options: UseConfigPanelOptions<T>): ConfigPane
     const config = ref(options.initial) as Ref<T>
     const loading = ref(true)
     const error = ref('')
+    const failure = ref<Failure | null>(null)
 
-    function describeError(e: unknown): string {
-        return options.formatError ? options.formatError(e) : t('common.error')
+    /**
+     * Records what went wrong, described rather than swallowed.
+     *
+     * <p>A panel's own `formatError` names what could not be done and keeps that place, because it
+     * knows the screen and the failure does not. Everything around it, what to do next and whether
+     * this is a fault worth reporting, comes from the failure, which is the part no call site can
+     * work out for itself.
+     */
+    function record(e: unknown) {
+        const described = describeFailure(e, t)
+        failure.value = options.formatError
+            ? {...described, message: options.formatError(e)}
+            : described
+        error.value = failure.value.message
     }
 
     async function reload() {
         loading.value = true
         error.value = ''
+        failure.value = null
         try {
             config.value = await options.fetch()
         } catch (e) {
-            error.value = describeError(e)
+            record(e)
         } finally {
             loading.value = false
         }
@@ -86,11 +107,12 @@ export function useConfigPanel<T>(options: UseConfigPanelOptions<T>): ConfigPane
         runOptions?: {busy?: Ref<boolean>; rethrow?: boolean},
     ) {
         error.value = ''
+        failure.value = null
         if (runOptions?.busy) runOptions.busy.value = true
         try {
             config.value = await action()
         } catch (e) {
-            error.value = describeError(e)
+            record(e)
             if (runOptions?.rethrow) throw e
         } finally {
             if (runOptions?.busy) runOptions.busy.value = false
@@ -101,5 +123,5 @@ export function useConfigPanel<T>(options: UseConfigPanelOptions<T>): ConfigPane
         onMounted(reload)
     }
 
-    return {config, loading, error, reload, runWith}
+    return {config, loading, error, failure, reload, runWith}
 }

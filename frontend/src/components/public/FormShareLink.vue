@@ -7,6 +7,7 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -15,6 +16,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ShareLinkPanel from './ShareLinkPanel.vue'
 import {forms, stationManage} from '@/api'
 import {FormVisibility, type Form} from '@/api/forms'
+import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 /**
  * Where to send somebody so they can answer this form.
@@ -51,7 +53,7 @@ const stationAddress = ref<string | null>(null)
 const publicPath = computed(() => `/public/station/${stationAddress.value ?? ''}/forms/${props.form.publicUid}`)
 
 const token = ref<string | null>(null)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const busy = ref(false)
 const loading = ref(true)
 
@@ -67,26 +69,45 @@ async function load() {
     return
   }
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     token.value = await forms.getFormShareLink(props.form.id)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
 }
 
+/**
+ * Gives the form a link, or puts a new one in place of the one it has.
+ *
+ * <p>A refused replacement used to be reported as somebody else having replaced it first, whatever
+ * had actually happened. That is one of several: the right to do it can be missing, the connection
+ * can drop, the server can fall over. Only the server saying the link had moved on meant what the
+ * reader was told, and acting on the other three by reloading and trying again got them nowhere.
+ */
 async function make(current: string | null) {
   busy.value = true
-  error.value = ''
+  failure.value = null
   try {
     token.value = await forms.replaceFormShareLink(props.form.id, current)
-  } catch {
-    error.value = current === null ? t('shareLink.createFailed') : t('shareLink.replaceConflict')
+  } catch (e) {
+    const described = describeFailure(e, t)
+    failure.value = replacementWording(described, current)
   } finally {
     busy.value = false
   }
+}
+
+function replacementWording(described: Failure, current: string | null): Failure {
+  if (described.kind === FailureKind.CONFLICT) {
+    return {...described, message: t('shareLink.replaceConflict')}
+  }
+  if (current === null && described.kind === FailureKind.REJECTED) {
+    return {...described, message: t('shareLink.createFailed')}
+  }
+  return described
 }
 
 onMounted(load)
@@ -108,13 +129,13 @@ watch(() => [props.form.id, props.form.visibility], load)
                 v-else-if="token"
                 :path="`/f/${token}`"
                 :busy="busy"
-                :error="error"
+                :failure="failure"
                 replaceable
                 @replace="make(token)"
             />
 
             <template v-else>
-                <Alert v-if="error" variant="error">{{ error }}</Alert>
+                <FailureAlert :failure="failure"/>
                 <MutedText tag="p" size="sm">{{ t('shareLink.formNone') }}</MutedText>
                 <ButtonRow align="end">
                     <PrimaryButton :disabled="busy" :icon="['fas', 'link']" @click="make(null)">

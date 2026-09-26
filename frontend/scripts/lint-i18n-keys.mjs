@@ -4,9 +4,9 @@
  *
  * Two checks:
  *   1. Missing keys: every t('foo.bar') / $t('foo.bar') / te('foo.bar') call
- *      under src/ must resolve to a key defined in src/i18n/de-DE.ts or, for
- *      the helpCenter prefix, in src/i18n/de-DE.helpcenter.ts (merged into the
- *      locale at runtime under that prefix).
+ *      under src/ must resolve to a key defined in src/i18n/de-DE.ts, or in one
+ *      of the blocks that live in a file of their own and reach the locale under
+ *      a prefix (MERGED_BLOCKS: helpCenter and refusal).
  *   2. Unused keys: every leaf key defined in src/i18n/de-DE.ts must be
  *      referenced at least once.
  *
@@ -78,10 +78,29 @@ const CHECK_UNUSED = (args.get('check-unused') ?? 'true') !== 'false'
 const UNUSED_SEVERITY = args.get('unused-severity') ?? 'warn'
 
 const I18N_FILE = `${SRC}/i18n/de-DE.ts`
-const I18N_HELPCENTER_FILE = `${SRC}/i18n/de-DE.helpcenter.ts`
-const HELPCENTER_PREFIX = 'helpCenter'
 
-function collectKeys(text) {
+/**
+ * Blocks of the locale that live in a file of their own and reach it under a prefix.
+ *
+ * <p>A block gets its own file once it is long enough to bury the rest, and the locale then names
+ * it by an identifier rather than writing it out. Both halves have to be read here or every key in
+ * the block counts as undefined.
+ */
+const MERGED_BLOCKS = [
+    {prefix: 'helpCenter', file: `${SRC}/i18n/de-DE.helpcenter.ts`},
+    {prefix: 'refusal', file: `${SRC}/i18n/de-DE.refusals.ts`},
+]
+const MERGED_FILES = new Set(MERGED_BLOCKS.map(block => block.file))
+
+/**
+ * Every key a locale file defines, as dotted paths.
+ *
+ * @param text the file's source
+ * @param elsewhere keys that name a block living in a file of its own, which are read from there
+ *                  instead and are not leaves however the locale writes them
+ * @returns the keys defined in this file
+ */
+function collectKeys(text, elsewhere = new Set()) {
     const start = text.indexOf('export default {')
     const body = start === -1 ? text : text.slice(start)
     const keys = new Set()
@@ -119,8 +138,9 @@ function collectKeys(text) {
             const afterColon = i + propMatch[0].length
             let j = afterColon
             while (j < body.length && /\s/.test(body[j])) j++
-            if (body[j] !== '{') {
-                keys.add(stack.filter(s => s !== '?').join('.'))
+            const key = stack.filter(s => s !== '?').join('.')
+            if (body[j] !== '{' && !elsewhere.has(key)) {
+                keys.add(key)
             }
             i = afterColon
             continue
@@ -130,9 +150,11 @@ function collectKeys(text) {
     return keys
 }
 
-const definedKeys = collectKeys(readFileSync(I18N_FILE, 'utf-8'))
-for (const key of collectKeys(readFileSync(I18N_HELPCENTER_FILE, 'utf-8'))) {
-    definedKeys.add(`${HELPCENTER_PREFIX}.${key}`)
+const definedKeys = collectKeys(readFileSync(I18N_FILE, 'utf-8'), new Set(MERGED_BLOCKS.map(b => b.prefix)))
+for (const {prefix, file} of MERGED_BLOCKS) {
+    for (const key of collectKeys(readFileSync(file, 'utf-8'))) {
+        definedKeys.add(`${prefix}.${key}`)
+    }
 }
 
 const usedExact = new Set()
@@ -168,7 +190,7 @@ function prefixesDefinedKey(text) {
 }
 
 const files = [...walk(SRC, '.vue'), ...walk(SRC, '.ts')]
-    .filter(f => f !== I18N_FILE && f !== I18N_HELPCENTER_FILE)
+    .filter(f => f !== I18N_FILE && !MERGED_FILES.has(f))
 
 const prefixPropValues = new Set()
 const dynamicHeadSuffixes = new Set()
@@ -228,11 +250,38 @@ for (const prefix of prefixPropValues) {
 const REPO_ROOT = new URL('../..', import.meta.url).pathname
 
 /**
+ * The codes of every refusal the backend can raise, read off the registry that declares them.
+ *
+ * <p>Refusals are keyed by their code and not by their constant name, because the code is what
+ * travels to the reader and what a report quotes back. The code is not written out in the source:
+ * each constant names an area and a number, and the area holds the letter, so both halves have to
+ * be read to put one together.
+ *
+ * @param text the source of the registry
+ * @returns every code it declares, as they appear in the locale
+ */
+function refusalCodes(text) {
+    const letters = new Map()
+    for (const m of text.matchAll(/^\s{8}([A-Z_]+)\('([A-Z])',/gm)) letters.set(m[1], m[2])
+    const codes = new Set()
+    for (const m of text.matchAll(/^\s{4}[A-Z][A-Z0-9_]*\(\s*Area\.([A-Z_]+),\s*(\d+),/gm)) {
+        codes.add(`${letters.get(m[1])}-${String(m[2]).padStart(3, '0')}`)
+    }
+    return codes
+}
+
+/**
  * Locale sections whose keys are one per constant of a backend enum. `leaves` names the keys
  * below each constant; a section without it carries the translation on the constant itself,
- * which is the shape of a plain label map.
+ * which is the shape of a plain label map. `names` replaces the plain constant scan where what
+ * the locale is keyed by is not the constant's name.
  */
 const ENUM_BACKED_SECTIONS = [
+    {
+        enumFile: 'src/main/java/dev/chojo/ember/api/Refusal.java',
+        prefix: 'refusal',
+        names: refusalCodes,
+    },
     {
         enumFile: 'src/main/java/dev/chojo/ember/api/auth/StationPermission.java',
         prefix: 'permissions',
@@ -330,7 +379,7 @@ if (backendSourcesPresent) {
             error(I18N_FILE, 0, `enum file not found: ${section.enumFile}`, CAT_ENUM)
             continue
         }
-        const constants = parseJavaEnumConstants(text)
+        const constants = section.names ? section.names(text) : parseJavaEnumConstants(text)
         for (const constant of constants) {
             const keys = section.leaves
                 ? section.leaves.map(leaf => `${section.prefix}.${constant}.${leaf}`)
@@ -341,7 +390,7 @@ if (backendSourcesPresent) {
                 }
             }
         }
-        const stalePattern = new RegExp(`^${section.prefix.replace(/\./g, '\\.')}\\.([A-Z][A-Z0-9_]*)(?:\\.|$)`)
+        const stalePattern = new RegExp(`^${section.prefix.replace(/\./g, '\\.')}\\.([A-Z][A-Z0-9_-]*)(?:\\.|$)`)
         const reported = new Set()
         for (const key of definedKeys) {
             const m = key.match(stalePattern)

@@ -7,7 +7,8 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import type {Failure} from '@/util/failure'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
@@ -26,6 +27,8 @@ const props = defineProps<{
   confirmLabel?: string
   busy?: boolean
   error?: string
+  /** The same thing described, for a caller that has one: guidance and the offer to report. */
+  failure?: Failure | null
 }>()
 
 const show = defineModel<boolean>({required: true})
@@ -79,7 +82,7 @@ watch(show, (open) => {
   <Modal v-model="show">
     <SubHeader class="mb-3">{{ title ?? t('events.registrationFields.title') }}</SubHeader>
 
-    <Alert v-if="error" variant="error" class="mb-3">{{ error }}</Alert>
+    <FailureAlert :failure="failure" :message="error" class="mb-3"/>
 
     <div class="space-y-3">
       <div v-for="field in fields" :key="field.id">

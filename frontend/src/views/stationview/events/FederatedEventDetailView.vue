@@ -10,7 +10,8 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import {StationPermission} from '@/api/types'
 import type {Comment} from '@/api/comments'
 import type {MemberCompletion} from '@/api/stationMembers'
@@ -88,9 +89,24 @@ const placesSummary = computed(() => {
 async function confirmOwn(uid: string) {
   try {
     await events.confirmOwnFederatedMember(stationUid.value, eventId.value, getEventDate(), uid)
-    myRegistrations.value = await events.listMyFederatedRegistrations()
   } catch {
     showToast(t('eventsUpcoming.noPlacesLeft'), 'error')
+    return
+  }
+  await refreshMyRegistrations()
+}
+
+/**
+ * Reads our own places back after one was taken or given up.
+ *
+ * <p>Separate from the act itself. The place is already given, so a refresh that fails is a stale
+ * screen and never a reason to press the button a second time.
+ */
+async function refreshMyRegistrations() {
+  try {
+    myRegistrations.value = await events.listMyFederatedRegistrations()
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
   }
 }
 
@@ -106,7 +122,7 @@ function selectedUidForRegister(): string | null {
   return selectedMemberUid.value || null
 }
 
-const {running: registering, error: registrationError, run: runRegistration} = useAsyncAction(
+const {running: registering, failure: registrationFailure, run: runRegistration} = useAsyncAction(
     async (kind: 'register' | 'withdraw', uid: string) => {
       if (kind === 'register') {
         const status = await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), uid)
@@ -122,9 +138,7 @@ const {running: registering, error: registrationError, run: runRegistration} = u
           run: () => undoWithdrawal(uid),
         })
       }
-    },
-    {formatError: () => t('common.error')},
-)
+    })
 
 /**
  * Asking the other station to put a place back. Theirs is the clock that decides, so a refusal here
@@ -133,10 +147,11 @@ const {running: registering, error: registrationError, run: runRegistration} = u
 async function undoWithdrawal(uid: string) {
   try {
     await events.undoFederatedWithdrawal(stationUid.value, eventId.value, getEventDate(), uid)
-    myRegistrations.value = await events.listMyFederatedRegistrations()
   } catch {
     showToast(t('eventsUpcoming.undoTooLate'), 'error')
+    return
   }
+  await refreshMyRegistrations()
 }
 
 function registerForEvent() {
@@ -153,7 +168,7 @@ const commentsList = ref<Comment[]>([])
 const members = ref<MemberCompletion[]>([])
 const commentsLoading = ref(false)
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const [eventDetail, regs] = await Promise.all([
     events.getFederatedEvent(stationUid.value, eventId.value),
     events.listMyFederatedRegistrations().catch(() => []),
@@ -179,31 +194,49 @@ async function loadComments() {
   }
 }
 
+/**
+ * Reads the comments back after one was written.
+ *
+ * <p>Separate from the writing. The three used to share one `try`, so a comment the partner station
+ * had already stored, followed by a list that would not come back, said the comment had not been
+ * written, and a reader told that writes it again.
+ */
+async function refreshComments() {
+  try {
+    commentsList.value = await commentsApi.listFederatedEventComments(stationUid.value, eventId.value)
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
+  }
+}
+
 async function createComment(parentId: number | null, content: string) {
   try {
     await commentsApi.createFederatedEventComment(stationUid.value, eventId.value, {parentId, content})
-    commentsList.value = await commentsApi.listFederatedEventComments(stationUid.value, eventId.value)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await refreshComments()
 }
 
 async function updateComment(commentId: number, content: string) {
   try {
     await commentsApi.updateFederatedEventComment(stationUid.value, commentId, {content})
-    commentsList.value = await commentsApi.listFederatedEventComments(stationUid.value, eventId.value)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await refreshComments()
 }
 
 async function deleteComment(commentId: number) {
   try {
     await commentsApi.deleteFederatedEventComment(stationUid.value, commentId)
-    commentsList.value = await commentsApi.listFederatedEventComments(stationUid.value, eventId.value)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await refreshComments()
 }
 
 watch(() => [route.params.stationUid, route.params.eventId], () => {
@@ -224,7 +257,7 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error || registrationError" variant="error">{{ error || registrationError }}</Alert>
+      <FailureAlert :failure="failure ?? registrationFailure"/>
 
       <template v-if="eventData && !loading">
         <HeaderCard :event="eventData" :public-fields="publicFields"/>

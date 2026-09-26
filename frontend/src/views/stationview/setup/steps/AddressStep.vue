@@ -10,32 +10,47 @@ import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
 import LocationSection from '@/views/stationview/manage/stationview/LocationSection.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
+import type {Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
 const {reload, requiredSteps} = useSetupStatus()
 
+/**
+ * The three things this step can have to say, kept apart because they are not alike.
+ *
+ * <p>An address that saved, an address that would not save, and an address that is only half filled
+ * in used to share one line and one alert. The last of those is the reader's to finish and never a
+ * fault in Ember, so it must not come with the offer to report a bug; the middle one often is, and
+ * has to keep that offer along with whatever the server said about why.
+ */
 const message = ref('')
-const messageVariant = ref<'success' | 'error'>('success')
+const failure = ref<Failure | null>(null)
+const incomplete = ref('')
 
 function onSuccess(text: string) {
   message.value = text
-  messageVariant.value = 'success'
+  failure.value = null
+  incomplete.value = ''
 }
 
-function onError(text: string) {
-  message.value = text
-  messageVariant.value = 'error'
+function onError(reported: Failure) {
+  failure.value = reported
+  message.value = ''
+  incomplete.value = ''
 }
 
 const {running: saving, run: proceed} = useAsyncAction(async () => {
   await reload()
   const addressStep = requiredSteps.value.find((s) => s.id === 'address')
   if (!addressStep?.complete) {
-    onError(t('setup.steps.address.incompleteHint'))
+    incomplete.value = t('setup.steps.address.incompleteHint')
+    message.value = ''
+    failure.value = null
     return
   }
   goToNextStep(router, 'address')
@@ -45,6 +60,8 @@ const {running: saving, run: proceed} = useAsyncAction(async () => {
 <template>
   <SetupLayout step-id="address" :saving="saving" @save="proceed">
     <LocationSection @success="onSuccess" @error="onError"/>
-    <Alert v-if="message" :variant="messageVariant">{{ message }}</Alert>
+    <Alert v-if="message" variant="success">{{ message }}</Alert>
+    <FailureAlert :message="incomplete" expected/>
+    <FailureAlert :failure="failure"/>
   </SetupLayout>
 </template>

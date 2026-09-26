@@ -16,6 +16,7 @@ import { procurement, inventory, stationMembers } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
+import { describeFailure } from '@/util/failure'
 import ProcurementEntryRow from './procurementview/ProcurementEntryRow.vue'
 import ProcurementCreateModal from './procurementview/ProcurementCreateModal.vue'
 
@@ -30,9 +31,13 @@ const members = ref<StationMember[]>([])
 
 const showCreateModal = ref(false)
 
-const {loading, error} = useAsyncLoader(async () => {
-  // An entry can name the person it is for, and an association orders for a station rather than for
-  // anybody, so it neither offers the choice nor is allowed to ask who there is
+/**
+ * The orders, what may be ordered, and who they can be for.
+ *
+ * <p>An entry can name the person it is for, and an association orders for a station rather than for
+ * anybody, so it neither offers the choice nor is allowed to ask who there is.
+ */
+const {loading, failure} = useAsyncLoader(async () => {
   const [e, inv, m] = await Promise.all([
     procurement.listProcurement(),
     inventory.listInventories(),
@@ -51,41 +56,44 @@ const {loading, error} = useAsyncLoader(async () => {
  */
 const orderableInventories = computed(() => inventories.value.filter(i => i.homogeneous))
 
+/**
+ * Fetches the orders again after one was settled or struck out, and says a stale screen rather than a
+ * failed change: the change is written by then, and a reader told otherwise makes it twice.
+ */
 async function reloadEntries() {
   try {
     entries.value = await procurement.listProcurement()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
   }
 }
 
 async function fulfillEntry(id: number) {
-  error.value = ''
+  failure.value = null
   try {
     await procurement.fulfill(id)
-    await reloadEntries()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await reloadEntries()
 }
 
 async function deleteEntry(id: number) {
-  error.value = ''
+  failure.value = null
   try {
     await procurement.deleteProcurement(id)
-    await reloadEntries()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await reloadEntries()
 }
 
 function onCreated() {
   void reloadEntries()
 }
 
-function onCreateError() {
-  error.value = t('common.error')
-}
 </script>
 
 <template>
@@ -110,7 +118,7 @@ function onCreateError() {
       <AsyncSection
         :empty="entries.length === 0"
         :empty-message="t('procurement.empty')"
-        :error="error"
+        :failure="failure"
         :loading="loading"
       >
         <div class="space-y-3">
@@ -130,7 +138,6 @@ function onCreateError() {
         :inventories="orderableInventories"
         :members="members"
         @created="onCreated"
-        @error="onCreateError"
       />
     </div>
   </ViewContent>

@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import type {Failure} from '@/util/failure'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -23,7 +24,10 @@ const priority = defineModel<TicketPriorityName>('priority', {required: true})
 
 defineProps<{
   laneOptions: BoardLane[]
-  error: string
+  /** Something the reader left out, which is theirs to put right and never worth reporting. */
+  validationError: string
+  /** Why the far side would not take the ticket. */
+  failure: Failure | null
 }>()
 
 const emit = defineEmits<{
@@ -63,7 +67,8 @@ const {t} = useI18n()
           </SelectInput>
         </div>
       </div>
-      <FailureAlert :message="error"/>
+      <FailureAlert :message="validationError" expected/>
+      <FailureAlert :failure="failure"/>
       <div class="flex justify-end">
         <PrimaryButton @click="emit('create')">{{ t('common.create') }}</PrimaryButton>
       </div>

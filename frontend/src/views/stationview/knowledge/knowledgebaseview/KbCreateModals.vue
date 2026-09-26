@@ -14,6 +14,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {knowledgeBase} from '@/api'
+import {describeFailure, type Failure} from '@/util/failure'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FileInput from '@/components/input/FileInput.vue'
 
@@ -26,7 +27,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     created: []
-    error: [message: string]
+    /**
+     * Why something could not be created, described rather than flattened to one sentence. A file too
+     * large for the station's allowance and a folder the reader may not write in are different
+     * problems with different answers, and both used to arrive here as "that did not work".
+     */
+    error: [failure: Failure]
 }>()
 
 // Create folder
@@ -113,8 +119,8 @@ async function handleCreateFolder() {
         })
         showCreateFolderModal.value = false
         emit('created')
-    } catch {
-        emit('error', t('common.error'))
+    } catch (e) {
+        emit('error', describeFailure(e, t))
     }
 }
 
@@ -128,8 +134,8 @@ async function handleCreateFile() {
         })
         showCreateFileModal.value = false
         router.push({name: 'kb-file', params: {id: file.id}})
-    } catch {
-        emit('error', t('common.error'))
+    } catch (e) {
+        emit('error', describeFailure(e, t))
     }
 }
 
@@ -151,8 +157,8 @@ async function handleUploadFile() {
         })
         showUploadModal.value = false
         emit('created')
-    } catch {
-        emit('error', t('common.error'))
+    } catch (e) {
+        emit('error', describeFailure(e, t))
     }
 }
 
@@ -177,8 +183,8 @@ async function handleImportDocument() {
         })
         showImportModal.value = false
         router.push({name: 'kb-file', params: {id: created.id}})
-    } catch {
-        emit('error', t('common.error'))
+    } catch (e) {
+        emit('error', describeFailure(e, t))
     }
 }
 
@@ -193,8 +199,8 @@ async function handleCreateYoutube() {
         })
         showYoutubeModal.value = false
         emit('created')
-    } catch {
-        emit('error', t('common.error'))
+    } catch (e) {
+        emit('error', describeFailure(e, t))
     }
 }
 
@@ -209,8 +215,8 @@ async function handleCreateLink() {
         })
         showLinkModal.value = false
         emit('created')
-    } catch {
-        emit('error', t('common.error'))
+    } catch (e) {
+        emit('error', describeFailure(e, t))
     }
 }
 

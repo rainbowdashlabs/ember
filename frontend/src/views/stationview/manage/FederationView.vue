@@ -17,6 +17,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -29,6 +30,7 @@ import { resolveFederationVersion } from '@/util/federationVersion'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useFlashMessage } from '@/composables/useFlashMessage'
 import { apiErrorBody } from '@/util/apiError'
+import { describeFailure, type Failure } from '@/util/failure'
 import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
@@ -44,9 +46,9 @@ const {message: success, flash} = useFlashMessage(3000)
 const showInviteModal = ref(false)
 const generatedCode = ref('')
 const acceptCode = ref('')
-const acceptError = ref('')
+const acceptFailure = ref<Failure | null>(null)
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const [p, r, info] = await Promise.all([
     federation.listPartners(),
     federation.listPairRequests(),
@@ -63,7 +65,7 @@ async function handleAcceptRequest(id: number) {
     flash(t('federation.connected'))
     await reload()
     refreshSidebarCounts()
-  } catch { error.value = t('common.error') }
+  } catch (e) { failure.value = federationFailure(e) }
 }
 
 async function handleDeclineRequest(id: number) {
@@ -71,11 +73,11 @@ async function handleDeclineRequest(id: number) {
     await federation.declinePairRequest(id)
     await reload()
     refreshSidebarCounts()
-  } catch { error.value = t('common.error') }
+  } catch (e) { failure.value = federationFailure(e) }
 }
 
 function openInviteModal() {
-  acceptError.value = ''
+  acceptFailure.value = null
   showInviteModal.value = true
 }
 
@@ -83,16 +85,21 @@ async function generateInvite() {
   try {
     const res = await federation.createInvite()
     generatedCode.value = res.inviteCode
-  } catch { error.value = t('common.error') }
+  } catch (e) { failure.value = federationFailure(e) }
 }
 
 /**
  * A code stands until it is used, so a refusal names what is in the way. The reason travels as its
  * own field and each one has its own sentence; anything unforeseen falls back to the general one
  * rather than claiming the code has run out.
+ *
+ * <p>Nothing comes back where the server named no reason at all, which is a request that never
+ * reached the far side rather than one it turned down. The described failure says that better.
  */
-function refusalMessage(e: unknown): string {
-  switch (apiErrorBody(e)?.error) {
+function refusalReason(e: unknown): string | undefined {
+  const reason = apiErrorBody(e)?.error
+  if (!reason) return undefined
+  switch (reason) {
     case 'MALFORMED': return t('federation.refused.malformed')
     case 'OTHER_INSTANCE': return t('federation.refused.otherInstance')
     case 'HOST_REFUSED': return t('federation.refused.hostRefused')
@@ -110,9 +117,21 @@ function refusalMessage(e: unknown): string {
   }
 }
 
+/**
+ * The failure with the federation reason in front of it, where there was one.
+ *
+ * <p>A partner turning us down is not a fault in Ember and offering to report it buries the reports
+ * that are, so a named refusal is never reportable however the status came back.
+ */
+function federationFailure(e: unknown): Failure {
+  const described = describeFailure(e, t)
+  const refusal = refusalReason(e)
+  return refusal ? {...described, message: refusal, reportable: false} : described
+}
+
 async function handleAccept() {
   if (!acceptCode.value.trim()) return
-  acceptError.value = ''
+  acceptFailure.value = null
   try {
     const result = await federation.acceptInvite(acceptCode.value.trim())
     showInviteModal.value = false
@@ -120,7 +139,7 @@ async function handleAccept() {
     generatedCode.value = ''
     flash(result.status === 'ACTIVE' ? t('federation.connected') : t('federation.requestSent'))
     await reload()
-  } catch (e) { acceptError.value = refusalMessage(e) }
+  } catch (e) { acceptFailure.value = federationFailure(e) }
 }
 
 watch(loaded, (v) => { if (v) reload() }, { immediate: true })
@@ -142,7 +161,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
     <AsyncSection
       :empty="partners.length === 0 && pairRequests.length === 0"
       :empty-message="t('federation.noPartners')"
-      :error="error"
+      :failure="failure"
       :loading="loading"
     >
       <div v-if="pairRequests.length > 0" class="mb-6">
@@ -198,7 +217,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
             <TextInput v-model="acceptCode" :placeholder="t('federation.codePlaceholder')" class="flex-1 font-mono text-sm" />
             <PrimaryButton type="submit" :disabled="!acceptCode.trim()">{{ t('federation.connect') }}</PrimaryButton>
           </form>
-          <Alert v-if="acceptError" variant="error" class="mt-2">{{ acceptError }}</Alert>
+          <FailureAlert :failure="acceptFailure" class="mt-2"/>
         </div>
       </div>
     </Modal>

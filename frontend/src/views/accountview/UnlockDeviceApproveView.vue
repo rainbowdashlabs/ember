@@ -23,7 +23,7 @@ import NumberMatchPicker from './unlockdeviceapproveview/NumberMatchPicker.vue'
 import {passkeys} from '@/api'
 import type {DeviceLookup} from '@/api/passkeys'
 import {apiErrorStatus} from '@/util/apiError'
-import {describeFailure, FailureKind} from '@/util/failure'
+import {describeFailure, type Failure} from '@/util/failure'
 import {formatDateTime} from '@/util/format'
 
 /**
@@ -36,7 +36,7 @@ const route = useRoute()
 
 const code = ref('')
 const details = ref<DeviceLookup | null>(null)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const done = ref(false)
 const busy = ref(false)
 const forAccountId = ref('')
@@ -70,24 +70,37 @@ const purposeSentence = computed(() => {
  * seconds and giving up. A wrong number ends the request outright, which the reader has to be told
  * or they will sit waiting for something that is never coming.
  */
-function refusalText(e: unknown): string {
+function refusalFailure(e: unknown): Failure {
+  const described = describeFailure(e, t)
   const status = apiErrorStatus(e)
-  if (status === 404) return t('passkeys.approve.unknownCode')
-  if (status === 409) return t('passkeys.approve.wrongNumber')
-  const failure = describeFailure(e, t)
-  if (failure.kind === FailureKind.TOO_OFTEN) return `${failure.message} ${failure.guidance}`
-  return t('common.error')
+  if (status === 404) {
+    return {
+      ...described,
+      message: t('passkeys.approve.unknownCode'),
+      guidance: t('passkeys.approve.unknownCodeGuidance'),
+      reportable: false,
+    }
+  }
+  if (status === 409) {
+    return {
+      ...described,
+      message: t('passkeys.approve.wrongNumber'),
+      guidance: t('passkeys.approve.wrongNumberGuidance'),
+      reportable: false,
+    }
+  }
+  return described
 }
 
 async function lookup() {
-  error.value = ''
+  failure.value = null
   busy.value = true
   try {
     details.value = await passkeys.deviceLookup(code.value)
     forAccountId.value = String(details.value.candidates[0]?.accountId ?? '')
   } catch (e) {
     details.value = null
-    error.value = refusalText(e)
+    failure.value = refusalFailure(e)
   } finally {
     busy.value = false
   }
@@ -100,7 +113,7 @@ async function lookup() {
  * beginning and says why: there is nothing left to press here, and the device has to ask again.
  */
 async function approve(pickedNumber: number) {
-  error.value = ''
+  failure.value = null
   busy.value = true
   try {
     await passkeys.deviceApprove(
@@ -109,12 +122,12 @@ async function approve(pickedNumber: number) {
         offersCandidates.value ? Number(forAccountId.value) : undefined)
     done.value = true
   } catch (e) {
-    const refused = refusalText(e)
+    const refused = refusalFailure(e)
     if (apiErrorStatus(e) === 409) {
       code.value = ''
       details.value = null
     }
-    error.value = refused
+    failure.value = refused
   } finally {
     busy.value = false
   }
@@ -124,7 +137,7 @@ function reset() {
   code.value = ''
   details.value = null
   done.value = false
-  error.value = ''
+  failure.value = null
 }
 
 /**
@@ -148,7 +161,7 @@ onMounted(() => {
       <NeutralContainer class="space-y-4">
         <SectionHeader>{{ t('passkeys.approve.title') }}</SectionHeader>
         <MutedText tag="p" size="sm">{{ t('passkeys.approve.hint') }}</MutedText>
-        <FailureAlert :message="error"/>
+        <FailureAlert :failure="failure"/>
 
         <template v-if="done">
           <Alert variant="success">{{ t('passkeys.approve.done') }}</Alert>

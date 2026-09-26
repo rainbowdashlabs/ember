@@ -11,13 +11,14 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import {QuestionTypes, type EligibleMembers, type Form, type FormQuestion} from '@/api/forms'
 import { forms } from '@/api'
+import { describeFailure, type Failure } from '@/util/failure'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import MemberSelector from './fillview/MemberSelector.vue'
@@ -106,9 +107,20 @@ function initAnswerDefaults() {
   }
 }
 
+/**
+ * Whether the answer already on file could be read, and why not where it could not.
+ *
+ * <p>This used to be swallowed and the form started blank, which is the worst of both: the reader
+ * cannot see that their earlier answer is still there, and sending this one is treated as a first
+ * answer rather than a correction. Saying so is the difference between a reader who reloads and one
+ * who overwrites their own work.
+ */
+const priorAnswerFailure = ref<Failure | null>(null)
+
 async function loadExistingResponse() {
   hasExistingResponse.value = false
   answers.value = {}
+  priorAnswerFailure.value = null
 
   try {
     let response
@@ -130,12 +142,13 @@ async function loadExistingResponse() {
     } else {
       initAnswerDefaults()
     }
-  } catch {
+  } catch (e) {
+    priorAnswerFailure.value = {...describeFailure(e, t), message: t('forms.priorAnswerUnknown')}
     initAnswerDefaults()
   }
 }
 
-const { loading, error, reload } = useAsyncLoader(async () => {
+const { loading, failure, reload } = useAsyncLoader(async () => {
   const [f, qs, elig] = await Promise.all([
     forms.getForm(formId.value),
     forms.getQuestions(formId.value),
@@ -162,7 +175,7 @@ watch(selectedMemberId, async () => {
   }
 })
 
-const {error: submitError, run: submit} = useAsyncAction(async () => {
+const {failure: submitFailure, run: submit} = useAsyncAction(async () => {
   const answerMap: Record<number, Record<string, unknown>> = {}
   for (const q of questions.value) {
     const value = answers.value[q.id]
@@ -186,9 +199,14 @@ const {error: submitError, run: submit} = useAsyncAction(async () => {
   }
   refreshSidebarCounts()
   router.push({ name: 'forms-list' })
-}, {formatError: () => t('common.error')})
+})
 
-const displayError = computed(() => error.value || submitError.value)
+/**
+ * The one failure to show. An answer that could not be sent is what the reader was last doing, so it
+ * wins over a form that would not load: the second is a reason to reload the page, the first is a
+ * reason to look at what they typed, and being told the wrong one costs them the answer.
+ */
+const displayFailure = computed(() => submitFailure.value ?? failure.value ?? priorAnswerFailure.value)
 
 onMounted(() => {
   if (loaded.value) reload()
@@ -206,7 +224,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
+      <FailureAlert :failure="displayFailure"/>
 
       <template v-if="!loading && form">
         <div>

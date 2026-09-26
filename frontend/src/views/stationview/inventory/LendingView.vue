@@ -27,6 +27,8 @@ import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
 import {StationPermission} from '@/api/types'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const routes = useInventoryRoutes()
 
@@ -41,7 +43,7 @@ const activeTab = ref<'offers' | 'requests'>('offers')
 const availableItems = ref<AvailableInventoryEntry[]>([])
 const emptyReason = ref<LendingEmptyReasonName | null>(null)
 const loadingAvailable = ref(true)
-const availableError = ref('')
+const availableFailure = ref<Failure | null>(null)
 const searchQuery = ref('')
 const filterDateFrom = ref('')
 const filterDateTo = ref('')
@@ -68,7 +70,7 @@ const emptyMessage = computed(() => {
 
 async function loadAvailable() {
   loadingAvailable.value = true
-  availableError.value = ''
+  availableFailure.value = null
   try {
     const options: { q?: string; from?: string; to?: string } = {}
     if (filterDateFrom.value) options.from = filterDateFrom.value
@@ -76,8 +78,8 @@ async function loadAvailable() {
     const result = await lending.listAvailable(options)
     availableItems.value = result.entries
     emptyReason.value = result.emptyReason
-  } catch {
-    availableError.value = t('lending.loadError')
+  } catch (e) {
+    availableFailure.value = describeFailure(e, t)
   } finally {
     loadingAvailable.value = false
   }
@@ -107,24 +109,18 @@ function navigateToCreateRequest(item: AvailableInventoryEntry) {
 }
 
 const requests = ref<LendingRequestResponse[]>([])
-const loadingRequests = ref(true)
-const requestsError = ref('')
 const requestSuccess = ref('')
+
+const {
+    loading: loadingRequests,
+    failure: requestsFailure,
+    reload: loadRequests,
+} = useAsyncLoader(async () => {
+    requests.value = await lending.listRequests()
+}, {autoLoad: false})
 
 const incoming = computed(() => requests.value.filter(r => r.isOwner))
 const outgoing = computed(() => requests.value.filter(r => !r.isOwner))
-
-async function loadRequests() {
-  loadingRequests.value = true
-  requestsError.value = ''
-  try {
-    requests.value = await lending.listRequests()
-  } catch {
-    requestsError.value = t('lending.loadError')
-  } finally {
-    loadingRequests.value = false
-  }
-}
 
 onMounted(() => {
   if (loaded.value) {
@@ -197,7 +193,7 @@ watch(loaded, (v) => {
       <AsyncSection
           :empty="filteredItems.length === 0"
           :empty-message="emptyMessage"
-          :error="availableError"
+          :failure="availableFailure"
           :loading="loadingAvailable"
       >
         <div class="flex flex-col gap-2">
@@ -233,7 +229,7 @@ watch(loaded, (v) => {
     </template>
 
     <template v-if="activeTab === 'requests'">
-      <AsyncSection :error="requestsError" :loading="loadingRequests">
+      <AsyncSection :failure="requestsFailure" :loading="loadingRequests">
         <template v-if="isLendingManager">
           <SubHeader class="mt-2 mb-2">{{ t('lending.incoming') }}</SubHeader>
           <EmptyState v-if="incoming.length === 0" compact>{{ t('lending.noIncoming') }}</EmptyState>

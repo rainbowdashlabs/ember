@@ -36,7 +36,7 @@ const {isMobile} = useBreakpoint()
 
 const items = ref<ClusterItem[]>([])
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   items.value = await clusterInventory.listItems()
 })
 
@@ -79,7 +79,7 @@ const byStation = computed(() => {
       <InventoryTabs/>
 
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <EmptyState v-if="!loading && away.length === 0">{{ t('clusterInventory.outEmpty') }}</EmptyState>
       <template v-else-if="!loading">

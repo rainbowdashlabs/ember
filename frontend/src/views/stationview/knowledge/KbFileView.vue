@@ -11,6 +11,8 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import SaveButton from '@/components/button/SaveButton.vue'
 import KbFileHeaderBar from '@/views/stationview/knowledge/kbfileview/KbFileHeaderBar.vue'
 import KbPartnerGoneNotice from '@/views/stationview/knowledge/kbfileview/KbPartnerGoneNotice.vue'
@@ -157,8 +159,8 @@ async function copyToStation() {
         const {federation} = await import('@/api')
         await federation.copyKbFile(file.value.id)
         router.push({name: routes.value.browse})
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = {...describeFailure(e, t), message: t('kb.copyToStationFailed')}
     }
 }
 
@@ -174,7 +176,7 @@ const contentUrl = computed(() => {
     return knowledgeBase.fileContentUrl(file.value.id)
 })
 
-const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
     if (props.stationUid) {
         await loadFederatedFile(props.stationUid)
         return
@@ -313,7 +315,7 @@ async function saveContent() {
         hasUnsavedChanges.value = false
         editing.value = false
     } catch (e) {
-        error.value = t('common.error')
+        failure.value = {...describeFailure(e, t), message: t('kb.saveContentFailed')}
         throw e
     }
 }
@@ -336,11 +338,11 @@ async function handleReuploadFile(uploadFile: File) {
     if (!file.value) return
     try {
         file.value = await knowledgeBase.reuploadOriginal(file.value.id, uploadFile)
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = {...describeFailure(e, t), message: t('kb.reuploadFailed')}
     }
 }
-const favourite = useKbFileFavourite(() => props.fileId, () => props.stationUid, error)
+const favourite = useKbFileFavourite(() => props.fileId, () => props.stationUid, failure)
 
 watch(loaded, (isLoaded) => {
     if (isLoaded) { loadData(); favourite.load() }
@@ -357,7 +359,7 @@ watch(() => [props.fileId, props.stationUid], () => {
             v-if="isFederated && !file && !loading && favourite.marked.value"
             @remove="favourite.toggle()"
         />
-        <Alert v-else-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+        <FailureAlert v-else-if="failure" :failure="failure" class="mb-4"/>
         <Spinner v-if="loading"/>
 
         <template v-else-if="file">
@@ -491,7 +493,7 @@ watch(() => [props.fileId, props.stationUid], () => {
             :file="move.movingFile.value"
             :folders="move.folders.value"
             @moved="loadData()"
-            @error="(msg) => error = msg"
+            @error="(reported) => failure = reported"
         />
     </ViewContent>
 </template>

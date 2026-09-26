@@ -32,6 +32,7 @@ const lintScripts = [
   'lint-standalone.mjs',
   'lint-button-rows.mjs',
   'lint-page-links.mjs',
+  'lint-generic-errors.mjs',
   'lint-social-meta.mjs',
   'lint-context-titles.mjs',
 ]

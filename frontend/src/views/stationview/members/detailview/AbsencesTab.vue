@@ -11,6 +11,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -24,6 +25,7 @@ import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useFlashMessage } from '@/composables/useFlashMessage'
 import { formatDate, todayIsoDate } from '@/util/format'
+import { describeFailure } from '@/util/failure'
 
 const props = defineProps<{
   memberId: number
@@ -31,7 +33,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-const { config: absences, loading, error, reload: loadData } = useConfigPanel<MemberAbsence[]>({
+const { config: absences, loading, failure, reload: loadData } = useConfigPanel<MemberAbsence[]>({
   initial: [],
   fetch: () => listMemberAbsences(props.memberId),
 })
@@ -50,8 +52,8 @@ function statusOf(a: MemberAbsence): 'active' | 'upcoming' | 'expired' {
 
 const canSave = computed(() => newFrom.value && newUntil.value)
 
-const { running: saving, error: createError, run: runCreate } = useAsyncAction(async () => {
-  error.value = ''
+const { running: saving, failure: createFailure, run: runCreate } = useAsyncAction(async () => {
+  failure.value = null
   await createMemberAbsence({
     memberId: props.memberId,
     absentFrom: newFrom.value,
@@ -61,30 +63,41 @@ const { running: saving, error: createError, run: runCreate } = useAsyncAction(a
   newFrom.value = ''
   newUntil.value = ''
   newReason.value = ''
-  await loadData()
   flash(t('memberDetail.absences.saved'))
-}, { formatError: () => t('common.error') })
+})
 
-function create() {
+async function create() {
   if (!canSave.value) return
-  runCreate()
+  await runCreate()
+  if (createFailure.value) return
+  await reloadAfterWrite()
+}
+
+/**
+ * Fetches the list again after one was written or removed, and says a stale screen rather than a
+ * failed write: the absence is in by then, and a reader told otherwise enters it twice.
+ */
+async function reloadAfterWrite() {
+  await loadData()
+  if (failure.value) failure.value = {...failure.value, message: t('failure.staleAfterAction')}
 }
 
 async function remove(id: number) {
-  error.value = ''
+  failure.value = null
   try {
     await deleteMemberAbsence(id)
-    await loadData()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await reloadAfterWrite()
 }
 </script>
 
 <template>
   <div class="space-y-6">
     <Spinner v-if="loading" size="md" />
-    <Alert v-if="error || createError" variant="error">{{ error || createError }}</Alert>
+    <FailureAlert :failure="createFailure ?? failure"/>
     <Alert v-if="success" variant="success">{{ success }}</Alert>
 
     <template v-if="!loading">

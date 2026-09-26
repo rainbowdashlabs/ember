@@ -19,7 +19,7 @@ import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()
 
-const { config, loading, error, runWith } = useConfigPanel<BackupCodesConfig>({
+const { config, loading, failure, runWith } = useConfigPanel<BackupCodesConfig>({
   initial: { count: 10 },
   fetch: () => adminSettings.getBackupCodesConfig(),
 })
@@ -32,7 +32,7 @@ async function save() {
 <template>
   <div>
     <Spinner v-if="loading" size="md"/>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <NeutralContainer v-if="!loading" class="space-y-4">
       <SectionHeader>{{ t('adminSecurity.backupCodes.title') }}</SectionHeader>

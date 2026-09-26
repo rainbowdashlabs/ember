@@ -33,7 +33,7 @@ const {
   registrationCounts, overviewFields, categories, restrictions, groups, tags,
   tab, isPast, searchInput, categoryId, from, to, showNeedsAction,
   registering, occurrences, multiDayEndDate,
-  loading, error,
+  loading, failure,
   answerPrompt, confirmAnswerPrompt, cancelAnswerPrompt,
 } = upcoming
 
@@ -125,7 +125,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <UpcomingBody
           v-if="!loading"
           v-model:tab="tab"

@@ -12,7 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TemplateSelectorSection from '@/views/stationview/procedure/procedurecreateview/TemplateSelectorSection.vue'
 import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/BasicInfoSection.vue'
 import AssigneesSection from '@/views/stationview/procedure/procedurecreateview/AssigneesSection.vue'
@@ -37,7 +37,7 @@ const form = useProcedureForm(editId, presetTemplateId)
 const {
   name, savedName, description, dueAt, isPublic,
   templates, selectedTemplateId, members, selectedAssigneeIds, items,
-  isEditMode, loading, error,
+  isEditMode, loading, failure,
 } = form
 
 /**
@@ -52,14 +52,13 @@ const pageSubtitle = computed(() => isEditMode.value
     ? t('pages.procedure-edit.subtitle')
     : t('pages.procedure-create.subtitle'))
 
-const {running: saving, error: saveError, run: runSubmit} = useAsyncAction(
+const {running: saving, failure: saveFailure, run: runSubmit} = useAsyncAction(
     async () => router.push({name: 'procedure-detail', params: {id: await form.submit()}}),
-    {formatError: () => t('common.error')},
 )
 
 function handleSubmit() {
   if (!name.value.trim()) return
-  error.value = ''
+  failure.value = null
   return runSubmit()
 }
 
@@ -74,7 +73,7 @@ watch(loaded, (v) => {
       :subtitle="pageSubtitle"
   >
     <Spinner v-if="loading"/>
-    <Alert v-if="error || saveError" variant="error" class="mb-4">{{ error || saveError }}</Alert>
+    <FailureAlert :failure="failure ?? saveFailure" class="mb-4"/>
 
     <template v-if="!loading">
       <div class="space-y-6">

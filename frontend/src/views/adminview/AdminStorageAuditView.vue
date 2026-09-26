@@ -20,7 +20,8 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import StorageBackendAuditTable from '@/components/storage/StorageBackendAuditTable.vue'
 import {useSession} from '@/composables/useSession'
 import {type AuditEntry, getInstanceStorageAudit} from '@/api/storageBackend'
-import {errorMessage} from '@/util/apiError'
+import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const {isAdmin, loaded} = useSession()
@@ -33,7 +34,7 @@ watch(loaded, (isLoaded) => {
 }, {immediate: true})
 
 const loading = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const entries = ref<AuditEntry[]>([])
 const stationUidFilter = ref('')
 const beforeFilter = ref('')
@@ -43,7 +44,7 @@ onMounted(applyFilters)
 
 async function applyFilters() {
     loading.value = true
-    error.value = ''
+    failure.value = null
     try {
         entries.value = await getInstanceStorageAudit({
             stationUid: stationUidFilter.value || undefined,
@@ -51,7 +52,10 @@ async function applyFilters() {
             limit: limit.value,
         })
     } catch (e) {
-        error.value = errorMessage(e) ?? t('adminStorageAudit.errors.loadFailed')
+        failure.value = {
+            ...describeFailure(e, t),
+            message: apiErrorMessage(e) ?? t('adminStorageAudit.errors.loadFailed'),
+        }
     } finally {
         loading.value = false
     }
@@ -67,7 +71,7 @@ async function applyFilters() {
                 </RouterLink>
             </div>
 
-            <FailureAlert :message="error"/>
+            <FailureAlert :failure="failure"/>
 
             <NeutralContainer class="space-y-4">
                 <SubHeader>{{ t('adminStorageAudit.filters.title') }}</SubHeader>

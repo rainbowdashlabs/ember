@@ -7,6 +7,7 @@ import { computed, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fromMember, userTypesOf } from '@/components/input/select/memberOption'
 import type { AssignableMember } from '@/composables/useGroupsConfig'
+import { describeFailure, type Failure } from '@/util/failure'
 
 /**
  * Assigning members to a group or a tag.
@@ -18,12 +19,15 @@ import type { AssignableMember } from '@/composables/useGroupsConfig'
  * @param members    the members currently assigned, replaced by every change
  * @param setMembers writes the new membership and returns what was stored
  * @param error      the view's error channel
+ * @param failure    the view's failure channel, where it has one, which is what carries the guidance
+ *                   and the judgement about whether this is worth reporting
  */
 export function useMemberAssignment(
   allMembers: Ref<AssignableMember[]>,
   members: Ref<AssignableMember[]>,
   setMembers: (memberIds: number[]) => Promise<AssignableMember[]>,
   error: Ref<string>,
+  failure?: Ref<Failure | null>,
 ) {
   const { t } = useI18n()
 
@@ -43,10 +47,14 @@ export function useMemberAssignment(
   const offeredUserTypes = computed(() => userTypesOf(availableMembers.value).toSorted())
 
   async function apply(memberIds: number[]) {
+    if (failure) failure.value = null
+    error.value = ''
     try {
       members.value = await setMembers(memberIds)
-    } catch {
-      error.value = t('common.error')
+    } catch (e) {
+      const described = describeFailure(e, t)
+      if (failure) failure.value = described
+      error.value = described.message
     }
   }
 

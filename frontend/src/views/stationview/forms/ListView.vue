@@ -82,24 +82,11 @@ const availableForms = ref<FormListEntry[]>([])
 
 interface PendingConfirm {
   message: string
-  action: () => Promise<void>
+  /** Whatever the act answers with is ignored; the list is caught up separately afterwards. */
+  action: () => Promise<unknown>
 }
 
-const confirmAction = useConfirmAction<PendingConfirm>({
-  onConfirm: async (pending) => {
-    try {
-      await pending.action()
-    } catch {
-      return
-    }
-  },
-})
-
-function showConfirm(message: string, action: () => Promise<void>) {
-  confirmAction.request({message, action})
-}
-
-const { loading, error, reload } = useAsyncLoader(async () => {
+const { loading, failure, reload } = useAsyncLoader(async () => {
   if (canViewResults.value) {
     managedForms.value = await forms.listForms(props.purpose)
   }
@@ -111,6 +98,20 @@ const { loading, error, reload } = useAsyncLoader(async () => {
 }, { autoLoad: false })
 loading.value = true
 
+/**
+ * The act and the list refresh that follows it, kept apart on purpose. Sharing one attempt meant a
+ * form that really was deleted, followed by a list that failed to come back, read as a deletion that
+ * had failed, and the reader deleted it again.
+ */
+const confirmAction = useConfirmAction<PendingConfirm>({
+  onConfirm: async (pending) => { await pending.action() },
+  onSuccess: () => reload(),
+})
+
+function showConfirm(message: string, action: () => Promise<unknown>) {
+  confirmAction.request({message, action})
+}
+
 function statusLabel(state: string) {
   if (state === PublicFormState.OPEN) return t('forms.statusOpen')
   if (state === PublicFormState.CLOSED) return t('forms.statusClosed')
@@ -120,31 +121,20 @@ function statusLabel(state: string) {
 
 function publishForm(form: Form) {
   const question = form.status === FormStatus.CLOSED ? t('forms.confirmReopen') : t('forms.confirmPublish')
-  showConfirm(question, async () => {
-    await forms.publishForm(form.id)
-    await reload()
-  })
+  showConfirm(question, () => forms.publishForm(form.id))
 }
 
 function clearResponses(form: Form) {
-  showConfirm(t('forms.confirmClearResponses', {count: form.responseCount}), async () => {
-    await forms.clearFormResponses(form.id)
-    await reload()
-  })
+  showConfirm(t('forms.confirmClearResponses', {count: form.responseCount}), () =>
+      forms.clearFormResponses(form.id))
 }
 
 function closeForm(form: Form) {
-  showConfirm(t('forms.confirmClose'), async () => {
-    await forms.closeForm(form.id)
-    await reload()
-  })
+  showConfirm(t('forms.confirmClose'), () => forms.closeForm(form.id))
 }
 
 function deleteForm(form: Form) {
-  showConfirm(t('forms.confirmDelete'), async () => {
-    await forms.deleteForm(form.id)
-    await reload()
-  })
+  showConfirm(t('forms.confirmDelete'), () => forms.deleteForm(form.id))
 }
 
 function goCreate() {
@@ -203,7 +193,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="confirmAction.failure.value ?? failure"/>
 
       <template v-if="!loading">
         <ManagedFormsSection

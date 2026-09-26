@@ -22,6 +22,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {usePagedList, PAGE_SIZE} from '@/composables/usePagedList'
 import {useSession} from '@/composables/useSession'
 import {useEventListFilters} from '@/composables/useEventListFilters'
+import {describeFailure, saying} from '@/util/failure'
 
 /**
  * A station's series are counted in dozens, so one request holds them all and the button offering
@@ -77,7 +78,7 @@ export function useEventDashboard() {
 
     const isEmpty = computed(() => dates.items.value.length === 0 && series.items.value.length === 0)
 
-    const {loading, error, reload} = useAsyncLoader(async () => {
+    const {loading, failure, reload} = useAsyncLoader(async () => {
         const [today, brs, cats, ovFields] = await Promise.all([
             events.listTodayEvents(),
             events.listBreaks(),
@@ -96,12 +97,19 @@ export function useEventDashboard() {
             : []
     })
 
+    /**
+     * Fetches both lists again after a filter, a search or the tab changed.
+     *
+     * <p>It says what could not be read and that the rows on screen are now out of date, because
+     * they are still drawn: a reader who is not told reads them as the answer to the filter they
+     * just set.
+     */
     async function refilter() {
         if (loading.value) return
         try {
             await Promise.all([dates.load(), series.load()])
-        } catch {
-            error.value = t('common.error')
+        } catch (e) {
+            failure.value = saying(describeFailure(e, t), t('events.listNotLoaded'))
         }
     }
 
@@ -109,8 +117,8 @@ export function useEventDashboard() {
     async function loadMore(kind: EventKindName) {
         try {
             await (kind === EventKinds.REPEATING ? series : dates).loadMore()
-        } catch {
-            error.value = t('common.error')
+        } catch (e) {
+            failure.value = saying(describeFailure(e, t), t('events.moreNotLoaded'))
         }
     }
 
@@ -130,7 +138,7 @@ export function useEventDashboard() {
         series: series.view,
         isEmpty,
         loading,
-        error,
+        failure,
         reload,
         loadMore,
     }

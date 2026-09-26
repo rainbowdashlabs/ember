@@ -20,6 +20,7 @@ import type {ShareSetting} from '@/api/lending'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useLendingShare} from '@/composables/useLendingShare'
+import {describeFailure} from '@/util/failure'
 import ScannerPanel from './manageview/ScannerPanel.vue'
 import InventorySummaryCard from './manageview/InventorySummaryCard.vue'
 import CreateInventoryModal from './manageview/CreateInventoryModal.vue'
@@ -37,7 +38,7 @@ const props = defineProps<{
 const {t} = useI18n()
 const router = useRouter()
 
-const {config: summaries, loading, error, reload} = useConfigPanel<InventorySummary[]>({
+const {config: summaries, loading, failure, reload} = useConfigPanel<InventorySummary[]>({
   initial: [],
   fetch: () => inventory.listSummaries(),
 })
@@ -51,13 +52,20 @@ const shares = ref(new Map<number, ShareSetting>())
  * What each inventory is currently offered as, asked once for the whole list rather than once per
  * card. Only the rows written on an inventory matter here: a row on a kind or on a piece narrows
  * that decision and is read on the screen that thing lives on.
+ *
+ * <p>Said out loud when it fails, because the cards then show no offer at all, which reads exactly
+ * like an inventory nobody has shared.
  */
 async function loadShares() {
   if (!sharing.value) return
-  const details = await lending.listShares()
-  shares.value = new Map(details
-      .filter(detail => detail.share.inventoryId != null)
-      .map(detail => [detail.share.inventoryId as number, lending.settingOf(detail)]))
+  try {
+    const details = await lending.listShares()
+    shares.value = new Map(details
+        .filter(detail => detail.share.inventoryId != null)
+        .map(detail => [detail.share.inventoryId as number, lending.settingOf(detail)]))
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('inventory.manage.sharesUnreadable')}
+  }
 }
 
 watch(sharing, mayShare => {
@@ -71,20 +79,28 @@ const {
   confirm: confirmDelete,
 } = useConfirmDelete<InventorySummary>({
   onDelete: inv => inventory.deleteInventory(inv.id),
-  onSuccess: () => reload(),
-  error,
+  onSuccess: () => reloadAfterWrite(),
+  failure,
 })
+
+/**
+ * Fetches the list again after something was deleted or created.
+ *
+ * <p>The list's own loader keeps whatever went wrong fetching it, and left as it stands that sentence
+ * reads as though the deletion had been refused. Renamed here to what it is: the write is through and
+ * only the screen is behind.
+ */
+async function reloadAfterWrite() {
+  await reload()
+  if (failure.value) failure.value = {...failure.value, message: t('failure.staleAfterAction')}
+}
 
 function editInventory(inv: InventorySummary) {
   router.push({name: routes.edit, params: {id: inv.id}})
 }
 
 function onCreated() {
-  reload()
-}
-
-function onError() {
-  error.value = t('common.error')
+  void reloadAfterWrite()
 }
 </script>
 
@@ -97,7 +113,7 @@ function onError() {
       <slot name="before"/>
 
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <StockActions @create="showCreateModal = true"/>
@@ -127,7 +143,6 @@ function onError() {
       <CreateInventoryModal
         v-model="showCreateModal"
         @created="onCreated"
-        @error="onError"
       />
 
       <ConfirmDeleteModal

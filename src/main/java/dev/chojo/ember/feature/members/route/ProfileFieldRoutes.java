@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -23,7 +24,6 @@ import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -68,7 +68,7 @@ public class ProfileFieldRoutes implements Routes {
     private static int requireStation(UserSession session) {
         Integer stationId = session.stationId();
         if (stationId == null) {
-            throw new NotFoundResponse();
+            throw Refusal.NO_STATION_CHOSEN_FOR_PROFILE_QUESTIONS.raise();
         }
         return stationId;
     }
@@ -276,7 +276,7 @@ public class ProfileFieldRoutes implements Routes {
                         request.width(),
                         request.keepOnArchive() != null && request.keepOnArchive())
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw new NotFoundResponse();
+                    throw Refusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE.raise();
                 });
     }
 
@@ -312,7 +312,7 @@ public class ProfileFieldRoutes implements Routes {
         if (profileFieldService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.PROFILE_FIELD_NOT_HERE_ON_DELETE.raise();
         }
     }
 

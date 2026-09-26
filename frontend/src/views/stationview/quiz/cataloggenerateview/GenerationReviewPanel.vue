@@ -11,6 +11,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import GenPreviewCard from './GenPreviewCard.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import type {Failure} from '@/util/failure'
 
 export interface GenPreview {
   title: string
@@ -25,7 +27,7 @@ const props = defineProps<{
   generating: boolean
   regeneratingIndex: number | null
   progressTotal: number
-  error: string
+  failure: Failure | null
 }>()
 
 const emit = defineEmits<{
@@ -64,7 +66,7 @@ const acceptedCount = computed(() => props.previews.filter(q => q.accepted).leng
           @regenerate="emit('regenerate', idx)"
       />
     </div>
-    <p v-if="props.error" class="text-xs text-error">{{ props.error }}</p>
+    <FailureAlert :failure="props.failure"/>
     <div class="flex items-center justify-between pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
       <div class="flex gap-2">
         <SecondaryButton :icon="['fas', 'chevron-left']" @click="emit('back')">

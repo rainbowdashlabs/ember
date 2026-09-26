@@ -14,11 +14,12 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure, type Failure} from '@/util/failure'
 import {useSession} from '@/composables/useSession'
 import {showToast} from '@/util/toast'
 import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
@@ -66,7 +67,7 @@ const showMembership = ref(false)
 
 const checklistId = computed(() => Number(route.params.id))
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
   const [d, g, ts, m] = await Promise.all([
     checklists.getChecklist(checklistId.value),
     memberGroups.listGroups(),
@@ -168,38 +169,68 @@ async function onRefresh(): Promise<ChecklistRefreshResult> {
   return result
 }
 
-const {running: addingMembers, error: addMembersError, run: runAddMembers} = useAsyncAction(
+const {running: addingMembers, failure: addMembersFailure, run: runAddMembers} = useAsyncAction(
     async (memberIds: number[]) => {
       if (!detail.value) return
       const result: ChecklistAddMembersResult = await checklists.addMembers(detail.value.id, memberIds)
       showAddMembers.value = false
-      await reload()
+      await catchUp()
       showToast(
           t('checklist.addedToast', {added: result.added, restored: result.restored, skipped: result.skipped}),
           'success',
       )
     },
-    {formatError: () => t('checklist.savingError')},
 )
 
 function onAddMembers(memberIds: number[]) {
   return runAddMembers(memberIds)
 }
 
+/**
+ * Fetching the list again after something was done to it, which is not part of doing it.
+ *
+ * <p>A row that really was removed, or a column that really was ticked for twenty people, followed by
+ * a list that failed to come back, used to read as the change itself having failed. Doing it again on
+ * that advice is how a row gets deleted twice and a bulk tick gets sent twice.
+ */
+async function catchUp() {
+  await reload()
+  if (loadFailure.value) {
+    rowFailure.value = {...loadFailure.value, message: t('failure.staleAfterAction')}
+    loadFailure.value = null
+  }
+}
+
+/** What acting on a single row or column ran into, which the template has nowhere else to put. */
+const rowFailure = ref<Failure | null>(null)
+
 async function onDeleteEntry(entryId: number) {
   if (!detail.value) return
-  await checklists.deleteEntry(detail.value.id, entryId)
-  await reload()
+  rowFailure.value = null
+  try {
+    await checklists.deleteEntry(detail.value.id, entryId)
+  } catch (e) {
+    rowFailure.value = describeFailure(e, t)
+    return
+  }
+  await catchUp()
 }
 
 async function onBulkSet(columnId: number, entryIds: number[], checked: boolean) {
   if (!detail.value || entryIds.length === 0) return
-  const result = await checklists.bulkSetColumn(detail.value.id, columnId, {entryIds, checked})
-  await reload()
+  rowFailure.value = null
+  let result
+  try {
+    result = await checklists.bulkSetColumn(detail.value.id, columnId, {entryIds, checked})
+  } catch (e) {
+    rowFailure.value = describeFailure(e, t)
+    return
+  }
+  await catchUp()
   showToast(t('checklist.bulkDone', {count: result.updated}), 'success')
 }
 
-const {running: savingMeta, error: saveMetaError, run: runSaveMeta} = useAsyncAction(
+const {running: savingMeta, failure: saveMetaFailure, run: runSaveMeta} = useAsyncAction(
     async (payload: {name: string; description: string; orderedColumnIds: number[]}) => {
       if (!detail.value) return
       const updated = await checklists.updateChecklist(detail.value.id, {
@@ -212,11 +243,10 @@ const {running: savingMeta, error: saveMetaError, run: runSaveMeta} = useAsyncAc
       const currentOrder = detail.value.columns.map(c => c.id).join(',')
       if (payload.orderedColumnIds.join(',') !== currentOrder) {
         await checklists.reorderColumns(detail.value.id, payload.orderedColumnIds)
-        await reload()
+        await catchUp()
       }
       showEditMeta.value = false
     },
-    {formatError: () => t('checklist.savingError')},
 )
 
 function onSaveMeta(payload: {name: string; description: string; orderedColumnIds: number[]}) {
@@ -227,37 +257,42 @@ function onSaveMeta(payload: {name: string; description: string; orderedColumnId
  * Changes what the list is made of. Nobody arrives or leaves on saving: the new source decides who
  * the next refresh brings in, and rows already here stay where they are either way.
  */
-const {running: savingMembership, error: membershipError, run: runSaveMembership} = useAsyncAction(
+const {running: savingMembership, failure: membershipFailure, run: runSaveMembership} = useAsyncAction(
     async (payload: {restriction?: ChecklistRestrictionDto; source?: ChecklistSourceRequest}) => {
       if (!detail.value) return
       await checklists.updateChecklist(detail.value.id, payload)
       showMembership.value = false
-      await reload()
+      await catchUp()
       showToast(t('checklist.membershipSaved'), 'success')
     },
-    {formatError: () => t('checklist.savingError')},
 )
 
 function onSaveMembership(payload: {restriction?: ChecklistRestrictionDto; source?: ChecklistSourceRequest}) {
   return runSaveMembership(payload)
 }
 
-const {error: deleteError, run: runDeleteChecklist} = useAsyncAction(
+const {failure: deleteFailure, run: runDeleteChecklist} = useAsyncAction(
     async () => {
       if (!detail.value) return
       await checklists.deleteChecklist(detail.value.id)
       showDeleteConfirm.value = false
       await router.push({name: 'checklist-list'})
     },
-    {formatError: () => t('checklist.savingError')},
 )
 
 function confirmDeleteChecklist() {
   return runDeleteChecklist()
 }
 
-const pageError = computed(() =>
-    error.value || addMembersError.value || saveMetaError.value || deleteError.value)
+/**
+ * The one failure the page shows. What the reader last did comes before what the page failed to
+ * fetch, because the first is a reason to look at the action and the second a reason to reload.
+ */
+const pageFailure = computed(() => rowFailure.value
+    ?? addMembersFailure.value
+    ?? saveMetaFailure.value
+    ?? deleteFailure.value
+    ?? loadFailure.value)
 
 /**
  * The list's own name at the head of the page, because "Checkliste" is the same word above every one
@@ -277,7 +312,7 @@ const pageSubtitle = computed(() => detail.value?.description || t('pages.checkl
       :subtitle="pageSubtitle"
   >
     <div v-if="loading" class="flex justify-center py-6"><Spinner/></div>
-    <Alert v-else-if="pageError" variant="error" class="mb-4">{{ pageError }}</Alert>
+    <FailureAlert v-else-if="pageFailure" :failure="pageFailure" class="mb-4"/>
 
     <template v-else-if="detail">
       <div class="flex flex-wrap items-end justify-between gap-3 mb-3">
@@ -369,7 +404,7 @@ const pageSubtitle = computed(() => detail.value?.description || t('pages.checkl
             :tags="tags"
             :members="members"
             :saving="savingMembership"
-            :error="membershipError"
+            :failure="membershipFailure"
             @submit="onSaveMembership"
         />
 

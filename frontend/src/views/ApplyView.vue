@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref, onMounted} from 'vue'
+import {ref, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -38,7 +38,7 @@ onMounted(async () => {
   }
 })
 
-const {running: submitting, error: submitError, run: submitApplication} = useAsyncAction(async () => {
+const {running: submitting, failure, run: submitApplication} = useAsyncAction(async () => {
   await stationApplications.submit({
     firstName: firstName.value.trim(),
     lastName: lastName.value.trim(),
@@ -49,7 +49,6 @@ const {running: submitting, error: submitError, run: submitApplication} = useAsy
   submitted.value = true
 })
 
-const error = computed(() => validationError.value || submitError.value)
 
 function submit() {
   if (!firstName.value.trim() || !lastName.value.trim() || !email.value.trim() || !stationName.value.trim()) {
@@ -78,7 +77,8 @@ function submit() {
 
       <template v-else-if="!submitted">
         <p class="text-sm text-(--text-muted)">{{ t('apply.hint') }}</p>
-        <FailureAlert :message="error"/>
+        <FailureAlert :message="validationError" expected/>
+        <FailureAlert :failure="failure"/>
         <ApplyForm v-model:first-name="firstName" v-model:last-name="lastName" v-model:email="email"
                    v-model:station-name="stationName" v-model:introduction="introduction"
                    :submitting="submitting" @submit="submit"/>

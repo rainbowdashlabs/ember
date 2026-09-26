@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {SessionAudience, TemplateDetail} from '@/api/attendance'
 import type {StationEvent} from '@/api/events'
 import type {MemberGroup} from '@/api/types'
@@ -48,7 +48,7 @@ const eventsWithTemplate = computed(() =>
     todayEvents.value.filter(ev => ev.templateId != null)
 )
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
   const [tpl, today, known] = await Promise.all([
     attendance.listTemplateDetails(),
     events.listTodayEvents(),
@@ -66,7 +66,7 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   }
 }, {autoLoad: false})
 
-const {running: creating, error: createError, run: runCreate} = useAsyncAction(
+const {running: creating, failure: createFailure, run: runCreate} = useAsyncAction(
     async (
         templateId: number,
         eventId?: number | null,
@@ -83,10 +83,10 @@ const {running: creating, error: createError, run: runCreate} = useAsyncAction(
       router.push({name: 'attendance-session', params: {id: session.id}})
     })
 
-const displayError = computed(() => error.value || createError.value)
+const displayFailure = computed(() => createFailure.value ?? loadFailure.value)
 
 function createSession(templateId: number, eventId?: number | null, eventDate?: string | null) {
-  error.value = ''
+  loadFailure.value = null
   return runCreate(templateId, eventId, eventDate)
 }
 
@@ -110,7 +110,7 @@ async function suggestSpan(templateId: number): Promise<number> {
 }
 
 async function askForTimes(template: TemplateDetail) {
-  error.value = ''
+  loadFailure.value = null
   chosenTemplate.value = template
   const start = new Date()
   start.setSeconds(0, 0)
@@ -127,7 +127,7 @@ function createFromTemplate(templateId: number) {
 }
 
 function startEmpty() {
-  error.value = ''
+  loadFailure.value = null
   chosenAudience.value = null
   askingAudience.value = true
 }
@@ -173,7 +173,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
+      <FailureAlert :failure="displayFailure"/>
 
       <AudienceStep
           v-if="askingAudience && !creating"

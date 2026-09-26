@@ -8,7 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -45,13 +45,13 @@ const canRecommendTags = computed(() => hasClusterPermission(ClusterPermission.C
 
 const usesInventory = ref(false)
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   if (!canSetModule.value) return
   const active = await clusters.getActive()
   usesInventory.value = active.usesInventory ?? false
 })
 
-const {running: busy, error: writeError, run: toggleUses} = useAsyncAction(async (value: boolean) => {
+const {running: busy, failure: writeFailure, run: toggleUses} = useAsyncAction(async (value: boolean) => {
   await clusterInventory.setUsesInventory(value)
   usesInventory.value = value
 })
@@ -64,7 +64,8 @@ const {running: busy, error: writeError, run: toggleUses} = useAsyncAction(async
       <InventoryTabs/>
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error || writeError" variant="error">{{ error || writeError }}</Alert>
+      <FailureAlert :failure="failure"/>
+      <FailureAlert :failure="writeFailure"/>
 
       <template v-if="!loading">
         <NeutralContainer v-if="canSetModule" data-testid="inventory-module-setting" class="space-y-3">

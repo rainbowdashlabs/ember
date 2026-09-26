@@ -16,6 +16,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StepProgressBar from '@/components/display/StepProgressBar.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
 import {type RestrictionSelection, emptyRestriction, toRestriction} from '@/components/input/restriction'
@@ -28,6 +29,7 @@ import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -56,7 +58,7 @@ const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
 
 const rows = ref<BatchRow[]>([])
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   await reloadDeps()
   const [allFields, evTpls] = await Promise.all([
     Promise.all(templates.value.map(tmpl => attendance.listTemplateFields(tmpl.id))),
@@ -94,8 +96,8 @@ async function applyTemplate() {
       attendanceFieldId: f.attendanceFieldId ?? null,
       isPublic: f.isPublic ?? false,
     }))
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -115,8 +117,8 @@ function onScheduleDone(newRows: BatchRow[]) {
   step.value = 3
 }
 
-const {running: saving, error: createError, run: createBatch} = useAsyncAction(async () => {
-  error.value = ''
+const {running: saving, failure: createFailure, run: createBatch} = useAsyncAction(async () => {
+  failure.value = null
   const inlineFields: BatchFieldEntry[] = fieldDefs.value.filter(f => f.name.trim()).map(f => ({
     name: f.name,
     fieldType: f.fieldType,
@@ -139,7 +141,7 @@ const {running: saving, error: createError, run: createBatch} = useAsyncAction(a
   })
   success.value = t('batchCreate.success', {count: created.length})
   setTimeout(() => router.push({name: eventRoutes.index}), 1500)
-}, {formatError: () => t('common.error')})
+})
 </script>
 
 <template>
@@ -149,7 +151,7 @@ const {running: saving, error: createError, run: createBatch} = useAsyncAction(a
   >
     <Spinner v-if="loading"/>
     <template v-else>
-      <Alert v-if="error || createError" variant="error">{{ error || createError }}</Alert>
+      <FailureAlert :failure="failure ?? createFailure"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <StepProgressBar class="mb-4"
@@ -202,7 +204,7 @@ const {running: saving, error: createError, run: createBatch} = useAsyncAction(a
           v-if="step === 2"
           :field-defs="fieldDefs"
           @done="onScheduleDone"
-          @error="error = $event"
+          @error="failure = $event"
       />
 
       <template v-if="step === 3">

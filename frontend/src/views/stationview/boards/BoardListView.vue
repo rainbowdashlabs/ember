@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -14,7 +14,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -29,7 +29,7 @@ import { useAsyncAction } from '@/composables/useAsyncAction'
 const { t } = useI18n()
 const router = useRouter()
 
-const { config: boardList, loading, error, reload: loadBoards } = useConfigPanel<Board[]>({
+const { config: boardList, loading, failure, reload: loadBoards } = useConfigPanel<Board[]>({
     initial: [],
     fetch: () => boards.listBoards(),
 })
@@ -49,10 +49,10 @@ const {
 } = useConfirmDelete<Board>({
     onDelete: b => boards.deleteBoard(b.shortKey),
     onSuccess: () => loadBoards(),
-    error,
+    failure,
 })
 
-const {error: createApiError, run: runCreate} = useAsyncAction(async () => {
+const {failure: createFailure, run: runCreate} = useAsyncAction(async () => {
     const board = await boards.createBoard({
         name: createName.value.trim(),
         description: createDescription.value.trim() || undefined,
@@ -65,9 +65,7 @@ const {error: createApiError, run: runCreate} = useAsyncAction(async () => {
     createShortKey.value = ''
     createPreset.value = LanePreset.SIMPLE
     await router.push(`/station/boards/${board.shortKey}`)
-}, {formatError: () => t('common.error')})
-
-const createError = computed(() => createValidationError.value || createApiError.value)
+})
 
 function boardPage(board: Board): string {
     return `/station/boards/${board.shortKey}`
@@ -99,7 +97,7 @@ function handleCreate() {
         <AsyncSection
             :empty="boardList.length === 0"
             :empty-message="t('boards.noBoards')"
-            :error="error"
+            :failure="failure"
             :loading="loading"
         >
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -149,7 +147,8 @@ function handleCreate() {
                         <option value="">{{ t('boards.presetNone') }}</option>
                     </SelectInput>
                 </div>
-                <Alert v-if="createError" variant="error">{{ createError }}</Alert>
+                <FailureAlert :message="createValidationError" expected/>
+                <FailureAlert :failure="createFailure"/>
                 <div class="flex justify-end gap-2">
                     <PrimaryButton @click="handleCreate">{{ t('common.create') }}</PrimaryButton>
                 </div>

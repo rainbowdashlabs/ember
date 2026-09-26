@@ -29,6 +29,7 @@ import {events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const {loaded} = useSession()
@@ -42,7 +43,7 @@ const editMaxShown = ref<number | null>(null)
 const editPublic = ref(false)
 const editColor = ref<string>('')
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   categories.value = await events.listCategories()
 }, {autoLoad: loaded.value})
 
@@ -54,7 +55,7 @@ const {
 } = useConfirmDelete<EventCategory>({
   onDelete: cat => events.deleteCategory(cat.id),
   onSuccess: () => reload(),
-  error,
+  failure,
 })
 
 watch(loaded, v => { if (v) reload() })
@@ -77,31 +78,44 @@ function openEdit(cat: EventCategory) {
   editOpen.value = true
 }
 
+function record(e: unknown) {
+  failure.value = describeFailure(e, t)
+}
+
+/**
+ * Storing the category and reading the list back are answered for separately, so a category that
+ * was saved and a list that then failed to refresh does not read as a category that was refused.
+ */
 async function saveCategory() {
+  const data = {
+    name: editName.value,
+    position: 0,
+    maxShownEvents: editMaxShown.value || null,
+    isPublic: editPublic.value,
+    color: editColor.value ? editColor.value : null,
+  }
   try {
-    const data = {
-      name: editName.value,
-      position: 0,
-      maxShownEvents: editMaxShown.value || null,
-      isPublic: editPublic.value,
-      color: editColor.value ? editColor.value : null,
-    }
     if (editId.value) {
       await events.updateCategory(editId.value, data)
     } else {
       await events.createCategory(data)
     }
     editOpen.value = false
-    await reload()
   } catch (e) {
-    error.value = t('common.error')
+    record(e)
     throw e
   }
+  await reload()
 }
 
+/** A refused reorder used to vanish: the list sprang back to its old order and said nothing. */
 async function reorder(fromIndex: number, toIndex: number) {
   const ids = moveWithin(categories.value.map(c => c.id), fromIndex, toIndex)
-  categories.value = await events.reorderCategories(ids)
+  try {
+    categories.value = await events.reorderCategories(ids)
+  } catch (e) {
+    record(e)
+  }
 }
 </script>
 
@@ -120,7 +134,7 @@ async function reorder(fromIndex: number, toIndex: number) {
         :empty="categories.length === 0"
         :empty-compact="true"
         :empty-message="t('categoryManage.empty')"
-        :error="error"
+        :failure="failure"
         :loading="loading"
     >
       <DragList :items="categories" :key-fn="(cat) => cat.id" class="space-y-2" @reorder="reorder">

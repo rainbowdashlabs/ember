@@ -23,7 +23,7 @@ import SystemNewsEditor from './adminnewsview/SystemNewsEditor.vue'
 
 const {t} = useI18n()
 
-const {config: entries, loading, error, runWith} = useConfigPanel<SystemNewsEntry[]>({
+const {config: entries, loading, failure, runWith} = useConfigPanel<SystemNewsEntry[]>({
   initial: [],
   fetch: () => adminNews.listSystemNews(),
 })
@@ -114,7 +114,7 @@ const {show: showRetract, target: retractTarget, requestDelete: requestRetract, 
         </PrimaryButton>
       </div>
 
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <Spinner v-if="loading" size="lg"/>
 
       <SystemNewsEditor

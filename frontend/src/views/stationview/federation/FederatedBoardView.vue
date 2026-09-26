@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import FederatedBoardAccessOverride from '@/views/stationview/federation/FederatedBoardAccessOverride.vue'
 import FederatedBoardHeader from '@/views/stationview/federation/federatedboardview/FederatedBoardHeader.vue'
 import FederatedBoardLane from '@/views/stationview/federation/federatedboardview/FederatedBoardLane.vue'
@@ -65,7 +65,7 @@ const searchQuery = ref('')
 const searchResults = ref<BoardTicket[] | null>(null)
 const searching = ref(false)
 
-const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   const [bd, l, tix, lb, tlm] = await Promise.all([
     fedGetBoard(partnerUid.value, boardKey.value),
     fedGetLanes(partnerUid.value, boardKey.value),
@@ -181,7 +181,7 @@ function onSearchPick() {
   searchResults.value = null
 }
 
-const {error: createApiError, run: runCreateTicket} = useAsyncAction(async () => {
+const {failure: createFailure, run: runCreateTicket} = useAsyncAction(async () => {
   const created = await fedCreateTicket(partnerUid.value, boardKey.value, {
     laneId: Number(createLaneId.value),
     title: createTitle.value.trim(),
@@ -193,9 +193,7 @@ const {error: createApiError, run: runCreateTicket} = useAsyncAction(async () =>
   createDescription.value = ''
   createPriority.value = TicketPriority.MEDIUM
   router.push(`/station/federation/boards/${partnerUid.value}/${boardKey.value}/tickets/${created.ticketNumber}`)
-}, {formatError: () => t('common.error')})
-
-const createError = computed(() => createValidationError.value || createApiError.value)
+})
 
 function handleCreateTicket() {
   createValidationError.value = ''
@@ -229,7 +227,7 @@ watch([partnerUid, boardKey], loadData)
       :subtitle="pageSubtitle"
   >
     <Spinner v-if="loading"/>
-    <Alert v-else-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert v-else-if="failure" :failure="failure"/>
     <template v-else-if="board">
       <FederatedBoardHeader
           :board-name="board.name"
@@ -285,7 +283,8 @@ watch([partnerUid, boardKey], loadData)
           v-model:lane-id="createLaneId"
           v-model:priority="createPriority"
           :lane-options="createLaneOptions"
-          :error="createError"
+          :validation-error="createValidationError"
+          :failure="createFailure"
           @create="handleCreateTicket"
       />
     </template>

@@ -19,6 +19,8 @@ import AddStepForm from './AddStepForm.vue'
 import FlowBindingLine from './FlowBindingLine.vue'
 import FlowRestoreButton from './FlowRestoreButton.vue'
 import {useFlowProblems} from '@/composables/useFlowProblems'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import type {Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const {problemText} = useFlowProblems()
@@ -27,7 +29,7 @@ const props = defineProps<{
   flow: MovementFlow
   busy: boolean
   /** Why the last change to this chain was refused, shown where the change was made. */
-  error?: string
+  failure?: Failure | null
   /** The combination this chain serves, absent for one the station wrote itself. */
   binding?: MovementFlowBinding
 }>()
@@ -40,7 +42,7 @@ const emit = defineEmits<{
   reorder: [flowId: number, stepIds: number[]]
   restore: [flowId: number, mappings: FlowStepMapping[]]
   /** A refusal the restore dialog read for itself, shown where every other refusal about this chain is. */
-  restoreRefused: [flowId: number, message: string]
+  restoreRefused: [flowId: number, failure: Failure | null]
 }>()
 
 /** Only the live steps carry an order. A retired one keeps its place and is not moved about. */
@@ -115,7 +117,7 @@ const marks = computed(() =>
             :disabled="props.busy"
             :flow-id="props.flow.id"
             @confirm="mappings => emit('restore', props.flow.id, mappings)"
-            @refused="message => emit('restoreRefused', props.flow.id, message)"
+            @refused="reported => emit('restoreRefused', props.flow.id, reported)"
         />
         <MutedIconButton
             v-if="editable"
@@ -127,7 +129,7 @@ const marks = computed(() =>
       </div>
     </div>
 
-    <Alert v-if="props.error" variant="error" data-testid="flow-error">{{ props.error }}</Alert>
+    <FailureAlert :failure="props.failure" data-testid="flow-error"/>
 
     <Alert v-if="props.flow.problem && !props.flow.archived" variant="error" data-testid="flow-problem">
       {{ problemText(props.flow.problem) }}

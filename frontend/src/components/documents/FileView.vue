@@ -8,10 +8,12 @@ import {computed, onUnmounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import client from '@/api/client'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import PdfCanvas from '@/components/documents/PdfCanvas.vue'
 import {fileKindOf} from '@/util/fileKind'
+import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 /**
  * A file drawn where it is, rather than saved to be looked at.
@@ -41,7 +43,14 @@ const page = ref(1)
 const text = ref<string | null>(null)
 const truncated = ref(false)
 const loading = ref(false)
-const failed = ref(false)
+/**
+ * Why the preview is not there.
+ *
+ * <p>It was a bare flag under one sentence, so a file the reader may not open, a file that is gone and
+ * a connection that dropped all read alike, and none of them said which. The kind of failure is what
+ * decides whether waiting, asking the station or reporting a fault is the thing to do.
+ */
+const failure = ref<Failure | null>(null)
 
 const kind = computed(() => fileKindOf(props.mimeType, props.title))
 
@@ -72,7 +81,7 @@ async function load() {
   pdfBytes.value = null
   pageCount.value = 0
   page.value = 1
-  failed.value = false
+  failure.value = null
   if (kind.value === 'other') return
   loading.value = true
   try {
@@ -94,8 +103,8 @@ async function load() {
       }
       objectUrl.value = url
     }
-  } catch {
-    if (mine === current) failed.value = true
+  } catch (e) {
+    if (mine === current) failure.value = describeFailure(e, t)
   }
   if (mine === current) loading.value = false
 }
@@ -106,8 +115,17 @@ function pdfOpened(count: number) {
   loading.value = false
 }
 
+/**
+ * The bytes arrived and the viewer could not draw them. Nothing about the connection or the reader's
+ * rights is wrong, so trying again does the same thing; downloading the file is the way out.
+ */
 function pdfFailed() {
-  failed.value = true
+  failure.value = {
+    kind: FailureKind.UNKNOWN,
+    message: t('files.previewFailed'),
+    guidance: t('files.previewFailedGuidance'),
+    reportable: true,
+  }
   loading.value = false
 }
 
@@ -126,7 +144,7 @@ onUnmounted(() => {
 <template>
   <div class="min-h-40 space-y-3" data-testid="file-view">
     <Spinner v-if="loading" size="md"/>
-    <EmptyHint v-else-if="failed">{{ t('common.error') }}</EmptyHint>
+    <FailureAlert v-else-if="failure" :failure="failure"/>
     <EmptyHint v-else-if="kind === 'other'">{{ t('files.noPreview') }}</EmptyHint>
 
     <img
@@ -148,7 +166,7 @@ onUnmounted(() => {
     >{{ text }}</pre>
 
     <div
-        v-if="kind === 'pdf' && pdfBytes && !failed"
+        v-if="kind === 'pdf' && pdfBytes && !failure"
         v-show="!loading"
         class="h-[70vh] w-full flex items-center justify-center rounded-theme border border-bg-light-accent dark:border-bg-dark-accent"
     >

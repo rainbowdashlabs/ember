@@ -9,6 +9,7 @@ import { publicForms } from '@/api'
 import { PublicFormState, type PublicForm, type PublicFormQuestion } from '@/api/publicForms'
 import { QuestionTypes } from '@/api/forms'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 
 /**
  * Filling in and submitting a public form, shared by the standalone submission page and the form
@@ -41,7 +42,7 @@ export function usePublicFormSubmission(
   const form = ref<PublicForm | null>(null)
   const answers = ref<Record<number, Record<string, unknown>>>({})
   const loading = ref(false)
-  const loadError = ref('')
+  const loadFailure = ref<Failure | null>(null)
   const submitted = ref(false)
   const validationError = ref('')
 
@@ -87,7 +88,7 @@ export function usePublicFormSubmission(
       return
     }
     loading.value = true
-    loadError.value = ''
+    loadFailure.value = null
     submitted.value = false
     try {
       const data = shareToken.value
@@ -95,11 +96,30 @@ export function usePublicFormSubmission(
         : await publicForms.getPublicForm(stationUid.value as string, publicUid.value as string)
       form.value = data
       initAnswerDefaults(data.questions)
-    } catch {
+    } catch (e) {
       form.value = null
-      loadError.value = t('publicForm.notFound')
+      loadFailure.value = describeLoadFailure(e)
     } finally {
       loading.value = false
+    }
+  }
+
+  /**
+   * A form that could not be fetched, in terms somebody without an account can act on.
+   *
+   * <p>Every failure here used to read as the form not existing, which is the one sentence that sends a
+   * reader away for good. Somebody whose connection dropped, or who arrived while the server was down,
+   * has a form that is still there and a link that still works, and telling them otherwise costs them
+   * the answer. Only the server actually saying it is gone produces that sentence now.
+   */
+  function describeLoadFailure(e: unknown): Failure {
+    const described = describeFailure(e, t)
+    if (described.kind !== FailureKind.GONE) return described
+    return {
+      ...described,
+      message: t('publicForm.notFound'),
+      guidance: t('publicForm.notFoundGuidance'),
+      reportable: false,
     }
   }
 
@@ -130,7 +150,7 @@ export function usePublicFormSubmission(
   /** A form that is not taking answers shows why and offers nothing to fill in. */
   const open = computed(() => form.value?.state === PublicFormState.OPEN)
 
-  const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction(async () => {
+  const {running: submitting, failure: sendFailure, run: runSubmit} = useAsyncAction(async () => {
     if (!form.value) return
     const answerMap: Record<number, Record<string, unknown>> = {}
     for (const q of form.value.questions) {
@@ -152,24 +172,36 @@ export function usePublicFormSubmission(
       return
     }
     submitted.value = true
-  }, {
-    /**
-     * What went wrong, told apart by what the server answered.
-     *
-     * <p>A plain refusal used to be reported as the form having closed, which is only one of the
-     * three things it means: the legal documents changing while the page stood open, and an answer
-     * the form does not take, both arrive the same way and both are put right by reloading. Being
-     * told the form closed sends somebody away from an answer they could still give.
-     */
-    formatError: (e) => {
-      const status = (e as {response?: {status?: number}}).response?.status
-      if (status === 409) return t('publicForm.alreadyAnswered')
-      if (status === 429) return t('publicForm.rateLimited')
-      if (status === 410) return t('publicForm.closedWhileOpen')
-      if (status === 400) return t('publicForm.answerRefused')
-      return t('publicForm.submitError')
-    },
   })
+
+  /**
+   * An answer that could not be sent, and why.
+   *
+   * <p>Three refusals mean something this page words better than the server does, because it knows the
+   * reader holds nothing but a link: the form was already answered, too many answers came in a row, or
+   * the form closed while it stood open. Everything else keeps the description it arrived with, since a
+   * refusal naming the question that was wrong is worth more than a sentence about sending in general,
+   * and a server that fell over is the reader's cue to report rather than to try again differently.
+   */
+  const submitFailure = computed<Failure | null>(() => {
+    const described = sendFailure.value
+    if (!described) return null
+    const known = knownRefusal(described.status)
+    if (!known) return described
+    return {
+      ...described,
+      message: t(`publicForm.${known}`),
+      guidance: t(`publicForm.${known}Guidance`),
+      reportable: false,
+    }
+  })
+
+  function knownRefusal(status: number | undefined): string | null {
+    if (status === 409) return 'alreadyAnswered'
+    if (status === 429) return 'rateLimited'
+    if (status === 410) return 'closedWhileOpen'
+    return null
+  }
 
   function submit() {
     if (!consentAccepted.value) {
@@ -180,14 +212,19 @@ export function usePublicFormSubmission(
     void runSubmit()
   }
 
-  const error = computed(() => loadError.value || validationError.value || submitError.value)
+  /**
+   * The one failure to show. A form that never loaded is the reason nothing can be sent, so it comes
+   * first; the missing consent tick is the reader's own doing and is reported on its own, without the
+   * offer to file a bug about it.
+   */
+  const failure = computed(() => loadFailure.value ?? submitFailure.value)
 
   return {
     form,
     open,
     answers,
     loading,
-    loadError,
+    loadFailure,
     submitted,
     validationError,
     consentAccepted,
@@ -195,8 +232,8 @@ export function usePublicFormSubmission(
     privacyVersion,
     tosVersion,
     submitting,
-    submitError,
-    error,
+    submitFailure,
+    failure,
     load,
     toggleChoice,
     updateText,

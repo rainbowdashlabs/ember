@@ -19,6 +19,7 @@ import {useEventDashboard} from './indexview/useEventDashboard'
 import {EventKinds, EventStates, type EventBreak, type StationEvent} from '@/api/events'
 import {events} from '@/api'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import {describeFailure, saying} from '@/util/failure'
 
 defineProps<{
   /** The heading, when the station's own wording is not the right one. */
@@ -34,7 +35,7 @@ const {
   tab, isPast, searchInput, categoryId, from, to,
   todayEvents, breaks, categories, templates, overviewFields,
   dates, series, isEmpty,
-  loading, error, reload, loadMore,
+  loading, failure, reload, loadMore,
 } = useEventDashboard()
 
 const tabs = computed(() => [
@@ -55,7 +56,7 @@ const {
 } = useConfirmDelete<StationEvent>({
   onDelete: event => events.deleteEvent(event.id),
   onSuccess: () => reload(),
-  error,
+  failure,
 })
 
 const {
@@ -66,7 +67,7 @@ const {
 } = useConfirmDelete<EventBreak>({
   onDelete: entry => events.deleteBreak(entry.id),
   onSuccess: () => reload(),
-  error,
+  failure,
 })
 
 function openAddEvent() {
@@ -87,8 +88,14 @@ function openEditBreak(entry: EventBreak) {
   showBreakModal.value = true
 }
 
+/**
+ * Writes the break, then catches the page up, and answers for the two separately.
+ *
+ * <p>They shared an attempt, so a break that was written and a page that then failed to come back
+ * both read as a refused break, and the reader writes the same closure twice.
+ */
 async function saveBreak(data: { name: string; startDate: string; endDate: string }) {
-  error.value = ''
+  failure.value = null
   try {
     if (editingBreak.value) {
       await events.updateBreak(editingBreak.value.id, data)
@@ -96,22 +103,45 @@ async function saveBreak(data: { name: string; startDate: string; endDate: strin
       await events.createBreak(data)
     }
     showBreakModal.value = false
-    await reload()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await catchUp()
 }
 
+/**
+ * Writes each school holiday as a break of its own.
+ *
+ * <p>How many went in is said where some did, because the list comes from a directory of dozens and
+ * a reader told only that it failed cannot tell whether to run it again or fix the rest by hand.
+ */
 async function onImportHolidays(holidays: Array<{ name: string; startDate: string; endDate: string }>) {
-  error.value = ''
+  failure.value = null
+  let written = 0
   try {
     for (const holiday of holidays) {
       await events.createBreak(holiday)
+      written++
     }
     showHolidayModal.value = false
+  } catch (e) {
+    const described = describeFailure(e, t)
+    failure.value = written === 0
+        ? described
+        : saying(described, t('events.holidaysImportedPartly', {written, total: holidays.length}))
+    await catchUp()
+    return
+  }
+  await catchUp()
+}
+
+/** Fetches the page again, saying so where that is the only thing that failed. */
+async function catchUp() {
+  try {
     await reload()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = saying(describeFailure(e, t), t('failure.staleAfterAction'))
   }
 }
 
@@ -130,7 +160,7 @@ function goToAttendance(event: StationEvent) {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <TabBar v-model="tab" :tabs="tabs"/>
 
@@ -177,7 +207,7 @@ function goToAttendance(event: StationEvent) {
         :editing-break="editingBreak"
         :delete-event-target="deleteEventTarget"
         :delete-break-target="deleteBreakTarget"
-        @error="message => error = message"
+        @error="refused => failure = refused"
         @save-break="saveBreak"
         @import-holidays="onImportHolidays"
         @confirm-delete-event="confirmDeleteEvent"

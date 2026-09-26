@@ -57,7 +57,7 @@ function toggle(key: string) {
   disabled.value = next
 }
 
-const {running: saving, error, failure, run: save} = useAsyncAction(async () => {
+const {running: saving, failure, run: save} = useAsyncAction(async () => {
   await stationManage.setDisabledModules([...disabled.value])
   await reloadSession()
   await reload()

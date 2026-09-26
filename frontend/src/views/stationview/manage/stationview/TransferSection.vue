@@ -13,9 +13,10 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {transfer} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import type {Failure} from '@/util/failure'
 
 const emit = defineEmits<{
-  error: [msg: string]
+  error: [failure: Failure]
   success: [msg: string]
 }>()
 
@@ -23,15 +24,16 @@ const {t} = useI18n()
 
 const transferToken = ref('')
 
-const {running: creatingToken, run: runCreateToken} = useAsyncAction(() => transfer.createTransferToken())
+const {running: creatingToken, failure: createFailure, run: runCreateToken} = useAsyncAction(
+    () => transfer.createTransferToken())
 
 async function createToken() {
   transferToken.value = ''
   const result = await runCreateToken()
   if (result) {
     transferToken.value = result.token
-  } else {
-    emit('error', t('common.error'))
+  } else if (createFailure.value) {
+    emit('error', createFailure.value)
   }
 }
 

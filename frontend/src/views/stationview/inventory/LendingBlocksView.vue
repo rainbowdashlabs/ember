@@ -25,6 +25,7 @@ import type {Inventory, InventoryItem} from '@/api/inventory'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {formatDate} from '@/util/format'
+import {describeFailure} from '@/util/failure'
 
 const routes = useInventoryRoutes()
 
@@ -102,7 +103,7 @@ const groupedBlocks = computed<GroupedBlock[]>(() => {
   return [...groups.values()].sort((a, b) => a.blockFrom.localeCompare(b.blockFrom))
 })
 
-const {loading, error, reload: loadBlocks} = useAsyncLoader(async () => {
+const {loading, failure, reload: loadBlocks} = useAsyncLoader(async () => {
   if (!loaded.value) return
   const [b, invs] = await Promise.all([lending.listBlocks(), inventory.listInventories()])
   blocks.value = b
@@ -129,13 +130,23 @@ watch(loaded, (v) => {
   if (v) loadBlocks()
 })
 
+/**
+ * Lifts a whole block, one row at a time.
+ *
+ * <p>It used to swallow whatever came back, so a refused lifting looked like a button that does
+ * nothing. The rows are lifted one by one, so a failure halfway leaves the earlier ones gone, which is
+ * what the reload afterwards is for.
+ */
 async function handleDeleteGroup(group: GroupedBlock) {
+  failure.value = null
   try {
     for (const id of group.blockIds) {
       await lending.deleteBlock(id)
     }
-    await loadBlocks()
-  } catch { /* ignore */ }
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+  }
+  await loadBlocks()
 }
 
 function itemLabel(item: { id: number; name: string | null; internalId: string | null }): string {
@@ -163,7 +174,7 @@ function itemLabel(item: { id: number; name: string | null; internalId: string |
     <AsyncSection
         :empty="groupedBlocks.length === 0"
         :empty-message="t('lending.noBlocks')"
-        :error="error"
+        :failure="failure"
         :loading="loading"
     >
       <div class="flex flex-col gap-2">

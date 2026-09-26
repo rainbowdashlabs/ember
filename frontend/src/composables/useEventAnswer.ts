@@ -10,6 +10,7 @@ import {apiErrorStatus} from '@/util/apiError'
 import {showToast} from '@/util/toast'
 import type {EventRegistrationField, RegistrationFieldValue, StationEvent} from '@/api/events'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
+import {describeFailure, type Failure} from '@/util/failure'
 import type {AnswerablePerson} from '@/util/eventAnswers'
 
 /** Everybody an answer can be given for, as the screens hold them. */
@@ -25,12 +26,12 @@ type AnswerablePeople = AnswerablePerson[]
  *
  * @param currentMemberId the acting member, whose own answer is sent without naming an id
  * @param afterChange     run once an answer has landed, to reload whatever the screen shows
- * @param error           the screen's error channel, written to rather than thrown at
+ * @param failure         the screen's failure channel, written to rather than thrown at
  */
 export function useEventAnswer(
     currentMemberId: Ref<number>,
     afterChange: () => Promise<void>,
-    error: Ref<string>,
+    failure: Ref<Failure | null>,
 ) {
     const {t} = useI18n()
     const {refresh: refreshSidebarCounts} = useSidebarCounts()
@@ -52,29 +53,55 @@ export function useEventAnswer(
     } | null>(null)
 
     /**
-     * Opens a gesture the reader has just made. The screen's error belongs to that gesture and not to
+     * Opens a gesture the reader has just made. The screen's failure belongs to that gesture and not to
      * a single request inside it: answering for a household is one gesture and several requests, and
      * what went wrong for the first person has to still be on screen once the last has gone through.
      */
     function beginAnswer() {
-        error.value = ''
+        failure.value = null
     }
 
     /**
-     * Carries out an answer and reloads what the screen shows.
+     * Why an answer was refused, in the terms the member can act on.
      *
      * <p>A refusal the member can do something about is told apart from a failure they cannot. The
      * server answers a closed list with a plain refusal, and saying only that something went wrong
      * leaves somebody pressing the same button again: the caller passes the words for that case, and
-     * they name whoever can still help.
+     * they name whoever can still help. Those words win, and everything around them, what sort of
+     * failure it was and what to do next, still comes from the failure itself. It is marked as
+     * nothing to report, because a list that closed on time is the product working as intended and a
+     * bug filed against it buries the real ones.
+     */
+    function refusalFor(e: unknown, refusedMessage?: string): Failure {
+        const described = describeFailure(e, t)
+        if (refusedMessage && apiErrorStatus(e) === 400) {
+            return {...described, message: refusedMessage, reportable: false}
+        }
+        return described
+    }
+
+    /**
+     * Carries out an answer, and only then reloads what the screen shows.
+     *
+     * <p>The two are answered for separately. An answer the server had already taken, followed by a
+     * list that would not come back, used to say the answer had been refused, and a member told that
+     * presses the same button again. An earlier refusal in the same gesture is left standing, because
+     * a guardian answering for three children has to see the one that did not land.
      */
     async function changeRegistration(action: () => Promise<unknown>, refusedMessage?: string) {
         try {
             await action()
+        } catch (e) {
+            failure.value = refusalFor(e, refusedMessage)
+            return
+        }
+
+        try {
             await afterChange()
             refreshSidebarCounts()
         } catch (e) {
-            error.value = refusedMessage && apiErrorStatus(e) === 400 ? refusedMessage : t('common.error')
+            if (failure.value) return
+            failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
         }
     }
 

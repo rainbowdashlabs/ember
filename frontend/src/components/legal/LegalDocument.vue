@@ -4,10 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import {apiUrl} from '@/util/apiUrl'
+import {FailureKind, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
@@ -30,6 +33,21 @@ const {data, status} = await useAsyncData(
     () => $fetch<{html: string}>(apiUrl(`/public/${props.document}`)).catch(() => ({html: ''})),
     {default: () => ({html: ''})},
 )
+
+/**
+ * What stands where the document should.
+ *
+ * <p>Whoever reads an imprint or a privacy policy is very often not a member of anything here, so the
+ * general "that did not work" left them with no idea whether they had the wrong address, whether the
+ * document had been withdrawn, or whether something was broken. It is always the last of those, and
+ * there is nobody they could usefully tell, so it says so and asks nothing of them.
+ */
+const unavailable = computed<Failure>(() => ({
+    kind: FailureKind.SERVER_FAULT,
+    message: t('legal.unavailable'),
+    guidance: t('legal.unavailableGuidance'),
+    reportable: false,
+}))
 </script>
 
 <template>
@@ -37,7 +55,7 @@ const {data, status} = await useAsyncData(
         <NeutralContainer class="w-full max-w-3xl">
             <Spinner v-if="status === 'pending'" size="lg"/>
             <div v-else-if="data?.html" class="legal-content" v-html="data.html"/>
-            <p v-else class="text-(--text-muted)">{{ t('common.error') }}</p>
+            <FailureAlert v-else :failure="unavailable"/>
         </NeutralContainer>
     </div>
 </template>

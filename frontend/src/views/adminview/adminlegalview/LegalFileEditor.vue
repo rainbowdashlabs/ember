@@ -14,6 +14,7 @@ import LoadTemplateModal from './LoadTemplateModal.vue'
 import ImportDocumentModal from './ImportDocumentModal.vue'
 import {adminSettings} from '@/api'
 import type {LegalFile, LegalTemplate} from '@/api/adminSettings'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
@@ -24,7 +25,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  error: [message: string]
+  error: [failure: Failure]
   saved: []
 }>()
 
@@ -51,9 +52,9 @@ async function load() {
   try {
     const result = await adminSettings.getLegalFiles(props.type, props.locale)
     files.value = Array.isArray(result) ? result : []
-  } catch {
+  } catch (e) {
     files.value = []
-    emit('error', t('common.error'))
+    emit('error', describeFailure(e, t))
   } finally {
     loading.value = false
   }
@@ -64,7 +65,7 @@ async function saveAll() {
     files.value = await adminSettings.saveLegalFiles(props.type, props.locale, files.value)
     emit('saved')
   } catch (e) {
-    emit('error', t('common.error'))
+    emit('error', describeFailure(e, t))
     throw e
   }
 }

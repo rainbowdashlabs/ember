@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.page.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -15,7 +16,6 @@ import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -115,16 +115,16 @@ public class PublicPageRoutes implements Routes {
         int stationId = resolveOpenStation(ctx);
         String pagePath = ctx.pathParam("pagePath");
 
-        var page = pageService.getPageByPath(stationId, pagePath).orElseThrow(NotFoundResponse::new);
+        var page = pageService.getPageByPath(stationId, pagePath).orElseThrow(Refusal.PUBLIC_PAGE_NOT_HERE::raise);
 
-        var rendered = pageService.getPageRendered(page.id()).orElseThrow(NotFoundResponse::new);
+        var rendered = pageService.getPageRendered(page.id()).orElseThrow(Refusal.PUBLIC_PAGE_NOT_RENDERED::raise);
         ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
         ctx.json(rendered);
     }
 
     private void getLandingPage(Context ctx) {
         int stationId = resolveOpenStation(ctx);
-        var page = pageService.getLandingPage(stationId).orElseThrow(NotFoundResponse::new);
+        var page = pageService.getLandingPage(stationId).orElseThrow(Refusal.PUBLIC_LANDING_PAGE_NOT_HERE::raise);
         ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
         ctx.json(page);
     }
@@ -145,13 +145,18 @@ public class PublicPageRoutes implements Routes {
                 .findById(stationId)
                 .map(Station::publicPagesEnabled)
                 .orElse(false)) {
-            throw new NotFoundResponse();
+            throw Refusal.PUBLIC_PAGES_SWITCHED_OFF.raise();
         }
         return stationId;
     }
 
+    /**
+     * The station an address names, whether it names it by identifier or by its public slug.
+     */
     private int resolveStation(Context ctx) {
-        return stationRepository.resolveAddressedId(ctx.pathParam("stationUid")).orElseThrow(NotFoundResponse::new);
+        return stationRepository
+                .resolveAddressedId(ctx.pathParam("stationUid"))
+                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_PAGE::raise);
     }
 
     record PublicPageSummary(

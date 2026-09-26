@@ -11,13 +11,13 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
 import ContainerEditPanel from '@/views/stationview/inventory/storageview/ContainerEditPanel.vue'
 import AddExistingContainerModal from '@/views/stationview/inventory/storageview/AddExistingContainerModal.vue'
-import {mapContainerError} from '@/views/stationview/inventory/storageview/containerErrors'
+import {mapContainerFailure} from '@/views/stationview/inventory/storageview/containerErrors'
 import AddChildChoiceModal from '@/views/stationview/inventory/storageview/AddChildChoiceModal.vue'
 import ContainerHeader from '@/views/stationview/inventory/containerdetailview/ContainerHeader.vue'
 import ContainerContentsSection from '@/views/stationview/inventory/containerdetailview/ContainerContentsSection.vue'
@@ -26,7 +26,7 @@ import AddItemsModal from '@/views/stationview/inventory/containerdetailview/Add
 import Modal from '@/components/feedback/Modal.vue'
 import {inventoryContainers} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 import type {
   ContainerDetail,
   ContainerContents,
@@ -47,7 +47,7 @@ const allContainers = ref<InventoryContainer[]>([])
 const kinds = ref<InventoryContainerKind[]>([])
 const history = ref<InventoryContainerHistory[]>([])
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const recursive = ref(false)
 const editing = ref(false)
 const showNewChildModal = ref(false)
@@ -79,7 +79,7 @@ const kindById = computed(() => {
 
 async function load() {
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     const id = containerId.value
     const [d, k, all] = await Promise.all([
@@ -92,7 +92,7 @@ async function load() {
     allContainers.value = all
     await Promise.all([loadContents(), loadHistory()])
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('inventory.storage.loadError')
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
@@ -111,8 +111,8 @@ async function onEditSaved() {
   await load()
 }
 
-function onEditError(message: string) {
-  error.value = message
+function onEditError(reported: Failure) {
+  failure.value = reported
 }
 
 const {run: confirmDelete} = useAsyncAction(async () => {
@@ -121,7 +121,7 @@ const {run: confirmDelete} = useAsyncAction(async () => {
     await inventoryContainers.deleteContainer(detail.value.container.id)
     router.push({name: routes.storage})
   } catch (e) {
-    error.value = mapContainerError(t, e, 'inventory.storage.errors.deleteFailed')
+    failure.value = mapContainerFailure(t, e)
     showDeleteConfirm.value = false
   }
 })
@@ -162,7 +162,7 @@ onMounted(load)
       <ContainerHeader
           :detail="detail"
           :kind-by-id="kindById"
-          :error="error"
+          :failure="failure"
           @edit="editing = !editing"
           @delete="showDeleteConfirm = true"
       />
@@ -235,6 +235,6 @@ onMounted(load)
           @close="showAddItemsModal = false"
       />
     </template>
-    <Alert v-else variant="error">{{ error }}</Alert>
+    <FailureAlert v-else :failure="failure"/>
   </ViewContent>
 </template>

@@ -11,12 +11,13 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TicketCreateMainColumn from './ticketcreateview/TicketCreateMainColumn.vue'
 import TicketCreateRightColumn from './ticketcreateview/TicketCreateRightColumn.vue'
 import type { DraftChecklistItem } from './ticketcreateview/TicketChecklistDraft.vue'
 import type { DraftWeblink } from './ticketcreateview/TicketWeblinksDraft.vue'
 import type { DraftLink, TicketOption } from './ticketcreateview/TicketLinksDraft.vue'
+import { describeFailure, type Failure } from '@/util/failure'
 import { boards } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import {LinkType, TicketPriority, type Board, type BoardLabel, type BoardLane, type LinkTypeName, type TicketPriorityName} from '@/api/boards'
@@ -71,15 +72,27 @@ function toggleLabel(labelId: number) {
     selectedLabelIds.value = next
 }
 
+/**
+ * Adds a label to the board and picks it for this ticket.
+ *
+ * <p>A failure here was swallowed and the label simply did not appear, which looks like the button
+ * not having registered the click. The reader types the same name again and the board ends up with
+ * two labels that read alike.
+ */
 async function createAndSelectLabel(name: string) {
+    labelFailure.value = null
     try {
         const label = await boards.createLabel(boardKey.value, { name })
         allLabels.value = await boards.getLabels(boardKey.value)
         const next = new Set(selectedLabelIds.value)
         next.add(label.id)
         selectedLabelIds.value = next
-    } catch { void 0 }
+    } catch (e) {
+        labelFailure.value = {...describeFailure(e, t), message: t('boards.labelCreateFailed')}
+    }
 }
+
+const labelFailure = ref<Failure | null>(null)
 
 const weblinks = ref<DraftWeblink[]>([])
 const newWeblinkUrl = ref('')
@@ -123,7 +136,9 @@ const createLaneOptions = computed(() => {
     return options
 })
 
-const {loading, error} = useAsyncLoader(async () => {
+const validationError = ref('')
+
+const {loading, failure: loadFailure} = useAsyncLoader(async () => {
     const [b, l, m, lb, tks] = await Promise.all([
         boards.getBoard(boardKey.value),
         boards.getLanes(boardKey.value),
@@ -152,16 +167,36 @@ const {loading, error} = useAsyncLoader(async () => {
     }
 })
 
-const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction(async () => {
-    const created = await boards.createTicket(boardKey.value, {
-        laneId: Number(laneId.value),
-        title: title.value.trim(),
-        description: description.value.trim() || undefined,
-        priority: priority.value,
-        assignedMemberId: assignee.value ? Number(assignee.value) : undefined,
-        dueDate: dueDate.value || undefined,
-    })
-    const ticketNumber = created.ticketNumber
+/**
+ * The ticket, once it exists, so a second press does not make a second one.
+ *
+ * <p>Creating the ticket and hanging its checklist, labels and links on it used to be one attempt.
+ * A ticket that was created and then failed to take its labels was reported as a ticket that had not
+ * been created, the reader pressed the button again, and the board held it twice. Remembering it here
+ * turns that second press into what the reader meant: finish the one that is already there.
+ */
+/**
+ * The ticket, once it exists, so a second press finishes it rather than making another.
+ *
+ * <p>Creating a ticket is several writes: the ticket, then its labels, its checklist and its links.
+ * A failure after the first used to read as a failed creation, and the reader pressed the button
+ * again and got a second ticket. Remembering the number means the retry carries on where it stopped.
+ */
+const createdTicket = ref<number | null>(null)
+
+const {running: submitting, failure: submitFailure, run: runSubmit} = useAsyncAction(async () => {
+    if (!createdTicket.value) {
+        const created = await boards.createTicket(boardKey.value, {
+            laneId: Number(laneId.value),
+            title: title.value.trim(),
+            description: description.value.trim() || undefined,
+            priority: priority.value,
+            assignedMemberId: assignee.value ? Number(assignee.value) : undefined,
+            dueDate: dueDate.value || undefined,
+        })
+        createdTicket.value = created.ticketNumber
+    }
+    const ticketNumber = createdTicket.value
 
     const ops: Promise<unknown>[] = []
     for (const item of checklistItems.value) {
@@ -179,14 +214,27 @@ const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction
 
     await Promise.all(ops)
     await router.push(`/station/boards/${boardKey.value}/tickets/${ticketNumber}`)
-}, {formatError: () => t('common.error')})
+})
+
+/**
+ * What to show: the reader's own omission first, then whatever the last attempt ran into. Where the
+ * ticket already exists, the sentence says so, because pressing the button again finishes it rather
+ * than repeating it.
+ */
+const shownFailure = computed<Failure | null>(() => {
+    if (labelFailure.value) return labelFailure.value
+    const described = submitFailure.value
+    if (!described) return null
+    if (!createdTicket.value) return described
+    return {...described, message: t('boards.ticketCreatedPartly', {ticket: createdTicket.value})}
+})
 
 function handleSubmit() {
     if (!title.value.trim()) {
-        error.value = t('common.requiredField')
+        validationError.value = t('common.requiredField')
         return
     }
-    error.value = ''
+    validationError.value = ''
     void runSubmit()
 }
 
@@ -214,7 +262,7 @@ const pageSubtitle = computed(() => board.value?.name || t('pages.ticket-create.
         :subtitle="pageSubtitle"
     >
         <Spinner v-if="loading" />
-        <Alert v-else-if="error && !board" variant="error">{{ error }}</Alert>
+        <FailureAlert v-else-if="loadFailure && !board" :failure="loadFailure"/>
         <template v-else-if="board">
             <div class="flex items-center gap-3 mb-6">
                 <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="goBack" />
@@ -252,7 +300,8 @@ const pageSubtitle = computed(() => board.value?.name || t('pages.ticket-create.
                     :assignable-members="assignableMembers"
                     :all-labels="allLabels"
                     :selected-labels="selectedLabels"
-                    :error="error || submitError"
+                    :failure="shownFailure"
+                    :validation-error="validationError"
                     :submitting="submitting"
                     :cancel-to="`/station/boards/${board.shortKey}`"
                     @toggle-label="toggleLabel"

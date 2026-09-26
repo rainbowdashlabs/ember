@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -16,6 +17,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LogEntryRow from '@/components/log/LogEntryRow.vue'
 import LogFilterBar from './adminlogview/LogFilterBar.vue'
 import {LOG_LEVELS, searchLog, type ApplicationLogPage, type LogEntry} from '@/api/applicationLog'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The application log, read from where it is stored rather than from the machine.
@@ -30,7 +32,8 @@ const entries = ref<LogEntry[]>([])
 const page = ref<ApplicationLogPage | null>(null)
 const loading = ref(true)
 const loadingMore = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
+const moreFailure = ref<Failure | null>(null)
 
 const search = ref('')
 const levels = ref<string[]>([...LOG_LEVELS])
@@ -46,28 +49,35 @@ const query = computed(() => ({
 
 async function reload() {
   loading.value = true
-  error.value = ''
+  failure.value = null
+  moreFailure.value = null
   try {
     const result = await searchLog(query.value)
     page.value = result
     entries.value = result.entries
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
 }
 
-/** Reads further back from the oldest line on screen, which is what a cursor is for. */
+/**
+ * Reads further back from the oldest line on screen, which is what a cursor is for.
+ *
+ * <p>Answered for separately from the first page: reaching further back and failing used to replace
+ * everything already on screen with one sentence, so a reader lost the lines they were reading.
+ */
 async function loadMore() {
   const oldest = entries.value.at(-1)
   if (!oldest) return
   loadingMore.value = true
+  moreFailure.value = null
   try {
     const result = await searchLog({...query.value, before: oldest.id})
     entries.value = [...entries.value, ...result.entries]
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    moreFailure.value = describeFailure(e, t)
   } finally {
     loadingMore.value = false
   }
@@ -98,10 +108,11 @@ onMounted(reload)
           @change="reload"/>
 
       <Spinner v-if="loading" size="md"/>
-      <Alert v-else-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert v-else-if="failure" :failure="failure"/>
       <template v-else>
         <EmptyHint v-if="entries.length === 0">{{ t('applicationLog.empty') }}</EmptyHint>
         <LogEntryRow v-for="entry in entries" :key="entry.id" :entry="entry"/>
+        <FailureAlert :failure="moreFailure"/>
         <div v-if="entries.length > 0" class="flex justify-center">
           <SecondaryButton :icon="['fas', 'arrow-down']" :disabled="loadingMore" @click="loadMore">
             {{ loadingMore ? t('common.loading') : t('applicationLog.loadMore') }}

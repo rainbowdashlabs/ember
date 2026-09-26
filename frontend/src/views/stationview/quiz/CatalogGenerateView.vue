@@ -16,6 +16,7 @@ import type { QuizCatalogDetail } from '@/api/quiz'
 import { quiz, ai as aiApi } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useConfigPanel } from '@/composables/useConfigPanel'
+import { describeFailure, type Failure } from '@/util/failure'
 import AiSettingsPanel from './cataloggenerateview/AiSettingsPanel.vue'
 import GenerationConfigForm from './cataloggenerateview/GenerationConfigForm.vue'
 import GenerationReviewPanel from './cataloggenerateview/GenerationReviewPanel.vue'
@@ -29,7 +30,7 @@ const { loaded } = useSession()
 
 const catalogId = computed(() => Number(route.params.id))
 
-const { config: catalog, loading, error, reload: loadData } = useConfigPanel<QuizCatalogDetail | null>({
+const { config: catalog, loading, failure, reload: loadData } = useConfigPanel<QuizCatalogDetail | null>({
   initial: null,
   fetch: () => quiz.getCatalog(catalogId.value),
   immediate: false,
@@ -44,7 +45,9 @@ const pageTitle = computed(() => catalog.value
     : t('pages.quiz-catalog-generate.title'))
 
 const genGenerating = ref(false)
-const genResult = ref('')
+
+/** What the generator was refused with, or null while it has gone well. */
+const genFailure = ref<Failure | null>(null)
 const genPhase = ref<'config' | 'review'>('config')
 const genProgressTotal = ref(0)
 const genRegenerating = ref<number | null>(null)
@@ -65,7 +68,7 @@ function getAiParams() {
 
 async function generateQuestions(entries: GenEntry[], userPrompt: string) {
   genGenerating.value = true
-  genResult.value = ''
+  genFailure.value = null
   genPreviews.value = []
   const totalCount = entries.reduce((sum, e) => sum + e.count, 0)
   genProgressTotal.value = totalCount
@@ -97,7 +100,7 @@ async function generateQuestions(entries: GenEntry[], userPrompt: string) {
       if (poll.done) break
     }
   } catch (e: unknown) {
-    genResult.value = e instanceof Error ? e.message : t('common.error')
+    genFailure.value = describeFailure(e, t)
   }
   genGenerating.value = false
 }
@@ -122,7 +125,7 @@ async function regenerateQuestion(index: number) {
       }
     }
   } catch (e: unknown) {
-    genResult.value = e instanceof Error ? e.message : t('common.error')
+    genFailure.value = describeFailure(e, t)
   } finally {
     genRegenerating.value = null
   }
@@ -136,7 +139,7 @@ function toggleGenPreview(index: number) {
 
 async function saveGeneratedQuestions() {
   genGenerating.value = true
-  genResult.value = ''
+  genFailure.value = null
   try {
     const accepted = genPreviews.value.filter(q => q.accepted)
     for (const q of accepted) {
@@ -149,7 +152,7 @@ async function saveGeneratedQuestions() {
     }
     router.push({ name: 'quiz-catalog-detail', params: { id: catalogId.value } })
   } catch (e: unknown) {
-    genResult.value = e instanceof Error ? e.message : t('common.error')
+    genFailure.value = describeFailure(e, t)
     genGenerating.value = false
   }
 }
@@ -157,7 +160,7 @@ async function saveGeneratedQuestions() {
 function resetGeneration() {
   genPhase.value = 'config'
   genPreviews.value = []
-  genResult.value = ''
+  genFailure.value = null
 }
 
 watch(loaded, (isLoaded) => {
@@ -173,7 +176,7 @@ watch(loaded, (isLoaded) => {
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading && catalog">
         <AiSettingsPanel ref="aiSettingsRef" :catalog-id="catalogId" />
@@ -182,7 +185,7 @@ watch(loaded, (isLoaded) => {
           <GenerationConfigForm
             :categories="catalog?.categories ?? []"
             :generating="genGenerating"
-            :error="genResult"
+            :failure="genFailure"
             @generate="generateQuestions"
           />
         </template>
@@ -195,7 +198,7 @@ watch(loaded, (isLoaded) => {
               :generating="genGenerating"
               :regenerating-index="genRegenerating"
               :progress-total="genProgressTotal"
-              :error="genResult"
+              :failure="genFailure"
               @toggle="toggleGenPreview"
               @regenerate="regenerateQuestion"
               @save="saveGeneratedQuestions"

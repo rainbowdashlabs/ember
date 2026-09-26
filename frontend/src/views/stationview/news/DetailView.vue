@@ -64,7 +64,7 @@ interface ViewBadgeRef {
 const viewBadge = ref<ViewBadgeRef | null>(null)
 const recordedViewIds = new Set<number>()
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const id = Number(route.params.id)
   entry.value = await news.getNews(id)
   if (entry.value && !recordedViewIds.has(id)) {
@@ -85,7 +85,7 @@ const {
   onSuccess: async () => {
     await router.push({name: newsRoutes.list})
   },
-  error,
+  failure,
 })
 
 watch(() => route.params.id, reload)
@@ -102,7 +102,7 @@ watch(() => route.params.id, reload)
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <NeutralContainer v-if="entry" class="space-y-3">
         <NewsEntryHeader :entry="entry" :can-manage="canManageNews()">

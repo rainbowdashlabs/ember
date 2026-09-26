@@ -21,7 +21,7 @@ import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()
 
-const {config, loading, error, runWith} = useConfigPanel<HibpConfig>({
+const {config, loading, failure, runWith} = useConfigPanel<HibpConfig>({
   initial: {
     enabled: true,
     endpoint: 'https://api.pwnedpasswords.com/range/',
@@ -40,7 +40,7 @@ async function save() {
   <ViewContent :title="t('pages.admin-security-hibp.title')" :subtitle="t('pages.admin-security-hibp.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <NeutralContainer class="space-y-4">

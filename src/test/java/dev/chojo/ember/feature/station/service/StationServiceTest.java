@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
@@ -16,7 +18,7 @@ import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
+import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -443,13 +445,24 @@ class StationServiceTest extends RepositoryTestBase {
         assertFalse(stationRepo.findById(stationId).orElseThrow().publicBlogEnabled());
     }
 
+    /**
+     * A readable address another station already answers to is a collision, so it is refused as one.
+     *
+     * <p>The refusal is asserted by name rather than only by status, because the name is what reaches
+     * the reader's screen and what the frontend decides on. It used to be told apart by comparing the
+     * English sentence, which broke the moment anybody reworded it.
+     */
     @Test
     @Order(54)
     void updatePublicSlugDuplicateThrows() {
         var other = stationRepo.create("Other Station");
         service.updatePublicSlug(other.id(), "taken-slug-" + UUID.randomUUID());
         var slug = stationRepo.findById(other.id()).orElseThrow().publicSlug();
-        assertThrows(BadRequestResponse.class, () -> service.updatePublicSlug(stationId, slug));
+
+        var refused = assertThrows(RefusalResponse.class, () -> service.updatePublicSlug(stationId, slug));
+        assertEquals(Refusal.STATION_SLUG_TAKEN, refused.refusal());
+        assertEquals(HttpStatus.CONFLICT.getCode(), refused.getStatus());
+
         stationRepo.delete(other.id());
     }
 

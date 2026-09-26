@@ -10,6 +10,8 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {useSession} from '@/composables/useSession'
 import {useCluster} from '@/composables/useCluster'
@@ -28,7 +30,7 @@ const {currentClusterId} = useCluster()
 const cluster = ref<Cluster | null>(null)
 const administrators = ref<ClusterMemberSummary[]>([])
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const hierarchy = ref<PermissionNode[]>([])
 
@@ -60,8 +62,8 @@ onMounted(async () => {
     cluster.value = await clusters.getActive()
     administrators.value = await clusterMembers.listAdministrators().catch(() => [])
     hierarchy.value = await data.getClusterPermissionHierarchy().catch(() => [])
-  } catch {
-    error.value = t('clusterOverview.loadFailed')
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('clusterOverview.loadFailed')}
   } finally {
     loading.value = false
   }
@@ -72,7 +74,7 @@ onMounted(async () => {
   <ViewContent :title="t('clusterOverview.title')" :subtitle="t('clusterOverview.subtitle')">
     <Spinner v-if="loading"/>
 
-    <Alert v-else-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert v-else-if="failure" :failure="failure"/>
 
     <Alert v-else-if="!cluster" variant="info">{{ t('clusterOverview.noCluster') }}</Alert>
 

@@ -18,6 +18,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ImportResultPanel from './ImportResultPanel.vue'
 import {adminSettings} from '@/api'
 import type {LegalFile, LegalImport} from '@/api/adminSettings'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * Takes a document written elsewhere and shows what Ember made of it before anything is applied:
@@ -39,16 +40,16 @@ const emit = defineEmits<{
 const markdown = ref('')
 const result = ref<LegalImport | null>(null)
 const running = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 async function run(action: () => Promise<LegalImport>) {
   running.value = true
-  error.value = ''
+  failure.value = null
   result.value = null
   try {
     result.value = await action()
-  } catch {
-    error.value = t('adminSettings.legal.importFailed')
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('adminSettings.legal.importFailed')}
   } finally {
     running.value = false
   }
@@ -69,7 +70,7 @@ watch(show, open => {
   if (!open) return
   markdown.value = ''
   result.value = null
-  error.value = ''
+  failure.value = null
 })
 </script>
 
@@ -90,7 +91,7 @@ watch(show, open => {
       </SecondaryButton>
 
       <Spinner v-if="running" size="md"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <ImportResultPanel v-if="result" :result="result"/>
 

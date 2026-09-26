@@ -15,6 +15,7 @@ import MailRuleEditor from './MailRuleEditor.vue'
 import {mailImport} from '@/api'
 import type {MailRule, MailRuleRequest} from '@/api/mailImport'
 import {moveWithin} from '@/util/reorder'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The rules under one mailbox, in the order they are applied.
@@ -28,7 +29,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  error: [message: string]
+  error: [failure: Failure]
 }>()
 
 const {t} = useI18n()
@@ -37,29 +38,41 @@ const rules = ref<MailRule[]>([])
 const editing = ref<MailRule | null>(null)
 const adding = ref(false)
 
-async function reload() {
+/** Hands the failure up, with a sentence of its own where this screen has a better one. */
+function record(e: unknown, message?: string) {
+  const described = describeFailure(e, t)
+  emit('error', message ? {...described, message} : described)
+}
+
+/**
+ * Fetches the rules, and says so when it cannot.
+ *
+ * <p>It used to empty the list on a failure, which reads on screen as a mailbox with no rules at
+ * all. A reader then writes the rules again, over the ones that are still there.
+ */
+async function reload(staleMessage?: string) {
   try {
     rules.value = await mailImport.listRules(props.mailboxId)
-  } catch {
-    rules.value = []
+  } catch (e) {
+    record(e, staleMessage)
   }
 }
 
-/** The server's own words where it has any: a refused rule says exactly what is wrong with it. */
-function messageOf(e: unknown): string {
-  const message = (e as {response?: {data?: {message?: string}}})?.response?.data?.message
-  return message && message.trim() ? message : t('common.error')
-}
-
+/**
+ * Carries the change out, then refreshes the list.
+ *
+ * <p>The refresh is answered for separately: a rule that was saved and a list that then failed to
+ * come back are not the same news, and saying the first failed invites the reader to save it twice.
+ */
 async function act(action: Promise<unknown>) {
   try {
     await action
-    await reload()
-    return true
   } catch (e) {
-    emit('error', messageOf(e))
+    record(e)
     return false
   }
+  await reload(t('failure.staleAfterAction'))
+  return true
 }
 
 async function save(request: MailRuleRequest) {

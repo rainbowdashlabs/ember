@@ -4,8 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { ref, type Ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { savedFilters as savedFiltersApi } from '@/api'
 import type { DataTableState } from '@/composables/useDataTable'
+import { describeFailure, type Failure } from '@/util/failure'
 
 export interface SavedFilterPreset {
   id?: number
@@ -40,14 +42,20 @@ export function presetOf(id: number, name: string, filterData: string): SavedFil
  * <p>Columns are stored by the key the table names them by, which for a profile field is its id.
  */
 export function useSavedFilters(tabStates: Ref<Record<string, DataTableState>>, activeTab: Ref<string>) {
+  const {t} = useI18n()
+
   const savedFilters = ref<SavedFilterPreset[]>([])
+
+  /** What saving or removing a filter ran into, which used to be swallowed whole. */
+  const filterFailure = ref<Failure | null>(null)
 
   async function loadSavedFilters() {
     try {
       const filters = await savedFiltersApi.listFilters(TABLE_TYPE)
       savedFilters.value = filters.map(f => presetOf(f.id, f.name, f.filterData))
-    } catch {
+    } catch (e) {
       savedFilters.value = []
+      filterFailure.value = {...describeFailure(e, t), message: t('membersList.savedFiltersUnreadable')}
     }
   }
 
@@ -58,12 +66,14 @@ export function useSavedFilters(tabStates: Ref<Record<string, DataTableState>>, 
     for (const [key, values] of state.filters) multiFilters[key] = [...values]
     const emptyFilters = [...state.empties]
     const filterData = JSON.stringify({ tab: activeTab.value, textFilters: {}, multiFilters, emptyFilters })
+    filterFailure.value = null
     try {
       await savedFiltersApi.createFilter({ tableType: TABLE_TYPE, name, filterData })
-      await loadSavedFilters()
-    } catch {
+    } catch (e) {
+      filterFailure.value = describeFailure(e, t)
       return
     }
+    await loadSavedFilters()
   }
 
   function applyFilter(preset: SavedFilterPreset) {
@@ -77,12 +87,14 @@ export function useSavedFilters(tabStates: Ref<Record<string, DataTableState>>, 
   async function deleteFilter(index: number) {
     const preset = savedFilters.value[index]
     if (preset?.id === undefined) return
+    filterFailure.value = null
     try {
       await savedFiltersApi.deleteFilter(preset.id)
-      await loadSavedFilters()
-    } catch {
+    } catch (e) {
+      filterFailure.value = describeFailure(e, t)
       return
     }
+    await loadSavedFilters()
   }
 
   function clearFilters() {
@@ -95,6 +107,7 @@ export function useSavedFilters(tabStates: Ref<Record<string, DataTableState>>, 
 
   return {
     savedFilters,
+    filterFailure,
     loadSavedFilters,
     saveCurrentFilter,
     applyFilter,

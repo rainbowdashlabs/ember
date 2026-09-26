@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { ref, type Ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import client from '@/api/client'
 import { profileFields } from '@/api'
 import type { ProfileField } from '@/api/profileFields'
@@ -50,8 +49,6 @@ export function useInventoryMemberExport(
   itemsFor: (memberId: number, inventoryId: number) => InventoryItem[],
   formatItemLabel: (item: InventoryItem) => string,
 ) {
-  const { t } = useI18n()
-
   const exportMode = ref(false)
   const selectedMemberIds = ref<Set<number>>(new Set())
   const selectedFieldIds = ref<Set<number>>(new Set())
@@ -100,7 +97,7 @@ export function useInventoryMemberExport(
    * <p>Both come from the same rows on the server rather than the sheet from there and the table from
    * here, which is what used to let the two disagree about which columns a reader gets.
    */
-  const {running: exporting, error: exportError, run: runExport} = useAsyncAction(
+  const {running: exporting, failure: exportFailure, run: runExport} = useAsyncAction(
       async (format: ExportFormat, separator: ExportSeparator) => {
         const query = format === 'csv' ? `?format=csv&separator=${separator}` : ''
         const res = await client.post(`/inventories/members/export${query}`, {
@@ -113,7 +110,7 @@ export function useInventoryMemberExport(
         }, {responseType: 'blob'})
         await presentFile(documentFrom(res, `Mitglieder Inventar.${format}`))
         exportMode.value = false
-      }, {formatError: () => t('common.error')})
+      })
 
   return {
     exportMode,
@@ -121,7 +118,7 @@ export function useInventoryMemberExport(
     selectedFieldIds,
     allFields,
     exporting,
-    exportError,
+    exportFailure,
     enter,
     cancel,
     toggleField,

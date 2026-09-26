@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepositor
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeAll;
@@ -25,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -96,8 +97,21 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
                 null);
     }
 
+    /**
+     * The day an appointment falls on, read on the station's clock.
+     *
+     * <p>Read in UTC instead, this disagreed with the service for the two hours before midnight UTC,
+     * where the station's day has already turned over and UTC's has not. The test then expected one
+     * date and the product produced the next, which is a failure that only ever appeared late in the
+     * evening and passed every other time of day.
+     */
     private LocalDate dayOf(StationEvent event) {
-        return event.startTime().atZone(ZoneOffset.UTC).toLocalDate();
+        return event.startTime().atZone(stationZone()).toLocalDate();
+    }
+
+    /** The clock the product reads for this station, which is the one a test has to read too. */
+    private ZoneId stationZone() {
+        return StationFormat.timezoneOf(stationRepo.findById(station.id()).orElseThrow());
     }
 
     private EventField memberField(int eventId, String value, boolean perDate) {
@@ -247,7 +261,7 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
                 .toList();
         assertTrue(dates.size() > 50);
         assertTrue(dates.stream().allMatch(date -> date.getDayOfWeek() == DayOfWeek.TUESDAY));
-        assertTrue(dates.stream().noneMatch(date -> date.isBefore(LocalDate.now(ZoneOffset.UTC))));
+        assertTrue(dates.stream().noneMatch(date -> date.isBefore(LocalDate.now(stationZone()))));
     }
 
     /** The pass that moves the far edge along reaches every appointment that names members. */

@@ -20,6 +20,7 @@ import type {EventCategory, EventFieldEntry, EventTemplateDetail} from '@/api/ev
 import type {MemberGroup, UserTag} from '@/api/types'
 import {attendance, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
 import {useSession} from '@/composables/useSession'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -45,7 +46,7 @@ const sheetFields = computed(() => attendanceFields.value
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const name = ref('')
 const title = ref('')
@@ -103,7 +104,7 @@ function seedForm(detail: EventTemplateDetail) {
 
 async function loadData() {
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     const [detail, cats, attTpls, memberGroups, userTags] = await Promise.all([
       events.getTemplate(templateId.value),
@@ -123,14 +124,14 @@ async function loadData() {
     seedForm(detail)
   } catch (e) {
     reportCaughtError(e, 'TemplateEditView.loadData')
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
 }
 
 async function save() {
-  error.value = ''
+  failure.value = null
   try {
     await events.updateTemplate(templateId.value, {
       name: name.value,
@@ -162,7 +163,7 @@ async function save() {
     })
   } catch (e) {
     reportCaughtError(e, 'TemplateEditView.save')
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -180,7 +181,7 @@ async function save() {
       </div>
 
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <TemplateEditBody
           v-if="!loading"

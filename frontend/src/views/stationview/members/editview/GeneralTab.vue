@@ -10,6 +10,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -21,6 +22,7 @@ import {StationUserType, type MemberGroup, type PermissionGrant, type StationMem
 import {stationMembers, memberGroups, userTags} from '@/api'
 import type {MyInventoryItem} from '@/api/inventory'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
@@ -43,39 +45,46 @@ const emit = defineEmits<{
   groupsChanged: [groupIds: Set<number>]
 }>()
 
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const success = ref('')
 
 const editUserType = ref(props.initialUserType)
 
 async function onUserTypeChange(value: string) {
-  error.value = ''
+  failure.value = null
   success.value = ''
   try {
     await stationMembers.setUserType(props.memberId, value)
     editUserType.value = value
     emit('userTypeChanged', value)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
 const editRoleIds = ref(new Set(props.initialRoleIds))
 
+/**
+ * Writes the ticked permissions back.
+ *
+ * <p>The picker keeps the new ticks either way, so a refusal has to be read to be noticed at all. It
+ * is the refusal most worth saying plainly too: granting a right one does not hold oneself is the
+ * ordinary way this is refused, and that is the station's business rather than a fault in Ember.
+ */
 async function onPermissionsChange(newIds: Set<number>) {
   editRoleIds.value = newIds
-  error.value = ''
+  failure.value = null
   try {
     await stationMembers.setPermissions(props.memberId, {permissionIds: [...newIds]})
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
 const editGroupIds = ref(new Set(props.initialGroupIds))
 
 async function toggleGroup(groupId: number) {
-  error.value = ''
+  failure.value = null
   const wasIn = editGroupIds.value.has(groupId)
   if (wasIn) {
     editGroupIds.value.delete(groupId)
@@ -90,18 +99,18 @@ async function toggleGroup(groupId: number) {
         : [...currentMembers.map(m => m.id), props.memberId]
     await memberGroups.setGroupMembers(groupId, {memberIds})
     emit('groupsChanged', new Set(editGroupIds.value))
-  } catch {
+  } catch (e) {
     if (wasIn) editGroupIds.value.add(groupId)
     else editGroupIds.value.delete(groupId)
     editGroupIds.value = new Set(editGroupIds.value)
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
   }
 }
 
 const editTagIds = ref(new Set(props.initialTagIds))
 
 async function toggleTag(tagId: number) {
-  error.value = ''
+  failure.value = null
   const wasIn = editTagIds.value.has(tagId)
   if (wasIn) {
     editTagIds.value.delete(tagId)
@@ -115,11 +124,11 @@ async function toggleTag(tagId: number) {
         ? currentMembers.filter(m => m.id !== props.memberId).map(m => m.id)
         : [...currentMembers.map(m => m.id), props.memberId]
     await userTags.setTagMembers(tagId, memberIds)
-  } catch {
+  } catch (e) {
     if (wasIn) editTagIds.value.add(tagId)
     else editTagIds.value.delete(tagId)
     editTagIds.value = new Set(editTagIds.value)
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -139,17 +148,17 @@ const formerBlockReasons = computed(() => {
 })
 const canMarkFormer = computed(() => formerBlockReasons.value.length === 0)
 
-const {running: markingFormer, error: formerError, run: confirmMarkFormer} = useAsyncAction(async () => {
-  error.value = ''
+const {running: markingFormer, failure: formerFailure, run: confirmMarkFormer} = useAsyncAction(async () => {
+  failure.value = null
   await stationMembers.markFormer(props.memberId)
   formerSuccess.value = true
   showFormerModal.value = false
-}, {formatError: () => t('common.error')})
+})
 </script>
 
 <template>
   <div class="space-y-6">
-    <Alert v-if="error || formerError" variant="error">{{ error || formerError }}</Alert>
+    <FailureAlert :failure="failure ?? formerFailure"/>
     <Alert v-if="success" variant="success">{{ success }}</Alert>
 
     <NeutralContainer class="space-y-3">

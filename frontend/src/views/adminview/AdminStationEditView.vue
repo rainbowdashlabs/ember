@@ -10,6 +10,7 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StationForm from './adminstationeditview/StationForm.vue'
 import type {ManagerDetail} from '@/api/stations'
@@ -40,7 +41,7 @@ const pageTitle = computed(() => (isEdit.value && name.value.trim()
     ? name.value.trim()
     : t('pages.admin-station-edit.title')))
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   if (!stationId.value) return
   const detail = await stations.getStation(stationId.value)
   name.value = detail.name ?? ''
@@ -50,7 +51,7 @@ const {loading, error} = useAsyncLoader(async () => {
 })
 
 async function save() {
-  error.value = ''
+  failure.value = null
   try {
     const emailToSend = managerEmail.value.trim() || undefined
     if (isEdit.value) {
@@ -63,7 +64,7 @@ async function save() {
       await router.replace({name: 'admin-station-edit', params: {id: created.id}})
     }
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -92,7 +93,7 @@ function goBack() {
 
       <Spinner v-if="loading" size="lg"/>
 
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <StationForm
         v-if="!loading"

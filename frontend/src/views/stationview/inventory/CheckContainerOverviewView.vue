@@ -10,14 +10,14 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import ContainerTree from '@/views/stationview/inventory/storageview/ContainerTree.vue'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const routes = useInventoryRoutes()
 
@@ -27,7 +27,7 @@ const router = useRouter()
 const containers = ref<InventoryContainer[]>([])
 const kinds = ref<InventoryContainerKind[]>([])
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const search = ref('')
 
 const kindById = computed(() => {
@@ -56,7 +56,7 @@ const roots = computed(() => containers.value
 
 async function load() {
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     const [c, k] = await Promise.all([
       inventoryContainers.listContainers(),
@@ -65,7 +65,7 @@ async function load() {
     containers.value = c
     kinds.value = k
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('inventory.checkContainer.loadError')
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
@@ -89,7 +89,7 @@ onMounted(load)
       <SearchInput v-model="search" :placeholder="t('inventory.checkContainer.searchPlaceholder')" />
     </NeutralContainer>
 
-    <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+    <FailureAlert :failure="failure" class="mb-4"/>
 
     <div v-if="loading" class="flex justify-center py-12">
       <Spinner size="lg" />

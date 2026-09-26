@@ -10,6 +10,7 @@ import {dataTracking} from '@/api'
 import {TrackingStatus, type ColumnEntry, type DeletionStrategy, type GdprDeletionContext, type GdprExportContext, type TableEntry, type TrackingStatusName, type TransferContext} from '@/api/dataTracking'
 import TableDetailHeader from './TableDetailHeader.vue'
 import TableDetailBody from './TableDetailBody.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   name: string
@@ -26,7 +27,7 @@ const stationTransfer = ref<TransferContext>({...props.entry.stationTransfer})
 const gdprExport = ref<GdprExportContext>({...props.entry.gdprExport})
 const gdprDeletion = ref<GdprDeletionContext>({...props.entry.gdprDeletion})
 const columns = ref<ColumnEntry[]>(props.entry.columns.map(c => ({...c})))
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 watch(
     () => props.entry,
@@ -35,7 +36,7 @@ watch(
       gdprExport.value = {...e.gdprExport}
       gdprDeletion.value = {...e.gdprDeletion}
       columns.value = e.columns.map(c => ({...c}))
-      error.value = ''
+      failure.value = null
     },
 )
 
@@ -76,7 +77,7 @@ function removeDeletionStrategy(index: number) {
 }
 
 async function save() {
-  error.value = ''
+  failure.value = null
   try {
     const overrides: Record<string, boolean> = {}
     for (let i = 0; i < columns.value.length; i++) {
@@ -93,19 +94,19 @@ async function save() {
     emit('updated', props.name, updated)
     emit('close')
   } catch (e) {
-    error.value = (e as Error).message || t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
 
 async function verifyAll() {
-  error.value = ''
+  failure.value = null
   try {
     const updated = await dataTracking.verifyAllColumns(props.name)
     columns.value = updated.columns.map(c => ({...c}))
     emit('updated', props.name, updated)
   } catch (e) {
-    error.value = (e as Error).message || t('common.error')
+    failure.value = describeFailure(e, t)
   }
 }
 </script>
@@ -124,7 +125,7 @@ async function verifyAll() {
           :statuses="statuses"
           :strategies="STRATEGIES"
           :column-options="columnOptions"
-          :error="error"
+          :failure="failure"
           :save="save"
           @close="emit('close')"
           @verify-all="verifyAll"

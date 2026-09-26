@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -51,7 +52,6 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -564,7 +564,9 @@ public class EventRegistrationRoutes implements Routes {
     private void updateRegistrationFields(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int registrationId = pathInt(ctx, "id");
-        var registration = registrationService.findById(registrationId).orElseThrow(NotFoundResponse::new);
+        var registration = registrationService
+                .findById(registrationId)
+                .orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_FIELD_CHANGE::raise);
         requireOwnedEvent(crudService, registration.eventId(), session);
         requireAnswerAuthor(session, registration);
 
@@ -619,7 +621,9 @@ public class EventRegistrationRoutes implements Routes {
     private void exportTableCsv(Context ctx) {
         var session = UserSession.from(ctx);
         var event = requireOwnedEvent(crudService, pathInt(ctx, "eventId"), session);
-        var station = stationRepository.findById(session.stationId()).orElseThrow(NotFoundResponse::new);
+        var station = stationRepository
+                .findById(session.stationId())
+                .orElseThrow(Refusal.STATION_NOT_HERE_FOR_REGISTRATION_CSV::raise);
         ctx.contentType("text/csv");
         ctx.header("Content-Disposition", registrationsName(station, event.name(), ctx, "csv"));
         ctx.result(
@@ -641,7 +645,9 @@ public class EventRegistrationRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         var event = requireOwnedEvent(crudService, eventId, session);
-        var station = stationRepository.findById(session.stationId()).orElseThrow(NotFoundResponse::new);
+        var station = stationRepository
+                .findById(session.stationId())
+                .orElseThrow(Refusal.STATION_NOT_HERE_FOR_REGISTRATION_SHEET::raise);
         var table = tableOf(ctx);
         try {
             var pdf = memberTableRenderer.toPdf(
@@ -663,7 +669,9 @@ public class EventRegistrationRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         var event = requireOwnedEvent(crudService, eventId, session);
-        var station = stationRepository.findById(event.stationId()).orElseThrow(NotFoundResponse::new);
+        var station = stationRepository
+                .findById(event.stationId())
+                .orElseThrow(Refusal.STATION_NOT_HERE_FOR_REGISTRATION_TABLE::raise);
         var req = ctx.bodyAsClass(RegistrationTableRequest.class);
         var columns = req.columns() == null
                 ? List.<MemberTableColumn>of()
@@ -813,10 +821,12 @@ public class EventRegistrationRoutes implements Routes {
         if (req.status() != RegistrationStatus.ACCEPTED && req.status() != RegistrationStatus.DENIED) {
             throw new BadRequestResponse("status must be ACCEPTED or DENIED");
         }
-        var registration = registrationService.findById(id).orElseThrow(NotFoundResponse::new);
+        var registration = registrationService
+                .findById(id)
+                .orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_STATUS_CHANGE::raise);
         requireOwnedOrNotFound(ctx, registration.eventId(), crudService::findById, StationEvent::stationId);
         if (!registrationService.updateStatus(id, req.status())) {
-            throw new NotFoundResponse();
+            throw Refusal.EVENT_REGISTRATION_STATUS_NOT_CHANGED.raise();
         }
         ctx.json(new MessageResponse("Status updated"));
     }
@@ -854,7 +864,8 @@ public class EventRegistrationRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(AnswerRequest.class);
-        var registration = registrationService.findById(id).orElseThrow(NotFoundResponse::new);
+        var registration =
+                registrationService.findById(id).orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_ANSWER::raise);
         var event = requireOwnedEvent(crudService, registration.eventId(), session);
 
         boolean manages = answersFor(session, registration.memberId());
@@ -870,13 +881,13 @@ public class EventRegistrationRoutes implements Routes {
         }
 
         if (!req.attending()) {
-            if (!registrationService.refuse(id)) throw new NotFoundResponse();
+            if (!registrationService.refuse(id)) throw Refusal.EVENT_REGISTRATION_NOT_REFUSED.raise();
             ctx.status(HttpStatus.NO_CONTENT);
             return;
         }
         var status = event.requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
         if (!registrationService.updateStatus(id, status)) {
-            throw new NotFoundResponse();
+            throw Refusal.EVENT_REGISTRATION_NOT_CONFIRMED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -896,11 +907,12 @@ public class EventRegistrationRoutes implements Routes {
     private void withdrawRegistration(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var reg = registrationService.findById(id).orElseThrow(NotFoundResponse::new);
+        var reg =
+                registrationService.findById(id).orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_WITHDRAWAL::raise);
         requireMayAnswerFor(session, reg.memberId());
 
         if (!registrationService.withdraw(id)) {
-            throw new NotFoundResponse();
+            throw Refusal.EVENT_REGISTRATION_NOT_WITHDRAWN.raise();
         }
         ctx.json(new WithdrawalResponse(Instant.now().plus(EventRegistrationService.UNDO_WINDOW)));
     }
@@ -915,7 +927,7 @@ public class EventRegistrationRoutes implements Routes {
     private void undoWithdrawal(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var reg = registrationService.findById(id).orElseThrow(NotFoundResponse::new);
+        var reg = registrationService.findById(id).orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_UNDO::raise);
         requireMayAnswerFor(session, reg.memberId());
 
         if (!registrationService.undoWithdrawal(id)) {

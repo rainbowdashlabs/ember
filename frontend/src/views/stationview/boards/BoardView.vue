@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import KanbanLane from './boardview/KanbanLane.vue'
 import BoardHeaderBar from './boardview/BoardHeaderBar.vue'
 import BoardFilterBar from './boardview/BoardFilterBar.vue'
@@ -39,7 +39,7 @@ const showCreateModal = ref(false)
 
 const members = ref<MemberCompletion[]>([])
 const assignableMembers = ref<MemberCompletion[]>([])
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
     const [b, l, t, m, am, lb, tlm] = await Promise.all([
         boards.getBoard(boardKey.value),
         boards.getLanes(boardKey.value),
@@ -166,7 +166,7 @@ watch(boardKey, reload)
         :subtitle="pageSubtitle"
     >
         <Spinner v-if="loading" />
-        <Alert v-else-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert v-else-if="failure" :failure="failure"/>
         <template v-else-if="board">
             <BoardHeaderBar
                 :board-key="boardKey"

@@ -10,6 +10,7 @@ import type { CheckResult, CorrectItemRequest, MemberCheckState } from '@/api/in
 import { inventoryCheck, movements, procurement } from '@/api'
 import type { HandOutMode } from '@/components/inventory/HandOutChoice.vue'
 import { showToast } from '@/util/toast'
+import { describeFailure, type Failure } from '@/util/failure'
 
 /**
  * One thing still to be looked at during a check: either an item the member holds, or an empty
@@ -33,12 +34,12 @@ export type CheckEntry =
  *
  * @param memberId the member being checked
  * @param state    the server-side check state, replaced by every assignment operation
- * @param error    the view's error channel, set when an operation fails
+ * @param failure  the view's failure channel, described so the walker is told what to do about it
  */
 export function useMemberCheck(
   memberId: Ref<number>,
   state: Ref<MemberCheckState | null>,
-  error: Ref<string>,
+  failure: Ref<Failure | null>,
 ) {
   const { t } = useI18n()
 
@@ -58,12 +59,12 @@ export function useMemberCheck(
    * failure through the view's error channel rather than throwing.
    */
   async function apply(operation: () => Promise<MemberCheckState>, onSuccess?: () => void) {
-    error.value = ''
+    failure.value = null
     try {
       state.value = await operation()
       onSuccess?.()
-    } catch {
-      error.value = t('common.error')
+    } catch (e) {
+      failure.value = describeFailure(e, t)
     }
   }
 
@@ -234,7 +235,7 @@ export function useMemberCheck(
    * placed behind it.
    */
   async function createProcurementForSlot(req: RequiredInventoryItem, slotIndex: number, sizeId?: number) {
-    error.value = ''
+    failure.value = null
     try {
       await procurement.createProcurement({
         inventoryId: req.inventoryId,
@@ -247,8 +248,8 @@ export function useMemberCheck(
         slotsNotInPossession.value = new Set([...slotsNotInPossession.value, key])
       }
       showToast(t('inventory.check.procurementNoted'), 'success')
-    } catch {
-      error.value = t('common.error')
+    } catch (e) {
+      failure.value = describeFailure(e, t)
     }
   }
 

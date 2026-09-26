@@ -7,7 +7,8 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import type {Failure} from '@/util/failure'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
@@ -39,7 +40,7 @@ defineProps<{
   recurring: boolean
   saving: boolean
   /** Why the last attempt did not take, shown here because this is where the reader is looking. */
-  error: string
+  failure: Failure | null
 }>()
 
 const emit = defineEmits<{
@@ -60,7 +61,7 @@ const incomplete = computed(() => {
     <div class="space-y-4">
       <SubHeader>{{ t('eventEquipment.addLine') }}</SubHeader>
 
-      <Alert v-if="error" variant="error" data-testid="equipment-line-error">{{ error }}</Alert>
+      <FailureAlert :failure="failure" data-testid="equipment-line-error"/>
 
       <FieldLabel>{{ t('inventory.line.lineKind') }}</FieldLabel>
       <SelectInput v-model="kind" data-testid="equipment-line-kind">

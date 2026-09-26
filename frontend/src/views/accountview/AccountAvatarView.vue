@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 import AvatarSection from './accountavatarview/AvatarSection.vue'
 import AccountDetailsSection from './accountavatarview/AccountDetailsSection.vue'
 import NicknameSection from '@/components/member/NicknameSection.vue'
@@ -19,7 +20,7 @@ const { t } = useI18n()
 const { sessionInfo, loaded, load } = useSession()
 
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const editFirstName = ref('')
 const editLastName = ref('')
@@ -39,8 +40,14 @@ const displayName = computed(() => (editFirstName.value + ' ' + editLastName.val
  */
 const emailChangePending = ref(false)
 
+/**
+ * Stores the account details, then reads them back.
+ *
+ * <p>The read is answered for separately: details that were stored and a page that then failed to
+ * refresh used to report a refused save, and a reader told that types the change in again.
+ */
 async function saveAccount() {
-  error.value = ''
+  failure.value = null
   const account = sessionInfo.value?.account
   if (!account) return
   try {
@@ -51,23 +58,32 @@ async function saveAccount() {
       lastName: editLastName.value,
     })
     emailChangePending.value = result.emailChange === 'WAITING'
-    await load()
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
+  await reloadAfterSave()
 }
 
 async function saveNickname() {
-  error.value = ''
+  failure.value = null
   const member = sessionInfo.value?.member
   if (!member) return
   try {
     await members.setNickname(member.id, editNickname.value.trim() || null)
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    throw e
+  }
+  await reloadAfterSave()
+}
+
+/** Reads the page back after a save that already landed, and says so where it cannot. */
+async function reloadAfterSave() {
+  try {
     await load()
   } catch (e) {
-    error.value = t('common.error')
-    throw e
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
   }
 }
 
@@ -94,13 +110,13 @@ onMounted(() => {
   <ViewContent :title="t('pages.account-avatar.title')" :subtitle="t('pages.account-avatar.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <AvatarSection
             :account-uid="sessionInfo?.account?.uid"
             :name="displayName"
-            @error="v => error = v"
+            @error="v => failure = v"
         />
 
         <AccountDetailsSection

@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.form.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Failures;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.conf.file.elements.Network;
@@ -21,12 +23,8 @@ import dev.chojo.ember.feature.page.route.SharedPageRoutes;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.ClientIp;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
-import io.javalin.http.GoneResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -37,6 +35,9 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
 
 import java.net.InetAddress;
 import java.time.Instant;
@@ -65,6 +66,8 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class PublicFormRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(PublicFormRoutes.class);
+
     private final FormService formService;
     private final StationRepository stationRepository;
     private final SubmitterHashService hashService;
@@ -156,14 +159,14 @@ public class PublicFormRoutes implements Routes {
     @StationFree("the same link, answering only the name and colours of the station asking")
     private void getSharedFormBrand(Context ctx) {
         var form = resolveSharedForm(ctx);
-        var station = stationRepository.findById(form.stationId()).orElseThrow(NotFoundResponse::new);
+        var station = stationRepository
+                .findById(form.stationId())
+                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_FORM_LINK::raise);
         ctx.json(SharedPageRoutes.brandOf(station, logoService));
     }
 
     private Form resolveSharedForm(Context ctx) {
-        return formService
-                .findByShareToken(ctx.pathParam("token"))
-                .orElseThrow(() -> new NotFoundResponse("No form is reached by this link"));
+        return formService.findByShareToken(ctx.pathParam("token")).orElseThrow(Refusal.FORM_LINK_UNKNOWN::raise);
     }
 
     @OpenApi(
@@ -275,7 +278,7 @@ public class PublicFormRoutes implements Routes {
      */
     private void submit(Context ctx, Form form) {
         if (!formService.isAcceptingResponses(form)) {
-            throw new GoneResponse("This form is not taking answers");
+            throw Refusal.FORM_NOT_TAKING_ANSWERS.raise();
         }
 
         InetAddress clientIp = ClientIp.resolve(ctx, network);
@@ -283,24 +286,48 @@ public class PublicFormRoutes implements Routes {
 
         var retryAfter = rateLimiter.tryAcquire(form.id(), submitterHash);
         if (retryAfter.isPresent()) {
-            ctx.status(HttpStatus.TOO_MANY_REQUESTS)
+            ctx.status(Refusal.FORM_ANSWERED_TOO_OFTEN.status())
                     .header("Retry-After", String.valueOf(retryAfter.get()))
-                    .json(new ErrorResponseWrapper("Rate limit exceeded"));
+                    .json(ErrorResponseWrapper.of(
+                            Refusal.FORM_ANSWERED_TOO_OFTEN,
+                            Refusal.FORM_ANSWERED_TOO_OFTEN.message(),
+                            retryAfter.get()));
             return;
         }
 
         if (form.purpose() == FormPurpose.POLL && formService.hasAnonymousResponded(form.id(), submitterHash)) {
-            throw new ConflictResponse("Dieses Formular hast du bereits ausgefüllt.");
+            throw Refusal.FORM_ALREADY_ANSWERED.raise();
         }
 
-        var req = ctx.bodyAsClass(PublicSubmitRequest.class);
+        var req = readAnswers(ctx);
         var consent =
                 consentService.requireAcceptance(ctx, req.consentVersion(), req.privacyVersion(), req.tosVersion());
         try {
             var response = formService.submitAnonymousResponse(form.id(), submitterHash, req.answers(), consent);
             ctx.status(HttpStatus.CREATED).json(new PublicSubmitResponse(response.id()));
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+            throw Failures.readable(e.getMessage())
+                    .map(Refusal.FORM_ANSWER_REFUSED::raise)
+                    .orElseGet(Refusal.FORM_ANSWER_REFUSED::raise);
+        }
+    }
+
+    /**
+     * Reads the answers somebody sent, and says so in the form's own terms when they cannot be read.
+     *
+     * <p>The general answer for a body that will not parse names the field it stumbled on and
+     * nothing else, which is what an endpoint a program calls should say. Somebody who has just
+     * filled a form in needs to be told that their answers are the thing that did not arrive, and
+     * that filling it in again is what to do about it.
+     */
+    private PublicSubmitRequest readAnswers(Context ctx) {
+        try {
+            return ctx.bodyAsClass(PublicSubmitRequest.class);
+        } catch (JacksonException e) {
+            log.warn("Unreadable answers sent to {}: {}", ctx.path(), e.getMessage());
+            throw Failures.fieldPath(e.getPath())
+                    .map(Refusal.FORM_ANSWER_UNREADABLE::raise)
+                    .orElseGet(Refusal.FORM_ANSWER_UNREADABLE::raise);
         }
     }
 
@@ -315,20 +342,16 @@ public class PublicFormRoutes implements Routes {
         UUID formUid = pathUuid(ctx, "publicUid");
         var station = stationRepository
                 .findByAddress(stationAddress)
-                .orElseThrow(() -> new NotFoundResponse("Unknown station: " + stationAddress));
-        var form = formService
-                .findByPublicUid(formUid)
-                .orElseThrow(() -> new NotFoundResponse("Unknown form: " + formUid));
+                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_FORM::raise);
+        var form = formService.findByPublicUid(formUid).orElseThrow(Refusal.PUBLIC_FORM_NOT_HERE::raise);
         if (form.stationId() != station.id()) {
-            throw new NotFoundResponse("Form " + formUid + " does not belong to station " + stationAddress);
+            throw Refusal.PUBLIC_FORM_NOT_HERE.raise();
         }
         if (form.purpose() != FormPurpose.CONTACT && form.purpose() != FormPurpose.POLL) {
-            throw new NotFoundResponse("Form " + formUid + " has purpose " + form.purpose()
-                    + " - only CONTACT and POLL forms are publicly submittable");
+            throw Refusal.FORM_NOT_ANSWERED_FROM_OUTSIDE.raise();
         }
         if (!form.visibility().openlyAddressed()) {
-            throw new NotFoundResponse(
-                    "Form " + formUid + " is reached by the link it was sent with, and by nothing else");
+            throw Refusal.FORM_NOT_OPENLY_ADDRESSED.raise();
         }
         return form;
     }

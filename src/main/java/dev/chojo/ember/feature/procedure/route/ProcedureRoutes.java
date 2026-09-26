@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.procedure.route;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -240,11 +241,10 @@ public class ProcedureRoutes implements Routes {
         int rid = pathInt(ctx, "rid");
         var procedure = requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
 
-        // Non-EDIT users can only see public procedures they're assigned to
         if (!session.hasPermission(StationPermission.PROCEDURE_EDIT)) {
-            if (!procedure.isPublic()) throw new ForbiddenResponse();
+            if (!procedure.isPublic()) throw Refusal.PROCEDURE_NOT_PUBLIC.raise();
             var assignees = procedureService.findAssigneeIds(rid);
-            if (!assignees.contains(session.member().id())) throw new ForbiddenResponse();
+            if (!assignees.contains(session.member().id())) throw Refusal.PROCEDURE_NOT_YOURS.raise();
         }
 
         var items = procedureService.findItems(rid);

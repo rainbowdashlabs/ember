@@ -28,7 +28,7 @@ const router = useRouter()
 
 const memberId = computed(() => Number(route.params.memberId))
 const memberName = computed(() => (route.query.name as string) ?? '')
-const {config: detail, loading, error} = useConfigPanel<CheckDetail | null>({
+const {config: detail, loading, failure} = useConfigPanel<CheckDetail | null>({
   initial: null,
   fetch: () => inventoryCheck.getLastCheck(memberId.value),
 })
@@ -63,7 +63,7 @@ function goBack() {
       </div>
 
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading && detail">
         <NeutralContainer>
@@ -90,7 +90,7 @@ function goBack() {
         </div>
       </template>
 
-      <EmptyState v-if="!loading && !detail && !error">{{ t('inventory.check.noLastCheck') }}</EmptyState>
+      <EmptyState v-if="!loading && !detail && !failure">{{ t('inventory.check.noLastCheck') }}</EmptyState>
     </div>
   </ViewContent>
 </template>

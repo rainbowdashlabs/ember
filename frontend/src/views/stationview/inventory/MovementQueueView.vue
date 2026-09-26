@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import MovementQueueToolbar from './movementqueueview/MovementQueueToolbar.vue'
 import MovementQueueList from './movementqueueview/MovementQueueList.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
@@ -28,6 +28,7 @@ import {emptyTableState, useDataTable} from '@/composables/useDataTable'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {presentFile} from '@/util/documentFile'
 import {useExport} from '@/composables/useExport'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * Every movement the station has, in the order of whose turn it is.
@@ -72,9 +73,9 @@ const acknowledging = ref<number | null>(null)
 const correcting = ref<number | null>(null)
 const showWizard = ref(false)
 const exporting = ref(false)
-const exportError = ref('')
+const exportFailure = ref<Failure | null>(null)
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const [loaded, fieldRows] = await Promise.all([
     movements.listMovements(),
     canManage.value ? profileFields.listFields() : Promise.resolve([]),
@@ -100,15 +101,15 @@ const exportFlow = useExport<Movement>({
 
 async function downloadPdf() {
   exporting.value = true
-  exportError.value = ''
+  exportFailure.value = null
   try {
     await presentFile(await movements.exportPdf(
         exportFlow.selectedRows.value.map(row => row.id),
         [...exportFlow.selectedColumns.value].map(Number),
     ))
     exportFlow.cancelExport()
-  } catch {
-    exportError.value = t('common.error')
+  } catch (e) {
+    exportFailure.value = describeFailure(e, t)
   } finally {
     exporting.value = false
   }
@@ -129,7 +130,7 @@ function afterChange() {
 
 <template>
   <ViewContent :subtitle="t('movements.queue.subtitle')" :title="t('movements.queue.title')">
-    <AsyncSection :error="error" :loading="loading">
+    <AsyncSection :failure="failure" :loading="loading">
       <div class="space-y-4">
         <MovementQueueToolbar
             :all-picked="exportFlow.allRowsSelected.value"
@@ -147,7 +148,7 @@ function afterChange() {
             @toggle-field="exportFlow.toggleColumn"
         />
 
-        <Alert v-if="exportError" variant="error">{{ exportError }}</Alert>
+        <FailureAlert :failure="exportFailure"/>
 
         <SearchInput v-model="table.search" :placeholder="t('movements.queue.filter.search')" data-testid="movement-filter-search"/>
 

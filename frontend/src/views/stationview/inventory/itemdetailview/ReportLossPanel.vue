@@ -62,7 +62,7 @@ function pick(event: Event) {
   attachment.value = input.files?.[0] ?? null
 }
 
-const {running, error, failure, run: send} = useAsyncAction(async () => {
+const {running, failure, run: send} = useAsyncAction(async () => {
   await inventory.reportLoss(props.item.id, note.value.trim(), attachment.value)
   asking.value = false
   note.value = ''

@@ -14,7 +14,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import { describeFailure } from '@/util/failure'
 import GradingSectionPanel from './gradingview/GradingSectionPanel.vue'
 import { useSession } from '@/composables/useSession'
 import { useAsyncAction } from '@/composables/useAsyncAction'
@@ -127,7 +128,7 @@ async function autoSave() {
   catch (e) { reportCaughtError(e, 'grading autosave') }
 }
 
-const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   await protocol.lockMember(runId.value, memberId.value)
   locked.value = true
   storedRunId = runId.value
@@ -154,13 +155,24 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
   doneSections.value = new Set(doneIds)
 }, {autoLoad: false, errorMessageKey: 'protocol.lockError'})
 
-const {running: saving, error: saveError, run: runSave} = useAsyncAction(
+/**
+ * Writes the ticks of this section, then does whatever the button asked for next.
+ *
+ * <p>The two are answered for separately. Marking somebody complete, releasing them again and
+ * moving on all used to share the save's `try`, so a grading the server had already taken, followed
+ * by a step that was refused, said the grading had not been saved. A grader told that ticks the
+ * whole section again.
+ */
+const {running: saving, failure: saveFailure, run: runSave} = useAsyncAction(
   async (after: () => void | Promise<void>) => {
+    failure.value = null
     await protocol.saveChecks(runId.value, memberId.value, serializeChecks())
-    await after()
-  },
-  {formatError: () => t('common.error')},
-)
+    try {
+      await after()
+    } catch (e) {
+      failure.value = {...describeFailure(e, t), message: t('protocol.savedButNotFinished')}
+    }
+  })
 
 function goNextSection() {
   if (currentSectionIndex.value < topSections.value.length - 1) {
@@ -228,7 +240,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       :subtitle="t('pages.protocol-grade.subtitle')"
   >
     <Spinner v-if="loading" size="lg" />
-    <Alert v-if="error || saveError" variant="error" class="mb-4">{{ error || saveError }}</Alert>
+    <FailureAlert :failure="failure ?? saveFailure" class="mb-4"/>
 
     <template v-if="!loading && currentSection">
       <div class="flex items-center justify-between mb-2">

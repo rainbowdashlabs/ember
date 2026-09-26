@@ -42,7 +42,7 @@ function managersFor(all: StationMember[]) {
     let api: ReturnType<typeof useMemberManagers> | null = null
     mount(defineComponent({
         setup() {
-            api = useMemberManagers(ref(1), ref(all), () => [], ref(''))
+            api = useMemberManagers(ref(1), ref(all), () => [], ref(null))
             return () => null
         },
     }))

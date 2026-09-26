@@ -10,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DetailHeader from './detailview/DetailHeader.vue'
 import LoadedSections from './detailview/LoadedSections.vue'
 import DetailModals from './detailview/DetailModals.vue'
@@ -27,6 +28,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useFlashMessage } from '@/composables/useFlashMessage'
+import { describeFailure, type Failure } from '@/util/failure'
 import { useListInvites } from './detailview/useListInvites'
 import { useEntryTransitions } from './detailview/useEntryTransitions'
 import { useEntryInvitation } from './detailview/useEntryInvitation'
@@ -94,7 +96,7 @@ const permissions = computed(() => ({
 
 const sectionActions = computed(() => ({
   onListUpdated: handleListUpdated,
-  onError: showErrorMessage,
+  onError: showFailure,
   onSuccess: showSuccessMessage,
   onApprove: transitions.approve,
   onReject: transitions.reject,
@@ -112,7 +114,7 @@ const sectionActions = computed(() => ({
   onCopyLink: invite.copyLink,
 }))
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [listData, entryData, inviteData, fieldData, groupData] = await Promise.all([
     waitingList.getById(listId.value),
     waitingList.listEntries(listId.value),
@@ -127,9 +129,9 @@ const {loading, error} = useAsyncLoader(async () => {
   groups.value = groupData
 })
 
-const invite = useListInvites(listId, invites, error, flash)
-const transitions = useEntryTransitions(listId, entries, error)
-const invitation = useEntryInvitation(listId, entries, error)
+const invite = useListInvites(listId, invites, failure, flash)
+const transitions = useEntryTransitions(listId, entries, failure)
+const invitation = useEntryInvitation(listId, entries, failure)
 
 /** Shows or hides questions as columns for everybody on this list, written as one change. */
 async function setFieldsVisible(fieldIds: number[], visible: boolean) {
@@ -141,8 +143,8 @@ async function setFieldsVisible(fieldIds: number[], visible: boolean) {
   }
   try {
     list.value = await waitingList.updateVisibleFields(listId.value, [...current])
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -161,7 +163,7 @@ const {
     entries.value = await waitingList.listEntries(listId.value)
     refreshSidebarCounts()
   },
-  error,
+  failure,
 })
 
 function navigateToEntry(entryId: number) {
@@ -176,14 +178,14 @@ function goBack() {
   router.push({ name: 'waiting-lists' })
 }
 
-const { running: deletingList, error: deleteListError, run: confirmDeleteList } = useAsyncAction(async () => {
-  error.value = ''
+const { running: deletingList, failure: deleteListFailure, run: confirmDeleteList } = useAsyncAction(async () => {
+  failure.value = null
   await waitingList.deleteList(listId.value)
   router.push({ name: 'waiting-lists' })
 })
 
-const actionError = computed(() =>
-  invite.createError.value || transitions.error.value || invitation.error.value || deleteListError.value,
+const actionFailure = computed(() =>
+  invite.createFailure.value ?? transitions.failure.value ?? invitation.failure.value ?? deleteListFailure.value,
 )
 
 function handleListUpdated(updated: WaitingList) {
@@ -194,8 +196,8 @@ function showSuccessMessage(msg: string) {
   flash(msg)
 }
 
-function showErrorMessage(msg: string) {
-  error.value = msg
+function showFailure(reported: Failure) {
+  failure.value = reported
 }
 
 </script>
@@ -214,7 +216,7 @@ function showErrorMessage(msg: string) {
       />
 
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error || actionError" variant="error">{{ error || actionError }}</Alert>
+      <FailureAlert :failure="failure ?? actionFailure"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <LoadedSections

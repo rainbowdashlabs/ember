@@ -31,7 +31,7 @@ const {isOpen: showDenyModal, target: denyTarget, open: openDeny} = useModalTarg
 })
 const processing = ref(false)
 
-const {config: applications, loading, error, runWith} = useConfigPanel<StationApplication[]>({
+const {config: applications, loading, failure, runWith} = useConfigPanel<StationApplication[]>({
   initial: [],
   fetch: () => stationApplications.listAll(),
 })
@@ -74,7 +74,7 @@ async function submitDeny() {
   <ViewContent :title="t('pages.admin-station-applications.title')" :subtitle="t('pages.admin-station-applications.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <ApplicationsTabs v-model="activeTab">

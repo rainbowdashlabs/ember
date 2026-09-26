@@ -42,6 +42,8 @@ export interface ReportSessionContext {
 export interface ReportAbout {
     summary: string
     technical?: string
+    /** The name the backend gave the refusal, which leads to the line that threw it. */
+    code?: string
 }
 
 /**
@@ -76,6 +78,7 @@ export async function submitReport(
 function composeMessage(description: string, about?: ReportAbout): string {
     if (!about) return description
     const lines = [description, '', `Was schiefging: ${about.summary}`]
+    if (about.code) lines.push(`Fehlercode: ${about.code}`)
     if (about.technical) lines.push(`Serverantwort: ${about.technical}`)
     return lines.join('\n')
 }

@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import LaneStatusMover from '../boardview/LaneStatusMover.vue'
 import TicketLabelsField from './TicketLabelsField.vue'
 import TicketPriorityField from './TicketPriorityField.vue'
@@ -19,6 +19,7 @@ import type {
 import type { MemberCompletion } from '@/api/stationMembers'
 import type {PriorityOption} from './types'
 import { formatDateTime } from '@/util/format'
+import type { Failure } from '@/util/failure'
 
 
 const props = defineProps<{
@@ -31,7 +32,8 @@ const props = defineProps<{
     boardFields: BoardField[]
     priorityOptions: PriorityOption[]
     canEdit: boolean
-    error: string
+    /** What the last action or load ran into, described, or nothing where nothing has. */
+    failure: Failure | null
 }>()
 
 const priority = defineModel<TicketPriorityName>('priority')
@@ -110,6 +112,6 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
             <p v-if="ticket.createdAt">Erstellt: {{ formatDateTime(ticket.createdAt) }}</p>
             <p v-if="ticket.updatedAt">Geändert: {{ formatDateTime(ticket.updatedAt) }}</p>
         </div>
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert :failure="failure"/>
     </div>
 </template>

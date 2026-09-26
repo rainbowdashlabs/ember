@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.mailimport.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -20,7 +21,6 @@ import dev.chojo.ember.feature.mailimport.service.MailboxService;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -233,7 +233,7 @@ public class MailImportRoutes implements Routes {
      */
     private void requireMayFile(UserSession session) {
         if (!session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
-            throw new ForbiddenResponse();
+            throw Refusal.DOCUMENT_NOT_YOURS_TO_FILE.raise();
         }
     }
 

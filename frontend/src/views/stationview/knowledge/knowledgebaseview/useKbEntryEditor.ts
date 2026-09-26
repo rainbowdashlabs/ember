@@ -6,6 +6,7 @@
 import { ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { KbGrant, KbTag } from '@/api/knowledgeBase'
+import { describeFailure, type Failure } from '@/util/failure'
 
 interface RestrictionPayload {
   userTypes: string[]
@@ -63,13 +64,23 @@ export function useKbEntryEditor(
   const editName = ref('')
   const editDescription = ref('')
   const tags = ref<string[]>([])
-  const error = ref('')
+  const failure = ref<Failure | null>(null)
+
+  /**
+   * Whether the entry's existing tags are actually in hand.
+   *
+   * <p>A failed fetch used to be swallowed and the dialog opened showing none, which is
+   * indistinguishable from an entry that has none. Saving then wrote that empty list back and the
+   * tags were gone, without the reader ever seeing them or being asked.
+   */
+  const tagsLoaded = ref(false)
 
   function reset(target: KbEntryTarget) {
     editName.value = target.name
     editDescription.value = target.description
     tags.value = []
-    error.value = ''
+    tagsLoaded.value = false
+    failure.value = null
   }
 
   watch(show, async (visible) => {
@@ -79,28 +90,33 @@ export function useKbEntryEditor(
 
     try {
       tags.value = (await api.getTags(target.id)).map(tag => tag.name)
-    } catch {
-      error.value = ''
+      tagsLoaded.value = true
+    } catch (e) {
+      failure.value = {...describeFailure(e, t), message: t('kb.tagsLoadFailed')}
     }
   })
 
   /**
-   * Saves every part of the dialog at once. {@code extra} carries writes only one kind has - the
-   * folder icon - so they succeed or fail together with the rest.
+   * Saves every part of the dialog at once. {@code extra} carries writes only one kind has, the
+   * folder icon, so they succeed or fail together with the rest.
+   *
+   * <p>The tags are written only where they were read. Writing what the dialog is showing when it
+   * never managed to read them would replace the entry's tags with nothing.
    */
   async function save(extra: (id: number) => Promise<unknown>[] = () => []): Promise<boolean> {
     const target = entry()
     if (!target || !editName.value.trim()) return false
+    const writes: Promise<unknown>[] = [
+      api.update(target.id, {name: editName.value.trim(), description: editDescription.value}),
+      ...extra(target.id),
+    ]
+    if (tagsLoaded.value) writes.push(api.setTags(target.id, tags.value))
     try {
-      await Promise.all([
-        api.update(target.id, {name: editName.value.trim(), description: editDescription.value}),
-        api.setTags(target.id, tags.value),
-        ...extra(target.id),
-      ])
+      await Promise.all(writes)
       show.value = false
       return true
-    } catch {
-      error.value = t('common.error')
+    } catch (e) {
+      failure.value = describeFailure(e, t)
       return false
     }
   }
@@ -109,7 +125,8 @@ export function useKbEntryEditor(
     editName,
     editDescription,
     tags,
-    error,
+    tagsLoaded,
+    failure,
     save,
   }
 }

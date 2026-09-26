@@ -19,6 +19,7 @@ import {beacon} from '@/api'
 import client from '@/api/client'
 import {flatten, pictureFrom, useCovers} from '@/composables/useScreenCapture'
 import type {ProblemPayload, ReportPayload} from '@/api/beacon'
+import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 /**
  * Exactly what would leave this instance, shown before it does.
@@ -44,7 +45,20 @@ const emit = defineEmits<{sent: []}>()
 const {t} = useI18n()
 const payload = ref<ProblemPayload | ReportPayload | null>(null)
 const loading = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
+
+/**
+ * The instance took nothing because its queue is full, which is a wait rather than a fault. Saying so
+ * without offering a bug report is the point: nothing here is broken and nothing needs reporting.
+ */
+function notQueued() {
+  failure.value = {
+    kind: FailureKind.TOO_OFTEN,
+    message: t('beacon.notQueued'),
+    guidance: t('beacon.notQueuedGuidance'),
+    reportable: false,
+  }
+}
 const sending = ref(false)
 const picture = ref<HTMLCanvasElement | null>(null)
 const {covers, add, removeAt, clear} = useCovers()
@@ -62,7 +76,7 @@ async function pictureOfReport(id: number): Promise<HTMLCanvasElement | null> {
 watch(open, async value => {
   if (!value || props.entryId == null) return
   loading.value = true
-  error.value = ''
+  failure.value = null
   payload.value = null
   picture.value = null
   clear()
@@ -73,8 +87,8 @@ watch(open, async value => {
     payload.value = props.kind === 'problem'
         ? await beacon.previewProblem(props.entryId)
         : await beacon.previewReportPayload(props.entryId)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
@@ -96,6 +110,7 @@ watch(open, async value => {
 async function send(withPicture = true) {
   if (props.entryId == null) return
   sending.value = true
+  failure.value = null
   try {
     const covered = withPicture && picture.value && covers.value.length > 0
         ? await flatten(picture.value, covers.value)
@@ -107,13 +122,13 @@ async function send(withPicture = true) {
           dropScreenshot: !withPicture,
         })
     if (queued < 1) {
-      error.value = t('beacon.notQueued')
+      notQueued()
       return
     }
     emit('sent')
     open.value = false
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     sending.value = false
   }
@@ -127,7 +142,7 @@ async function send(withPicture = true) {
       <MutedText tag="p" size="sm">{{ t('beacon.previewHint') }}</MutedText>
 
       <Spinner v-if="loading" size="md"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <pre v-if="payload" class="max-h-96 overflow-auto rounded-lg bg-bg-light-accent/40 dark:bg-bg-dark-accent/40 p-4 text-xs whitespace-pre-wrap break-words">{{ JSON.stringify(payload, null, 2) }}</pre>
 

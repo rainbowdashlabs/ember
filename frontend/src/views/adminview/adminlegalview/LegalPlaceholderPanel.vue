@@ -16,13 +16,14 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {adminSettings} from '@/api'
 import type {DocumentPlaceholder} from '@/api/adminSettings'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
 const placeholders = defineModel<DocumentPlaceholder[]>('placeholders', {required: true})
 
 const emit = defineEmits<{
-  error: [message: string]
+  error: [failure: Failure]
   saved: []
 }>()
 
@@ -53,7 +54,7 @@ async function save() {
     placeholders.value = await adminSettings.saveLegalPlaceholders(values)
     emit('saved')
   } catch (e) {
-    emit('error', t('common.error'))
+    emit('error', describeFailure(e, t))
     throw e
   }
 }
@@ -62,8 +63,8 @@ async function load() {
   loading.value = true
   try {
     placeholders.value = await adminSettings.getLegalPlaceholders()
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   } finally {
     loading.value = false
   }

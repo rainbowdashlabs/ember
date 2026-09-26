@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
 import FileThumbnail from '@/components/documents/FileThumbnail.vue'
 import FilePreviewModal from '@/components/documents/FilePreviewModal.vue'
@@ -17,6 +17,7 @@ import {formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {events} from '@/api'
 import type {EventAttachment} from '@/api/events'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * What an event hands over, as far as this reader may have it.
@@ -32,14 +33,21 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const attachments = ref<EventAttachment[]>([])
-const failed = ref(false)
+const failure = ref<Failure | null>(null)
 
+/**
+ * Reads the files, and says in the reader's terms where it could not.
+ *
+ * <p>The sentence names these files rather than repeating whatever the server said, because a GET
+ * that fails says nothing a reader can use. What to do about it, and whether it is worth reporting,
+ * still come from the failure itself.
+ */
 async function load() {
-  failed.value = false
+  failure.value = null
   try {
     attachments.value = await events.listEventAttachments(props.eventId)
-  } catch {
-    failed.value = true
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('events.attachments.loadFailed')}
   }
 }
 
@@ -60,9 +68,9 @@ watch(() => props.eventId, load)
 </script>
 
 <template>
-  <NeutralContainer v-if="failed" class="space-y-3" data-testid="event-attachment-failure">
+  <NeutralContainer v-if="failure" class="space-y-3" data-testid="event-attachment-failure">
     <SubHeader>{{ t('events.attachments.title') }}</SubHeader>
-    <Alert variant="error">{{ t('events.attachments.loadFailed') }}</Alert>
+    <FailureAlert :failure="failure"/>
   </NeutralContainer>
 
   <NeutralContainer v-else-if="attachments.length > 0" class="space-y-3" data-testid="event-attachment-list">

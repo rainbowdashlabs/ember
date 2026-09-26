@@ -13,6 +13,7 @@ import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import {useStations} from '@/composables/useStations'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -28,10 +29,10 @@ const typedName = ref('')
 
 const matchesName = computed(() => typedName.value.trim() === stationName.value.trim() && stationName.value !== '')
 
-const {running: deleting, error, run: runDelete, clearError} = useAsyncAction(async () => {
+const {running: deleting, failure, run: runDelete, clearError} = useAsyncAction(async () => {
   await transfer.deleteMovedStation()
   window.location.href = '/?home'
-}, {formatError: () => t('pages.station-moved.deleteError')})
+})
 
 function openConfirm() {
   typedName.value = ''
@@ -42,7 +43,7 @@ function openConfirm() {
 async function performDelete() {
   if (!matchesName.value) return
   await runDelete()
-  if (error.value) confirmOpen.value = false
+  if (failure.value) confirmOpen.value = false
 }
 </script>
 
@@ -53,7 +54,7 @@ async function performDelete() {
       <ErrorContainer>
         <strong>{{ t('pages.station-moved.deleteWarning') }}</strong>
       </ErrorContainer>
-      <ErrorContainer v-if="error">{{ error }}</ErrorContainer>
+      <FailureAlert :failure="failure"/>
       <div>
         <ErrorButton @click="openConfirm">
           <font-awesome-icon :icon="['fas', 'trash']" class="h-4 w-4 mr-2"/>

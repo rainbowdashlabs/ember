@@ -12,7 +12,8 @@ import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {usePublicFailure} from '@/composables/usePublicFailure'
 import type {PublicStationInfo} from '@/api/discovery'
 import {apiUrl} from '@/util/apiUrl'
 import {socialMeta, stationLogoImage, useAbsoluteUrl} from '@/util/socialMeta'
@@ -72,7 +73,10 @@ const {data: shell, error: loadError, status} = await useAsyncData(
 const station = computed(() => shell.value?.info ?? null)
 const publicPages = computed(() => shell.value?.pages ?? [])
 const loading = computed(() => status.value === 'pending')
-const error = computed(() => (loadError.value ? t('common.error') : ''))
+const failure = usePublicFailure(loadError, {
+  message: 'publicStation.stationGone',
+  guidance: 'publicStation.stationGoneGuidance',
+})
 
 const {basePath, canonicalPath} = usePublicStationAddress(station)
 
@@ -124,7 +128,7 @@ useHead(computed(() => {
 
 <template>
   <Spinner v-if="loading" size="lg" class="mt-16"/>
-  <Alert v-else-if="error" variant="error" class="m-8">{{ error }}</Alert>
+  <FailureAlert v-else-if="failure" :failure="failure" class="m-8"/>
 
   <SidebarLayout
       v-else-if="station"

@@ -19,7 +19,7 @@ import {StationUserType, type PermissionGrant} from '@/api/types'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -50,7 +50,7 @@ const allRoles = ref<PermissionGrant[]>([])
 const permissionCache = reactive<Record<string, Set<number>>>({})
 const selectedType = ref<string>(StationUserType.MEMBER)
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const selectedIds = computed<Set<number>>({
     get: () => permissionCache[selectedType.value] ?? new Set<number>(),
@@ -72,8 +72,8 @@ onMounted(async () => {
                 permissionCache[ut.value] = new Set(grants.map((g) => g.id))
             }),
         )
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = {...describeFailure(e, t), message: t('userTypePermissions.loadFailed')}
     } finally {
         loading.value = false
     }
@@ -89,7 +89,7 @@ async function onPermissionChange(newIds: Set<number>) {
     try {
         await stationMembers.setUserTypePermissions(userType, [...newIds])
     } catch (e: unknown) {
-        error.value = apiErrorMessage(e) || t('common.error')
+        failure.value = describeFailure(e, t)
     }
 }
 
@@ -101,7 +101,7 @@ const {running: saving, run: proceed} = useAsyncAction(async () => {
 
 <template>
   <SetupLayout step-id="member-types" :saving="saving" @save="proceed">
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <Spinner v-if="loading" size="lg"/>
 
     <div v-else class="grid gap-6 lg:grid-cols-2">

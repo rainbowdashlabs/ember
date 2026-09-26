@@ -35,7 +35,7 @@ const port: FieldsPort = {
 
 const config = useFieldsConfig(port)
 const {
-  birthDateField, dateFields, showFieldModal, editingField, loading, error,
+  birthDateField, dateFields, showFieldModal, editingField, loading, failure,
   saveField, showDeleteModal, deleteTarget, confirmDelete,
 } = config
 </script>
@@ -47,7 +47,7 @@ const {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <FieldsWorkspace v-if="!loading" :config="config" :roles="STATION_ROLES"/>
 

@@ -165,7 +165,7 @@ function updateAnswers(registrationId: number) {
   showUpdateAnswers.value = true
 }
 
-const {running: savingAnswers, error: answersError, run: saveAnswers} = useAsyncAction(
+const {running: savingAnswers, failure: answersFailure, run: saveAnswers} = useAsyncAction(
     async (values: RegistrationFieldValue[]) => {
       const registration = updatingRegistration.value
       if (!registration) return
@@ -173,9 +173,7 @@ const {running: savingAnswers, error: answersError, run: saveAnswers} = useAsync
       showUpdateAnswers.value = false
       updatingRegistration.value = null
       emit('answers-updated')
-    },
-    {formatError: () => t('common.error')},
-)
+    })
 
 const activeTab = ref<'info' | 'registrations' | 'equipment'>('info')
 
@@ -279,7 +277,7 @@ function onCancelled() {
         :title="t('eventDetail.updateAnswer')"
         :confirm-label="t('common.save')"
         :busy="savingAnswers"
-        :error="answersError"
+        :failure="answersFailure"
         @confirm="saveAnswers"
     />
 

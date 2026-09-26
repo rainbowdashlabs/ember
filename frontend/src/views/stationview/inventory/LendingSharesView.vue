@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
@@ -14,12 +14,15 @@ import LendingShareRow from '@/views/stationview/inventory/lendingsharesview/Len
 import LendingShareModal from '@/components/lending/LendingShareModal.vue'
 import * as lending from '@/api/lending'
 import type {ShareDetail, ShareTarget} from '@/api/lending'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 
 const shares = ref<ShareDetail[]>([])
-const loading = ref(true)
-const error = ref('')
+
+const {loading, failure, reload: load} = useAsyncLoader(async () => {
+  shares.value = await lending.listShares()
+})
 
 const offered = computed(() => shares.value.filter(s => s.share.shareGrant === 'GRANT'))
 const withheld = computed(() => shares.value.filter(s => s.share.shareGrant === 'WITHHOLD'))
@@ -51,23 +54,9 @@ function edit(detail: ShareDetail) {
   editorOpen.value = true
 }
 
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    shares.value = await lending.listShares()
-  } catch {
-    error.value = t('lendingShare.loadError')
-  } finally {
-    loading.value = false
-  }
-}
-
 watch(editorOpen, (open) => {
   if (!open) editing.value = null
 })
-
-onMounted(load)
 </script>
 
 <template>
@@ -78,7 +67,7 @@ onMounted(load)
     <AsyncSection
         :empty="shares.length === 0"
         :empty-message="t('lendingShare.nothingOffered')"
-        :error="error"
+        :failure="failure"
         :loading="loading"
     >
       <MutedText class="mb-4 block">{{ t('lendingShare.overviewHint') }}</MutedText>

@@ -8,6 +8,7 @@ import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -32,22 +33,22 @@ const {t} = useI18n()
 
 const form = ref<BeaconStatus>({...props.status})
 const saving = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const saved = ref(false)
 
 watch(() => props.status, value => { form.value = {...value} })
 
 async function save() {
   saving.value = true
-  error.value = ''
+  failure.value = null
   saved.value = false
   try {
     const stored = await beacon.updateSettings(form.value)
     form.value = {...stored}
     saved.value = true
     emit('saved', stored)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     saving.value = false
   }
@@ -59,7 +60,7 @@ async function save() {
     <SubHeader>{{ t('beacon.settingsTitle') }}</SubHeader>
     <MutedText tag="p" size="sm">{{ t('beacon.settingsHint') }}</MutedText>
 
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <Alert v-if="saved" variant="success">{{ t('beacon.settingsSaved') }}</Alert>
 
     <label class="flex items-center gap-2 text-sm">

@@ -13,10 +13,12 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TilesProviderFields from './TilesProviderFields.vue'
 import {maps} from '@/api'
 import type {MapsTilesConfig} from '@/api/maps'
 import type {MapTileProvider} from '@/composables/useMapsConfig'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
@@ -28,18 +30,22 @@ interface GeocodingTestResult {
 }
 
 const testResult = ref<GeocodingTestResult | null>(null)
+/** Set where the test never reached a tile server at all, which is not a status to report. */
+const testFailure = ref<Failure | null>(null)
 
 const providersRequiringKey: MapTileProvider[] = ['MAPBOX', 'STADIA', 'MAPTILER', 'THUNDERFOREST']
 const requiresKey = computed(() => providersRequiringKey.includes(tiles.value.provider))
 const isCustom = computed(() => tiles.value.provider === 'CUSTOM')
 
 async function runTestTile() {
+  testResult.value = null
+  testFailure.value = null
   try {
     const result = await maps.testTile()
     const ok = result.status >= 200 && result.status < 300
     testResult.value = {ok, status: result.status}
-  } catch {
-    testResult.value = {ok: false, status: -1}
+  } catch (e) {
+    testFailure.value = describeFailure(e, t)
   }
 }
 </script>
@@ -76,6 +82,7 @@ async function runTestTile() {
       <Alert v-if="testResult && !testResult.ok" variant="error">
         {{ t('adminMaps.testTileFailure', {status: testResult.status}) }}
       </Alert>
+      <FailureAlert :failure="testFailure"/>
     </div>
   </NeutralContainer>
 </template>

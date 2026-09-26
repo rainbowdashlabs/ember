@@ -33,7 +33,7 @@ const {t} = useI18n()
 
 const stats = ref<ClusterInventoryStat[]>([])
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   stats.value = await clusterInventory.statistics()
 })
 
@@ -60,7 +60,7 @@ function sizeStats(stat: ClusterInventoryStat) {
       <InventoryTabs/>
 
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <EmptyState v-if="stats.length === 0">{{ t('clusterInventory.empty') }}</EmptyState>

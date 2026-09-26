@@ -9,6 +9,7 @@ import type { MyInventoryItem } from '@/api/inventory'
 import {StationUserType, type StationMember} from '@/api/types'
 import { stationMembers } from '@/api'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import type { Failure } from '@/util/failure'
 
 /**
  * Owns retiring the viewed member: whether they may be marked as a former
@@ -19,7 +20,7 @@ export function useMemberLifecycle(
     member: Ref<StationMember | null>,
     memberUserType: Ref<string>,
     memberInventory: Ref<MyInventoryItem[]>,
-    error: Ref<string>,
+    failure: Ref<Failure | null>,
 ) {
   const { t } = useI18n()
 
@@ -40,17 +41,17 @@ export function useMemberLifecycle(
 
   const canMarkFormer = computed(() => formerBlockReasons.value.length === 0 && !!member.value)
 
-  const { running: markingFormer, error: formerError, run: markFormer } = useAsyncAction(async () => {
-    error.value = ''
+  const { running: markingFormer, failure: formerFailure, run: markFormer } = useAsyncAction(async () => {
+    failure.value = null
     await stationMembers.markFormer(memberId.value)
     formerSuccess.value = true
-  }, { formatError: () => t('common.error') })
+  })
 
-  const { running: deletingMember, error: deleteError, run: deleteMember } = useAsyncAction(async () => {
-    error.value = ''
+  const { running: deletingMember, failure: deleteFailure, run: deleteMember } = useAsyncAction(async () => {
+    failure.value = null
     await stationMembers.deleteMember(memberId.value)
     deleteSuccess.value = true
-  }, { formatError: () => t('common.error') })
+  })
 
   return {
     formerSuccess,
@@ -58,10 +59,10 @@ export function useMemberLifecycle(
     formerBlockReasons,
     canMarkFormer,
     markingFormer,
-    formerError,
+    formerFailure,
     markFormer,
     deletingMember,
-    deleteError,
+    deleteFailure,
     deleteMember,
   }
 }

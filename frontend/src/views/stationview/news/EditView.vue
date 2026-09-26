@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { describeFailure } from '@/util/failure'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -229,7 +230,7 @@ async function loadAnnouncement(eventId: number) {
   selectedMemberIds.value = [...draft.audience.memberIds]
 }
 
-const { loading, error, reload } = useAsyncLoader(async () => {
+const { loading, failure, reload } = useAsyncLoader(async () => {
   const [groupList, tagList, memberList] = await Promise.all([
     memberGroups.listGroups(),
     userTags.listTags(),
@@ -274,10 +275,27 @@ function leave() {
   return router.push({name: newsRoutes.list})
 }
 
+/**
+ * The entry, once it exists, so a second press does not make a second one.
+ *
+ * <p>Saving is several writes: the entry itself, then its blocks, its attachments and who it reaches.
+ * They shared one attempt, so an entry that was created and then failed on its attachments was
+ * reported as an entry that had not been created. The reader pressed save again and the list held it
+ * twice. Remembering it turns that second press into finishing the one that is already there.
+ */
+const savedNewsId = ref<number | null>(null)
+
+/**
+ * Writes the entry and everything that hangs off it.
+ *
+ * <p>The content mode travels with the entry itself, so one switched to blocks before it existed is
+ * created as a block entry outright. Creating it plain and switching afterwards would leave a moment
+ * in which the entry claims to be something it is not.
+ */
 async function save() {
   if (!title.value.trim()) return
   if (contentMode.value === ContentMode.SIMPLE && !contentMarkdown.value.trim()) return
-  error.value = ''
+  failure.value = null
   try {
     const data = {
       title: title.value,
@@ -289,17 +307,16 @@ async function save() {
       publicBlog: publicBlog.value,
       contentMode: contentMode.value,
     }
+    const existing = newsId.value ?? savedNewsId.value
     let savedId: number
-    if (newsId.value) {
-      await news.updateNews(newsId.value, data)
-      savedId = newsId.value
+    if (existing) {
+      await news.updateNews(existing, data)
+      savedId = existing
     } else {
-      // The mode goes along with the entry, so one switched before it existed is created as a
-      // block entry outright. Creating it plain and switching after would leave a moment where
-      // the entry claims to be something it is not.
       const created = await news.createNews(data)
       savedId = created.id
     }
+    savedNewsId.value = savedId
 
     if (contentMode.value === ContentMode.RICH) {
       const updated = await news.saveNewsBlocks(savedId, toSaveRows())
@@ -319,7 +336,10 @@ async function save() {
 
     await router.push({ name: newsRoutes.list })
   } catch (e) {
-    error.value = t('common.error')
+    const described = describeFailure(e, t)
+    failure.value = savedNewsId.value
+      ? {...described, message: t('news.savedPartly')}
+      : described
     throw e
   }
 }
@@ -340,7 +360,7 @@ watch(loaded, (isLoaded) => {
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <AnnouncementNotice v-if="announcement" :draft="announcement" :public-blog="publicBlog"

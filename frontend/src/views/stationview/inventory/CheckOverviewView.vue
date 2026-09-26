@@ -28,7 +28,7 @@ const {t} = useI18n()
 const router = useRouter()
 const {sessionInfo} = useSession()
 
-const {config: members, loading, error} = useConfigPanel<MemberCheckSummary[]>({
+const {config: members, loading, failure} = useConfigPanel<MemberCheckSummary[]>({
   initial: [],
   fetch: () => inventoryCheck.getCheckOverview(),
 })
@@ -61,9 +61,9 @@ function viewLastCheck(member: MemberCheckSummary) {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
-      <template v-if="!loading && !error">
+      <template v-if="!loading && !failure">
         <SelfCheckPanel
             v-if="routes.selfCheckReview"
             :members="filteredMembers"

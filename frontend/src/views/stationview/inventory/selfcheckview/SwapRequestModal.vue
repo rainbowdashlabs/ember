@@ -17,6 +17,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import type {InventorySize, NamedPiece} from '@/api/inventory'
+import type {Failure} from '@/util/failure'
 
 const modelValue = defineModel<boolean>({required: true})
 const reason = defineModel<string>('reason', {required: true})
@@ -35,7 +36,7 @@ const props = withDefaults(
       item: NamedPiece | null
       sizes: InventorySize[]
       submitting: boolean
-      error: string
+      failure: Failure | null
       /** Why the piece is being swapped, where the screen knows. Empty where the member says it themselves. */
       cause?: string
       /** Whether a different size is the point of it, which is what makes naming one unavoidable. */
@@ -82,7 +83,7 @@ const ready = computed(() => {
           :rows="3"
           data-testid="exchange-reason"
       />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <ButtonRow pair align="end">
         <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="!ready" data-testid="exchange-submit" @click="emit('submit')">

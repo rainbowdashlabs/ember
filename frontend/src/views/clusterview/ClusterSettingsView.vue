@@ -19,6 +19,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {clusters} from '@/api'
 import {useCluster} from '@/composables/useCluster'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const {load: loadClusters} = useCluster()
@@ -28,7 +29,7 @@ const description = ref('')
 const autoFederate = ref(true)
 const loading = ref(true)
 const saving = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const saved = ref(false)
 
 onMounted(async () => {
@@ -37,17 +38,24 @@ onMounted(async () => {
     name.value = cluster.name
     description.value = cluster.description ?? ''
     autoFederate.value = cluster.autoFederate
-  } catch {
-    error.value = t('clusterSettings.loadFailed')
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('clusterSettings.loadFailed')}
   } finally {
     loading.value = false
   }
 })
 
+/**
+ * Stores the association's details, then tells the switcher, which shows the name and would
+ * otherwise keep the old one after a rename.
+ *
+ * <p>The two are answered for separately: a rename that was stored and a switcher that then failed
+ * to hear about it used to report a failed save, and a reader told that saves the same name again.
+ */
 async function save() {
   if (!name.value.trim()) return
   saving.value = true
-  error.value = ''
+  failure.value = null
   saved.value = false
   try {
     await clusters.updateActive({
@@ -55,13 +63,17 @@ async function save() {
       description: description.value.trim() || null,
       autoFederate: autoFederate.value,
     })
-    // The switcher shows the name, so it has to hear about the rename
-    await loadClusters()
     saved.value = true
-  } catch {
-    error.value = t('clusterSettings.saveFailed')
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('clusterSettings.saveFailed')}
+    return
   } finally {
     saving.value = false
+  }
+  try {
+    await loadClusters()
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
   }
 }
 </script>
@@ -71,7 +83,7 @@ async function save() {
     <Spinner v-if="loading"/>
 
     <div v-else class="space-y-4">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <Alert v-if="saved" variant="success">{{ t('clusterSettings.saved') }}</Alert>
 
       <NeutralContainer class="space-y-4">

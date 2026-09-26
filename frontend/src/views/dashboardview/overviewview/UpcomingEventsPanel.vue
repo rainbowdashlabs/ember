@@ -24,6 +24,7 @@ import {
 } from '@/api/events'
 import type {StationMember} from '@/api/types'
 import {events, managedMembers as managedMembersApi} from '@/api'
+import {describeFailure, type Failure} from '@/util/failure'
 import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useSession} from '@/composables/useSession'
@@ -43,7 +44,7 @@ const myRegistrations = ref<EventRegistrationEntry[]>([])
 const managed = ref<StationMember[]>([])
 const declining = ref<UpcomingEvent | null>(null)
 const decliningBusy = ref(false)
-const declineError = ref('')
+const declineFailure = ref<Failure | null>(null)
 
 const showFeedCta = computed(() => {
   if (!feedStatus.value) return false
@@ -219,28 +220,40 @@ function decline(item: UpcomingEvent) {
     requestSignOff(() => sendDecline(item, [open[0]!.key]))
     return
   }
-  declineError.value = ''
+  declineFailure.value = null
   declining.value = item
 }
 
+/**
+ * Declining for one or more people, then reading the answers back, which are two things and not one.
+ *
+ * <p>They shared an attempt, so a decline that really was recorded, followed by a list of answers that
+ * failed to come back, read as a decline that had not been recorded. Saying no twice is not harmful,
+ * but being told nobody was signed off when somebody was is how a reader stops trusting the screen.
+ */
 async function sendDecline(item: UpcomingEvent, memberIds: number[]) {
   decliningBusy.value = true
-  declineError.value = ''
+  declineFailure.value = null
+  const me = sessionInfo.value?.member?.id ?? 0
   try {
-    const me = sessionInfo.value?.member?.id ?? 0
     for (const memberId of memberIds) {
       await events.declineEvent(item.event.id, {
         eventDate: item.date,
         memberId: memberId === me ? undefined : memberId,
       })
     }
-    myRegistrations.value = await events.listMyRegistrations()
-    declining.value = null
-  } catch {
-    declineError.value = t('common.error')
-  } finally {
+  } catch (e) {
+    declineFailure.value = describeFailure(e, t)
     decliningBusy.value = false
+    return
   }
+  try {
+    myRegistrations.value = await events.listMyRegistrations()
+  } catch (e) {
+    declineFailure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
+  }
+  declining.value = null
+  decliningBusy.value = false
 }
 
 onMounted(loadData)
@@ -290,7 +303,7 @@ onMounted(loadData)
         :fields="[]"
         :attending="false"
         :busy="decliningBusy"
-        :error="declineError"
+        :failure="declineFailure"
         @confirm="answers => declining && sendDecline(declining, answers.map(a => a.key))"
     />
   </NeutralContainer>

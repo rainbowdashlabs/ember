@@ -16,6 +16,7 @@ import type { QuizCatalog, QuizCategory, QuizSectionDetail } from '@/api/quiz'
 import type { MemberGroup, UserTag } from '@/api/types'
 import { quiz, memberGroups, userTags } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { describeFailure } from '@/util/failure'
 import TestMetadataForm from './testbuilderview/TestMetadataForm.vue'
 import TestRestrictionsForm from './testbuilderview/TestRestrictionsForm.vue'
 import TestSectionsEditor from './testbuilderview/TestSectionsEditor.vue'
@@ -129,7 +130,7 @@ function getCategoriesForCatalog(catalogId: number | null): QuizCategory[] {
   return catalogCategories.value.get(catalogId) ?? []
 }
 
-const { loading, error } = useAsyncLoader(async () => {
+const { loading, failure } = useAsyncLoader(async () => {
   const [catalogRes, groups, tags] = await Promise.all([
     quiz.listCatalogs(),
     memberGroups.listGroups(),
@@ -215,21 +216,37 @@ async function saveSections(id: number) {
   await quiz.replaceSections(id, sectionPayload)
 }
 
+/**
+ * Writes the test, then its sections and who may sit it.
+ *
+ * <p>The test itself is answered for separately from what follows it. A new test the server had
+ * already written, followed by sections it would not take, used to say the whole save had failed,
+ * and a reader told that presses save again and ends up with two tests of the same name. What it
+ * says now is that the test exists and is missing its sections.
+ */
 async function save() {
-  error.value = ''
+  failure.value = null
+  let id: number
   try {
-    const id = await saveTest()
+    id = await saveTest()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    throw e
+  }
+
+  try {
     await saveSections(id)
     await quiz.setRestrictions(id, {
       userTypes: selectedUserTypes.value,
       groupIds: selectedGroupIds.value,
       tagIds: selectedTagIds.value,
     })
-    router.push({ name: 'quiz-test-detail', params: { id } })
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = {...describeFailure(e, t), message: t('quiz.tests.savedWithoutSections')}
     throw e
   }
+
+  router.push({ name: 'quiz-test-detail', params: { id } })
 }
 </script>
 
@@ -237,7 +254,7 @@ async function save() {
   <ViewContent :title="pageTitle" :subtitle="t(`pages.${routeKey}.subtitle`)">
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <TestMetadataForm

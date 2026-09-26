@@ -22,6 +22,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useEventAnswer } from '@/composables/useEventAnswer'
 import { usePagedList, PAGE_SIZE } from '@/composables/usePagedList'
 import { useEventListFilters } from '@/composables/useEventListFilters'
+import { describeFailure, saying } from '@/util/failure'
 import { toIsoDate } from '@/util/format'
 
 /**
@@ -98,7 +99,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     ? events.listPastOccurrences(occurrenceParams(offset))
     : events.listUpcomingOccurrences(occurrenceParams(offset)))
 
-  const { loading, error, reload } = useAsyncLoader(async () => {
+  const { loading, failure, reload } = useAsyncLoader(async () => {
     const [today, regs, elig, counts, ovFields, cats, allEv, brs, restr, grps, tgs] = await Promise.all([
       events.listTodayEvents(),
       events.listMyRegistrations(),
@@ -147,22 +148,29 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   const {
     registering, answerPrompt, registerFor, declineFor, withdrawRegistration,
     confirmAnswerPrompt, cancelAnswerPrompt,
-  } = useEventAnswer(currentMemberId, reloadRegistrations, error)
+  } = useEventAnswer(currentMemberId, reloadRegistrations, failure)
 
+  /**
+   * Fetches the dates again after a filter or a search changed.
+   *
+   * <p>It names what could not be read rather than saying nothing happened, and it says that what
+   * is on screen is now out of date: the old dates are still drawn, and a reader who is not told so
+   * reads them as the answer to the filter they just set.
+   */
   async function reloadOccurrences() {
     if (loading.value) return
     try {
       await occurrences.load()
-    } catch {
-      error.value = t('common.error')
+    } catch (e) {
+      failure.value = saying(describeFailure(e, t), t('eventsUpcoming.listNotLoaded'))
     }
   }
 
   async function loadMore() {
     try {
       await occurrences.loadMore()
-    } catch {
-      error.value = t('common.error')
+    } catch (e) {
+      failure.value = saying(describeFailure(e, t), t('eventsUpcoming.moreNotLoaded'))
     }
   }
 
@@ -192,7 +200,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     occurrences: occurrences.view,
     multiDayEndDate,
     loading,
-    error,
+    failure,
     reload,
     registerFor,
     declineFor,

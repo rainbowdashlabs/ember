@@ -10,6 +10,7 @@ import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -42,7 +43,7 @@ const profile = ref<ManagedMemberProfile | null>(null)
 const edited = ref<Map<number, string>>(new Map())
 const saved = ref(false)
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   profile.value = await clusterMembers.getManagedMemberProfile(memberId.value)
   edited.value = new Map()
   saved.value = false
@@ -97,8 +98,14 @@ function onUpdate(field: LaidOutField, value: string) {
   saved.value = false
 }
 
-const {running: saving, error: saveError, run: save} = useAsyncAction(async () => {
-  // Back out the way it came in, as JSON, which is what both tables behind this store.
+/**
+ * Stores the answers, which go back out the way they came in, as JSON, since that is what both
+ * tables behind this hold.
+ *
+ * <p>Fetching the profile again afterwards answers for itself, in the alert the loader owns, so a
+ * profile that could not be read back is never reported as answers that were refused.
+ */
+const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async () => {
   const values: ManagedProfileValue[] = [...edited.value.entries()].map(([fieldId, value]) => ({
     fieldId,
     value: JSON.stringify(value),
@@ -108,14 +115,15 @@ const {running: saving, error: saveError, run: save} = useAsyncAction(async () =
   await clusterMembers.setManagedMemberProfile(memberId.value, values)
   await reload()
   saved.value = true
-}, {formatError: () => t('common.error')})
+})
 </script>
 
 <template>
   <ViewContent :subtitle="t('pages.cluster-member-detail.subtitle')" :title="pageTitle">
     <div class="space-y-4">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error || saveError" variant="error">{{ error || saveError }}</Alert>
+      <FailureAlert :failure="failure"/>
+      <FailureAlert :failure="saveFailure"/>
       <Alert v-if="saved" variant="success">{{ t('clusterMemberDetail.saved') }}</Alert>
 
       <NeutralContainer v-if="!loading && profile" class="space-y-4">

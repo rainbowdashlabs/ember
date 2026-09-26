@@ -10,6 +10,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {StationMember} from '@/api/types'
 import {absences, managedMembers as managedMembersApi} from '@/api'
 import type {MemberAbsence} from '@/api/absences'
@@ -30,7 +31,7 @@ const showAddAbsence = ref(false)
 
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   if (!loaded.value) return
   myAbsences.value = await absences.listMyAbsences()
   if (isGuardian()) {
@@ -45,7 +46,7 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   }
 })
 
-const {running: savingAbsence, error: addError, run: addAbsence} = useAsyncAction(
+const {running: savingAbsence, failure: addFailure, run: addAbsence} = useAsyncAction(
     async (payload: {absentFrom: string; absentUntil: string; reason?: string; memberIds?: number[]}) => {
       success.value = ''
       await absences.createAbsence(payload)
@@ -53,18 +54,14 @@ const {running: savingAbsence, error: addError, run: addAbsence} = useAsyncActio
       showAddAbsence.value = false
       success.value = t('profile.absenceCreated')
     },
-    {formatError: () => t('common.error')},
 )
 
-const {error: removeError, run: removeAbsence} = useAsyncAction(
+const {failure: removeFailure, run: removeAbsence} = useAsyncAction(
     async (id: number) => {
       await absences.deleteAbsence(id)
       myAbsences.value = await absences.listMyAbsences()
     },
-    {formatError: () => t('common.error')},
 )
-
-const pageError = computed(() => error.value || addError.value || removeError.value)
 
 watch(loaded, (isLoaded) => {
   if (isLoaded) reload()
@@ -78,7 +75,9 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="pageError" variant="error">{{ pageError }}</Alert>
+      <FailureAlert :failure="failure"/>
+      <FailureAlert :failure="addFailure"/>
+      <FailureAlert :failure="removeFailure"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading">

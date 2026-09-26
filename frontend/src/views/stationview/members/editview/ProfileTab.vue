@@ -21,6 +21,7 @@ import {profileKey, type MergedProfileField} from '@/util/profileFields'
 import type {StationMember} from '@/api/types'
 import {profileFields, members, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const {sessionInfo} = useSession()
@@ -47,7 +48,7 @@ const editValues = ref(new Map(props.initialValues))
  */
 const editNickname = ref(props.member.nickname ?? '')
 const editJoinDate = ref(props.member.joinDate ?? '')
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const notice = ref('')
 
 /**
@@ -60,12 +61,12 @@ function ownAccount(): boolean {
 
 async function onJoinDateChange(value: string | undefined) {
   if (!value) return
-  error.value = ''
+  failure.value = null
   try {
     await stationMembers.setJoinDate(props.memberId, value)
     editJoinDate.value = value
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -78,10 +79,22 @@ function setEditValue(field: LaidOutField, val: string) {
   editValues.value = new Map([...editValues.value, [key, val]])
 }
 
+/**
+ * Writes the account, then the answers and the name the station calls them by.
+ *
+ * <p>A field the association keeps to itself has no control on this screen, so sending it back would
+ * send whatever was read rather than anything anybody typed. Those are left out.
+ *
+ * <p>The account is written first and caught on its own, because an address or a username somebody else
+ * already has is the ordinary way this fails and the server names which. What follows is caught apart:
+ * by then the account is changed, and a reader told plainly that saving failed retypes an address that
+ * is already in.
+ */
 async function save() {
-  error.value = ''
+  failure.value = null
   notice.value = ''
   const addressChanged = editEmail.value.trim().toLowerCase() !== (props.member.email ?? '').toLowerCase()
+
   try {
     await members.updateAccount(props.member.accountId, {
       email: editEmail.value,
@@ -89,8 +102,12 @@ async function save() {
       firstName: editFirstName.value,
       lastName: editLastName.value,
     })
-    // A field the cluster keeps to itself has no control on this screen, so sending it back would send
-    // whatever was read rather than anything anybody typed
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    throw e
+  }
+
+  try {
     const entries = valueFields(props.fields)
         .filter(f => !(f as MergedProfileField).readonlyAtStation)
         .map(f => ({
@@ -100,20 +117,20 @@ async function save() {
         }))
     await profileFields.setValues(props.memberId, {values: entries})
     await members.setNickname(props.memberId, editNickname.value.trim() || null)
-    if (addressChanged && ownAccount()) notice.value = t('memberEdit.emailConfirmationPending')
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = {...describeFailure(e, t), message: t('memberEdit.accountSavedRestNot')}
     throw e
   }
+
+  if (addressChanged && ownAccount()) notice.value = t('memberEdit.emailConfirmationPending')
 }
 </script>
 
 <template>
   <div class="space-y-6">
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <Alert v-if="notice" variant="info">{{ notice }}</Alert>
 
-    <!-- Base fields -->
     <NeutralContainer class="space-y-4">
       <SubHeader class="text-sm">{{ t('memberEdit.baseFields') }}</SubHeader>
       <div class="grid gap-4 sm:grid-cols-3">
@@ -145,14 +162,12 @@ async function save() {
         :last-name="member.lastName ?? ''"
     />
 
-    <!-- Join date -->
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.joinDate') }}</SubHeader>
       <DateInput :model-value="editJoinDate" class="max-w-xs" @update:model-value="onJoinDateChange"/>
       <p class="text-xs text-(--text-muted)">{{ t('memberEdit.joinDateHint') }}</p>
     </NeutralContainer>
 
-    <!-- Profile fields -->
     <NeutralContainer v-if="fields.length > 0" class="space-y-4">
       <SubHeader class="text-sm">{{ t('memberEdit.fields') }}</SubHeader>
       <ProfileFieldsLayout
@@ -163,7 +178,6 @@ async function save() {
       />
     </NeutralContainer>
 
-    <!-- Save -->
     <div class="flex items-center">
       <SaveButton :action="save"/>
     </div>

@@ -19,6 +19,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {checklists} from '@/api'
 import type {ChecklistColumnDto} from '@/api/checklists'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   checklistId: number
@@ -51,7 +52,7 @@ watchEffect(() => {
   }
 })
 
-const {running: saving, error, run: runSave} = useAsyncAction(
+const {running: saving, failure: saveFailure, run: runSave} = useAsyncAction(
     async () => {
       const payload = {
         label: label.value.trim(),
@@ -65,7 +66,6 @@ const {running: saving, error, run: runSave} = useAsyncAction(
       }
       emit('changed')
     },
-    {formatError: () => t('checklist.savingError')},
 )
 
 function save() {
@@ -77,16 +77,26 @@ async function askDelete() {
   if (!props.column) return
   showDeleteConfirm.value = true
   checkedCount.value = 0
+  countFailure.value = null
   try {
     const detail = await checklists.getChecklist(props.checklistId)
     const cells = detail.cells.filter(c => c.columnId === props.column?.id && c.checked)
     checkedCount.value = cells.length
-  } catch {
-    checkedCount.value = 0
+  } catch (e) {
+    countFailure.value = {...describeFailure(e, t), message: t('checklist.checkedCountUnknown')}
   }
 }
 
-const {running: deleting, run: applyDelete} = useAsyncAction(async () => {
+/**
+ * Why the "this many ticks will be lost" count is missing.
+ *
+ * <p>It used to fall back to nought, which reads as a column nobody has ticked and makes deleting it
+ * look harmless. Saying the count could not be read lets the reader decide with what they actually
+ * know.
+ */
+const countFailure = ref<Failure | null>(null)
+
+const {running: deleting, failure: deleteFailure, run: applyDelete} = useAsyncAction(async () => {
   if (!props.column) return
   await checklists.deleteColumn(props.checklistId, props.column.id)
   showDeleteConfirm.value = false
@@ -98,7 +108,7 @@ const {running: deleting, run: applyDelete} = useAsyncAction(async () => {
   <Modal :model-value="true" size="md" @update:model-value="emit('close')">
     <div class="space-y-3">
       <div class="font-semibold">{{ column ? t('checklist.editColumn') : t('checklist.addColumn') }}</div>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="saveFailure ?? deleteFailure ?? countFailure"/>
       <div>
         <FieldLabel>{{ t('checklist.columnLabel') }}</FieldLabel>
         <TextInput v-model="label" :placeholder="t('checklist.columnLabelPlaceholder')"/>

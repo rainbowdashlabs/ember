@@ -7,6 +7,7 @@
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -35,6 +36,7 @@ const {
     editName,
     editDescription,
     tags,
+    failure,
     save,
 } = useKbEntryEditor(show, () => props.folder, {
     visibilityKind: 'folders',
@@ -64,6 +66,7 @@ async function handleSave() {
             <TextAreaInput v-model="editDescription" :placeholder="t('kb.description')"/>
             <KbFolderIconField v-model="iconFile"/>
             <KbTagsEditor v-model="tags"/>
+            <FailureAlert :failure="failure"/>
             <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>
         </form>
     </Modal>

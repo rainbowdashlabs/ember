@@ -21,6 +21,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {apiErrorMessage, apiErrorStatus, errorMessage} from '@/util/apiError'
+import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   factors: FactorInfo[]
@@ -39,15 +40,38 @@ const supported = computed(() => isWebAuthnSupported())
 const showLabelPrompt = ref(false)
 const newLabel = ref('')
 const enrolling = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
+
+/**
+ * Something the browser or the reader decided, which no server said and nobody should report.
+ *
+ * <p>A cancelled prompt and a browser without security keys are not faults in Ember, and offering
+ * to report them buries the reports that are.
+ */
+function fromBrowser(message: string, guidance: string): Failure {
+  return {kind: FailureKind.REJECTED, message, guidance, reportable: false}
+}
+
+/** What the far side said, and what this screen knows about the ways the browser refuses. */
+function enrollmentFailure(e: unknown): Failure {
+  const said = errorMessage(e)
+  if (said === 'webauthn-cancelled') {
+    return fromBrowser(t('twoFactor.webauthn.cancelled'), t('twoFactor.webauthn.cancelledGuidance'))
+  }
+  if (said === 'webauthn-unsupported') {
+    return fromBrowser(t('twoFactor.webauthn.unsupported'), t('twoFactor.webauthn.unsupportedGuidance'))
+  }
+  return {...describeFailure(e, t), message: apiErrorMessage(e) ?? t('twoFactor.webauthn.failed')}
+}
 
 const renameTarget = ref<FactorInfo | null>(null)
 const renameLabel = ref('')
 
 async function startEnrollment() {
-  error.value = ''
+  failure.value = null
   if (!supported.value) {
-    error.value = t('twoFactor.webauthn.unsupported')
+    failure.value = fromBrowser(
+        t('twoFactor.webauthn.unsupported'), t('twoFactor.webauthn.unsupportedGuidance'))
     return
   }
   newLabel.value = ''
@@ -57,7 +81,7 @@ async function startEnrollment() {
 async function confirmEnrollment() {
   if (!newLabel.value.trim()) return
   enrolling.value = true
-  error.value = ''
+  failure.value = null
   try {
     // First enrolment answers the step-up prompt like everything else on this screen; the
     // password field this form used to carry is gone with the backend rule that needed it.
@@ -67,13 +91,7 @@ async function confirmEnrollment() {
     showLabelPrompt.value = false
     emit('updated', result.recoveryCodes ?? [])
   } catch (e) {
-    if (errorMessage(e) === 'webauthn-cancelled') {
-      error.value = t('twoFactor.webauthn.cancelled')
-    } else if (errorMessage(e) === 'webauthn-unsupported') {
-      error.value = t('twoFactor.webauthn.unsupported')
-    } else {
-      error.value = apiErrorMessage(e) || t('twoFactor.webauthn.failed')
-    }
+    failure.value = enrollmentFailure(e)
   } finally {
     enrolling.value = false
   }
@@ -84,7 +102,7 @@ async function handleRemove(factor: FactorInfo) {
     await removeFactor(factor.id)
     emit('updated', [])
   } catch (e) {
-    error.value = apiErrorMessage(e) || t('common.error')
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -100,7 +118,7 @@ async function confirmRename() {
     renameTarget.value = null
     emit('updated', [])
   } catch (e) {
-    error.value = apiErrorMessage(e) || t('common.error')
+    failure.value = describeFailure(e, t)
   }
 }
 </script>
@@ -136,7 +154,7 @@ async function confirmRename() {
         </ButtonRow>
       </li>
     </ul>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
   </NeutralContainer>
 
   <Modal v-model="showLabelPrompt" size="sm">
@@ -144,7 +162,7 @@ async function confirmRename() {
       <SubHeader>{{ t('twoFactor.webauthn.labelPrompt') }}</SubHeader>
       <MutedText tag="p" size="sm">{{ t('twoFactor.webauthn.labelHint') }}</MutedText>
       <TextInput v-model="newLabel" :placeholder="t('twoFactor.webauthn.labelPlaceholder')" :disabled="enrolling"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <ButtonRow pair align="end">
         <SecondaryButton :disabled="enrolling" @click="showLabelPrompt = false">
           {{ t('common.cancel') }}

@@ -24,6 +24,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import { useSession } from '@/composables/useSession'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { describeFailure } from '@/util/failure'
 import { procedures } from '@/api'
 import { StationPermission } from '@/api/types'
 import type { ProcedureTemplate } from '@/api/procedures'
@@ -41,7 +42,7 @@ const showCreateModal = ref(false)
 const newName = ref('')
 const newDescription = ref('')
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   templates.value = await procedures.getTemplates()
 }, {autoLoad: false})
 
@@ -53,7 +54,7 @@ const {
 } = useConfirmAction<ProcedureTemplate>({
   onConfirm: tpl => procedures.archiveTemplate(tpl.id),
   onSuccess: () => reload(),
-  error,
+  failure,
 })
 
 const filteredTemplates = computed(() => {
@@ -76,8 +77,8 @@ async function handleCreate() {
     newName.value = ''
     newDescription.value = ''
     router.push({ name: 'procedure-template-edit', params: { id: created.id } })
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -104,7 +105,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
     <AsyncSection
       :empty="filteredTemplates.length === 0"
       :empty-message="t('procedures.emptyTemplates')"
-      :error="error"
+      :failure="failure"
       :loading="loading"
     >
       <div class="space-y-2">

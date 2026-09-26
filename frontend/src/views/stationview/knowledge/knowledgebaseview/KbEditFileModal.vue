@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -31,6 +32,7 @@ const {
     editName,
     editDescription,
     tags,
+    failure,
     save,
 } = useKbEntryEditor(show, () => props.file, {
     visibilityKind: 'files',
@@ -53,6 +55,7 @@ async function handleSave() {
             <TextInput v-model="editName" :placeholder="t('kb.fileName')" required/>
             <TextAreaInput v-model="editDescription" :placeholder="t('kb.description')"/>
             <KbTagsEditor v-model="tags"/>
+            <FailureAlert :failure="failure"/>
             <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>
         </form>
     </Modal>

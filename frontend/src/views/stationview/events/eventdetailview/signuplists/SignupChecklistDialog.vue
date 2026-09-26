@@ -14,6 +14,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import ChecklistFormModal from '@/views/stationview/checklist/checklistmodals/ChecklistFormModal.vue'
 import SignupSetNotes from './SignupSetNotes.vue'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
+import type {Failure} from '@/util/failure'
 
 /**
  * Names the list and its first column before it is made, and asks whether it should keep looking at
@@ -32,7 +33,7 @@ const visible = defineModel<boolean>({required: true})
 
 const props = defineProps<{
   creating: boolean
-  error: string
+  failure: Failure | null
   memberSet: SignupMemberSet
   /** The occurrence the set belongs to, already written the way a reader reads a date. */
   dateLabel: string
@@ -110,6 +111,6 @@ function submit() {
         :following="kind === 'FOLLOWING'"
     />
 
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
   </ChecklistFormModal>
 </template>

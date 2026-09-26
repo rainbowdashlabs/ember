@@ -9,7 +9,8 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 import BoardSettingsHeader from './boardsettingsview/BoardSettingsHeader.vue'
 import BoardStructureSections from './boardsettingsview/BoardStructureSections.vue'
 import BoardAccessSections from './boardsettingsview/BoardAccessSections.vue'
@@ -92,7 +93,19 @@ function removePartner(index: number) {
     federationTargets.value.splice(index, 1)
 }
 
-const {loading, error} = useAsyncLoader(async () => {
+/** What the last save ran into, kept apart from the page never having arrived. */
+const saveFailure = ref<Failure | null>(null)
+
+/**
+ * Why the board's federation settings are not shown.
+ *
+ * <p>This was swallowed and the panel fell back to showing no partners at all, which reads as a board
+ * that is not shared with anybody. Saying so matters even though nothing is overwritten: somebody who
+ * believes the board is private may write on it accordingly.
+ */
+const federationFailure = ref<Failure | null>(null)
+
+const {loading, failure: loadFailure} = useAsyncLoader(async () => {
     const [b, l, f, r, g, tg, va, ea] = await Promise.all([
         boards.getBoard(boardKey.value),
         boards.getLanes(boardKey.value),
@@ -110,7 +123,9 @@ const {loading, error} = useAsyncLoader(async () => {
             boards.getBoardFederationConfig(boardKey.value),
             federation.listPartners(),
         ]) as [typeof fedConfig, PartnerResponse[]]
-    } catch { void 0 }
+    } catch (e) {
+        federationFailure.value = {...describeFailure(e, t), message: t('boards.federationConfigUnknown')}
+    }
     board.value = b
     name.value = b.name
     description.value = b.description ?? ''
@@ -138,7 +153,7 @@ let saveDebounce: ReturnType<typeof setTimeout> | null = null
 async function saveNow() {
     if (loading.value) return
     saving.value = true
-    error.value = ''
+    saveFailure.value = null
     try {
         await boards.updateBoard(boardKey.value, {
             name: name.value,
@@ -165,8 +180,8 @@ async function saveNow() {
             })
         }
         flashSaved(t('common.saved'))
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        saveFailure.value = describeFailure(e, t)
     } finally {
         saving.value = false
     }
@@ -254,10 +269,10 @@ const pageSubtitle = computed(() => board.value?.name || t('pages.board-settings
         :subtitle="pageSubtitle"
     >
         <Spinner v-if="loading" />
-        <Alert v-else-if="error && !board" variant="error">{{ error }}</Alert>
+        <FailureAlert v-else-if="loadFailure && !board" :failure="loadFailure"/>
         <template v-else-if="board">
             <BoardSettingsHeader :short-key="board.shortKey" :saving="saving" :saved="saved" @back="goBack" />
-            <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+            <FailureAlert :failure="saveFailure ?? federationFailure ?? loadFailure" class="mb-4"/>
             <div class="space-y-6 max-w-2xl">
                 <BoardStructureSections
                     v-model:name="name"

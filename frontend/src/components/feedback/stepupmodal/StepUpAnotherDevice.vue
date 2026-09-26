@@ -81,7 +81,7 @@ const {start: startPolling, stop: stopPolling, throttled} = useBackingOffPoll(po
 const failureMessage = computed(() => {
   if (phase.value === 'rejected') return t('passkeys.device.rejected')
   if (phase.value === 'expired') return t('twoFactor.stepUp.anotherDevice.expired')
-  return t('common.error')
+  return t('twoFactor.stepUp.anotherDevice.stopped')
 })
 
 onBeforeUnmount(stopPolling)

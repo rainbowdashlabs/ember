@@ -9,6 +9,7 @@ import type { ProfileField } from '@/api/profileFields'
 import { StationUserType, type StationMember } from '@/api/types'
 import { members, profileFields, stationMembers } from '@/api'
 import { memberDisplayName } from '../listview/useMemberData'
+import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 
 /**
  * Owns the managers linked to the viewed member: their profile snapshots plus
@@ -23,7 +24,7 @@ export function useMemberManagers(
     memberId: Ref<number>,
     allMembers: Ref<StationMember[]>,
     fieldsForUserType: (userType: string) => ProfileField[],
-    error: Ref<string>,
+    failure: Ref<Failure | null>,
 ) {
   const { t } = useI18n()
 
@@ -58,9 +59,16 @@ export function useMemberManagers(
     try { return JSON.parse(raw) } catch { return raw }
   }
 
+  /**
+   * Reads each manager's answers, one at a time so that one unreadable manager does not blank the rest.
+   *
+   * <p>Said out loud where any of them could not be read, because the panel then shows that manager with
+   * empty fields, and an empty telephone number on a guardian reads as one nobody has given.
+   */
   async function loadDetails(mgrs: StationMember[]) {
     const mgrVals = new Map<number, Map<number, string>>()
     const mgrTypes = new Map<number, string>()
+    let unreadable: unknown = null
     for (const mgr of mgrs) {
       try {
         const [vals, memberData] = await Promise.all([
@@ -71,51 +79,84 @@ export function useMemberManagers(
         for (const v of vals) { fieldMap.set(v.fieldId, v.value ?? '') }
         mgrVals.set(mgr.id, fieldMap)
         mgrTypes.set(mgr.id, memberData.userType ?? '')
-      } catch { void 0 }
+      } catch (e) {
+        unreadable = e
+      }
     }
     managerValues.value = mgrVals
     managerUserTypes.value = mgrTypes
+    if (unreadable) {
+      failure.value = {...describeFailure(unreadable, t), message: t('memberDetail.managerDetailsUnreadable')}
+    }
   }
 
   async function linkManager(managerId: number) {
-    error.value = ''
+    failure.value = null
     try {
       const currentIds = managers.value.map(m => m.id)
       await stationMembers.setManagers(memberId.value, { managerIds: [...currentIds, managerId] })
       managers.value = await stationMembers.getManagers(memberId.value)
       await loadDetails(managers.value)
-    } catch { error.value = t('common.error') }
+    } catch (e) { failure.value = describeFailure(e, t) }
   }
 
   async function removeManager(mgrId: number) {
-    error.value = ''
+    failure.value = null
     try {
       const newIds = managers.value.filter(m => m.id !== mgrId).map(m => m.id)
       await stationMembers.setManagers(memberId.value, { managerIds: newIds })
       managers.value = await stationMembers.getManagers(memberId.value)
-    } catch { error.value = t('common.error') }
+    } catch (e) { failure.value = describeFailure(e, t) }
   }
 
+  /**
+   * Invites somebody and makes them this member's guardian, which is four writes behind one button.
+   *
+   * <p>The invitation is caught on its own because everything after it depends on an account that now
+   * exists. A reader told only that it failed invites the same person again and is refused for an
+   * address already in use, with nothing said about the half-made guardian sitting in the roll.
+   *
+   * <p>The same goes for the invited person not turning up in the roll afterwards, which used to end
+   * the whole thing without a word: the account had been created and the screen looked as though the
+   * button had done nothing at all.
+   */
   async function createManager(data: { firstName: string; lastName: string; email: string; sendSetupMail?: boolean }) {
-    error.value = ''
+    failure.value = null
+
+    let invitedId: number
     try {
-      const invited = await members.invite({
+      invitedId = (await members.invite({
         email: data.email,
         firstName: data.firstName,
         lastName: data.lastName,
         sendSetupMail: data.sendSetupMail,
-      })
+      })).id
+    } catch (e) {
+      failure.value = describeFailure(e, t)
+      return
+    }
+
+    try {
       const updatedMembers = await stationMembers.listMembers()
-      const newMember = updatedMembers.find(m => m.accountId === invited.id)
-      if (newMember) {
-        await stationMembers.setUserType(newMember.id, StationUserType.GUARDIAN)
-        const currentIds = managers.value.map(m => m.id)
-        await stationMembers.setManagers(memberId.value, { managerIds: [...currentIds, newMember.id] })
-        managers.value = await stationMembers.getManagers(memberId.value)
-        await loadDetails(managers.value)
-        allMembers.value = updatedMembers
+      const newMember = updatedMembers.find(m => m.accountId === invitedId)
+      if (!newMember) {
+        failure.value = {
+          kind: FailureKind.UNKNOWN,
+          message: t('memberDetail.invitedButNotLinked'),
+          guidance: t('memberDetail.invitedButNotLinkedGuidance'),
+          reportable: true,
+        }
+        return
       }
-    } catch { error.value = t('common.error') }
+      await stationMembers.setUserType(newMember.id, StationUserType.GUARDIAN)
+      const currentIds = managers.value.map(m => m.id)
+      await stationMembers.setManagers(memberId.value, { managerIds: [...currentIds, newMember.id] })
+      managers.value = await stationMembers.getManagers(memberId.value)
+      await loadDetails(managers.value)
+      allMembers.value = updatedMembers
+    } catch (e) {
+      failure.value = {...describeFailure(e, t), message: t('memberDetail.invitedButNotLinked')}
+    }
   }
 
   return {

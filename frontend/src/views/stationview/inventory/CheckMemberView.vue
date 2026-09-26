@@ -21,7 +21,7 @@ import { MovementPurpose } from '@/api/movements'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useMemberCheck, type CheckEntry } from '@/composables/useMemberCheck'
-import { apiErrorMessage } from '@/util/apiError'
+import { describeFailure, type Failure } from '@/util/failure'
 import RapidExchangeModal from './checkmemberview/RapidExchangeModal.vue'
 import CorrectItemModal from './checkmemberview/CorrectItemModal.vue'
 import CheckMemberBody from './checkmemberview/CheckMemberBody.vue'
@@ -38,13 +38,15 @@ const router = useRouter()
 
 const memberId = computed(() => Number(route.params.memberId))
 const teamOnly = computed(() => route.query.teamOnly === 'true')
-const {config: state, loading, error, reload: loadData} = useConfigPanel<MemberCheckState | null>({
+const {config: state, loading, failure, reload: loadData} = useConfigPanel<MemberCheckState | null>({
   initial: null,
   fetch: () => inventoryCheck.startCheck(memberId.value),
-  formatError: (e) => apiErrorStatus(e) === 409 ? t('inventory.check.locked') : t('common.error'),
+  formatError: (e) => (apiErrorStatus(e) === 409
+      ? t('inventory.check.lockedByOther')
+      : describeFailure(e, t).message),
 })
 
-const check = useMemberCheck(memberId, state, error)
+const check = useMemberCheck(memberId, state, failure)
 
 /**
  * Whose gear is being checked, at the head of the page, so two checks open at once are told apart
@@ -60,13 +62,13 @@ const checkMode = ref(false)
 const showExchange = ref(false)
 const exchangeEntry = ref<CheckEntry | null>(null)
 const exchangeBusy = ref(false)
-const exchangeError = ref('')
+const exchangeFailure = ref<Failure | null>(null)
 
 const showCorrect = ref(false)
 const correctItem = ref<InventoryItem | null>(null)
 const correctReq = ref<RequiredInventoryItem | null>(null)
 const correctBusy = ref(false)
-const correctError = ref('')
+const correctFailure = ref<Failure | null>(null)
 
 function startCheckMode() {
   checkMode.value = true
@@ -102,7 +104,7 @@ function onSlotProcurement(req: RequiredInventoryItem, slotIndex: number) {
 function onRapidExchange(entry: CheckEntry) {
   if (entry.type !== 'item') return
   exchangeEntry.value = entry
-  exchangeError.value = ''
+  exchangeFailure.value = null
   showExchange.value = true
 }
 
@@ -121,7 +123,7 @@ async function createRapidExchange(payload: {newSizeId: number | null; reason: s
   const entry = exchangeEntry.value
   if (entry?.type !== 'item') return
   exchangeBusy.value = true
-  exchangeError.value = ''
+  exchangeFailure.value = null
   try {
     const created = await movements.createMovement({
       purpose: MovementPurpose.EXCHANGE,
@@ -132,8 +134,6 @@ async function createRapidExchange(payload: {newSizeId: number | null; reason: s
       newSizeId: payload.newSizeId ?? undefined,
       reason: payload.reason,
     })
-    // A piece handed over there and then is a step further along, and the step is acknowledged as such
-    // rather than a status being jumped to: the member is standing here, so the station really has it.
     const standing = created.steps.find(step => step.current)
     if (payload.handedIn && standing?.actionable) {
       await movements.acknowledgeStep(created.movement.id, {stepId: standing.id, note: payload.reason})
@@ -141,7 +141,7 @@ async function createRapidExchange(payload: {newSizeId: number | null; reason: s
     check.setResult(entry.item.id, payload.handedIn ? 'NOT_IN_POSSESSION' : 'CONFIRMED')
     showExchange.value = false
   } catch (e) {
-    exchangeError.value = apiErrorMessage(e) ?? t('common.error')
+    exchangeFailure.value = describeFailure(e, t)
   } finally {
     exchangeBusy.value = false
   }
@@ -156,7 +156,7 @@ async function createRapidExchange(payload: {newSizeId: number | null; reason: s
 function openCorrection(item: InventoryItem, req: RequiredInventoryItem) {
   correctItem.value = item
   correctReq.value = req
-  correctError.value = ''
+  correctFailure.value = null
   showCorrect.value = true
 }
 
@@ -165,13 +165,21 @@ function onRapidCorrect(entry: CheckEntry) {
   openCorrection(entry.item, entry.req)
 }
 
+/**
+ * Writes the correction and keeps whatever went wrong inside the form that asked for it.
+ *
+ * <p>The check's own operations report into the page's channel, which is behind this modal. What is
+ * read back here is moved in front of the reader, and taken out of the page's channel so the same
+ * sentence is not standing in two places at once.
+ */
 async function applyCorrection(payload: CorrectItemRequest) {
   correctBusy.value = true
-  correctError.value = ''
+  correctFailure.value = null
   try {
     await check.correctItem(payload)
-    if (error.value) {
-      correctError.value = error.value
+    if (failure.value) {
+      correctFailure.value = failure.value
+      failure.value = null
       return
     }
     showCorrect.value = false
@@ -213,7 +221,7 @@ async function onRapidCreateAndAssign(sizeIdStr: string) {
 
 const unassign = useConfirmAction<number>({
   onConfirm: itemId => check.unassignItem(itemId),
-  error,
+  failure,
 })
 
 /**
@@ -242,15 +250,28 @@ function collectResults(current: MemberCheckState): CheckItemResult[] {
   return items
 }
 
+/**
+ * Records the walk, then moves on to whoever is next.
+ *
+ * <p>The two are caught apart. Once the check is recorded it is recorded, and a walker told that
+ * saving failed walks the whole member again. What can still go wrong after that is only finding the
+ * next person, which is said as what it is and leaves the reader on a page that is already done.
+ */
 const {running: submitting, run: submit} = useAsyncAction(async () => {
   if (!state.value) return
   const results = collectResults(state.value)
   if (results.length === 0) return
-  error.value = ''
-  try {
-    const completedMemberId = memberId.value
-    await inventoryCheck.completeCheck(completedMemberId, { items: results })
+  failure.value = null
 
+  const completedMemberId = memberId.value
+  try {
+    await inventoryCheck.completeCheck(completedMemberId, { items: results })
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
+  }
+
+  try {
     const nextId = await inventoryCheck.getNextMember(completedMemberId, teamOnly.value)
     if (!nextId) {
       await router.push({ name: routes.checks })
@@ -264,8 +285,8 @@ const {running: submitting, run: submit} = useAsyncAction(async () => {
       query: { teamOnly: teamOnly.value ? 'true' : 'false' },
     })
     await loadData()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('inventory.check.recordedButNoNext')}
   }
 })
 
@@ -286,7 +307,7 @@ async function cancel() {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <CheckMemberBody
         v-if="!loading && state"
         ref="bodyRef"
@@ -343,7 +364,7 @@ async function cancel() {
         v-model="showExchange"
         :busy="exchangeBusy"
         :current-size-id="exchangeEntry?.type === 'item' ? exchangeEntry.item.sizeId : null"
-        :error="exchangeError"
+        :failure="exchangeFailure"
         :item-name="exchangeEntry?.type === 'item' ? exchangeEntry.item.name : ''"
         :sizes="exchangeEntry?.type === 'item' ? exchangeEntry.req.sizes : []"
         @confirm="createRapidExchange"
@@ -353,7 +374,7 @@ async function cancel() {
         v-model="showCorrect"
         :available-items="correctReq ? check.availableForInventory(correctReq.inventoryId) : []"
         :busy="correctBusy"
-        :error="correctError"
+        :failure="correctFailure"
         :item="correctItem"
         :item-label="check.itemLabel"
         :req="correctReq"

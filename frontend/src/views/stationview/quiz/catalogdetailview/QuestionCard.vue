@@ -10,6 +10,7 @@ import QuestionCardCollapsedDesktop from './QuestionCardCollapsedDesktop.vue'
 import QuestionInlineEditor from './QuestionInlineEditor.vue'
 import QuestionReportList from './QuestionReportList.vue'
 import type { QuizCategory, QuizQuestion, QuizQuestionReport, QuizQuestionTypeName } from '@/api/quiz'
+import type { Failure } from '@/util/failure'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
 const editorTitle = defineModel<string>('editorTitle', {required: true})
@@ -41,7 +42,7 @@ const emit = defineEmits<{
   save: []
   cancel: []
   reportAcknowledged: []
-  reportError: [message: string]
+  reportError: [failure: Failure]
 }>()
 
 const { isMobile } = useBreakpoint()
@@ -93,7 +94,7 @@ const { isMobile } = useBreakpoint()
       class="mt-3"
       :reports="reports"
       @acknowledged="emit('reportAcknowledged')"
-      @error="(message: string) => emit('reportError', message)"
+      @error="(refused: Failure) => emit('reportError', refused)"
     />
   </NeutralContainer>
 </template>

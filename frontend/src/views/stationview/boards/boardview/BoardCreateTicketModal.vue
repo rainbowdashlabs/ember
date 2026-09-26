@@ -45,7 +45,7 @@ watch(() => props.defaultLaneId, (id) => {
     if (!laneId.value && id) laneId.value = String(id)
 }, { immediate: true })
 
-const { error: apiError, run: runCreateTicket } = useAsyncAction(async () => {
+const { failure, run: runCreateTicket } = useAsyncAction(async () => {
     const created = await boards.createTicket(props.boardKey, {
         laneId: Number(laneId.value),
         title: title.value.trim(),
@@ -61,9 +61,7 @@ const { error: apiError, run: runCreateTicket } = useAsyncAction(async () => {
     assignee.value = ''
     dueDate.value = ''
     router.push(`/station/boards/${props.boardKey}/tickets/${created.ticketNumber}`)
-}, {formatError: () => t('common.error')})
-
-const error = computed(() => validationError.value || apiError.value)
+})
 
 function submit() {
     validationError.value = ''
@@ -104,7 +102,8 @@ function openFullEditor() {
                 :lane-options="laneOptions"
                 :assignable-members="assignableMembers"
             />
-            <FailureAlert :message="error"/>
+            <FailureAlert :message="validationError" expected/>
+            <FailureAlert :failure="failure"/>
             <ButtonRow align="between">
                 <SecondaryButton @click="openFullEditor">
                     <font-awesome-icon :icon="['fas', 'expand']" class="mr-1" />

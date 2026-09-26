@@ -47,7 +47,11 @@ function leave() {
   <ViewContent :title="pageTitle" :subtitle="t('pages.quiz-catalog-import.subtitle')">
     <div class="space-y-6">
       <ImportHeader :leave-label="leaveLabel" :appending="wizard.appending.value" @leave="leave" />
-      <ImportErrorAlert :message="wizard.error.value" :problems="wizard.problems.value" />
+      <ImportErrorAlert
+          :message="wizard.error.value"
+          :failure="wizard.failure.value"
+          :problems="wizard.problems.value"
+      />
       <ImportSteps :wizard="wizard" :leave-label="leaveLabel" @leave="leave" />
       <Spinner v-if="wizard.loading.value" size="lg" />
     </div>

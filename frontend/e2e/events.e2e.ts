@@ -26,17 +26,31 @@ import {test, expect, apiHeaders, type Page} from './fixtures/auth'
  * it really has instead of whichever day the page works out for itself. And it must be one that
  * takes an answer without anybody confirming it, because that is the answer the stories then read
  * back.
+ *
+ * <p>The last of those is why two lists are asked for rather than one. The list of coming dates
+ * carries a summary of each appointment, and a summary does not say whether an answer has to be
+ * confirmed. Read off the summary the question came back undefined, so the filter said yes to
+ * everything and the story landed on an appointment that does hold answers pending. The full list
+ * says, so membership of it is what decides.
  */
 async function openEventWithRegistration(page: Page) {
     const headers = await apiHeaders(page)
-    const answer = await page.request.get('/api/v1/events/upcoming?requiresRegistration=true&limit=50', {headers})
-    expect(answer.ok(), 'the appointment list answers').toBeTruthy()
 
-    const occurrences: {date: string, event: {id: number, requiresConfirmation: boolean}}[] = await answer.json()
-    const coming = occurrences.find(occurrence => !occurrence.event.requiresConfirmation)
-    expect(coming, 'the seeded station has a coming appointment that is answered without confirming').toBeTruthy()
+    const full = await page.request.get('/api/v1/events?requiresRegistration=true', {headers})
+    expect(full.ok(), 'the appointment list answers').toBeTruthy()
+    const answeredOutright = new Set<number>(
+        ((await full.json()) as {id: number, requiresConfirmation: boolean}[])
+            .filter(event => !event.requiresConfirmation)
+            .map(event => event.id))
 
-    await page.goto(`/station/events/${coming!.event.id}/${coming!.date}`)
+    const coming = await page.request.get('/api/v1/events/upcoming?requiresRegistration=true&limit=50', {headers})
+    expect(coming.ok(), 'the list of coming dates answers').toBeTruthy()
+
+    const occurrences: {date: string, event: {id: number}}[] = await coming.json()
+    const answerable = occurrences.find(occurrence => answeredOutright.has(occurrence.event.id))
+    expect(answerable, 'the seeded station has a coming appointment that is answered without confirming').toBeTruthy()
+
+    await page.goto(`/station/events/${answerable!.event.id}/${answerable!.date}`)
 }
 
 /**

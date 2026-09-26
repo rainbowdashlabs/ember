@@ -21,6 +21,7 @@ import {StationPermission} from '@/api/types'
 import {documents as documentsApi, stationMembers} from '@/api'
 import type {DocumentUpload, StationDocument} from '@/api/documents'
 import type {StationMember} from '@/api/types'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The document store of the station: everything that was ever put in, whether it belongs to
@@ -40,7 +41,7 @@ const unboundOnly = ref(false)
 const allTags = ref<string[]>([])
 const members = ref<StationMember[]>([])
 const loading = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const showUpload = ref(false)
 const showDocument = ref(false)
@@ -61,7 +62,7 @@ const memberOptions = computed(() => members.value.map(fromMember))
  */
 async function reload() {
   loading.value = documents.value.length === 0
-  error.value = ''
+  failure.value = null
   try {
     const result = await documentsApi.listStation({
       page: page.value,
@@ -71,8 +72,8 @@ async function reload() {
     })
     documents.value = result.documents
     total.value = result.total
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
   loading.value = false
 }
@@ -119,15 +120,24 @@ loadMembers()
 loadTags()
 reload()
 
+/**
+ * Puts a document in the store.
+ *
+ * <p>The window is closed whatever happens, because the reason it failed is shown on the page behind
+ * it. A file the station is not allowed to keep is the ordinary refusal here and the server says so in
+ * its own words, which is no use to anybody reading it through a dialog that is covering it.
+ */
 async function upload(upload: DocumentUpload) {
-  error.value = ''
+  failure.value = null
   try {
     await documentsApi.uploadForStation(upload)
+  } catch (e) {
     showUpload.value = false
-    await reload()
-  } catch {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
+    return
   }
+  showUpload.value = false
+  await reload()
 }
 
 function open(document: StationDocument) {
@@ -135,17 +145,30 @@ function open(document: StationDocument) {
   showDocument.value = true
 }
 
+/**
+ * Runs a change to one document and catches the list up afterwards.
+ *
+ * <p>Caught apart: by the time the list is fetched again the change is written, and a reader told that
+ * removing a document failed removes it again, on a document that is already gone.
+ */
 async function act(action: Promise<unknown>) {
-  error.value = ''
+  failure.value = null
   try {
     await action
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
+  }
+
+  try {
     await reload()
     await loadTags()
-    opened.value = documents.value.find(document => document.id === opened.value?.id) ?? null
-    if (!opened.value) showDocument.value = false
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
+    return
   }
+  opened.value = documents.value.find(document => document.id === opened.value?.id) ?? null
+  if (!opened.value) showDocument.value = false
 }
 </script>
 
@@ -153,7 +176,7 @@ async function act(action: Promise<unknown>) {
   <ViewContent :title="t('pages.station-members-documents.title')"
                :subtitle="t('pages.station-members-documents.subtitle')">
     <div class="space-y-4">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <DocumentFilterBar
           v-model:search="search"

@@ -8,7 +8,8 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 import ReportPresetList from './reportview/ReportPresetList.vue'
 import ReportFilters from './reportview/ReportFilters.vue'
 import ReportPreview from './reportview/ReportPreview.vue'
@@ -139,7 +140,10 @@ function buildParams() {
   return params
 }
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+/** What the reader's last action ran into, kept apart from the page never having arrived. */
+const actionFailure = ref<Failure | null>(null)
+
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
   const [allGroups, allPresets] = await Promise.all([
     memberGroups.listGroups(),
     attendance.listPresets(),
@@ -148,14 +152,14 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   presets.value = allPresets
 }, {autoLoad: false})
 
-const {running: previewing, error: previewError, run: runPreview, clearError: clearPreviewError} = useAsyncAction(async () => {
+const {running: previewing, failure: previewFailure, run: runPreview, clearError: clearPreviewError} = useAsyncAction(async () => {
   report.value = null
   report.value = await attendance.reportPreview(buildParams())
 })
 
 const showExportFormat = ref(false)
 
-const {running: exporting, error: exportError, run: runExport, clearError: clearExportError} = useAsyncAction(
+const {running: exporting, failure: exportFailure, run: runExport, clearError: clearExportError} = useAsyncAction(
     async (format: ExportFormat, separator: ExportSeparator) => {
       const params = buildParams()
       params.set('period', selectedPeriod.value)
@@ -166,18 +170,25 @@ const {running: exporting, error: exportError, run: runExport, clearError: clear
       showExportFormat.value = false
     })
 
-const displayError = computed(() => error.value || previewError.value || exportError.value)
+/**
+ * The one failure to show. What the reader last asked for comes before what the page failed to fetch
+ * when it opened, because the first is what they are standing in front of.
+ */
+const displayFailure = computed(() => actionFailure.value
+    ?? previewFailure.value
+    ?? exportFailure.value
+    ?? loadFailure.value)
 
 function preview() {
   if (!canPreview.value) return
-  error.value = ''
+  actionFailure.value = null
   clearExportError()
   return runPreview()
 }
 
 function askExportFormat() {
   if (!canPreview.value) return
-  error.value = ''
+  actionFailure.value = null
   clearPreviewError()
   showExportFormat.value = true
 }
@@ -188,7 +199,7 @@ function runChosenExport(format: ExportFormat, separator: ExportSeparator) {
 
 async function savePreset() {
   if (!presetName.value || !canPreview.value) return
-  error.value = ''
+  actionFailure.value = null
   try {
     await attendance.createPreset({
       name: presetName.value,
@@ -201,7 +212,7 @@ async function savePreset() {
     showSavePreset.value = false
     presetName.value = ''
   } catch (e) {
-    error.value = t('common.error')
+    actionFailure.value = {...describeFailure(e, t), message: t('attendanceReport.presetSaveFailed')}
     throw e
   }
 }
@@ -224,11 +235,17 @@ function applyPreset(preset: ReportPreset) {
 }
 
 async function removePreset(id: number) {
+  actionFailure.value = null
   try {
     await attendance.deletePreset(id)
+  } catch (e) {
+    actionFailure.value = describeFailure(e, t)
+    return
+  }
+  try {
     presets.value = await attendance.listPresets()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    actionFailure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
   }
 }
 
@@ -243,7 +260,7 @@ watch(loaded, (isLoaded) => {
       :subtitle="t('pages.attendance-report.subtitle')"
   >
     <Spinner v-if="loading" size="lg"/>
-    <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
+    <FailureAlert :failure="displayFailure"/>
     <template v-if="!loading">
       <ReportPresetList
           :presets="presets"

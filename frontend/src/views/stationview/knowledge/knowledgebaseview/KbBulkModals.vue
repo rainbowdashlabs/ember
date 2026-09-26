@@ -16,6 +16,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import KbFolderPicker from './KbFolderPicker.vue'
 import KbTagsEditor from './KbTagsEditor.vue'
 import {knowledgeBase} from '@/api'
+import {describeFailure, type Failure} from '@/util/failure'
 import type {KbFolderTreeEntry} from '@/api/knowledgeBase'
 import {kbBulkMessage} from './kbRefusals'
 
@@ -37,7 +38,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     done: [message: string]
-    error: [message: string]
+    /** Why the batch could not be carried out, described rather than flattened to one sentence. */
+    error: [failure: Failure]
 }>()
 
 const {t} = useI18n()
@@ -80,8 +82,8 @@ async function submitMove() {
         const outcome = await knowledgeBase.bulkMove(selection(), target.value)
         showMove.value = false
         emit('done', kbBulkMessage(t, outcome, 'kb.bulkMoved'))
-    } catch {
-        emit('error', t('kb.bulkTargetRefused'))
+    } catch (e) {
+        emit('error', {...describeFailure(e, t), message: t('kb.bulkTargetRefused')})
     } finally {
         saving.value = false
     }
@@ -96,8 +98,8 @@ async function submitTags() {
         })
         showTags.value = false
         emit('done', kbBulkMessage(t, outcome, 'kb.bulkTagged'))
-    } catch {
-        emit('error', t('common.error'))
+    } catch (e) {
+        emit('error', describeFailure(e, t))
     } finally {
         saving.value = false
     }
@@ -109,8 +111,8 @@ async function submitDelete() {
         const outcome = await knowledgeBase.bulkDelete(selection())
         showDelete.value = false
         emit('done', kbBulkMessage(t, outcome, 'kb.bulkDeleted'))
-    } catch {
-        emit('error', t('common.error'))
+    } catch (e) {
+        emit('error', describeFailure(e, t))
     } finally {
         saving.value = false
     }

@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {StationPermission, type MemberGroup} from '@/api/types'
 import {memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -49,8 +49,8 @@ const port: GroupsPort = {
 
 const {
   groups, allMembers, allRoles, selectedGroup, groupMembers, groupRoles, groupRoleIds,
-  groupLoading, loading, error, showGroupModal, editingGroup, groupName, groupColor,
-  groupSaving, groupSaveError, selectGroup, openCreateGroup, openEditGroup, saveGroup,
+  groupLoading, loading, error, failure, showGroupModal, editingGroup, groupName, groupColor,
+  groupSaving, groupSaveFailure, selectGroup, openCreateGroup, openEditGroup, saveGroup,
   showDeleteModal, deleteTarget, requestDelete, confirmDelete, refreshAfter,
 } = useGroupsConfig(port, {
   hasColour: true,
@@ -76,6 +76,7 @@ const {
     groupMembers,
     ids => memberGroups.setGroupMembers(selectedGroup.value!.id, {memberIds: ids}),
     error,
+    failure,
 )
 
 const {
@@ -86,7 +87,7 @@ const {
 } = useConfirmAction<MemberGroup>({
   onConfirm: g => memberGroups.convertToTag(g.id),
   onSuccess: converted => refreshAfter(converted.id),
-  error,
+  failure,
 })
 </script>
 
@@ -97,7 +98,7 @@ const {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error || groupSaveError" variant="error">{{ error || groupSaveError }}</Alert>
+      <FailureAlert :failure="failure ?? groupSaveFailure"/>
 
       <div v-if="!loading" class="grid gap-6 lg:grid-cols-2">
         <GroupListPanel :groups="groups" :selected-group="selectedGroup" :can-convert-to-tag="canConvertToTag"

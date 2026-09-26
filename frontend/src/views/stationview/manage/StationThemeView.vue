@@ -10,6 +10,7 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ThemeDefaultsPanel from './stationthemeview/ThemeDefaultsPanel.vue'
@@ -70,7 +71,7 @@ function loadPreset() {
   customColors.value = JSON.parse(JSON.stringify(theme.colors)) as ThemeColors
 }
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const info = await stationManage.getStationInfo()
   stationName.value = info.name ?? ''
   clusterName.value = info.clusterName ?? null
@@ -96,7 +97,7 @@ const {loading, error} = useAsyncLoader(async () => {
 })
 
 async function save() {
-  error.value = ''
+  failure.value = null
   try {
     await stationManage.updateStationName({
       name: stationName.value,
@@ -107,7 +108,7 @@ async function save() {
       customThemeColors: customEnabled.value ? JSON.stringify(customColors.value) : null,
     })
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -125,7 +126,7 @@ function removeCustomColors() {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <Alert v-if="clusterName && anythingLocked" variant="info">

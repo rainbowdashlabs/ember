@@ -35,7 +35,7 @@ const showAdd = ref(false)
 const needsName = ref(false)
 const selectedId = ref<number | null>(null)
 
-const {config: members, loading, error, runWith} = useConfigPanel<ClusterMemberSummary[]>({
+const {config: members, loading, failure, runWith} = useConfigPanel<ClusterMemberSummary[]>({
   initial: [],
   fetch: () => clusterMembers.listMembers(),
 })
@@ -89,7 +89,7 @@ async function changeUserType(memberId: number, userType: string) {
 <template>
   <ViewContent :subtitle="t('pages.cluster-members.subtitle')" :title="t('pages.cluster-members.title')">
     <div class="space-y-6">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <Spinner v-if="loading" size="lg"/>
 
       <div v-else class="grid gap-6 lg:grid-cols-2">

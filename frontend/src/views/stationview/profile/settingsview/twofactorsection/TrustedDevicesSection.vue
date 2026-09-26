@@ -14,18 +14,12 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {formatDateTime} from '@/util/format'
-import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 
-function describeError(e: unknown): string {
-  return apiErrorMessage(e) || t('common.error')
-}
-
-const {config: devices, loading, error, runWith} = useConfigPanel<TrustedDevice[]>({
+const {config: devices, loading, failure, runWith} = useConfigPanel<TrustedDevice[]>({
   initial: [],
   fetch: () => listTrustedDevices(),
-  formatError: describeError,
 })
 
 async function handleRevoke(device: TrustedDevice) {
@@ -58,7 +52,7 @@ async function handleRevokeAll() {
         :empty="devices.length === 0"
         :empty-compact="true"
         :empty-message="t('twoFactor.trustedDevices.empty')"
-        :error="error"
+        :failure="failure"
         :loading="loading"
         spinner-size="sm"
     >

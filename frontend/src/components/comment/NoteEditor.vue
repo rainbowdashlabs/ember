@@ -8,6 +8,7 @@ import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {NoteVersion} from '@/api/comments'
 import {comments as notesApi} from '@/api'
+import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
@@ -30,7 +31,7 @@ const content = ref('')
 const originalContent = ref('')
 const versions = ref<NoteVersion[]>([])
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const showHistory = ref(false)
 
 const hasChanges = ref(false)
@@ -39,24 +40,36 @@ function checkChanges() {
   hasChanges.value = content.value !== originalContent.value
 }
 
+/**
+ * Fetches the note, where there is one.
+ *
+ * <p>Every failure used to be read as there being no note yet, which is only true when the server
+ * says so. A note that exists but could not be fetched left an empty box in front of somebody who
+ * then typed into it and saved, writing over what was already there without ever seeing it.
+ */
 async function loadNote() {
   loading.value = true
+  failure.value = null
   try {
     const note = await notesApi.getNote(props.entityType, props.entityId)
     content.value = note?.content ?? ''
     originalContent.value = content.value
-  } catch { /* no note yet */ }
-  finally { loading.value = false }
+  } catch (e) {
+    const described = describeFailure(e, t)
+    if (described.kind !== FailureKind.GONE) {
+      failure.value = {...described, message: t('notes.loadFailed')}
+    }
+  } finally { loading.value = false }
 }
 
 async function save() {
-  error.value = ''
+  failure.value = null
   try {
     const note = await notesApi.updateNote(props.entityType, props.entityId, {content: content.value})
     originalContent.value = note.content
     hasChanges.value = false
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -64,7 +77,10 @@ async function save() {
 async function loadVersions() {
   try {
     versions.value = await notesApi.getNoteVersions(props.entityType, props.entityId)
-  } catch { /* ignore */ }
+  } catch (e) {
+    versions.value = []
+    failure.value = {...describeFailure(e, t), message: t('notes.versionsFailed')}
+  }
 }
 
 function toggleHistory() {
@@ -84,7 +100,7 @@ onMounted(loadNote)
       </SecondaryButton>
     </div>
 
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <Spinner v-if="loading" size="sm"/>
 
     <template v-if="!loading">

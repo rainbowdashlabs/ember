@@ -23,7 +23,7 @@ import {useConfigPanel} from '@/composables/useConfigPanel'
 const {t} = useI18n()
 const router = useRouter()
 
-const {config: queue, loading, error} = useConfigPanel<ClusterQueueEntry[]>({
+const {config: queue, loading, failure} = useConfigPanel<ClusterQueueEntry[]>({
   initial: [],
   fetch: () => clusterInventory.listQueue(),
 })
@@ -54,7 +54,7 @@ function open(entry: ClusterQueueEntry) {
     <div class="space-y-4">
       <InventoryTabs/>
 
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <div class="flex items-center justify-between gap-2">
         <p class="text-sm text-(--text-muted)">{{ t('clusterMovements.hint') }}</p>

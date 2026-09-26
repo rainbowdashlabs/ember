@@ -30,7 +30,7 @@ const newName = ref('')
 const newDescription = ref('')
 const busy = ref(false)
 
-const {config: clusterList, loading, error, runWith} = useConfigPanel<Cluster[]>({
+const {config: clusterList, loading, failure, runWith} = useConfigPanel<Cluster[]>({
   initial: [],
   fetch: () => clusters.listAll(),
 })
@@ -71,7 +71,7 @@ async function confirmDelete() {
 <template>
   <ViewContent :subtitle="t('pages.admin-clusters.subtitle')" :title="t('pages.admin-clusters.title')">
     <div class="space-y-6">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <NeutralContainer class="space-y-4">
         <SectionHeader>{{ t('adminClusters.createTitle') }}</SectionHeader>

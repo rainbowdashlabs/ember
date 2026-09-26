@@ -15,6 +15,7 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import {news as newsApi} from '@/api'
 import type {NewsViewsResponse} from '@/api/news'
 import {formatDateTime} from '@/util/format'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const open = defineModel<boolean>({required: true})
 
@@ -27,7 +28,7 @@ const {t} = useI18n()
 
 const data = ref<NewsViewsResponse | null>(null)
 const loading = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 watch(open, async (v) => {
   if (v && props.newsId != null) {
@@ -37,12 +38,12 @@ watch(open, async (v) => {
 
 async function load(newsId: number) {
   loading.value = true
-  error.value = ''
+  failure.value = null
   data.value = null
   try {
     data.value = await newsApi.listNewsViewers(newsId)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
@@ -59,7 +60,7 @@ async function load(newsId: number) {
       </SubHeader>
 
       <Spinner v-if="loading" size="md"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading && data">
         <section class="space-y-2">

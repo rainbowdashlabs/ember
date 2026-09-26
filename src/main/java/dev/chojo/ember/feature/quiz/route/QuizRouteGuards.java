@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
@@ -18,8 +19,6 @@ import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.feature.quiz.service.QuizTestService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -71,7 +70,7 @@ public class QuizRouteGuards {
      * Loads a question and asserts its catalog belongs to the caller's station, returning it.
      */
     public QuizQuestion requireOwnedQuestion(Context ctx, int questionId) {
-        var question = questionService.findQuestion(questionId).orElseThrow(NotFoundResponse::new);
+        var question = questionService.findQuestion(questionId).orElseThrow(Refusal.QUIZ_QUESTION_NOT_HERE::raise);
         requireOwnedCatalog(ctx, question.catalogId());
         return question;
     }
@@ -88,7 +87,7 @@ public class QuizRouteGuards {
      * Loads an attempt and asserts its test belongs to the caller's station, returning it.
      */
     public QuizTestAttempt requireOwnedAttempt(Context ctx, int attemptId) {
-        var attempt = attemptService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
+        var attempt = attemptService.findAttemptById(attemptId).orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE::raise);
         requireOwnedTest(ctx, attempt.testId());
         return attempt;
     }
@@ -112,8 +111,9 @@ public class QuizRouteGuards {
     public QuizTestAttempt requireMemberAttempt(Context ctx, UserSession session) {
         int attemptId = pathInt(ctx, "id");
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
-        var attempt = attemptService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
-        if (attempt.memberId() != session.member().id()) throw new ForbiddenResponse();
+        var attempt =
+                attemptService.findAttemptById(attemptId).orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE_FOR_MEMBER::raise);
+        if (attempt.memberId() != session.member().id()) throw Refusal.QUIZ_ATTEMPT_NOT_YOURS.raise();
         return attempt;
     }
 }

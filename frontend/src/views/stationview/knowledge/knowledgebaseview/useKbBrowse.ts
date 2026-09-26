@@ -9,6 +9,7 @@ import {federation, knowledgeBase} from '@/api'
 import type {KbAccessLevelName, KbFileSummary, KbFolder, SharedFileEntry, SharedFolderEntry} from '@/api/knowledgeBase'
 import type {SharedContentItem} from '@/api/federation'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 import type {useKbNavigation} from './useKbNavigation'
 
 /**
@@ -32,7 +33,7 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
     const federatedIds = ref<Set<number>>(new Set())
     const narrowIds = ref<Set<number>>(new Set())
 
-    const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+    const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
         if (navigation.isTrashView.value) {
             currentFolder.value = null
             folders.value = []
@@ -148,11 +149,22 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
         breadcrumbs.value = crumbs
     }
 
+    /**
+     * Takes a partner's article into this station's own wiki, then fetches the folder again.
+     *
+     * <p>The copy and the refresh used to share one attempt, so an article that really was copied,
+     * followed by a folder that failed to come back, read as a copy that had failed. Copying it again
+     * leaves the station holding it twice.
+     */
     async function copySharedFile(fileId: number) {
+        failure.value = null
         try {
             await federation.copyKbFile(fileId)
-            await loadData()
-        } catch { error.value = t('common.error') }
+        } catch (e) {
+            failure.value = describeFailure(e, t)
+            return
+        }
+        await loadData()
     }
 
     return {
@@ -172,7 +184,7 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
         folderLevels,
         fileLevels,
         loading,
-        error,
+        failure,
         loadData,
         copySharedFile,
     }

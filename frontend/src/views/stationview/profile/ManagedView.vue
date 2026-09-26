@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember} from '@/components/input/select/memberOption'
 import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
@@ -56,21 +57,21 @@ function setValue(fieldId: number, val: string) {
   setFieldValue(values, fieldId, val)
 }
 
-const { loading, error } = useAsyncLoader(async () => {
+const { loading, failure } = useAsyncLoader(async () => {
   members.value = await managedMembers.listManaged()
 })
 
 async function loadMemberProfile() {
   if (!selectedMemberId.value) return
   loadingProfile.value = true
-  error.value = ''
+  failure.value = null
   try {
     const memberId = Number(selectedMemberId.value)
     const profile = await managedMembers.getProfile(memberId)
     fields.value = profile.fields
     values.value = decodeProfileValues(profile.values)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     loadingProfile.value = false
   }
@@ -78,14 +79,14 @@ async function loadMemberProfile() {
 
 async function saveProfile() {
   if (!selectedMemberId.value) return
-  error.value = ''
+  failure.value = null
   try {
     const entries = editableFields.value
       .filter(f => !isReadonly(f))
       .map(f => ({ fieldId: f.id, value: JSON.stringify(getValue(f.id)) }))
     await managedMembers.setProfile(Number(selectedMemberId.value), entries)
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -98,7 +99,7 @@ async function saveProfile() {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
         <NeutralContainer class="space-y-4">

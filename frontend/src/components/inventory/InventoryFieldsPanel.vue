@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DragList from '@/components/input/DragList.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {inventoryFields} from '@/api'
@@ -22,6 +22,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {apiErrorMessage} from '@/util/apiError'
 import {moveWithin} from '@/util/reorder'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The extra attributes of one thing: an inventory, one kind of thing in it, or one single piece.
@@ -52,7 +53,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const {config: fields, loading, error, reload: load} = useConfigPanel<InventoryFieldDefinition[]>({
+const {config: fields, loading, failure: loadFailure, reload: load} = useConfigPanel<InventoryFieldDefinition[]>({
   initial: [],
   fetch: () => inventoryFields.listFields(props.inventoryId),
   formatError: (e) => apiErrorMessage(e) ?? t('inventory.fields.errors.loadFailed'),
@@ -107,9 +108,12 @@ function cancelEdit() {
   editing.value = null
 }
 
+/** What the reader's last action ran into, kept apart from the list never having arrived. */
+const actionFailure = ref<Failure | null>(null)
+
 const {running: submitting, run: save} = useAsyncAction(async () => {
   if (!draft.value) return
-  error.value = ''
+  actionFailure.value = null
   try {
     if (draft.value.id) {
       await inventoryFields.updateField(props.inventoryId, draft.value.id, {
@@ -134,7 +138,7 @@ const {running: submitting, run: save} = useAsyncAction(async () => {
     emit('changed')
     cancelEdit()
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('inventory.fields.errors.saveFailed')
+    actionFailure.value = {...describeFailure(e, t), message: t('inventory.fields.errors.saveFailed')}
   }
 })
 
@@ -149,11 +153,11 @@ const {
     emit('changed')
     return load()
   },
-  error,
+  failure: actionFailure,
 })
 
 async function persistOrder(ordered: InventoryFieldDefinition[]) {
-  error.value = ''
+  actionFailure.value = null
   try {
     for (const [i, f] of ordered.entries()) {
       if (f.sortOrder !== i * 10) {
@@ -167,7 +171,7 @@ async function persistOrder(ordered: InventoryFieldDefinition[]) {
     }
     await load()
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('inventory.fields.errors.saveFailed')
+    actionFailure.value = {...describeFailure(e, t), message: t('inventory.fields.errors.saveFailed')}
   }
 }
 
@@ -196,7 +200,7 @@ watch(() => [props.inventoryId, props.artId, props.itemId], () => {
         : t('inventory.fields.intro') }}
     </p>
 
-    <Alert v-if="error" variant="error" class="mb-3">{{ error }}</Alert>
+    <FailureAlert :failure="actionFailure ?? loadFailure" class="mb-3"/>
 
     <FieldDraftEditor
         v-if="draft"

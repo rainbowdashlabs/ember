@@ -14,6 +14,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {InventoryDetail, InventoryItem} from '@/api/inventory'
 import type {InventoryArt, ItemNameCount} from '@/api/inventoryArts'
 import {inventory, inventoryArts} from '@/api'
@@ -51,7 +52,7 @@ const targetArtId = ref<number | null>(null)
 const targetName = ref('')
 const done = ref(0)
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const [inv, counts, invItems, allArts] = await Promise.all([
     inventory.getInventory(inventoryId.value),
     inventoryArts.itemNames(inventoryId.value),
@@ -117,7 +118,7 @@ async function refresh() {
   await reload()
 }
 
-const {running: merging, error: mergeError, run: runMerge} = useAsyncAction(async () => {
+const {running: merging, failure: mergeFailure, run: runMerge} = useAsyncAction(async () => {
   const artId = await resolveArt()
   const result = await inventoryArts.mergeIntoArt(inventoryId.value, artId, selectedItemIds.value)
   done.value = result.changed
@@ -125,7 +126,7 @@ const {running: merging, error: mergeError, run: runMerge} = useAsyncAction(asyn
   return true
 })
 
-const {running: assigning, error: assignError, run: runAssign} = useAsyncAction(async () => {
+const {running: assigning, failure: assignFailure, run: runAssign} = useAsyncAction(async () => {
   const artId = await resolveArt()
   const result = await inventoryArts.assignArt(inventoryId.value, artId, selectedItemIds.value)
   done.value = result.changed
@@ -145,12 +146,12 @@ const {running: assigning, error: assignError, run: runAssign} = useAsyncAction(
         {{ t('inventory.art.backToInventory') }}
       </SecondaryButton>
 
-      <AsyncSection :loading="loading" :error="error">
+      <AsyncSection :loading="loading" :failure="failure">
         <EmptyState v-if="!heterogeneous" :message="t('inventory.art.onlyForDrawers')"/>
         <div v-else class="space-y-6">
           <p class="text-sm text-(--text-muted)">{{ t('inventory.art.tidyIntro') }}</p>
 
-          <Alert v-if="mergeError || assignError" variant="error">{{ mergeError || assignError }}</Alert>
+          <FailureAlert :failure="mergeFailure ?? assignFailure"/>
           <Alert v-if="done > 0" variant="success" data-testid="tidy-done">
             {{ t('inventory.art.tidied', {count: done}) }}
           </Alert>

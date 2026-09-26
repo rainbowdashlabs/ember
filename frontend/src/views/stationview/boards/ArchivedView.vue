@@ -11,7 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import { boards, stationMembers } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
@@ -33,7 +33,7 @@ const allLabels = ref<BoardLabel[]>([])
 const ticketLabelMap = ref<Map<number, number[]>>(new Map())
 const labelFilter = ref<Set<number>>(new Set())
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
     const [b, lns, tks, m, lb, tlm] = await Promise.all([
         boards.getBoard(boardKey.value), boards.getLanes(boardKey.value), boards.listTickets(boardKey.value),
         stationMembers.listCompletions(), boards.getLabels(boardKey.value), boards.getAllTicketLabels(boardKey.value),
@@ -91,7 +91,7 @@ const table = useTicketTable({
         :subtitle="pageSubtitle"
     >
         <Spinner v-if="loading" />
-        <Alert v-else-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert v-else-if="failure" :failure="failure"/>
         <template v-else-if="board">
             <div class="flex items-center gap-3 mb-4">
                 <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.shortKey}`)" />

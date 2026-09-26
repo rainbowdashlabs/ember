@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import Alert from '@/components/feedback/Alert.vue'
 import GeneralPanel from '@/views/adminview/adminsettingsview/GeneralPanel.vue'
 import ThemePanel from '@/views/adminview/adminsettingsview/ThemePanel.vue'
@@ -30,7 +31,7 @@ const instanceLockFeel = ref(false)
 const defaultMailLocale = ref('en')
 const availableMailLocales = ref<string[]>([])
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const settings = await adminSettings.getSettings()
   registrationEnabled.value = settings.stationRegistrationEnabled
   forcePrideFlag.value = settings.forcePrideFlag ?? false
@@ -52,26 +53,31 @@ function buildSettings() {
   }
 }
 
+/** Records what went wrong into the one alert this page carries. */
+function record(e: unknown) {
+  failure.value = describeFailure(e, t)
+}
+
 async function saveMailLocale() {
-  error.value = ''
+  failure.value = null
   try {
     const result = await adminSettings.updateSettings(buildSettings())
     defaultMailLocale.value = result.defaultMailLocale ?? 'en'
     flash(t('adminSettings.saved'))
   } catch (e) {
-    error.value = t('common.error')
+    record(e)
     throw e
   }
 }
 
 async function toggleRegistration(value: boolean) {
-  error.value = ''
+  failure.value = null
   try {
     const result = await adminSettings.updateSettings({...buildSettings(), stationRegistrationEnabled: value})
     registrationEnabled.value = result.stationRegistrationEnabled
     flash(t('adminSettings.saved'))
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    record(e)
     registrationEnabled.value = !value
   }
 }
@@ -81,14 +87,14 @@ watch(instanceDefaultTheme, (newTheme) => {
 })
 
 async function saveInstanceTheme() {
-  error.value = ''
+  failure.value = null
   try {
     const result = await adminSettings.updateSettings(buildSettings())
     instanceDefaultTheme.value = result.instanceDefaultTheme ?? 'ember'
     instanceDefaultFeel.value = result.instanceDefaultFeel ?? 'ROUNDED'
     instanceLockFeel.value = result.instanceLockFeel ?? false
   } catch (e) {
-    error.value = t('common.error')
+    record(e)
     throw e
   }
 }
@@ -99,7 +105,7 @@ async function saveInstanceTheme() {
   <ViewContent :title="t('pages.admin-settings.title')" :subtitle="t('pages.admin-settings.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading">

@@ -7,11 +7,12 @@
 import {ref, onMounted, onUnmounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PdfCanvas from '@/components/documents/PdfCanvas.vue'
 import PresentationTopBar from './presentationviewer/PresentationTopBar.vue'
 import PresentationPager from './presentationviewer/PresentationPager.vue'
 import client from '@/api/client'
+import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const props = defineProps<{
@@ -24,7 +25,7 @@ const source = ref<ArrayBuffer | null>(null)
 const currentPage = ref(1)
 const totalPages = ref(0)
 const loading = ref(true)
-const errorMsg = ref('')
+const failure = ref<Failure | null>(null)
 const controlsVisible = ref(true)
 let hideTimeout: ReturnType<typeof setTimeout> | null = null
 
@@ -40,12 +41,14 @@ function resetHideTimer() {
 
 async function fetchDocument() {
   loading.value = true
-  errorMsg.value = ''
+  failure.value = null
   try {
     const res = await client.get<ArrayBuffer>(props.contentUrl, {responseType: 'arraybuffer'})
     source.value = res.data
-  } catch {
-    failed()
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('kb.presentationLoadFailed')}
+    loading.value = false
+    resetHideTimer()
   }
 }
 
@@ -55,8 +58,18 @@ function opened(pageCount: number) {
   resetHideTimer()
 }
 
+/**
+ * The document arrived and the viewer could not draw it, which is a different problem from not
+ * getting it at all: nothing about the connection or the reader's rights is wrong, and trying again
+ * will do exactly the same thing. Downloading the file and opening it elsewhere is the way out.
+ */
 function failed() {
-  errorMsg.value = t('common.error')
+  failure.value = {
+    kind: FailureKind.UNKNOWN,
+    message: t('kb.presentationRenderFailed'),
+    guidance: t('kb.presentationRenderFailedGuidance'),
+    reportable: true,
+  }
   loading.value = false
   resetHideTimer()
 }
@@ -119,9 +132,9 @@ onUnmounted(() => {
       />
 
       <Spinner v-if="loading" size="lg" class="text-white"/>
-      <Alert v-else-if="errorMsg" variant="error" class="m-4">{{ errorMsg }}</Alert>
+      <FailureAlert v-else-if="failure" :failure="failure" class="m-4"/>
       <PdfCanvas
-          v-show="!loading && !errorMsg"
+          v-show="!loading && !failure"
           :source="source"
           :page="currentPage"
           class="transition-all duration-300"

@@ -18,6 +18,7 @@ import type {InventoryDetail, InventoryItem} from '@/api/inventory'
 import type {StationMember} from '@/api/types'
 import {inventory, stationMembers} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure, type Failure} from '@/util/failure'
 import SettingsSection from './editview/SettingsSection.vue'
 import SizesSection from './editview/SizesSection.vue'
 import ItemListSection from './editview/ItemListSection.vue'
@@ -37,7 +38,7 @@ const items = ref<InventoryItem[]>([])
 const members = ref<StationMember[]>([])
 const success = ref('')
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [inv, allItems, allMembers] = await Promise.all([
     inventory.getInventory(inventoryId.value),
     inventory.listItems(inventoryId.value),
@@ -48,6 +49,11 @@ const {loading, error} = useAsyncLoader(async () => {
   members.value = allMembers
 })
 
+/** What a section below reported, kept apart from the failure that stopped the page loading at all. */
+const sectionFailure = ref<Failure | null>(null)
+
+const shownFailure = computed(() => failure.value ?? sectionFailure.value)
+
 /**
  * Which inventory is being changed, at the head of the page. Three open settings screens otherwise
  * read the same word, in the tab, in the history and in a bookmark alike. The plain wording stands
@@ -57,21 +63,40 @@ const pageTitle = computed(() => (detail.value?.name
     ? t('pages.inventory-edit.titleNamed', {name: detail.value.name})
     : t('pages.inventory-edit.title')))
 
+/**
+ * Fetches the inventory again after a section changed it.
+ *
+ * <p>Caught on its own, because the section has already said its own piece succeeded. A reader told
+ * that saving failed when only the refresh did would save a second time, so this says what it is: the
+ * change is in, the screen is behind.
+ */
+async function reloadDetail() {
+  try {
+    detail.value = await inventory.getInventory(inventoryId.value)
+  } catch (e) {
+    sectionFailure.value = {...describeFailure(e, t), message: t('inventory.edit.reloadFailed')}
+  }
+}
+
 async function onSettingsSaved() {
   success.value = t('inventory.edit.settingsSaved')
-  detail.value = await inventory.getInventory(inventoryId.value)
+  await reloadDetail()
 }
 
 async function onSizesUpdated() {
-  detail.value = await inventory.getInventory(inventoryId.value)
+  await reloadDetail()
 }
 
 async function onItemsChanged() {
-  items.value = await inventory.listItems(inventoryId.value)
+  try {
+    items.value = await inventory.listItems(inventoryId.value)
+  } catch (e) {
+    sectionFailure.value = {...describeFailure(e, t), message: t('inventory.edit.reloadFailed')}
+  }
 }
 
-function onError(message: string) {
-  error.value = message
+function onError(reported: Failure) {
+  sectionFailure.value = reported
 }
 </script>
 
@@ -96,7 +121,7 @@ function onError(message: string) {
       </ButtonRow>
 
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="shownFailure"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading && detail">

@@ -10,7 +10,7 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -29,7 +29,7 @@ const tags = ref<UserTag[]>([])
 const members = ref<StationMember[]>([])
 const showCreate = ref(false)
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const [list, g, ts, m] = await Promise.all([
     checklists.listChecklists(),
     memberGroups.listGroups(),
@@ -42,13 +42,12 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   members.value = m
 })
 
-const {running: creating, error: createError, run: runCreate} = useAsyncAction(
+const {running: creating, failure: createFailure, run: runCreate} = useAsyncAction(
     async (payload: ChecklistCreateRequest) => {
       const detail = await checklists.createChecklist(payload)
       showCreate.value = false
       await router.push({name: 'checklist-detail', params: {id: detail.id}})
     },
-    {formatError: () => t('checklist.savingError')},
 )
 
 function onCreate(payload: ChecklistCreateRequest) {
@@ -68,7 +67,7 @@ function onCreate(payload: ChecklistCreateRequest) {
       </PrimaryButton>
     </div>
 
-    <Alert v-if="error || createError" variant="error" class="mb-4">{{ error || createError }}</Alert>
+    <FailureAlert :failure="createFailure ?? failure" class="mb-4"/>
 
     <div v-if="loading" class="flex justify-center py-6"><Spinner/></div>
 

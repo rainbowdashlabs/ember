@@ -15,17 +15,15 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {twoFactorAdmin} from '@/api'
 import type {TwoFactorPolicy} from '@/api/twoFactorAdmin'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const USER_TYPES = ['MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER'] as const
 
 const saving = ref<string | null>(null)
 
-const {config: policies, loading, error, runWith} = useConfigPanel<TwoFactorPolicy[]>({
+const {config: policies, loading, failure, runWith} = useConfigPanel<TwoFactorPolicy[]>({
   initial: [],
   fetch: () => twoFactorAdmin.listInstancePolicies(),
-  formatError: (e) => apiErrorMessage(e) || t('common.error'),
 })
 
 const policyByUserType = computed(() => {
@@ -61,7 +59,7 @@ function userTypeLabel(name: string): string {
   <NeutralContainer class="space-y-3">
     <SubHeader>{{ t('twoFactor.admin.policiesTitle') }}</SubHeader>
     <Spinner v-if="loading" size="sm"/>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <ul v-if="!loading" class="space-y-2">
       <li v-for="ut in USER_TYPES" :key="ut"
           class="flex items-center justify-between rounded border border-(--border) px-3 py-2">

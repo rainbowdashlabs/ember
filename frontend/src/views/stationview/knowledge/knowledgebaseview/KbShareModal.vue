@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {knowledgeBase} from '@/api'
@@ -62,6 +63,7 @@ const {
     publicVisibility,
     allGroups,
     allTags,
+    failure,
     save,
 } = useKbEntrySharing(show, () => props.entry, props.kind === 'files' ? FILE_API : FOLDER_API)
 
@@ -77,6 +79,7 @@ async function handleSave() {
     <Modal v-model="show">
         <SubHeader class="mb-1">{{ t('kb.share') }}</SubHeader>
         <p class="mb-3 text-xs text-(--text-muted)">{{ t('kb.shareHint') }}</p>
+        <FailureAlert :failure="failure" class="mb-3"/>
         <form @submit.prevent="handleSave" class="flex flex-col gap-3">
             <div v-if="audience.stations.value.length > 0" class="space-y-2">
                 <FieldLabel>{{ ofCluster ? t('kb.reachStations') : t('kb.reachPartners') }}</FieldLabel>

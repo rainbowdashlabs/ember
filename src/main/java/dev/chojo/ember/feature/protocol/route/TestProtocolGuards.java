@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.protocol.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -53,14 +53,15 @@ public class TestProtocolGuards {
      * Asserts the section belongs to a protocol of the caller's station.
      */
     public void requireSection(Context ctx, int sectionId) {
-        requireStation(ctx, service.findSectionStation(sectionId).orElseThrow(NotFoundResponse::new));
+        requireStation(
+                ctx, service.findSectionStation(sectionId).orElseThrow(Refusal.PROTOCOL_SECTION_NOT_HERE::raise));
     }
 
     /**
      * Asserts the item belongs to a protocol of the caller's station.
      */
     public void requireItem(Context ctx, int itemId) {
-        requireStation(ctx, service.findItemStation(itemId).orElseThrow(NotFoundResponse::new));
+        requireStation(ctx, service.findItemStation(itemId).orElseThrow(Refusal.PROTOCOL_ITEM_NOT_HERE::raise));
     }
 
     private static void requireStation(Context ctx, int stationId) {

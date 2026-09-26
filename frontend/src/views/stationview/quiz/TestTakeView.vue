@@ -21,6 +21,7 @@ import { quiz } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { describeFailure } from '@/util/failure'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -71,6 +72,7 @@ const { currentConfig, mcDisplayOrder, connectLeftItems, connectRightItems } =
 
 const {
   answers,
+  saveFailure,
   currentAnswerParsed,
   hydrate: hydrateAnswers,
   autoSaveCurrentAnswer,
@@ -105,23 +107,33 @@ function confirmSubmit() {
   submitModalOpen.value = true
 }
 
+/**
+ * Hands the sheet in, but only on top of answers that reached the server.
+ *
+ * <p>Writing the answers and handing in are two separate acts and the one may not stand in for the
+ * other. A sheet used to be handed in whatever the writes had done, because every one of them was
+ * caught and dropped, so an attempt could be recorded as sat and answered with nothing.
+ */
 async function doSubmit() {
   submitModalOpen.value = false
   if (!attempt.value || submitted.value) return
+  failure.value = null
 
   await saveAllAnswers()
+  if (saveFailure.value) return
 
   try {
     await quiz.submitAttempt(attempt.value.id)
-    stopTimer()
-    submitted.value = true
-    refreshSidebarCounts()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  stopTimer()
+  submitted.value = true
+  refreshSidebarCounts()
 }
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   let detail: QuizAttemptDetail
   try {
     const existing = await quiz.getMyAttempt(testId.value)
@@ -169,7 +181,7 @@ watch(loaded, (isLoaded) => {
   <ViewContent :title="pageTitle" :subtitle="t('pages.quiz-test-take.subtitle')">
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure ?? saveFailure"/>
 
       <TestResultSummary v-if="!loading && submitted" />
 

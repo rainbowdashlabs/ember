@@ -14,7 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {movements} from '@/api'
 import type {RechainPlan} from '@/api/movements'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 import MovementRechainPlan from './MovementRechainPlan.vue'
 
 /**
@@ -36,8 +36,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   confirm: [stepIndex: number]
-  /** Why the plan could not be read, worded for the panel the view shows its failures in. */
-  refused: [message: string]
+  /** Why the plan could not be read, described for the panel the view shows its failures in. */
+  refused: [failure: Failure | null]
 }>()
 
 const asking = ref(false)
@@ -48,14 +48,14 @@ async function ask() {
   asking.value = true
   plan.value = null
   stepIndex.value = null
-  emit('refused', '')
+  emit('refused', null)
   try {
     const read = await movements.rechainPlan(props.movementId)
     stepIndex.value = read.suggestedIndex
     plan.value = read
   } catch (e) {
     asking.value = false
-    emit('refused', apiErrorMessage(e) ?? t('common.error'))
+    emit('refused', describeFailure(e, t))
   }
 }
 

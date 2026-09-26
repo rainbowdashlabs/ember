@@ -22,6 +22,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { describeFailure } from '@/util/failure'
 import { protocol, stationMembers } from '@/api'
 import type { TestProtocolRun, RunMemberWithProgress } from '@/api/protocol'
 import type { StationMember } from '@/api/types'
@@ -40,7 +41,7 @@ const runMembers = ref<RunMemberWithProgress[]>([])
 const memberMap = ref<Map<number, StationMember>>(new Map())
 const filterIncomplete = ref(false)
 
-const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   const [runData, allMembers] = await Promise.all([
     protocol.getRun(runId.value),
     stationMembers.listMembers(),
@@ -66,10 +67,23 @@ const filteredMembers = computed(() => {
   return runMembers.value.filter(rm => rm.sectionsDone < rm.sectionsTotal || !rm.member.completed)
 })
 
+/**
+ * Closes the run, then reads it back.
+ *
+ * <p>Answered for separately: a run the server had already closed, followed by a page that would
+ * not refresh, used to say the run would not close, and closing it again is not what anybody wants
+ * to be invited to do.
+ */
 async function handleClose() {
   if (!run.value) return
-  try { await protocol.closeRun(run.value.id); await loadData() }
-  catch { error.value = t('common.error') }
+  failure.value = null
+  try {
+    await protocol.closeRun(run.value.id)
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
+  }
+  await loadData()
 }
 
 function startGrading(memberId: number) {
@@ -108,7 +122,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
     </div>
 
     <Spinner v-if="loading" />
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <template v-if="!loading && run">
       <div class="flex items-center gap-2 mb-4">

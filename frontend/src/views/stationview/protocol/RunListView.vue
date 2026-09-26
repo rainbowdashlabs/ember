@@ -28,6 +28,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { describeFailure } from '@/util/failure'
 import { protocol, stationMembers, memberGroups, userTags } from '@/api'
 import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
 import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
@@ -57,7 +58,7 @@ function onMembersChange(values: string[]) {
   restriction.value.memberIds = values.map(Number)
 }
 
-const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   const [r, p, m, groups, tags] = await Promise.all([
     protocol.listRuns(),
     protocol.listProtocols(),
@@ -91,7 +92,7 @@ async function handleCreate() {
     })
     showCreateModal.value = false
     router.push({ name: 'protocol-run-detail', params: { id: run.id } })
-  } catch { error.value = t('common.error') }
+  } catch (e) { failure.value = describeFailure(e, t) }
 }
 
 function resetCreateModal() {
@@ -119,7 +120,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
     <AsyncSection
       :empty="runs.length === 0"
       :empty-message="t('protocol.noRuns')"
-      :error="error"
+      :failure="failure"
       :loading="loading"
     >
       <div class="space-y-2">

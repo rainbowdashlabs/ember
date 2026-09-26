@@ -21,6 +21,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import type {InventorySize} from '@/api/inventory'
 import {inventory} from '@/api'
 import {moveWithin} from '@/util/reorder'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
@@ -31,7 +32,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   updated: []
-  error: [message: string]
+  error: [failure: Failure]
 }>()
 
 const showSizeModal = ref(false)
@@ -71,7 +72,7 @@ async function saveSize() {
     showSizeModal.value = false
     emit('updated')
   } catch (e) {
-    emit('error', t('common.error'))
+    emit('error', describeFailure(e, t))
     throw e
   }
 }
@@ -80,11 +81,18 @@ async function deleteSize(size: InventorySize) {
   try {
     await inventory.deleteSize(props.inventoryId, size.id)
     emit('updated')
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   }
 }
 
+/**
+ * Writes the new order back one size at a time.
+ *
+ * <p>The list is renumbered from the first to the last, so a failure halfway through leaves the order
+ * part written. The guidance the failure carries is to reload, which is what the reader has to do here
+ * to see which half went through.
+ */
 async function onSizeReorder(fromIndex: number, toIndex: number) {
   const sizes = moveWithin(props.sizes, fromIndex, toIndex)
   try {
@@ -96,8 +104,8 @@ async function onSizeReorder(fromIndex: number, toIndex: number) {
       })
     }
     emit('updated')
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   }
 }
 </script>
@@ -132,7 +140,6 @@ async function onSizeReorder(fromIndex: number, toIndex: number) {
     </div>
   </NeutralContainer>
 
-  <!-- Size modal -->
   <Modal v-model="showSizeModal">
     <div class="space-y-4">
       <SectionHeader>{{ editingSize ? t('inventory.edit.editSize') : t('inventory.edit.addSize') }}</SectionHeader>

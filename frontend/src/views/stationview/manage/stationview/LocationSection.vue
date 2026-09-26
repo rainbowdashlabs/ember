@@ -20,9 +20,10 @@ import GeolocateButton from '@/components/map/GeolocateButton.vue'
 import {stationManage} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 const emit = defineEmits<{
-  (e: 'error', message: string): void
+  (e: 'error', failure: Failure): void
   (e: 'success', message: string): void
 }>()
 
@@ -67,8 +68,8 @@ async function load() {
     country.value = data.country ?? ''
     latitude.value = data.latitude ?? null
     longitude.value = data.longitude ?? null
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   } finally {
     loading.value = false
   }
@@ -93,14 +94,14 @@ async function save() {
     longitude.value = saved.longitude ?? null
     emit('success', t('geolocation.saved'))
   } catch (err) {
-    const msg = apiErrorMessage(err) || t('common.error')
-    localError.value = msg
-    emit('error', msg)
+    const described = describeFailure(err, t)
+    localError.value = apiErrorMessage(err) ?? described.message
+    emit('error', described)
     throw err
   }
 }
 
-const {running: clearing, error: clearError, run: runClear} = useAsyncAction(async () => {
+const {running: clearing, failure: clearFailure, run: runClear} = useAsyncAction(async () => {
   await stationManage.clearStationLocation()
   addressLine.value = ''
   postalCode.value = ''
@@ -113,16 +114,24 @@ const {running: clearing, error: clearError, run: runClear} = useAsyncAction(asy
 
 async function clear() {
   await runClear()
-  if (clearError.value) emit('error', clearError.value)
+  if (clearFailure.value) emit('error', clearFailure.value)
 }
 
 async function onLocated(lat: number, lng: number) {
   await picker.value?.setCoordinates(lat, lng)
 }
 
+/**
+ * The browser refusing to say where the reader is, which is theirs to sort out and never a bug here.
+ */
 function onGeolocateError(message: string) {
   localError.value = message
-  emit('error', message)
+  emit('error', {
+    kind: FailureKind.REJECTED,
+    message,
+    guidance: t('failure.REJECTED.guidance'),
+    reportable: false,
+  })
 }
 
 onMounted(load)

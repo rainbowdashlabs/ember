@@ -19,13 +19,14 @@ import PasskeysInsights from '@/views/adminview/adminsecuritytwofactorview/Passk
 import {adminSettings} from '@/api'
 import {PasskeyMode, type PasskeysConfig, type PasskeyModeName} from '@/api/adminSettings'
 import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
 
 const MODES = Object.values(PasskeyMode)
 
-const {config, loading, error, reload, runWith} = useConfigPanel<PasskeysConfig>({
+const {config, loading, failure, reload, runWith} = useConfigPanel<PasskeysConfig>({
   initial: {
     mode: 'OPTIONAL',
     effectiveMode: 'OPTIONAL',
@@ -40,16 +41,19 @@ const {config, loading, error, reload, runWith} = useConfigPanel<PasskeysConfig>
   fetch: () => adminSettings.getPasskeysConfig(),
 })
 
-const saveError = ref('')
+const saveFailure = ref<Failure | null>(null)
 
 const heldAtOff = computed(() => config.value.effectiveMode === 'OFF' && config.value.mode !== 'OFF')
 
 async function save() {
-  saveError.value = ''
+  saveFailure.value = null
   try {
     await runWith(() => adminSettings.updatePasskeysConfig(config.value.mode as PasskeyModeName), {rethrow: true})
   } catch (e) {
-    saveError.value = apiErrorMessage(e) ?? t('adminSecurity.passkeys.saveFailed')
+    saveFailure.value = {
+      ...describeFailure(e, t),
+      message: apiErrorMessage(e) ?? t('adminSecurity.passkeys.saveFailed'),
+    }
     await reload()
     throw e
   }
@@ -59,7 +63,7 @@ async function save() {
 <template>
   <div>
     <Spinner v-if="loading" size="md"/>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <NeutralContainer v-if="!loading" class="space-y-4">
       <SectionHeader>{{ t('adminSecurity.passkeys.title') }}</SectionHeader>
@@ -83,7 +87,7 @@ async function save() {
 
       <PasskeysInsights :config="config"/>
 
-      <Alert v-if="saveError" variant="error">{{ saveError }}</Alert>
+      <FailureAlert :failure="saveFailure"/>
       <div class="flex justify-end">
         <SaveButton :action="save"/>
       </div>

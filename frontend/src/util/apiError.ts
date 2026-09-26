@@ -14,6 +14,14 @@ export interface ApiErrorBody {
     title?: string
     error?: string
     category?: string
+    /**
+     * Which refusal this was, named by the backend from its own registry of them.
+     *
+     * <p>The name of the constant that threw, so a reader quoting it in a report points an operator at
+     * the line rather than at the wording. Absent on a refusal nobody has named yet, and on anything
+     * that never reached the application.
+     */
+    code?: string
     /** What the account can prove itself with, named by a step-up refusal. */
     proofs?: string[]
     /**
@@ -50,6 +58,17 @@ export function apiErrorStatus(e: unknown): number | undefined {
  */
 export function apiErrorBody(e: unknown): ApiErrorBody | undefined {
     return asApiError(e).response?.data
+}
+
+/**
+ * The refusal's own name, where the backend gave it one, and undefined otherwise.
+ *
+ * <p>Worth showing and worth reporting: it is the one part of a failure that leads straight back to the
+ * line that produced it, which neither the reader's account of what they did nor the sentence they were
+ * shown can do.
+ */
+export function apiErrorCode(e: unknown): string | undefined {
+    return said(apiErrorBody(e)?.code)
 }
 
 /**

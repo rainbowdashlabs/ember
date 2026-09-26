@@ -14,7 +14,7 @@ import type { WaitingList, WaitingListField } from '@/api/waitingList'
 import type { MemberGroup } from '@/api/types'
 import { ref, computed } from 'vue'
 import { waitingList as waitingListApi } from '@/api'
-import { apiErrorMessage } from '@/util/apiError'
+import { describeFailure, type Failure } from '@/util/failure'
 
 const props = defineProps<{
   list: WaitingList
@@ -26,7 +26,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   updated: [list: WaitingList]
-  error: [msg: string]
+  error: [failure: Failure]
   success: [msg: string]
 }>()
 
@@ -85,8 +85,8 @@ async function saveEditing() {
     editing.value = false
     emit('updated', updated)
     emit('success', t('waitingList.saved'))
-  } catch (e: unknown) {
-    emit('error', apiErrorMessage(e) || t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
     throw e
   }
 }

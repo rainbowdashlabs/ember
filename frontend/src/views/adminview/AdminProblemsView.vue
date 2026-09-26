@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ProblemLevelSummary from '@/components/problem/ProblemLevelSummary.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
@@ -27,7 +28,7 @@ const showAcknowledged = ref(false)
 const levelFilter = ref<string | null>(null)
 const expandedId = ref<number | null>(null)
 
-const {config: entries, loading, error, reload: loadData} = useConfigPanel<ProblemEntry[]>({
+const {config: entries, loading, failure, reload: loadData} = useConfigPanel<ProblemEntry[]>({
     initial: [],
     fetch: () => problems.listProblems(showAcknowledged.value),
 })
@@ -134,7 +135,7 @@ async function sendSelected() {
             </div>
         </div>
 
-        <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+        <FailureAlert :failure="failure" class="mb-4"/>
         <Alert v-if="sendResult" variant="success" class="mb-4">{{ sendResult }}</Alert>
 
         <ProblemLevelSummary

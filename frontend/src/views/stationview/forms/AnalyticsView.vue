@@ -21,6 +21,7 @@ import {useResultView} from '@/views/stationview/forms/analyticsview/useResultVi
 import {FormAnalyticsBase, FormPurpose, type Form, type FormAnalytics, type FormAnalyticsBaseName, type FormAnswer, type FormResponse} from '@/api/forms'
 import type { ProfileField } from '@/api/profileFields'
 import { forms, profileFields, stationMembers } from '@/api'
+import { describeFailure, type Failure } from '@/util/failure'
 import { presentFile } from '@/util/documentFile'
 import type { ExportFormat, ExportSeparator } from '@/util/exportFormat'
 
@@ -96,13 +97,26 @@ watch(visibleResponses, () => {
   void loadResponseAnswers()
 })
 
+/**
+ * Why one response could not be opened.
+ *
+ * <p>This was swallowed, so a response whose answers would not load looked exactly like a response
+ * somebody had left blank. Reading a survey off an empty card that is only empty because the request
+ * failed is worse than being told nothing at all.
+ */
+const responseFailure = ref<Failure | null>(null)
+
 async function loadResponseAnswers() {
   if (!currentResponse.value) return
   loadingResponse.value = true
+  responseFailure.value = null
   try {
     const detail = await forms.getResponseDetail(formId.value, currentResponse.value.id, analyticsBase.value)
     currentAnswers.value = detail.answers
-  } catch (e) { void e }
+  } catch (e) {
+    currentAnswers.value = []
+    responseFailure.value = {...describeFailure(e, t), message: t('forms.analytics.responseFailed')}
+  }
   loadingResponse.value = false
 }
 
@@ -167,7 +181,7 @@ async function performExport(format: ExportFormat, separator: ExportSeparator) {
   await presentFile(await forms.exportResponses(formId.value, format, separator))
 }
 
-const { loading, error } = useAsyncLoader(async () => {
+const { loading, failure } = useAsyncLoader(async () => {
   const [f, a, r, fields, members] = await Promise.all([
     forms.getForm(formId.value),
     forms.getAnalytics(formId.value, analyticsBase.value),
@@ -207,7 +221,7 @@ const { loading, error } = useAsyncLoader(async () => {
   >
     <div class="space-y-6 max-w-4xl">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure ?? responseFailure"/>
 
       <template v-if="!loading && form && analytics">
         <AnalyticsHeader

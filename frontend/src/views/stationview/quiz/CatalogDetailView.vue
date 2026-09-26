@@ -18,6 +18,7 @@ import type { QuizCatalogDetail, QuizQuestion, QuizQuestionReport } from '@/api/
 import { quiz, federation, storage } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { describeFailure, type Failure } from '@/util/failure'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -45,7 +46,7 @@ const reports = ref<QuizQuestionReport[]>([])
 
 const catalogHeaderRef = ref<InstanceType<typeof CatalogHeader> | null>(null)
 
-const { loading, error, reload: loadData } = useAsyncLoader(async () => {
+const { loading, failure, reload: loadData } = useAsyncLoader(async () => {
   const [catalogData, questionsData] = await Promise.all([
     quiz.getCatalog(catalogId.value),
     quiz.listQuestions(catalogId.value),
@@ -56,28 +57,35 @@ const { loading, error, reload: loadData } = useAsyncLoader(async () => {
   catalogHeaderRef.value?.resetForm()
 }, { autoLoad: false })
 
+/**
+ * Writes the catalogue's own details, then reads it back.
+ *
+ * <p>Answered for separately: a name the server had already taken, followed by a page that would
+ * not refresh, used to say the name had been refused, over a field still showing the new one.
+ */
 async function saveCatalog(payload: { name: string; description: string; trainingEnabled: boolean }) {
-  error.value = ''
+  failure.value = null
   try {
     await quiz.updateCatalog(catalogId.value, payload)
-    await loadData()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await loadData()
 }
 
 async function copyToStation() {
-  error.value = ''
+  failure.value = null
   try {
     await federation.copyQuizCatalog(catalogId.value)
     router.push({ name: 'quiz-catalogs' })
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
-function onError(message: string) {
-  error.value = message
+function onError(refused: Failure) {
+  failure.value = refused
 }
 
 /**
@@ -98,7 +106,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading && catalog">
         <CatalogHeader

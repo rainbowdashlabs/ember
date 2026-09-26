@@ -8,7 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {lostAndFound, managedMembers as managedMembersApi} from '@/api'
 import type {LostAndFoundItem} from '@/api/lostAndFound'
@@ -21,6 +21,7 @@ import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useAuthImages} from '@/composables/useAuthImage'
 import {StationPermission} from '@/api/types'
 import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 import {UnreadableImageError} from '@/util/imageUpload'
 import LostItemCard from './listview/LostItemCard.vue'
 import LostItemClaimModal from './listview/LostItemClaimModal.vue'
@@ -49,13 +50,30 @@ const pendingItemId = ref<number | null>(null)
 const imageTargetId = ref<number | null>(null)
 const imageInputRef = ref<HTMLInputElement | null>(null)
 
-/** What went wrong, in the server's own words where it said anything. */
+/**
+ * What went wrong, in the server's own words where it said anything.
+ *
+ * <p>Where it said nothing, the described sentence stands rather than the general one: a dropped
+ * connection and a request that timed out both say so, and only a failure nobody can name falls back
+ * to admitting that.
+ */
 function failureText(e: unknown): string {
   if (e instanceof UnreadableImageError) return t('lostAndFound.imageUnreadable')
-  return apiErrorMessage(e) ?? t('common.error')
+  return apiErrorMessage(e) ?? describeFailure(e, t).message
 }
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+/**
+ * A picture the browser could not read is the reader's own file and no fault of Ember's, so it is
+ * stated as a fact and offers no bug report. It is recognised by the sentence {@link failureText}
+ * already put there, the same way the alert recognises the general one.
+ */
+function shown(described: Failure | null): Failure | null {
+  if (!described) return null
+  if (described.message !== t('lostAndFound.imageUnreadable')) return described
+  return {...described, guidance: t('lostAndFound.imageUnreadableGuidance'), reportable: false}
+}
+
+const {loading, failure, reload} = useAsyncLoader(async () => {
   revokeAll()
   items.value = await lostAndFound.listItems()
   await Promise.all(items.value.filter(i => i.hasImage)
@@ -66,7 +84,7 @@ if (hasPermission(StationPermission.MEMBER_GUARDIAN)) {
   managedMembersApi.listManaged().then(found => (managed.value = found)).catch(() => (managed.value = []))
 }
 
-const {running: creating, error: createError, run: createItem} = useAsyncAction(
+const {running: creating, failure: rawCreateFailure, run: createItem} = useAsyncAction(
     async (payload: LostItemCreatePayload) => {
       if (pendingItemId.value === null) {
         const item = await lostAndFound.createItem({description: payload.description, foundAt: payload.foundAt})
@@ -100,7 +118,7 @@ function requestClaim(itemId: number) {
   showClaim.value = true
 }
 
-const {running: claiming, error: claimError, run: confirmClaim} = useAsyncAction(
+const {running: claiming, failure: claimFailure, run: confirmClaim} = useAsyncAction(
     async (forMemberId: number | null) => {
       if (claimTarget.value === null) return
       await lostAndFound.claimItem(claimTarget.value, {memberId: forMemberId})
@@ -118,7 +136,6 @@ const release = useConfirmAction<number>({
     await reload()
     refreshSidebarCounts()
   },
-  error,
 })
 
 const provided = useConfirmAction<number>({
@@ -127,14 +144,13 @@ const provided = useConfirmAction<number>({
     await reload()
     refreshSidebarCounts()
   },
-  error,
 })
 
 const {running: confirming, run: runConfirm} = useAsyncAction(
     (confirm: () => Promise<void>) => confirm(),
 )
 
-const {error: deleteError, run: handleDelete} = useAsyncAction(
+const {failure: deleteFailure, run: handleDelete} = useAsyncAction(
     async (itemId: number) => {
       await lostAndFound.deleteItem(itemId)
       await reload()
@@ -143,7 +159,7 @@ const {error: deleteError, run: handleDelete} = useAsyncAction(
     {formatError: failureText},
 )
 
-const {error: addImageError, run: uploadFor} = useAsyncAction(
+const {failure: addImageFailure, run: uploadFor} = useAsyncAction(
     async (itemId: number, file: File) => {
       await lostAndFound.uploadImage(itemId, file)
       await reload()
@@ -163,8 +179,14 @@ function imagePicked(event: Event) {
   if (file && imageTargetId.value !== null) uploadFor(imageTargetId.value, file)
 }
 
-const displayError = computed(() =>
-    error.value || claimError.value || deleteError.value || addImageError.value)
+const displayFailure = computed(() => shown(claimFailure.value
+    ?? deleteFailure.value
+    ?? addImageFailure.value
+    ?? release.failure.value
+    ?? provided.failure.value
+    ?? failure.value))
+
+const createFailure = computed(() => shown(rawCreateFailure.value))
 </script>
 
 <template>
@@ -179,7 +201,7 @@ const displayError = computed(() =>
         </PrimaryButton>
       </div>
 
-      <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
+      <FailureAlert :failure="displayFailure"/>
 
       <AsyncSection
           :empty="items.length === 0"
@@ -211,7 +233,7 @@ const displayError = computed(() =>
                             :confirm-label="t('lostAndFound.provided')"
                             :loading="confirming" @confirm="runConfirm(provided.confirm)"/>
 
-      <LostItemCreateModal v-model="showCreate" :creating="creating" :error="createError"
+      <LostItemCreateModal v-model="showCreate" :creating="creating" :failure="createFailure"
                            :saved-without-image="pendingItemId !== null"
                            @submit="createItem" @close="closeCreate"/>
     </div>

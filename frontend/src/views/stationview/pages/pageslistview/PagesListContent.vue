@@ -8,12 +8,13 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import PagesList from './PagesList.vue'
 import CreatePageModal from './CreatePageModal.vue'
 import type {StationPage} from '@/api/pageManage'
+import type {Failure} from '@/util/failure'
 
 interface FlatPageEntry {
   page: StationPage
@@ -29,7 +30,8 @@ const props = defineProps<{
   canEdit: boolean
   canManage: boolean
   loading: boolean
-  error: string
+  /** What the last action or load ran into, described, or nothing where nothing has. */
+  failure: Failure | null
   flatPages: FlatPageEntry[]
   landingPageId: number | null
   topLevelPages: StationPage[]
@@ -63,7 +65,7 @@ const {t} = useI18n()
     </div>
 
     <Spinner v-if="props.loading" size="lg"/>
-    <Alert v-if="props.error" variant="error">{{ props.error }}</Alert>
+    <FailureAlert :failure="props.failure"/>
 
     <EmptyState v-if="!props.loading && props.flatPages.length === 0">
       {{ t('stationPages.empty') }}

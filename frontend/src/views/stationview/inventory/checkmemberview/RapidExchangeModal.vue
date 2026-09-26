@@ -14,9 +14,10 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import HandedInChoice from './rapidexchangemodal/HandedInChoice.vue'
 import type {InventorySize} from '@/api/inventory'
+import type {Failure} from '@/util/failure'
 
 /** Why a piece is being exchanged. Anything that is neither of the two common ones is said in words. */
 type ExchangeReason = 'tooSmall' | 'damaged' | 'other'
@@ -41,7 +42,7 @@ const props = defineProps<{
   sizes: InventorySize[]
   currentSizeId?: number | null
   busy?: boolean
-  error?: string
+  failure?: Failure | null
 }>()
 
 const show = defineModel<boolean>({required: true})
@@ -120,7 +121,7 @@ function confirm() {
     <SubHeader class="mb-1">{{ t('inventory.check.exchange') }}</SubHeader>
     <p class="mb-3 text-sm text-(--text-muted)">{{ props.itemName }}</p>
 
-    <Alert v-if="props.error" variant="error" class="mb-3">{{ props.error }}</Alert>
+    <FailureAlert :failure="props.failure" class="mb-3"/>
 
     <div class="space-y-3">
       <div class="space-y-1">

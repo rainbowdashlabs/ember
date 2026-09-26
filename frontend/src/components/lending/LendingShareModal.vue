@@ -21,6 +21,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import * as federation from '@/api/federation'
 import * as lending from '@/api/lending'
 import type {ShareGrantName, ShareScopeName, ShareTarget} from '@/api/lending'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The one place a station says what it offers a partner, used from the inventory and from a single
@@ -46,13 +47,13 @@ const partnerIds = ref<string[]>([])
 const partnerOptions = ref<{ value: string; label: string }[]>([])
 const loading = ref(false)
 const saving = ref(false)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const grantHint = computed(() => t(`lendingShare.grantHint.${props.target}`))
 
 async function load() {
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     const partners = await federation.listPartners()
     partnerOptions.value = partners.map(p => ({value: String(p.partner.id), label: p.partnerStationName}))
@@ -61,8 +62,8 @@ async function load() {
     grant.value = setting.grant ?? 'GRANT'
     scope.value = setting.scope ?? 'ALL_PARTNERS'
     partnerIds.value = setting.partnerIds.map(String)
-  } catch {
-    error.value = t('lendingShare.loadError')
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('lendingShare.loadError')}
   } finally {
     loading.value = false
   }
@@ -74,15 +75,15 @@ watch(open, (isOpen) => {
 
 async function save() {
   saving.value = true
-  error.value = ''
+  failure.value = null
   try {
     const payload = {grant: grant.value, scope: scope.value, partnerIds: partnerIds.value.map(Number)}
     await lending.setShare(props.target, props.targetId, payload)
     shared.value = true
     emit('saved')
     open.value = false
-  } catch {
-    error.value = t('lendingShare.saveError')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     saving.value = false
   }
@@ -90,14 +91,14 @@ async function save() {
 
 async function clear() {
   saving.value = true
-  error.value = ''
+  failure.value = null
   try {
     await lending.removeShare(props.target, props.targetId)
     shared.value = false
     emit('saved')
     open.value = false
-  } catch {
-    error.value = t('lendingShare.saveError')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   } finally {
     saving.value = false
   }
@@ -110,7 +111,7 @@ async function clear() {
       <SubHeader>{{ t('lendingShare.title') }}</SubHeader>
       <MutedText tag="p">{{ targetName }}</MutedText>
 
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <MutedText v-if="loading" tag="p">{{ t('lendingShare.loading') }}</MutedText>
 
       <template v-else>

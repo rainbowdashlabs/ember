@@ -13,7 +13,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
@@ -26,7 +26,7 @@ import {inventory, inventoryContainers} from '@/api'
 import {containerPathFor} from '@/util/containerPath'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 import type {InventoryItem} from '@/api/inventory'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const routes = useInventoryRoutes()
 
@@ -37,7 +37,11 @@ const containers = ref<InventoryContainer[]>([])
 const items = ref<InventoryItem[]>([])
 const kinds = ref<InventoryContainerKind[]>([])
 const loading = ref(true)
-const error = ref('')
+const failure = ref<Failure | null>(null)
+
+/** A barcode that matched nothing, which is the reader's to sort out and no fault of Ember's. */
+const scanMiss = ref('')
+
 const search = ref('')
 const showNewModal = ref(false)
 
@@ -89,7 +93,7 @@ const childrenByParent = computed(() => {
 
 async function load() {
   loading.value = true
-  error.value = ''
+  failure.value = null
   try {
     const [c, k, allItems] = await Promise.all([
       inventoryContainers.listContainers(),
@@ -100,26 +104,40 @@ async function load() {
     kinds.value = k
     items.value = allItems
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('inventory.storage.loadError')
+    failure.value = describeFailure(e, t)
   } finally {
     loading.value = false
   }
 }
 
+/**
+ * Follows a scanned code to whatever it names.
+ *
+ * <p>The two lookups were unguarded, so a refused one ended as a rejected promise and the button
+ * simply did nothing. A code that matches nothing is told apart from a lookup that could not be made:
+ * the first is the reader's to sort out and invites no report, the second is a failure like any other.
+ */
 async function onScanDecoded(value: string) {
   const term = normaliseScannedPayload(value).trim()
   if (!term) return
-  const container = await inventoryContainers.resolveContainerByScan(term)
-  if (container) {
-    router.push({name: routes.container, params: {id: String(container.id)}})
+  failure.value = null
+  scanMiss.value = ''
+  try {
+    const container = await inventoryContainers.resolveContainerByScan(term)
+    if (container) {
+      router.push({name: routes.container, params: {id: String(container.id)}})
+      return
+    }
+    const item = await inventory.findByInternalId(term)
+    if (item) {
+      router.push({name: routes.item, params: {id: String(item.id)}})
+      return
+    }
+  } catch (e) {
+    failure.value = describeFailure(e, t)
     return
   }
-  const item = await inventory.findByInternalId(term)
-  if (item) {
-    router.push({name: routes.item, params: {id: String(item.id)}})
-    return
-  }
-  error.value = t('inventory.storage.scanNoMatch', {scan: term})
+  scanMiss.value = t('inventory.storage.scanNoMatch', {scan: term})
 }
 
 function openContainer(c: InventoryContainer) {
@@ -147,8 +165,9 @@ onMounted(load)
       :title="t('pages.inventory-storage.title')"
       :subtitle="t('pages.inventory-storage.subtitle')"
   >
-    <div v-if="error" class="mb-4">
-      <Alert variant="error">{{ error }}</Alert>
+    <div v-if="failure || scanMiss" class="mb-4 space-y-2">
+      <FailureAlert :failure="failure"/>
+      <FailureAlert :message="scanMiss" expected/>
     </div>
 
     <NeutralContainer class="mb-4">

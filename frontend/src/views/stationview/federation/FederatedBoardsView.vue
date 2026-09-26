@@ -22,6 +22,7 @@ import {
 } from '@/api/federatedBoards'
 import {useFederatedBoardBookmarks} from '@/composables/useFederatedBoardBookmarks'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const {loaded} = useSession()
@@ -55,7 +56,7 @@ function isBookmarked(partnerStationUid: string, remoteBoardUid: string): boolea
     return !!findBookmark(partnerStationUid, remoteBoardUid)
 }
 
-const {loading, error, reload: loadData} = useAsyncLoader(async () => {
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
     const [discoveredBoards, existingBookmarks] = await Promise.all([
         discoverBoards(),
         listBookmarks(),
@@ -84,8 +85,8 @@ async function toggleBookmark(board: DiscoveredBoard) {
             bookmarks.value.push(created)
         }
         await refreshSidebarBookmarks()
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = describeFailure(e, t)
     } finally {
         togglingBookmark.value = null
     }
@@ -108,7 +109,7 @@ watch(loaded, (v) => {
         <AsyncSection
             :empty="boards.length === 0"
             :empty-message="t('boards.noFederatedBoards')"
-            :error="error"
+            :failure="failure"
             :loading="loading"
         >
             <div class="space-y-6">

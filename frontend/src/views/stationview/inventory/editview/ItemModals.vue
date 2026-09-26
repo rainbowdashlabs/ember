@@ -35,6 +35,8 @@ import {buildItemMetadata} from '../detailview/itemMetadata'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {formatDate} from '@/util/format'
+import {describeFailure, type Failure} from '@/util/failure'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 
 const {t} = useI18n()
 
@@ -45,7 +47,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   itemsChanged: []
-  error: [message: string]
+  error: [failure: Failure]
 }>()
 
 /** The list the menu offers, and the kinds it can be narrowed by. */
@@ -109,13 +111,20 @@ function openAdd() {
 
 const {isOpen: showEditModal, target: editTarget, open: openEdit} = useModalTarget<InventoryItem>()
 
+/**
+ * Creates the pieces the form describes, and any kind typed into the picker along with them.
+ *
+ * <p>A kind typed into the picker is written down here and nowhere earlier, so a form somebody opened
+ * and closed again leaves no half-invented kind behind.
+ *
+ * <p>Several pieces are created one after another, so a failure partway through leaves the ones before
+ * it standing. The failure's own guidance is to reload, which is what shows how many arrived.
+ */
 const {running: itemSaving, run: saveItem} = useAsyncAction(async () => {
   try {
     const normalisedInternalId = itemInternalId.value
         ? normaliseScannedPayload(itemInternalId.value)
         : ''
-    // A kind typed into the picker is written down here and nowhere earlier, so a form somebody
-    // opened and closed again leaves no half-invented kind behind.
     const resolvedArt = heterogeneous.value
         ? itemArtDraft.value
             ? await inventoryArts.ensureArt(props.detail.id, arts.value, itemArtDraft.value)
@@ -134,8 +143,8 @@ const {running: itemSaving, run: saveItem} = useAsyncAction(async () => {
     }
     showItemModal.value = false
     emit('itemsChanged')
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   }
 })
 
@@ -152,8 +161,8 @@ async function submitAssign() {
     await inventory.assignItem(assignTarget.value.id, {memberId, memberName})
     showAssignModal.value = false
     emit('itemsChanged')
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   }
 }
 
@@ -164,40 +173,68 @@ const {isOpen: showQuickAssignModal, open: openQuickAssign} = useModalTarget<nul
   quickAssignSizeId.value = ''
 })
 
+/**
+ * Creates a piece and hands it straight to somebody, which is two writes behind one button.
+ *
+ * <p>They are caught apart because the halfway state is one the server cannot describe: it is asked to
+ * assign a piece and knows nothing of the one that was just created for it. A reader told only that the
+ * assignment failed would try again and create a second piece, so the screen says the piece exists and
+ * is standing free, which is the part only the screen knows.
+ */
 async function submitQuickAssign() {
   if (!quickAssignMemberId.value) return
+  const memberId = Number(quickAssignMemberId.value)
+  const memberName = getMemberName(memberId)
+  const sizeId = quickAssignSizeId.value ? Number(quickAssignSizeId.value) : undefined
+
+  let created: InventoryItem
   try {
-    const memberId = Number(quickAssignMemberId.value)
-    const memberName = getMemberName(memberId)
-    const sizeId = quickAssignSizeId.value ? Number(quickAssignSizeId.value) : undefined
-    const item = await inventory.createItem(props.detail.id, {
+    created = await inventory.createItem(props.detail.id, {
       name: props.detail.name ?? '',
       sizeId,
       metadata: {fields: {}},
       ownerKind: ItemOwner.CLUSTER,
     })
-    await inventory.assignItem(item.id, {memberId, memberName})
-    showQuickAssignModal.value = false
-    emit('itemsChanged')
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
+    return
   }
+
+  try {
+    await inventory.assignItem(created.id, {memberId, memberName})
+  } catch (e) {
+    emit('error', {...describeFailure(e, t), message: t('inventory.edit.quickAssignLeftFree')})
+    emit('itemsChanged')
+    return
+  }
+
+  showQuickAssignModal.value = false
+  emit('itemsChanged')
 }
 
 const showHistoryModal = ref(false)
 const historyTarget = ref<InventoryItem | null>(null)
 const historyEntries = ref<InventoryItemHistory[]>([])
 const historyLoading = ref(false)
+const historyFailure = ref<Failure | null>(null)
 
+/**
+ * Opens the history of one piece.
+ *
+ * <p>What goes wrong here stays in the modal that asked for it. Sending it to the page put the reason
+ * behind the very window the reader was looking at, which then showed an empty history and read as
+ * though the piece had never been handed out.
+ */
 async function openHistory(item: InventoryItem) {
   historyTarget.value = item
   historyEntries.value = []
+  historyFailure.value = null
   historyLoading.value = true
   showHistoryModal.value = true
   try {
     historyEntries.value = await inventory.getItemHistory(item.id)
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    historyFailure.value = describeFailure(e, t)
   } finally {
     historyLoading.value = false
   }
@@ -212,8 +249,8 @@ async function confirmDelete() {
     showDeleteModal.value = false
     deleteTarget.value = null
     emit('itemsChanged')
-  } catch {
-    emit('error', t('common.error'))
+  } catch (e) {
+    emit('error', describeFailure(e, t))
   }
 }
 
@@ -276,7 +313,10 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
       <SectionHeader>{{ t('inventory.edit.historyTitle') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ historyTarget?.name }}</p>
       <Spinner v-if="historyLoading" size="md"/>
-      <EmptyState v-if="!historyLoading && historyEntries.length === 0" compact>{{ t('inventory.edit.noHistory') }}</EmptyState>
+      <FailureAlert :failure="historyFailure"/>
+      <EmptyState v-if="!historyLoading && !historyFailure && historyEntries.length === 0" compact>
+        {{ t('inventory.edit.noHistory') }}
+      </EmptyState>
       <div v-if="!historyLoading && historyEntries.length > 0" class="space-y-2 max-h-80 overflow-y-auto">
         <div v-for="entry in historyEntries" :key="entry.id"
              class="flex items-center justify-between rounded-lg px-3 py-2 border border-bg-light-accent dark:border-bg-dark-accent">

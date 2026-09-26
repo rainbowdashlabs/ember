@@ -15,6 +15,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import KbFolderPicker from './KbFolderPicker.vue'
 import {knowledgeBase} from '@/api'
+import {describeFailure, type Failure} from '@/util/failure'
 import {KbReach, type KbFolderTreeEntry, type KbReachName, type MovePreview} from '@/api/knowledgeBase'
 import {kbRefusalMessage} from './kbRefusals'
 
@@ -37,7 +38,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     moved: []
-    error: [message: string]
+    /** Why the move could not be carried out, described rather than flattened to one sentence. */
+    error: [failure: Failure]
 }>()
 
 const {t} = useI18n()
@@ -112,8 +114,8 @@ async function submit() {
         }
         show.value = false
         emit('moved')
-    } catch {
-        emit('error', t('common.error'))
+    } catch (e) {
+        emit('error', describeFailure(e, t))
     } finally {
         saving.value = false
     }

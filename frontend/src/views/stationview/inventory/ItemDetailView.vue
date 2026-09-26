@@ -23,6 +23,7 @@ import {useActsForOwner} from '@/composables/useActsForOwner'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
+import {describeFailure, type Failure} from '@/util/failure'
 import ItemPanels from './itemdetailview/ItemPanels.vue'
 import AssignItemModal from './itemdetailview/AssignItemModal.vue'
 
@@ -86,7 +87,7 @@ const canActOnItem = computed(() => canEdit.value || isManager.value)
 
 const showAssignModal = ref(false)
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [i, h, ch] = await Promise.all([
     inventory.getItem(itemId.value),
     inventory.getItemHistory(itemId.value),
@@ -108,13 +109,13 @@ const {loading, error} = useAsyncLoader(async () => {
   location.value = loc
 })
 
-function onError() {
-  error.value = t('common.error')
+function onError(reported: Failure) {
+  failure.value = reported
 }
 
 function onUpdated(updated: InventoryItem) {
   item.value = updated
-  error.value = ''
+  failure.value = null
 }
 
 /** Reads the piece again, for when something started elsewhere has changed where it stands. */
@@ -122,55 +123,71 @@ async function reloadItem() {
   try {
     item.value = await inventory.getItem(itemId.value)
     flash(t('itemDetail.movementStarted'))
-  } catch {
-    onError()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+  }
+}
+
+/**
+ * Reads the handover list again after the piece changed hands.
+ *
+ * <p>Caught apart from the change itself, because by the time this runs the piece has already moved.
+ * Saying that handing it over failed would send the reader to do it a second time.
+ */
+async function refreshHistory() {
+  try {
+    historyEntries.value = await inventory.getItemHistory(itemId.value)
+  } catch (e) {
+    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
   }
 }
 
 async function doAssign(memberId: number) {
-  error.value = ''
+  failure.value = null
   try {
     const member = members.value.find(m => m.id === memberId)
     item.value = await inventory.assignItem(itemId.value, {
       memberId,
       memberName: member?.name ?? '',
     })
-    showAssignModal.value = false
-    historyEntries.value = await inventory.getItemHistory(itemId.value)
-    flash(t('itemDetail.assigned'))
-  } catch {
-    onError()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  showAssignModal.value = false
+  flash(t('itemDetail.assigned'))
+  await refreshHistory()
 }
 
 async function doUnassign() {
-  error.value = ''
+  failure.value = null
   try {
     item.value = await inventory.assignItem(itemId.value, {memberId: null})
-    historyEntries.value = await inventory.getItemHistory(itemId.value)
-    flash(t('itemDetail.unassigned'))
-  } catch {
-    onError()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  flash(t('itemDetail.unassigned'))
+  await refreshHistory()
 }
 
 async function doMarkLost() {
-  error.value = ''
+  failure.value = null
   try {
     item.value = await inventory.markLost(itemId.value)
     flash(t('itemDetail.markedLost'))
-  } catch {
-    onError()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 
 async function doMarkFound() {
-  error.value = ''
+  failure.value = null
   try {
     item.value = await inventory.markFound(itemId.value)
     flash(t('itemDetail.markedFound'))
-  } catch {
-    onError()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
   }
 }
 </script>
@@ -187,7 +204,7 @@ async function doMarkFound() {
       </div>
 
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <ItemPanels

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -22,7 +22,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 const {t} = useI18n()
 const router = useRouter()
 
-const {config: stationList, loading, error: panelError, reload: loadStations} = useConfigPanel<Station[]>({
+const {config: stationList, loading, failure: listFailure, reload: loadStations} = useConfigPanel<Station[]>({
   initial: [],
   fetch: () => stations.listStations(),
 })
@@ -35,7 +35,7 @@ const {
 } = useConfirmDelete<Station>({
   onDelete: s => stations.deleteStation(s.id.toString()),
   onSuccess: () => loadStations(),
-  error: panelError,
+  failure: listFailure,
 })
 
 function navigateToEdit(id: string) {
@@ -45,14 +45,12 @@ function navigateToEdit(id: string) {
 const importToken = ref('')
 const showImportModal = ref(false)
 
-const {running: importing, error: importError, run: handleStartImport} = useAsyncAction(async () => {
+const {running: importing, failure: importFailure, run: handleStartImport} = useAsyncAction(async () => {
   if (!importToken.value) return
   const result = await transfer.startImport(importToken.value)
   showImportModal.value = false
   router.push({name: 'admin-station-import', params: {stationUid: result.stationId}})
 })
-
-const error = computed(() => panelError.value || importError.value)
 
 </script>
 
@@ -60,7 +58,8 @@ const error = computed(() => panelError.value || importError.value)
   <ViewContent :title="t('pages.admin-stations.title')" :subtitle="t('pages.admin-stations.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="listFailure"/>
+      <FailureAlert :failure="importFailure"/>
 
       <StationsGrid
           v-if="!loading"

@@ -10,7 +10,7 @@ import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import TicketHeaderBar from './ticketdetailview/TicketHeaderBar.vue'
@@ -24,6 +24,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { moveWithin } from '@/util/reorder'
+import { describeFailure, type Failure } from '@/util/failure'
 import { priorityColor, priorityIcon, priorityOptions } from '@/util/ticketPriority'
 import type { PriorityOption } from './ticketdetailview/types'
 
@@ -95,7 +96,7 @@ const fieldValues = ref<Record<number, unknown>>({})
 const allLabels = ref<BoardLabel[]>([])
 const ticketLabels = ref<BoardLabel[]>([])
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
     const [boardResult, tk, l, m, am, bf] = await Promise.all([
         api.getBoard(),
         api.getTicket(),
@@ -125,8 +126,12 @@ const {loading, error, reload} = useAsyncLoader(async () => {
     }
 })
 
+/**
+ * Fetches everything hanging off the ticket. Lets a failure out, because the callers differ in what
+ * it means to them: during the first load it is the page not arriving, and after a change it is the
+ * change having worked while the screen stayed behind.
+ */
 async function loadDetails() {
-    try {
         const [cl, li, tr, hi, co, wl, at, fv] = await Promise.all([
             api.getChecklist(),
             api.getLinks(),
@@ -147,59 +152,126 @@ async function loadDetails() {
         fieldValues.value = Object.fromEntries(fv.map(v => [v.fieldId, !v.value ? null : v.fieldType === 'LANE_ASSIGNEE' ? (v.value.memberId ?? null) : (v.value.value ?? null)]))
         ticketLabels.value = await api.getTicketLabels()
         kbLinks.value = await api.getKbLinks()
-    } catch { void 0 }
 }
 
-const {error: saveError, run: runSaveTicket} = useAsyncAction(async () => {
+/**
+ * What the reader's last action ran into, which every one of these used to throw away.
+ *
+ * <p>A checklist item that was not added, a comment that was not posted and a lane the ticket would
+ * not move to all looked exactly like nothing having happened: no word, no mark, nothing. The reader
+ * pressed again, and where the write had in fact gone through and only the refresh had failed, the
+ * ticket then carried it twice.
+ */
+const actionFailure = ref<Failure | null>(null)
+
+/**
+ * Changing the ticket and then catching the screen up, which are two things and not one. The second
+ * failing means the change worked and the page is merely behind, which is said in those words and
+ * asks the reader for nothing.
+ *
+ * @param change what to do
+ * @param after  how to catch the screen up, where fetching the details again is not the whole of it
+ */
+async function act(change: () => Promise<unknown>, after: () => Promise<unknown> = loadDetails) {
+    actionFailure.value = null
+    try {
+        await change()
+    } catch (e) {
+        actionFailure.value = describeFailure(e, t)
+        return
+    }
+    try {
+        await after()
+    } catch (e) {
+        actionFailure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
+    }
+}
+
+/** The details again, for the template, which has nowhere to put a rejection. */
+async function refreshDetails() {
+    try {
+        await loadDetails()
+    } catch (e) {
+        actionFailure.value = describeFailure(e, t)
+    }
+}
+
+const {failure: saveFailure, run: runSaveTicket} = useAsyncAction(async () => {
     await api.updateTicket({ title: title.value, description: description.value || null, assignedMemberId: assignedMemberId.value ? Number(assignedMemberId.value) : null, priority: priority.value, dueDate: dueDate.value || null })
     ticket.value = await api.getTicket()
     await loadDetails()
-}, {formatError: () => t('common.error'), coalesce: true})
+}, {coalesce: true})
 
-function saveTicket() { error.value = ''; void runSaveTicket() }
+function saveTicket() { actionFailure.value = null; void runSaveTicket() }
 
 const {show: showDeleteModal, requestDelete: requestDeleteTicket, confirm: confirmDeleteTicket} = useConfirmDelete<BoardTicket>({
     onDelete: async () => {
         await api.deleteTicket()
         await router.push(api.backRoute.value)
     },
-    error,
+    failure: actionFailure,
 })
-async function moveTo(laneId: number) { try { await api.moveTicket({ toLaneId: laneId, position: 0 }); ticket.value = await api.getTicket(); await loadDetails() } catch { void 0 } }
-async function addChecklistItem() { if (!newChecklistTitle.value.trim()) return; try { await api.addChecklistItem({ title: newChecklistTitle.value.trim() }); newChecklistTitle.value = ''; await loadDetails() } catch { void 0 } }
-async function toggleChecklistItem(item: BoardChecklistItem) { try { await api.updateChecklistItem(item.id, { title: item.title, checked: !item.checked }); await loadDetails() } catch { void 0 } }
-async function reorderChecklist(fromIndex: number, toIndex: number) { const items = moveWithin(checklist.value, fromIndex, toIndex); checklist.value = items; try { await api.reorderChecklist({ orderedIds: items.map(i => i.id) }) } catch { await loadDetails() } }
-async function removeAllChecklistItems() { try { for (const item of checklist.value) { await api.deleteChecklistItem(item.id) }; showChecklist.value = false; await loadDetails() } catch { void 0 } }
-async function removeChecklistItem(itemId: number) { try { await api.deleteChecklistItem(itemId); await loadDetails() } catch { void 0 } }
-async function createComment(parentId: number | null, content: string) { try { await api.createComment({ parentId, content }); await loadDetails() } catch { void 0 } }
-async function updateComment(commentId: number, content: string) { try { await api.updateComment(commentId, { content }); await loadDetails() } catch { void 0 } }
+async function moveTo(laneId: number) { await act(() => api.moveTicket({ toLaneId: laneId, position: 0 }), async () => { ticket.value = await api.getTicket(); await loadDetails() }) }
+async function addChecklistItem() { if (!newChecklistTitle.value.trim()) return; const title = newChecklistTitle.value.trim(); await act(() => api.addChecklistItem({ title }), async () => { newChecklistTitle.value = ''; await loadDetails() }) }
+async function toggleChecklistItem(item: BoardChecklistItem) { await act(() => api.updateChecklistItem(item.id, { title: item.title, checked: !item.checked })) }
+async function reorderChecklist(fromIndex: number, toIndex: number) { const items = moveWithin(checklist.value, fromIndex, toIndex); checklist.value = items; await act(() => api.reorderChecklist({ orderedIds: items.map(i => i.id) }), () => Promise.resolve()) }
+async function removeAllChecklistItems() { const items = [...checklist.value]; await act(async () => { for (const item of items) { await api.deleteChecklistItem(item.id) } }, async () => { showChecklist.value = false; await loadDetails() }) }
+async function removeChecklistItem(itemId: number) { await act(() => api.deleteChecklistItem(itemId)) }
+async function createComment(parentId: number | null, content: string) { await act(() => api.createComment({ parentId, content })) }
+async function updateComment(commentId: number, content: string) { await act(() => api.updateComment(commentId, { content })) }
 
 async function saveFieldValue(fieldId: number, fieldType: boards.BoardFieldTypeName, value: unknown) {
-    try {
-        if (value === null || value === undefined || value === '') {
-            await api.deleteFieldValue(fieldId)
-            delete fieldValues.value[fieldId]
-        } else {
-            await api.setFieldValue(fieldId, fieldType, value)
-            fieldValues.value[fieldId] = value
-        }
-    } catch { void 0 }
+    const empty = value === null || value === undefined || value === ''
+    await act(
+        () => (empty ? api.deleteFieldValue(fieldId) : api.setFieldValue(fieldId, fieldType, value)),
+        () => {
+            if (empty) delete fieldValues.value[fieldId]
+            else fieldValues.value[fieldId] = value
+            return Promise.resolve()
+        },
+    )
 }
 
 let kbSearchTimeout: ReturnType<typeof setTimeout> | null = null
-function onKbSearch() { if (kbSearchTimeout) clearTimeout(kbSearchTimeout); if (!kbSearchQuery.value.trim()) { kbSearchResults.value = []; return }; kbSearchTimeout = setTimeout(async () => { try { const results = await knowledgeBase.search(kbSearchQuery.value.trim(), { federated: false }); kbSearchResults.value = results.map(r => ({ id: r.file.id, title: r.file.name, path: r.folderPath })).filter(r => !kbLinks.value.some(l => l.kbFileId === r.id)) } catch { void 0 } }, 300) }
-async function addKbLinkFn(kbFileId: number) { try { await boards.addKbLink(boardKey.value, ticketNumber.value, kbFileId); kbLinks.value = await api.getKbLinks(); kbSearchQuery.value = ''; kbSearchResults.value = []; showKbSearch.value = false } catch { void 0 } }
-async function removeKbLinkFn(linkId: number) { try { await boards.removeKbLink(boardKey.value, ticketNumber.value, linkId); kbLinks.value = await api.getKbLinks() } catch { void 0 } }
+/**
+ * Searches the wiki as the reader types. A failed search used to leave the list empty, which reads as
+ * there being no such article, so it says what happened instead.
+ */
+function onKbSearch() {
+    if (kbSearchTimeout) clearTimeout(kbSearchTimeout)
+    if (!kbSearchQuery.value.trim()) { kbSearchResults.value = []; return }
+    kbSearchTimeout = setTimeout(async () => {
+        actionFailure.value = null
+        try {
+            const results = await knowledgeBase.search(kbSearchQuery.value.trim(), { federated: false })
+            kbSearchResults.value = results
+                .map(r => ({ id: r.file.id, title: r.file.name, path: r.folderPath }))
+                .filter(r => !kbLinks.value.some(l => l.kbFileId === r.id))
+        } catch (e) {
+            kbSearchResults.value = []
+            actionFailure.value = {...describeFailure(e, t), message: t('boards.kbSearchFailed')}
+        }
+    }, 300)
+}
+async function addKbLinkFn(kbFileId: number) { await act(() => boards.addKbLink(boardKey.value, ticketNumber.value, kbFileId), async () => { kbLinks.value = await api.getKbLinks(); kbSearchQuery.value = ''; kbSearchResults.value = []; showKbSearch.value = false }) }
+async function removeKbLinkFn(linkId: number) { await act(() => boards.removeKbLink(boardKey.value, ticketNumber.value, linkId), async () => { kbLinks.value = await api.getKbLinks() }) }
 
-async function createAndAddLabel(name: string) { try { const label = await api.createLabel({ name }); allLabels.value = await api.getLabels(); await api.addTicketLabel(label.id); ticketLabels.value = await api.getTicketLabels() } catch { void 0 } }
+async function createAndAddLabel(name: string) {
+    await act(
+        async () => { const label = await api.createLabel({ name }); await api.addTicketLabel(label.id) },
+        async () => { allLabels.value = await api.getLabels(); ticketLabels.value = await api.getTicketLabels() },
+    )
+}
 async function toggleLabel(labelId: number) {
-    try {
-        if (ticketLabels.value.some(l => l.id === labelId)) { await api.removeTicketLabel(labelId) }
-        else { await api.addTicketLabel(labelId) }
-        ticketLabels.value = await api.getTicketLabels()
-        ticketHistory.value = await api.getHistory()
-        kbLinks.value = await api.getKbLinks()
-    } catch { void 0 }
+    const attached = ticketLabels.value.some(l => l.id === labelId)
+    await act(
+        () => (attached ? api.removeTicketLabel(labelId) : api.addTicketLabel(labelId)),
+        async () => {
+            ticketLabels.value = await api.getTicketLabels()
+            ticketHistory.value = await api.getHistory()
+            kbLinks.value = await api.getKbLinks()
+        },
+    )
 }
 
 /**
@@ -208,31 +280,22 @@ async function toggleLabel(labelId: number) {
  * fetch its own details five times.
  */
 async function handleFileUpload(files: File[]) {
-    for (const file of files) {
-        try {
+    await act(async () => {
+        for (const file of files) {
             await api.uploadAttachment(file)
-        } catch { void 0 }
-    }
-    await loadDetails()
+        }
+    })
 }
 
 async function toggleWatch() {
-    try {
-        if (isWatching.value) {
-            await api.unwatchTicket()
-        } else {
-            await api.watchTicket()
-        }
-        isWatching.value = !isWatching.value
-    } catch { void 0 }
+    const watching = isWatching.value
+    await act(
+        () => (watching ? api.unwatchTicket() : api.watchTicket()),
+        () => { isWatching.value = !watching; return Promise.resolve() },
+    )
 }
 
-async function deleteCommentFn(commentId: number) {
-    try {
-        await api.deleteComment(commentId)
-        await loadDetails()
-    } catch { void 0 }
-}
+async function deleteCommentFn(commentId: number) { await act(() => api.deleteComment(commentId)) }
 
 const checklistVisible = computed(() => checklist.value.length > 0 || showChecklist.value || newChecklistTitle.value !== '')
 
@@ -245,7 +308,7 @@ watch(ticketNumber, reload)
         :subtitle="pageSubtitle"
     >
         <Spinner v-if="loading" />
-        <Alert v-else-if="error && !ticket" variant="error">{{ error }}</Alert>
+        <FailureAlert v-else-if="loadFailure && !ticket" :failure="loadFailure"/>
         <template v-else-if="board && ticket">
             <TicketHeaderBar
                 :short-key="board.shortKey"
@@ -270,8 +333,8 @@ watch(ticketNumber, reload)
                 :links="links" :weblinks="weblinks" :attachments="attachments" :transitions="transitions"
                 :history="ticketHistory" :comments="comments" :kb-links="kbLinks"
                 :kb-search-results="kbSearchResults" :can-edit="canEdit"
-                :federated="api.isFederated.value" :partner-uid="api.partnerUid.value" :error="error || saveError"
-                @save-ticket="saveTicket" @reload-details="loadDetails"
+                :federated="api.isFederated.value" :partner-uid="api.partnerUid.value" :failure="actionFailure ?? saveFailure ?? loadFailure"
+                @save-ticket="saveTicket" @reload-details="refreshDetails"
                 @show-checklist="showChecklist = true"
                 @add-checklist-item="addChecklistItem"
                 @toggle-checklist-item="toggleChecklistItem"

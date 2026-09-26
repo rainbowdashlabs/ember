@@ -20,7 +20,6 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ColorInput from '@/components/input/ColorInput.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {clusterInventory, clusterStationGroups} from '@/api'
@@ -28,7 +27,7 @@ import type {ClusterInventoryTag} from '@/api/clusterInventory'
 import type {StationGroup} from '@/api/clusterStationGroups'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The words the association recommends to its stations.
@@ -41,7 +40,7 @@ const {t} = useI18n()
 
 const tags = ref<ClusterInventoryTag[]>([])
 const groups = ref<StationGroup[]>([])
-const saveError = ref('')
+const saveFailure = ref<Failure | null>(null)
 
 const showModal = ref(false)
 const editing = ref<ClusterInventoryTag | null>(null)
@@ -51,7 +50,7 @@ const stationGroupId = ref<number | null>(null)
 
 const groupNames = computed(() => new Map(groups.value.map(group => [group.id, group.name])))
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const [recommended, allGroups] = await Promise.all([
     clusterInventory.listTags(),
     clusterStationGroups.listGroups(),
@@ -76,8 +75,14 @@ function openEdit(tag: ClusterInventoryTag) {
   showModal.value = true
 }
 
+/**
+ * Stores the tag, then fetches the list again.
+ *
+ * <p>The refresh is answered for separately: a tag that was created and a list that then failed to
+ * come back used to read as a refused creation, and the reader creates the same tag a second time.
+ */
 async function save() {
-  saveError.value = ''
+  saveFailure.value = null
   const body = {
     name: name.value,
     color: color.value || null,
@@ -91,15 +96,19 @@ async function save() {
       await clusterInventory.createTag(body)
     }
     showModal.value = false
-    await reload()
   } catch (e) {
-    saveError.value = apiErrorMessage(e) ?? t('common.error')
+    saveFailure.value = describeFailure(e, t)
     throw e
   }
+  await reload()
 }
 
 const {show: showDeleteModal, target: deleteTarget, requestDelete, confirm: confirmDelete} =
-    useConfirmDelete<ClusterInventoryTag>({onDelete: tag => clusterInventory.deleteTag(tag.id), onSuccess: reload, error})
+    useConfirmDelete<ClusterInventoryTag>({
+      onDelete: tag => clusterInventory.deleteTag(tag.id),
+      onSuccess: reload,
+      failure,
+    })
 </script>
 
 <template>
@@ -114,7 +123,7 @@ const {show: showDeleteModal, target: deleteTarget, requestDelete, confirm: conf
     <MutedText tag="p" size="sm">{{ t('clusterInventory.tags.standsBeside') }}</MutedText>
 
     <Spinner v-if="loading" size="sm"/>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <div
         v-for="tag in tags"
@@ -140,7 +149,7 @@ const {show: showDeleteModal, target: deleteTarget, requestDelete, confirm: conf
   <Modal v-model="showModal">
     <div class="space-y-4">
       <SectionHeader>{{ editing ? t('clusterInventory.tags.edit') : t('clusterInventory.tags.add') }}</SectionHeader>
-      <Alert v-if="saveError" variant="error">{{ saveError }}</Alert>
+      <FailureAlert :failure="saveFailure"/>
       <div class="space-y-1">
         <FieldLabel>{{ t('clusterInventory.tags.name') }}</FieldLabel>
         <TextInput v-model="name" data-testid="cluster-tag-name" :placeholder="t('clusterInventory.tags.namePlaceholder')"/>

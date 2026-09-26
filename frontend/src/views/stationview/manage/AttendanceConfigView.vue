@@ -18,12 +18,13 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {AttendanceTemplate} from '@/api/attendance'
 import {attendance} from '@/api'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import {describeFailure, saying} from '@/util/failure'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
 const router = useRouter()
 
-const {config: templates, loading, error, reload: loadTemplates} = useConfigPanel<AttendanceTemplate[]>({
+const {config: templates, loading, failure, reload: loadTemplates} = useConfigPanel<AttendanceTemplate[]>({
   initial: [],
   fetch: () => attendance.listTemplates(),
 })
@@ -35,7 +36,7 @@ const {
 } = useConfirmDelete<AttendanceTemplate>({
   onDelete: tpl => attendance.deleteTemplate(tpl.id),
   onSuccess: () => loadTemplates(),
-  error,
+  failure,
 })
 
 function navigateToCreate() {
@@ -46,8 +47,14 @@ function navigateToEdit(id: number) {
   router.push({name: 'station-attendance-config-edit', params: {id}})
 }
 
+/**
+ * Copies a template with its groups and its questions, then fetches the list again.
+ *
+ * <p>The refresh is answered for separately: a copy that was made and a list that then failed to
+ * come back used to read as a refused copy, and the reader duplicates the template twice.
+ */
 async function duplicateTemplate(tpl: AttendanceTemplate) {
-  error.value = ''
+  failure.value = null
   try {
     const detail = await attendance.getTemplate(tpl.id)
     const created = await attendance.createTemplate({name: (detail.name ?? '') + ' (Kopie)'})
@@ -67,10 +74,13 @@ async function duplicateTemplate(tpl: AttendanceTemplate) {
       }
     }
 
-    await loadTemplates()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
   }
+  await loadTemplates()
+  const stale = failure.value
+  if (stale) failure.value = saying(stale, t('failure.staleAfterAction'))
 }
 </script>
 
@@ -88,9 +98,9 @@ async function duplicateTemplate(tpl: AttendanceTemplate) {
 
       <Spinner v-if="loading" size="lg"/>
 
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
-      <div v-if="!loading && templates.length === 0 && !error" class="text-center text-(--text-muted) py-12">
+      <div v-if="!loading && templates.length === 0 && !failure" class="text-center text-(--text-muted) py-12">
         {{ t('attendanceConfig.empty') }}
       </div>
 

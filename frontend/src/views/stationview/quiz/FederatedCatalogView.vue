@@ -17,7 +17,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure} from '@/util/failure'
 import type {FederatedCatalogDetail} from '@/api/quiz'
 import {federation, quiz} from '@/api'
 import {useConfigPanel} from '@/composables/useConfigPanel'
@@ -30,7 +31,7 @@ const props = defineProps<{
 const {t} = useI18n()
 const router = useRouter()
 
-const {config: detail, loading, error, reload} = useConfigPanel<FederatedCatalogDetail | null>({
+const {config: detail, loading, failure, reload} = useConfigPanel<FederatedCatalogDetail | null>({
     initial: null,
     fetch: () => quiz.getFederatedCatalog(props.stationUid, props.catalogId),
 })
@@ -47,8 +48,8 @@ async function copyToStation() {
     try {
         await federation.copyQuizCatalog(props.catalogId)
         router.push({name: 'quiz-catalogs'})
-    } catch {
-        error.value = t('common.error')
+    } catch (e) {
+        failure.value = describeFailure(e, t)
     }
 }
 
@@ -67,7 +68,7 @@ watch(() => [props.stationUid, props.catalogId], () => reload())
         :title="pageTitle"
         :subtitle="t('pages.federated-quiz-catalog.subtitle')"
     >
-        <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+        <FailureAlert :failure="failure" class="mb-4"/>
         <Spinner v-if="loading" size="lg"/>
 
         <template v-else-if="detail">

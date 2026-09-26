@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -20,6 +21,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import {knowledgeBase} from '@/api'
 import type {KbTrashEntry} from '@/api/knowledgeBase'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure, type Failure} from '@/util/failure'
 import {formatBytes} from '@/util/storage'
 import {formatDateTime} from '@/util/format'
 
@@ -48,11 +50,26 @@ const purging = ref<KbTrashEntry | null>(null)
 const showEmpty = ref(false)
 const busy = ref(false)
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
     const view = await knowledgeBase.listTrash()
     entries.value = view.entries
     bytes.value = view.bytes
 })
+
+/** What the reader's last action ran into, kept apart from the list never having arrived. */
+const actionFailure = ref<Failure | null>(null)
+
+/**
+ * Fetching the bin again after something was done to it, which is not part of doing it. A restore
+ * that worked and a list that then failed to come back is a stale screen, not a failed restore.
+ */
+async function catchUp() {
+    await reload()
+    if (loadFailure.value) {
+        actionFailure.value = {...loadFailure.value, message: t('failure.staleAfterAction')}
+        loadFailure.value = null
+    }
+}
 
 const isEmpty = computed(() => !loading.value && entries.value.length === 0)
 
@@ -62,48 +79,54 @@ function iconOf(entry: KbTrashEntry): string[] {
 
 async function restore(entry: KbTrashEntry) {
     busy.value = true
+    actionFailure.value = null
     try {
         const result = await knowledgeBase.restoreTrashed(entry)
         notice.value = result.movedToRoot
             ? t('kb.trashRestoredToRoot', {name: result.name ?? entry.name})
             : t('kb.trashRestored', {name: result.name ?? entry.name})
-        await reload()
-        emit('restored')
-    } catch {
-        error.value = t('common.error')
-    } finally {
+    } catch (e) {
+        actionFailure.value = describeFailure(e, t)
         busy.value = false
+        return
     }
+    await catchUp()
+    emit('restored')
+    busy.value = false
 }
 
 async function purge() {
     const entry = purging.value
     if (!entry) return
     busy.value = true
+    actionFailure.value = null
     try {
         await knowledgeBase.purgeTrashed(entry)
         purging.value = null
         notice.value = t('kb.trashPurged', {name: entry.name})
-        await reload()
-    } catch {
-        error.value = t('common.error')
-    } finally {
+    } catch (e) {
+        actionFailure.value = describeFailure(e, t)
         busy.value = false
+        return
     }
+    await catchUp()
+    busy.value = false
 }
 
 async function empty() {
     busy.value = true
+    actionFailure.value = null
     try {
         const result = await knowledgeBase.emptyTrash()
         showEmpty.value = false
         notice.value = t('kb.trashEmptied', {count: result.cleared})
-        await reload()
-    } catch {
-        error.value = t('common.error')
-    } finally {
+    } catch (e) {
+        actionFailure.value = describeFailure(e, t)
         busy.value = false
+        return
     }
+    await catchUp()
+    busy.value = false
 }
 </script>
 
@@ -127,7 +150,7 @@ async function empty() {
             </DeleteButton>
         </ButtonRow>
 
-        <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+        <FailureAlert :failure="actionFailure ?? loadFailure" class="mb-4"/>
         <Alert v-if="notice" variant="info" class="mb-4" data-testid="kb-trash-notice">{{ notice }}</Alert>
 
         <MutedText tag="p" size="sm" class="mb-4">{{ t('kb.trashHint') }}</MutedText>

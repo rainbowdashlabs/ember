@@ -7,13 +7,13 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import WizardStep from './WizardStep.vue'
 import WizardFooter from './WizardFooter.vue'
 import {useMovementWizard, type WizardPrefill} from './useMovementWizard'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The one way to start a movement.
@@ -40,7 +40,7 @@ const model = defineModel<boolean>({required: true})
 const {t} = useI18n()
 
 const wizard = useMovementWizard(() => props.prefill ?? {})
-const error = ref('')
+const failure = ref<Failure | null>(null)
 
 const isLast = computed(() => wizard.step.value === 'preview')
 const canGoOn = computed(() => {
@@ -58,26 +58,26 @@ const canGoOn = computed(() => {
 
 watch(model, async open => {
   if (!open) return
-  error.value = ''
+  failure.value = null
   await wizard.load()
   try {
     await wizard.start()
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   }
 }, {immediate: true})
 
 async function onNext() {
-  error.value = ''
+  failure.value = null
   try {
     await wizard.next()
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   }
 }
 
 async function start() {
-  error.value = ''
+  failure.value = null
   try {
     const id = await wizard.submit()
     if (id !== null) {
@@ -85,7 +85,7 @@ async function start() {
       emit('started', id)
     }
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   }
 }
 </script>
@@ -98,7 +98,7 @@ async function start() {
         {{ t('movements.wizard.step', {current: wizard.position.value, total: wizard.total.value}) }}
       </MutedText>
 
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :failure="failure"/>
 
       <WizardStep :wizard="wizard"/>
 

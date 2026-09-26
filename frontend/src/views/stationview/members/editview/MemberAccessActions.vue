@@ -17,7 +17,7 @@ import {members, passkeys} from '@/api'
 import type {MemberPasskeyCode} from '@/api/members'
 import type {StationMember} from '@/api/types'
 import type {PasskeyModeName} from '@/api/adminSettings'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The member manager's way back in for somebody who lost theirs: onboard again (passkeys gone,
@@ -31,7 +31,7 @@ const props = defineProps<{member: StationMember}>()
 
 const passkeyMode = ref<PasskeyModeName>('OFF')
 const passkeyCode = ref<MemberPasskeyCode | null>(null)
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const notice = ref('')
 const busy = ref(false)
 
@@ -42,7 +42,7 @@ onMounted(() => {
 })
 
 async function onboardAgain() {
-  error.value = ''
+  failure.value = null
   notice.value = ''
   busy.value = true
   try {
@@ -51,36 +51,36 @@ async function onboardAgain() {
         ? t('passkeys.onboardAgain.mailed')
         : t('passkeys.onboardAgain.unreachable')
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   } finally {
     busy.value = false
   }
 }
 
 async function issueCode() {
-  error.value = ''
+  failure.value = null
   try {
     passkeyCode.value = await members.issuePasskeyCode(props.member.accountId)
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
+    failure.value = describeFailure(e, t)
   }
 }
 
+/**
+ * Takes the code back once it has been read out, and says nothing when that fails: the code dies with
+ * its five minutes either way, so there is nothing for the reader to do about it.
+ */
 async function revokeCode() {
   if (!passkeyCode.value) return
   passkeyCode.value = null
-  try {
-    await members.revokePasskeyCode(props.member.accountId)
-  } catch {
-    // The code still dies with its five minutes.
-  }
+  await members.revokePasskeyCode(props.member.accountId).catch(() => {})
 }
 </script>
 
 <template>
   <NeutralContainer class="space-y-4">
     <SectionHeader>{{ t('passkeys.onboardAgain.title') }}</SectionHeader>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
     <Alert v-if="notice" variant="info">{{ notice }}</Alert>
 
     <div class="space-y-2">

@@ -16,6 +16,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SignupProcedureForm from './SignupProcedureForm.vue'
 import type {Procedure, ProcedureTemplate} from '@/api/procedures'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
+import type {Failure} from '@/util/failure'
 
 /**
  * Prepares one shared list of steps for the people who hold a place on an appointment.
@@ -35,7 +36,7 @@ const props = defineProps<{
   /** Whether the templates and anything already prepared are still being read. */
   loading: boolean
   creating: boolean
-  error: string
+  failure: Failure | null
   memberSet: SignupMemberSet
   /** The occurrence the set belongs to, already written the way a reader reads a date. */
   dateLabel: string
@@ -136,7 +137,7 @@ function submit() {
           :selected-template="selectedTemplate"
           :templates="templates"
           :creating="creating"
-          :error="error"
+          :failure="failure"
           :member-set="memberSet"
           :date-label="dateLabel"
           @choose="chooseTemplate"

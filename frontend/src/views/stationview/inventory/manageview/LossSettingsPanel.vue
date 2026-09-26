@@ -11,11 +11,10 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {inventory} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * What the station asks of a member who cannot find their gear.
@@ -27,9 +26,9 @@ import {apiErrorMessage} from '@/util/apiError'
 const {t} = useI18n()
 
 const noteRequired = ref(false)
-const saveError = ref('')
+const saveFailure = ref<Failure | null>(null)
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   noteRequired.value = (await inventory.getSettings()).lossNoteRequired
 })
 
@@ -40,12 +39,12 @@ watch(loading, value => {
 
 watch(noteRequired, async (value, previous) => {
   if (!loaded || value === previous) return
-  saveError.value = ''
+  saveFailure.value = null
   try {
     await inventory.updateSettings({lossNoteRequired: value})
   } catch (e) {
     noteRequired.value = previous
-    saveError.value = apiErrorMessage(e) ?? t('common.error')
+    saveFailure.value = describeFailure(e, t)
   }
 })
 </script>
@@ -56,8 +55,8 @@ watch(noteRequired, async (value, previous) => {
     <MutedText size="sm">{{ t('inventory.lossSettings.description') }}</MutedText>
 
     <Spinner v-if="loading" size="sm"/>
-    <FailureAlert :message="error"/>
-    <Alert v-if="saveError" variant="error">{{ saveError }}</Alert>
+    <FailureAlert :failure="failure"/>
+    <FailureAlert :failure="saveFailure"/>
 
     <div v-if="!loading" class="flex items-center gap-3">
       <ToggleInput v-model="noteRequired" data-testid="loss-note-required"/>

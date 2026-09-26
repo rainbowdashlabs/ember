@@ -107,8 +107,16 @@ async function onUserTypeChanged(userType: string) {
   fields.value = await profileFields.getMemberFields(memberId.value)
 }
 
-const {loading, error} = useAsyncLoader(async () => {
-  const [allFields, allMembers_, roles, memberData, memberPermissions, profileValues, groups, tags, mGroups, mTags] = await Promise.all([
+/**
+ * Everything the page shows, fetched before any of it is put on screen.
+ *
+ * <p>The gear the member holds is fetched here with the rest rather than afterwards, and its failure
+ * stops the page. It used to be swallowed into an empty list, and an empty list is what says the member
+ * holds nothing: the button for marking them a former member reads that list to decide whether it may
+ * be pressed, so a failed fetch quietly offered to retire somebody who still has the station's gear.
+ */
+const {loading, failure} = useAsyncLoader(async () => {
+  const [allFields, allMembers_, roles, memberData, memberPermissions, profileValues, groups, tags, mGroups, mTags, items] = await Promise.all([
     profileFields.getMemberFields(memberId.value),
     stationMembers.listMembers(),
     stationMembers.listAllPermissions(),
@@ -119,7 +127,11 @@ const {loading, error} = useAsyncLoader(async () => {
     userTags.listTags(),
     memberGroups.getMemberGroups(memberId.value),
     userTags.getMemberTags(memberId.value),
+    hasPermission(StationPermission.INVENTORY_READ)
+        ? inventory.memberItems(memberId.value)
+        : Promise.resolve([] as MyInventoryItem[]),
   ])
+  memberInventory.value = items
   fields.value = allFields
   allMembers.value = allMembers_
   allRoles.value = roles
@@ -133,13 +145,6 @@ const {loading, error} = useAsyncLoader(async () => {
   await Promise.all([loadTypePermissions(editUserType.value), loadGroupPermissions(editGroupIds.value)])
 
   editValues.value = decodeMergedValues(profileValues)
-
-  if (!hasPermission(StationPermission.INVENTORY_READ)) return
-  try {
-    memberInventory.value = await inventory.memberItems(memberId.value)
-  } catch {
-    memberInventory.value = []
-  }
 })
 
 function goBack() {
@@ -158,7 +163,7 @@ function goBack() {
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <template v-if="!loading && member">
         <SectionHeader>{{ member.name || member.email }}</SectionHeader>

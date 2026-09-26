@@ -15,7 +15,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import {movements} from '@/api'
 import {MovementState, StepActor, type Movement} from '@/api/movements'
-import {apiErrorMessage} from '@/util/apiError'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The movements a member is part of, beside their gear.
@@ -45,7 +45,7 @@ const {t} = useI18n()
 
 const open = ref<Movement[]>([])
 const busy = ref(false)
-const error = ref('')
+const actionFailure = ref<Failure | null>(null)
 
 /** Whether this is somebody's gear being looked at rather than the reader's own. */
 const watching = computed(() => props.memberId != null)
@@ -54,14 +54,24 @@ const watching = computed(() => props.memberId != null)
 const waitingOnMe = computed(() =>
     watching.value ? [] : open.value.filter(movement => movement.currentStepActor === StepActor.MEMBER))
 
+/**
+ * Why the list could not be fetched.
+ *
+ * <p>A failed fetch used to empty the list instead of saying so, which reads as "nothing is out",
+ * the one answer nobody can act on. After calling a movement off it was worse still: the piece
+ * vanished from the screen and looked handed back.
+ */
+const loadFailure = ref<Failure | null>(null)
+
 async function load() {
+  loadFailure.value = null
   try {
     const all = await movements.listMovements()
     open.value = all
         .filter(movement => movement.state === MovementState.OPEN)
         .filter(movement => !watching.value || movement.memberId === props.memberId)
-  } catch {
-    open.value = []
+  } catch (e) {
+    loadFailure.value = describeFailure(e, t)
   }
 }
 
@@ -76,33 +86,52 @@ watch(() => props.memberId, load)
  */
 async function callOff(movement: Movement) {
   busy.value = true
-  error.value = ''
+  actionFailure.value = null
   try {
     await movements.cancelMovement(movement.id, t('movements.callOffReason'))
-    await load()
-    emit('changed')
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
-  } finally {
+    actionFailure.value = describeFailure(e, t)
     busy.value = false
+    return
+  }
+  await catchUp()
+  busy.value = false
+}
+
+/**
+ * Fetching the list again after something was done to it, which is not part of doing it.
+ *
+ * <p>Sharing one attempt meant a movement that really was called off, followed by a list that failed
+ * to come back, read as a call-off that had failed. Somebody told that presses the button again, on a
+ * movement that no longer exists.
+ */
+async function catchUp() {
+  emit('changed')
+  await load()
+  if (loadFailure.value) {
+    actionFailure.value = {...loadFailure.value, message: t('failure.staleAfterAction')}
+    loadFailure.value = null
   }
 }
 
 async function confirm(movement: Movement) {
   busy.value = true
-  error.value = ''
+  actionFailure.value = null
   try {
     const detail = await movements.getMovement(movement.id)
     const step = detail.steps.find(candidate => candidate.current)
-    if (!step) return
+    if (!step) {
+      busy.value = false
+      return
+    }
     await movements.acknowledgeStep(movement.id, {stepId: step.id, note: ''})
-    await load()
-    emit('changed')
   } catch (e) {
-    error.value = apiErrorMessage(e) ?? t('common.error')
-  } finally {
+    actionFailure.value = describeFailure(e, t)
     busy.value = false
+    return
   }
+  await catchUp()
+  busy.value = false
 }
 
 onMounted(load)
@@ -113,7 +142,7 @@ onMounted(load)
     <SectionHeader>{{ t('movements.mine') }}</SectionHeader>
     <MutedText size="sm" tag="p">{{ t('movements.mineHint') }}</MutedText>
 
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="actionFailure ?? loadFailure"/>
 
     <div
         v-for="movement in open"

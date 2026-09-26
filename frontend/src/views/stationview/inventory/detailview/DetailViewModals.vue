@@ -15,6 +15,7 @@ import { inventory, procurement } from '@/api'
 import {InventoryTypes, type InventoryDetail, type InventoryItem} from '@/api/inventory'
 import type { StationMember } from '@/api/types'
 import { useModalTarget } from '@/composables/useModalTarget'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   detail: InventoryDetail | null
@@ -24,7 +25,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   reload: []
-  error: [msg: string]
+  error: [failure: Failure]
 }>()
 
 const { t } = useI18n()
@@ -51,8 +52,14 @@ const {isOpen: showHistoryModal, target: historyTarget, open: openHistory} = use
 
 const {isOpen: showDeleteModal, target: deleteTarget, open: openDelete} = useModalTarget<InventoryItem>()
 
-function fail() { emit('error', t('common.error')) }
+function fail(e: unknown) { emit('error', describeFailure(e, t)) }
 
+/**
+ * Hands the piece to the chosen member.
+ *
+ * <p>This used to swallow whatever came back and leave the modal standing, so a refused assignment
+ * looked exactly like a slow one and the reader pressed the button again.
+ */
 async function submitAssign() {
   if (!assignItemId.value || !assignMemberId.value) return
   const mid = Number(assignMemberId.value)
@@ -61,9 +68,10 @@ async function submitAssign() {
     await inventory.assignItem(assignItemId.value, { memberId: mid, memberName: m?.name ?? '' })
     showAssignModal.value = false
     emit('reload')
-  } catch { /* ignore */ }
+  } catch (e) { fail(e) }
 }
 
+/** Asks for a piece to be bought. Same as the assignment above: it used to fail without a word. */
 async function submitProcurement() {
   if (!procMemberId.value || !props.detail) return
   try {
@@ -75,7 +83,7 @@ async function submitProcurement() {
     })
     procCreated.value = true
     emit('reload')
-  } catch { /* ignore */ }
+  } catch (e) { fail(e) }
 }
 
 async function unassign(item: InventoryItem) {
@@ -86,17 +94,17 @@ async function unassign(item: InventoryItem) {
       await inventory.assignItem(item.id, { memberId: null, memberName: '' })
     }
     emit('reload')
-  } catch { fail() }
+  } catch (e) { fail(e) }
 }
 
 async function markLost(item: InventoryItem) {
   try { await inventory.markLost(item.id); emit('reload') }
-  catch { fail() }
+  catch (e) { fail(e) }
 }
 
 async function markFound(item: InventoryItem) {
   try { await inventory.markFound(item.id); emit('reload') }
-  catch { fail() }
+  catch (e) { fail(e) }
 }
 
 async function confirmDelete() {
@@ -106,12 +114,12 @@ async function confirmDelete() {
     showDeleteModal.value = false
     deleteTarget.value = null
     emit('reload')
-  } catch { fail() }
+  } catch (e) { fail(e) }
 }
 
 async function fulfillProcurement(id: number) {
   try { await procurement.fulfill(id); emit('reload') }
-  catch { fail() }
+  catch (e) { fail(e) }
 }
 
 function openQuickAssign() { itemModalsRef.value?.openQuickAssign() }

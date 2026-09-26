@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.page.route;
 
+import dev.chojo.ember.api.Failures;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -28,7 +30,6 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -39,6 +40,7 @@ import tools.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -149,7 +151,7 @@ public class PageRoutes implements Routes {
     private Form resolvePagePublicForm(Context ctx, FormPurpose expected) {
         int id = pathInt(ctx, "id");
         var form = requireOwnedOrNotFound(ctx, id, formService::findById, Form::stationId);
-        if (form.purpose() != expected) throw new NotFoundResponse();
+        if (form.purpose() != expected) throw Refusal.PAGE_FORM_NOT_HERE.raise();
         return form;
     }
 
@@ -180,8 +182,8 @@ public class PageRoutes implements Routes {
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         var form = resolvePagePublicForm(ctx, expected);
         int responseId = ctx.pathParamAsClass("responseId", Integer.class).get();
-        var response = formService.findResponseById(responseId).orElseThrow(NotFoundResponse::new);
-        if (response.formId() != form.id()) throw new NotFoundResponse();
+        var response = formService.findResponseById(responseId).orElseThrow(Refusal.FORM_ANSWER_NOT_HERE::raise);
+        if (response.formId() != form.id()) throw Refusal.FORM_ANSWER_NOT_HERE.raise();
         formService.acknowledgeResponse(responseId, session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -293,14 +295,24 @@ public class PageRoutes implements Routes {
                     request.metaDescription(),
                     request.ogImageId(),
                     rows)) {
-                throw new NotFoundResponse();
+                throw Refusal.PAGE_NOT_HERE_ON_SAVE.raise();
             }
             ctx.json(pageService.getPage(pid).orElseThrow());
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+            throw Failures.readable(e.getMessage())
+                    .map(Refusal.PAGE_NOT_SAVED::raise)
+                    .orElseGet(Refusal.PAGE_NOT_SAVED::raise);
         }
     }
 
+    /**
+     * Copies a page.
+     *
+     * <p>A copy that fails because the page went away between the check and the copy is the only
+     * refusal here. Everything else that can go wrong is Ember's, and is left to be answered as
+     * such: catching it all and calling it a miss told the reader their page was gone when it was
+     * sitting there and the copy had broken.
+     */
     private void duplicate(Context ctx) {
         var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
@@ -308,8 +320,8 @@ public class PageRoutes implements Routes {
         try {
             var copy = pageService.duplicatePage(pid, session.member().id());
             ctx.status(HttpStatus.CREATED).json(copy);
-        } catch (Exception e) {
-            throw new NotFoundResponse();
+        } catch (NoSuchElementException e) {
+            throw Refusal.PAGE_NOT_HERE_ON_COPY.raise();
         }
     }
 
@@ -317,7 +329,7 @@ public class PageRoutes implements Routes {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
         if (!pageService.deletePage(pid)) {
-            throw new NotFoundResponse();
+            throw Refusal.PAGE_NOT_HERE_ON_DELETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -330,7 +342,7 @@ public class PageRoutes implements Routes {
             throw new BadRequestResponse("Say which visibility the page is to have");
         }
         if (!pageService.setVisibility(pid, request.visibility())) {
-            throw new NotFoundResponse();
+            throw Refusal.PAGE_NOT_HERE_ON_VISIBILITY_CHANGE.raise();
         }
         ctx.json(pageService.getPage(pid).orElseThrow());
     }

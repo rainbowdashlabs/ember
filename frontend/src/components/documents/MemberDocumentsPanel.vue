@@ -18,6 +18,7 @@ import DocumentUploadModal from './DocumentUploadModal.vue'
 import {documents as documentsApi} from '@/api'
 import type {DocumentUpload, StationDocument} from '@/api/documents'
 import type {StationMember} from '@/api/types'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The documents of one member, on their own profile as well as on the profile a manager opens.
@@ -42,20 +43,35 @@ const documents = ref<StationDocument[]>([])
 const search = ref('')
 const allTags = ref<string[]>([])
 const loading = ref(false)
-const error = ref('')
+const loadFailure = ref<Failure | null>(null)
+const actionFailure = ref<Failure | null>(null)
 const showUpload = ref(false)
 const showDocument = ref(false)
 const opened = ref<StationDocument | null>(null)
 
 async function reload() {
   loading.value = true
-  error.value = ''
+  loadFailure.value = null
   try {
     documents.value = await documentsApi.listForMember(props.memberId)
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    loadFailure.value = describeFailure(e, t)
   }
   loading.value = false
+}
+
+/**
+ * Fetching the list again after something was done to it, which is not part of doing it.
+ *
+ * <p>An upload that really went through, followed by a list that failed to come back, used to read as
+ * an upload that had failed, and the reader uploaded the same file a second time.
+ */
+async function catchUp() {
+  await reload()
+  if (loadFailure.value) {
+    actionFailure.value = {...loadFailure.value, message: t('failure.staleAfterAction')}
+    loadFailure.value = null
+  }
 }
 
 watch(() => props.memberId, reload, {immediate: true})
@@ -82,14 +98,15 @@ const shown = computed(() => {
 })
 
 async function upload(upload: DocumentUpload) {
-  error.value = ''
+  actionFailure.value = null
   try {
     await documentsApi.uploadForMember(props.memberId, upload)
-    showUpload.value = false
-    await reload()
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    actionFailure.value = describeFailure(e, t)
+    return
   }
+  showUpload.value = false
+  await catchUp()
 }
 
 function open(document: StationDocument) {
@@ -98,15 +115,16 @@ function open(document: StationDocument) {
 }
 
 async function act(action: Promise<unknown>) {
-  error.value = ''
+  actionFailure.value = null
   try {
     await action
-    await reload()
-    opened.value = documents.value.find(document => document.id === opened.value?.id) ?? null
-    if (!opened.value) showDocument.value = false
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    actionFailure.value = describeFailure(e, t)
+    return
   }
+  await catchUp()
+  opened.value = documents.value.find(document => document.id === opened.value?.id) ?? null
+  if (!opened.value) showDocument.value = false
 }
 </script>
 
@@ -128,7 +146,7 @@ async function act(action: Promise<unknown>) {
       </div>
     </div>
 
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="actionFailure ?? loadFailure"/>
     <Spinner v-if="loading" size="md"/>
     <DocumentGrid v-else :documents="shown" @open="open"/>
 

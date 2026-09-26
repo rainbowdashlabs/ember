@@ -27,7 +27,7 @@ const {t} = useI18n()
 const busy = ref(false)
 const denyReason = ref('')
 
-const {config: applications, loading, error, runWith} = useConfigPanel<ClusterApplication[]>({
+const {config: applications, loading, failure, runWith} = useConfigPanel<ClusterApplication[]>({
   initial: [],
   fetch: () => clusterStations.listApplications(),
 })
@@ -60,7 +60,7 @@ async function submitDeny() {
 <template>
   <ViewContent :subtitle="t('pages.cluster-applications.subtitle')" :title="t('pages.cluster-applications.title')">
     <div class="space-y-6">
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <Spinner v-if="loading" size="lg"/>
 

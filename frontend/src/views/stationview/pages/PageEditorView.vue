@@ -25,6 +25,7 @@ import {
 } from '@/api/pageManage'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 import {showToast} from '@/util/toast'
 
 const {t} = useI18n()
@@ -81,7 +82,7 @@ function pageToRows(p: StationPage): RowEditData[] {
         }))
 }
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
     const [p, pages] = await Promise.all([
         getPage(pageId.value),
         listPages(),
@@ -107,7 +108,7 @@ function togglePreview() {
 }
 
 async function save() {
-    error.value = ''
+    failure.value = null
     try {
         const saveRows: SaveRowRequest[] = rows.value.map((r, ri) => ({
             sortOrder: ri,
@@ -134,7 +135,7 @@ async function save() {
         editor.value?.draftSaved()
         showToast(t('common.saved'), 'success')
     } catch (e) {
-        error.value = t('common.error')
+        failure.value = {...describeFailure(e, t), message: t('stationPages.saveFailed')}
         throw e
     }
 }
@@ -156,7 +157,7 @@ async function save() {
                     @toggle-preview="togglePreview"
                 />
 
-                <FailureAlert :message="error"/>
+                <FailureAlert :failure="failure"/>
 
                 <MetadataPanel
                     v-if="!preview"

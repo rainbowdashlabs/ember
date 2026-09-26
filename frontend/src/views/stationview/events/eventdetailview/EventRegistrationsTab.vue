@@ -15,7 +15,8 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import {describeFailure, type Failure} from '@/util/failure'
 import {RegistrationStatus, type EventPartnerPlaces, type EventRegistrationEntry, type EventRegistrationField, type FederatedEventRegistration, type MemberRegistrationStats, type RegistrationFieldValue, type StationEvent} from '@/api/events'
 import {StationPermission} from '@/api/types'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
@@ -50,14 +51,6 @@ const {t} = useI18n()
 const {canManageEvents, hasPermission} = useSession()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
-/**
- * Whether the table of who is coming is offered at all.
- *
- * <p>Only to whoever handles the registrations. A member's number on the register, their age and
- * where they live are confidential whichever columns somebody picks, so the permission comes first
- * and the field scopes cut what is left.
- */
-
 const registrations = ref<EventRegistrationEntry[]>([])
 const registrationStats = ref<MemberRegistrationStats[]>([])
 const federatedRegs = ref<FederatedEventRegistration[]>([])
@@ -68,7 +61,7 @@ const federatedRegs = ref<FederatedEventRegistration[]>([])
  */
 const partnerPlaces = ref<EventPartnerPlaces[]>([])
 const allMembers = ref<MemberOption[]>([])
-const error = ref('')
+const failure = ref<Failure | null>(null)
 const manualRegisterMemberId = ref('')
 
 const registrationFields = ref<EventRegistrationField[]>([])
@@ -151,7 +144,11 @@ function statusLabel(status: string): string {
   return status
 }
 
-async function loadRegistrations() {
+/**
+ * Reads the sign-ups. `afterAction` says this is the catching-up half of something the reader just
+ * did, so a failure here is said as one: the act went through and doing it again would be wrong.
+ */
+async function loadRegistrations(afterAction = false) {
   try {
     registrations.value = await events.listEventRegistrations(props.eventId)
     registrationFields.value = await events.listRegistrationFields(props.eventId).catch(() => [])
@@ -165,31 +162,35 @@ async function loadRegistrations() {
       const members = await stationMembersApi.listMembers().catch(() => [])
       allMembers.value = members.map(fromMember)
     }
-  } catch {
-    error.value = t('common.error')
+  } catch (e) {
+    const described = describeFailure(e, t)
+    failure.value = afterAction ? {...described, message: t('failure.staleAfterAction')} : described
   }
 }
 
 async function reloadAndRefresh() {
-  await loadRegistrations()
+  await loadRegistrations(true)
   refreshSidebarCounts()
 }
 
-async function acceptRegistration(id: number) {
+/**
+ * Answers one sign-up, then reads the tab back.
+ *
+ * <p>The two are answered for separately. A decision the server took, followed by a refresh that
+ * failed, used to say the decision had been refused, and whoever read that pressed the button again.
+ */
+async function decide(id: number, status: string) {
+  failure.value = null
   try {
-    await events.updateRegistrationStatus(id, RegistrationStatus.ACCEPTED)
-    await reloadAndRefresh()
-  } catch { error.value = t('common.error') }
+    await events.updateRegistrationStatus(id, status)
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
+  }
+  await reloadAndRefresh()
 }
 
-async function denyRegistration(id: number) {
-  try {
-    await events.updateRegistrationStatus(id, RegistrationStatus.DENIED)
-    await reloadAndRefresh()
-  } catch { error.value = t('common.error') }
-}
-
-const {running: registering, error: registrationError, run: runRegistration} = useAsyncAction(
+const {running: registering, failure: registrationFailure, run: runRegistration} = useAsyncAction(
     async (kind: 'register' | 'decline', memberId: number, fields?: RegistrationFieldValue[]) => {
       const request = {
         eventDate: props.effectiveDate ?? undefined,
@@ -202,9 +203,7 @@ const {running: registering, error: registrationError, run: runRegistration} = u
         await events.declineEvent(props.eventId, request)
       }
       await reloadAndRefresh()
-    },
-    {formatError: () => t('common.error')},
-)
+    })
 
 /**
  * Registering asks the event's questions first. Without questions the button stays a button -
@@ -310,6 +309,7 @@ const {
   confirm: confirmSignOff,
 } = useConfirmAction<() => Promise<void>>({
   onConfirm: async signOff => signOff(),
+  failure,
 })
 
 /**
@@ -353,7 +353,7 @@ function editAnswers(registrationId: number) {
   showEditAnswers.value = true
 }
 
-const {running: savingAnswers, error: answersError, run: saveAnswers} = useAsyncAction(
+const {running: savingAnswers, failure: answersFailure, run: saveAnswers} = useAsyncAction(
     async (values: RegistrationFieldValue[]) => {
       const registration = editingRegistration.value
       if (!registration) return
@@ -361,17 +361,16 @@ const {running: savingAnswers, error: answersError, run: saveAnswers} = useAsync
       showEditAnswers.value = false
       editingRegistration.value = null
       await loadRegistrations()
-    },
-    {formatError: () => t('common.error')},
-)
+    })
 
-async function acceptFederatedReg(regId: number) {
-  await events.updateFederationRegistrationStatus(regId, 'ACCEPTED')
-  await loadRegistrations()
-}
-
-async function denyFederatedReg(regId: number) {
-  await events.updateFederationRegistrationStatus(regId, 'DENIED')
+/** A partner station's sign-up, answered. A refusal here used to go nowhere at all. */
+async function decideFederated(regId: number, status: string) {
+  try {
+    await events.updateFederationRegistrationStatus(regId, status)
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    return
+  }
   await loadRegistrations()
 }
 
@@ -394,7 +393,7 @@ async function manualRegister(values?: RegistrationFieldValue[]) {
     })
     manualRegisterMemberId.value = ''
     await reloadAndRefresh()
-  } catch { error.value = t('common.error') }
+  } catch (e) { failure.value = describeFailure(e, t) }
 }
 
 /**
@@ -407,7 +406,7 @@ onMounted(loadRegistrations)
 
 <template>
   <div class="space-y-6">
-    <Alert v-if="error || registrationError" variant="error">{{ error || registrationError }}</Alert>
+    <FailureAlert :failure="failure ?? registrationFailure"/>
 
     <NeutralContainer v-if="event.requiresRegistration && !canManageEvents()" class="space-y-3">
       <SubHeader>{{ t('eventDetail.myRegistration') }}</SubHeader>
@@ -441,7 +440,7 @@ onMounted(loadRegistrations)
         :fields="registrationFields"
         :attending="true"
         :busy="registering"
-        :error="registrationError"
+        :failure="registrationFailure"
         @confirm="confirmHouseholdAnswer"
     />
 
@@ -455,8 +454,8 @@ onMounted(loadRegistrations)
         :registration-fields="registrationFields"
         :effective-date="effectiveDate"
         v-model:manual-register-member-id="manualRegisterMemberId"
-        @accept="acceptRegistration"
-        @deny="denyRegistration"
+        @accept="id => decide(id, RegistrationStatus.ACCEPTED)"
+        @deny="id => decide(id, RegistrationStatus.DENIED)"
         @edit-answers="editAnswers"
         @manual-register="manualRegister"
     >
@@ -469,7 +468,6 @@ onMounted(loadRegistrations)
       </template>
     </RegistrationsPanel>
 
-
     <RegistrationFieldsModal
         v-model="showEditAnswers"
         :fields="registrationFields"
@@ -477,7 +475,7 @@ onMounted(loadRegistrations)
         :title="t('eventDetail.editAnswers')"
         :confirm-label="t('common.save')"
         :busy="savingAnswers"
-        :error="answersError"
+        :failure="answersFailure"
         @confirm="saveAnswers"
     />
 
@@ -492,8 +490,8 @@ onMounted(loadRegistrations)
         v-if="canManageEvents()"
         :registrations="federatedRegs"
         :partner-places="partnerPlaces"
-        @accept="acceptFederatedReg"
-        @deny="denyFederatedReg"
+        @accept="id => decideFederated(id, 'ACCEPTED')"
+        @deny="id => decideFederated(id, 'DENIED')"
     />
   </div>
 </template>

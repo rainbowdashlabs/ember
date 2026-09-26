@@ -7,6 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import type {InventoryItem, InventorySize} from '@/api/inventory'
@@ -20,6 +21,7 @@ import InventoryFieldsPanel from '@/components/inventory/InventoryFieldsPanel.vu
 import {parseItemMetadata, buildItemMetadata} from './itemMetadata'
 import type {InventoryContainer} from '@/api/inventoryContainers'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import {describeFailure, type Failure} from '@/util/failure'
 
 const props = withDefaults(
     defineProps<{
@@ -43,7 +45,14 @@ const {t} = useI18n()
 const itemName = ref('')
 const internalId = ref('')
 const sizeId = ref('')
-const error = ref('')
+
+/**
+ * What went wrong saving, shown inside this window.
+ *
+ * <p>It was kept and never drawn, so a refused save left the form open and looked like a button that
+ * does nothing. An internal number somebody else already has is the ordinary refusal here.
+ */
+const failure = ref<Failure | null>(null)
 const containerId = ref<number | null>(null)
 const artId = ref<number | null>(null)
 const artDraft = ref('')
@@ -120,7 +129,7 @@ watch(() => props.item, async (item) => {
 
 async function save() {
   if (!props.item) return
-  error.value = ''
+  failure.value = null
   try {
     const normalisedInternalId = internalId.value
         ? normaliseScannedPayload(internalId.value)
@@ -146,7 +155,7 @@ async function save() {
     show.value = false
     emit('saved')
   } catch (e) {
-    error.value = t('common.error')
+    failure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -156,6 +165,7 @@ async function save() {
   <Modal v-model="show">
     <div class="space-y-4">
       <SubHeader>{{ t('inventory.edit.editItem') }}</SubHeader>
+      <FailureAlert :failure="failure"/>
       <EditItemFields
           v-model:itemName="itemName"
           v-model:internalId="internalId"

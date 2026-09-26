@@ -10,6 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ProcurementFields from './ProcurementFields.vue'
@@ -40,7 +41,6 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: 'created'): void
-  (e: 'error'): void
 }>()
 
 const createInventoryId = ref<string>('')
@@ -63,6 +63,7 @@ function reset() {
   createNotes.value = ''
   createSuccess.value = false
   availableSizes.value = []
+  clearError()
 }
 
 async function onInventorySelected() {
@@ -77,7 +78,13 @@ async function onInventorySelected() {
   }
 }
 
-const {running: createSaving, run: runCreate} = useAsyncAction(async () => {
+/**
+ * Places the order.
+ *
+ * <p>What goes wrong stays in this window. The window stays open on a failure, so sending the reason to
+ * the page put it behind the very thing the reader was looking at, and the button simply looked dead.
+ */
+const {running: createSaving, failure: createFailure, run: submitCreate, clearError} = useAsyncAction(async () => {
   await procurement.createProcurement({
     inventoryId: Number(createInventoryId.value),
     memberId: createMemberId.value ? Number(createMemberId.value) : undefined,
@@ -86,13 +93,7 @@ const {running: createSaving, run: runCreate} = useAsyncAction(async () => {
   })
   createSuccess.value = true
   emit('created')
-  return true
 })
-
-async function submitCreate() {
-  const ok = await runCreate()
-  if (!ok) emit('error')
-}
 
 watch(
   modelValue,
@@ -114,6 +115,8 @@ watch(
         </div>
       </template>
       <template v-else>
+        <FailureAlert :failure="createFailure"/>
+
         <ProcurementFields
             v-model:member-id="createMemberId"
             v-model:inventory-id="createInventoryId"

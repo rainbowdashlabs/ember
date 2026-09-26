@@ -24,11 +24,11 @@ import MutedText from '@/components/typography/MutedText.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import WebAuthnSection from './twofactorsection/WebAuthnSection.vue'
 import TrustedDevicesSection from './twofactorsection/TrustedDevicesSection.vue'
-import {apiErrorMessage, apiErrorStatus} from '@/util/apiError'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 
-const {config: status, loading, error, reload: loadStatus} = useConfigPanel<TwoFactorStatus | null>({
+const {config: status, loading, failure, reload: loadStatus} = useConfigPanel<TwoFactorStatus | null>({
   initial: null,
   fetch: async () => {
     try { return await getTwoFactorStatus() } catch { return null }
@@ -59,12 +59,12 @@ async function handleWebAuthnUpdated(codes: string[]) {
 }
 
 async function startSetup() {
-  error.value = ''
+  failure.value = null
   try {
     setupData.value = await beginTotpSetup()
     setupStep.value = 'qr'
   } catch (e) {
-    error.value = apiErrorMessage(e) || t('common.error')
+    failure.value = describeFailure(e, t)
   }
 }
 
@@ -123,7 +123,7 @@ async function handleRegenerate() {
         <ErrorBadge v-else>{{ t('twoFactor.inactive') }}</ErrorBadge>
       </div>
 
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <!-- Not enrolled: show setup -->
       <template v-if="!status.enrolled && setupStep === 'idle'">
@@ -148,7 +148,7 @@ async function handleRegenerate() {
 
           <form class="space-y-3" @submit.prevent="confirmSetup">
             <TextInput v-model="confirmCode" :placeholder="t('twoFactor.setup.codePlaceholder')" autocomplete="one-time-code" inputmode="numeric"/>
-            <Alert v-if="confirmError" variant="error">{{ confirmError }}</Alert>
+            <FailureAlert :message="confirmError" expected/>
             <PrimaryButton :disabled="confirmLoading || !confirmCode" class="w-full" @click="confirmSetup">
               {{ confirmLoading ? t('common.loading') : t('twoFactor.setup.verify') }}
             </PrimaryButton>

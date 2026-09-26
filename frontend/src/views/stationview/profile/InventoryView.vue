@@ -119,7 +119,7 @@ async function loadOwnInventory() {
   ownLoaded.value = true
 }
 
-const {loading, error, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async () => {
   const mid = viewingMemberId.value
   if (mid) {
     const [memberItems, memberReqs] = await Promise.all([
@@ -239,7 +239,7 @@ function closeLost() {
 
 const {
   running: submittingLost,
-  error: lostError,
+  failure: lostFailure,
   run: submitLost,
   clearError: clearLostError,
 } = useAsyncAction(async () => {
@@ -264,7 +264,7 @@ const {
       <MovementsPanel @changed="loadOwnInventory"/>
 
       <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :message="error"/>
+      <FailureAlert :failure="failure"/>
 
       <InventoryGroupList
           v-if="!loading"
@@ -283,7 +283,7 @@ const {
           :item="lostItem"
           :note-required="lostNoteRequired"
           :submitting="submittingLost"
-          :error="lostError"
+          :failure="lostFailure"
           @cancel="closeLost"
           @submit="submitLost"
       />

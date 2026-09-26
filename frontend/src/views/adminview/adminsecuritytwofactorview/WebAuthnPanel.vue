@@ -23,7 +23,7 @@ const { t } = useI18n()
 
 const ATTESTATIONS = ['none', 'indirect', 'direct'] as const
 
-const { config, loading, error, runWith } = useConfigPanel<WebAuthnConfig>({
+const { config, loading, failure, runWith } = useConfigPanel<WebAuthnConfig>({
   initial: {
     rpId: '',
     rpName: '',
@@ -41,7 +41,7 @@ async function save() {
 <template>
   <div>
     <Spinner v-if="loading" size="md"/>
-    <FailureAlert :message="error"/>
+    <FailureAlert :failure="failure"/>
 
     <NeutralContainer v-if="!loading" class="space-y-4">
       <SectionHeader>{{ t('adminSecurity.webauthn.title') }}</SectionHeader>

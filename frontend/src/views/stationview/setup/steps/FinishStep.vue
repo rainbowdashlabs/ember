@@ -77,7 +77,7 @@ const mailIncomplete = computed(
 <template>
   <SetupLayout step-id="finish" hide-actions @save="goDashboard">
     <div class="space-y-6 text-center">
-      <FailureAlert :message="error"/>
+      <FailureAlert :message="error" expected/>
       <Spinner v-if="finishing" size="lg"/>
       <template v-else>
         <p>{{ t('setup.steps.finish.body') }}</p>
