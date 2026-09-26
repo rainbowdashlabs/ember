@@ -18,7 +18,18 @@
 - **A survey that has run out says when it did.** Its tile in the station's list carries the date it stopped, and the page somebody opens the link to says it has taken no answers since that date instead of only that it is shut.
 - **A survey's settings are kept as they are changed.** Its name, its dates, its reach and its switches are saved the moment you change them, so a survey left reaching further than intended is no longer one forgotten press away. The questions still wait for Save, and the page says so.
 
+### Security
+
+- **Signing in gives nothing away about who has an account here.** A wrong address, a wrong password and an account that signs in another way now answer exactly alike, so the sign-in form can no longer be used to find out which addresses are registered. The same is now true of confirmation links, passkey sign-in, device sign-in codes and the second-factor steps.
+
+### Changes
+
+- **The sign-in page no longer says when an account signs in without a password.** Telling that apart from a wrong password is what let the form be read as a list of accounts. Whoever signs in with a passkey uses the passkey button, which is on the page as before.
+
 ### Fixes
+
+- **Confirming who you are named the wrong reason.** The extra confirmation asked for before a sensitive change said "wrong password" or "invalid code" whatever had really happened, so trying too often, an expired confirmation or an account with nothing set up all read as a typing mistake. Each now says what actually went wrong.
+- **Some failures arrived in English.** Messages that came from the server itself were shown as they stood, so a German reader met an English sentence. Every one of them is now translated.
 
 - **A monthly or quarterly appointment opened on the wrong day.** Opened without a day named in the address, it showed the next time its weekday came round instead of the day it actually falls on, so the sign-ups, the attendance and the questions on that page all belonged to a day the appointment does not happen. It now opens on the day it next falls on, with the weeks the station is off and the end of the series taken into account.
 - **A public survey could not be opened at the address it was handed out with.** The address offered for a survey open to everybody spelled the station's readable name, and only the address spelling its identifier was accepted, so every link copied from the survey's own page led to "not found".
