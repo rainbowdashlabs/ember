@@ -250,9 +250,10 @@ test.describe('Passkeys', () => {
         await expect(page.getByText('Die Anmeldung mit Passwort ist ausgeschaltet.', {exact: false}))
             .toBeVisible({timeout: 15_000})
 
-        // The password is now refused at the door, with the ways back in named. Tried from a
-        // sessionless context: a demo login here would replace the one session the account has,
-        // which is the one the first page still needs.
+        // The password is now refused at the door, in the same words every other refused sign-in
+        // gets. Naming this one apart would tell whoever is trying addresses that this one has an
+        // account and signs in another way. Tried from a sessionless context: a demo login here
+        // would replace the one session the account has, which is the one the first page needs.
         const freshContext = await browser.newContext()
         const fresh = await freshContext.newPage()
         await fresh.addInitScript(() => window.localStorage.setItem('storage_consent', 'accepted'))
@@ -260,7 +261,7 @@ test.describe('Passkeys', () => {
         await fresh.getByPlaceholder('E-Mail oder Benutzername').fill(account.email)
         await fresh.getByPlaceholder('Passwort').fill(DEMO_PASSWORD)
         await fresh.getByRole('button', {name: 'Anmelden', exact: true}).click()
-        await expect(fresh.getByText('Die Anmeldung mit Passwort ist für dieses Konto ausgeschaltet', {exact: false}))
+        await expect(fresh.getByText('Die Anmeldung hat nicht geklappt', {exact: false}))
             .toBeVisible({timeout: 15_000})
         await freshContext.close()
 
