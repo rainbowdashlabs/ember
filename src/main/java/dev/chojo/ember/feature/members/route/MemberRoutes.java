@@ -153,7 +153,10 @@ public class MemberRoutes implements Routes {
         }
         requireStationAccount(request.accountId(), session);
         requireNotAboveActor(
-                accountRepository.findById(request.accountId()).orElseThrow(Refusal.ACCOUNT_NOT_HERE::raise), session);
+                accountRepository
+                        .findById(request.accountId())
+                        .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN::raise),
+                session);
 
         boolean mailed = enrollmentService.onboardAgain(
                 request.accountId(), session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
@@ -167,7 +170,9 @@ public class MemberRoutes implements Routes {
             throw new BadRequestResponse("accountId is required");
         }
         requireStationAccount(request.accountId(), session);
-        Account target = accountRepository.findById(request.accountId()).orElseThrow(Refusal.ACCOUNT_NOT_HERE::raise);
+        Account target = accountRepository
+                .findById(request.accountId())
+                .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CODE::raise);
         requireNotAboveActor(target, session);
         if (target.hasRealEmail()) {
             throw new ForbiddenResponse("This member has an address of their own; the mail path is theirs");
@@ -221,7 +226,7 @@ public class MemberRoutes implements Routes {
             requireStationAccount(accountId, session);
         }
         var request = ctx.bodyAsClass(UpdateAccountRequest.class);
-        var existing = accountRepository.findById(accountId).orElseThrow(Refusal.ACCOUNT_NOT_HERE::raise);
+        var existing = accountRepository.findById(accountId).orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_CHANGE::raise);
 
         boolean emailChanged = request.email() != null
                 && !request.email().isBlank()
@@ -230,7 +235,7 @@ public class MemberRoutes implements Routes {
         // Written with the address it already has, so that the two ways of changing one below are the
         // only things that ever move it
         if (!accountRepository.update(accountId, existing.email(), request.firstName(), request.lastName())) {
-            throw Refusal.MEMBER_NOT_HERE.raise();
+            throw Refusal.MEMBER_NOT_HERE_ON_CHANGE.raise();
         }
         nameResolver.forgetAccount(accountId);
 
@@ -323,13 +328,16 @@ public class MemberRoutes implements Routes {
         }
         requireStationAccount(request.accountId(), session);
         requireNotAboveActor(
-                accountRepository.findById(request.accountId()).orElseThrow(Refusal.ACCOUNT_NOT_HERE::raise), session);
+                accountRepository
+                        .findById(request.accountId())
+                        .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET::raise),
+                session);
 
         boolean forceChange = request.forceChange() != null && request.forceChange();
         if (authService.adminResetPassword(request.accountId(), forceChange)) {
             ctx.status(HttpStatus.OK).json(new MessageResponse("Password reset email sent"));
         } else {
-            throw Refusal.ACCOUNT_NOT_HERE.raise();
+            throw Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET_MAIL.raise();
         }
     }
 

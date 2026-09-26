@@ -12,11 +12,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  *
  * @param error   the error category (e.g. "Invalid Input", "Internal Server Error")
  * @param message a human-readable description of the error, or {@code null}
- * @param code    the name of the {@link Refusal} that refused this, where it has been given one,
+ * @param code    the code of the {@link Refusal} that refused this, where it has been given one,
  *         and {@code null} where it has not. It is what a reader quotes in a report and what an
- *         operator looks up to find the one line that threw, which is why it is a name and not a
- *         number: the compiler keeps it unique, and renaming it is a refactor rather than a
- *         migration
+ *         operator looks up to find the one line that threw, which is why it is short enough to
+ *         read out over a telephone and says nothing an attacker can use
  * @param retryAfterSeconds how long to wait before asking again, on a refusal that named a time,
  *         and {@code null} on every other failure. It rides here as well as in the
  *         {@code Retry-After} header, because a header is only readable from another origin when
@@ -50,7 +49,7 @@ public record ErrorResponseWrapper(
      * every newly named refusal answers with.
      *
      * @param refusal what refused
-     * @return the body, carrying the refusal's own sentence and its name as the code
+     * @return the body, carrying the refusal's own sentence and its code
      */
     public static ErrorResponseWrapper of(Refusal refusal) {
         return of(refusal, refusal.message());
@@ -61,7 +60,7 @@ public record ErrorResponseWrapper(
      *
      * @param refusal what refused
      * @param message the sentence to show, which is the refusal's own unless a detail was named
-     * @return the body, carrying the refusal's name as its code
+     * @return the body, carrying the refusal's code
      */
     public static ErrorResponseWrapper of(Refusal refusal, String message) {
         return of(refusal, message, null);
@@ -73,10 +72,10 @@ public record ErrorResponseWrapper(
      * @param refusal what refused
      * @param message the sentence to show
      * @param retryAfterSeconds how long to wait before asking again
-     * @return the body, carrying the refusal's name as its code
+     * @return the body, carrying the refusal's code
      */
     public static ErrorResponseWrapper of(Refusal refusal, String message, Long retryAfterSeconds) {
         return new ErrorResponseWrapper(
-                refusal.status().getMessage(), message, refusal.name(), retryAfterSeconds, null);
+                refusal.status().getMessage(), message, refusal.code(), retryAfterSeconds, null);
     }
 }

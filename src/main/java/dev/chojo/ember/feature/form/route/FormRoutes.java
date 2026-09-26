@@ -112,7 +112,7 @@ public class FormRoutes implements Routes {
      * Answers with the form as it now stands, which is what every act on one ends with.
      */
     private void respondWithForm(Context ctx, int formId) {
-        ctx.json(formService.findById(formId).orElseThrow(Refusal.FORM_NOT_HERE::raise));
+        ctx.json(formService.findById(formId).orElseThrow(Refusal.FORM_NOT_HERE_ON_REREAD::raise));
     }
 
     /**
@@ -376,7 +376,7 @@ public class FormRoutes implements Routes {
                 req.forced() != null && req.forced(),
                 req.startAt(),
                 req.endAt())) {
-            throw Refusal.FORM_NOT_HERE.raise();
+            throw Refusal.FORM_NOT_HERE_ON_CHANGE.raise();
         }
         respondWithForm(ctx, id);
     }
@@ -397,7 +397,7 @@ public class FormRoutes implements Routes {
         if (formService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.FORM_NOT_HERE.raise();
+            throw Refusal.FORM_NOT_HERE_ON_DELETE.raise();
         }
     }
 
@@ -439,7 +439,7 @@ public class FormRoutes implements Routes {
             throw new BadRequestResponse("Say how far the form is to reach");
         }
         if (!formService.setVisibility(id, request.visibility())) {
-            throw Refusal.FORM_NOT_HERE.raise();
+            throw Refusal.FORM_NOT_HERE_ON_VISIBILITY_CHANGE.raise();
         }
         ctx.json(new VisibilityResponse(
                 formService.findById(id).orElseThrow(), stillHeldBy(form, request.visibility())));
@@ -538,7 +538,7 @@ public class FormRoutes implements Routes {
     private void close(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedForm(id, UserSession.from(ctx));
-        if (!formService.close(id)) throw Refusal.FORM_NOT_HERE.raise();
+        if (!formService.close(id)) throw Refusal.FORM_NOT_HERE_ON_CLOSE.raise();
         respondWithForm(ctx, id);
     }
 
@@ -896,7 +896,9 @@ public class FormRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, session);
-        var station = stationRepository.findById(session.stationId()).orElseThrow(Refusal.NOT_HERE_OR_NOT_YOURS::raise);
+        var station = stationRepository
+                .findById(session.stationId())
+                .orElseThrow(Refusal.STATION_NOT_HERE_FOR_FORM_EXPORT::raise);
         boolean asSpreadsheet = !"pdf".equalsIgnoreCase(ctx.queryParam("format"));
         try {
             var document = exportService.export(

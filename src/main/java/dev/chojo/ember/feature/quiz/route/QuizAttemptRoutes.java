@@ -140,7 +140,9 @@ public class QuizAttemptRoutes implements Routes {
         if (!attemptService.submitAttempt(attempt.id())) {
             throw Refusal.QUIZ_NOT_HANDED_IN.raise();
         }
-        ctx.json(attemptService.findAttemptById(attempt.id()).orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE::raise));
+        ctx.json(attemptService
+                .findAttemptById(attempt.id())
+                .orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE_AFTER_HANDING_IN::raise));
     }
 
     private void listAttempts(Context ctx) {

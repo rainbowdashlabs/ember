@@ -242,7 +242,7 @@ public class ProcedureRoutes implements Routes {
         var procedure = requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
 
         if (!session.hasPermission(StationPermission.PROCEDURE_EDIT)) {
-            if (!procedure.isPublic()) throw Refusal.PROCEDURE_NOT_YOURS.raise();
+            if (!procedure.isPublic()) throw Refusal.PROCEDURE_NOT_PUBLIC.raise();
             var assignees = procedureService.findAssigneeIds(rid);
             if (!assignees.contains(session.member().id())) throw Refusal.PROCEDURE_NOT_YOURS.raise();
         }

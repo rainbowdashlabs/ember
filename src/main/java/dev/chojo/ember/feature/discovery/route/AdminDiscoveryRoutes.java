@@ -239,7 +239,7 @@ public class AdminDiscoveryRoutes implements Routes {
         }
         var info = reachPeer(body.baseUrl());
         if (info.publicKey() == null) {
-            throw Refusal.PEER_DID_NOT_ANSWER.raise(
+            throw Refusal.PEER_NAMED_NO_KEY.raise(
                     "The address answered as a peer would, but named no key to recognise it by");
         }
         if (body.expectedPublicKey() != null

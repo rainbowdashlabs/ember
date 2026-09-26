@@ -59,7 +59,7 @@ class FailuresTest {
 
     @Test
     void aDatabaseStateNobodyMappedIsStillAFault() {
-        assertEquals(Refusal.UNEXPECTED_FAULT, Failures.describe(wrapped("XX000")));
+        assertEquals(Refusal.UNEXPECTED_FAULT_FROM_UNKNOWN_STATE, Failures.describe(wrapped("XX000")));
     }
 
     @Test

@@ -149,7 +149,7 @@ public class DocumentRoutes implements Routes {
         var session = UserSession.from(ctx);
         int stationId = requireMemberStation(ctx, memberId);
         boolean readsOthers = session.hasPermission(StationPermission.DOCUMENT_READ_MEMBER);
-        if (!readsOthers && !ownAndManaged(session).contains(memberId)) throw Refusal.DOCUMENT_NOT_YOURS.raise();
+        if (!readsOthers && !ownAndManaged(session).contains(memberId)) throw Refusal.DOCUMENT_LIST_NOT_YOURS.raise();
         ctx.json(documentRepository.findByMember(stationId, memberId, readsOthers).stream()
                 .map(this::toResponse)
                 .toList());
@@ -236,7 +236,7 @@ public class DocumentRoutes implements Routes {
 
     /** The station the reader is signed in to, which every document belongs to. */
     private static int requireStation(UserSession session) {
-        if (session.stationId() == null) throw Refusal.NO_STATION_CHOSEN.raise();
+        if (session.stationId() == null) throw Refusal.NO_STATION_CHOSEN_FOR_DOCUMENTS.raise();
         return session.stationId();
     }
 
@@ -323,7 +323,7 @@ public class DocumentRoutes implements Routes {
                 .map(Integer::valueOf)
                 .toList();
         if (!ids.isEmpty() && !UserSession.from(ctx).hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
-            throw Refusal.DOCUMENT_NOT_YOURS_TO_ADD.raise();
+            throw Refusal.DOCUMENT_MEMBERS_NOT_YOURS_TO_NAME.raise();
         }
         for (int memberId : ids) {
             requireMemberStation(ctx, memberId);
@@ -370,7 +370,7 @@ public class DocumentRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void content(Context ctx) {
         var document = requireReadable(ctx);
-        var data = documentService.read(document).orElseThrow(Refusal.DOCUMENT_NOT_HERE::raise);
+        var data = documentService.read(document).orElseThrow(Refusal.DOCUMENT_CONTENT_NOT_HERE::raise);
         var disposition = SafeInlineMime.isInlineSafe(document.mimeType())
                 ? SafeContentDisposition.Disposition.INLINE
                 : SafeContentDisposition.Disposition.ATTACHMENT;
@@ -389,7 +389,7 @@ public class DocumentRoutes implements Routes {
     private void thumbnail(Context ctx) {
         var document = requireReadable(ctx);
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(256);
-        var picture = documentService.thumbnail(document, size).orElseThrow(Refusal.PICTURE_NOT_HERE::raise);
+        var picture = documentService.thumbnail(document, size).orElseThrow(Refusal.DOCUMENT_THUMBNAIL_NOT_HERE::raise);
         ctx.contentType(picture.contentType());
         ctx.result(picture.data());
     }
@@ -447,9 +447,9 @@ public class DocumentRoutes implements Routes {
         var session = UserSession.from(ctx);
         var document = requireOwnedDocument(ctx, id);
         if (mayRead(session, id)) return document;
-        if (document.hidden()) throw Refusal.DOCUMENT_NOT_HERE.raise();
+        if (document.hidden()) throw Refusal.DOCUMENT_HIDDEN_FROM_YOU.raise();
         if (ownAndManaged(session).stream().noneMatch(member -> documentRepository.isBoundTo(id, member))) {
-            throw Refusal.DOCUMENT_NOT_YOURS.raise();
+            throw Refusal.DOCUMENT_NOT_YOURS_TO_READ.raise();
         }
         return document;
     }

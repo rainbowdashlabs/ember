@@ -221,7 +221,7 @@ public class WaitingListRoutes implements Routes {
      */
     private void verifyFieldInList(int listId, int fieldId) {
         if (service.findFieldsByList(listId).stream().noneMatch(f -> f.id() == fieldId)) {
-            throw Refusal.WAITING_LIST_FIELD_NOT_HERE.raise();
+            throw Refusal.WAITING_LIST_FIELD_NOT_IN_LIST.raise();
         }
     }
 
@@ -230,7 +230,7 @@ public class WaitingListRoutes implements Routes {
      */
     private void verifyInviteInList(int listId, int inviteId) {
         if (service.findInvitesByList(listId).stream().noneMatch(i -> i.id() == inviteId)) {
-            throw Refusal.WAITING_LIST_INVITE_UNKNOWN.raise();
+            throw Refusal.WAITING_LIST_INVITE_NOT_IN_LIST.raise();
         }
     }
 
@@ -238,9 +238,9 @@ public class WaitingListRoutes implements Routes {
      * Asserts the given entry belongs to the given list.
      */
     private void verifyEntryInList(int listId, int entryId) {
-        var entry = service.findEntryById(entryId).orElseThrow(Refusal.WAITING_LIST_ENTRY_NOT_HERE::raise);
+        var entry = service.findEntryById(entryId).orElseThrow(Refusal.WAITING_LIST_ENTRY_NOT_IN_LIST::raise);
         if (entry.listId() != listId) {
-            throw Refusal.WAITING_LIST_ENTRY_NOT_HERE.raise();
+            throw Refusal.WAITING_LIST_ENTRY_NOT_IN_LIST.raise();
         }
     }
 
@@ -257,7 +257,7 @@ public class WaitingListRoutes implements Routes {
         if (!invite.hasUsesLeft() || invite.isExpired()) {
             throw new ForbiddenResponse("Invite is no longer valid");
         }
-        var list = service.findById(invite.listId()).orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
+        var list = service.findById(invite.listId()).orElseThrow(Refusal.WAITING_LIST_NOT_HERE_BEHIND_INVITE::raise);
         var fields = service.findFieldsByList(invite.listId());
         ctx.json(new InviteInfoResponse(list.name(), list.description(), fields));
     }
@@ -310,10 +310,10 @@ public class WaitingListRoutes implements Routes {
     private void getEntryByToken(Context ctx) {
         String token = ctx.pathParam("token");
         if (readRateLimited(ctx)) return;
-        var entry = service.findEntryByToken(token).orElseThrow(Refusal.WAITING_LIST_ENTRY_NOT_HERE::raise);
+        var entry = service.findEntryByToken(token).orElseThrow(Refusal.WAITING_LIST_ENTRY_TOKEN_UNKNOWN::raise);
         var values = service.findEntryValues(entry.id());
         var guardians = service.findGuardiansByEntry(entry.id());
-        var list = service.findById(entry.listId()).orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
+        var list = service.findById(entry.listId()).orElseThrow(Refusal.WAITING_LIST_NOT_HERE_BEHIND_ENTRY::raise);
         var fields = service.findFieldsByList(entry.listId());
         int position = service.findWaitingPositionByScore(entry);
         ctx.json(new PublicStatusResponse(
@@ -344,7 +344,8 @@ public class WaitingListRoutes implements Routes {
     private PublicInvitationResponse describeInvitation(int stationId, WaitingListEntry entry) {
         var invitation = entry.invitation();
         if (invitation == null) return null;
-        var station = stationRepository.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE::raise);
+        var station =
+                stationRepository.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_INVITATION::raise);
         var details = invitationMessage.describe(station, invitation);
         return new PublicInvitationResponse(
                 invitation.eventId(),
@@ -394,7 +395,7 @@ public class WaitingListRoutes implements Routes {
             ctx.status(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
             log.warn("No waiting-list entry for the token answering an invitation", e);
-            throw Refusal.WAITING_LIST_ENTRY_NOT_HERE.raise();
+            throw Refusal.WAITING_LIST_ENTRY_NOT_HERE_ON_ANSWER.raise();
         }
     }
 
@@ -548,7 +549,7 @@ public class WaitingListRoutes implements Routes {
                         request.sendsMail() == null || request.sendsMail(),
                         request.minAgeRegister(),
                         request.minAgeJoin())
-                .orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
+                .orElseThrow(Refusal.WAITING_LIST_NOT_CHANGED::raise);
         ctx.json(updated);
     }
 
@@ -572,7 +573,7 @@ public class WaitingListRoutes implements Routes {
         verifyListOwnership(ctx, id);
         var request = ctx.bodyAsClass(VisibleFieldsRequest.class);
         var list = service.updateVisibleFields(id, toJson(request.fieldIds()))
-                .orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
+                .orElseThrow(Refusal.WAITING_LIST_NOT_HERE_ON_VISIBLE_QUESTIONS::raise);
         ctx.json(list);
     }
 
@@ -611,7 +612,7 @@ public class WaitingListRoutes implements Routes {
                         request.position(),
                         request.required(),
                         request.isPublic() == null || request.isPublic())
-                .orElseThrow(Refusal.WAITING_LIST_FIELD_NOT_HERE::raise);
+                .orElseThrow(Refusal.WAITING_LIST_FIELD_NOT_CHANGED::raise);
         ctx.json(field);
     }
 
@@ -667,7 +668,7 @@ public class WaitingListRoutes implements Routes {
         int listId = pathInt(ctx, "id");
         verifyListOwnership(ctx, listId);
         var entries = service.findEntriesByList(listId);
-        var list = service.findById(listId).orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
+        var list = service.findById(listId).orElseThrow(Refusal.WAITING_LIST_NOT_HERE_ON_ENTRIES::raise);
         var fields = service.findFieldsByList(listId);
         var allGuardians = service.findGuardiansByList(listId);
         var guardianMap = new HashMap<Integer, List<WaitingListEntryGuardian>>();
@@ -716,7 +717,8 @@ public class WaitingListRoutes implements Routes {
                 guardians,
                 request.notes(),
                 request.values());
-        var updated = service.findEntryById(entryId).orElseThrow(Refusal.WAITING_LIST_ENTRY_NOT_HERE::raise);
+        var updated =
+                service.findEntryById(entryId).orElseThrow(Refusal.WAITING_LIST_ENTRY_NOT_HERE_AFTER_CHANGE::raise);
         ctx.json(updated);
     }
 
@@ -727,7 +729,8 @@ public class WaitingListRoutes implements Routes {
         verifyEntryInList(listId, entryId);
         var request = ctx.bodyAsClass(CreatedAtRequest.class);
         service.updateCreatedAt(entryId, request.createdAt());
-        var updated = service.findEntryById(entryId).orElseThrow(Refusal.WAITING_LIST_ENTRY_NOT_HERE::raise);
+        var updated = service.findEntryById(entryId)
+                .orElseThrow(Refusal.WAITING_LIST_ENTRY_NOT_HERE_AFTER_DATE_CHANGE::raise);
         ctx.json(updated);
     }
 
@@ -889,8 +892,8 @@ public class WaitingListRoutes implements Routes {
                         return Optional.empty();
                     }
                 })
-                .orElseThrow(Refusal.STATION_NOT_HERE::raise);
-        if (!station.publicWaitlistEnabled()) throw Refusal.WAITING_LIST_NOT_HERE.raise();
+                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_LIST::raise);
+        if (!station.publicWaitlistEnabled()) throw Refusal.PUBLIC_WAITING_LISTS_SWITCHED_OFF.raise();
         return station.id();
     }
 
@@ -905,8 +908,8 @@ public class WaitingListRoutes implements Routes {
     private void getPublicForm(Context ctx) {
         int stationId = resolveStation(ctx);
         int wid = pathInt(ctx, "wid");
-        var list = service.findById(wid).orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
-        if (list.stationId() != stationId || !list.isPublic()) throw Refusal.WAITING_LIST_NOT_HERE.raise();
+        var list = service.findById(wid).orElseThrow(Refusal.PUBLIC_WAITING_LIST_NOT_HERE::raise);
+        if (list.stationId() != stationId || !list.isPublic()) throw Refusal.PUBLIC_WAITING_LIST_NOT_HERE.raise();
         var fields = service.findPublicFieldsByList(wid);
         ctx.json(new PublicFormResponse(list.name(), list.description(), list.sendsMail(), fields));
     }
@@ -914,8 +917,10 @@ public class WaitingListRoutes implements Routes {
     private void submitPublicRegistration(Context ctx) {
         int stationId = resolveStation(ctx);
         int wid = pathInt(ctx, "wid");
-        var list = service.findById(wid).orElseThrow(Refusal.WAITING_LIST_NOT_HERE::raise);
-        if (list.stationId() != stationId || !list.isPublic()) throw Refusal.WAITING_LIST_NOT_HERE.raise();
+        var list = service.findById(wid).orElseThrow(Refusal.PUBLIC_WAITING_LIST_NOT_HERE_ON_REGISTRATION::raise);
+        if (list.stationId() != stationId || !list.isPublic()) {
+            throw Refusal.PUBLIC_WAITING_LIST_NOT_HERE_ON_REGISTRATION.raise();
+        }
         var request = ctx.bodyAsClass(PublicRegistrationRequest.class);
         if (request.firstname() == null || request.firstname().isBlank()) {
             throw new BadRequestResponse("firstname is required");

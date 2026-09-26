@@ -26,7 +26,7 @@ public class RefusalResponse extends HttpResponseException {
     /**
      * Which refusal this was.
      *
-     * @return the refusal, whose name is the code the reader and a report see
+     * @return the refusal, whose code is what the reader and a report see
      */
     public Refusal refusal() {
         return refusal;

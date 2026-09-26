@@ -485,7 +485,7 @@ public class EventRoutes implements Routes {
                             ctx.json(saved);
                         },
                         () -> {
-                            throw Refusal.EVENT_NOT_HERE.raise();
+                            throw Refusal.EVENT_NOT_HERE_ON_CHANGE.raise();
                         });
     }
 
@@ -506,7 +506,7 @@ public class EventRoutes implements Routes {
         if (crudService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.EVENT_NOT_HERE.raise();
+            throw Refusal.EVENT_NOT_HERE_ON_DELETE.raise();
         }
     }
 
@@ -515,7 +515,7 @@ public class EventRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(CancelEventRequest.class);
         if (!crudService.cancelEvent(session.stationId(), id, req.reason())) {
-            throw Refusal.EVENT_NOT_HERE.raise();
+            throw Refusal.EVENT_NOT_HERE_ON_CANCELLATION.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }

@@ -233,7 +233,7 @@ public class MailImportRoutes implements Routes {
      */
     private void requireMayFile(UserSession session) {
         if (!session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
-            throw Refusal.DOCUMENT_NOT_YOURS_TO_ADD.raise();
+            throw Refusal.DOCUMENT_NOT_YOURS_TO_FILE.raise();
         }
     }
 

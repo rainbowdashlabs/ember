@@ -58,7 +58,7 @@ public final class RouteSupport {
      */
     public static void requireSameStation(UserSession session, int entityStationId) {
         if (session.stationId() == null || entityStationId != session.stationId()) {
-            throw Refusal.NOT_HERE_OR_NOT_YOURS.raise();
+            throw Refusal.NOT_YOURS_TO_OPEN.raise();
         }
     }
 

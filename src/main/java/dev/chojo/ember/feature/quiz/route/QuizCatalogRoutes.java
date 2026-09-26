@@ -169,10 +169,10 @@ public class QuizCatalogRoutes implements Routes {
                 req.description() != null ? req.description() : "",
                 req.trainingEnabled() != null && req.trainingEnabled(),
                 CatalogMetadata.orNone(req.metadata()))) {
-            throw Refusal.QUIZ_CATALOG_NOT_HERE.raise();
+            throw Refusal.QUIZ_CATALOG_NOT_CHANGED.raise();
         }
         catalogService.findCatalog(id).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.QUIZ_CATALOG_NOT_HERE.raise();
+            throw Refusal.QUIZ_CATALOG_NOT_HERE_AFTER_CHANGE.raise();
         });
     }
 
@@ -182,7 +182,7 @@ public class QuizCatalogRoutes implements Routes {
         if (catalogService.deleteCatalog(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.QUIZ_CATALOG_NOT_HERE.raise();
+            throw Refusal.QUIZ_CATALOG_NOT_DELETED.raise();
         }
     }
 
@@ -212,7 +212,7 @@ public class QuizCatalogRoutes implements Routes {
                 req.name(),
                 req.description() != null ? req.description() : "",
                 req.position() != null ? req.position() : 0)) {
-            throw Refusal.QUIZ_CATEGORY_NOT_HERE.raise();
+            throw Refusal.QUIZ_CATEGORY_NOT_CHANGED.raise();
         }
         ctx.status(HttpStatus.OK).json(new QuizSuccessResponse(true));
     }
@@ -223,7 +223,7 @@ public class QuizCatalogRoutes implements Routes {
         if (catalogService.deleteCategory(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.QUIZ_CATEGORY_NOT_HERE.raise();
+            throw Refusal.QUIZ_CATEGORY_NOT_DELETED.raise();
         }
     }
 

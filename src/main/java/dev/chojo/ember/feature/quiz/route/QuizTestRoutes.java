@@ -206,10 +206,10 @@ public class QuizTestRoutes implements Routes {
                 req.forced() != null && req.forced(),
                 req.startAt(),
                 req.endAt())) {
-            throw Refusal.QUIZ_TEST_NOT_HERE.raise();
+            throw Refusal.QUIZ_TEST_NOT_CHANGED.raise();
         }
         testService.findTest(id).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.QUIZ_TEST_NOT_HERE.raise();
+            throw Refusal.QUIZ_TEST_NOT_HERE_AFTER_CHANGE.raise();
         });
     }
 
@@ -219,7 +219,7 @@ public class QuizTestRoutes implements Routes {
         if (testService.deleteTest(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.QUIZ_TEST_NOT_HERE.raise();
+            throw Refusal.QUIZ_TEST_NOT_DELETED.raise();
         }
     }
 
@@ -229,16 +229,16 @@ public class QuizTestRoutes implements Routes {
         if (test.status() != TestStatus.DRAFT) throw new BadRequestResponse("Test is not in DRAFT status");
         testService.activateTest(id);
         testService.findTest(id).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.QUIZ_TEST_NOT_HERE.raise();
+            throw Refusal.QUIZ_TEST_NOT_HERE_AFTER_ACTIVATION.raise();
         });
     }
 
     private void closeTest(Context ctx) {
         int id = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, id);
-        if (!testService.closeTest(id)) throw Refusal.QUIZ_TEST_NOT_HERE.raise();
+        if (!testService.closeTest(id)) throw Refusal.QUIZ_TEST_NOT_CLOSED.raise();
         testService.findTest(id).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.QUIZ_TEST_NOT_HERE.raise();
+            throw Refusal.QUIZ_TEST_NOT_HERE_AFTER_CLOSING.raise();
         });
     }
 

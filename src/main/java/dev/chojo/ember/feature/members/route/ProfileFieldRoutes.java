@@ -68,7 +68,7 @@ public class ProfileFieldRoutes implements Routes {
     private static int requireStation(UserSession session) {
         Integer stationId = session.stationId();
         if (stationId == null) {
-            throw Refusal.NO_STATION_CHOSEN.raise();
+            throw Refusal.NO_STATION_CHOSEN_FOR_PROFILE_QUESTIONS.raise();
         }
         return stationId;
     }
@@ -276,7 +276,7 @@ public class ProfileFieldRoutes implements Routes {
                         request.width(),
                         request.keepOnArchive() != null && request.keepOnArchive())
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw Refusal.PROFILE_FIELD_NOT_HERE.raise();
+                    throw Refusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE.raise();
                 });
     }
 
@@ -312,7 +312,7 @@ public class ProfileFieldRoutes implements Routes {
         if (profileFieldService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.PROFILE_FIELD_NOT_HERE.raise();
+            throw Refusal.PROFILE_FIELD_NOT_HERE_ON_DELETE.raise();
         }
     }
 

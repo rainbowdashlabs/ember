@@ -70,7 +70,7 @@ public class QuizRouteGuards {
      * Loads a question and asserts its catalog belongs to the caller's station, returning it.
      */
     public QuizQuestion requireOwnedQuestion(Context ctx, int questionId) {
-        var question = questionService.findQuestion(questionId).orElseThrow(Refusal.NOT_HERE_OR_NOT_YOURS::raise);
+        var question = questionService.findQuestion(questionId).orElseThrow(Refusal.QUIZ_QUESTION_NOT_HERE::raise);
         requireOwnedCatalog(ctx, question.catalogId());
         return question;
     }
@@ -111,7 +111,8 @@ public class QuizRouteGuards {
     public QuizTestAttempt requireMemberAttempt(Context ctx, UserSession session) {
         int attemptId = pathInt(ctx, "id");
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
-        var attempt = attemptService.findAttemptById(attemptId).orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE::raise);
+        var attempt =
+                attemptService.findAttemptById(attemptId).orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE_FOR_MEMBER::raise);
         if (attempt.memberId() != session.member().id()) throw Refusal.QUIZ_ATTEMPT_NOT_YOURS.raise();
         return attempt;
     }

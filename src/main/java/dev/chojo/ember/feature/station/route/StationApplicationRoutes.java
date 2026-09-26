@@ -149,7 +149,7 @@ public class StationApplicationRoutes implements Routes {
             ctx.json(result);
         } catch (IllegalArgumentException e) {
             log.warn("Station application not found for accept, id={}", id, e);
-            throw Refusal.STATION_APPLICATION_NOT_HERE.raise();
+            throw Refusal.STATION_APPLICATION_NOT_HERE_ON_ACCEPTANCE.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state when accepting station application id={}", id, e);
             throw new BadRequestResponse(e.getMessage());
@@ -176,7 +176,7 @@ public class StationApplicationRoutes implements Routes {
             ctx.json(result);
         } catch (IllegalArgumentException e) {
             log.warn("Station application not found for deny, id={}", id, e);
-            throw Refusal.STATION_APPLICATION_NOT_HERE.raise();
+            throw Refusal.STATION_APPLICATION_NOT_HERE_ON_DENIAL.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state when denying station application id={}", id, e);
             throw new BadRequestResponse(e.getMessage());

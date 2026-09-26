@@ -1035,7 +1035,7 @@ public class ApiServer {
             ctx.json(new ErrorResponseWrapper(
                             refusal.status().getMessage(),
                             refusal.message(),
-                            refusal.name(),
+                            refusal.code(),
                             null,
                             ours ? reference : null))
                     .status(refusal.status());

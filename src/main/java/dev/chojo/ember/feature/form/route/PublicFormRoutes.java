@@ -159,7 +159,9 @@ public class PublicFormRoutes implements Routes {
     @StationFree("the same link, answering only the name and colours of the station asking")
     private void getSharedFormBrand(Context ctx) {
         var form = resolveSharedForm(ctx);
-        var station = stationRepository.findById(form.stationId()).orElseThrow(Refusal.STATION_NOT_HERE::raise);
+        var station = stationRepository
+                .findById(form.stationId())
+                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_FORM_LINK::raise);
         ctx.json(SharedPageRoutes.brandOf(station, logoService));
     }
 
@@ -338,16 +340,18 @@ public class PublicFormRoutes implements Routes {
     private Form resolvePublicForm(Context ctx) {
         String stationAddress = ctx.pathParam("stationUid");
         UUID formUid = pathUuid(ctx, "publicUid");
-        var station = stationRepository.findByAddress(stationAddress).orElseThrow(Refusal.STATION_NOT_HERE::raise);
-        var form = formService.findByPublicUid(formUid).orElseThrow(Refusal.FORM_NOT_HERE::raise);
+        var station = stationRepository
+                .findByAddress(stationAddress)
+                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_FORM::raise);
+        var form = formService.findByPublicUid(formUid).orElseThrow(Refusal.PUBLIC_FORM_NOT_HERE::raise);
         if (form.stationId() != station.id()) {
-            throw Refusal.FORM_NOT_HERE.raise();
+            throw Refusal.PUBLIC_FORM_NOT_HERE.raise();
         }
         if (form.purpose() != FormPurpose.CONTACT && form.purpose() != FormPurpose.POLL) {
             throw Refusal.FORM_NOT_ANSWERED_FROM_OUTSIDE.raise();
         }
         if (!form.visibility().openlyAddressed()) {
-            throw Refusal.FORM_NOT_ANSWERED_FROM_OUTSIDE.raise();
+            throw Refusal.FORM_NOT_OPENLY_ADDRESSED.raise();
         }
         return form;
     }

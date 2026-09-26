@@ -5,6 +5,7 @@
  */
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
+import {createI18n} from 'vue-i18n'
 import {describeFailure, FailureKind, technicalSummary} from './failure'
 
 /** Returns the key, so a test can see which message was chosen without depending on its wording. */
@@ -19,25 +20,25 @@ function rejected(status: number, body?: Record<string, unknown>) {
  * these one at a time looks like. Everything unwritten comes back as its key, the way vue-i18n
  * answers for a key nobody has written.
  */
-const translating = (key: string) => (key === 'refusal.FORM_ALREADY_ANSWERED'
+const translating = (key: string) => (key === 'refusal.F-012'
     ? 'Dieses Formular hast du bereits ausgefüllt.'
     : key)
 
 describe('a refusal said in the reader\'s language', () => {
     it('prefers what we wrote over what the server said', () => {
         const failure = describeFailure(
-            rejected(409, {code: 'FORM_ALREADY_ANSWERED', message: 'You have already answered this form'}),
+            rejected(409, {code: 'F-012', message: 'You have already answered this form'}),
             translating,
         )
 
         expect(failure.message).toBe('Dieses Formular hast du bereits ausgefüllt.')
-        expect(failure.code).toBe('FORM_ALREADY_ANSWERED')
+        expect(failure.code).toBe('F-012')
     })
 
     /** The server's own sentence still says what happened, which beats a German sentence that does not. */
     it('keeps the server\'s sentence for a refusal nobody has translated yet', () => {
         const failure = describeFailure(
-            rejected(409, {code: 'QUIZ_ALREADY_HANDED_IN', message: 'The paper is already in'}),
+            rejected(409, {code: 'Q-001', message: 'The paper is already in'}),
             translating,
         )
 
@@ -46,11 +47,33 @@ describe('a refusal said in the reader\'s language', () => {
 
     it('keeps the server\'s own words for the report even when it shows ours', () => {
         const failure = describeFailure(
-            rejected(409, {code: 'FORM_ALREADY_ANSWERED', message: 'You have already answered this form'}),
+            rejected(409, {code: 'F-012', message: 'You have already answered this form'}),
             translating,
         )
 
         expect(failure.technical).toBe('You have already answered this form')
+    })
+
+    /**
+     * A dot is how vue-i18n walks into a nested message, so a code carrying a hyphen is only safe
+     * if the hyphen stays an ordinary character inside one segment. This asks the real translator
+     * rather than assuming, because getting it wrong shows every reader an English sentence with a
+     * German page around it and nothing anywhere says why.
+     */
+    it('reaches a hyphenated code through the real translator', () => {
+        const i18n = createI18n({
+            legacy: false,
+            locale: 'de-DE',
+            fallbackLocale: 'de-DE',
+            messages: {'de-DE': {refusal: {'F-001': 'Das Formular gibt es nicht mehr.'}}},
+        })
+
+        const failure = describeFailure(
+            rejected(404, {code: 'F-001', message: 'That form is not here any more'}),
+            (key: string) => i18n.global.t(key),
+        )
+
+        expect(failure.message).toBe('Das Formular gibt es nicht mehr.')
     })
 
     it('says nothing different where the refusal carries no code', () => {

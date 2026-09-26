@@ -3,6 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import refusals from './de-DE.refusals'
+
 export default {
     mailProviders: {
         BREVO: {
@@ -9844,6 +9846,7 @@ export default {
         saturday: 'Samstag',
         sunday: 'Sonntag',
     },
+    refusal: refusals,
     failure: {
         report: 'Diesen Fehler melden',
         staleAfterAction: 'Das hat geklappt, aber die Ansicht konnte danach nicht aktualisiert werden.',

@@ -115,16 +115,16 @@ public class PublicPageRoutes implements Routes {
         int stationId = resolveOpenStation(ctx);
         String pagePath = ctx.pathParam("pagePath");
 
-        var page = pageService.getPageByPath(stationId, pagePath).orElseThrow(Refusal.PAGE_NOT_HERE::raise);
+        var page = pageService.getPageByPath(stationId, pagePath).orElseThrow(Refusal.PUBLIC_PAGE_NOT_HERE::raise);
 
-        var rendered = pageService.getPageRendered(page.id()).orElseThrow(Refusal.PAGE_NOT_HERE::raise);
+        var rendered = pageService.getPageRendered(page.id()).orElseThrow(Refusal.PUBLIC_PAGE_NOT_RENDERED::raise);
         ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
         ctx.json(rendered);
     }
 
     private void getLandingPage(Context ctx) {
         int stationId = resolveOpenStation(ctx);
-        var page = pageService.getLandingPage(stationId).orElseThrow(Refusal.PAGE_NOT_HERE::raise);
+        var page = pageService.getLandingPage(stationId).orElseThrow(Refusal.PUBLIC_LANDING_PAGE_NOT_HERE::raise);
         ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
         ctx.json(page);
     }
@@ -145,7 +145,7 @@ public class PublicPageRoutes implements Routes {
                 .findById(stationId)
                 .map(Station::publicPagesEnabled)
                 .orElse(false)) {
-            throw Refusal.PAGE_NOT_HERE.raise();
+            throw Refusal.PUBLIC_PAGES_SWITCHED_OFF.raise();
         }
         return stationId;
     }
@@ -156,7 +156,7 @@ public class PublicPageRoutes implements Routes {
     private int resolveStation(Context ctx) {
         return stationRepository
                 .resolveAddressedId(ctx.pathParam("stationUid"))
-                .orElseThrow(Refusal.STATION_NOT_HERE::raise);
+                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_PAGE::raise);
     }
 
     record PublicPageSummary(

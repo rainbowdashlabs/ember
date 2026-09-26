@@ -295,7 +295,7 @@ public class PageRoutes implements Routes {
                     request.metaDescription(),
                     request.ogImageId(),
                     rows)) {
-                throw Refusal.PAGE_NOT_HERE.raise();
+                throw Refusal.PAGE_NOT_HERE_ON_SAVE.raise();
             }
             ctx.json(pageService.getPage(pid).orElseThrow());
         } catch (IllegalArgumentException e) {
@@ -321,7 +321,7 @@ public class PageRoutes implements Routes {
             var copy = pageService.duplicatePage(pid, session.member().id());
             ctx.status(HttpStatus.CREATED).json(copy);
         } catch (NoSuchElementException e) {
-            throw Refusal.PAGE_NOT_HERE.raise();
+            throw Refusal.PAGE_NOT_HERE_ON_COPY.raise();
         }
     }
 
@@ -329,7 +329,7 @@ public class PageRoutes implements Routes {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
         if (!pageService.deletePage(pid)) {
-            throw Refusal.PAGE_NOT_HERE.raise();
+            throw Refusal.PAGE_NOT_HERE_ON_DELETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -342,7 +342,7 @@ public class PageRoutes implements Routes {
             throw new BadRequestResponse("Say which visibility the page is to have");
         }
         if (!pageService.setVisibility(pid, request.visibility())) {
-            throw Refusal.PAGE_NOT_HERE.raise();
+            throw Refusal.PAGE_NOT_HERE_ON_VISIBILITY_CHANGE.raise();
         }
         ctx.json(pageService.getPage(pid).orElseThrow());
     }

@@ -60,7 +60,8 @@ export interface Failure {
     technical?: string
     status?: number
     /**
-     * The name the backend gave this refusal, which leads to the line that threw it.
+     * The code the backend gave this refusal, a letter, a hyphen and three digits, which leads to
+     * the one line that threw it.
      *
      * <p>Shown quietly beside the message and carried on the report. A reader cannot act on it and is
      * not asked to; it is there so that quoting it, which is what people do with a short code on a
@@ -131,6 +132,9 @@ export function saying(failure: Failure, message: string): Failure {
  * server verbatim answers a German reader in a language the rest of the screen does not use. A
  * refusal that arrives with a code can be said properly: the code names the refusal, and
  * `refusal.<CODE>` is where its German lives.
+ *
+ * <p>A code carries a hyphen, so the key has to be quoted where it is written: `'F-001': '…'`. Only
+ * the dot separates the segments a lookup walks, and a hyphen inside one is an ordinary character.
  *
  * <p>Where no translation has been written the server's own sentence still shows, which is what
  * makes this safe to adopt one refusal at a time: an English sentence that says what happened beats

@@ -187,7 +187,7 @@ public class MediaRoutes implements Routes {
      */
     private UserSession requireStation(UserSession session) {
         if (session.stationId() == null) {
-            throw Refusal.NO_STATION_CHOSEN.raise();
+            throw Refusal.NO_STATION_CHOSEN_FOR_LIBRARY.raise();
         }
         return session;
     }
@@ -231,7 +231,7 @@ public class MediaRoutes implements Routes {
         requireOwnedOrNotFound(ctx, fileId, media::findFile, StationFile::stationId);
 
         if (session.hasPermission(StationPermission.PAGE_MANAGER)) {
-            if (!media.deleteFile(fileId)) throw Refusal.FILE_NOT_HERE.raise();
+            if (!media.deleteFile(fileId)) throw Refusal.FILE_NOT_DELETED.raise();
             ctx.status(HttpStatus.NO_CONTENT);
             return;
         }
@@ -253,7 +253,7 @@ public class MediaRoutes implements Routes {
         int fileId = pathInt(ctx, "fileId");
         var body = ctx.bodyAsClass(FileMetaRequest.class);
         if (!media.updateFileMeta(session.stationId(), fileId, body.altText(), body.description())) {
-            throw Refusal.FILE_NOT_HERE.raise();
+            throw Refusal.FILE_NOT_HERE_ON_DETAIL_CHANGE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -263,7 +263,7 @@ public class MediaRoutes implements Routes {
         int fileId = pathInt(ctx, "fileId");
         var body = ctx.bodyAsClass(MoveFileRequest.class);
         if (!media.moveFileToFolder(session.stationId(), fileId, body.folderId())) {
-            throw Refusal.FILE_NOT_HERE.raise();
+            throw Refusal.FILE_NOT_HERE_ON_MOVE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -291,7 +291,7 @@ public class MediaRoutes implements Routes {
                 body.parentId(),
                 body.name(),
                 body.sortOrder() != null ? body.sortOrder() : 0)) {
-            throw Refusal.FOLDER_NOT_HERE.raise();
+            throw Refusal.FOLDER_NOT_HERE_ON_CHANGE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -299,7 +299,7 @@ public class MediaRoutes implements Routes {
     private void deleteFolder(Context ctx) {
         var session = UserSession.from(ctx);
         if (!media.deleteFolder(session.stationId(), pathInt(ctx, "folderId"))) {
-            throw Refusal.FOLDER_NOT_HERE.raise();
+            throw Refusal.FOLDER_NOT_HERE_ON_DELETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -319,7 +319,7 @@ public class MediaRoutes implements Routes {
         var session = UserSession.from(ctx);
         var body = ctx.bodyAsClass(TagRequest.class);
         if (!media.updateTag(session.stationId(), pathInt(ctx, "tagId"), body.name(), body.color())) {
-            throw Refusal.FILE_TAG_NOT_HERE.raise();
+            throw Refusal.FILE_TAG_NOT_HERE_ON_CHANGE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -327,7 +327,7 @@ public class MediaRoutes implements Routes {
     private void deleteTag(Context ctx) {
         var session = UserSession.from(ctx);
         if (!media.deleteTag(session.stationId(), pathInt(ctx, "tagId"))) {
-            throw Refusal.FILE_TAG_NOT_HERE.raise();
+            throw Refusal.FILE_TAG_NOT_HERE_ON_DELETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -335,7 +335,7 @@ public class MediaRoutes implements Routes {
     private void assignTag(Context ctx) {
         var session = UserSession.from(ctx);
         if (!media.assignTag(session.stationId(), pathInt(ctx, "fileId"), pathInt(ctx, "tagId"))) {
-            throw Refusal.FILE_TAG_NOT_HERE.raise();
+            throw Refusal.FILE_TAG_NOT_HERE_ON_ASSIGNMENT.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -343,7 +343,7 @@ public class MediaRoutes implements Routes {
     private void unassignTag(Context ctx) {
         var session = UserSession.from(ctx);
         if (!media.unassignTag(session.stationId(), pathInt(ctx, "fileId"), pathInt(ctx, "tagId"))) {
-            throw Refusal.FILE_TAG_NOT_HERE.raise();
+            throw Refusal.FILE_TAG_NOT_HERE_ON_REMOVAL.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }

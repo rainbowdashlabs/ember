@@ -81,7 +81,7 @@ public final class Failures {
         if (COLLISION_STATES.contains(state)) return Refusal.CHANGE_COLLIDED;
         if (TIMEOUT_STATES.contains(state)) return Refusal.TOOK_TOO_LONG;
         if (state.startsWith("08") || state.startsWith("53")) return Refusal.STORE_UNREACHABLE;
-        return Refusal.UNEXPECTED_FAULT;
+        return Refusal.UNEXPECTED_FAULT_FROM_UNKNOWN_STATE;
     }
 
     /**

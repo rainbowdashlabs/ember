@@ -9,7 +9,10 @@ import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -18,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RefusalTest {
+    private static final Pattern CODE = Pattern.compile("[A-Z]-\\d{3}");
 
     @Test
     void everyRefusalSaysSomethingAReaderCanRead() {
@@ -26,6 +30,51 @@ class RefusalTest {
             assertTrue(
                     Failures.readable(refusal.message()).isPresent(),
                     refusal + " says something that reads as machinery rather than as prose");
+        }
+    }
+
+    /**
+     * The whole point of a code is that it names one line. Two constants sharing one would send
+     * whoever reads a report back to guessing between them, which is the state this replaced.
+     */
+    @Test
+    void noTwoRefusalsShareACode() {
+        var seen = new HashMap<String, Refusal>();
+
+        for (var refusal : Refusal.values()) {
+            var clash = seen.put(refusal.code(), refusal);
+            assertNull(clash, refusal + " and " + clash + " both answer with " + refusal.code());
+        }
+    }
+
+    /**
+     * A report outlives the code that produced it, so a number handed back out points every old
+     * report at the wrong line. {@link RetiredRefusals} is the list of numbers that have been spent.
+     */
+    @Test
+    void noRefusalTakesBackARetiredCode() {
+        for (var refusal : Refusal.values()) {
+            assertFalse(
+                    RetiredRefusals.codes().contains(refusal.code()),
+                    refusal + " has taken back " + refusal.code() + ", which a retired refusal used");
+        }
+    }
+
+    /** Two areas claiming one letter would put two features' refusals under the same plate. */
+    @Test
+    void noTwoAreasClaimTheSameLetter() {
+        var letters = new HashSet<Character>();
+
+        for (var area : Refusal.Area.values()) {
+            assertTrue(letters.add(area.letter()), area + " claims a letter another area already has");
+        }
+    }
+
+    @Test
+    void everyCodeIsALetterAHyphenAndThreeDigits() {
+        for (var refusal : Refusal.values()) {
+            assertTrue(CODE.matcher(refusal.code()).matches(), refusal + " is coded as " + refusal.code());
+            assertEquals(refusal.area().letter(), refusal.code().charAt(0), refusal + " opens with the wrong letter");
         }
     }
 
@@ -42,7 +91,8 @@ class RefusalTest {
 
     /**
      * A fault is the one thing a reader is asked to report, so anything that is really their own
-     * doing must not be dressed as one.
+     * doing must not be dressed as one. Two kinds of failure are ours: one nobody named, and an
+     * upload that broke on the way in.
      */
     @Test
     void onlyTheOnesThatReallyAreOursCallThemselvesFaults() {
@@ -50,11 +100,17 @@ class RefusalTest {
                 .filter(refusal -> refusal.status() == HttpStatus.INTERNAL_SERVER_ERROR)
                 .collect(Collectors.toSet());
 
-        assertEquals(Set.of(Refusal.UNEXPECTED_FAULT, Refusal.UPLOAD_NOT_PROCESSED), faults);
+        assertEquals(
+                Set.of(
+                        Refusal.UNEXPECTED_FAULT,
+                        Refusal.UNEXPECTED_FAULT_FROM_UNKNOWN_STATE,
+                        Refusal.AVATAR_NOT_PROCESSED,
+                        Refusal.UPLOAD_NOT_PROCESSED),
+                faults);
     }
 
     @Test
-    void raisingCarriesTheStatusTheSentenceAndTheName() {
+    void raisingCarriesTheStatusTheSentenceAndTheRefusal() {
         var raised = Refusal.FORM_NOT_HERE.raise();
 
         assertEquals(Refusal.FORM_NOT_HERE, raised.refusal());
@@ -71,10 +127,10 @@ class RefusalTest {
     }
 
     @Test
-    void theErrorBodyCarriesTheNameAsItsCode() {
+    void theErrorBodyCarriesTheCode() {
         var body = ErrorResponseWrapper.of(Refusal.FORM_ANSWER_UNREADABLE);
 
-        assertEquals("FORM_ANSWER_UNREADABLE", body.code());
+        assertEquals(Refusal.FORM_ANSWER_UNREADABLE.code(), body.code());
         assertEquals(Refusal.FORM_ANSWER_UNREADABLE.message(), body.message());
         assertEquals(HttpStatus.BAD_REQUEST.getMessage(), body.error());
     }
@@ -116,6 +172,6 @@ class RefusalTest {
                 Refusal.FORM_ANSWERED_TOO_OFTEN, Refusal.FORM_ANSWERED_TOO_OFTEN.message(), 30L);
 
         assertEquals(30L, body.retryAfterSeconds());
-        assertEquals("FORM_ANSWERED_TOO_OFTEN", body.code());
+        assertEquals(Refusal.FORM_ANSWERED_TOO_OFTEN.code(), body.code());
     }
 }
