@@ -4,22 +4,25 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
-import {questionKindOf} from '@/util/questions'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
+import type {ProfileField} from '@/api/profileFields'
 
-const {t} = useI18n()
-
+/**
+ * The questions a new member is asked, drawn the way they are drawn everywhere else.
+ *
+ * <p>This step used to lay them out itself, in two lists of its own making, one of the questions
+ * that must be answered and one of the rest. Two things followed from that. A heading the station
+ * had put between its questions is not a question, and a step that knew nothing of headings drew
+ * each of them as an empty box to type in. And the order the station arranged its questions in was
+ * lost, twice over, since sorting them by whether they must be answered pulls them apart.
+ */
 const props = defineProps<{
   fields: ProfileField[]
   values: Map<number, string>
@@ -31,11 +34,10 @@ const emit = defineEmits<{
   setValue: [fieldId: number, value: string]
 }>()
 
-const requiredFields = computed(() => props.fields.filter(f => parseFieldConfig(f.config).required))
-const optionalFields = computed(() => props.fields.filter(f => !parseFieldConfig(f.config).required))
+const {t} = useI18n()
 
-function getValue(fieldId: number): string {
-  return props.values.get(fieldId) ?? ''
+function valueOf(field: LaidOutField): string {
+  return props.values.get(field.id) ?? ''
 }
 </script>
 
@@ -45,31 +47,13 @@ function getValue(fieldId: number): string {
 
     <EmptyState compact v-if="fields.length === 0">{{ t('membersCreate.noFields') }}</EmptyState>
 
-    <template v-if="requiredFields.length > 0">
-      <SubHeader class="text-sm font-semibold uppercase text-(--text-muted)">{{ t('membersCreate.requiredFields') }}</SubHeader>
-      <div v-for="field in requiredFields" :key="field.id" class="space-y-1">
-        <FieldLabel>{{ field.name }} <span class="text-error">*</span></FieldLabel>
-        <QuestionValueInput
-            :kind="questionKindOf(field.fieldType) ?? 'TEXT'"
-            :model-value="getValue(field.id)"
-            :options="(parseFieldConfig(field.config).options as string[]) ?? []"
-            @update:model-value="emit('setValue', field.id, $event)"
-        />
-      </div>
-    </template>
-
-    <template v-if="optionalFields.length > 0">
-      <SubHeader class="text-sm font-semibold uppercase text-(--text-muted) pt-2">{{ t('membersCreate.optionalFields') }}</SubHeader>
-      <div v-for="field in optionalFields" :key="field.id" class="space-y-1">
-        <FieldLabel>{{ field.name }}</FieldLabel>
-        <QuestionValueInput
-            :kind="questionKindOf(field.fieldType) ?? 'TEXT'"
-            :model-value="getValue(field.id)"
-            :options="(parseFieldConfig(field.config).options as string[]) ?? []"
-            @update:model-value="emit('setValue', field.id, $event)"
-        />
-      </div>
-    </template>
+    <ProfileFieldsLayout
+        v-else
+        :fields="fields"
+        :get-value="valueOf"
+        can-edit-readonly
+        @update="(field, value) => emit('setValue', field.id, value)"
+    />
 
     <ButtonRow pair align="between">
       <SecondaryButton @click="emit('back')">{{ t('membersCreate.back') }}</SecondaryButton>

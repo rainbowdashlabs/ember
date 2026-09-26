@@ -2503,8 +2503,6 @@ export default {
         emailHint: 'Eine Einladung wird an diese Adresse gesendet.',
         stepFields: 'Profilfelder',
         noFields: 'Keine Profilfelder für diesen Typ konfiguriert.',
-        requiredFields: 'Pflichtfelder',
-        optionalFields: 'Optionale Felder',
         stepGroups: 'Gruppen',
         stepGroupsHint: 'Zu welchen Gruppen soll das Mitglied gehören?',
         noGroups: 'Keine Gruppen vorhanden.',
