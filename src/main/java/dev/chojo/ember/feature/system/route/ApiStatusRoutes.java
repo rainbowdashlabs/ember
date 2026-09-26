@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -71,7 +71,7 @@ public class ApiStatusRoutes implements Routes {
         String method = ctx.queryParam("method");
         String path = ctx.queryParam("path");
         if (method == null || method.isBlank() || path == null || path.isBlank()) {
-            throw new BadRequestResponse("Name the method and the path of the endpoint you want");
+            throw Refusal.ENDPOINT_NOT_NAMED.raise();
         }
         ctx.json(requestLogger.getEndpointDetail(method.trim().toUpperCase(Locale.ROOT), path.trim()));
     }

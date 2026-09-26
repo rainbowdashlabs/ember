@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -21,7 +22,6 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheckState;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -134,7 +134,7 @@ public class SelfCheckRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(SelfCheckAnswerRequest.class);
         if (request.answers() == null) {
-            throw new BadRequestResponse("answers are required");
+            throw Refusal.SELF_CHECK_WITHOUT_ANSWERS.raise();
         }
         var rows = selfCheckService.answer(
                 pathInt(ctx, "id"),
@@ -171,7 +171,7 @@ public class SelfCheckRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(HeldReportRequest.class);
         if (request.kind() == null || request.itemId() == null) {
-            throw new BadRequestResponse("Say what is being reported and about which piece");
+            throw Refusal.HELD_REPORT_INCOMPLETE.raise();
         }
         var held = selfCheckService.holdBack(
                 pathInt(ctx, "id"),
@@ -193,8 +193,8 @@ public class SelfCheckRoutes implements Routes {
         if (raw == null || raw.isBlank()) return null;
         try {
             return LocalDate.parse(raw.strip());
-        } catch (DateTimeParseException e) {
-            throw new BadRequestResponse("dueOn is not a date");
+        } catch (DateTimeParseException ignored) {
+            throw Refusal.DUE_DAY_NOT_A_DATE.raise();
         }
     }
 

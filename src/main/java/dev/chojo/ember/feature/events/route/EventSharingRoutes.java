@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
@@ -20,11 +21,8 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -111,7 +109,7 @@ public class EventSharingRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var event = requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
         if (event.restricted()) {
-            throw new BadRequestResponse("An event with a restricted audience cannot be shared with partners");
+            throw Refusal.RESTRICTED_EVENT_NOT_SHARED.raise();
         }
         var req = ctx.bodyAsClass(SetFederationShareRequest.class);
         eventFederationService.setShare(id, req.scope(), req.partnerIds() != null ? req.partnerIds() : List.of());
@@ -180,16 +178,18 @@ public class EventSharingRoutes implements Routes {
     private void updateFederationRegistrationStatus(Context ctx) {
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(EventRegistrationRoutes.StatusUpdateRequest.class);
-        var reg = eventFederationService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
+        var reg = eventFederationService
+                .findRegistrationById(id)
+                .orElseThrow(Refusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION::raise);
         requireOwnedOrNotFound(ctx, reg.eventId(), crudService::findById, StationEvent::stationId);
 
         var places = eventFederationService.partnerPlaces(reg.eventId(), reg.partnerId());
         if (places.partnerConfirms()) {
-            throw new ForbiddenResponse("This partner decides its own registrations for this event");
+            throw Refusal.PARTNER_DECIDES_ITS_OWN.raise();
         }
         if (req.status() == RegistrationStatus.ACCEPTED) {
             if (!eventFederationService.acceptWithinBudget(id, reg.eventId(), reg.partnerId(), reg.eventDate())) {
-                throw new BadRequestResponse("No places left for this partner");
+                throw Refusal.NO_PLACES_LEFT_FOR_THIS_PARTNER.raise();
             }
         } else {
             eventFederationService.updateRegistrationStatus(id, req.status());
@@ -245,7 +245,7 @@ public class EventSharingRoutes implements Routes {
         requireOwnedOrNotFound(ctx, eventId, crudService::findById, StationEvent::stationId);
         var req = ctx.bodyAsClass(SetPartnerPlacesRequest.class);
         if (req.slotBudget() != null && req.slotBudget() < 0) {
-            throw new BadRequestResponse("A number of places cannot be negative");
+            throw Refusal.PLACES_CANNOT_BE_NEGATIVE.raise();
         }
         boolean decides = req.partnerConfirms() || req.slotBudget() != null;
         eventFederationService.setPartnerPlaces(eventId, partnerId, decides ? req.slotBudget() : null, decides);

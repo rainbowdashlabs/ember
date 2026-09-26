@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.news.route;
 
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
@@ -21,11 +22,8 @@ import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -130,7 +128,7 @@ public class RemoteNewsRoutes implements Routes {
         var partner = FederationSession.requirePartner(ctx);
         int newsId = pathInt(ctx, "newsId");
         requireSharedNews(partner, newsId);
-        var news = newsService.findById(newsId).orElseThrow(NotFoundResponse::new);
+        var news = newsService.findById(newsId).orElseThrow(Refusal.REMOTE_NEWS_NOT_HERE::raise);
         var authorResolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
         String authorName = authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
         NewsVisibilityRole visibilityRole =
@@ -162,7 +160,7 @@ public class RemoteNewsRoutes implements Routes {
         requireSharedNews(partner, newsId);
         var req = ctx.bodyAsClass(RemoteNewsCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
+            throw Refusal.REMOTE_NEWS_COMMENT_NEEDS_TEXT.raise();
         }
         var authorIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
         var comment = newsService.createComment(
@@ -176,15 +174,19 @@ public class RemoteNewsRoutes implements Routes {
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteNewsCommentUpdateRequest.class);
         if (req.content() == null || req.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
+            throw Refusal.REMOTE_NEWS_COMMENT_NEEDS_TEXT_ON_UPDATE.raise();
         }
-        var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+        var comment = newsService
+                .findCommentById(commentId)
+                .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_ON_UPDATE::raise);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
         if (!expectedIdentity.sameMember(comment.author())) {
-            throw new ForbiddenResponse("You can only edit your own comments");
+            throw Refusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_EDIT.raise();
         }
         newsService.updateComment(commentId, req.content());
-        var updated = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+        var updated = newsService
+                .findCommentById(commentId)
+                .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_AFTER_UPDATE::raise);
         ctx.json(toCommentResponse(updated));
     }
 
@@ -192,15 +194,17 @@ public class RemoteNewsRoutes implements Routes {
         var partner = FederationSession.requirePartner(ctx);
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteNewsCommentDeleteRequest.class);
-        var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+        var comment = newsService
+                .findCommentById(commentId)
+                .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_ON_DELETE::raise);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
         if (!expectedIdentity.sameMember(comment.author())) {
-            throw new ForbiddenResponse("You can only delete your own comments");
+            throw Refusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_DELETE.raise();
         }
         if (newsService.deleteComment(partner.stationId(), commentId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.REMOTE_NEWS_COMMENT_NOT_DELETED.raise();
         }
     }
 
@@ -212,7 +216,7 @@ public class RemoteNewsRoutes implements Routes {
     private void requireSharedNews(FederationPartner partner, int newsId) {
         var newsIds = newsFederationService.findSharedNewsIds(partner.id(), partner.stationId());
         if (!newsIds.contains(newsId)) {
-            throw new NotFoundResponse();
+            throw Refusal.NEWS_NOT_SHARED_WITH_PARTNER.raise();
         }
     }
 

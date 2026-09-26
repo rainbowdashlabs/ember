@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -42,12 +43,9 @@ import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import dev.chojo.ember.util.MailAddress;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NoContentResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.http.UploadedFile;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -238,7 +236,7 @@ public class StationManageRoutes implements Routes {
         stationService
                 .findById(session.stationId())
                 .ifPresentOrElse(station -> ctx.json(buildStationInfo(station, session)), () -> {
-                    throw new NotFoundResponse();
+                    throw Refusal.STATION_NOT_HERE_ON_MANAGE.raise();
                 });
     }
 
@@ -294,14 +292,14 @@ public class StationManageRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(UpdateStationRequest.class);
         if (request.name() == null || request.name().isBlank()) {
-            throw new BadRequestResponse("name is required");
+            throw Refusal.STATION_NEEDS_A_NAME_ON_CHANGE.raise();
         }
         if (request.timezone() != null && !request.timezone().isBlank()) {
             try {
                 ZoneId.of(request.timezone());
             } catch (ZoneRulesException e) {
                 log.warn("Invalid timezone: {}", request.timezone(), e);
-                throw new BadRequestResponse("Invalid timezone: " + request.timezone());
+                throw Refusal.STATION_TIME_ZONE_NOT_KNOWN.raise();
             }
             stationService.updateTimezone(session.stationId(), request.timezone());
         }
@@ -350,13 +348,14 @@ public class StationManageRoutes implements Routes {
                 stationService.updatePublicSlug(
                         session.stationId(), request.publicSlug().isBlank() ? null : request.publicSlug());
             } catch (IllegalArgumentException e) {
-                throw new BadRequestResponse(e.getMessage());
+                log.warn("Station {} could not be given the public address it asked for", session.stationId(), e);
+                throw Refusal.STATION_ADDRESS_NOT_USABLE.raise();
             }
         }
         stationService
                 .update(session.stationId(), request.name())
                 .ifPresentOrElse(station -> ctx.json(buildStationInfo(station, session)), () -> {
-                    throw new NotFoundResponse();
+                    throw Refusal.STATION_NOT_HERE_AFTER_CHANGE.raise();
                 });
     }
 
@@ -372,18 +371,18 @@ public class StationManageRoutes implements Routes {
     private void uploadLogo(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (stationService.lookAndFeelLocks(session.stationId()).logo()) {
-            throw new BadRequestResponse("The logo is set by the cluster this station belongs to");
+            throw Refusal.LOGO_SET_BY_CLUSTER.raise();
         }
         UploadedFile file = ctx.uploadedFile("logo");
         if (file == null) {
-            throw new BadRequestResponse("No file uploaded");
+            throw Refusal.LOGO_UPLOAD_MISSING_FILE.raise();
         }
         if (file.size() > MAX_LOGO_SIZE) {
-            throw new BadRequestResponse("Logo exceeds maximum size of 2 MB");
+            throw Refusal.LOGO_TOO_LARGE.raise();
         }
         String contentType = file.contentType();
         if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            throw new BadRequestResponse("Invalid file type. Allowed: PNG, JPEG, WebP, GIF");
+            throw Refusal.LOGO_KIND_NOT_TAKEN.raise();
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
@@ -391,7 +390,7 @@ public class StationManageRoutes implements Routes {
             ctx.json(new MessageResponse("Logo uploaded"));
         } catch (IOException e) {
             log.warn("Failed to read uploaded logo file", e);
-            throw new BadRequestResponse("Failed to read uploaded file");
+            throw Refusal.LOGO_NOT_READ.raise();
         }
     }
 
@@ -433,7 +432,9 @@ public class StationManageRoutes implements Routes {
             })
     private void getLogoByStation(Context ctx) {
         String uidParam = ctx.pathParam("stationId");
-        var station = stationService.findByUid(UUID.fromString(uidParam)).orElseThrow(NotFoundResponse::new);
+        var station = stationService
+                .findByUid(UUID.fromString(uidParam))
+                .orElseThrow(Refusal.STATION_NOT_HERE_FOR_LOGO::raise);
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         serveLogo(ctx, station.id(), size);
     }
@@ -523,7 +524,9 @@ public class StationManageRoutes implements Routes {
      */
     private void getNotificationSchedule(Context ctx) {
         var session = UserSession.from(ctx);
-        var schedule = scheduleRepository.forStation(session.stationId()).orElseThrow(NotFoundResponse::new);
+        var schedule = scheduleRepository
+                .forStation(session.stationId())
+                .orElseThrow(Refusal.NOTIFICATION_TIMES_NOT_SET::raise);
         ctx.json(new NotificationSchedulePayload(
                 schedule.sendTimes().stream().map(LocalTime::toString).toList(),
                 mailing.notificationDigestIntervalMinutes()));
@@ -543,7 +546,7 @@ public class StationManageRoutes implements Routes {
             try {
                 times.add(LocalTime.parse(raw));
             } catch (Exception e) {
-                throw new BadRequestResponse("'" + raw + "' is not a time of day");
+                throw Refusal.NOTIFICATION_TIME_NOT_A_TIME.raise();
             }
         }
         scheduleRepository.setStationSendTimes(session.stationId(), times);
@@ -618,7 +621,7 @@ public class StationManageRoutes implements Routes {
         // Emptying the list is what the delete route is for. A save that arrives empty is far more
         // often a client that failed to load it than a station meaning to stop sending.
         if (next.isEmpty() && !stored.isEmpty()) {
-            throw new BadRequestResponse("Refusing to replace the provider list with an empty one");
+            throw Refusal.MAIL_PROVIDER_LIST_EMPTY.raise();
         }
         mailProviderRepository.replace(session.stationId(), next);
         log.info("Station {} set {} mail fallback(s)", session.stationId(), next.size());
@@ -634,7 +637,7 @@ public class StationManageRoutes implements Routes {
         try {
             position = Integer.parseInt(ctx.pathParam("position"));
         } catch (NumberFormatException e) {
-            throw new BadRequestResponse("Invalid provider position: " + ctx.pathParam("position"));
+            throw Refusal.MAIL_PROVIDER_POSITION_NOT_A_NUMBER.raise();
         }
         var body = ctx.body().isBlank() ? null : ctx.bodyAsClass(ProviderTestRequest.class);
         String recipient = body == null ? null : body.recipient();
@@ -689,7 +692,7 @@ public class StationManageRoutes implements Routes {
     private void sendTestMail(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (mailProviderRepository.findByStation(session.stationId()).isEmpty()) {
-            throw new BadRequestResponse("No mail provider configured");
+            throw Refusal.NO_MAIL_PROVIDER_SET.raise();
         }
         var account = session.account();
         emailService.sendTestEmail(
@@ -769,7 +772,7 @@ public class StationManageRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int stationId = session.stationId();
         if (!stationRepository.isReadOnlyForTransfer(stationId)) {
-            throw new BadRequestResponse("Station is not in a moved state. Use request-delete for active stations.");
+            throw Refusal.STATION_NOT_MOVED.raise();
         }
         stationService.delete(stationId);
         ctx.json(new MessageResponse("Station deleted"));
@@ -788,14 +791,14 @@ public class StationManageRoutes implements Routes {
             })
     private void transferOwnership(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_ON_HANDOVER.raise();
         if (!stationService.isOwner(session.stationId(), session.member().id())) {
-            throw new ForbiddenResponse("Only the station owner can transfer ownership");
+            throw Refusal.ONLY_THE_OWNER_HANDS_OVER.raise();
         }
         var req = ctx.bodyAsClass(TransferOwnershipRequest.class);
         if (!stationService.transferOwnership(
                 session.stationId(), session.member().id(), req.newOwnerMemberId())) {
-            throw new BadRequestResponse("Target member must have the MANAGER role");
+            throw Refusal.NEW_OWNER_NOT_A_MANAGER.raise();
         }
         ctx.json(new MessageResponse("Ownership transferred"));
     }
@@ -816,13 +819,13 @@ public class StationManageRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(StationImportRequest.class);
         if (req.token() == null || req.token().isBlank()) {
-            throw new BadRequestResponse("token is required");
+            throw Refusal.IMPORT_NEEDS_A_TRANSFER_CODE.raise();
         }
         var parsed = StationExportService.parseToken(req.token())
-                .orElseThrow(() -> new BadRequestResponse("Invalid transfer token"));
+                .orElseThrow(Refusal.TRANSFER_CODE_NOT_GOOD_ON_IMPORT::raise);
         String sourceUrl = (req.sourceUrl() != null && !req.sourceUrl().isBlank()) ? req.sourceUrl() : parsed.host();
         if (sourceUrl == null || sourceUrl.isBlank()) {
-            throw new BadRequestResponse("token does not contain a source URL; sourceUrl is required");
+            throw Refusal.IMPORT_NEEDS_A_SOURCE.raise();
         }
         importService.startRemoteImportInto(session.stationId(), sourceUrl.replaceAll("/+$", ""), parsed.token());
         ctx.status(HttpStatus.CREATED).json(new MessageResponse("Import started"));
@@ -840,7 +843,7 @@ public class StationManageRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var progress = importService.getProgress(session.stationId());
         if (progress == null) {
-            throw new NotFoundResponse("No active import");
+            throw Refusal.NO_IMPORT_RUNNING.raise();
         }
         ctx.json(new ImportProgressResponse(
                 progress.stationId(),
@@ -864,11 +867,11 @@ public class StationManageRoutes implements Routes {
     private void confirmDelete(Context ctx) {
         String token = ctx.queryParam("token");
         if (token == null || token.isBlank()) {
-            throw new BadRequestResponse("token is required");
+            throw Refusal.STATION_DELETE_LINK_CARRIES_NOTHING.raise();
         }
         var stationIdOpt = authService.confirmStationDeletion(token);
         if (stationIdOpt.isEmpty()) {
-            throw new BadRequestResponse("Invalid or expired token");
+            throw Refusal.STATION_DELETE_LINK_UNKNOWN.raise();
         }
         stationService.delete(stationIdOpt.get());
         ctx.json(new MessageResponse("Station deleted"));
@@ -1047,7 +1050,7 @@ public class StationManageRoutes implements Routes {
      */
     private void liftMailBlock(Context ctx) {
         var provider = MailProviderType.fromName(ctx.queryParam("provider"))
-                .orElseThrow(() -> new BadRequestResponse("Unknown mail provider: " + ctx.queryParam("provider")));
+                .orElseThrow(Refusal.MAIL_PROVIDER_NOT_KNOWN::raise);
         blockRepository.lift(UserSession.from(ctx).stationId(), provider, ctx.queryParam("domain"));
         throw new NoContentResponse();
     }

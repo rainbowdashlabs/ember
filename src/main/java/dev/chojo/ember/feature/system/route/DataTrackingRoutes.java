@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.system.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.system.service.DataTrackingAdminService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -66,7 +66,8 @@ public class DataTrackingRoutes implements Routes {
             var updated = service.updateTable(table, payload);
             ctx.status(HttpStatus.OK).json(updated);
         } catch (IllegalArgumentException e) {
-            throw new NotFoundResponse(e.getMessage());
+            log.warn("Data tracking table {} could not be written", table, e);
+            throw Refusal.TRACKED_TABLE_NOT_HERE.raise();
         }
     }
 
@@ -76,7 +77,8 @@ public class DataTrackingRoutes implements Routes {
             var updated = service.verifyAllColumns(table);
             ctx.status(HttpStatus.OK).json(updated);
         } catch (IllegalArgumentException e) {
-            throw new NotFoundResponse(e.getMessage());
+            log.warn("Data tracking columns of table {} could not be checked", table, e);
+            throw Refusal.TRACKED_TABLE_NOT_HERE_ON_CHECK.raise();
         }
     }
 }

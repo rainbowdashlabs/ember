@@ -17,10 +17,7 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -119,7 +116,7 @@ public class ProcedureRoutes implements Routes {
     private void createTemplate(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(TemplateRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
+        if (req.name() == null || req.name().isBlank()) throw Refusal.PROCEDURE_TEMPLATE_NEEDS_A_NAME.raise();
         ctx.json(procedureService.createTemplate(
                 session.stationId(),
                 req.name(),
@@ -131,9 +128,9 @@ public class ProcedureRoutes implements Routes {
         int tid = pathInt(ctx, "tid");
         requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
         var req = ctx.bodyAsClass(TemplateRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
+        if (req.name() == null || req.name().isBlank()) throw Refusal.PROCEDURE_TEMPLATE_RENAME_NEEDS_A_NAME.raise();
         procedureService.updateTemplate(tid, req.name(), req.description()).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.PROCEDURE_TEMPLATE_NOT_HERE_TO_CHANGE.raise();
         });
     }
 
@@ -148,7 +145,7 @@ public class ProcedureRoutes implements Routes {
         int tid = pathInt(ctx, "tid");
         requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
         var req = ctx.bodyAsClass(ItemRequest.class);
-        if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
+        if (req.title() == null || req.title().isBlank()) throw Refusal.PROCEDURE_TEMPLATE_STEP_NEEDS_A_TITLE.raise();
         ctx.json(procedureService.createTemplateItem(
                 tid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position()));
     }
@@ -160,7 +157,7 @@ public class ProcedureRoutes implements Routes {
         var req = ctx.bodyAsClass(ItemRequest.class);
         if (!procedureService.updateTemplateItem(
                 iid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position())) {
-            throw new NotFoundResponse();
+            throw Refusal.PROCEDURE_TEMPLATE_STEP_NOT_HERE_TO_CHANGE.raise();
         }
         ctx.status(204);
     }
@@ -169,7 +166,7 @@ public class ProcedureRoutes implements Routes {
         requireOwnedOrNotFound(
                 ctx, pathInt(ctx, "tid"), procedureService::findTemplateById, ProcedureTemplate::stationId);
         int iid = pathInt(ctx, "iid");
-        if (!procedureService.deleteTemplateItem(iid)) throw new NotFoundResponse();
+        if (!procedureService.deleteTemplateItem(iid)) throw Refusal.PROCEDURE_TEMPLATE_STEP_NOT_HERE_TO_DELETE.raise();
         ctx.status(204);
     }
 
@@ -226,12 +223,12 @@ public class ProcedureRoutes implements Routes {
         var session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eid");
         String date = ctx.queryParam("date");
-        if (date == null || date.isBlank()) throw new BadRequestResponse("date is required");
+        if (date == null || date.isBlank()) throw Refusal.PROCEDURE_OCCURRENCE_DAY_MISSING.raise();
         LocalDate eventDate;
         try {
             eventDate = LocalDate.parse(date);
         } catch (DateTimeParseException e) {
-            throw new BadRequestResponse("date must be a calendar date");
+            throw Refusal.PROCEDURE_OCCURRENCE_DAY_NOT_A_DATE.raise();
         }
         ctx.json(procedureService.findProceduresByOccurrence(session.stationId(), eventId, eventDate));
     }
@@ -264,7 +261,7 @@ public class ProcedureRoutes implements Routes {
     private void createProcedure(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CreateProcedureRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
+        if (req.name() == null || req.name().isBlank()) throw Refusal.PROCEDURE_NEEDS_A_NAME.raise();
         var procedure = procedureService.createProcedure(
                 session.stationId(),
                 req.templateId(),
@@ -284,9 +281,9 @@ public class ProcedureRoutes implements Routes {
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         var req = ctx.bodyAsClass(UpdateProcedureRequest.class);
         if (!procedureService.updateProcedure(rid, req.name(), req.description(), req.isPublic(), req.dueAt())) {
-            throw new NotFoundResponse();
+            throw Refusal.PROCEDURE_NOT_HERE_TO_CHANGE.raise();
         }
-        ctx.json(procedureService.findProcedureById(rid).orElseThrow());
+        ctx.json(procedureService.findProcedureById(rid).orElseThrow(Refusal.PROCEDURE_NOT_HERE_AFTER_CHANGE::raise));
     }
 
     private void deleteProcedure(Context ctx) {
@@ -301,9 +298,10 @@ public class ProcedureRoutes implements Routes {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         if (!procedureService.resolveProcedure(rid, session.member().id())) {
-            throw new BadRequestResponse("Already resolved");
+            throw Refusal.PROCEDURE_ALREADY_DONE.raise();
         }
-        ctx.json(procedureService.findProcedureById(rid).orElseThrow());
+        ctx.json(
+                procedureService.findProcedureById(rid).orElseThrow(Refusal.PROCEDURE_NOT_HERE_AFTER_RESOLVING::raise));
     }
 
     private void reopenProcedure(Context ctx) {
@@ -311,9 +309,10 @@ public class ProcedureRoutes implements Routes {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         if (!procedureService.reopenProcedure(rid, session.member().id())) {
-            throw new BadRequestResponse("Already open");
+            throw Refusal.PROCEDURE_ALREADY_OPEN.raise();
         }
-        ctx.json(procedureService.findProcedureById(rid).orElseThrow());
+        ctx.json(
+                procedureService.findProcedureById(rid).orElseThrow(Refusal.PROCEDURE_NOT_HERE_AFTER_REOPENING::raise));
     }
 
     // ── Assignee endpoints ──
@@ -323,7 +322,7 @@ public class ProcedureRoutes implements Routes {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         var req = ctx.bodyAsClass(AssigneeRequest.class);
-        if (req.memberIds() == null || req.memberIds().isEmpty()) throw new BadRequestResponse("memberIds required");
+        if (req.memberIds() == null || req.memberIds().isEmpty()) throw Refusal.PROCEDURE_NAMES_NOBODY.raise();
         procedureService.addAssignees(rid, req.memberIds(), session.member().id());
         ctx.json(procedureService.findAssigneeIds(rid));
     }
@@ -342,7 +341,7 @@ public class ProcedureRoutes implements Routes {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         var req = ctx.bodyAsClass(ItemRequest.class);
-        if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
+        if (req.title() == null || req.title().isBlank()) throw Refusal.PROCEDURE_STEP_NEEDS_A_TITLE.raise();
         ctx.json(procedureService.createItem(
                 rid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position()));
     }
@@ -353,7 +352,7 @@ public class ProcedureRoutes implements Routes {
         var req = ctx.bodyAsClass(ItemRequest.class);
         if (!procedureService.updateItem(
                 iid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position())) {
-            throw new NotFoundResponse();
+            throw Refusal.PROCEDURE_STEP_NOT_HERE_TO_CHANGE.raise();
         }
         ctx.status(204);
     }
@@ -361,7 +360,7 @@ public class ProcedureRoutes implements Routes {
     private void deleteItem(Context ctx) {
         requireOwnedOrNotFound(ctx, pathInt(ctx, "rid"), procedureService::findProcedureById, Procedure::stationId);
         int iid = pathInt(ctx, "iid");
-        if (!procedureService.deleteItem(iid)) throw new NotFoundResponse();
+        if (!procedureService.deleteItem(iid)) throw Refusal.PROCEDURE_STEP_NOT_HERE_TO_DELETE.raise();
         ctx.status(204);
     }
 
@@ -377,21 +376,23 @@ public class ProcedureRoutes implements Routes {
             if (req.checked()) {
                 // Non-EDIT users can only check user-assigned items they're assigned to
                 if (!hasEdit) {
-                    var item = procedureService.findItemById(iid).orElseThrow(NotFoundResponse::new);
+                    var item = procedureService
+                            .findItemById(iid)
+                            .orElseThrow(Refusal.PROCEDURE_STEP_NOT_HERE_TO_TICK::raise);
                     if (!item.userAssigned()) {
-                        throw new ForbiddenResponse("Only PROCEDURE_EDIT can check non-user-assigned items");
+                        throw Refusal.PROCEDURE_STEP_NOT_YOURS_TO_TICK.raise();
                     }
                     var assignees = procedureService.findAssigneeIds(rid);
                     if (!assignees.contains(session.member().id())) {
-                        throw new ForbiddenResponse("Not assigned to this procedure");
+                        throw Refusal.PROCEDURE_NOT_HANDED_TO_YOU.raise();
                     }
                 }
                 if (!procedureService.checkItem(iid, session.member().id())) {
-                    throw new BadRequestResponse("Cannot check item - dependencies not met or already checked");
+                    throw Refusal.PROCEDURE_STEP_NOT_READY_TO_TICK.raise();
                 }
             } else {
                 if (!hasEdit) {
-                    throw new ForbiddenResponse("Only PROCEDURE_EDIT can uncheck items");
+                    throw Refusal.PROCEDURE_STEP_NOT_YOURS_TO_UNTICK.raise();
                 }
                 procedureService.uncheckItem(iid);
             }

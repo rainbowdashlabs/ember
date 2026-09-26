@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -15,7 +16,6 @@ import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService.MemberAccess;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 
 import java.util.List;
 
@@ -100,6 +100,6 @@ final class KbRouteAccess {
     static void requireLevel(
             Context ctx, KbAccessService accessService, Integer folderId, Integer fileId, KbAccessLevel required) {
         var level = accessService.effectiveLevel(accessOf(ctx, accessService), folderId, fileId);
-        if (!level.covers(required)) throw new NotFoundResponse();
+        if (!level.covers(required)) throw Refusal.KB_ENTRY_NOT_YOURS_TO_OPEN.raise();
     }
 }

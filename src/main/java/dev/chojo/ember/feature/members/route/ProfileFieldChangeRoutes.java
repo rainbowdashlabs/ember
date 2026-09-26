@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -18,8 +19,6 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -111,12 +110,12 @@ public class ProfileFieldChangeRoutes implements Routes {
     private void assertVisible(UserSession session, int memberId) {
         var visible = visibleMembers(session);
         if (visible.isEmpty()) {
-            var member = memberService.findById(memberId).orElseThrow(NotFoundResponse::new);
+            var member = memberService.findById(memberId).orElseThrow(Refusal.MEMBER_NOT_HERE_ON_CHANGE_HISTORY::raise);
             RouteSupport.requireSameStation(session, member.stationId());
             return;
         }
         if (!visible.get().contains(memberId)) {
-            throw new ForbiddenResponse("You may only see the members you manage");
+            throw Refusal.MEMBER_CHANGES_NOT_YOURS.raise();
         }
     }
 
@@ -203,7 +202,11 @@ public class ProfileFieldChangeRoutes implements Routes {
     private void acknowledge(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int changeId = pathInt(ctx, "changeId");
-        assertVisible(session, profileFieldService.findMemberOfChange(changeId).orElseThrow(NotFoundResponse::new));
+        assertVisible(
+                session,
+                profileFieldService
+                        .findMemberOfChange(changeId)
+                        .orElseThrow(Refusal.PROFILE_FIELD_CHANGE_NOT_HERE::raise));
         var request = ctx.bodyAsClass(AcknowledgeRequest.class);
         ctx.json(profileFieldService.acknowledge(changeId, session.member().id(), request.comment()));
     }

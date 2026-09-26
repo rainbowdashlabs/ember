@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.route;
 import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -37,8 +38,6 @@ import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentWord;
 import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -143,7 +142,7 @@ public class ManagedMemberRoutes implements Routes {
         var managed = memberService.findManaged(session.member().id());
         boolean manages = managed.stream().anyMatch(m -> m.id() == memberId);
         if (!manages) {
-            throw new ForbiddenResponse("You do not manage this member");
+            throw Refusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER.raise();
         }
     }
 
@@ -182,7 +181,9 @@ public class ManagedMemberRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         assertManages(session, memberId);
-        var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
+        var member = stationMemberRepository
+                .findById(memberId)
+                .orElseThrow(Refusal.MEMBER_NOT_HERE_ON_MANAGED_PROFILE::raise);
         var fields = applicableFields(member.stationId(), memberId);
         var values = profileFieldService.findValues(memberId);
         var fieldIds = fields.stream().map(ProfileField::id).collect(Collectors.toSet());
@@ -208,7 +209,9 @@ public class ManagedMemberRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         assertManages(session, memberId);
-        var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
+        var member = stationMemberRepository
+                .findById(memberId)
+                .orElseThrow(Refusal.MEMBER_NOT_HERE_ON_MANAGED_PROFILE_CHANGE::raise);
         var allowedFieldIds = applicableFields(member.stationId(), memberId).stream()
                 .map(ProfileField::id)
                 .collect(Collectors.toSet());
@@ -399,7 +402,9 @@ public class ManagedMemberRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         assertManages(session, memberId);
-        var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
+        var member = stationMemberRepository
+                .findById(memberId)
+                .orElseThrow(Refusal.MEMBER_NOT_HERE_ON_MANAGED_EQUIPMENT::raise);
         var required = checkService.getRequiredItems(member.stationId(), memberId);
         ctx.json(required.stream()
                 .map(r -> new MemberRequirement(r.inventoryId(), r.inventoryName(), r.requiredQuantity()))

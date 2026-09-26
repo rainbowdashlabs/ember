@@ -20,7 +20,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import {type StationUsageResponse, getStationUsage} from '@/api/storageMonitoring'
 import {buildStorageCategoryLabeler, formatBytes} from '@/util/storage'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {errorMessage} from '@/util/apiError'
+import {describeFailure} from '@/util/failure'
 import {darkThemeActive as isDark} from '@/util/themeState'
 import {
   StorageStatus,
@@ -36,7 +36,7 @@ const {config: usage, loading, error, reload: loadData} = useConfigPanel<Station
   initial: null,
   fetch: getStationUsage,
   immediate: false,
-  formatError: (e) => errorMessage(e) || 'Failed to load storage data',
+  formatError: (e) => describeFailure(e, t).message,
 })
 
 onMounted(loadData)

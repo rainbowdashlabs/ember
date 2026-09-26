@@ -31,7 +31,6 @@ import {findDanglingMemberRefs} from './datatrackingview/danglingMemberRefs'
 import TableFilterBar from './datatrackingview/TableFilterBar.vue'
 import BatchToolbar from './datatrackingview/BatchToolbar.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -142,7 +141,7 @@ const {running: batchSaving, run: applyBatch} = useAsyncAction(async () => {
       const updated = await dataTracking.updateDataTrackingTable(name, payload)
       successUpdates[name] = updated
     } catch (e) {
-      failures.push(`${name}: ${apiErrorMessage(e) ?? describeFailure(e, t).message}`)
+      failures.push(`${name}: ${describeFailure(e, t).message}`)
     }
   }
 

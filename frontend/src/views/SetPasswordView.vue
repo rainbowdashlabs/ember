@@ -17,14 +17,13 @@ import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useStations} from '@/composables/useStations'
 import {useCluster} from '@/composables/useCluster'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure} from '@/util/failure'
 import {decideSignInLanding} from '@/util/signInLanding'
 import LinkNoLongerGood from './setpasswordview/LinkNoLongerGood.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import type {PasswordLinkStatus} from '@/api/auth'
 
-const {t, te} = useI18n()
+const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {setActiveStation, clearActiveStation} = useStations()
@@ -106,10 +105,7 @@ const {running: loading, error: submitError, run: runSetPassword} = useAsyncActi
   if (landing.stationId) setActiveStation(landing.stationId)
   if (landing.clusterUid) setActiveCluster(landing.clusterUid)
   await router.push(landing.path)
-}, {formatError: (e) => {
-  const raw = apiErrorMessage(e)
-  return raw ? (te(raw) ? t(raw) : raw) : describeFailure(e, t).message
-}})
+}, {formatError: (e) => describeFailure(e, t).message})
 
 const error = computed(() => validationError.value || submitError.value)
 

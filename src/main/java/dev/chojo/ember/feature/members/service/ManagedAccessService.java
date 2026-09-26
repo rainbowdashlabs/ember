@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -168,15 +169,15 @@ public class ManagedAccessService {
         StationMember member = requireManaged(guardianMemberId, memberId);
         var account = account(member);
         if (account.hasRealEmail()) {
-            throw new ForbiddenResponse("This member has an address of their own and sets their own password");
+            throw Refusal.MANAGED_MEMBER_SETS_THEIR_OWN_PASSWORD.raise();
         }
         if (password == null || password.isBlank()) {
-            throw new BadRequestResponse("setPassword.passwordTooShort");
+            throw Refusal.MANAGED_PASSWORD_TOO_SHORT.raise();
         }
         switch (authService.setPasswordFor(account, password)) {
-            case PASSWORD_TOO_SHORT -> throw new BadRequestResponse("setPassword.passwordTooShort");
-            case PASSWORD_BREACHED -> throw new BadRequestResponse("setPassword.passwordBreached");
-            case PASSWORDLESS_MODE -> throw new ForbiddenResponse("setPassword.passwordlessMode");
+            case PASSWORD_TOO_SHORT -> throw Refusal.MANAGED_PASSWORD_TOO_SHORT.raise();
+            case PASSWORD_BREACHED -> throw Refusal.MANAGED_PASSWORD_BREACHED.raise();
+            case PASSWORDLESS_MODE -> throw Refusal.MANAGED_PASSWORD_NOT_TAKEN.raise();
             default ->
                 log.info(
                         "Guardian {} set the password of managed member {} (account {})",

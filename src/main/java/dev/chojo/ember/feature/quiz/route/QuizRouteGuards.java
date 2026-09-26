@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.quiz.service.QuizAttemptService;
 import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.feature.quiz.service.QuizTestService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -99,7 +98,7 @@ public class QuizRouteGuards {
      */
     public QuizTest requireModifiableTest(Context ctx) {
         var test = requireOwnedTest(ctx, pathInt(ctx, "id"));
-        if (test.status() == TestStatus.ACTIVE) throw new BadRequestResponse("Cannot modify active test");
+        if (test.status() == TestStatus.ACTIVE) throw Refusal.QUIZ_TEST_RUNNING_CANNOT_CHANGE.raise();
         return test;
     }
 
@@ -110,7 +109,7 @@ public class QuizRouteGuards {
      */
     public QuizTestAttempt requireMemberAttempt(Context ctx, UserSession session) {
         int attemptId = pathInt(ctx, "id");
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.QUIZ_ATTEMPT_NEEDS_MEMBERSHIP.raise();
         var attempt =
                 attemptService.findAttemptById(attemptId).orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE_FOR_MEMBER::raise);
         if (attempt.memberId() != session.member().id()) throw Refusal.QUIZ_ATTEMPT_NOT_YOURS.raise();

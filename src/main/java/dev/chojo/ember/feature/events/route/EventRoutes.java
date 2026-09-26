@@ -35,10 +35,8 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -322,7 +320,7 @@ public class EventRoutes implements Routes {
         try {
             return LocalDate.parse(value);
         } catch (DateTimeParseException e) {
-            throw new BadRequestResponse("from and to must be dates of the form yyyy-MM-dd");
+            throw Refusal.EVENT_LIST_BOUNDS_NOT_DATES.raise();
         }
     }
 
@@ -553,10 +551,9 @@ public class EventRoutes implements Routes {
     }
 
     private void validate(EventRequest req) {
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
-        if (req.startTime() == null || req.endTime() == null)
-            throw new BadRequestResponse("startTime and endTime are required");
-        if (req.eventType() == null) throw new BadRequestResponse("eventType is required");
+        if (req.name() == null || req.name().isBlank()) throw Refusal.EVENT_NEEDS_A_NAME.raise();
+        if (req.startTime() == null || req.endTime() == null) throw Refusal.EVENT_NEEDS_A_TIME.raise();
+        if (req.eventType() == null) throw Refusal.EVENT_NEEDS_A_KIND.raise();
     }
 
     /**
@@ -702,7 +699,7 @@ public class EventRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(BatchCreateRequest.class);
         if (req.rows() == null || req.rows().isEmpty()) {
-            throw new BadRequestResponse("rows are required");
+            throw Refusal.BATCH_NEEDS_ROWS.raise();
         }
         List<BatchFieldEntry> inlineFields = req.inlineFields() != null
                 ? req.inlineFields().stream()
@@ -759,7 +756,7 @@ public class EventRoutes implements Routes {
                 LocalDate.parse(req.to()),
                 generatedBy);
         if (pdf.isEmpty()) {
-            throw new InternalServerErrorResponse("PDF generation failed");
+            throw Refusal.EVENT_LIST_NOT_DRAWN.raise();
         }
         ctx.contentType("application/pdf");
         ctx.header("Content-Disposition", pdf.get().contentDisposition());

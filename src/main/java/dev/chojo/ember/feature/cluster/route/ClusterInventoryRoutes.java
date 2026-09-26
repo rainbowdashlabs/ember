@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
@@ -21,10 +22,8 @@ import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -285,7 +284,7 @@ public class ClusterInventoryRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(ClusterStepOrderRequest.class);
         if (request.stepIds() == null || request.stepIds().isEmpty()) {
-            throw new BadRequestResponse("Name the steps in the order they are to be walked");
+            throw Refusal.CLUSTER_CHAIN_ORDER_NEEDS_STEPS.raise();
         }
         inventoryService.reorderSteps(cluster.id(), pathInt(ctx, "flowId"), request.stepIds());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -329,7 +328,7 @@ public class ClusterInventoryRoutes implements Routes {
 
     private static void requireStepFields(ClusterStepRequest request) {
         if (request.actor() == null || request.subject() == null || request.custodyAfter() == null) {
-            throw new BadRequestResponse("actor, subject and custodyAfter are required");
+            throw Refusal.CLUSTER_STEP_DETAILS_MISSING.raise();
         }
     }
 
@@ -402,7 +401,7 @@ public class ClusterInventoryRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(DispatchRequest.class);
-        if (request.stationUid() == null) throw new BadRequestResponse("stationUid is required");
+        if (request.stationUid() == null) throw Refusal.CLUSTER_DISPATCH_NEEDS_A_STATION.raise();
 
         // Acting for the owner: this is the cluster's own store the gear is leaving
         var actor = new ItemMovementService.Actor(
@@ -437,7 +436,7 @@ public class ClusterInventoryRoutes implements Routes {
     private void setLossReportSettings(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(LossReportSettings.class);
-        if (request.requires() == null) throw new BadRequestResponse("requires is required");
+        if (request.requires() == null) throw Refusal.CLUSTER_LOSS_REPORT_NEEDS_A_REQUIREMENT.raise();
         inventoryService.setLossReportRequires(cluster.id(), request.requires());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -445,16 +444,16 @@ public class ClusterInventoryRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw new BadRequestResponse("No cluster selected");
-        return clusterService.findById(clusterId).orElseThrow(NotFoundResponse::new);
+        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_CLUSTER_INVENTORY.raise();
+        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_CLUSTER_INVENTORY::raise);
     }
 
     private static MovementPurpose parsePurpose(String raw) {
-        if (raw == null || raw.isBlank()) throw new BadRequestResponse("A chain needs a purpose");
+        if (raw == null || raw.isBlank()) throw Refusal.CLUSTER_CHAIN_NEEDS_A_PURPOSE.raise();
         try {
             return MovementPurpose.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("No such purpose: " + raw);
+            throw Refusal.CLUSTER_CHAIN_PURPOSE_UNKNOWN.raise(raw);
         }
     }
 

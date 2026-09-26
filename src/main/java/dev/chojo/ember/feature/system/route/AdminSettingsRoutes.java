@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.system.route;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import dev.chojo.ember.api.MessageResponse;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
@@ -46,7 +47,6 @@ import dev.chojo.ember.feature.system.service.DatabaseLogAppender;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import dev.chojo.ember.util.MailAddress;
 import dev.chojo.ember.util.PandocConverter;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -146,17 +146,17 @@ public class AdminSettingsRoutes implements Routes {
     /**
      * Parses the {@code locale} path parameter, validates it against
      * {@link #SAFE_LOCALE}, and checks that the resolved directory stays inside
-     * {@code base}. Throws {@link BadRequestResponse} on any
-     * mismatch so the route returns 400 with a static, user-safe message.
+     * {@code base}. Refuses on any mismatch so the route returns 400 with a
+     * static, user-safe message.
      */
     private static String safeLocale(Context ctx, Path base) {
         String locale = ctx.pathParam("locale");
         if (locale == null || !SAFE_LOCALE.matcher(locale).matches()) {
-            throw new BadRequestResponse("Invalid locale");
+            throw Refusal.SETTINGS_LOCALE_NOT_A_LANGUAGE.raise();
         }
         Path resolved = base.resolve(locale).normalize();
         if (!resolved.startsWith(base.normalize())) {
-            throw new BadRequestResponse("Invalid locale");
+            throw Refusal.SETTINGS_LOCALE_OUT_OF_PLACE.raise();
         }
         return locale;
     }
@@ -167,7 +167,7 @@ public class AdminSettingsRoutes implements Routes {
         // caught here rather than escaping the legal directory.
         Path resolved = base.resolve(locale).normalize();
         if (!resolved.startsWith(base.normalize())) {
-            throw new BadRequestResponse("Invalid locale");
+            throw Refusal.SETTINGS_LOCALE_FOLDER_OUT_OF_PLACE.raise();
         }
         return resolved;
     }
@@ -181,7 +181,7 @@ public class AdminSettingsRoutes implements Routes {
 
     private static void requireRange(int value, int min, int max, String field) {
         if (value < min || value > max) {
-            throw new BadRequestResponse(field + " must be between " + min + " and " + max);
+            throw Refusal.SETTING_OUT_OF_RANGE.raise(field);
         }
     }
 
@@ -463,7 +463,7 @@ public class AdminSettingsRoutes implements Routes {
         settingRepository.setBoolean(FORCE_PRIDE_FLAG, request.forcePrideFlag());
         if (request.defaultMailLocale() != null && !request.defaultMailLocale().isBlank()) {
             if (!availableMailLocales().contains(request.defaultMailLocale())) {
-                throw new BadRequestResponse("No mail templates exist for " + request.defaultMailLocale());
+                throw Refusal.NO_MAIL_WRITTEN_IN_THAT_LANGUAGE.raise(request.defaultMailLocale());
             }
             settingRepository.set(ApplicationSettingRepository.DEFAULT_MAIL_LOCALE, request.defaultMailLocale());
         }
@@ -507,7 +507,7 @@ public class AdminSettingsRoutes implements Routes {
         requireRange(request.sessionMinutes(), 5, 43200, "sessionMinutes");
         requireRange(request.untrustedSessionMinutes(), 5, 43200, "untrustedSessionMinutes");
         if (request.untrustedSessionMinutes() > request.sessionMinutes()) {
-            throw new BadRequestResponse("An untrusted device may not keep a session longer than a trusted one");
+            throw Refusal.UNTRUSTED_SESSION_OUTLASTS_TRUSTED.raise();
         }
         var auth = conf.main().auth();
         try {
@@ -528,7 +528,7 @@ public class AdminSettingsRoutes implements Routes {
     private void generateTokenPepper(Context ctx) {
         var auth = conf.main().auth();
         if (auth.tokenPepper() != null && !auth.tokenPepper().isBlank()) {
-            throw new BadRequestResponse("tokenPepper is already configured");
+            throw Refusal.TOKEN_PEPPER_ALREADY_SET.raise();
         }
         byte[] random = new byte[48];
         new SecureRandom().nextBytes(random);
@@ -566,7 +566,7 @@ public class AdminSettingsRoutes implements Routes {
         requireRange(request.staleAfterDays(), 1, 365, "staleAfterDays");
         requireRange(request.timeoutSeconds(), 1, 30, "timeoutSeconds");
         if (request.endpoint() == null || request.endpoint().isBlank()) {
-            throw new BadRequestResponse("endpoint is required");
+            throw Refusal.PASSWORD_LEAK_CHECK_NEEDS_AN_ADDRESS.raise();
         }
         var hibp = conf.main().auth().hibp();
         try {
@@ -615,7 +615,7 @@ public class AdminSettingsRoutes implements Routes {
     private void generateTwoFactorSecretKey(Context ctx) {
         var twoFactor = conf.main().auth().twoFactor();
         if (twoFactor.secretKey() != null && !twoFactor.secretKey().isBlank()) {
-            throw new BadRequestResponse("twoFactor.secretKey is already configured");
+            throw Refusal.TWO_FACTOR_SECRET_KEY_ALREADY_SET.raise();
         }
         byte[] random = new byte[32];
         new SecureRandom().nextBytes(random);
@@ -654,12 +654,12 @@ public class AdminSettingsRoutes implements Routes {
         requireRange(request.periodSeconds(), 15, 60, "periodSeconds");
         requireRange(request.driftWindow(), 0, 3, "driftWindow");
         if (request.issuer() == null || request.issuer().isBlank()) {
-            throw new BadRequestResponse("issuer is required");
+            throw Refusal.AUTHENTICATOR_NEEDS_AN_ISSUER.raise();
         }
         String algorithm =
                 request.algorithm() == null ? "" : request.algorithm().toUpperCase(Locale.ROOT);
         if (!TOTP_ALGORITHMS.contains(algorithm)) {
-            throw new BadRequestResponse("algorithm must be one of SHA1, SHA256, SHA512");
+            throw Refusal.AUTHENTICATOR_ALGORITHM_UNKNOWN.raise();
         }
         var totp = conf.main().auth().twoFactor().totp();
         try {
@@ -713,7 +713,7 @@ public class AdminSettingsRoutes implements Routes {
         String attestation =
                 request.attestation() == null ? "" : request.attestation().toLowerCase(Locale.ROOT);
         if (!WEBAUTHN_ATTESTATIONS.contains(attestation)) {
-            throw new BadRequestResponse("attestation must be one of none, indirect, direct");
+            throw Refusal.SECURITY_KEY_ATTESTATION_UNKNOWN.raise();
         }
         var webauthn = WebAuthnSettings.resolvedFrom(conf.main().auth());
         try {
@@ -747,7 +747,7 @@ public class AdminSettingsRoutes implements Routes {
             })
     private void sendTestMail(Context ctx) {
         if (!emailService.isGlobalMailConfigured()) {
-            throw new BadRequestResponse("No mail provider configured");
+            throw Refusal.INSTANCE_HAS_NO_MAIL_PROVIDER.raise();
         }
         UserSession session = UserSession.from(ctx);
         var account = session.account();
@@ -766,7 +766,7 @@ public class AdminSettingsRoutes implements Routes {
         try {
             position = Integer.parseInt(ctx.pathParam("position"));
         } catch (NumberFormatException e) {
-            throw new BadRequestResponse("Invalid provider position: " + ctx.pathParam("position"));
+            throw Refusal.INSTANCE_MAIL_PROVIDER_POSITION_NOT_A_NUMBER.raise(ctx.pathParam("position"));
         }
         var body = ctx.body().isBlank() ? null : ctx.bodyAsClass(ProviderTestRequest.class);
         String recipient = body == null ? null : body.recipient();
@@ -823,7 +823,7 @@ public class AdminSettingsRoutes implements Routes {
      */
     private void liftMailBlock(Context ctx) {
         var provider = MailProviderType.fromName(ctx.queryParam("provider"))
-                .orElseThrow(() -> new BadRequestResponse("Unknown mail provider: " + ctx.queryParam("provider")));
+                .orElseThrow(Refusal.MAIL_PROVIDER_KIND_UNKNOWN::raise);
         blockRepository.lift(null, provider, ctx.queryParam("domain"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -916,7 +916,7 @@ public class AdminSettingsRoutes implements Routes {
                 ? "DEBUG"
                 : request.databaseLevel().toUpperCase(Locale.ROOT);
         if (!LOG_LEVELS.contains(level)) {
-            throw new BadRequestResponse("Unknown log level: " + request.databaseLevel());
+            throw Refusal.LOG_LEVEL_UNKNOWN.raise(request.databaseLevel());
         }
         requireRange(request.retentionDays(), 1, 3650, "retentionDays");
         var logging = conf.main().logging();
@@ -1059,7 +1059,7 @@ public class AdminSettingsRoutes implements Routes {
         // often a client that failed to load it than an operator meaning to stop sending, and the
         // difference is not recoverable: the fields the first provider used to live in go with it.
         if (next.isEmpty() && !stored.isEmpty()) {
-            throw new BadRequestResponse("Refusing to replace the provider list with an empty one");
+            throw Refusal.INSTANCE_MAIL_PROVIDER_LIST_EMPTY.raise();
         }
         try {
             setField(Mailing.class, mailing, "providers", next);
@@ -1287,7 +1287,7 @@ public class AdminSettingsRoutes implements Routes {
             return PandocConverter.toMarkdown(data, format);
         } catch (Exception e) {
             log.warn("Legal document conversion failed", e);
-            throw new BadRequestResponse("Document conversion failed");
+            throw Refusal.LEGAL_DOCUMENT_NOT_READ.raise();
         }
     }
 
@@ -1328,7 +1328,7 @@ public class AdminSettingsRoutes implements Routes {
             markdown = request.markdown();
         }
         if (markdown == null || markdown.isBlank()) {
-            throw new BadRequestResponse("markdown is required");
+            throw Refusal.LEGAL_DOCUMENT_NEEDS_TEXT.raise();
         }
         var imported = LegalImportService.normalise(markdown);
         var files = imported.sections().stream()
@@ -1390,7 +1390,7 @@ public class AdminSettingsRoutes implements Routes {
         try {
             return LegalDocumentType.fromSlug(ctx.pathParam("type"));
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Invalid legal document type: " + ctx.pathParam("type"));
+            throw Refusal.LEGAL_DOCUMENT_KIND_UNKNOWN.raise(ctx.pathParam("type"));
         }
     }
 

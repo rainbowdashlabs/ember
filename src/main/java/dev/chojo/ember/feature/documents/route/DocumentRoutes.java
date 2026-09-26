@@ -21,7 +21,6 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UploadedFile;
@@ -181,8 +180,8 @@ public class DocumentRoutes implements Routes {
      */
     private Document take(Context ctx, int stationId, List<Integer> memberIds, UserSession session) throws IOException {
         UploadedFile file = ctx.uploadedFile("file");
-        if (file == null) throw new BadRequestResponse("file is required");
-        if (file.size() > MAX_UPLOAD_SIZE) throw new BadRequestResponse("File too large (max 50MB)");
+        if (file == null) throw Refusal.DOCUMENT_UPLOAD_MISSING_FILE.raise();
+        if (file.size() > MAX_UPLOAD_SIZE) throw Refusal.DOCUMENT_UPLOAD_TOO_LARGE.raise();
 
         String title = ctx.formParam("title");
         if (title == null || title.isBlank()) title = file.filename();

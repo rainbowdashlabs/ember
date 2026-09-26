@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.form.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Failures;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
@@ -36,12 +37,8 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.CsvWriter;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -52,6 +49,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -74,6 +73,8 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  */
 @Singleton
 public class FormRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(FormRoutes.class);
+
     private final FormService formService;
     private final StationMemberService stationMemberService;
     private final FormAnalyticsAssembler analyticsAssembler;
@@ -181,8 +182,8 @@ public class FormRoutes implements Routes {
         FormPurpose purpose;
         try {
             purpose = FormPurpose.valueOf(purposeParam);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Unknown form purpose: " + purposeParam);
+        } catch (IllegalArgumentException _) {
+            throw Refusal.FORM_KIND_UNKNOWN.raise(purposeParam);
         }
         ctx.json(formService.findByStationAndPurpose(session.stationId(), purpose));
     }
@@ -208,13 +209,13 @@ public class FormRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         String purposeParam = ctx.queryParam("purpose");
         if (purposeParam == null || purposeParam.isBlank()) {
-            throw new BadRequestResponse("purpose query parameter is required");
+            throw Refusal.FORM_KIND_NOT_NAMED.raise();
         }
         FormPurpose purpose;
         try {
             purpose = FormPurpose.valueOf(purposeParam);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Unknown form purpose: " + purposeParam);
+        } catch (IllegalArgumentException _) {
+            throw Refusal.FORM_KIND_UNKNOWN_ON_SEARCH.raise(purposeParam);
         }
         String uidParam = ctx.queryParam("uid");
         if (uidParam != null && !uidParam.isBlank()) {
@@ -320,8 +321,8 @@ public class FormRoutes implements Routes {
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(FormRequest.class);
-        if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (req.title() == null || req.title().isBlank()) throw Refusal.FORM_NEEDS_A_TITLE.raise();
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_ON_FORM_CREATION.raise();
         var form = formService.create(
                 session.stationId(),
                 req.title(),
@@ -414,7 +415,7 @@ public class FormRoutes implements Routes {
     private void publish(Context ctx) {
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, UserSession.from(ctx));
-        if (form.status() != Form.FormStatus.DRAFT) throw new BadRequestResponse("Form is not in DRAFT status");
+        if (form.status() != Form.FormStatus.DRAFT) throw Refusal.FORM_NOT_A_DRAFT.raise();
         formService.publish(id);
 
         respondWithForm(ctx, id);
@@ -436,13 +437,14 @@ public class FormRoutes implements Routes {
         var form = requireOwnedForm(id, UserSession.from(ctx));
         var request = ctx.bodyAsClass(VisibilityRequest.class);
         if (request.visibility() == null) {
-            throw new BadRequestResponse("Say how far the form is to reach");
+            throw Refusal.FORM_REACH_NOT_SAID.raise();
         }
         if (!formService.setVisibility(id, request.visibility())) {
             throw Refusal.FORM_NOT_HERE_ON_VISIBILITY_CHANGE.raise();
         }
         ctx.json(new VisibilityResponse(
-                formService.findById(id).orElseThrow(), stillHeldBy(form, request.visibility())));
+                formService.findById(id).orElseThrow(Refusal.FORM_NOT_HERE_AFTER_VISIBILITY_CHANGE::raise),
+                stillHeldBy(form, request.visibility())));
     }
 
     /**
@@ -495,11 +497,11 @@ public class FormRoutes implements Routes {
      * from "this one has not been given one yet". The second is the case the button offering to make
      * the first link stands on.
      *
-     * @throws BadRequestResponse where the form is answered by the station's own members
+     * <p>Refused where the form is answered by the station's own members.
      */
     private static void requireSendableByLink(Form form) {
         if (form.purpose() == FormPurpose.INTERNAL) {
-            throw new BadRequestResponse("A form for the station's own members is not sent by link");
+            throw Refusal.INTERNAL_FORM_HAS_NO_LINK.raise();
         }
     }
 
@@ -520,8 +522,7 @@ public class FormRoutes implements Routes {
         var request = ctx.bodyAsClass(ReplaceShareLinkRequest.class);
         var replaced = formService
                 .replaceShareLink(id, request.currentToken())
-                .orElseThrow(
-                        () -> new ConflictResponse("This form has been given a different link since you last looked"));
+                .orElseThrow(Refusal.FORM_LINK_ALREADY_REPLACED::raise);
         ctx.json(new ShareLinkResponse(replaced));
     }
 
@@ -593,8 +594,7 @@ public class FormRoutes implements Routes {
                 .distinct()
                 .toList();
         if (!disallowed.isEmpty()) {
-            throw new BadRequestResponse(
-                    "Question type(s) %s are not allowed for form purpose %s".formatted(disallowed, form.purpose()));
+            throw Refusal.QUESTIONS_NOT_FOR_THIS_KIND_OF_FORM.raise();
         }
         formService.replaceQuestions(
                 id,
@@ -665,7 +665,7 @@ public class FormRoutes implements Routes {
     private void getMyResponse(Context ctx) {
         int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_READING_OWN_ANSWER.raise();
         requireOwnedForm(id, session);
         var response = formService.findResponse(id, session.member().id());
         if (response.isEmpty()) {
@@ -713,11 +713,11 @@ public class FormRoutes implements Routes {
     private void submitResponse(Context ctx) {
         int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_ANSWERING_FORM.raise();
         var form = requireOwnedForm(id, session);
-        if (!formService.isAcceptingResponses(form)) throw new BadRequestResponse("Form is not accepting responses");
+        if (!formService.isAcceptingResponses(form)) throw Refusal.FORM_TAKES_NO_ANSWERS.raise();
         if (!formService.canMemberAccess(id, session.member().id())) {
-            throw new ForbiddenResponse("You do not have access to this form");
+            throw Refusal.FORM_NOT_YOURS_TO_ANSWER.raise();
         }
         var req = ctx.bodyAsClass(SubmitRequest.class);
         try {
@@ -725,7 +725,9 @@ public class FormRoutes implements Routes {
                     id, session.member().id(), session.member().id(), req.answers());
             ctx.status(HttpStatus.CREATED).json(response);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+            throw Failures.readable(e.getMessage())
+                    .map(Refusal.FORM_ANSWERS_NOT_SAVED::raise)
+                    .orElseGet(Refusal.FORM_ANSWERS_NOT_SAVED::raise);
         }
     }
 
@@ -743,11 +745,11 @@ public class FormRoutes implements Routes {
     private void updateResponse(Context ctx) {
         int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_CHANGING_FORM_ANSWER.raise();
         var form = requireOwnedForm(id, session);
-        if (!form.allowEdit()) throw new BadRequestResponse("Form does not allow editing");
+        if (!form.allowEdit()) throw Refusal.FORM_ANSWER_NOT_CHANGEABLE.raise();
         if (!formService.canMemberAccess(id, session.member().id())) {
-            throw new ForbiddenResponse("You do not have access to this form");
+            throw Refusal.FORM_NOT_YOURS_TO_CHANGE_ANSWER.raise();
         }
         var req = ctx.bodyAsClass(SubmitRequest.class);
         try {
@@ -755,7 +757,9 @@ public class FormRoutes implements Routes {
                     id, session.member().id(), session.member().id(), req.answers());
             ctx.json(response);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+            throw Failures.readable(e.getMessage())
+                    .map(Refusal.FORM_ANSWER_CHANGE_NOT_SAVED::raise)
+                    .orElseGet(Refusal.FORM_ANSWER_CHANGE_NOT_SAVED::raise);
         }
     }
 
@@ -808,18 +812,18 @@ public class FormRoutes implements Routes {
         int id = pathInt(ctx, "id");
         int memberId = pathInt(ctx, "memberId");
         UserSession session = UserSession.from(ctx);
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_ANSWERING_FOR_MEMBER.raise();
         verifyManages(session, memberId);
         var form = requireOwnedForm(id, session);
         if (creating) {
             if (!formService.isAcceptingResponses(form)) {
-                throw new BadRequestResponse("Form is not accepting responses");
+                throw Refusal.FORM_TAKES_NO_ANSWERS_FOR_MEMBER.raise();
             }
         } else if (!form.allowEdit()) {
-            throw new BadRequestResponse("Form does not allow editing");
+            throw Refusal.FORM_ANSWER_NOT_CHANGEABLE_FOR_MEMBER.raise();
         }
         if (!formService.canMemberAccess(id, memberId)) {
-            throw new ForbiddenResponse("The member does not have access to this form");
+            throw Refusal.FORM_NOT_FOR_THIS_MEMBER.raise();
         }
         var req = ctx.bodyAsClass(SubmitRequest.class);
         try {
@@ -831,22 +835,24 @@ public class FormRoutes implements Routes {
                 ctx.json(response);
             }
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+            throw Failures.readable(e.getMessage())
+                    .map(Refusal.FORM_ANSWERS_FOR_MEMBER_NOT_SAVED::raise)
+                    .orElseGet(Refusal.FORM_ANSWERS_FOR_MEMBER_NOT_SAVED::raise);
         }
     }
 
     /**
-     * Verifies that the current user manages the specified member or has POLL_MANAGER role.
+     * Verifies that the current user manages the specified member or has POLL_MANAGER role, and
+     * refuses when neither holds.
      *
      * @param session  the current user session
      * @param memberId the member ID to verify management of
-     * @throws ForbiddenResponse if the user does not manage the member and lacks POLL_MANAGER role
      */
     private void verifyManages(UserSession session, int memberId) {
         boolean manages =
                 stationMemberService.findManaged(session.member().id()).stream().anyMatch(m -> m.id() == memberId);
         if (!manages && !session.hasPermission(StationPermission.POLL_MANAGER)) {
-            throw new ForbiddenResponse("You do not manage this member");
+            throw Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR.raise();
         }
     }
 
@@ -886,7 +892,7 @@ public class FormRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, session);
         if (form.purpose() != FormPurpose.INTERNAL) {
-            throw new BadRequestResponse("Only the results of an internal form can be grouped by who answered");
+            throw Refusal.ONLY_INTERNAL_FORM_GROUPED_BY_WHO_ANSWERED.raise();
         }
         ctx.json(analyticsAssembler.buildAnalytics(id, ctx.bodyAsClass(FormResultQuery.class)));
     }
@@ -911,7 +917,8 @@ public class FormRoutes implements Routes {
             ctx.header("Content-Disposition", document.contentDisposition());
             ctx.result(document.bytes());
         } catch (Exception e) {
-            throw new InternalServerErrorResponse("Export failed");
+            log.warn("Answers of form {} could not be exported", id, e);
+            throw Refusal.FORM_ANSWERS_NOT_EXPORTED.raise();
         }
     }
 

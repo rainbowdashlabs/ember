@@ -7,12 +7,13 @@ package dev.chojo.ember.feature.storage.route;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
 import dev.chojo.ember.feature.storage.credential.StoredCredentials;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -43,7 +44,7 @@ public class StorageBackendPayloads {
      *
      * @param request what came in
      * @return the configuration to store, probe or migrate to
-     * @throws BadRequestResponse when the host is not one this instance may reach, or credentials are missing
+     * @throws RefusalResponse when the host is not one this instance may reach, or credentials are missing
      */
     public StationStorageBackendConfig toEntity(BackendOverrideRequest request) {
         return switch (request) {
@@ -117,20 +118,20 @@ public class StorageBackendPayloads {
 
     private void requireAllowedHost(String host) {
         if (!urlValidator.isHostAllowed(host)) {
-            throw new BadRequestResponse("Storage backend host is not a permitted address");
+            throw Refusal.STORAGE_ADDRESS_NOT_ALLOWED.raise();
         }
     }
 
     private EncryptedBlob encryptS3(S3Request r) {
         if (r.accessKey() == null || r.secretKey() == null) {
-            throw new BadRequestResponse("S3 override requires accessKey and secretKey");
+            throw Refusal.STORAGE_KEYS_MISSING.raise();
         }
         return credentialCipher.encrypt(new StoredCredentials.S3(r.accessKey(), r.secretKey()).toJson());
     }
 
     private EncryptedBlob encryptSmb(SmbRequest r) {
         if (r.username() == null || r.password() == null) {
-            throw new BadRequestResponse("SMB override requires username and password");
+            throw Refusal.STORAGE_SIGN_IN_MISSING.raise();
         }
         return credentialCipher.encrypt(new StoredCredentials.Smb(r.username(), r.password()).toJson());
     }
@@ -139,7 +140,7 @@ public class StorageBackendPayloads {
         boolean hasPassword = r.password() != null && !r.password().isBlank();
         boolean hasKey = r.privateKey() != null && !r.privateKey().isBlank();
         if (hasPassword == hasKey) {
-            throw new BadRequestResponse("SFTP override requires exactly one of password or privateKey");
+            throw Refusal.STORAGE_SIGN_IN_AMBIGUOUS.raise();
         }
         return credentialCipher.encrypt(new StoredCredentials.Sftp(
                         r.username(),

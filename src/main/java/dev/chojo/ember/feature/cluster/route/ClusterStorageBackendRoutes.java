@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
@@ -27,11 +28,8 @@ import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.ProbeResult;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
 import dev.chojo.ember.feature.storage.service.StorageMigrationService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -123,7 +121,7 @@ public class ClusterStorageBackendRoutes implements Routes {
     private void setPolicy(Context ctx) {
         Cluster cluster = requireActive(ctx);
         PolicyRequest request = ctx.bodyAsClass(PolicyRequest.class);
-        if (request.reach() == null) throw new BadRequestResponse("reach is required");
+        if (request.reach() == null) throw Refusal.CLUSTER_STORAGE_POLICY_NEEDS_A_REACH.raise();
         backendService.setPolicy(cluster.id(), request.reach(), request.locked());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -137,7 +135,7 @@ public class ClusterStorageBackendRoutes implements Routes {
     private void probe(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var policy = backendService.findPolicy(cluster.id());
-        if (policy.current() == null) throw new BadRequestResponse("This cluster keeps no storage of its own");
+        if (policy.current() == null) throw Refusal.CLUSTER_KEEPS_NO_STORAGE.raise();
         ctx.json(probeOf(policy.current().config()));
     }
 
@@ -212,7 +210,7 @@ public class ClusterStorageBackendRoutes implements Routes {
         Actor actor = actor(ctx);
         int stationId = stationRepository
                 .findByUid(parseUid(ctx.pathParam("stationUid")))
-                .orElseThrow(() -> new NotFoundResponse("No such station"))
+                .orElseThrow(Refusal.STATION_NOT_HERE_ON_CLUSTER_STORAGE_MOVE::raise)
                 .id();
 
         auditService.recordMigration(actor, stationId, StorageAuditAction.MIGRATION_STARTED, null, null, null);
@@ -222,7 +220,7 @@ public class ClusterStorageBackendRoutes implements Routes {
         } catch (MigrationException e) {
             auditService.recordMigration(
                     actor, stationId, StorageAuditAction.MIGRATION_FAILED, null, null, e.getMessage());
-            throw new BadRequestResponse("Move failed: " + e.getMessage());
+            throw Refusal.CLUSTER_STORAGE_MOVE_FAILED.raise();
         }
         auditService.recordMigration(actor, stationId, StorageAuditAction.MIGRATION_COMPLETED, null, null, null);
         ctx.json(new MigrationResponse(
@@ -245,20 +243,20 @@ public class ClusterStorageBackendRoutes implements Routes {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Not a station identifier");
+            throw Refusal.STATION_NOT_AN_IDENTITY_ON_CLUSTER_STORAGE_MOVE.raise();
         }
     }
 
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw new BadRequestResponse("No cluster selected");
-        return clusterService.findById(clusterId).orElseThrow(NotFoundResponse::new);
+        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_STORAGE_BACKEND.raise();
+        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_STORAGE_BACKEND::raise);
     }
 
     private Actor actor(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        if (session.account() == null) throw new ForbiddenResponse("No account in session");
+        if (session.account() == null) throw Refusal.NO_ACCOUNT_IN_SESSION_FOR_STORAGE_MOVE.raise();
         Integer memberId = session.member() != null ? session.member().id() : null;
         return Actor.human(session.account().id(), memberId);
     }

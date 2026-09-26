@@ -5,16 +5,15 @@
  */
 package dev.chojo.ember.feature.members.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.FilterTableType;
 import dev.chojo.ember.feature.members.entity.SavedFilter;
 import dev.chojo.ember.feature.members.repository.SavedFilterRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -74,7 +73,7 @@ public class SavedFilterRoutes implements Routes {
         var session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateFilterRequest.class);
         if (request.tableType() == null || request.name() == null || request.filterData() == null) {
-            throw new BadRequestResponse("tableType, name and filterData are required");
+            throw Refusal.SAVED_FILTER_DETAILS_MISSING.raise();
         }
         var existing = repository.findByAccountAndTable(session.accountId(), request.tableType());
         var filter = repository.create(
@@ -95,7 +94,7 @@ public class SavedFilterRoutes implements Routes {
         if (repository.delete(id, session.accountId())) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.SAVED_FILTER_NOT_HERE_ON_DELETE.raise();
         }
     }
 

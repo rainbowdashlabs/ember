@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.protocol.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -27,11 +28,8 @@ import dev.chojo.ember.feature.protocol.service.TestProtocolService.SharedProtoc
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentWord;
 import dev.chojo.ember.util.SafeContentDisposition;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.InternalServerErrorResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -159,7 +157,7 @@ public class TestProtocolRoutes implements Routes {
     private void createProtocol(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(ProtocolRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
+        if (req.name() == null || req.name().isBlank()) throw Refusal.PROTOCOL_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(service.createProtocol(
                         session.stationId(),
@@ -182,9 +180,9 @@ public class TestProtocolRoutes implements Routes {
         var req = ctx.bodyAsClass(ProtocolRequest.class);
         if (!service.updateProtocol(
                 id, req.name(), req.description() != null ? req.description() : "", req.passThreshold())) {
-            throw new NotFoundResponse();
+            throw Refusal.PROTOCOL_NOT_CHANGED.raise();
         }
-        ctx.json(service.findProtocol(id).orElseThrow());
+        ctx.json(service.findProtocol(id).orElseThrow(Refusal.PROTOCOL_NOT_HERE_AFTER_CHANGE::raise));
     }
 
     private void deleteProtocol(Context ctx) {
@@ -337,14 +335,14 @@ public class TestProtocolRoutes implements Routes {
         guards.requireRun(ctx, id);
         var req = ctx.bodyAsClass(RunRequest.class);
         service.updateRun(id, req.name(), req.testDate() != null ? req.testDate() : LocalDate.now());
-        ctx.json(service.findRun(id).orElseThrow());
+        ctx.json(service.findRun(id).orElseThrow(Refusal.PROTOCOL_RUN_NOT_HERE_AFTER_CHANGE::raise));
     }
 
     private void closeRun(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireRun(ctx, id);
         service.closeRun(id);
-        ctx.json(service.findRun(id).orElseThrow());
+        ctx.json(service.findRun(id).orElseThrow(Refusal.PROTOCOL_RUN_NOT_HERE_AFTER_CLOSING::raise));
     }
 
     private void deleteRun(Context ctx) {
@@ -360,9 +358,10 @@ public class TestProtocolRoutes implements Routes {
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         guards.requireRun(ctx, runId);
         if (!service.lockMember(runId, memberId, session.member().id())) {
-            throw new BadRequestResponse("Member is already locked by another tester");
+            throw Refusal.PROTOCOL_MEMBER_HELD_BY_ANOTHER_TESTER.raise();
         }
-        ctx.json(service.findRunMember(runId, memberId).orElseThrow());
+        ctx.json(service.findRunMember(runId, memberId)
+                .orElseThrow(Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_LOCKING::raise));
     }
 
     private void unlockMember(Context ctx) {
@@ -370,7 +369,8 @@ public class TestProtocolRoutes implements Routes {
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         guards.requireRun(ctx, runId);
         service.unlockMember(runId, memberId);
-        ctx.json(service.findRunMember(runId, memberId).orElseThrow());
+        ctx.json(service.findRunMember(runId, memberId)
+                .orElseThrow(Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_UNLOCKING::raise));
     }
 
     private void getChecks(Context ctx) {
@@ -395,7 +395,8 @@ public class TestProtocolRoutes implements Routes {
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         var run = guards.requireRun(ctx, runId);
         service.completeMember(runId, memberId, run.protocolId());
-        ctx.json(service.findRunMember(runId, memberId).orElseThrow());
+        ctx.json(service.findRunMember(runId, memberId)
+                .orElseThrow(Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_COMPLETION::raise));
     }
 
     private void getSectionsDone(Context ctx) {
@@ -419,7 +420,8 @@ public class TestProtocolRoutes implements Routes {
     private void getEvaluation(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var run = guards.requireRun(ctx, id);
-        var proto = service.findProtocol(run.protocolId()).orElseThrow(NotFoundResponse::new);
+        var proto = service.findProtocol(run.protocolId())
+                .orElseThrow(Refusal.PROTOCOL_NOT_HERE_BEHIND_RUN_TO_EVALUATE::raise);
         var sections = service.findSections(run.protocolId());
         var allItems = service.findAllItemsByProtocol(run.protocolId());
         var members = service.findRunMembers(id);
@@ -460,7 +462,8 @@ public class TestProtocolRoutes implements Routes {
     private void exportAllZip(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var run = guards.requireRun(ctx, id);
-        var proto = service.findProtocol(run.protocolId()).orElseThrow(NotFoundResponse::new);
+        var proto = service.findProtocol(run.protocolId())
+                .orElseThrow(Refusal.PROTOCOL_NOT_HERE_BEHIND_RUN_TO_EXPORT::raise);
         var members = service.findRunMembers(id);
 
         try {
@@ -488,7 +491,7 @@ public class TestProtocolRoutes implements Routes {
             ctx.result(baos.toByteArray());
         } catch (Exception e) {
             log.error("Test protocol export failed", e);
-            throw new InternalServerErrorResponse("Internal server error");
+            throw Refusal.PROTOCOL_RUN_NOT_EXPORTED.raise();
         }
     }
 
@@ -515,7 +518,8 @@ public class TestProtocolRoutes implements Routes {
     private void exportEvaluationPdf(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var run = guards.requireRun(ctx, id);
-        var proto = service.findProtocol(run.protocolId()).orElseThrow(NotFoundResponse::new);
+        var proto = service.findProtocol(run.protocolId())
+                .orElseThrow(Refusal.PROTOCOL_NOT_HERE_BEHIND_RUN_FOR_TABLE::raise);
         byte[] pdf = pdfService.exportEvaluationTable(id, proto.name(), run.testDate());
         ctx.contentType("application/pdf");
         ctx.header("Content-Disposition", protocolName(proto.name(), "pdf", DocumentWord.EVALUATION.in("de")));
@@ -526,7 +530,8 @@ public class TestProtocolRoutes implements Routes {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         var run = guards.requireRun(ctx, runId);
-        var proto = service.findProtocol(run.protocolId()).orElseThrow(NotFoundResponse::new);
+        var proto = service.findProtocol(run.protocolId())
+                .orElseThrow(Refusal.PROTOCOL_NOT_HERE_BEHIND_RUN_FOR_MEMBER_SHEET::raise);
         byte[] pdf = pdfService.exportRunMember(runId, memberId, proto.name(), run.testDate());
         ctx.contentType("application/pdf");
         ctx.header("Content-Disposition", protocolName(proto.name(), "pdf", resolveMemberNameForFile(memberId)));

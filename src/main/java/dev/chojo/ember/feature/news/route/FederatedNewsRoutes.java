@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.news.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -12,7 +13,6 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedCommentAuthor;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -112,7 +112,7 @@ public class FederatedNewsRoutes implements Routes {
     private NewsRoutes.CommentRequest requireContent(Context ctx) {
         var req = ctx.bodyAsClass(NewsRoutes.CommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
+            throw Refusal.FEDERATED_NEWS_COMMENT_NEEDS_TEXT.raise();
         }
         return req;
     }

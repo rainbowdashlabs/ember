@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
@@ -16,10 +17,8 @@ import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.system.service.ProblemReportScreenshotService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -80,7 +79,7 @@ public class ProblemReportRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateReportRequest.class);
         if (request.message() == null || request.message().isBlank()) {
-            throw new BadRequestResponse("message is required");
+            throw Refusal.PROBLEM_REPORT_NEEDS_A_MESSAGE.raise();
         }
         Integer memberId = session.member() != null ? session.member().id() : null;
         // Kept before the report is written, so a picture that cannot be stored fails the whole
@@ -177,9 +176,10 @@ public class ProblemReportRoutes implements Routes {
             })
     private void screenshot(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var report = repository.findById(id).orElseThrow(NotFoundResponse::new);
-        if (!report.hasScreenshot()) throw new NotFoundResponse();
-        var picture = screenshots.read(report.screenshotFileId()).orElseThrow(NotFoundResponse::new);
+        var report = repository.findById(id).orElseThrow(Refusal.PROBLEM_REPORT_NOT_HERE::raise);
+        if (!report.hasScreenshot()) throw Refusal.PROBLEM_REPORT_HAS_NO_PICTURE.raise();
+        var picture =
+                screenshots.read(report.screenshotFileId()).orElseThrow(Refusal.PROBLEM_REPORT_PICTURE_NOT_HERE::raise);
         ctx.contentType(picture.contentType()).result(picture.data());
     }
 

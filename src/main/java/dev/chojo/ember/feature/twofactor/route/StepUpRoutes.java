@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.twofactor.route;
 
 import dev.chojo.ember.api.RateLimits;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -22,10 +23,7 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.util.ClientIp;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.UnauthorizedResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -90,7 +88,7 @@ public class StepUpRoutes implements Routes {
         if (!twoFactorService
                 .availableProofs(session.accountId(), session.sessionId())
                 .contains(StepUpProof.ANOTHER_DEVICE)) {
-            throw new ForbiddenResponse("No other device of this account could confirm");
+            throw Refusal.NO_OTHER_DEVICE_TO_CONFIRM.raise();
         }
         var request = ctx.bodyAsClass(DeviceStepUpBeginRequest.class);
         var created = deviceRequestService.createStepUpRequest(
@@ -111,7 +109,7 @@ public class StepUpRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(DeviceStepUpPollRequest.class);
         if (request.pollSecret() == null || request.pollSecret().isBlank()) {
-            throw new BadRequestResponse("pollSecret is required");
+            throw Refusal.DEVICE_STEP_UP_POLL_SECRET_MISSING.raise();
         }
         RateLimits.enforce(rateLimiter.tryDevicePoll(clientIp(ctx), request.pollSecret()));
         var result = deviceRequestService.poll(request.pollSecret(), Set.of(DeviceRequestPurpose.STEP_UP));
@@ -136,12 +134,12 @@ public class StepUpRoutes implements Routes {
      */
     private static StepUpCategory parseCategory(String raw) {
         if (raw == null || raw.isBlank()) {
-            throw new BadRequestResponse("category is required");
+            throw Refusal.STEP_UP_CATEGORY_MISSING.raise();
         }
         try {
             return StepUpCategory.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Unknown step-up category");
+            throw Refusal.STEP_UP_CATEGORY_UNKNOWN.raise();
         }
     }
 
@@ -161,14 +159,12 @@ public class StepUpRoutes implements Routes {
 
         var request = ctx.bodyAsClass(PasswordStepUpRequest.class);
         if (request.password() == null || request.password().isBlank()) {
-            throw new BadRequestResponse("password is required");
+            throw Refusal.STEP_UP_PASSWORD_MISSING.raise();
         }
 
         Set<StepUpProof> proofs = twoFactorService.availableProofs(session.accountId());
         if (!proofs.contains(StepUpProof.PASSWORD)) {
-            // An account with a second factor is asked for the factor; accepting the password
-            // there would hand somebody holding a phished password a way past it.
-            throw new ForbiddenResponse("A password is not a proof for this account");
+            throw Refusal.PASSWORD_IS_NOT_A_PROOF_HERE.raise();
         }
 
         if (!authService.verifyPassword(session.accountId(), request.password())) {
@@ -179,7 +175,7 @@ public class StepUpRoutes implements Routes {
                     null,
                     ctx.userAgent(),
                     ctx.header("CF-IPCountry"));
-            throw new UnauthorizedResponse("Password verification failed");
+            throw Refusal.STEP_UP_PASSWORD_WRONG.raise();
         }
 
         twoFactorService.markSessionTwoFactorVerified(session.sessionId(), StepUpProof.PASSWORD);
@@ -196,7 +192,7 @@ public class StepUpRoutes implements Routes {
     private void beginPasskeyStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (!twoFactorService.availableProofs(session.accountId()).contains(StepUpProof.PASSKEY)) {
-            throw new ForbiddenResponse("This account holds no passkey");
+            throw Refusal.NO_PASSKEY_TO_CONFIRM_WITH.raise();
         }
         var start = passkeyService.startStepUp(session.accountId());
         ctx.json(new PasskeyStepUpBeginResponse(start.challengeToken(), start.optionsJson()));
@@ -206,7 +202,7 @@ public class StepUpRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(PasskeyStepUpFinishRequest.class);
         if (request.challengeToken() == null || request.credentialJson() == null) {
-            throw new BadRequestResponse("challengeToken and credentialJson are required");
+            throw Refusal.PASSKEY_STEP_UP_DETAILS_MISSING.raise();
         }
         RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
         if (!passkeyService.finishStepUp(session.accountId(), request.challengeToken(), request.credentialJson())) {
@@ -217,7 +213,7 @@ public class StepUpRoutes implements Routes {
                     TwoFactorKind.WEBAUTHN,
                     ctx.userAgent(),
                     ctx.header("CF-IPCountry"));
-            throw new UnauthorizedResponse("Passkey verification failed");
+            throw Refusal.PASSKEY_STEP_UP_REFUSED.raise();
         }
         twoFactorService.markSessionTwoFactorVerified(session.sessionId(), StepUpProof.PASSKEY);
         auditService.record(

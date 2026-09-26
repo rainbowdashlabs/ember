@@ -24,7 +24,6 @@ import type {
   DiscoveryPeerSource,
   DiscoverySettings,
 } from '@/api/discovery'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure} from '@/util/failure'
 import DiscoveryIdentityCard from './DiscoveryIdentityCard.vue'
 import DiscoverySettingsCard from './DiscoverySettingsCard.vue'
@@ -106,7 +105,7 @@ async function saveSettings() {
 const {running: probing, failure: probeFailure, run: probe} = useAsyncAction(async () => {
   probeResult.value = null
   probeResult.value = await discovery.probeDiscoveryPeer(probeBaseUrl.value.trim())
-}, {formatError: (e) => apiErrorMessage(e) ?? t('adminDiscovery.probeFailed')})
+}, {formatError: (e) => describeFailure(e, t).message})
 
 async function addPeer() {
   if (!probeBaseUrl.value.trim()) return

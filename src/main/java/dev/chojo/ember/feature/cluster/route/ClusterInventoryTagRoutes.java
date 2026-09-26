@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
@@ -13,10 +14,8 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterInventoryTag;
 import dev.chojo.ember.feature.cluster.service.ClusterInventoryTagService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -125,8 +124,8 @@ public class ClusterInventoryTagRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw new BadRequestResponse("No cluster selected");
-        return clusterService.findById(clusterId).orElseThrow(NotFoundResponse::new);
+        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_INVENTORY_TAGS.raise();
+        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_INVENTORY_TAGS::raise);
     }
 
     /**

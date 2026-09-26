@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
@@ -15,11 +16,8 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -152,7 +150,7 @@ public class TransferRoutes implements Routes {
     private void tokenListTables(Context ctx) {
         String token = ctx.pathParam("token");
         int stationId =
-                exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+                exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_TABLES::raise);
         String importingFrom = ctx.header("X-Ember-Importing-From");
         log.info(
                 "tables manifest requested for station {} by destination {} - flipping read-only flag",
@@ -185,11 +183,10 @@ public class TransferRoutes implements Routes {
             })
     private void tokenExportTable(Context ctx) {
         String token = ctx.pathParam("token");
-        int stationId =
-                exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+        int stationId = exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_TABLE::raise);
         String table = ctx.pathParam("table");
         if (!exportService.getTableOrder().contains(table)) {
-            throw new BadRequestResponse("Unknown table: " + table);
+            throw Refusal.TRANSFER_PART_UNKNOWN.raise(table);
         }
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(500);
@@ -208,8 +205,7 @@ public class TransferRoutes implements Routes {
             responses = {@OpenApiResponse(status = "204"), @OpenApiResponse(status = "403")})
     private void tokenAbortTransfer(Context ctx) {
         String token = ctx.pathParam("token");
-        int stationId =
-                exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+        int stationId = exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_ABORT::raise);
         log.info("destination requested abort for station {}", stationId);
         exportService.abortTransfer(stationId);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -227,7 +223,7 @@ public class TransferRoutes implements Routes {
     private void tokenCompleteTransfer(Context ctx) {
         String token = ctx.pathParam("token");
         int stationId =
-                exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
+                exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_COMPLETE::raise);
         String header = ctx.header("X-Ember-Importing-From");
         String destinationUrl = header != null && !header.isBlank()
                 ? header
@@ -262,13 +258,12 @@ public class TransferRoutes implements Routes {
     private void startImport(Context ctx) {
         var req = ctx.bodyAsClass(ImportRequest.class);
         if (req.token() == null || req.token().isBlank()) {
-            throw new BadRequestResponse("token is required");
+            throw Refusal.TRANSFER_TOKEN_MISSING.raise();
         }
-        var parsed = StationExportService.parseToken(req.token())
-                .orElseThrow(() -> new BadRequestResponse("Invalid transfer token"));
+        var parsed = StationExportService.parseToken(req.token()).orElseThrow(Refusal.TRANSFER_TOKEN_UNREADABLE::raise);
         String sourceUrl = (req.sourceUrl() != null && !req.sourceUrl().isBlank()) ? req.sourceUrl() : parsed.host();
         if (sourceUrl == null || sourceUrl.isBlank()) {
-            throw new BadRequestResponse("token does not contain a source URL; sourceUrl is required");
+            throw Refusal.TRANSFER_SOURCE_MISSING.raise();
         }
         sourceUrl = sourceUrl.replaceAll("/+$", "");
         var result = importService.startRemoteImport(sourceUrl, parsed.token());
@@ -289,7 +284,7 @@ public class TransferRoutes implements Routes {
         UUID stationUid = pathUuid(ctx, "stationUid");
         var progress = importService.getProgressByUid(stationUid);
         if (progress == null) {
-            throw new NotFoundResponse("No active import for station " + stationUid);
+            throw Refusal.TRANSFER_IMPORT_NOT_RUNNING.raise();
         }
         ctx.json(new ImportProgressResponse(
                 progress.stationId(),

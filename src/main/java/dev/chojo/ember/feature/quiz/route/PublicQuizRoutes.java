@@ -5,14 +5,13 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -47,7 +46,7 @@ public class PublicQuizRoutes implements Routes {
             try {
                 out.add(Integer.parseInt(trimmed));
             } catch (NumberFormatException ignored) {
-                throw new BadRequestResponse("catalogs contains a non-numeric id: " + trimmed);
+                throw Refusal.PUBLIC_QUIZ_CATALOG_NOT_A_NUMBER.raise();
             }
         }
         return out;
@@ -70,9 +69,9 @@ public class PublicQuizRoutes implements Routes {
         try {
             uid = UUID.fromString(uidParam);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Invalid station ID");
+            throw Refusal.PUBLIC_QUIZ_STATION_LINK_NOT_GOOD.raise();
         }
-        return stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);
+        return stationRepository.findByUid(uid).orElseThrow(Refusal.PUBLIC_QUIZ_STATION_NOT_HERE::raise);
     }
 
     private void listPublicCatalogs(Context ctx) {
@@ -87,12 +86,13 @@ public class PublicQuizRoutes implements Routes {
         var station = resolveStation(ctx);
         String catalogsParam = ctx.queryParam("catalogs");
         if (catalogsParam == null || catalogsParam.isBlank()) {
-            throw new BadRequestResponse("catalogs query parameter is required");
+            throw Refusal.PUBLIC_QUIZ_CATALOGS_NOT_NAMED.raise();
         }
         var ids = parseCatalogIds(catalogsParam);
-        if (ids.isEmpty()) throw new BadRequestResponse("catalogs query parameter is empty");
-        var picked =
-                catalogRepository.findRandomPublicQuestion(station.id(), ids).orElseThrow(NotFoundResponse::new);
+        if (ids.isEmpty()) throw Refusal.PUBLIC_QUIZ_CATALOGS_EMPTY.raise();
+        var picked = catalogRepository
+                .findRandomPublicQuestion(station.id(), ids)
+                .orElseThrow(Refusal.PUBLIC_QUIZ_NO_QUESTION_HERE::raise);
         ctx.header("Cache-Control", "no-store, no-cache, must-revalidate");
         ctx.json(toPublicQuestion(picked));
     }

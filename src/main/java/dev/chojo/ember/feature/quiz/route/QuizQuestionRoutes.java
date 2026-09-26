@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -15,11 +16,8 @@ import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionReportService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionSanitizer;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.InternalServerErrorResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -109,9 +107,10 @@ public class QuizQuestionRoutes implements Routes {
      */
     private void acknowledgeReport(Context ctx) {
         int reportId = pathInt(ctx, "id");
-        int catalogId = reportService.findCatalogOfReport(reportId).orElseThrow(NotFoundResponse::new);
+        int catalogId =
+                reportService.findCatalogOfReport(reportId).orElseThrow(Refusal.QUIZ_QUESTION_NOTE_NOT_HERE::raise);
         guards.requireOwnedCatalog(ctx, catalogId);
-        if (!reportService.acknowledge(reportId)) throw new NotFoundResponse();
+        if (!reportService.acknowledge(reportId)) throw Refusal.QUIZ_QUESTION_NOTE_NOT_CLEARED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -136,8 +135,8 @@ public class QuizQuestionRoutes implements Routes {
         int catalogId = pathInt(ctx, "id");
         guards.requireOwnedCatalog(ctx, catalogId);
         var req = ctx.bodyAsClass(QuestionRequest.class);
-        if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
-        if (req.quizQuestionType() == null) throw new BadRequestResponse("questionType is required");
+        if (req.title() == null || req.title().isBlank()) throw Refusal.QUIZ_QUESTION_NEEDS_A_TITLE.raise();
+        if (req.quizQuestionType() == null) throw Refusal.QUIZ_QUESTION_NEEDS_A_KIND.raise();
         var question = questionService.createQuestion(
                 CreateQuestionCommand.builder(catalogId, req.quizQuestionType(), req.title())
                         .category(req.categoryId())
@@ -165,10 +164,10 @@ public class QuizQuestionRoutes implements Routes {
                 req.autoPoints() == null || req.autoPoints(),
                 req.configString(),
                 req.position() != null ? req.position() : 0)) {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_QUESTION_NOT_CHANGED.raise();
         }
         questionService.findQuestion(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_QUESTION_NOT_HERE_AFTER_CHANGE.raise();
         });
     }
 
@@ -178,7 +177,7 @@ public class QuizQuestionRoutes implements Routes {
         if (questionService.deleteQuestion(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_QUESTION_NOT_DELETED.raise();
         }
     }
 
@@ -195,7 +194,7 @@ public class QuizQuestionRoutes implements Routes {
                             ctx.result(img.data());
                         },
                         () -> {
-                            throw new NotFoundResponse("No image");
+                            throw Refusal.QUIZ_QUESTION_PICTURE_NOT_HERE.raise();
                         });
     }
 
@@ -205,10 +204,10 @@ public class QuizQuestionRoutes implements Routes {
         guards.requireOwnedQuestion(ctx, id);
         var file = ctx.uploadedFile("image");
         if (file == null) {
-            throw new BadRequestResponse("No file uploaded");
+            throw Refusal.QUIZ_PICTURE_UPLOAD_WITHOUT_FILE.raise();
         }
         if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
-            throw new BadRequestResponse("Invalid file type. Allowed: PNG, JPEG, WebP");
+            throw Refusal.QUIZ_PICTURE_KIND_NOT_TAKEN.raise();
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
@@ -216,10 +215,10 @@ public class QuizQuestionRoutes implements Routes {
             ctx.json(new QuizSuccessResponse(true));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument storing question image for question {}", id, e);
-            throw new BadRequestResponse(e.getMessage());
+            throw Refusal.QUIZ_PICTURE_NOT_SAVED.raise();
         } catch (IOException e) {
             log.error("Failed to process question image for question {}", id, e);
-            throw new InternalServerErrorResponse("Failed to process image");
+            throw Refusal.QUIZ_PICTURE_NOT_PROCESSED.raise();
         }
     }
 

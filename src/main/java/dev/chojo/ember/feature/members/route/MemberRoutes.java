@@ -27,10 +27,7 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.ProvisionException;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -110,7 +107,7 @@ public class MemberRoutes implements Routes {
     private void requireNotAboveActor(Account target, UserSession actor) {
         if (target.instanceUserType() == InstanceUserType.ADMINISTRATOR
                 && actor.instanceUserType() != InstanceUserType.ADMINISTRATOR) {
-            throw new ForbiddenResponse("Instance administrators can only be managed by an instance administrator");
+            throw Refusal.ACCOUNT_ABOVE_YOU.raise();
         }
     }
 
@@ -149,7 +146,7 @@ public class MemberRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(AccountActionRequest.class);
         if (request.accountId() == null) {
-            throw new BadRequestResponse("accountId is required");
+            throw Refusal.ACCOUNT_NOT_NAMED_ON_ONBOARDING_AGAIN.raise();
         }
         requireStationAccount(request.accountId(), session);
         requireNotAboveActor(
@@ -167,7 +164,7 @@ public class MemberRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(AccountActionRequest.class);
         if (request.accountId() == null) {
-            throw new BadRequestResponse("accountId is required");
+            throw Refusal.ACCOUNT_NOT_NAMED_ON_PASSKEY_CODE.raise();
         }
         requireStationAccount(request.accountId(), session);
         Account target = accountRepository
@@ -175,7 +172,7 @@ public class MemberRoutes implements Routes {
                 .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CODE::raise);
         requireNotAboveActor(target, session);
         if (target.hasRealEmail()) {
-            throw new ForbiddenResponse("This member has an address of their own; the mail path is theirs");
+            throw Refusal.MEMBER_HAS_OWN_ADDRESS.raise();
         }
 
         var issued = enrollmentService.issueCodeWithQr(
@@ -221,7 +218,7 @@ public class MemberRoutes implements Routes {
         boolean administersInstance = session.hasInstancePermission(InstancePermission.ADMINISTRATOR);
         if (actsForSomebodyElse && !administersInstance) {
             if (!session.hasPermission(StationPermission.MEMBER_EDIT)) {
-                throw new ForbiddenResponse("Updating another account requires the member edit permission");
+                throw Refusal.ACCOUNT_NOT_YOURS_TO_CHANGE.raise();
             }
             requireStationAccount(accountId, session);
         }
@@ -263,7 +260,7 @@ public class MemberRoutes implements Routes {
         }
         var outcome = authService.requestEmailChange(accountId, request.email());
         if (outcome == AuthService.EmailChangeResult.DUPLICATE) {
-            throw new BadRequestResponse("This email address already belongs to another account");
+            throw Refusal.ACCOUNT_ADDRESS_TAKEN.raise();
         }
         ctx.json(new UpdateAccountResponse("Account updated", outcome));
     }
@@ -284,7 +281,7 @@ public class MemberRoutes implements Routes {
     private void invite(Context ctx) {
         var request = ctx.bodyAsClass(InviteRequest.class);
         if (isBlank(request.firstName()) || isBlank(request.lastName())) {
-            throw new BadRequestResponse("firstName and lastName are required");
+            throw Refusal.INVITE_NAME_MISSING.raise();
         }
 
         UserSession session = UserSession.from(ctx);
@@ -303,8 +300,8 @@ public class MemberRoutes implements Routes {
                             provisioned.email(),
                             provisioned.firstName(),
                             provisioned.lastName()));
-        } catch (ProvisionException e) {
-            throw new ConflictResponse(e.getMessage());
+        } catch (ProvisionException ignored) {
+            throw Refusal.MEMBER_NOT_PROVISIONED.raise();
         }
     }
 
@@ -324,7 +321,7 @@ public class MemberRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(ResetPasswordRequest.class);
         if (request.accountId() == null) {
-            throw new BadRequestResponse("accountId is required");
+            throw Refusal.ACCOUNT_NOT_NAMED_ON_PASSWORD_RESET.raise();
         }
         requireStationAccount(request.accountId(), session);
         requireNotAboveActor(

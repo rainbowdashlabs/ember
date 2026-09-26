@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -17,7 +18,6 @@ import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -228,8 +228,8 @@ public class InventoryShareRoutes implements Routes {
 
     private SetShareRequest readBody(Context ctx) {
         var body = ctx.bodyAsClass(SetShareRequest.class);
-        if (body.grant() == null) throw new BadRequestResponse("grant is required");
-        if (body.scope() == null) throw new BadRequestResponse("scope is required");
+        if (body.grant() == null) throw Refusal.SHARE_GRANT_MISSING.raise();
+        if (body.scope() == null) throw Refusal.SHARE_SCOPE_MISSING.raise();
         return body;
     }
 

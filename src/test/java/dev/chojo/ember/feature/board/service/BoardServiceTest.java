@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.board.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
@@ -32,8 +34,7 @@ import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
+import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -450,8 +451,13 @@ class BoardServiceTest extends RepositoryTestBase {
                         StationUserType.MEMBER,
                         null)));
 
-        assertThrows(NotFoundResponse.class, () -> guards.requireViewAccess(boardId, session));
-        assertThrows(ForbiddenResponse.class, () -> guards.requireEditAccess(boardId, session));
+        var hidden = assertThrows(RefusalResponse.class, () -> guards.requireViewAccess(boardId, session));
+        assertEquals(Refusal.BOARD_NOT_HERE_OR_NOT_YOURS, hidden.refusal());
+        assertEquals(HttpStatus.NOT_FOUND.getCode(), hidden.getStatus());
+
+        var uneditable = assertThrows(RefusalResponse.class, () -> guards.requireEditAccess(boardId, session));
+        assertEquals(Refusal.BOARD_NOT_YOURS_TO_EDIT, uneditable.refusal());
+        assertEquals(HttpStatus.FORBIDDEN.getCode(), uneditable.getStatus());
 
         boardService.setViewAccess(boardId, List.of(), List.of(), List.of());
     }

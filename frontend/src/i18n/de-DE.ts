@@ -308,10 +308,7 @@ export default {
         storageDenied: 'Du musst der Speicherung zustimmen, um dich anzumelden.',
         incomplete: 'Unvollständig',
         withPasskey: 'Mit Passkey anmelden',
-        passkeyFailed: 'Die Anmeldung mit Passkey hat nicht geklappt. Du kannst dich weiter mit deinem Passwort anmelden.',
         passkeyElsewhere: 'Mit einem anderen Gerät anmelden',
-        passwordOff: 'Die Anmeldung mit Passwort ist für dieses Konto ausgeschaltet. Melde dich mit '
-            + 'deinem Passkey an, oder setze dein Passwort zurück, um sie wieder einzuschalten.',
     },
     passkeys: {
         // Ein Wort, überall: Passkey. Der erklärende Satz ist immer derselbe.
@@ -474,13 +471,6 @@ export default {
         sent: 'Falls es dazu ein Konto gibt, wurde ein Link zum Zurücksetzen gesendet.',
         backToLogin: 'Zurück zur Anmeldung',
     },
-    changePassword: {
-        newPasswordTooShort: 'Das neue Passwort muss mindestens 12 Zeichen lang sein.',
-        newPasswordBreached: 'Das neue Passwort wurde in bekannten Datenlecks gefunden. Bitte wähle ein anderes.',
-        noPasswordSet: 'Für dieses Konto ist kein Passwort hinterlegt. Melde dich mit deinem Passkey an, '
-            + 'oder setze über "Passwort vergessen" eines.',
-        currentPasswordWrong: 'Das aktuelle Passwort ist falsch.',
-    },
     setPassword: {
         title: 'Neues Passwort festlegen',
         newPassword: 'Neues Passwort',
@@ -488,12 +478,6 @@ export default {
         submit: 'Passwort festlegen',
         mismatch: 'Die Passwoerter stimmen nicht überein.',
         required: 'Passwort ist erforderlich.',
-        passwordTooShort: 'Das Passwort muss mindestens 12 Zeichen lang sein.',
-        passwordBreached: 'Dieses Passwort wurde in bekannten Datenlecks gefunden. Bitte wähle ein anderes.',
-        tokenInvalid: 'Der Link ist ungültig oder abgelaufen. Logge dich erneut ein, um einen neuen Link zu bekommen.',
-        tokenExpired: 'Dieser Link ist abgelaufen.',
-        passwordlessMode: 'Diese Instanz vergibt keine Passwörter mehr. Dein Weg hinein ist ein Passkey; '
-            + 'lass dich von deiner Wache erneut onboarden.',
         expiredTitle: 'Der Link ist abgelaufen',
         expiredText: 'Ein Einrichtungslink gilt nur eine begrenzte Zeit. Deiner ist inzwischen '
             + 'verfallen, dein Konto gibt es aber weiterhin. Du brauchst nur einen neuen Link.',
@@ -514,12 +498,6 @@ export default {
         email: 'E-Mail-Adresse',
         placeholder: "name{'@'}beispiel.de",
         submit: 'Adresse hinterlegen und anmelden',
-        malformed: 'Das ist keine gültige E-Mail-Adresse.',
-        unreachable: 'An diese Adresse kann nichts zugestellt werden. Bitte hinterlege eine Adresse, '
-            + 'unter der du wirklich erreichbar bist.',
-        taken: 'Diese E-Mail-Adresse gehört bereits zu einem anderen Konto.',
-        tokenInvalid: 'Der Vorgang ist ungültig. Melde dich erneut an, um es noch einmal zu versuchen.',
-        tokenExpired: 'Der Vorgang ist abgelaufen. Melde dich erneut an, um es noch einmal zu versuchen.',
     },
     storageConsent: {
         title: 'Einwilligung zur Datenverarbeitung',
@@ -2017,7 +1995,6 @@ export default {
         passwordMismatch: 'Die Passwörter stimmen nicht überein.',
         passwordTooShort: 'Das neue Passwort muss mindestens {count} Zeichen lang sein.',
         passwordHint: 'Mindestens {count} Zeichen.',
-        passwordError: 'Das Passwort konnte nicht geändert werden.',
         title: 'Profilfelder',
         noFields: 'Keine Profilfelder konfiguriert.',
         incompleteTitle: 'Profil unvollständig',
@@ -2526,8 +2503,6 @@ export default {
         emailHint: 'Eine Einladung wird an diese Adresse gesendet.',
         stepFields: 'Profilfelder',
         noFields: 'Keine Profilfelder für diesen Typ konfiguriert.',
-        requiredFields: 'Pflichtfelder',
-        optionalFields: 'Optionale Felder',
         stepGroups: 'Gruppen',
         stepGroupsHint: 'Zu welchen Gruppen soll das Mitglied gehören?',
         noGroups: 'Keine Gruppen vorhanden.',
@@ -2620,8 +2595,6 @@ export default {
         kindFollowingHelp: 'Die Liste merkt sich den Termin statt der Namen und holt beim Auffrischen alle nach, die inzwischen zugesagt haben.',
         snapshot: 'Die Liste wird jetzt übernommen. Wer sich später anmeldet, kommt nicht von selbst dazu.',
         following: 'Die Liste bleibt an diesen Termin gebunden. Wer sich später anmeldet, kommt beim nächsten Auffrischen dazu; wer absagt, bleibt stehen und wird als nicht mehr passend gekennzeichnet.',
-        createError: 'Anlegen fehlgeschlagen.',
-        loadError: 'Die Vorlagen konnten nicht geladen werden.',
         checklistCreated: 'Checkliste mit {count} Personen angelegt.',
         survey: 'Umfrage aus den Anmeldungen',
         surveyTitle: 'Umfrage aus den Anmeldungen',
@@ -3804,8 +3777,6 @@ export default {
                 createFailed: 'Behälter konnte nicht angelegt werden.',
                 updateFailed: 'Speichern fehlgeschlagen.',
                 deleteFailed: 'Löschen fehlgeschlagen.',
-                cycle: 'Ein Behälter kann nicht unter einen seiner Unter-Behälter verschoben werden.',
-                nameSlash: 'Der Name darf keinen Schrägstrich enthalten.',
             },
         },
         unknownScan: {
@@ -4096,7 +4067,6 @@ export default {
                 add: 'Option hinzufügen',
             },
             errors: {
-                loadFailed: 'Felder konnten nicht geladen werden.',
                 saveFailed: 'Speichern fehlgeschlagen.',
             },
         },
@@ -4760,7 +4730,6 @@ export default {
             totpHint: 'Gib den 6-stelligen Code aus deiner Authenticator-App ein.',
             backupHint: 'Gib einen deiner Wiederherstellungscodes ein.',
             submit: 'Bestätigen',
-            invalidCode: 'Ungültiger Code. Bitte versuche es erneut.',
             useBackupCode: 'Wiederherstellungscode verwenden',
             useAuthenticator: 'Authenticator-App verwenden',
             rememberDevice: 'Diesem Gerät vertrauen',
@@ -4792,7 +4761,6 @@ export default {
             unsupportedGuidance: 'Das liegt am Browser und nicht an Ember. Nimm einen aktuellen Browser, oder richte stattdessen eine Authenticator-App ein.',
             cancelled: 'Vorgang abgebrochen.',
             cancelledGuidance: 'Du hast die Abfrage deines Geräts abgebrochen oder sie ist abgelaufen. Starte sie noch einmal, wenn du fortfahren möchtest.',
-            failed: 'Registrierung des Schlüssels fehlgeschlagen.',
             renamePrompt: 'Schlüssel umbenennen',
             useKey: 'Sicherheitsschlüssel verwenden',
         },
@@ -4830,11 +4798,8 @@ export default {
             },
             submit: 'Bestätigen',
             cancel: 'Abbrechen',
-            invalidCode: 'Ungültiger Code. Bitte versuche es erneut.',
             usePasskey: 'Mit Passkey bestätigen',
-            passkeyFailed: 'Das hat nicht geklappt. Versuche es noch einmal oder nutze einen anderen Weg.',
             passwordPlaceholder: 'Dein Passwort',
-            wrongPassword: 'Passwort falsch. Bitte versuche es erneut.',
             tryAgainGuidance: 'Gib es hier noch einmal ein. Du bist weiterhin angemeldet, es geht nur um diese eine Bestätigung.',
             usePassword: 'Passwort verwenden',
             noProofs: 'Für dieses Konto ist gerade keine Bestätigung möglich. Melde dich neu an und versuche es dann noch einmal.',
@@ -4973,7 +4938,6 @@ export default {
         expectedKey: 'Erwarteter Public Key (optional)',
         probe: 'Verbindung testen',
         probeOk: 'Erreichbar - Public Key bekannt.',
-        probeFailed: 'Keine Antwort vom Discovery-Endpunkt.',
         add: 'Hinzufügen',
         added: 'Instanz hinzugefügt.',
         block: 'Blockieren',
@@ -5583,7 +5547,6 @@ export default {
             reportWithoutPasskey: 'Davon halten {count} noch keinen Passkey.',
             reportQrOnly: 'Davon sind {count} weder per Mail noch über Erziehungsberechtigte erreichbar, nur über den QR-Code im Raum.',
             reportDormant: '{count} Konto/Konten haben sich seit über einem Jahr nicht angemeldet.',
-            saveFailed: 'Der Modus konnte nicht gespeichert werden.',
             loadResidue: 'Wer kann noch nicht?',
             retireAll: 'Alle qualifizierten Passwörter stilllegen',
             retireAllResult: '{retired} Passwort/Passwörter stillgelegt, {passedOver} übergangen: dort steht noch kein erprobter Passkey daneben.',
@@ -5983,11 +5946,6 @@ export default {
         feedback: {
             applied: 'Übernommen. {copied} Dateien kopiert, {skipped} übersprungen, {deleted} an der Quelle gelöscht.',
         },
-        errors: {
-            loadFailed: 'Konnte Speicher-Konfiguration nicht laden.',
-            probeFailed: 'Verbindungstest fehlgeschlagen.',
-            applyFailed: 'Übernahme fehlgeschlagen.',
-        },
     },
     adminStorageAudit: {
         title: 'Speicher-Audit',
@@ -6005,9 +5963,6 @@ export default {
         },
         results: {
             title: 'Einträge',
-        },
-        errors: {
-            loadFailed: 'Konnte Audit-Einträge nicht laden.',
         },
     },
     stationStorageBackend: {
@@ -6124,11 +6079,6 @@ export default {
             action: 'Aktion',
             outcome: 'Ergebnis',
             detail: 'Details',
-        },
-        errors: {
-            loadFailed: 'Konnte Speicher-Konfiguration nicht laden.',
-            probeFailed: 'Verbindungstest fehlgeschlagen.',
-            applyFailed: 'Übernahme fehlgeschlagen.',
         },
     },
     storageMonitoring: {
@@ -7933,11 +7883,6 @@ export default {
             backendSaved: 'Speicher gespeichert.',
             dropped: 'Der Verband hat keinen eigenen Speicher mehr. Wer noch darauf liegt, wird einzeln zurückgeholt.',
             moved: 'Verschoben. {copied} Dateien kopiert, {deleted} an der Quelle gelöscht.',
-        },
-        errors: {
-            loadFailed: 'Konnte die Speicher-Konfiguration des Verbands nicht laden.',
-            probeFailed: 'Verbindungstest fehlgeschlagen.',
-            saveFailed: 'Speichern fehlgeschlagen.',
         },
     },
     clusterStorage: {
@@ -10095,7 +10040,6 @@ export default {
             browseFilesSearch: 'Datei suchen…',
             browseFilesEmpty: 'Noch keine hochgeladenen Dateien.',
             uploadNewFile: 'Neue Datei',
-            uploadFailed: 'Hochladen fehlgeschlagen.',
             uploadMimeRejected: '{count} Datei(en) übersprungen - erwartet wird {prefix}*.',
             videoUrlPlaceholder: 'YouTube-URL oder Video-URL eingeben',
             addRowTitle: 'Neue Zeile',

@@ -47,7 +47,6 @@ import {
     sftpFormFrom,
     smbFormFrom,
 } from '@/util/storageBackendForm'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -116,10 +115,7 @@ async function loadAll() {
         seedFormFromBackend()
         auditEntries.value = await getStationStorageAudit()
     } catch (e) {
-        loadFailure.value = {
-            ...describeFailure(e, t),
-            message: apiErrorTitle(e, t('stationStorageBackend.errors.loadFailed')),
-        }
+        loadFailure.value = describeFailure(e, t)
     } finally {
         loading.value = false
     }
@@ -141,10 +137,6 @@ function seedFormFromBackend() {
     }
 }
 
-function apiErrorTitle(e: unknown, fallback: string): string {
-    return apiErrorMessage(e) ?? fallback
-}
-
 function currentRequest(): StationBackendRequest | null {
     if (selectedType.value === 'LOCAL' || selectedType.value === 'CLUSTER') return null
     if (selectedType.value === 'S3') return s3.value
@@ -158,7 +150,7 @@ const {running: probing, run: runProbe} = useAsyncAction(async (call: () => Prom
     } catch (e) {
         probeOutcome.value = {
             healthy: false,
-            error: apiErrorTitle(e, describeFailure(e, t).message),
+            error: describeFailure(e, t).message,
             checkedAt: new Date().toISOString(),
         }
     }
@@ -201,7 +193,7 @@ const {running: saving, failure: applyFailure, run: runApply} = useAsyncAction(
         })
         await loadAll()
     },
-    {formatError: (e) => apiErrorTitle(e, t('stationStorageBackend.errors.applyFailed'))},
+    {formatError: (e) => describeFailure(e, t).message},
 )
 
 </script>

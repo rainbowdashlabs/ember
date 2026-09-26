@@ -12,7 +12,6 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FileUploadField from '@/components/input/FileUploadField.vue'
 import {session as sessionApi} from '@/api'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
@@ -38,7 +37,7 @@ async function upload(file: File) {
     await sessionApi.uploadAvatar(file)
     avatarKey.value++
   } catch (e) {
-    uploadError.value = apiErrorMessage(e) ?? describeFailure(e, t).message
+    uploadError.value = describeFailure(e, t).message
   } finally {
     uploading.value = false
   }

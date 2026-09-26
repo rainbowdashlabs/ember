@@ -5,16 +5,14 @@
  */
 package dev.chojo.ember.feature.passkey.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.passkey.repository.PasskeyRepository;
 import dev.chojo.ember.feature.passkey.service.PasskeyAdminService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.HttpResponseException;
-import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -83,14 +81,8 @@ public class PasskeyAdminRoutes implements Routes {
                 accountId, session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         switch (outcome) {
             case RETIRED -> ctx.json(Map.of("message", "Password retired"));
-            case NO_PASSWORD ->
-                throw new HttpResponseException(
-                        HttpStatus.CONFLICT.getCode(), "This account holds no password", Map.of());
-            case NO_TRIED_PASSKEY ->
-                throw new HttpResponseException(
-                        HttpStatus.CONFLICT.getCode(),
-                        "No passkey has completed a sign-in for this account; the rope stays",
-                        Map.of());
+            case NO_PASSWORD -> throw Refusal.ACCOUNT_HOLDS_NO_PASSWORD_ON_RETIRE.raise();
+            case NO_TRIED_PASSKEY -> throw Refusal.NO_TRIED_PASSKEY_ON_RETIRE.raise();
         }
     }
 
@@ -111,22 +103,13 @@ public class PasskeyAdminRoutes implements Routes {
             mode = PasskeySettings.Mode.valueOf(
                     request.mode() == null ? "" : request.mode().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("mode must be one of OFF, OPTIONAL, ENCOURAGED, PREFERRED, PASSWORDLESS");
+            throw Refusal.PASSKEY_MODE_UNKNOWN.raise();
         }
 
         var result = adminService.setMode(mode);
         switch (result.outcome()) {
-            case NO_MAIL_PROOF ->
-                throw new HttpResponseException(
-                        HttpStatus.CONFLICT.getCode(),
-                        "The passwordless mode needs working mail, proven by a test mail that went out",
-                        Map.of());
-            case ACCOUNTS_DEPEND ->
-                throw new HttpResponseException(
-                        HttpStatus.CONFLICT.getCode(),
-                        result.dependentAccounts()
-                                + " account(s) have no way in without a passkey; the mode cannot go below ENCOURAGED",
-                        Map.of());
+            case NO_MAIL_PROOF -> throw Refusal.PASSWORDLESS_NEEDS_WORKING_MAIL.raise();
+            case ACCOUNTS_DEPEND -> throw Refusal.PASSWORDLESS_ACCOUNTS_DEPEND.raise();
             case OK -> ctx.json(toResponse(adminService.status()));
         }
     }

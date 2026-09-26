@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -18,10 +19,8 @@ import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -122,7 +121,7 @@ public class BoardTicketDetailRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(CommentRequest.class);
-        if (req.content() == null || req.content().isBlank()) throw new BadRequestResponse("content is required");
+        if (req.content() == null || req.content().isBlank()) throw Refusal.TICKET_COMMENT_NEEDS_TEXT.raise();
         var comment = ticketService.createComment(ticketId, req.parentId(), guards.actor(session), req.content());
         ctx.status(HttpStatus.CREATED).json(CommentResponseMapper.fromBoard(memberNameResolver, comment));
     }
@@ -198,7 +197,7 @@ public class BoardTicketDetailRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(ChecklistItemRequest.class);
-        if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
+        if (req.title() == null || req.title().isBlank()) throw Refusal.CHECKLIST_ITEM_NEEDS_A_TITLE.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(ticketService.addChecklistItem(
                         ticketId, req.title(), session.member().id()));
@@ -356,9 +355,9 @@ public class BoardTicketDetailRoutes implements Routes {
         var field = boardService.findFields(boardId).stream()
                 .filter(f -> f.id() == fieldId)
                 .findFirst()
-                .orElseThrow(() -> new NotFoundResponse("Field not found"));
+                .orElseThrow(Refusal.TICKET_FIELD_NOT_HERE::raise);
         var value = BoardFieldValue.parse(field.fieldType(), ctx.body());
-        if (value == null) throw new BadRequestResponse("Invalid value for field type " + field.fieldType());
+        if (value == null) throw Refusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise();
         ticketService.setFieldValue(ticketId, fieldId, value);
         ticketService.logHistory(
                 ticketId, BoardTicketHistoryAction.FIELD_CHANGED, "Feld #" + fieldId, guards.actor(session));
@@ -390,7 +389,7 @@ public class BoardTicketDetailRoutes implements Routes {
     private int requireCommentOn(Context ctx, int ticketId) {
         int commentId = pathInt(ctx, "commentId");
         if (ticketService.findComments(ticketId).stream().noneMatch(c -> c.id() == commentId)) {
-            throw new NotFoundResponse();
+            throw Refusal.TICKET_COMMENT_NOT_HERE.raise();
         }
         return commentId;
     }

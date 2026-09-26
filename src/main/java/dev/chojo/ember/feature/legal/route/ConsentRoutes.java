@@ -6,13 +6,13 @@
 package dev.chojo.ember.feature.legal.route;
 
 import dev.chojo.ember.api.MessageResponse;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.util.ClientIp;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -137,7 +137,7 @@ public class ConsentRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(RecordConsentRequest.class);
         if (request.consentVersion() == null || request.consentVersion().isBlank()) {
-            throw new BadRequestResponse("consentVersion is required");
+            throw Refusal.CONSENT_VERSION_MISSING.raise();
         }
 
         String ipAddress = ClientIp.resolve(ctx, network).getHostAddress();

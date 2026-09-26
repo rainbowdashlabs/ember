@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.equipment.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.equipment.repository.EquipmentRecommendationRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentBrowseService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -66,12 +66,12 @@ public class EquipmentBrowseRoutes implements Routes {
     private void recommendations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         String raw = ctx.queryParam("itemId");
-        if (raw == null || raw.isBlank()) throw new BadRequestResponse("A piece is required");
+        if (raw == null || raw.isBlank()) throw Refusal.RECOMMENDATION_PIECE_MISSING.raise();
         int itemId;
         try {
             itemId = Integer.parseInt(raw);
         } catch (NumberFormatException e) {
-            throw new BadRequestResponse("A piece is required");
+            throw Refusal.RECOMMENDATION_PIECE_NOT_A_NUMBER.raise(raw);
         }
         ctx.json(browseService.recommendationsFor(session.stationId(), itemId));
     }
@@ -88,7 +88,7 @@ public class EquipmentBrowseRoutes implements Routes {
     private void recheck(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var body = ctx.bodyAsClass(RecheckRequest.class);
-        if (body.from() == null) throw new BadRequestResponse("A window is required");
+        if (body.from() == null) throw Refusal.COLLECTED_LIST_WINDOW_MISSING.raise();
         List<EquipmentBrowseService.CollectedLine> lines = body.lines() == null ? List.of() : body.lines();
         LocalDate to = body.to() == null ? body.from() : body.to();
         ctx.json(new RecheckResponse(

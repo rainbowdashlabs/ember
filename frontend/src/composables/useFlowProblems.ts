@@ -5,7 +5,7 @@
  */
 import {useI18n} from 'vue-i18n'
 import type {FlowProblem} from '@/api/movements'
-import {apiErrorBody, apiErrorMessage} from '@/util/apiError'
+import {apiErrorBody} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**

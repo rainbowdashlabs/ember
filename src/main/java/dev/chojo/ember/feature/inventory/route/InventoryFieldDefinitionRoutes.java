@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -17,10 +18,8 @@ import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -65,7 +64,8 @@ public class InventoryFieldDefinitionRoutes implements Routes {
     }
 
     private void ownedInventory(int inventoryId, UserSession session) {
-        Inventory inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
+        Inventory inventory =
+                inventoryService.findById(inventoryId).orElseThrow(Refusal.INVENTORY_NOT_HERE_BEHIND_FIELD::raise);
         RouteSupport.requireSameStation(session, inventory.stationId());
     }
 
@@ -75,7 +75,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
      */
     private void verifyFieldInInventory(int inventoryId, int fieldId) {
         if (fieldService.findByInventory(inventoryId).stream().noneMatch(f -> f.id() == fieldId)) {
-            throw new NotFoundResponse();
+            throw Refusal.FIELD_NOT_IN_THIS_INVENTORY.raise();
         }
     }
 
@@ -116,7 +116,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
     private void listItemFields(Context ctx) {
         int itemId = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        InventoryItem item = inventoryService.findItemById(itemId).orElseThrow(NotFoundResponse::new);
+        InventoryItem item = inventoryService.findItemById(itemId).orElseThrow(Refusal.ITEM_NOT_HERE_ON_FIELDS::raise);
         ownedInventory(item.inventoryId(), session);
         ctx.json(fieldService.resolveForItem(item));
     }
@@ -149,8 +149,8 @@ public class InventoryFieldDefinitionRoutes implements Routes {
                     body.sortOrder(),
                     body.config());
             ctx.status(HttpStatus.CREATED).json(created);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+        } catch (IllegalArgumentException ignored) {
+            throw Refusal.FIELD_NOT_CREATED.raise();
         }
     }
 
@@ -180,10 +180,10 @@ public class InventoryFieldDefinitionRoutes implements Routes {
             fieldService
                     .update(fieldId, body.label(), body.required(), body.sortOrder(), body.config())
                     .ifPresentOrElse(ctx::json, () -> {
-                        throw new NotFoundResponse();
+                        throw Refusal.FIELD_NOT_HERE_ON_CHANGE.raise();
                     });
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+        } catch (IllegalArgumentException ignored) {
+            throw Refusal.FIELD_NOT_CHANGED.raise();
         }
     }
 
@@ -209,7 +209,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
         if (fieldService.delete(fieldId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.FIELD_NOT_DELETED.raise();
         }
     }
 

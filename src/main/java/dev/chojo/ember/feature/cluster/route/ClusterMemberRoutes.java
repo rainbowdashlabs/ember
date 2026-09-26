@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
@@ -16,10 +17,8 @@ import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -309,8 +308,8 @@ public class ClusterMemberRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw new BadRequestResponse("No cluster selected");
-        return clusterService.findById(clusterId).orElseThrow(NotFoundResponse::new);
+        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_CLUSTER_MEMBERS.raise();
+        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_CLUSTER_MEMBERS::raise);
     }
 
     private ClusterMemberResponse toResponse(ClusterMember member) {
@@ -332,7 +331,7 @@ public class ClusterMemberRoutes implements Routes {
         try {
             return ClusterUserType.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("No such user type: " + raw);
+            throw Refusal.CLUSTER_USER_TYPE_UNKNOWN.raise(raw);
         }
     }
 
@@ -343,7 +342,7 @@ public class ClusterMemberRoutes implements Routes {
             try {
                 permissions.add(ClusterPermission.valueOf(name));
             } catch (IllegalArgumentException e) {
-                throw new BadRequestResponse("No such permission: " + name);
+                throw Refusal.CLUSTER_PERMISSION_UNKNOWN.raise(name);
             }
         }
         return permissions;

@@ -76,7 +76,7 @@ test.describe('First start', () => {
         await page.getByTestId('set-address-email').fill('somebody@else.local')
         await page.getByRole('button', {name: 'Adresse hinterlegen und anmelden'}).click()
 
-        await expect(page.getByText('An diese Adresse kann nichts zugestellt werden.')).toBeVisible()
+        await expect(page.getByText('An diese Adresse lässt sich nichts zustellen', {exact: false})).toBeVisible()
         await expect(page).toHaveURL(/\/set-address/)
     })
 })

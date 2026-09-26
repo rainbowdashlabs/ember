@@ -12,6 +12,7 @@ import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
 import {getItem, setItem} from '@/api/storage'
 import {scheduleTokenRefresh} from '@/api/client'
 import {decideSignInLanding} from '@/util/signInLanding'
+import {describeFailure} from '@/util/failure'
 import {useCluster} from '@/composables/useCluster'
 import {useStations} from '@/composables/useStations'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -58,7 +59,7 @@ const {running: verifying, error: verifyError, run: runVerify, clearError: clear
   const days = rememberDevice.value ? trustedDeviceMaxDays.value : undefined
   const result = await verify2fa(preAuthToken.value, factor, code.value, days, trustedDevice.value)
   finalizeSession(result.token, result.expiresAt)
-}, {formatError: () => t('twoFactor.verify.invalidCode')})
+}, {formatError: (e) => describeFailure(e, t).message})
 
 const webauthnSupported = isWebAuthnSupported()
 
@@ -74,7 +75,7 @@ const {running: webauthnRunning, error: webauthnError, run: runWebAuthn, clearEr
   const message = (e as Error | undefined)?.message
   if (message === 'webauthn-cancelled') return t('twoFactor.webauthn.cancelled')
   if (message === 'webauthn-unsupported') return t('twoFactor.webauthn.unsupported')
-  return t('twoFactor.verify.invalidCode')
+  return describeFailure(e, t).message
 }})
 
 const loading = computed(() => verifying.value || webauthnRunning.value)

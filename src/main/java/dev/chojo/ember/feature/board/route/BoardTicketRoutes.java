@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -13,10 +14,8 @@ import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -114,7 +113,7 @@ public class BoardTicketRoutes implements Routes {
         int boardId = guards.resolveBoardId(ctx, session.stationId());
         guards.requireEditAccess(boardId, session);
         var req = ctx.bodyAsClass(CreateTicketRequest.class);
-        if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
+        if (req.title() == null || req.title().isBlank()) throw Refusal.TICKET_NEEDS_A_TITLE.raise();
         var ticket = ticketService.createTicket(
                 boardId,
                 req.laneId(),
@@ -193,7 +192,7 @@ public class BoardTicketRoutes implements Routes {
         if (ticketService.deleteTicket(ticketId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.TICKET_NOT_DELETED.raise();
         }
     }
 
@@ -215,7 +214,7 @@ public class BoardTicketRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(MoveTicketRequest.class);
-        var ticket = ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
+        var ticket = ticketService.findById(ticketId).orElseThrow(Refusal.TICKET_NOT_HERE_ON_MOVE::raise);
         ticketService.moveTicket(ticketId, ticket.laneId(), req.toLaneId(), req.position(), guards.actor(session));
         respondWithTicket(ctx, ticketId);
     }
@@ -270,7 +269,7 @@ public class BoardTicketRoutes implements Routes {
      */
     private void respondWithTicket(Context ctx, int ticketId) {
         ticketService.findById(ticketId).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.TICKET_NOT_HERE_AFTER_CHANGE.raise();
         });
     }
 

@@ -12,8 +12,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember} from '@/components/input/select/memberOption'
-import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
-import {questionKindOf} from '@/util/questions'
+import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
+import {valueFields} from '@/components/profilefields/fieldLayout'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -24,7 +24,6 @@ import { managedMembers } from '@/api'
 import type { ManagedMember } from '@/api/managedMembers'
 import { decodeProfileValues, getFieldValue, setFieldValue } from '@/util/profileFields'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import MutedText from '@/components/typography/MutedText.vue'
 import ManagedAccessPanel from './managedview/ManagedAccessPanel.vue'
 
 const { t } = useI18n()
@@ -37,16 +36,20 @@ const loadingProfile = ref(false)
 
 const memberOptions = computed(() => members.value.map(fromMember))
 
-const editableFields = computed(() => {
-  return fields.value.filter(f => {
-    const config = parseFieldConfig(f.config)
-    return !config.computed
-  })
-})
+/**
+ * Whether the guardian may write this answer.
+ *
+ * <p>A question the station keeps to its own member management is one of them to read here, and a
+ * question that works itself out from another is nobody's to write. This screen used to look for
+ * both in the question's settings, where only the second of them lives, so a question marked for
+ * the member management alone was offered to every guardian.
+ */
+function readonlyHere(field: ProfileField): boolean {
+  return !!field.readonly || !!parseFieldConfig(field.config).computed
+}
 
-function isReadonly(field: ProfileField): boolean {
-  const config = parseFieldConfig(field.config)
-  return !!config.readonly || !!config.computed
+function valueOf(field: LaidOutField): string {
+  return getValue(field.id)
 }
 
 function getValue(fieldId: number): string {
@@ -81,8 +84,8 @@ async function saveProfile() {
   if (!selectedMemberId.value) return
   failure.value = null
   try {
-    const entries = editableFields.value
-      .filter(f => !isReadonly(f))
+    const entries = valueFields(fields.value)
+      .filter(f => !readonlyHere(f))
       .map(f => ({ fieldId: f.id, value: JSON.stringify(getValue(f.id)) }))
     await managedMembers.setProfile(Number(selectedMemberId.value), entries)
   } catch (e) {
@@ -120,24 +123,14 @@ async function saveProfile() {
 
         <Spinner v-if="loadingProfile" size="md" />
 
-        <NeutralContainer v-if="selectedMemberId && !loadingProfile && editableFields.length > 0" class="space-y-4">
+        <NeutralContainer v-if="selectedMemberId && !loadingProfile && fields.length > 0" class="space-y-4">
           <SectionHeader>{{ t('profileManaged.fields') }}</SectionHeader>
 
-          <div v-for="field in editableFields" :key="field.id" class="space-y-1">
-            <FieldLabel>
-              {{ field.name }}
-              <span v-if="field.required" class="text-error">*</span>
-              <MutedText class="ml-1" v-if="isReadonly(field)">({{ t('profile.readonlyHint') }})</MutedText>
-            </FieldLabel>
-
-            <QuestionValueInput
-              :kind="questionKindOf(field.fieldType) ?? 'TEXT'"
-              :model-value="getValue(field.id)"
-              :options="(parseFieldConfig(field.config).options as string[]) ?? []"
-              :disabled="isReadonly(field)"
-              @update:model-value="setValue(field.id, $event)"
-            />
-          </div>
+          <ProfileFieldsLayout
+            :fields="fields"
+            :get-value="valueOf"
+            @update="(field, value) => setValue(field.id, value)"
+          />
 
           <SaveButton data-onboarding="managed.fields.save" :action="saveProfile"/>
         </NeutralContainer>

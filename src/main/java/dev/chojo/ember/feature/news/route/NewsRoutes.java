@@ -16,6 +16,7 @@ import com.rometools.rome.feed.synd.SyndFeedImpl;
 import com.rometools.rome.io.SyndFeedOutput;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -41,12 +42,8 @@ import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.InternalServerErrorResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -56,6 +53,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
@@ -76,6 +75,8 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
  */
 @Singleton
 public class NewsRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(NewsRoutes.class);
+
     private final NewsService newsService;
     private final NewsAttachmentService attachmentService;
     private final NewsFederationService newsFederationService;
@@ -202,9 +203,9 @@ public class NewsRoutes implements Routes {
      */
     private News requireReadable(Context ctx, int id) {
         UserSession session = UserSession.from(ctx);
-        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        var news = newsService.findById(id).orElseThrow(Refusal.NEWS_NOT_HERE_OR_NOT_YOURS::raise);
         if (!newsService.isVisibleForMember(id, session.member().id())) {
-            throw new NotFoundResponse();
+            throw Refusal.NEWS_NOT_HERE_OR_NOT_YOURS.raise();
         }
         return news;
     }
@@ -220,7 +221,7 @@ public class NewsRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(NewsRequest.class);
         if (request.title() == null || request.title().isBlank()) {
-            throw new BadRequestResponse("title is required");
+            throw Refusal.NEWS_NEEDS_A_TITLE.raise();
         }
         boolean rich = request.contentMode() == ContentMode.RICH;
         requireBody(rich, request.contentMarkdown());
@@ -279,7 +280,7 @@ public class NewsRoutes implements Routes {
                             ctx.json(toResponse(result, true, session.member().id()));
                         },
                         () -> {
-                            throw new NotFoundResponse();
+                            throw Refusal.NEWS_NOT_HERE_ON_UPDATE.raise();
                         });
     }
 
@@ -299,7 +300,7 @@ public class NewsRoutes implements Routes {
         if (newsService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.NEWS_NOT_DELETED.raise();
         }
     }
 
@@ -308,7 +309,8 @@ public class NewsRoutes implements Routes {
         requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
         var request = ctx.bodyAsClass(SaveBlocksRequest.class);
         var session = UserSession.from(ctx);
-        var saved = newsService.saveBlocks(id, request.toRowData()).orElseThrow(NotFoundResponse::new);
+        var saved =
+                newsService.saveBlocks(id, request.toRowData()).orElseThrow(Refusal.NEWS_NOT_HERE_ON_BLOCK_SAVE::raise);
         ctx.json(toResponse(saved, true, session.member().id()));
     }
 
@@ -320,7 +322,7 @@ public class NewsRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
-        var switched = newsService.switchToRich(id).orElseThrow(NotFoundResponse::new);
+        var switched = newsService.switchToRich(id).orElseThrow(Refusal.NEWS_NOT_HERE_ON_BLOCK_SWITCH::raise);
         ctx.json(toResponse(switched, true, session.member().id()));
     }
 
@@ -329,7 +331,7 @@ public class NewsRoutes implements Routes {
      * so an attachment id from one station cannot be relabelled or detached from another.
      */
     private NewsAttachment requireOwnedAttachment(Context ctx, int attachmentId) {
-        var attachment = attachmentService.find(attachmentId).orElseThrow(NotFoundResponse::new);
+        var attachment = attachmentService.find(attachmentId).orElseThrow(Refusal.NEWS_ATTACHMENT_NOT_HERE::raise);
         requireOwnedOrNotFound(ctx, attachment.newsId(), newsService::findById, News::stationId);
         return attachment;
     }
@@ -339,7 +341,7 @@ public class NewsRoutes implements Routes {
         var session = UserSession.from(ctx);
         requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
         var request = ctx.bodyAsClass(AttachmentRequest.class);
-        if (request.fileId() == null) throw new BadRequestResponse("fileId is required");
+        if (request.fileId() == null) throw Refusal.NEWS_ATTACHMENT_FILE_NOT_NAMED.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(attachmentService.attach(id, session.stationId(), request.fileId(), request.label()));
     }
@@ -348,7 +350,8 @@ public class NewsRoutes implements Routes {
         int attachmentId = pathInt(ctx, "attachmentId");
         requireOwnedAttachment(ctx, attachmentId);
         var request = ctx.bodyAsClass(AttachmentRequest.class);
-        if (!attachmentService.relabel(attachmentId, request.label())) throw new NotFoundResponse();
+        if (!attachmentService.relabel(attachmentId, request.label()))
+            throw Refusal.NEWS_ATTACHMENT_NOT_RELABELLED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -363,7 +366,7 @@ public class NewsRoutes implements Routes {
     private void detachAttachment(Context ctx) {
         int attachmentId = pathInt(ctx, "attachmentId");
         requireOwnedAttachment(ctx, attachmentId);
-        if (!attachmentService.detach(attachmentId)) throw new NotFoundResponse();
+        if (!attachmentService.detach(attachmentId)) throw Refusal.NEWS_ATTACHMENT_NOT_DETACHED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -492,7 +495,7 @@ public class NewsRoutes implements Routes {
         requireReadable(ctx, newsId);
         var request = ctx.bodyAsClass(CommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
+            throw Refusal.NEWS_COMMENT_NEEDS_TEXT.raise();
         }
         var authorIdentity = memberIdentityFactory.fromMemberId(session.member().id());
         var comment = newsService.createComment(
@@ -520,18 +523,20 @@ public class NewsRoutes implements Routes {
     private void updateComment(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
         UserSession session = UserSession.from(ctx);
-        var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+        var comment =
+                newsService.findCommentById(commentId).orElseThrow(Refusal.NEWS_COMMENT_NOT_HERE_ON_UPDATE::raise);
         var sessionIdentity =
                 memberIdentityFactory.fromMemberId(session.member().id());
         if (!sessionIdentity.sameMember(comment.author())) {
-            throw new ForbiddenResponse("You can only edit your own comments");
+            throw Refusal.NEWS_COMMENT_NOT_YOURS_TO_EDIT.raise();
         }
         var request = ctx.bodyAsClass(CommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
+            throw Refusal.NEWS_COMMENT_NEEDS_TEXT_ON_UPDATE.raise();
         }
         newsService.updateComment(commentId, request.content());
-        var updated = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+        var updated =
+                newsService.findCommentById(commentId).orElseThrow(Refusal.NEWS_COMMENT_NOT_HERE_AFTER_UPDATE::raise);
         ctx.json(toCommentResponse(updated));
     }
 
@@ -548,18 +553,19 @@ public class NewsRoutes implements Routes {
     private void deleteComment(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
         UserSession session = UserSession.from(ctx);
-        var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
+        var comment =
+                newsService.findCommentById(commentId).orElseThrow(Refusal.NEWS_COMMENT_NOT_HERE_ON_DELETE::raise);
         var sessionIdentity =
                 memberIdentityFactory.fromMemberId(session.member().id());
         boolean isAuthor = sessionIdentity.sameMember(comment.author());
         boolean canModerate = session.hasPermission(StationPermission.NEWS_MANAGER);
         if (!isAuthor && !canModerate) {
-            throw new ForbiddenResponse("You can only delete your own comments");
+            throw Refusal.NEWS_COMMENT_NOT_YOURS_TO_DELETE.raise();
         }
         if (newsService.deleteComment(session.stationId(), commentId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.NEWS_COMMENT_NOT_DELETED.raise();
         }
     }
 
@@ -681,13 +687,16 @@ public class NewsRoutes implements Routes {
     }
 
     private int resolvePublicStation(Context ctx) {
-        return stationRepository.resolveAddressedId(ctx.pathParam("stationUid")).orElseThrow(NotFoundResponse::new);
+        return stationRepository
+                .resolveAddressedId(ctx.pathParam("stationUid"))
+                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_BLOG::raise);
     }
 
     private void publicBlogList(Context ctx) {
         int stationId = resolvePublicStation(ctx);
-        var station = stationRepository.findById(stationId).orElseThrow(NotFoundResponse::new);
-        if (!station.publicBlogEnabled()) throw new NotFoundResponse();
+        var station =
+                stationRepository.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_BLOG_LIST::raise);
+        if (!station.publicBlogEnabled()) throw Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_LIST.raise();
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
         var entries = newsService.findPublicBlogEntries(stationId, offset, limit);
@@ -716,8 +725,9 @@ public class NewsRoutes implements Routes {
      */
     private void publicBlogFeed(Context ctx, String feedType) {
         int stationId = resolvePublicStation(ctx);
-        var station = stationRepository.findById(stationId).orElseThrow(NotFoundResponse::new);
-        if (!station.publicBlogEnabled()) throw new NotFoundResponse();
+        var station =
+                stationRepository.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_BLOG_FEED::raise);
+        if (!station.publicBlogEnabled()) throw Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_FEED.raise();
         String stationUid = station.uid().toString();
         String baseUrl = emailService.getBaseUrl();
         String blogUrl = baseUrl + "/public/station/" + stationUid + "/blog";
@@ -774,18 +784,20 @@ public class NewsRoutes implements Routes {
             ctx.header("Cache-Control", "public, max-age=3600");
             ctx.result(output.outputString(feed));
         } catch (Exception e) {
-            throw new InternalServerErrorResponse("Failed to render blog feed");
+            log.warn("Failed to render the public blog feed of station {}", stationId, e);
+            throw Refusal.BLOG_FEED_NOT_MADE.raise();
         }
     }
 
     private void publicBlogDetail(Context ctx) {
         int stationId = resolvePublicStation(ctx);
-        var station = stationRepository.findById(stationId).orElseThrow(NotFoundResponse::new);
-        if (!station.publicBlogEnabled()) throw new NotFoundResponse();
+        var station =
+                stationRepository.findById(stationId).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_BLOG_ENTRY::raise);
+        if (!station.publicBlogEnabled()) throw Refusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_ENTRY.raise();
         int blogId = pathInt(ctx, "blogId");
-        var news = newsService.findById(blogId).orElseThrow(NotFoundResponse::new);
+        var news = newsService.findById(blogId).orElseThrow(Refusal.PUBLIC_BLOG_ENTRY_NOT_HERE::raise);
         if (news.stationId() != stationId || !news.publicBlog() || news.publishedAt() == null || news.restricted()) {
-            throw new NotFoundResponse();
+            throw Refusal.PUBLIC_BLOG_ENTRY_NOT_HERE.raise();
         }
         var authorName = news.author() != null
                 ? memberNameResolver.resolveDisplay(news.author()).name()
@@ -814,7 +826,7 @@ public class NewsRoutes implements Routes {
      */
     static void requireBody(boolean rich, String contentMarkdown) {
         if (!rich && (contentMarkdown == null || contentMarkdown.isBlank())) {
-            throw new BadRequestResponse("contentMarkdown is required");
+            throw Refusal.NEWS_NEEDS_SOMETHING_WRITTEN.raise();
         }
     }
 

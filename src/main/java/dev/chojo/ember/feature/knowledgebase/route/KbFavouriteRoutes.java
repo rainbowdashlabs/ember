@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -13,10 +14,8 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFavouriteTarget;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFavouriteService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -53,7 +52,7 @@ public class KbFavouriteRoutes implements Routes {
 
     private static StationMember requireMember(UserSession session) {
         var member = session.member();
-        if (member == null) throw new NotFoundResponse();
+        if (member == null) throw Refusal.KB_FAVOURITES_NEED_A_MEMBER.raise();
         return member;
     }
 
@@ -66,10 +65,10 @@ public class KbFavouriteRoutes implements Routes {
         var session = UserSession.from(ctx);
         var member = requireMember(session);
         var request = ctx.bodyAsClass(MarkFavouriteRequest.class);
-        if (request.target() == null) throw new BadRequestResponse("target is required");
+        if (request.target() == null) throw Refusal.KB_FAVOURITE_NEEDS_A_TARGET.raise();
         KbFavourite marked;
         if (request.target().isPartner()) {
-            if (request.partnerStationUid() == null) throw new BadRequestResponse("partnerStationUid is required");
+            if (request.partnerStationUid() == null) throw Refusal.KB_FAVOURITE_NEEDS_A_PARTNER.raise();
             marked = favourites.markPartner(
                     session.stationId(),
                     member.id(),
@@ -86,7 +85,7 @@ public class KbFavouriteRoutes implements Routes {
 
     private void unmark(Context ctx) {
         var member = requireMember(UserSession.from(ctx));
-        if (!favourites.unmark(member.id(), pathInt(ctx, "id"))) throw new NotFoundResponse();
+        if (!favourites.unmark(member.id(), pathInt(ctx, "id"))) throw Refusal.KB_FAVOURITE_NOT_HERE.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

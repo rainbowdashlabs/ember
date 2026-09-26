@@ -6,16 +6,14 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -45,9 +43,7 @@ public class BoardRouteGuards {
      */
     public Board resolveBoard(Context ctx, int stationId) {
         String boardKey = ctx.pathParam("boardKey");
-        return boardService
-                .findByShortKey(stationId, boardKey)
-                .orElseThrow(() -> new NotFoundResponse("Board not found: " + boardKey));
+        return boardService.findByShortKey(stationId, boardKey).orElseThrow(Refusal.BOARD_NOT_HERE_OR_NOT_YOURS::raise);
     }
 
     /**
@@ -65,7 +61,7 @@ public class BoardRouteGuards {
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         return ticketService
                 .findByBoardAndNumber(boardId, ticketNumber)
-                .orElseThrow(() -> new NotFoundResponse("Ticket not found: " + ticketNumber))
+                .orElseThrow(Refusal.BOARD_TICKET_NOT_HERE::raise)
                 .id();
     }
 
@@ -97,10 +93,10 @@ public class BoardRouteGuards {
      * already known to them and the interface has to distinguish "not allowed" from "not there".
      */
     public void requireEditAccess(int boardId, UserSession session) {
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_FOR_BOARD_EDIT.raise();
         boolean isManager = session.permissions().contains(StationPermission.BOARD_MANAGER);
         if (!boardService.canEdit(boardId, session.member().id(), isManager))
-            throw new ForbiddenResponse("No edit access to this board");
+            throw Refusal.BOARD_NOT_YOURS_TO_EDIT.raise();
     }
 
     /**
@@ -111,10 +107,10 @@ public class BoardRouteGuards {
      * to learn which boards exist in their station.
      */
     public void requireViewAccess(int boardId, UserSession session) {
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_FOR_BOARD_VIEW.raise();
         boolean isManager = session.permissions().contains(StationPermission.BOARD_MANAGER);
         if (!boardService.canView(boardId, session.member().id(), isManager))
-            throw new NotFoundResponse("Board not found");
+            throw Refusal.BOARD_NOT_HERE_OR_NOT_YOURS.raise();
     }
 
     /**

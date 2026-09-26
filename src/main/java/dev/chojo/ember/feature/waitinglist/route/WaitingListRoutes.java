@@ -32,11 +32,8 @@ import dev.chojo.ember.feature.waitinglist.service.ScoreEvaluator;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import dev.chojo.ember.feature.waitinglist.service.WaitlistInvitationMessage;
 import dev.chojo.ember.util.ClientIp;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -255,7 +252,7 @@ public class WaitingListRoutes implements Routes {
         String code = ctx.pathParam("code");
         var invite = service.findInviteByCode(code).orElseThrow(Refusal.WAITING_LIST_INVITE_UNKNOWN::raise);
         if (!invite.hasUsesLeft() || invite.isExpired()) {
-            throw new ForbiddenResponse("Invite is no longer valid");
+            throw Refusal.WAITING_LIST_INVITE_NO_LONGER_VALID.raise();
         }
         var list = service.findById(invite.listId()).orElseThrow(Refusal.WAITING_LIST_NOT_HERE_BEHIND_INVITE::raise);
         var fields = service.findFieldsByList(invite.listId());
@@ -272,7 +269,7 @@ public class WaitingListRoutes implements Routes {
     private void registerViaInvite(Context ctx) {
         var request = ctx.bodyAsClass(RegisterRequest.class);
         if (request.inviteCode() == null || request.firstname() == null) {
-            throw new BadRequestResponse("inviteCode and firstname are required");
+            throw Refusal.WAITING_LIST_REGISTRATION_INCOMPLETE.raise();
         }
         if (answerWhenLimited(
                 ctx, rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), request.inviteCode()))) {
@@ -293,10 +290,10 @@ public class WaitingListRoutes implements Routes {
             ctx.status(HttpStatus.CREATED).json(new PublicEntryResponse(entry.accessToken()));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument registering via waiting list invite", e);
-            throw new BadRequestResponse(e.getMessage());
+            throw Refusal.WAITING_LIST_REGISTRATION_REFUSED.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state registering via waiting list invite", e);
-            throw new ForbiddenResponse(e.getMessage());
+            throw Refusal.WAITING_LIST_CLOSED_TO_THIS_REGISTRATION.raise();
         }
     }
 
@@ -376,14 +373,14 @@ public class WaitingListRoutes implements Routes {
         if (rateLimited(ctx, token)) return;
         var request = ctx.bodyAsClass(AnswerRequest.class);
         if (request.answer() == null) {
-            throw new BadRequestResponse("answer is required");
+            throw Refusal.WAITING_LIST_ANSWER_MISSING.raise();
         }
         WaitingListAnswer answer;
         try {
             answer = WaitingListAnswer.valueOf(request.answer());
         } catch (IllegalArgumentException e) {
             log.warn("Unknown waiting-list invitation answer {}", request.answer(), e);
-            throw new BadRequestResponse("Unknown answer: " + request.answer());
+            throw Refusal.WAITING_LIST_ANSWER_UNKNOWN.raise(request.answer());
         }
         try {
             service.answerInvitation(
@@ -756,10 +753,10 @@ public class WaitingListRoutes implements Routes {
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
             log.warn("Waiting list entry not found for invite, entryId={}", entryId, e);
-            throw new NotFoundResponse(e.getMessage());
+            throw Refusal.WAITING_LIST_ENTRY_NOT_HERE_ON_INVITE.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state when inviting waiting list entry, entryId={}", entryId, e);
-            throw new BadRequestResponse(e.getMessage());
+            throw Refusal.WAITING_LIST_ENTRY_NOT_INVITED.raise();
         }
     }
 
@@ -772,10 +769,10 @@ public class WaitingListRoutes implements Routes {
             ctx.json(service.returnToWaiting(entryId));
         } catch (IllegalArgumentException e) {
             log.warn("Waiting list entry not found for return to waiting, entryId={}", entryId, e);
-            throw new NotFoundResponse(e.getMessage());
+            throw Refusal.WAITING_LIST_ENTRY_NOT_HERE_ON_RETURN.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state when returning waiting list entry to waiting, entryId={}", entryId, e);
-            throw new BadRequestResponse(e.getMessage());
+            throw Refusal.WAITING_LIST_ENTRY_NOT_RETURNED.raise();
         }
     }
 
@@ -791,21 +788,21 @@ public class WaitingListRoutes implements Routes {
         var event = eventCrudService
                 .findById(request.eventId())
                 .filter(candidate -> candidate.stationId() == session.stationId())
-                .orElseThrow(() -> new NotFoundResponse("Appointment not found"));
+                .orElseThrow(Refusal.APPOINTMENT_NOT_HERE_FOR_INVITATION::raise);
         if (!eventRestrictionService.canView(event.id(), session.member().id(), session.permissions())) {
-            throw new ForbiddenResponse("Appointment not visible");
+            throw Refusal.APPOINTMENT_NOT_YOURS_TO_INVITE_TO.raise();
         }
         return new WaitingListInvitation(event.id(), parseDate(request.date()), parseTime(request.arrivalTime()));
     }
 
     private static LocalDate parseDate(String raw) {
         if (raw == null || raw.isBlank()) {
-            throw new BadRequestResponse("An invitation needs the date of the occurrence");
+            throw Refusal.INVITATION_NEEDS_A_DATE.raise();
         }
         try {
             return LocalDate.parse(raw.trim());
-        } catch (DateTimeParseException e) {
-            throw new BadRequestResponse("Invalid date: " + raw);
+        } catch (DateTimeParseException _) {
+            throw Refusal.INVITATION_DATE_NOT_A_DATE.raise(raw);
         }
     }
 
@@ -813,8 +810,8 @@ public class WaitingListRoutes implements Routes {
         if (raw == null || raw.isBlank()) return null;
         try {
             return LocalTime.parse(raw.trim());
-        } catch (DateTimeParseException e) {
-            throw new BadRequestResponse("Invalid time: " + raw);
+        } catch (DateTimeParseException _) {
+            throw Refusal.INVITATION_TIME_NOT_A_TIME.raise(raw);
         }
     }
 
@@ -828,10 +825,10 @@ public class WaitingListRoutes implements Routes {
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
             log.warn("Waiting list entry not found for moveToTesting, entryId={}", entryId, e);
-            throw new NotFoundResponse(e.getMessage());
+            throw Refusal.WAITING_LIST_ENTRY_NOT_HERE_ON_TESTING.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state when moving waiting list entry to testing, entryId={}", entryId, e);
-            throw new BadRequestResponse(e.getMessage());
+            throw Refusal.WAITING_LIST_ENTRY_NOT_MOVED_TO_TESTING.raise();
         }
     }
 
@@ -845,10 +842,10 @@ public class WaitingListRoutes implements Routes {
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
             log.warn("Waiting list entry not found for moveToJoined, entryId={}", entryId, e);
-            throw new NotFoundResponse(e.getMessage());
+            throw Refusal.WAITING_LIST_ENTRY_NOT_HERE_ON_JOIN.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state when moving waiting list entry to joined, entryId={}", entryId, e);
-            throw new BadRequestResponse(e.getMessage());
+            throw Refusal.WAITING_LIST_ENTRY_NOT_JOINED.raise();
         }
     }
 
@@ -862,10 +859,10 @@ public class WaitingListRoutes implements Routes {
             ctx.status(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
             log.warn("Waiting list entry not found for withdraw, entryId={}", entryId, e);
-            throw new NotFoundResponse(e.getMessage());
+            throw Refusal.WAITING_LIST_ENTRY_NOT_HERE_ON_WITHDRAWAL.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state when withdrawing waiting list entry, entryId={}", entryId, e);
-            throw new BadRequestResponse(e.getMessage());
+            throw Refusal.WAITING_LIST_ENTRY_NOT_WITHDRAWN.raise();
         }
     }
 
@@ -877,7 +874,7 @@ public class WaitingListRoutes implements Routes {
             ScoreEvaluator.validate(formula, fieldNames);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid scoring formula: {}", formula, e);
-            throw new BadRequestResponse("Invalid formula: " + e.getMessage());
+            throw Refusal.SCORING_FORMULA_NOT_READ.raise();
         }
     }
 
@@ -923,10 +920,10 @@ public class WaitingListRoutes implements Routes {
         }
         var request = ctx.bodyAsClass(PublicRegistrationRequest.class);
         if (request.firstname() == null || request.firstname().isBlank()) {
-            throw new BadRequestResponse("firstname is required");
+            throw Refusal.PUBLIC_REGISTRATION_NEEDS_A_FIRST_NAME.raise();
         }
         if (list.sendsMail() && (request.email() == null || request.email().isBlank())) {
-            throw new BadRequestResponse("email is required");
+            throw Refusal.PUBLIC_REGISTRATION_NEEDS_AN_ADDRESS.raise();
         }
         if (answerWhenLimited(
                 ctx, rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), "list:" + wid))) {
@@ -962,7 +959,7 @@ public class WaitingListRoutes implements Routes {
         String token = ctx.pathParam("token");
         boolean success = service.verifyPublicRegistration(token);
         if (!success) {
-            throw new BadRequestResponse("Invalid or expired verification token");
+            throw Refusal.WAITING_LIST_CONFIRMATION_LINK_UNKNOWN.raise();
         }
         ctx.json(new StatusResponse("verified"));
     }

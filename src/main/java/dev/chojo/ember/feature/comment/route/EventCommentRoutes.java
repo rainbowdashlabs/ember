@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.comment.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -16,11 +17,8 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -101,7 +99,7 @@ public class EventCommentRoutes implements Routes {
                 try {
                     eventDate = LocalDate.parse(dateParam);
                 } catch (Exception e) {
-                    throw new BadRequestResponse("date must be ISO yyyy-MM-dd or 'none'");
+                    throw Refusal.COMMENT_DAY_NOT_A_DATE.raise();
                 }
             }
             comments = commentService.findByEventAndDate(eventId, eventDate);
@@ -124,7 +122,7 @@ public class EventCommentRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateCommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
+            throw Refusal.COMMENT_NEEDS_TEXT.raise();
         }
         var author = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
@@ -155,18 +153,18 @@ public class EventCommentRoutes implements Routes {
     private void update(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
         UserSession session = UserSession.from(ctx);
-        var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
+        var comment = commentService.findById(commentId).orElseThrow(Refusal.COMMENT_NOT_HERE_ON_CHANGE::raise);
         var authorIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
         if (comment.author() == null || !comment.author().sameMember(authorIdentity)) {
-            throw new ForbiddenResponse("You can only edit your own comments");
+            throw Refusal.COMMENT_NOT_YOURS_TO_CHANGE.raise();
         }
         var request = ctx.bodyAsClass(UpdateCommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
+            throw Refusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
         }
         commentService.update(commentId, request.content());
-        var updated = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
+        var updated = commentService.findById(commentId).orElseThrow(Refusal.COMMENT_NOT_HERE_AFTER_CHANGE::raise);
         ctx.json(toResponse(updated));
     }
 
@@ -183,20 +181,21 @@ public class EventCommentRoutes implements Routes {
     private void delete(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
         UserSession session = UserSession.from(ctx);
-        var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
+        var comment = commentService.findById(commentId).orElseThrow(Refusal.COMMENT_NOT_HERE_ON_DELETE::raise);
         RouteSupport.requireSameStation(
-                session, commentService.findCommentStation(commentId).orElseThrow(NotFoundResponse::new));
+                session,
+                commentService.findCommentStation(commentId).orElseThrow(Refusal.COMMENT_NOT_HERE_ON_DELETE::raise));
         var authorIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
         boolean isAuthor = comment.author() != null && comment.author().sameMember(authorIdentity);
         boolean canModerate = session.hasPermission(StationPermission.EVENT_MANAGER);
         if (!isAuthor && !canModerate) {
-            throw new ForbiddenResponse("You can only delete your own comments");
+            throw Refusal.COMMENT_NOT_YOURS_TO_DELETE.raise();
         }
         if (commentService.delete(commentId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.COMMENT_NOT_DELETED.raise();
         }
     }
 

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -43,11 +44,8 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.CsvWriter;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -237,8 +235,10 @@ public class InventoryRoutes implements Routes {
     }
 
     private void verifyItemOwnership(int itemId, UserSession session) {
-        var item = inventoryService.findItemById(itemId).orElseThrow(NotFoundResponse::new);
-        var inventory = inventoryService.findById(item.inventoryId()).orElseThrow(NotFoundResponse::new);
+        var item = inventoryService.findItemById(itemId).orElseThrow(Refusal.ITEM_NOT_HERE::raise);
+        var inventory = inventoryService
+                .findById(item.inventoryId())
+                .orElseThrow(Refusal.INVENTORY_NOT_HERE_BEHIND_ITEM::raise);
         RouteSupport.requireSameStation(session, inventory.stationId());
     }
 
@@ -260,13 +260,12 @@ public class InventoryRoutes implements Routes {
                 ? StationPermission.INVENTORY_CREATE_EXTERNAL
                 : StationPermission.INVENTORY_CREATE_INTERNAL;
         if (!session.hasPermission(required)) {
-            throw new ForbiddenResponse("Missing permission " + required.name() + " to create items owned by "
-                    + owner.name().toLowerCase());
+            throw Refusal.GEAR_OWNER_NOT_YOURS_TO_CREATE.raise();
         }
     }
 
     private Inventory requireOwnedInventory(int inventoryId, UserSession session) {
-        var inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
+        var inventory = inventoryService.findById(inventoryId).orElseThrow(Refusal.INVENTORY_NOT_HERE::raise);
         RouteSupport.requireSameStation(session, inventory.stationId());
         return inventory;
     }
@@ -277,7 +276,7 @@ public class InventoryRoutes implements Routes {
     private void verifyRequirementOwnership(int requirementId, UserSession session) {
         if (inventoryService.findAllRequirementsByStation(session.stationId()).stream()
                 .noneMatch(r -> r.id() == requirementId)) {
-            throw new NotFoundResponse();
+            throw Refusal.REQUIREMENT_NOT_HERE.raise();
         }
     }
 
@@ -365,7 +364,7 @@ public class InventoryRoutes implements Routes {
         var request = ctx.bodyAsClass(HandOutRequest.class);
         var inventory = inventoryService
                 .findById(request.inventoryId())
-                .orElseThrow(() -> new NotFoundResponse("Inventory not found"));
+                .orElseThrow(Refusal.INVENTORY_NOT_HERE_ON_HAND_OUT::raise);
         RouteSupport.requireSameStation(session, inventory.stationId());
         requireMayCreate(session, ownerOf(inventory));
         String actor = NameParts.of(session.account()).called();
@@ -374,7 +373,7 @@ public class InventoryRoutes implements Routes {
     }
 
     private void requireMemberOfStation(int memberId, UserSession session) {
-        var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
+        var member = stationMemberRepository.findById(memberId).orElseThrow(Refusal.MEMBER_NOT_HERE_FOR_GEAR::raise);
         RouteSupport.requireSameStation(session, member.stationId());
     }
 
@@ -486,10 +485,10 @@ public class InventoryRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(InventoryRequest.class);
         if (isBlank(request.name())) {
-            throw new BadRequestResponse("name is required");
+            throw Refusal.INVENTORY_NEEDS_A_NAME.raise();
         }
         if (request.inventoryType() == null) {
-            throw new BadRequestResponse("inventoryType is required");
+            throw Refusal.INVENTORY_NEEDS_A_KIND.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.create(
@@ -532,7 +531,7 @@ public class InventoryRoutes implements Routes {
                                     inventory.color()));
                         },
                         () -> {
-                            throw new NotFoundResponse();
+                            throw Refusal.INVENTORY_NOT_HERE_ON_READ.raise();
                         });
     }
 
@@ -554,10 +553,10 @@ public class InventoryRoutes implements Routes {
         Inventory current = requireOwnedInventory(id, session);
         var request = ctx.bodyAsClass(InventoryRequest.class);
         if (isBlank(request.name())) {
-            throw new BadRequestResponse("name is required");
+            throw Refusal.INVENTORY_NEEDS_A_NAME_ON_CHANGE.raise();
         }
         if (request.inventoryType() == null) {
-            throw new BadRequestResponse("inventoryType is required");
+            throw Refusal.INVENTORY_NEEDS_A_KIND_ON_CHANGE.raise();
         }
         // A caller that says nothing about the kind is leaving it alone, not asking for the default.
         // Reading a missing field as "one thing in many copies" would quietly undo a drawer every time
@@ -573,7 +572,7 @@ public class InventoryRoutes implements Routes {
                             homogeneous,
                             Glyph.of(request.icon(), request.color()))
                     .ifPresentOrElse(ctx::json, () -> {
-                        throw new NotFoundResponse();
+                        throw Refusal.INVENTORY_NOT_CHANGED.raise();
                     });
         } catch (InventorySwitchRefusedException refused) {
             ctx.status(HttpStatus.BAD_REQUEST)
@@ -601,7 +600,7 @@ public class InventoryRoutes implements Routes {
         if (inventoryService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.INVENTORY_NOT_DELETED.raise();
         }
     }
 
@@ -633,7 +632,7 @@ public class InventoryRoutes implements Routes {
         requireOwnedInventory(inventoryId, session);
         var request = ctx.bodyAsClass(SizeRequest.class);
         if (isBlank(request.label())) {
-            throw new BadRequestResponse("label is required");
+            throw Refusal.SIZE_NEEDS_A_NAME.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.createSize(inventoryId, request.label(), request.position(), request.note()));
@@ -660,12 +659,12 @@ public class InventoryRoutes implements Routes {
         requireOwnedInventory(inventoryId, session);
         var request = ctx.bodyAsClass(SizeRequest.class);
         if (isBlank(request.label())) {
-            throw new BadRequestResponse("label is required");
+            throw Refusal.SIZE_NEEDS_A_NAME_ON_CHANGE.raise();
         }
         inventoryService
                 .updateSize(inventoryId, sizeId, request.label(), request.position(), request.note())
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw new NotFoundResponse();
+                    throw Refusal.SIZE_NOT_CHANGED.raise();
                 });
     }
 
@@ -690,7 +689,7 @@ public class InventoryRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         requireOwnedInventory(inventoryId, session);
         inventoryService.deleteSize(inventoryId, sizeId).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.SIZE_NOT_DELETED.raise();
         });
     }
 
@@ -722,7 +721,7 @@ public class InventoryRoutes implements Routes {
         requireOwnedInventory(inventoryId, session);
         var request = ctx.bodyAsClass(ItemRequest.class);
         if (isBlank(request.name())) {
-            throw new BadRequestResponse("name is required");
+            throw Refusal.ITEM_NEEDS_A_NAME.raise();
         }
         ItemOwner owner = request.ownerKind() != null ? request.ownerKind() : ItemOwner.STATION;
         requireMayCreate(session, owner);
@@ -765,7 +764,7 @@ public class InventoryRoutes implements Routes {
         if (!session.hasPermission(StationPermission.INVENTORY_ASSIGN)
                 && !session.hasPermission(StationPermission.INVENTORY_EDIT)
                 && rows.stream().anyMatch(row -> row.memberId() != null)) {
-            throw new ForbiddenResponse("Missing permission to hand a piece to a member");
+            throw Refusal.HANDING_OUT_NOT_ALLOWED.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(intakeService.takeStock(inventoryId, session.stationId(), inventory.name(), rows));
@@ -785,10 +784,10 @@ public class InventoryRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         String internalId = ctx.queryParam("internalId");
         if (internalId == null || internalId.isBlank()) {
-            throw new BadRequestResponse("internalId is required");
+            throw Refusal.NO_CODE_GIVEN_FOR_ITEM.raise();
         }
         inventoryService.findByInternalId(session.stationId(), internalId).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.ITEM_NOT_HERE_BY_CODE.raise();
         });
     }
 
@@ -807,7 +806,7 @@ public class InventoryRoutes implements Routes {
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
         inventoryService.findItemById(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.ITEM_NOT_HERE_ON_READ.raise();
         });
     }
 
@@ -828,7 +827,7 @@ public class InventoryRoutes implements Routes {
         verifyItemOwnership(id, session);
         var request = ctx.bodyAsClass(ItemRequest.class);
         if (isBlank(request.name())) {
-            throw new BadRequestResponse("name is required");
+            throw Refusal.ITEM_NEEDS_A_NAME_ON_CHANGE.raise();
         }
         inventoryService
                 .updateItem(
@@ -840,7 +839,7 @@ public class InventoryRoutes implements Routes {
                         request.metadata(),
                         describingClusterId(session))
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw new NotFoundResponse();
+                    throw Refusal.ITEM_NOT_CHANGED.raise();
                 });
     }
 
@@ -865,7 +864,7 @@ public class InventoryRoutes implements Routes {
         inventoryService
                 .moveItem(id, request.inventoryId(), describingClusterId(session))
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw new NotFoundResponse();
+                    throw Refusal.ITEM_NOT_MOVED.raise();
                 });
     }
 
@@ -887,7 +886,7 @@ public class InventoryRoutes implements Routes {
         inventoryService
                 .assignItem(id, request.memberId(), request.memberName())
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw new NotFoundResponse();
+                    throw Refusal.ITEM_NOT_ASSIGNED.raise();
                 });
     }
 
@@ -904,7 +903,7 @@ public class InventoryRoutes implements Routes {
     private void getItemLocation(Context ctx) {
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, UserSession.from(ctx));
-        InventoryItem item = inventoryService.findItemById(id).orElseThrow(NotFoundResponse::new);
+        InventoryItem item = inventoryService.findItemById(id).orElseThrow(Refusal.ITEM_NOT_HERE_ON_LOCATION::raise);
         ContainerPath path = containerService.pathOfItem(item);
         ctx.json(new ItemLocationResponse(item.id(), item.containerId(), path.segments(), path.ids(), path.display()));
     }
@@ -929,10 +928,10 @@ public class InventoryRoutes implements Routes {
             if (containerService.setItemContainer(id, body.containerId())) {
                 ctx.status(HttpStatus.NO_CONTENT);
             } else {
-                throw new NotFoundResponse();
+                throw Refusal.ITEM_NOT_PUT_IN_CONTAINER.raise();
             }
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+        } catch (IllegalArgumentException ignored) {
+            throw Refusal.ITEM_NOT_FOR_THIS_CONTAINER.raise();
         }
     }
 
@@ -966,7 +965,7 @@ public class InventoryRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
-        var item = inventoryService.findItemById(id).orElseThrow(NotFoundResponse::new);
+        var item = inventoryService.findItemById(id).orElseThrow(Refusal.ITEM_NOT_HERE_ON_LOSS::raise);
         LostRequest request = ctx.body().isBlank() ? null : ctx.bodyAsClass(LostRequest.class);
         String note = request == null ? null : request.note();
         note = isBlank(note) ? null : note.trim();
@@ -975,13 +974,13 @@ public class InventoryRoutes implements Routes {
         if (!session.hasPermission(StationPermission.INVENTORY_EDIT)) {
             requireHolds(session, item);
             if (note == null && lossNoteRequired(session.stationId())) {
-                throw new BadRequestResponse("This station asks for a note when gear goes missing");
+                throw Refusal.LOSS_NEEDS_A_NOTE.raise();
             }
         }
         Integer noteBy = note == null || session.member() == null
                 ? null
                 : session.member().id();
-        var lost = inventoryService.markLost(id, note, noteBy).orElseThrow(NotFoundResponse::new);
+        var lost = inventoryService.markLost(id, note, noteBy).orElseThrow(Refusal.ITEM_NOT_MARKED_LOST::raise);
         Integer selfCheckId = request == null ? null : request.selfCheckId();
         if (selfCheckId != null) {
             selfCheckService.recordLoss(
@@ -1003,7 +1002,7 @@ public class InventoryRoutes implements Routes {
      */
     private void requireHolds(UserSession session, InventoryItem item) {
         if (item.assignedTo() == null || session.member() == null) {
-            throw new ForbiddenResponse("Only somebody holding this gear can report it missing");
+            throw Refusal.LOSS_NOT_YOURS_TO_REPORT.raise();
         }
         int holder = item.assignedTo();
         if (holder == session.member().id()) return;
@@ -1011,7 +1010,7 @@ public class InventoryRoutes implements Routes {
                 && stationMemberRepository.findManagers(holder).stream()
                         .anyMatch(m -> m.id() == session.member().id());
         if (!actsForThem) {
-            throw new ForbiddenResponse("Only somebody holding this gear can report it missing");
+            throw Refusal.LOSS_NOT_YOURS_TO_REPORT_FOR_THEM.raise();
         }
     }
 
@@ -1063,8 +1062,8 @@ public class InventoryRoutes implements Routes {
                         file.filename(),
                         file.contentType() != null ? file.contentType() : "application/octet-stream",
                         content.readAllBytes());
-            } catch (IOException e) {
-                throw new BadRequestResponse("That file could not be read");
+            } catch (IOException ignored) {
+                throw Refusal.LOSS_REPORT_FILE_UNREADABLE.raise();
             }
         }
         var movement = lossReportService.report(
@@ -1111,7 +1110,7 @@ public class InventoryRoutes implements Routes {
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, UserSession.from(ctx));
         inventoryService.markFound(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.ITEM_NOT_MARKED_FOUND.raise();
         });
     }
 
@@ -1132,7 +1131,7 @@ public class InventoryRoutes implements Routes {
         if (inventoryService.deleteItem(id, describingClusterId(session))) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.ITEM_NOT_DELETED.raise();
         }
     }
 
@@ -1222,13 +1221,13 @@ public class InventoryRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(RequirementRequest.class);
         if (request.inventoryId() == 0) {
-            throw new BadRequestResponse("inventoryId is required");
+            throw Refusal.REQUIREMENT_NEEDS_AN_INVENTORY.raise();
         }
         requireOwnedInventory(request.inventoryId(), session);
         StationUserType userType = request.userType();
         int groupId = request.groupId() != null ? request.groupId() : 0;
         if (userType == null && groupId == 0) {
-            throw new BadRequestResponse("userType or groupId is required");
+            throw Refusal.REQUIREMENT_NEEDS_SOMEBODY_TO_APPLY_TO.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.createRequirement(
@@ -1258,7 +1257,7 @@ public class InventoryRoutes implements Routes {
         if (inventoryService.updateRequirement(id, request.quantity() > 0 ? request.quantity() : 1)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.REQUIREMENT_NOT_CHANGED.raise();
         }
     }
 
@@ -1281,7 +1280,7 @@ public class InventoryRoutes implements Routes {
         if (inventoryService.updateRequirementPosition(id, request.position())) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.REQUIREMENT_NOT_MOVED.raise();
         }
     }
 
@@ -1302,7 +1301,7 @@ public class InventoryRoutes implements Routes {
         if (inventoryService.deleteRequirement(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.REQUIREMENT_NOT_DELETED.raise();
         }
     }
 
@@ -1333,7 +1332,7 @@ public class InventoryRoutes implements Routes {
                 body.showSize() != null ? body.showSize() : true,
                 asSpreadsheet ? CsvWriter.Separator.of(ctx.queryParam("separator")) : null);
         if (document.isEmpty()) {
-            throw new BadRequestResponse("Export failed");
+            throw Refusal.MEMBER_GEAR_LIST_EMPTY.raise();
         }
         ctx.contentType(asSpreadsheet ? "text/csv" : "application/pdf");
         ctx.header("Content-Disposition", document.get().contentDisposition());

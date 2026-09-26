@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.form.service.FormService;
@@ -19,7 +20,6 @@ import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -82,7 +82,7 @@ public class PublicStationRoutes implements Routes {
         boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
 
         if (station.stationKind() == StationKind.CLUSTER_HOME) {
-            if (!hasPublicKb) throw new NotFoundResponse();
+            if (!hasPublicKb) throw Refusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
             ctx.json(publicInfo(station, true, false, false, false, false, null));
             return;
         }
@@ -99,7 +99,7 @@ public class PublicStationRoutes implements Routes {
                 && !hasPublicWaitlist
                 && !hasPublicBlog
                 && !formService.hasOpenlyAddressedForms(station.id())) {
-            throw new NotFoundResponse();
+            throw Refusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
         }
 
         String landingPageSlug =
@@ -151,10 +151,11 @@ public class PublicStationRoutes implements Routes {
      * @param allowClusterHome whether an association's own station may answer, which only the wiki does
      */
     private Station resolveStation(Context ctx, boolean allowClusterHome) {
-        var station =
-                stationRepository.findByAddress(ctx.pathParam("stationUid")).orElseThrow(NotFoundResponse::new);
+        var station = stationRepository
+                .findByAddress(ctx.pathParam("stationUid"))
+                .orElseThrow(Refusal.PUBLIC_STATION_NOTHING_TO_SHOW::raise);
         if (!allowClusterHome && station.stationKind() == StationKind.CLUSTER_HOME) {
-            throw new NotFoundResponse();
+            throw Refusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
         }
         return station;
     }

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.maps.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
@@ -14,7 +15,6 @@ import dev.chojo.ember.feature.maps.entity.MapsGeocodingConfig;
 import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService;
 import dev.chojo.ember.feature.maps.service.MapsConfigService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -39,11 +39,11 @@ public class AdminMapsRoutes implements Routes {
 
     private static int parseIntParam(Context ctx, String name) {
         String raw = ctx.queryParam(name);
-        if (raw == null) throw new BadRequestResponse(name + " required");
+        if (raw == null) throw Refusal.MAP_TILE_NUMBER_MISSING.raise(name);
         try {
             return Integer.parseInt(raw);
         } catch (NumberFormatException e) {
-            throw new BadRequestResponse(name + " must be an integer");
+            throw Refusal.MAP_TILE_NUMBER_NOT_A_NUMBER.raise(name);
         }
     }
 

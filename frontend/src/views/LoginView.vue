@@ -34,7 +34,6 @@ import ConsentGate from '@/views/loginview/ConsentGate.vue'
 import LegalModal from '@/views/loginview/LegalModal.vue'
 import LoginForm from '@/views/loginview/LoginForm.vue'
 import DevDemoFooter from '@/views/loginview/DevDemoFooter.vue'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure} from '@/util/failure'
 import {decideSignInLanding} from '@/util/signInLanding'
 
@@ -202,10 +201,7 @@ const {running: loggingIn, error: loginError, run: handleLogin} = useAsyncAction
   await completeSignIn(result)
 }, {formatError: (e) => {
   if (e instanceof StorageDeniedError) return t('login.storageDenied')
-  const message = apiErrorMessage(e)
-  // The one refusal a member walks into on purpose gets their language, with the way in named.
-  if (message?.startsWith('Password sign-in is switched off')) return t('login.passwordOff')
-  return message || describeFailure(e, t).message
+  return describeFailure(e, t).message
 }})
 
 const {running: passkeySigningIn, error: passkeyError, run: handlePasskeyLogin} = useAsyncAction(async () => {
@@ -218,7 +214,7 @@ const {running: passkeySigningIn, error: passkeyError, run: handlePasskeyLogin} 
   if (e instanceof StorageDeniedError) return t('login.storageDenied')
   const key = webauthnErrorKey(e, 'get')
   if (key !== 'passkeys.errors.generic') return t(key)
-  return apiErrorMessage(e) || t('login.passkeyFailed')
+  return describeFailure(e, t).message
 }})
 
 const {running: demoLoggingIn, error: demoError, run: loginAsDemo} = useAsyncAction(async (account: DemoAccount) => {

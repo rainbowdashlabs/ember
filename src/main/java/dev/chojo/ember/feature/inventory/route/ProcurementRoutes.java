@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -21,7 +22,6 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -114,7 +114,9 @@ public class ProcurementRoutes implements Routes {
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateProcurementRequest.class);
-        inventoryRepository.findById(request.inventoryId()).orElseThrow(NotFoundResponse::new);
+        inventoryRepository
+                .findById(request.inventoryId())
+                .orElseThrow(Refusal.INVENTORY_NOT_HERE_ON_PROCUREMENT::raise);
         var procurement = procurementService.create(
                 session.stationId(), request.inventoryId(), request.memberId(), request.sizeId(), request.notes());
         ctx.status(HttpStatus.CREATED).json(toResponse(procurement));
@@ -136,7 +138,7 @@ public class ProcurementRoutes implements Routes {
         if (procurementService.fulfill(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.PROCUREMENT_NOT_FULFILLED.raise();
         }
     }
 
@@ -156,7 +158,7 @@ public class ProcurementRoutes implements Routes {
         if (procurementService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.PROCUREMENT_NOT_DELETED.raise();
         }
     }
 

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -24,10 +25,8 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -154,10 +153,10 @@ public class LendingRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CreateLendingRequest.class);
         if (req.owningStationId() == session.stationId()) {
-            throw new BadRequestResponse("Cannot lend from own station");
+            throw Refusal.LENDING_FROM_OWN_STATION.raise();
         }
         if (req.dateFrom() == null) {
-            throw new BadRequestResponse("dateFrom is required");
+            throw Refusal.LENDING_FIRST_DAY_MISSING.raise();
         }
 
         LocalDate dateTo = req.dateTo() != null ? req.dateTo() : req.dateFrom();
@@ -184,7 +183,7 @@ public class LendingRoutes implements Routes {
     private void getRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
+        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         verifyAccess(request, session.stationId());
 
         var items = service.findRequestItems(id);
@@ -194,26 +193,30 @@ public class LendingRoutes implements Routes {
     private void approveRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
+        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         verifyOwner(request, session.stationId());
         service.approveRequest(id, session.stationId());
-        ctx.json(enrichRequest(service.findRequest(id).orElseThrow(), session.stationId()));
+        ctx.json(enrichRequest(
+                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_APPROVAL::raise),
+                session.stationId()));
     }
 
     private void declineRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
+        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         verifyOwner(request, session.stationId());
         var body = ctx.bodyAsClass(DeclineBody.class);
         service.declineRequest(id, session.stationId(), body.reason());
-        ctx.json(enrichRequest(service.findRequest(id).orElseThrow(), session.stationId()));
+        ctx.json(enrichRequest(
+                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_DECLINE::raise),
+                session.stationId()));
     }
 
     private void availableItemsForRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
+        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         verifyOwner(request, session.stationId());
 
         var requestItems = service.findRequestItems(id);
@@ -249,10 +252,10 @@ public class LendingRoutes implements Routes {
     private void assignItems(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
+        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         verifyOwner(request, session.stationId());
         if (request.status() != LendingStatus.APPROVED) {
-            throw new BadRequestResponse("Can only assign items to approved requests");
+            throw Refusal.LENDING_REQUEST_NOT_APPROVED.raise();
         }
 
         var assignments = ctx.bodyAsClass(AssignItemsRequest.class);
@@ -267,34 +270,40 @@ public class LendingRoutes implements Routes {
     private void markLent(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
+        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         verifyOwner(request, session.stationId());
         service.markLent(id, session.stationId());
-        ctx.json(enrichRequest(service.findRequest(id).orElseThrow(), session.stationId()));
+        ctx.json(enrichRequest(
+                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_LENDING::raise),
+                session.stationId()));
     }
 
     private void markReturned(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
+        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         verifyAccess(request, session.stationId());
         service.markReturned(id, session.stationId());
-        ctx.json(enrichRequest(service.findRequest(id).orElseThrow(), session.stationId()));
+        ctx.json(enrichRequest(
+                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_RETURN::raise),
+                session.stationId()));
     }
 
     private void closeRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
+        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         verifyAccess(request, session.stationId());
         service.closeRequest(id, session.stationId());
-        ctx.json(enrichRequest(service.findRequest(id).orElseThrow(), session.stationId()));
+        ctx.json(enrichRequest(
+                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_CLOSING::raise),
+                session.stationId()));
     }
 
     private void getMessages(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
+        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         verifyAccess(request, session.stationId());
         var messages = service.getMessages(id, session.stationId());
         ctx.json(messages.stream().map(this::enrichMessage).toList());
@@ -327,11 +336,11 @@ public class LendingRoutes implements Routes {
     private void sendMessage(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
+        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
         verifyAccess(request, session.stationId());
         var body = ctx.bodyAsClass(MessageBody.class);
         if (body.message() == null || body.message().isBlank()) {
-            throw new BadRequestResponse("message is required");
+            throw Refusal.LENDING_MESSAGE_NEEDS_TEXT.raise();
         }
         String senderName = NameParts.of(session.account()).called();
         var msg = service.sendMessage(id, session.stationId(), session.member().id(), senderName, body.message());
@@ -347,7 +356,7 @@ public class LendingRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CreateBlockRequest.class);
         if (req.blockFrom() == null || req.blockTo() == null) {
-            throw new BadRequestResponse("blockFrom and blockTo are required");
+            throw Refusal.LENDING_BLOCK_SPAN_MISSING.raise();
         }
         var block = service.createBlock(
                 session.stationId(),
@@ -369,14 +378,14 @@ public class LendingRoutes implements Routes {
         UUID stationUid = stationRepository.resolveUid(stationId);
         if (!Objects.equals(request.requestingStationUid(), stationUid)
                 && !Objects.equals(request.owningStationUid(), stationUid)) {
-            throw new NotFoundResponse();
+            throw Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS.raise();
         }
     }
 
     private void verifyOwner(LendingRequest request, int stationId) {
         UUID stationUid = stationRepository.resolveUid(stationId);
         if (!Objects.equals(request.owningStationUid(), stationUid)) {
-            throw new BadRequestResponse("Only the owning station can perform this action");
+            throw Refusal.LENDING_NOT_THE_OWNING_STATION.raise();
         }
     }
 

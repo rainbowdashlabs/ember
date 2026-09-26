@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.beacon.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Network;
@@ -15,11 +16,8 @@ import dev.chojo.ember.feature.discovery.service.DiscoverySigningService;
 import dev.chojo.ember.feature.system.service.ProblemReportScreenshotService;
 import dev.chojo.ember.util.ClientIp;
 import dev.chojo.ember.util.LeakyBucket;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -97,7 +95,7 @@ public class BeaconIntakeRoutes implements Routes {
 
     /** A beacon that is not one answers nothing, so an instance is never a beacon by accident. */
     private void requireBeacon() {
-        if (!config.receiving()) throw new NotFoundResponse();
+        if (!config.receiving()) throw Refusal.BEACON_INTAKE_NOT_RECEIVING.raise();
     }
 
     /**
@@ -112,11 +110,11 @@ public class BeaconIntakeRoutes implements Routes {
         requireBeacon();
         String address = ClientIp.resolve(ctx, network).getHostAddress();
         if (limiter.tryAcquire(address).isPresent()) {
-            throw new ForbiddenResponse("Too many reports from this address");
+            throw Refusal.BEACON_INTAKE_TOO_MANY.raise();
         }
         String body = ctx.body();
         if (body.length() > maxBytes) {
-            throw new BadRequestResponse("That report is larger than a beacon reads");
+            throw Refusal.BEACON_INTAKE_TOO_LARGE.raise();
         }
         return body;
     }
@@ -137,16 +135,17 @@ public class BeaconIntakeRoutes implements Routes {
         String key = ctx.header(DiscoverySigningService.BEACON_KEY_HEADER);
         String signature = ctx.header(DiscoverySigningService.SIGNATURE_HEADER);
         if (key == null || signature == null) {
-            throw new ForbiddenResponse("A report has to be signed");
+            throw Refusal.BEACON_INTAKE_NOT_SIGNED.raise();
         }
         if (!signing.verify(body, signature, key)) {
-            throw new ForbiddenResponse("That signature does not match");
+            throw Refusal.BEACON_INTAKE_SIGNATURE_NOT_GOOD.raise();
         }
         byte[] raw;
         try {
             raw = Base64.getDecoder().decode(key);
         } catch (IllegalArgumentException e) {
-            throw new ForbiddenResponse("That is not a key");
+            log.warn("A beacon delivery carried a key that is not Base64", e);
+            throw Refusal.BEACON_INTAKE_KEY_NOT_READ.raise();
         }
         return new Sender(intake.accept(raw, envelope, api.baseUrl()), key);
     }
@@ -179,8 +178,7 @@ public class BeaconIntakeRoutes implements Routes {
         var payload = ctx.bodyAsClass(BeaconPayloads.ReportImagePayload.class);
         var sender = senderOf(ctx, body, payload.envelope());
         intake.noteReportImage(sender.instanceId(), sender.publicKey());
-        int imageId = pictures.store(payload.data(), null)
-                .orElseThrow(() -> new BadRequestResponse("A picture delivery needs a picture"));
+        int imageId = pictures.store(payload.data(), null).orElseThrow(Refusal.BEACON_INTAKE_PICTURE_MISSING::raise);
         ctx.status(HttpStatus.ACCEPTED).json(new BeaconPayloads.ReportImageAccepted(imageId));
     }
 
@@ -196,7 +194,7 @@ public class BeaconIntakeRoutes implements Routes {
         guardedBody(ctx);
         var batch = ctx.bodyAsClass(BeaconPayloads.MetricsBatch.class);
         if (batch.protocolVersion() > BeaconPayloads.PROTOCOL_VERSION) {
-            throw new BadRequestResponse("This beacon does not speak that protocol version yet");
+            throw Refusal.BEACON_INTAKE_PROTOCOL_TOO_NEW.raise();
         }
         int stored = intake.storeMetrics(batch);
         log.debug("Took {} metrics subject(s)", stored);

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
@@ -15,10 +16,8 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -126,7 +125,8 @@ public class ClusterRoutes implements Routes {
         if (request.autoFederate() != null && request.autoFederate() != cluster.autoFederate()) {
             clusterService.setAutoFederate(cluster.id(), request.autoFederate());
         }
-        ctx.json(toResponse(clusterService.findById(cluster.id()).orElseThrow(NotFoundResponse::new)));
+        ctx.json(toResponse(
+                clusterService.findById(cluster.id()).orElseThrow(Refusal.CLUSTER_NOT_HERE_AFTER_RENAME::raise)));
     }
 
     @OpenApi(
@@ -137,8 +137,9 @@ public class ClusterRoutes implements Routes {
             tags = {"Cluster"},
             responses = @OpenApiResponse(status = "204"))
     private void delete(Context ctx) {
-        Cluster cluster =
-                clusterService.findByUid(parseUid(ctx.pathParam("clusterUid"))).orElseThrow(NotFoundResponse::new);
+        Cluster cluster = clusterService
+                .findByUid(parseUid(ctx.pathParam("clusterUid")))
+                .orElseThrow(Refusal.CLUSTER_NOT_HERE_ON_DELETE::raise);
         clusterService.delete(cluster.id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -161,13 +162,14 @@ public class ClusterRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AppointRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void appointAdministrator(Context ctx) {
-        Cluster cluster =
-                clusterService.findByUid(parseUid(ctx.pathParam("clusterUid"))).orElseThrow(NotFoundResponse::new);
+        Cluster cluster = clusterService
+                .findByUid(parseUid(ctx.pathParam("clusterUid")))
+                .orElseThrow(Refusal.CLUSTER_NOT_HERE_ON_APPOINTMENT::raise);
         var request = ctx.bodyAsClass(AppointRequest.class);
-        if (request.accountUid() == null) throw new BadRequestResponse("Name the account to appoint");
+        if (request.accountUid() == null) throw Refusal.CLUSTER_APPOINTMENT_NEEDS_AN_ACCOUNT.raise();
         var account = accountRepository
                 .findByUid(parseUid(request.accountUid()))
-                .orElseThrow(() -> new NotFoundResponse("No such account"));
+                .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_CLUSTER_APPOINTMENT::raise);
         clusterService.addMember(cluster.id(), account.id(), ClusterUserType.CLUSTER_ADMIN);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -179,15 +181,15 @@ public class ClusterRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw new BadRequestResponse("No cluster selected");
-        return clusterService.findById(clusterId).orElseThrow(NotFoundResponse::new);
+        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN.raise();
+        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE::raise);
     }
 
     private UUID parseUid(String raw) {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Not a cluster identity: " + raw);
+            throw Refusal.CLUSTER_NOT_AN_IDENTITY.raise(raw);
         }
     }
 

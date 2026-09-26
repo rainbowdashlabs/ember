@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -19,10 +20,8 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -137,7 +136,7 @@ public class MemberGroupRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(GroupRequest.class);
         if (isBlank(request.name())) {
-            throw new BadRequestResponse("name is required");
+            throw Refusal.GROUP_NAME_MISSING_ON_CREATE.raise();
         }
         ctx.status(HttpStatus.CREATED).json(groupService.create(session.stationId(), request.name()));
     }
@@ -163,7 +162,7 @@ public class MemberGroupRoutes implements Routes {
                             ctx.json(new GroupDetail(group.id(), group.stationId(), group.name(), members));
                         },
                         () -> {
-                            throw new NotFoundResponse();
+                            throw Refusal.GROUP_NOT_HERE_ON_READ.raise();
                         });
     }
 
@@ -183,12 +182,12 @@ public class MemberGroupRoutes implements Routes {
         requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
         var request = ctx.bodyAsClass(GroupRequest.class);
         if (isBlank(request.name())) {
-            throw new BadRequestResponse("name is required");
+            throw Refusal.GROUP_NAME_MISSING_ON_CHANGE.raise();
         }
         groupService
                 .update(id, request.name(), request.color(), request.position())
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw new NotFoundResponse();
+                    throw Refusal.GROUP_NOT_HERE_ON_CHANGE.raise();
                 });
     }
 
@@ -208,7 +207,7 @@ public class MemberGroupRoutes implements Routes {
         if (groupService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.GROUP_NOT_HERE_ON_DELETE.raise();
         }
     }
 

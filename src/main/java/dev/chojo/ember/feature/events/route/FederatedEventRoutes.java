@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -19,12 +20,8 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
-import io.javalin.http.BadGatewayResponse;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -153,14 +150,14 @@ public class FederatedEventRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var content = eventFederationService.getFederatedAttachment(
                 session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id"), pathInt(ctx, "attachmentId"));
-        if (content == null || content.base64() == null) throw new NotFoundResponse();
+        if (content == null || content.base64() == null) throw Refusal.FEDERATED_FILE_NOT_HERE.raise();
 
         byte[] data;
         try {
             data = Base64.getDecoder().decode(content.base64());
         } catch (IllegalArgumentException e) {
             log.warn("Partner station answered with a file this instance cannot read", e);
-            throw new BadGatewayResponse("The station holding this file answered with something unreadable");
+            throw Refusal.FEDERATED_FILE_UNREADABLE.raise();
         }
         ctx.contentType(SafeInlineMime.safeContentType(content.mimeType()));
         ctx.header(
@@ -193,7 +190,7 @@ public class FederatedEventRoutes implements Routes {
                                 fed.req().eventDate(),
                                 fed.station().id(),
                                 fed.station().federationPrivateKey())
-                        .orElseThrow(() -> new BadRequestResponse("Registration failed"))
+                        .orElseThrow(Refusal.FEDERATED_REGISTRATION_NOT_TAKEN::raise)
                 : eventFederationService
                         .registerFederated(
                                 fed.eventId(),
@@ -251,7 +248,7 @@ public class FederatedEventRoutes implements Routes {
                         fed.remoteMemberId(),
                         LocalDate.parse(fed.req().eventDate()));
         if (!restored) {
-            throw new BadRequestResponse("This can no longer be taken back");
+            throw Refusal.FEDERATED_WITHDRAWAL_NO_LONGER_UNDONE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -279,7 +276,7 @@ public class FederatedEventRoutes implements Routes {
                         fed.station().federationPrivateKey())
                 : confirmOnThisInstance(fed);
         if (!confirmed) {
-            throw new BadRequestResponse("No places left");
+            throw Refusal.NO_PLACES_LEFT_AT_HOLDER.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -294,11 +291,11 @@ public class FederatedEventRoutes implements Routes {
         var day = LocalDate.parse(fed.req().eventDate());
         int hostPartnerId = fed.hostPartner().id();
         if (!eventFederationService.partnerPlaces(fed.eventId(), hostPartnerId).partnerConfirms()) {
-            throw new ForbiddenResponse("That station decides its own registrations for this event");
+            throw Refusal.EVENT_DECIDED_BY_ITS_HOLDER.raise();
         }
         var registration = eventFederationService
                 .findRegistration(fed.eventId(), hostPartnerId, fed.remoteMemberId(), day)
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.FEDERATED_REGISTRATION_NOT_HERE::raise);
         return eventFederationService.acceptWithinBudget(registration.id(), fed.eventId(), hostPartnerId, day);
     }
 
@@ -308,7 +305,8 @@ public class FederatedEventRoutes implements Routes {
      */
     private FederatedRegContext resolveFederatedRegContext(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var station =
+                stationRepository.findById(session.stationId()).orElseThrow(Refusal.SESSION_STATION_NOT_HERE::raise);
         var partner = resolvePartner(ctx, session.stationId());
         int eventId = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(FederatedRegBody.class);
@@ -322,7 +320,7 @@ public class FederatedEventRoutes implements Routes {
         var partnerUid = pathUuid(ctx, "stationuid");
         return federationRepository
                 .findPartnerByStationAndRemoteUid(stationId, partnerUid)
-                .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
+                .orElseThrow(Refusal.PARTNER_NOT_HERE::raise);
     }
 
     private void federatedMyRegistrations(Context ctx) {
@@ -357,7 +355,7 @@ public class FederatedEventRoutes implements Routes {
         int eventId = pathInt(ctx, "eventId");
         var req = ctx.bodyAsClass(EventCommentRoutes.CreateCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
+            throw Refusal.FEDERATED_COMMENT_NEEDS_TEXT.raise();
         }
         var result = eventFederationService.createFederatedComment(
                 session.stationId(),
@@ -382,7 +380,7 @@ public class FederatedEventRoutes implements Routes {
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(EventCommentRoutes.UpdateCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
+            throw Refusal.FEDERATED_COMMENT_CHANGE_NEEDS_TEXT.raise();
         }
         var result = eventFederationService.updateFederatedComment(
                 session.stationId(), partnerUid, commentId, session.member().uid(), req.content());

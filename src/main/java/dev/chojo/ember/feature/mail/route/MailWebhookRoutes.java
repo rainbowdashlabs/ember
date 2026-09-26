@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.mail.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.feature.mail.service.MailChainService;
@@ -13,7 +14,6 @@ import dev.chojo.ember.feature.mail.service.SweegoSignature;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -74,7 +74,7 @@ public class MailWebhookRoutes implements Routes {
                         ctx.body(),
                         secret)) {
             log.warn("Sweego report refused: the signature does not match the body");
-            throw new NotFoundResponse();
+            throw Refusal.MAIL_REPORT_NOT_TAKEN.raise();
         }
 
         JsonNode body = ctx.bodyAsClass(JsonNode.class);
@@ -146,7 +146,7 @@ public class MailWebhookRoutes implements Routes {
     private WebhookKeyService.WebhookScope authorise(Context ctx) {
         return keyService.resolve(ctx.pathParam("key")).orElseThrow(() -> {
             log.warn("Delivery event refused: the key presented authorises nothing");
-            return new NotFoundResponse();
+            return Refusal.MAIL_REPORT_NOT_TAKEN.raise();
         });
     }
 

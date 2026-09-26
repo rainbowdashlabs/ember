@@ -20,7 +20,6 @@ import type {DraftField} from './fields/types'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
-import {apiErrorMessage} from '@/util/apiError'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -56,7 +55,7 @@ const {t} = useI18n()
 const {config: fields, loading, failure: loadFailure, reload: load} = useConfigPanel<InventoryFieldDefinition[]>({
   initial: [],
   fetch: () => inventoryFields.listFields(props.inventoryId),
-  formatError: (e) => apiErrorMessage(e) ?? t('inventory.fields.errors.loadFailed'),
+  formatError: (e) => describeFailure(e, t).message,
 })
 const editing = ref<number | null>(null)
 const draft = ref<DraftField | null>(null)

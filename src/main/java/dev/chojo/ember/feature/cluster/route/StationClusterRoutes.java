@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -14,10 +15,8 @@ import dev.chojo.ember.feature.cluster.entity.ClusterApplication;
 import dev.chojo.ember.feature.cluster.entity.ClusterApplicationStatus;
 import dev.chojo.ember.feature.cluster.service.ClusterApplicationService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -111,7 +110,7 @@ public class StationClusterRoutes implements Routes {
         var request = ctx.bodyAsClass(ApplyRequest.class);
         Cluster cluster = clusterService
                 .findByUid(parseUid(request.clusterUid()))
-                .orElseThrow(() -> new NotFoundResponse("No such cluster"));
+                .orElseThrow(Refusal.CLUSTER_NOT_HERE_ON_APPLICATION::raise);
 
         ClusterApplication application = applicationService.apply(cluster.id(), stationId, requireMember(session));
         ctx.status(HttpStatus.CREATED).json(toView(application));
@@ -151,12 +150,12 @@ public class StationClusterRoutes implements Routes {
     private static int requireStation(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer stationId = session.stationId();
-        if (stationId == null) throw new BadRequestResponse("No station selected");
+        if (stationId == null) throw Refusal.NO_STATION_CHOSEN_FOR_CLUSTER_APPLICATION.raise();
         return stationId;
     }
 
     private static int requireMember(UserSession session) {
-        if (session.member() == null) throw new BadRequestResponse("No station selected");
+        if (session.member() == null) throw Refusal.NO_MEMBERSHIP_FOR_CLUSTER_APPLICATION.raise();
         return session.member().id();
     }
 
@@ -164,7 +163,7 @@ public class StationClusterRoutes implements Routes {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException | NullPointerException e) {
-            throw new BadRequestResponse("Not a cluster identity: " + raw);
+            throw Refusal.CLUSTER_NOT_AN_IDENTITY_ON_APPLICATION.raise(raw);
         }
     }
 

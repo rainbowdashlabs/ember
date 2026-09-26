@@ -31,7 +31,6 @@ import {
 } from '@/api/mailProviders'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
-import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -123,7 +122,7 @@ async function test(position: number, recipient: string) {
           : {ok: false, message: t('mailChain.testFailed', {position: position + 1, error: result.error ?? ''})},
     }
   } catch (e) {
-    const reason = apiErrorMessage(e) ?? describeFailure(e, t).message
+    const reason = describeFailure(e, t).message
     testResults.value = {
       ...testResults.value,
       [position]: {ok: false, message: t('mailChain.testFailed', {position: position + 1, error: reason})},

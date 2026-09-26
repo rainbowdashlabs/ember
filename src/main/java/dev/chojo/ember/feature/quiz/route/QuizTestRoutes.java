@@ -24,10 +24,8 @@ import dev.chojo.ember.feature.quiz.service.QuizTestAccessService;
 import dev.chojo.ember.feature.quiz.service.QuizTestService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -179,9 +177,9 @@ public class QuizTestRoutes implements Routes {
 
     private void createTest(Context ctx) {
         var session = UserSession.from(ctx);
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.QUIZ_TEST_NEEDS_MEMBERSHIP.raise();
         var req = ctx.bodyAsClass(TestRequest.class);
-        if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
+        if (req.title() == null || req.title().isBlank()) throw Refusal.QUIZ_TEST_NEEDS_A_TITLE.raise();
         var test = testService.createTest(
                 session.stationId(),
                 req.title(),
@@ -226,7 +224,7 @@ public class QuizTestRoutes implements Routes {
     private void activateTest(Context ctx) {
         int id = pathInt(ctx, "id");
         var test = guards.requireOwnedTest(ctx, id);
-        if (test.status() != TestStatus.DRAFT) throw new BadRequestResponse("Test is not in DRAFT status");
+        if (test.status() != TestStatus.DRAFT) throw Refusal.QUIZ_TEST_NOT_A_DRAFT.raise();
         testService.activateTest(id);
         testService.findTest(id).ifPresentOrElse(ctx::json, () -> {
             throw Refusal.QUIZ_TEST_NOT_HERE_AFTER_ACTIVATION.raise();
@@ -245,7 +243,7 @@ public class QuizTestRoutes implements Routes {
     private void generateFrozenQuestions(Context ctx) {
         int testId = pathInt(ctx, "id");
         var test = guards.requireOwnedTest(ctx, testId);
-        if (test.status() == TestStatus.ACTIVE) throw new BadRequestResponse("Cannot regenerate for active test");
+        if (test.status() == TestStatus.ACTIVE) throw Refusal.QUIZ_TEST_RUNNING_CANNOT_REDRAW.raise();
         testService.generateFrozenQuestions(testId);
         ctx.json(buildFrozenQuestionResponse(testId));
     }
@@ -332,7 +330,7 @@ public class QuizTestRoutes implements Routes {
         int testId = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, testId);
         var req = ctx.bodyAsClass(AccessRequest.class);
-        if (req.memberId() == null) throw new BadRequestResponse("memberId is required");
+        if (req.memberId() == null) throw Refusal.QUIZ_TEST_ACCESS_NEEDS_A_MEMBER.raise();
         accessService.grantMemberAccess(testId, req.memberId(), req.closesAt());
         ctx.json(new QuizSuccessResponse(true));
     }
@@ -355,7 +353,7 @@ public class QuizTestRoutes implements Routes {
             ctx.result(pdf.bytes());
         } catch (Exception e) {
             log.error("PDF export failed for test {}", id, e);
-            throw new InternalServerErrorResponse("Internal server error");
+            throw Refusal.QUIZ_TEST_PDF_NOT_MADE.raise();
         }
     }
 
@@ -369,7 +367,7 @@ public class QuizTestRoutes implements Routes {
             ctx.result(pdf.bytes());
         } catch (Exception e) {
             log.error("PDF solution export failed for test {}", id, e);
-            throw new InternalServerErrorResponse("Internal server error");
+            throw Refusal.QUIZ_TEST_SOLUTION_PDF_NOT_MADE.raise();
         }
     }
 

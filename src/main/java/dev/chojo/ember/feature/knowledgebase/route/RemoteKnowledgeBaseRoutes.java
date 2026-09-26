@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
@@ -18,10 +19,8 @@ import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService.RemoteKbBrowse;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService.RemoteKbSearchResultItem;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -90,7 +89,7 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
     }
 
     private static String requireContent(String content) {
-        if (content == null || content.isBlank()) throw new BadRequestResponse("content is required");
+        if (content == null || content.isBlank()) throw Refusal.REMOTE_KB_COMMENT_EMPTY.raise();
         return content;
     }
 
@@ -168,7 +167,9 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteKbCommentDeleteRequest.class);
         federationService.requireRemoteCommentAuthor(partner, commentId, req.remoteMemberUid(), "delete");
-        if (!commentService.deleteComment(partner.stationId(), commentId)) throw new NotFoundResponse();
+        if (!commentService.deleteComment(partner.stationId(), commentId)) {
+            throw Refusal.REMOTE_KB_COMMENT_NOT_DELETED.raise();
+        }
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -31,10 +32,8 @@ import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -115,7 +114,7 @@ public class StationMemberRoutes implements Routes {
      * another station cannot be read, modified, or probed for existence through these routes.
      */
     private StationMember requireOwnedMember(Context ctx, int memberId) {
-        if (UserSession.from(ctx).stationId() == null) throw new NotFoundResponse();
+        if (UserSession.from(ctx).stationId() == null) throw Refusal.MEMBER_NOT_HERE_WITHOUT_STATION.raise();
         return requireOwnedOrNotFound(ctx, memberId, stationMemberRepository::findById, StationMember::stationId);
     }
 
@@ -399,7 +398,7 @@ public class StationMemberRoutes implements Routes {
                 .flatMap(memberService::findById)
                 .filter(found -> found.stationId() == session.stationId())
                 .filter(found -> !found.former())
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.MEMBER_NOT_HERE_BY_UID::raise);
         ctx.json(toMemberWithName(member));
     }
 
@@ -417,10 +416,10 @@ public class StationMemberRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateMemberRequest.class);
         if (request.accountId() == null) {
-            throw new BadRequestResponse("accountId is required");
+            throw Refusal.MEMBER_ACCOUNT_NOT_NAMED.raise();
         }
         if (session.stationId() == null) {
-            throw new BadRequestResponse("No station selected");
+            throw Refusal.NO_STATION_CHOSEN_FOR_NEW_MEMBER.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(toMemberWithName(memberService.create(session.stationId(), request.accountId())));
@@ -601,9 +600,8 @@ public class StationMemberRoutes implements Routes {
     private void markFormer(Context ctx) {
         int memberId = pathInt(ctx, "id");
         requireOwnedMember(ctx, memberId);
-        String check = formerMemberService.canMarkFormer(memberId);
-        if (check != null) {
-            throw new BadRequestResponse(check);
+        if (formerMemberService.canMarkFormer(memberId) != null) {
+            throw Refusal.MEMBER_NOT_MARKED_FORMER.raise();
         }
         formerMemberService.markFormer(memberId);
         ctx.json(new FormerCheckResponse(true, null));
@@ -641,18 +639,18 @@ public class StationMemberRoutes implements Routes {
         int memberId = pathInt(ctx, "id");
         var member = requireOwnedMember(ctx, memberId);
         if (member.accountId() == null) {
-            throw new BadRequestResponse("Member has no linked account");
+            throw Refusal.MEMBER_HAS_NO_ACCOUNT.raise();
         }
         var account = accountRepository
                 .findById(member.accountId())
-                .orElseThrow(() -> new BadRequestResponse("Account not found"));
+                .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_SETUP_MAIL::raise);
         // The same rule the member list draws its hourglass by: a password the person chose is as
         // good as a sign-in, and either one makes a second invitation pointless.
         if (account.setupCompletedAt() != null || accountRepository.hasChosenPassword(account.id())) {
-            throw new BadRequestResponse("Account is already set up");
+            throw Refusal.ACCOUNT_ALREADY_SET_UP.raise();
         }
         if (!mailRecipientService.isReachable(account.id())) {
-            throw new BadRequestResponse("Nobody can be written to about this account");
+            throw Refusal.ACCOUNT_NOBODY_TO_WRITE_TO.raise();
         }
         authService.sendPasswordSetup(account.id());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -671,7 +669,7 @@ public class StationMemberRoutes implements Routes {
         requireOwnedMember(ctx, memberId);
         var request = ctx.bodyAsClass(SetUserTypeRequest.class);
         if (request.userType() == null) {
-            throw new BadRequestResponse("userType is required");
+            throw Refusal.MEMBER_USER_TYPE_NOT_NAMED.raise();
         }
         stationMemberRepository.setUserType(memberId, request.userType());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -692,7 +690,7 @@ public class StationMemberRoutes implements Routes {
         requireOwnedMember(ctx, memberId);
         var request = ctx.bodyAsClass(SetJoinDateRequest.class);
         if (request.joinDate() == null) {
-            throw new BadRequestResponse("joinDate is required");
+            throw Refusal.MEMBER_JOIN_DATE_NOT_NAMED.raise();
         }
         stationMemberRepository.setJoinDate(memberId, request.joinDate());
         ctx.status(HttpStatus.NO_CONTENT);

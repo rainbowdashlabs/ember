@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.station.route;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -18,7 +20,7 @@ import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
+import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -115,7 +117,9 @@ class PublicStationReachTest {
         var routes = routesWhereFormsReach(false);
         Context ctx = mock(Context.class);
 
-        assertThrows(NotFoundResponse.class, () -> askFor(routes, ctx));
+        var refused = assertThrows(RefusalResponse.class, () -> askFor(routes, ctx));
+        assertEquals(Refusal.PUBLIC_STATION_NOTHING_TO_SHOW, refused.refusal());
+        assertEquals(HttpStatus.NOT_FOUND.getCode(), refused.getStatus());
     }
 
     @Test

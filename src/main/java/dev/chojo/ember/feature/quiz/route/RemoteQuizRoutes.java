@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
@@ -18,7 +19,6 @@ import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -91,9 +91,9 @@ public class RemoteQuizRoutes implements Routes {
     private void getCatalog(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
         int catalogId = pathInt(ctx, "id");
-        var catalog = catalogService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
+        var catalog = catalogService.findCatalog(catalogId).orElseThrow(Refusal.REMOTE_QUIZ_CATALOG_NOT_SHARED::raise);
         if (catalog.stationId() != partner.stationId() || !isShared(partner, catalogId)) {
-            throw new NotFoundResponse();
+            throw Refusal.REMOTE_QUIZ_CATALOG_NOT_SHARED.raise();
         }
         var categories = catalogService.findCategories(catalog.stationId());
         var questions = questionService.findQuestions(catalog.id());

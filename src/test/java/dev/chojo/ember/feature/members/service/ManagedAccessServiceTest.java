@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Auth;
@@ -302,20 +304,23 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
     void aChildWithAnAddressOfTheirOwnKeepsThatDoorToThemselves() {
         service.setEmail(guardian.id(), child.id(), "lena@example.org");
 
-        assertThrows(
-                ForbiddenResponse.class, () -> service.setPassword(guardian.id(), child.id(), "ein-gutes-passwort"));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.setPassword(guardian.id(), child.id(), "ein-gutes-passwort"));
+        assertEquals(Refusal.MANAGED_MEMBER_SETS_THEIR_OWN_PASSWORD, refused.refusal());
     }
 
     @Test
     void aPasswordTheRulesRefuseIsRefusedHereToo() {
         when(authService.setPasswordFor(any(), eq("kurz"))).thenReturn(SetPasswordOutcome.PASSWORD_TOO_SHORT);
 
-        assertThrows(BadRequestResponse.class, () -> service.setPassword(guardian.id(), child.id(), "kurz"));
+        var refused = assertThrows(RefusalResponse.class, () -> service.setPassword(guardian.id(), child.id(), "kurz"));
+        assertEquals(Refusal.MANAGED_PASSWORD_TOO_SHORT, refused.refusal());
     }
 
     @Test
     void anEmptyPasswordNeverReachesTheRules() {
-        assertThrows(BadRequestResponse.class, () -> service.setPassword(guardian.id(), child.id(), " "));
+        var refused = assertThrows(RefusalResponse.class, () -> service.setPassword(guardian.id(), child.id(), " "));
+        assertEquals(Refusal.MANAGED_PASSWORD_TOO_SHORT, refused.refusal());
         verify(authService, never()).setPasswordFor(any(), eq(" "));
     }
 

@@ -17,8 +17,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import ContainerKindPicker from '@/views/stationview/inventory/storageview/ContainerKindPicker.vue'
 import ContainerParentPicker from '@/views/stationview/inventory/storageview/ContainerParentPicker.vue'
-import {mapContainerFailure} from '@/views/stationview/inventory/storageview/containerErrors'
-import type {Failure} from '@/util/failure'
+import {describeFailure, type Failure} from '@/util/failure'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {inventoryContainers} from '@/api'
@@ -60,7 +59,7 @@ const {running: submitting, run: runCreate} = useAsyncAction(async () => {
       description: description.value.trim(),
     })
   } catch (e) {
-    createFailure.value = mapContainerFailure(t, e)
+    createFailure.value = describeFailure(e, t)
     return
   }
   emit('created')

@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.util.CsvParser;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -49,7 +49,7 @@ public class UtilRoutes implements Routes {
             })
     private void parseCsv(Context ctx) {
         var file = ctx.uploadedFile("file");
-        if (file == null) throw new BadRequestResponse("No file uploaded");
+        if (file == null) throw Refusal.CSV_UPLOAD_MISSING_FILE.raise();
         String separator = ctx.formParam("separator");
         char sep = separator != null && !separator.isEmpty() ? separator.charAt(0) : ';';
         try (var content = file.content()) {
@@ -58,7 +58,7 @@ public class UtilRoutes implements Routes {
             ctx.json(new CsvResponse(parsed.headers(), parsed.rows()));
         } catch (IOException e) {
             log.warn("Failed to parse CSV file", e);
-            throw new BadRequestResponse("Failed to parse CSV");
+            throw Refusal.CSV_NOT_READ.raise();
         }
     }
 

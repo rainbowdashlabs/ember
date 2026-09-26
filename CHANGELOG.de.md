@@ -18,8 +18,21 @@
 - **Eine abgelaufene Umfrage sagt, wann sie abgelaufen ist.** Die Kachel in der Liste der Wache trägt das Datum, an dem sie geschlossen hat, und die Seite hinter dem Link sagt, seit wann sie keine Antworten mehr annimmt, statt nur, dass sie zu ist.
 - **Die Einstellungen einer Umfrage werden beim Ändern gespeichert.** Name, Daten, Reichweite und Schalter werden in dem Moment gesichert, in dem du sie änderst. Eine Umfrage, die weiter reicht als gedacht, hängt damit nicht mehr an einem vergessenen Klick. Die Fragen warten weiterhin auf Speichern, und die Seite sagt das auch.
 
+### Sicherheit
+
+- **Die Anmeldung verrät nicht mehr, wer hier ein Konto hat.** Eine falsche Adresse, ein falsches Passwort und ein Konto, das sich anders anmeldet, antworten jetzt genau gleich. Damit lässt sich über das Anmeldeformular nicht mehr herausfinden, welche Adressen hier registriert sind. Dasselbe gilt jetzt für Bestätigungslinks, die Anmeldung mit Passkey, Gerätecodes und die Schritte für den zweiten Faktor.
+
+### Änderungen
+
+- **Die Anmeldeseite sagt nicht mehr, wenn ein Konto sich ohne Passwort anmeldet.** Genau diese Unterscheidung von einem falschen Passwort machte das Formular zu einer Liste der Konten. Wer sich mit einem Passkey anmeldet, nutzt wie bisher die Schaltfläche dafür.
+
 ### Fehlerbehebungen
 
+- **Die Bestätigung deiner Identität nannte den falschen Grund.** Die zusätzliche Bestätigung vor einer sensiblen Änderung sagte "Passwort falsch" oder "Ungültiger Code", egal was wirklich passiert war. Zu viele Versuche, eine abgelaufene Bestätigung und ein Konto ohne eingerichteten Faktor lasen sich alle wie ein Tippfehler. Jetzt steht jeweils da, was tatsächlich schiefgegangen ist.
+- **Manche Fehlermeldungen kamen auf Englisch an.** Meldungen, die vom Server selbst stammten, wurden unverändert angezeigt, sodass dir mitten auf einer deutschen Seite ein englischer Satz begegnete. Sie sind jetzt alle übersetzt.
+
+- **Eine Zwischenüberschrift bei den Profilfeldern wurde als Eingabefeld dargestellt.** Das Formular für ein neues Mitglied und das Formular, das Erziehungsberechtigte für ihre Kinder ausfüllen, zeigten jede Überschrift, unter der die Wache ihre Fragen geordnet hat, als eigenes leeres Feld. Beide stellen die Fragen jetzt so dar wie der Rest des Produkts, mitsamt Überschriften und in der Reihenfolge, die die Wache festgelegt hat.
+- **Erziehungsberechtigte konnten Fragen beantworten, die der Mitgliederverwaltung vorbehalten sind.** Auf der Seite für ihre Kinder wurde eine Frage, die sie nur lesen dürfen, wie jede andere zum Ausfüllen angeboten. Sie wird jetzt ausgefüllt und schreibgeschützt angezeigt.
 - **Ein monatlicher oder vierteljährlicher Termin öffnete sich am falschen Tag.** Ohne Tag in der Adresse zeigte er den nächsten Termin mit passendem Wochentag statt den Tag, an dem er tatsächlich stattfindet. Anmeldungen, Anwesenheit und die Fragen auf dieser Seite gehörten damit zu einem Tag, an dem der Termin nicht stattfindet. Er öffnet sich jetzt am nächsten tatsächlichen Termin, Ferien der Wache und das Ende der Serie eingerechnet.
 - **Eine öffentliche Umfrage war unter der ausgegebenen Adresse nicht erreichbar.** Die angebotene Adresse einer für alle offenen Umfrage enthielt den lesbaren Namen der Wache, angenommen wurde aber nur die Adresse mit ihrer Kennung. Jeder Link, den man von der Umfrage selbst kopiert hatte, führte damit ins Leere.
 - **Eine Wache, die außer einer Umfrage nichts öffentlich hatte, zeigte gar nichts.** Eine für alle offene Umfrage wird im Rahmen der Wache dargestellt. Eine Wache ohne öffentliche Seiten, Wiki, Kalender, Warteliste und Blog gab jedoch nichts über sich preis, sodass die Seite der Umfrage für alle Empfänger leer blieb.

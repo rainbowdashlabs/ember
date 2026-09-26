@@ -19,11 +19,8 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestAttemptQuestion;
 import dev.chojo.ember.feature.quiz.service.QuizAttemptService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.feature.quiz.service.QuizTestAccessService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -75,11 +72,11 @@ public class QuizAttemptRoutes implements Routes {
     private void startAttempt(Context ctx) {
         int testId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.QUIZ_ATTEMPT_NEEDS_MEMBERSHIP_TO_START.raise();
         var test = guards.requireOwnedTest(ctx, testId);
         int memberId = session.member().id();
         if (!accessService.isTestAccessible(test, memberId, session.permissions())) {
-            throw new ForbiddenResponse("Test is not currently accessible");
+            throw Refusal.QUIZ_TEST_NOT_OPEN_TO_YOU.raise();
         }
         var existing = attemptService.findAttempt(testId, session.member().id());
         if (existing.isPresent()) {
@@ -100,7 +97,7 @@ public class QuizAttemptRoutes implements Routes {
     private void getMyAttempt(Context ctx) {
         int testId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.QUIZ_ATTEMPT_NEEDS_MEMBERSHIP_TO_READ.raise();
         guards.requireOwnedTest(ctx, testId);
         var attempt = attemptService.findAttempt(testId, session.member().id());
         if (attempt.isEmpty()) {
@@ -171,10 +168,10 @@ public class QuizAttemptRoutes implements Routes {
 
     private void gradeAnswer(Context ctx) {
         int answerId = pathInt(ctx, "id");
-        var answer = attemptService.findAnswerById(answerId).orElseThrow(NotFoundResponse::new);
+        var answer = attemptService.findAnswerById(answerId).orElseThrow(Refusal.QUIZ_ANSWER_NOT_HERE::raise);
         guards.requireOwnedAttempt(ctx, answer.attemptId());
         var req = ctx.bodyAsClass(GradeRequest.class);
-        if (req.points() == null) throw new BadRequestResponse("points is required");
+        if (req.points() == null) throw Refusal.QUIZ_GRADE_NEEDS_POINTS.raise();
         attemptService.gradeAnswer(answerId, req.points());
         ctx.json(new QuizSuccessResponse(true));
     }
@@ -182,11 +179,11 @@ public class QuizAttemptRoutes implements Routes {
     private void gradeAttempt(Context ctx) {
         int attemptId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.QUIZ_GRADING_NEEDS_MEMBERSHIP.raise();
         guards.requireOwnedAttempt(ctx, attemptId);
         attemptService.gradeAttempt(attemptId, session.member().id());
         attemptService.findAttemptById(attemptId).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_ATTEMPT_NOT_HERE_AFTER_GRADING.raise();
         });
     }
 
