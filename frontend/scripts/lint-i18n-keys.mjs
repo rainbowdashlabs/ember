@@ -254,18 +254,18 @@ const REPO_ROOT = new URL('../..', import.meta.url).pathname
  *
  * <p>Refusals are keyed by their code and not by their constant name, because the code is what
  * travels to the reader and what a report quotes back. The code is not written out in the source:
- * each constant names an area and a number, and the area holds the letter, so both halves have to
- * be read to put one together.
+ * each constant names an area and a number, and the area holds the prefix, so both halves have to
+ * be read to put one together. A prefix is one letter or two.
  *
  * @param text the source of the registry
  * @returns every code it declares, as they appear in the locale
  */
 function refusalCodes(text) {
-    const letters = new Map()
-    for (const m of text.matchAll(/^\s{8}([A-Z_]+)\('([A-Z])',/gm)) letters.set(m[1], m[2])
+    const prefixes = new Map()
+    for (const m of text.matchAll(/^\s{8}([A-Z_]+)\("([A-Z]{1,2})",/gm)) prefixes.set(m[1], m[2])
     const codes = new Set()
     for (const m of text.matchAll(/^\s{4}[A-Z][A-Z0-9_]*\(\s*Area\.([A-Z_]+),\s*(\d+),/gm)) {
-        codes.add(`${letters.get(m[1])}-${String(m[2]).padStart(3, '0')}`)
+        codes.add(`${prefixes.get(m[1])}-${String(m[2]).padStart(3, '0')}`)
     }
     return codes
 }

@@ -23,9 +23,7 @@ import dev.chojo.ember.feature.quiz.service.QuizImportService;
 import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvMappings;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.util.SafeContentDisposition;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -149,7 +147,7 @@ public class QuizCatalogRoutes implements Routes {
     private void createCatalog(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CatalogRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
+        if (req.name() == null || req.name().isBlank()) throw Refusal.QUIZ_CATALOG_NEEDS_A_NAME.raise();
         var catalog = catalogService.createCatalog(
                 session.stationId(),
                 req.name(),
@@ -194,7 +192,7 @@ public class QuizCatalogRoutes implements Routes {
     private void createCategory(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CategoryRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
+        if (req.name() == null || req.name().isBlank()) throw Refusal.QUIZ_CATEGORY_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(catalogService.createCategory(
                         session.stationId(),
@@ -235,7 +233,7 @@ public class QuizCatalogRoutes implements Routes {
     private void getTrainingQuestions(Context ctx) {
         int catalogId = pathInt(ctx, "id");
         var catalog = guards.requireOwnedCatalog(ctx, catalogId);
-        if (!catalog.trainingEnabled()) throw new ForbiddenResponse("Training not enabled for this catalog");
+        if (!catalog.trainingEnabled()) throw Refusal.QUIZ_CATALOG_NOT_FOR_TRAINING.raise();
         ctx.json(questionService.findQuestions(catalogId));
     }
 
@@ -283,9 +281,9 @@ public class QuizCatalogRoutes implements Routes {
     private void draftFromCsv(Context ctx) {
         var request = ctx.bodyAsClass(CsvDraftRequest.class);
         if (request.content() == null || request.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
+            throw Refusal.QUIZ_SHEET_EMPTY.raise();
         }
-        if (request.mappings() == null) throw new BadRequestResponse("mappings is required");
+        if (request.mappings() == null) throw Refusal.QUIZ_SHEET_COLUMNS_NOT_MAPPED.raise();
         ctx.json(importService.draft(request.content(), request.mappings()));
     }
 

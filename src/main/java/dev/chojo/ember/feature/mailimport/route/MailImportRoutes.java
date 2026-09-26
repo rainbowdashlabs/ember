@@ -22,7 +22,6 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -239,7 +238,7 @@ public class MailImportRoutes implements Routes {
 
     private void requireModule(int stationId) {
         if (stationService.findDisabledModules(stationId).contains(StationModule.DOCUMENTS)) {
-            throw new NotFoundResponse();
+            throw Refusal.MAIL_IMPORT_SWITCHED_OFF.raise();
         }
     }
 
@@ -249,7 +248,7 @@ public class MailImportRoutes implements Routes {
         requireModule(stationId);
         var mailbox =
                 mailboxService.find(ctx.pathParamAsClass("id", Integer.class).get());
-        if (mailbox.isEmpty() || mailbox.get().stationId() != stationId) throw new NotFoundResponse();
+        if (mailbox.isEmpty() || mailbox.get().stationId() != stationId) throw Refusal.MAILBOX_NOT_HERE.raise();
         return mailbox.get();
     }
 
@@ -258,9 +257,9 @@ public class MailImportRoutes implements Routes {
         requireModule(stationId);
         var rule = mailboxService.findRule(
                 ctx.pathParamAsClass("ruleId", Integer.class).get());
-        if (rule.isEmpty()) throw new NotFoundResponse();
+        if (rule.isEmpty()) throw Refusal.MAILBOX_RULE_NOT_HERE.raise();
         var mailbox = mailboxService.find(rule.get().mailboxId());
-        if (mailbox.isEmpty() || mailbox.get().stationId() != stationId) throw new NotFoundResponse();
+        if (mailbox.isEmpty() || mailbox.get().stationId() != stationId) throw Refusal.MAILBOX_RULE_NOT_HERE.raise();
         return rule.get();
     }
 

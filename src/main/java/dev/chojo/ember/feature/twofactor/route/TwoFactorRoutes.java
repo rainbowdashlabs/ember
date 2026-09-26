@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.twofactor.route;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import dev.chojo.ember.api.RateLimits;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -30,9 +31,7 @@ import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnService;
 import dev.chojo.ember.util.ClientIp;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.UnauthorizedResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -191,7 +190,7 @@ public class TwoFactorRoutes implements Routes {
     private void beginTotp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (twoFactorService.isEnrolled(session.accountId())) {
-            throw new BadRequestResponse("Already enrolled in 2FA");
+            throw Refusal.ALREADY_ENROLLED_ON_TOTP_SETUP.raise();
         }
         var enrollment = twoFactorService.beginTotpEnrollment(
                 session.accountId(), session.account().email());
@@ -206,7 +205,7 @@ public class TwoFactorRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(TotpConfirmRequest.class);
         if (request.secret() == null || request.code() == null || request.recoveryCodes() == null) {
-            throw new BadRequestResponse("secret, code, and recoveryCodes are required");
+            throw Refusal.TOTP_CONFIRMATION_DETAILS_MISSING.raise();
         }
         boolean confirmed = twoFactorService.confirmTotpEnrollment(
                 session.accountId(),
@@ -216,7 +215,7 @@ public class TwoFactorRoutes implements Routes {
                 ctx.userAgent(),
                 ctx.header("CF-IPCountry"));
         if (!confirmed) {
-            throw new BadRequestResponse("Invalid verification code");
+            throw Refusal.TOTP_SETUP_CODE_WRONG.raise();
         }
         ctx.json(new MessageResponse("TOTP enrolled"));
     }
@@ -226,7 +225,7 @@ public class TwoFactorRoutes implements Routes {
         boolean removed =
                 twoFactorService.removeTotpFactor(session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         if (!removed) {
-            throw new BadRequestResponse("No active TOTP factor");
+            throw Refusal.NO_TOTP_TO_REMOVE.raise();
         }
         ctx.json(new MessageResponse("TOTP removed"));
     }
@@ -234,7 +233,7 @@ public class TwoFactorRoutes implements Routes {
     private void regenerateBackupCodes(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (!twoFactorService.isEnrolled(session.accountId())) {
-            throw new BadRequestResponse("Not enrolled in 2FA");
+            throw Refusal.NOT_ENROLLED_ON_BACKUP_CODES.raise();
         }
         List<String> codes = twoFactorService.regenerateBackupCodes(
                 session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
@@ -244,17 +243,17 @@ public class TwoFactorRoutes implements Routes {
     private void verify2fa(Context ctx) {
         var request = ctx.bodyAsClass(Verify2faRequest.class);
         if (request.preAuthToken() == null || request.proof() == null) {
-            throw new BadRequestResponse("preAuthToken and proof are required");
+            throw Refusal.TWO_FACTOR_CHECK_DETAILS_MISSING.raise();
         }
 
         Optional<AccountToken> tokenOpt = accountRepository.findToken(request.preAuthToken());
         if (tokenOpt.isEmpty()) {
-            throw new UnauthorizedResponse("Invalid or expired pre-auth token");
+            throw Refusal.SIGN_IN_NOT_WAITING_ON_A_FACTOR.raise();
         }
         AccountToken preAuth = tokenOpt.get();
         if (preAuth.isExpired() || preAuth.tokenType() != TokenType.TWO_FACTOR_PENDING) {
             accountRepository.deleteToken(request.preAuthToken());
-            throw new UnauthorizedResponse("Invalid or expired pre-auth token");
+            throw Refusal.SIGN_IN_NOT_WAITING_ON_A_FACTOR.raise();
         }
 
         int accountId = preAuth.accountId();
@@ -291,7 +290,7 @@ public class TwoFactorRoutes implements Routes {
             if (attemptTracker.recordFailure(attemptKey) >= TwoFactorAttemptTracker.MAX_ATTEMPTS) {
                 accountRepository.deleteToken(request.preAuthToken());
             }
-            throw new UnauthorizedResponse("Invalid verification code");
+            throw Refusal.TWO_FACTOR_CODE_WRONG.raise();
         }
 
         attemptTracker.reset(attemptKey);
@@ -320,7 +319,7 @@ public class TwoFactorRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         if (!trustedDeviceService.revoke(id, session.accountId())) {
-            throw new BadRequestResponse("Trusted device not found");
+            throw Refusal.TRUSTED_DEVICE_NOT_HERE.raise();
         }
         auditService.record(
                 session.accountId(),
@@ -349,10 +348,10 @@ public class TwoFactorRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(StepUpRequest.class);
         if (request.factor() == null || request.proof() == null) {
-            throw new BadRequestResponse("factor and proof are required");
+            throw Refusal.STEP_UP_DETAILS_MISSING.raise();
         }
         if (!twoFactorService.isEnrolled(session.accountId())) {
-            throw new BadRequestResponse("Not enrolled in 2FA");
+            throw Refusal.NOT_ENROLLED_ON_STEP_UP.raise();
         }
         RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
 
@@ -369,7 +368,7 @@ public class TwoFactorRoutes implements Routes {
         }
 
         if (!verified) {
-            throw new UnauthorizedResponse("Invalid verification code");
+            throw Refusal.STEP_UP_CODE_WRONG.raise();
         }
 
         twoFactorService.markSessionTwoFactorVerified(
@@ -397,7 +396,7 @@ public class TwoFactorRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(WebAuthnRegisterFinishRequest.class);
         if (request.challengeToken() == null || request.credentialJson() == null) {
-            throw new BadRequestResponse("challengeToken and credentialJson are required");
+            throw Refusal.SECURITY_KEY_SETUP_DETAILS_MISSING.raise();
         }
         var factor = webAuthnService.finishRegistration(
                 session.accountId(),
@@ -407,7 +406,7 @@ public class TwoFactorRoutes implements Routes {
                 ctx.userAgent(),
                 ctx.header("CF-IPCountry"));
         if (factor.isEmpty()) {
-            throw new BadRequestResponse("WebAuthn registration failed");
+            throw Refusal.SECURITY_KEY_NOT_REGISTERED.raise();
         }
         // First-factor enrollment also seeds backup codes - the client must surface these once.
         List<String> issuedCodes = twoFactorService.issueInitialBackupCodesIfMissing(
@@ -422,7 +421,7 @@ public class TwoFactorRoutes implements Routes {
         int factorId = pathInt(ctx, "id");
         if (!twoFactorService.removeFactor(
                 session.accountId(), factorId, ctx.userAgent(), ctx.header("CF-IPCountry"))) {
-            throw new BadRequestResponse("Factor not found");
+            throw Refusal.FACTOR_NOT_HERE_ON_REMOVAL.raise();
         }
         ctx.json(new MessageResponse("Factor removed"));
     }
@@ -432,7 +431,7 @@ public class TwoFactorRoutes implements Routes {
         int factorId = pathInt(ctx, "id");
         var request = ctx.bodyAsClass(RenameFactorRequest.class);
         if (!twoFactorService.renameFactor(session.accountId(), factorId, request.label())) {
-            throw new BadRequestResponse("Invalid label or factor not found");
+            throw Refusal.FACTOR_NOT_RENAMED.raise();
         }
         ctx.json(new MessageResponse("Factor renamed"));
     }
@@ -440,7 +439,7 @@ public class TwoFactorRoutes implements Routes {
     private void beginWebAuthnLogin(Context ctx) {
         var request = ctx.bodyAsClass(WebAuthnLoginBeginRequest.class);
         if (request.preAuthToken() == null) {
-            throw new BadRequestResponse("preAuthToken is required");
+            throw Refusal.SECURITY_KEY_SIGN_IN_TOKEN_MISSING.raise();
         }
         int accountId = consumeReadOnlyPreAuth(request.preAuthToken());
         var start = webAuthnService.startAssertion(accountId);
@@ -450,12 +449,12 @@ public class TwoFactorRoutes implements Routes {
     private void finishWebAuthnLogin(Context ctx) {
         var request = ctx.bodyAsClass(WebAuthnLoginFinishRequest.class);
         if (request.preAuthToken() == null || request.challengeToken() == null || request.credentialJson() == null) {
-            throw new BadRequestResponse("preAuthToken, challengeToken, and credentialJson are required");
+            throw Refusal.SECURITY_KEY_SIGN_IN_DETAILS_MISSING.raise();
         }
         int accountId = consumeReadOnlyPreAuth(request.preAuthToken());
         RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), accountId));
         if (!webAuthnService.finishAssertion(accountId, request.challengeToken(), request.credentialJson())) {
-            throw new UnauthorizedResponse("WebAuthn verification failed");
+            throw Refusal.SECURITY_KEY_SIGN_IN_REFUSED.raise();
         }
         // Pre-auth is single-use - consume only after successful verification so users can retry.
         accountRepository.deleteToken(request.preAuthToken());
@@ -511,11 +510,11 @@ public class TwoFactorRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(WebAuthnStepUpFinishRequest.class);
         if (request.challengeToken() == null || request.credentialJson() == null) {
-            throw new BadRequestResponse("challengeToken and credentialJson are required");
+            throw Refusal.SECURITY_KEY_STEP_UP_DETAILS_MISSING.raise();
         }
         RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
         if (!webAuthnService.finishAssertion(session.accountId(), request.challengeToken(), request.credentialJson())) {
-            throw new UnauthorizedResponse("WebAuthn verification failed");
+            throw Refusal.SECURITY_KEY_STEP_UP_REFUSED.raise();
         }
         twoFactorService.markSessionTwoFactorVerified(session.sessionId(), StepUpProof.SECURITY_KEY);
         auditService.record(
@@ -536,12 +535,12 @@ public class TwoFactorRoutes implements Routes {
     private int consumeReadOnlyPreAuth(String preAuthToken) {
         Optional<AccountToken> tokenOpt = accountRepository.findToken(preAuthToken);
         if (tokenOpt.isEmpty()) {
-            throw new UnauthorizedResponse("Invalid or expired pre-auth token");
+            throw Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY.raise();
         }
         AccountToken preAuth = tokenOpt.get();
         if (preAuth.isExpired() || preAuth.tokenType() != TokenType.TWO_FACTOR_PENDING) {
             accountRepository.deleteToken(preAuthToken);
-            throw new UnauthorizedResponse("Invalid or expired pre-auth token");
+            throw Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY.raise();
         }
         return preAuth.accountId();
     }

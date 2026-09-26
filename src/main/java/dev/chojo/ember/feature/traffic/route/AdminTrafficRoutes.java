@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.traffic.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.feature.traffic.entity.AuthBucket;
 import dev.chojo.ember.feature.traffic.entity.TrafficBucket;
 import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -40,12 +40,12 @@ public class AdminTrafficRoutes implements Routes {
     private static Instant parseInstant(Context ctx, String paramName) {
         String raw = ctx.queryParam(paramName);
         if (raw == null || raw.isBlank()) {
-            throw new BadRequestResponse("Missing required query parameter: " + paramName);
+            throw Refusal.TRAFFIC_SPAN_MISSING.raise(paramName);
         }
         try {
             return Instant.parse(raw);
         } catch (Exception e) {
-            throw new BadRequestResponse(paramName + " must be an ISO-8601 instant (e.g. 2026-06-18T00:00:00Z)");
+            throw Refusal.TRAFFIC_SPAN_NOT_A_TIME.raise(paramName);
         }
     }
 
@@ -55,7 +55,7 @@ public class AdminTrafficRoutes implements Routes {
         try {
             return Integer.valueOf(raw);
         } catch (NumberFormatException e) {
-            throw new BadRequestResponse(paramName + " must be an integer");
+            throw Refusal.TRAFFIC_NUMBER_NOT_A_NUMBER.raise(paramName);
         }
     }
 
@@ -65,7 +65,7 @@ public class AdminTrafficRoutes implements Routes {
         try {
             return AuthBucket.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("auth must be one of: AUTHENTICATED, UNAUTHENTICATED, FEDERATION");
+            throw Refusal.TRAFFIC_KIND_UNKNOWN.raise();
         }
     }
 
@@ -78,7 +78,7 @@ public class AdminTrafficRoutes implements Routes {
         Instant from = parseInstant(ctx, "from");
         Instant to = parseInstant(ctx, "to");
         if (to.isBefore(from)) {
-            throw new BadRequestResponse("`to` must be on or after `from`");
+            throw Refusal.TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS.raise();
         }
         Integer stationId = parseOptionalInt(ctx, "stationId");
         AuthBucket auth = parseOptionalAuth(ctx);

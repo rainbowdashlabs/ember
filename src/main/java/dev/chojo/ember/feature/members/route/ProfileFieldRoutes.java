@@ -21,7 +21,6 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -141,7 +140,7 @@ public class ProfileFieldRoutes implements Routes {
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
         // A spacer may arrive without a name: it is a gap, and the service numbers it instead.
         if (request.fieldType() == null || isBlank(request.name()) && request.fieldType() != ProfileFieldType.SPACER) {
-            throw new BadRequestResponse("name and fieldType are required");
+            throw Refusal.PROFILE_FIELD_DETAILS_MISSING_ON_CREATE.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(profileFieldService.create(
@@ -183,7 +182,7 @@ public class ProfileFieldRoutes implements Routes {
         requireOwnedField(ctx, id);
         var request = ctx.bodyAsClass(AssignmentRequest.class);
         if ((request.role() == null) == (request.groupId() == null)) {
-            throw new BadRequestResponse("Give exactly one of role and groupId");
+            throw Refusal.PROFILE_FIELD_AUDIENCE_AMBIGUOUS_ON_ASSIGN.raise();
         }
         if (request.role() != null) {
             profileFieldService.assignToRole(
@@ -222,7 +221,7 @@ public class ProfileFieldRoutes implements Routes {
         requireOwnedField(ctx, id);
         var request = ctx.bodyAsClass(AssignmentRequest.class);
         if ((request.role() == null) == (request.groupId() == null)) {
-            throw new BadRequestResponse("Give exactly one of role and groupId");
+            throw Refusal.PROFILE_FIELD_AUDIENCE_AMBIGUOUS_ON_UNASSIGN.raise();
         }
         if (request.role() != null) {
             profileFieldService.unassignRole(id, request.role());
@@ -262,7 +261,7 @@ public class ProfileFieldRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
         if (isBlank(request.name()) || request.fieldType() == null) {
-            throw new BadRequestResponse("name and fieldType are required");
+            throw Refusal.PROFILE_FIELD_DETAILS_MISSING_ON_CHANGE.raise();
         }
         requireOwnedField(ctx, id);
         profileFieldService
@@ -300,7 +299,7 @@ public class ProfileFieldRoutes implements Routes {
     private void reorder(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(FieldOrderRequest.class);
-        if (req.role() == null) throw new BadRequestResponse("role is required: an order belongs to one audience");
+        if (req.role() == null) throw Refusal.PROFILE_FIELD_ORDER_AUDIENCE_MISSING.raise();
         profileFieldService.reorder(
                 session.stationId(), req.role(), req.fieldIds() != null ? req.fieldIds() : List.of());
         ctx.status(HttpStatus.NO_CONTENT);

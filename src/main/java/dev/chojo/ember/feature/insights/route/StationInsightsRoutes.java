@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.insights.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -14,9 +15,7 @@ import dev.chojo.ember.feature.insights.repository.PageHitRepository.DimensionTo
 import dev.chojo.ember.feature.insights.repository.PageHitRepository.HourlyTotal;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository.PageLeaderboardEntry;
 import dev.chojo.ember.feature.page.repository.PageRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -66,7 +65,7 @@ public class StationInsightsRoutes implements Routes {
     private static int requireStation(Context ctx) {
         var session = UserSession.from(ctx);
         if (session.stationId() == null) {
-            throw new BadRequestResponse("No station selected");
+            throw Refusal.INSIGHTS_NO_STATION_CHOSEN.raise();
         }
         return session.stationId();
     }
@@ -75,19 +74,19 @@ public class StationInsightsRoutes implements Routes {
         try {
             return Integer.parseInt(ctx.pathParam("pageId"));
         } catch (NumberFormatException e) {
-            throw new BadRequestResponse("pageId must be an integer");
+            throw Refusal.INSIGHTS_PAGE_NOT_A_NUMBER.raise();
         }
     }
 
     private static Instant parseInstant(Context ctx, String paramName) {
         String raw = ctx.queryParam(paramName);
         if (raw == null || raw.isBlank()) {
-            throw new BadRequestResponse("Missing required query parameter: " + paramName);
+            throw Refusal.INSIGHTS_WINDOW_MISSING.raise();
         }
         try {
             return Instant.parse(raw);
         } catch (Exception e) {
-            throw new BadRequestResponse(paramName + " must be an ISO-8601 instant (e.g. 2026-06-18T00:00:00Z)");
+            throw Refusal.INSIGHTS_WINDOW_NOT_A_MOMENT.raise(raw);
         }
     }
 
@@ -97,11 +96,11 @@ public class StationInsightsRoutes implements Routes {
         try {
             int parsed = Integer.parseInt(raw);
             if (parsed <= 0 || parsed > 500) {
-                throw new BadRequestResponse("limit must be between 1 and 500");
+                throw Refusal.INSIGHTS_LIMIT_OUT_OF_RANGE.raise();
             }
             return parsed;
         } catch (NumberFormatException e) {
-            throw new BadRequestResponse("limit must be an integer");
+            throw Refusal.INSIGHTS_LIMIT_NOT_A_NUMBER.raise(raw);
         }
     }
 
@@ -117,7 +116,7 @@ public class StationInsightsRoutes implements Routes {
         Instant from = parseInstant(ctx, "from");
         Instant to = parseInstant(ctx, "to");
         if (to.isBefore(from)) {
-            throw new BadRequestResponse("`to` must be on or after `from`");
+            throw Refusal.INSIGHTS_WINDOW_ENDS_BEFORE_IT_STARTS.raise();
         }
         int limit = parseOptionalLimit(ctx);
 
@@ -128,14 +127,14 @@ public class StationInsightsRoutes implements Routes {
     private void pageDetail(Context ctx) {
         int stationId = requireStation(ctx);
         int pageId = parsePageId(ctx);
-        var page = pages.findById(pageId).orElseThrow(NotFoundResponse::new);
+        var page = pages.findById(pageId).orElseThrow(Refusal.INSIGHTS_PAGE_NOT_HERE::raise);
         if (page.stationId() != stationId) {
-            throw new NotFoundResponse();
+            throw Refusal.INSIGHTS_PAGE_NOT_HERE.raise();
         }
         Instant from = parseInstant(ctx, "from");
         Instant to = parseInstant(ctx, "to");
         if (to.isBefore(from)) {
-            throw new BadRequestResponse("`to` must be on or after `from`");
+            throw Refusal.INSIGHTS_PAGE_WINDOW_ENDS_BEFORE_IT_STARTS.raise();
         }
 
         var raw = pageHits.findForPage(pageId, from, to);

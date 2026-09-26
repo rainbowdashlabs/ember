@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.beacon.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
@@ -16,9 +17,7 @@ import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
 import dev.chojo.ember.feature.system.service.ProblemReportScreenshotService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -90,7 +89,7 @@ public class BeaconAdminRoutes implements Routes {
 
     /** What a beacon has gathered is only worth asking for when this instance is one. */
     private void requireBeacon() {
-        if (!config.receiving()) throw new NotFoundResponse();
+        if (!config.receiving()) throw Refusal.BEACON_NOT_RECEIVING.raise();
     }
 
     private void faults(Context ctx) {
@@ -103,7 +102,7 @@ public class BeaconAdminRoutes implements Routes {
         requireBeacon();
         var request = ctx.bodyAsClass(ResolveRequest.class);
         if (!collected.resolveFault(pathId(ctx), request.acknowledged(), request.resolvedIn())) {
-            throw new NotFoundResponse();
+            throw Refusal.BEACON_FAULT_NOT_HERE.raise();
         }
         ctx.status(io.javalin.http.HttpStatus.NO_CONTENT);
     }
@@ -115,7 +114,7 @@ public class BeaconAdminRoutes implements Routes {
 
     private void acknowledgeReport(Context ctx) {
         requireBeacon();
-        if (!collected.acknowledgeReport(pathId(ctx))) throw new NotFoundResponse();
+        if (!collected.acknowledgeReport(pathId(ctx))) throw Refusal.BEACON_REPORT_NOT_ACKNOWLEDGED.raise();
         ctx.status(io.javalin.http.HttpStatus.NO_CONTENT);
     }
 
@@ -131,9 +130,10 @@ public class BeaconAdminRoutes implements Routes {
         var report = collected.reports(true).stream()
                 .filter(row -> row.id() == pathId(ctx))
                 .findFirst()
-                .orElseThrow(NotFoundResponse::new);
-        if (report.screenshotFileId() == null) throw new NotFoundResponse();
-        var picture = pictures.read(report.screenshotFileId()).orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.BEACON_REPORT_NOT_HERE_FOR_PICTURE::raise);
+        if (report.screenshotFileId() == null) throw Refusal.BEACON_REPORT_HAS_NO_PICTURE.raise();
+        var picture =
+                pictures.read(report.screenshotFileId()).orElseThrow(Refusal.BEACON_REPORT_PICTURE_NOT_HERE::raise);
         ctx.contentType(picture.contentType()).result(picture.data());
     }
 
@@ -148,7 +148,7 @@ public class BeaconAdminRoutes implements Routes {
         try {
             return Integer.parseInt(ctx.pathParam("id"));
         } catch (NumberFormatException e) {
-            throw new BadRequestResponse("That is not an id");
+            throw Refusal.BEACON_ID_NOT_A_NUMBER.raise();
         }
     }
 
@@ -230,15 +230,15 @@ public class BeaconAdminRoutes implements Routes {
         try {
             id = Long.parseLong(ctx.pathParam("id"));
         } catch (NumberFormatException e) {
-            throw new BadRequestResponse("That is not a problem id");
+            throw Refusal.BEACON_PROBLEM_ID_NOT_A_NUMBER.raise();
         }
         var appender = ProblemLogAppender.instance();
-        if (appender == null) throw new NotFoundResponse();
+        if (appender == null) throw Refusal.PROBLEM_LOG_NOT_RUNNING.raise();
         return appender.getProblems(true).stream()
                 .filter(problem -> problem.id() == id)
                 .map(ProblemLogAppender.ProblemEntry::snapshot)
                 .findFirst()
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.BEACON_PROBLEM_NOT_HERE::raise);
     }
 
     /** The exact payload one problem would travel as, shown before anything is sent. */
@@ -256,10 +256,10 @@ public class BeaconAdminRoutes implements Routes {
         requireEnabled();
         var request = ctx.bodyAsClass(SendRequest.class);
         if (request.ids() == null || request.ids().isEmpty()) {
-            throw new BadRequestResponse("Nothing was chosen");
+            throw Refusal.BEACON_NOTHING_CHOSEN_TO_SEND.raise();
         }
         var appender = ProblemLogAppender.instance();
-        if (appender == null) throw new NotFoundResponse();
+        if (appender == null) throw Refusal.PROBLEM_LOG_NOT_RUNNING_ON_SEND.raise();
         var chosen = appender.getProblems(true).stream()
                 .filter(problem -> request.ids().contains(problem.id()))
                 .map(ProblemLogAppender.ProblemEntry::snapshot)
@@ -331,7 +331,7 @@ public class BeaconAdminRoutes implements Routes {
     public record SendReportRequest(String screenshot, boolean dropScreenshot) {}
 
     private ProblemReport report(Context ctx) {
-        return problemReports.findById(pathId(ctx)).orElseThrow(NotFoundResponse::new);
+        return problemReports.findById(pathId(ctx)).orElseThrow(Refusal.BEACON_REPORT_NOT_HERE::raise);
     }
 
     /** The day's numbers as they would go, so an operator can see what "how much" means. */
@@ -341,7 +341,7 @@ public class BeaconAdminRoutes implements Routes {
 
     private void requireEnabled() {
         if (!config.enabled()) {
-            throw new BadRequestResponse("This instance reports to no beacon");
+            throw Refusal.BEACON_NOT_SET_UP.raise();
         }
     }
 

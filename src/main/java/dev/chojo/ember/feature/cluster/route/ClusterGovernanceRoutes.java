@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
@@ -17,10 +18,8 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationServ
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService.EntryAudience;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -153,7 +152,7 @@ public class ClusterGovernanceRoutes implements Routes {
         try {
             return PublicKbMode.valueOf(raw);
         } catch (IllegalArgumentException | NullPointerException e) {
-            throw new BadRequestResponse("Unknown public wiki mode");
+            throw Refusal.CLUSTER_PUBLIC_WIKI_MODE_UNKNOWN.raise();
         }
     }
 
@@ -167,7 +166,7 @@ public class ClusterGovernanceRoutes implements Routes {
         try {
             return Integer.valueOf(raw.trim());
         } catch (NumberFormatException e) {
-            throw new BadRequestResponse("That is not a group of stations");
+            throw Refusal.CLUSTER_STATION_GROUP_NOT_A_NUMBER.raise();
         }
     }
 
@@ -186,7 +185,7 @@ public class ClusterGovernanceRoutes implements Routes {
             try {
                 modules.add(StationModule.valueOf(name));
             } catch (IllegalArgumentException e) {
-                throw new BadRequestResponse("No such module: " + name);
+                throw Refusal.CLUSTER_MODULE_UNKNOWN.raise(name);
             }
         }
         governanceService.setDeniedModules(cluster.id(), stationGroup(ctx), modules);
@@ -236,8 +235,8 @@ public class ClusterGovernanceRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw new BadRequestResponse("No cluster selected");
-        return clusterService.findById(clusterId).orElseThrow(NotFoundResponse::new);
+        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_GOVERNANCE.raise();
+        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_GOVERNANCE::raise);
     }
 
     private static ThemeFeel parseFeel(String raw) {
@@ -245,7 +244,7 @@ public class ClusterGovernanceRoutes implements Routes {
         try {
             return ThemeFeel.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("No such feel: " + raw);
+            throw Refusal.CLUSTER_THEME_FEEL_UNKNOWN.raise(raw);
         }
     }
 

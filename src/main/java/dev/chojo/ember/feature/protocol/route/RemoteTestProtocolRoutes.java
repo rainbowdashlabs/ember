@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.protocol.route;
 
 import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
@@ -17,7 +18,6 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -85,9 +85,9 @@ public class RemoteTestProtocolRoutes implements Routes {
     private void remoteGetProtocol(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
         int protocolId = pathInt(ctx, "id");
-        var protocol = service.findProtocol(protocolId).orElseThrow(NotFoundResponse::new);
+        var protocol = service.findProtocol(protocolId).orElseThrow(Refusal.REMOTE_PROTOCOL_NOT_SHARED::raise);
         if (protocol.stationId() != partner.stationId() || !isShared(partner, protocolId)) {
-            throw new NotFoundResponse();
+            throw Refusal.REMOTE_PROTOCOL_NOT_SHARED.raise();
         }
         var sections = service.findSections(protocolId);
         var items = service.findAllItemsByProtocol(protocolId);

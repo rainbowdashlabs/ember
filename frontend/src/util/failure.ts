@@ -60,8 +60,8 @@ export interface Failure {
     technical?: string
     status?: number
     /**
-     * The code the backend gave this refusal, a letter, a hyphen and three digits, which leads to
-     * the one line that threw it.
+     * The code the backend gave this refusal, one or two letters, a hyphen and three digits, which
+     * leads to the one line that threw it.
      *
      * <p>Shown quietly beside the message and carried on the report. A reader cannot act on it and is
      * not asked to; it is there so that quoting it, which is what people do with a short code on a

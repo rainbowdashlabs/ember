@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
@@ -23,7 +24,6 @@ import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -225,7 +225,7 @@ public class RemoteBoardTicketDetailRoutes implements Routes {
     private int requireCommentOnTicket(Context ctx, int ticketId) {
         int commentId = pathInt(ctx, "commentId");
         if (ticketService.findComments(ticketId).stream().noneMatch(comment -> comment.id() == commentId)) {
-            throw new NotFoundResponse();
+            throw Refusal.REMOTE_TICKET_COMMENT_NOT_HERE.raise();
         }
         return commentId;
     }

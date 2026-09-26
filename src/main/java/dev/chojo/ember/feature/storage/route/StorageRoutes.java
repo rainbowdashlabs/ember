@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.storage.route;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
@@ -34,13 +35,13 @@ import dev.chojo.ember.feature.storage.service.InstanceStorageMigrationService;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageReconciliationService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.time.Instant;
@@ -56,6 +57,8 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
 
 @Singleton
 public class StorageRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(StorageRoutes.class);
+
     private final StorageQuotaService quotaService;
     private final StorageUsageRepository usageRepository;
     private final StorageQuotaPresetRepository presetRepository;
@@ -402,7 +405,7 @@ public class StorageRoutes implements Routes {
     private void applyInstanceBackend(Context ctx) {
         InstanceMigrateRequest req = ctx.bodyAsClass(InstanceMigrateRequest.class);
         if (req.target() == null) {
-            throw new BadRequestResponse("target is required");
+            throw Refusal.INSTANCE_STORAGE_TARGET_MISSING.raise();
         }
         StorageBackendSettings targetSettings = buildSettings(req.target(), credentialCipher);
         String oldRedacted = redactedSettings(storageConfig.backend());
@@ -416,7 +419,8 @@ public class StorageRoutes implements Routes {
         } catch (MigrationException e) {
             auditService.recordInstanceMigration(
                     actor, StorageAuditAction.INSTANCE_MIGRATION_FAILED, oldRedacted, newRedacted, e.getMessage());
-            throw new BadRequestResponse(e.getMessage());
+            log.warn("Instance storage move could not be prepared", e);
+            throw Refusal.INSTANCE_STORAGE_MOVE_NOT_DONE.raise();
         }
         InstanceStorageMigrationService.MigrationResult result;
         try {
@@ -428,7 +432,8 @@ public class StorageRoutes implements Routes {
             instanceMigrationService.abort(prepared);
             auditService.recordInstanceMigration(
                     actor, StorageAuditAction.INSTANCE_MIGRATION_FAILED, oldRedacted, newRedacted, e.getMessage());
-            throw new RuntimeException("Migration failed during commit: " + e.getMessage(), e);
+            log.error("The move of the instance files broke while it was being committed", e);
+            throw Refusal.INSTANCE_STORAGE_MOVE_TAKEN_BACK.raise();
         }
         auditService.recordInstanceMigration(
                 actor, StorageAuditAction.INSTANCE_MIGRATION_COMPLETED, oldRedacted, newRedacted, null);
@@ -444,7 +449,7 @@ public class StorageRoutes implements Routes {
     private StorageBackendAuditService.Actor actor(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session == null || session.account() == null) {
-            throw new ForbiddenResponse("No account in session");
+            throw Refusal.NO_ACCOUNT_BEHIND_INSTANCE_STORAGE_CHANGE.raise();
         }
         Integer memberId = session.member() != null ? session.member().id() : null;
         return StorageBackendAuditService.Actor.human(session.account().id(), memberId);

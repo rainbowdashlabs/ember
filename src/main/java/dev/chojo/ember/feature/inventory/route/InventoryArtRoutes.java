@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -20,7 +21,6 @@ import dev.chojo.ember.feature.inventory.service.InventoryArtService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -76,14 +76,15 @@ public class InventoryArtRoutes implements Routes {
     }
 
     private Inventory ownedInventory(int inventoryId, UserSession session) {
-        Inventory inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
+        Inventory inventory =
+                inventoryService.findById(inventoryId).orElseThrow(Refusal.INVENTORY_NOT_HERE_BEHIND_KIND::raise);
         RouteSupport.requireSameStation(session, inventory.stationId());
         return inventory;
     }
 
     private void verifyArtInInventory(int inventoryId, int artId) {
         if (artService.findByInventory(inventoryId).stream().noneMatch(art -> art.id() == artId)) {
-            throw new NotFoundResponse();
+            throw Refusal.ITEM_KIND_NOT_IN_INVENTORY.raise();
         }
     }
 
@@ -144,7 +145,7 @@ public class InventoryArtRoutes implements Routes {
         artService
                 .update(artId, body.name(), body.note(), body.position(), Glyph.of(body.icon(), body.color()))
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw new NotFoundResponse();
+                    throw Refusal.ITEM_KIND_NOT_CHANGED.raise();
                 });
     }
 
@@ -169,7 +170,7 @@ public class InventoryArtRoutes implements Routes {
         if (artService.delete(artId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.ITEM_KIND_NOT_DELETED.raise();
         }
     }
 

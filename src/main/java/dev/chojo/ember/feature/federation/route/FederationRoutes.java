@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -23,10 +24,8 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -176,7 +175,8 @@ public class FederationRoutes implements Routes {
 
     private void createInvite(Context ctx) {
         var session = UserSession.from(ctx);
-        var station = stationRepository.findById(session.stationId()).orElseThrow(NotFoundResponse::new);
+        var station =
+                stationRepository.findById(session.stationId()).orElseThrow(Refusal.FEDERATION_STATION_NOT_HERE::raise);
         // Station invite - includes token proving consent, auto-activates on accept
         var code = service.generateStationInvite(station.id(), station.uid());
         ctx.json(new InviteResponse(code));
@@ -190,7 +190,7 @@ public class FederationRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(AcceptRequest.class);
         if (req.inviteCode() == null || req.inviteCode().isBlank()) {
-            throw new BadRequestResponse("inviteCode is required");
+            throw Refusal.INVITE_CODE_MISSING.raise();
         }
 
         switch (enrollmentService.enterCode(
@@ -244,13 +244,13 @@ public class FederationRoutes implements Routes {
         var session = UserSession.from(ctx);
         int requestId = ctx.pathParamAsClass("id", Integer.class).get();
         // Verify the request targets this station
-        var partner = service.findPartner(requestId).orElseThrow(NotFoundResponse::new);
+        var partner = service.findPartner(requestId).orElseThrow(Refusal.PAIR_REQUEST_NOT_HERE_TO_ACCEPT::raise);
         UUID sessionStationUid = stationRepository
                 .findById(session.stationId())
                 .map(Station::uid)
                 .orElse(null);
         if (!partner.partnerStationId().equals(sessionStationUid)) {
-            throw new NotFoundResponse();
+            throw Refusal.PAIR_REQUEST_NOT_HERE_TO_ACCEPT.raise();
         }
         var result = service.acceptPairRequest(requestId);
         ctx.json(result);
@@ -259,13 +259,13 @@ public class FederationRoutes implements Routes {
     private void declinePairRequest(Context ctx) {
         var session = UserSession.from(ctx);
         int requestId = ctx.pathParamAsClass("id", Integer.class).get();
-        var partner = service.findPartner(requestId).orElseThrow(NotFoundResponse::new);
+        var partner = service.findPartner(requestId).orElseThrow(Refusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE::raise);
         UUID sessionStationUid = stationRepository
                 .findById(session.stationId())
                 .map(Station::uid)
                 .orElse(null);
         if (!partner.partnerStationId().equals(sessionStationUid)) {
-            throw new NotFoundResponse();
+            throw Refusal.PAIR_REQUEST_NOT_HERE_TO_DECLINE.raise();
         }
         service.declinePairRequest(requestId);
         ctx.json(new MessageResponse("Request declined"));
@@ -279,7 +279,7 @@ public class FederationRoutes implements Routes {
     private FederationPartner requireOwnedPartner(Context ctx) {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var partner = service.findPartner(id).orElseThrow(NotFoundResponse::new);
+        var partner = service.findPartner(id).orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE::raise);
         RouteSupport.requireSameStation(session, partner.stationId());
         return partner;
     }
@@ -292,13 +292,15 @@ public class FederationRoutes implements Routes {
     private void suspendPartner(Context ctx) {
         var partner = requireOwnedPartner(ctx);
         service.suspendPartner(partner.id());
-        ctx.json(service.findPartner(partner.id()).orElseThrow());
+        ctx.json(service.findPartner(partner.id())
+                .orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE_AFTER_SUSPENDING::raise));
     }
 
     private void resumePartner(Context ctx) {
         var partner = requireOwnedPartner(ctx);
         service.resumePartner(partner.id());
-        ctx.json(service.findPartner(partner.id()).orElseThrow());
+        ctx.json(service.findPartner(partner.id())
+                .orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE_AFTER_RESUMING::raise));
     }
 
     private void endFederation(Context ctx) {
@@ -353,7 +355,7 @@ public class FederationRoutes implements Routes {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         if (!service.deleteKbShare(id, session.stationId())) {
-            throw new NotFoundResponse();
+            throw Refusal.KB_SHARE_NOT_HERE_TO_DELETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -377,7 +379,7 @@ public class FederationRoutes implements Routes {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         if (!service.deleteQuizShare(id, session.stationId())) {
-            throw new NotFoundResponse();
+            throw Refusal.QUIZ_SHARE_NOT_HERE_TO_DELETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -401,7 +403,7 @@ public class FederationRoutes implements Routes {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         if (!service.deleteProtocolShare(id, session.stationId())) {
-            throw new NotFoundResponse();
+            throw Refusal.PROTOCOL_SHARE_NOT_HERE_TO_DELETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }

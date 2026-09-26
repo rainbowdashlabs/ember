@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.passkey.route;
 
 import dev.chojo.ember.api.RateLimits;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -33,13 +34,8 @@ import dev.chojo.ember.feature.twofactor.service.RelyingParties;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.util.ClientIp;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
-import io.javalin.http.UnauthorizedResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -238,13 +234,13 @@ public class PasskeyRoutes implements Routes {
         RateLimits.enforce(rateLimiter.tryDeviceClaim(clientIp(ctx)));
         var request = ctx.bodyAsClass(SignInClaimRequest.class);
         if (isBlank(request.claimToken())) {
-            throw new BadRequestResponse("claimToken is required");
+            throw Refusal.DEVICE_SIGN_IN_CLAIM_MISSING.raise();
         }
         var result = deviceService
                 .claimSignIn(request.claimToken(), ctx.userAgent(), ctx.header("CF-IPCountry"))
-                .orElseThrow(() -> new UnauthorizedResponse("Sign-in failed"));
+                .orElseThrow(Refusal.DEVICE_SIGN_IN_NOT_GRANTED::raise);
         if (!result.success()) {
-            throw new UnauthorizedResponse(result.message());
+            throw Refusal.DEVICE_SIGN_IN_NOT_GRANTED.raise();
         }
         if (result.passwordChangeRequired()) {
             ctx.json(LoginResponse.passwordChange(result.token(), result.expiresAt()));
@@ -256,7 +252,7 @@ public class PasskeyRoutes implements Routes {
     private void pollDeviceRequest(Context ctx) {
         var request = ctx.bodyAsClass(DevicePollRequest.class);
         if (isBlank(request.pollSecret())) {
-            throw new BadRequestResponse("pollSecret is required");
+            throw Refusal.DEVICE_POLL_SECRET_MISSING.raise();
         }
         RateLimits.enforce(rateLimiter.tryDevicePoll(clientIp(ctx), request.pollSecret()));
         var result = deviceService.poll(
@@ -272,11 +268,11 @@ public class PasskeyRoutes implements Routes {
         RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
         var request = ctx.bodyAsClass(DeviceEnrollBeginRequest.class);
         if (isBlank(request.enrollToken())) {
-            throw new BadRequestResponse("enrollToken is required");
+            throw Refusal.DEVICE_ENROLMENT_TOKEN_MISSING.raise();
         }
         var start = deviceService
                 .beginEnrollment(request.enrollToken())
-                .orElseThrow(() -> new UnauthorizedResponse("Enrolment failed"));
+                .orElseThrow(Refusal.DEVICE_ENROLMENT_NOT_BEGUN::raise);
         ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
     }
 
@@ -285,12 +281,12 @@ public class PasskeyRoutes implements Routes {
         RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
         var request = ctx.bodyAsClass(DeviceEnrollFinishRequest.class);
         if (isBlank(request.enrollToken()) || isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
-            throw new BadRequestResponse("enrollToken, challengeToken and credentialJson are required");
+            throw Refusal.DEVICE_ENROLMENT_DETAILS_MISSING.raise();
         }
         boolean created = deviceService.finishEnrollment(
                 request.enrollToken(), request.challengeToken(), request.credentialJson(), ctx.header("CF-IPCountry"));
         if (!created) {
-            throw new UnauthorizedResponse("Enrolment failed");
+            throw Refusal.DEVICE_ENROLMENT_NOT_FINISHED.raise();
         }
         ctx.json(Map.of("message", "Passkey created"));
     }
@@ -302,9 +298,9 @@ public class PasskeyRoutes implements Routes {
         RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
         var request = ctx.bodyAsClass(TokenEnrollRequest.class);
         if (isBlank(request.token())) {
-            throw new BadRequestResponse("token is required");
+            throw Refusal.ENROLMENT_LINK_TOKEN_MISSING.raise();
         }
-        var account = enrollmentService.lookup(request.token()).orElseThrow(NotFoundResponse::new);
+        var account = enrollmentService.lookup(request.token()).orElseThrow(Refusal.ENROLMENT_LINK_UNKNOWN::raise);
         ctx.json(new TokenEnrollLookupResponse(account.firstName(), account.lastName()));
     }
 
@@ -313,11 +309,9 @@ public class PasskeyRoutes implements Routes {
         RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
         var request = ctx.bodyAsClass(TokenEnrollRequest.class);
         if (isBlank(request.token())) {
-            throw new BadRequestResponse("token is required");
+            throw Refusal.ENROLMENT_LINK_TOKEN_MISSING_ON_BEGIN.raise();
         }
-        var start = enrollmentService
-                .begin(request.token())
-                .orElseThrow(() -> new UnauthorizedResponse("Enrolment failed"));
+        var start = enrollmentService.begin(request.token()).orElseThrow(Refusal.ENROLMENT_LINK_NOT_BEGUN::raise);
         ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
     }
 
@@ -326,11 +320,11 @@ public class PasskeyRoutes implements Routes {
         RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
         var request = ctx.bodyAsClass(TokenEnrollFinishRequest.class);
         if (isBlank(request.token()) || isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
-            throw new BadRequestResponse("token, challengeToken and credentialJson are required");
+            throw Refusal.ENROLMENT_LINK_DETAILS_MISSING.raise();
         }
         if (!enrollmentService.finish(
                 request.token(), request.challengeToken(), request.credentialJson(), ctx.header("CF-IPCountry"))) {
-            throw new UnauthorizedResponse("Enrolment failed");
+            throw Refusal.ENROLMENT_LINK_NOT_FINISHED.raise();
         }
         ctx.json(Map.of("message", "Passkey created"));
     }
@@ -340,11 +334,11 @@ public class PasskeyRoutes implements Routes {
         RateLimits.enforce(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
         var request = ctx.bodyAsClass(DeviceCodeRequest.class);
         if (isBlank(request.code())) {
-            throw new BadRequestResponse("code is required");
+            throw Refusal.DEVICE_CODE_MISSING_ON_LOOKUP.raise();
         }
-        var open = deviceService.lookup(request.code()).orElseThrow(NotFoundResponse::new);
+        var open = deviceService.lookup(request.code()).orElseThrow(Refusal.DEVICE_CODE_NOT_YOURS_ON_LOOKUP::raise);
         if (!mayConfirm(session, open)) {
-            throw new NotFoundResponse();
+            throw Refusal.DEVICE_CODE_NOT_YOURS_ON_LOOKUP.raise();
         }
         ctx.json(new DeviceLookupResponse(
                 open.requestedUserAgent(),
@@ -423,10 +417,10 @@ public class PasskeyRoutes implements Routes {
         if (open.is(DeviceRequestPurpose.STEP_UP)) return open.requestingAccountId();
         if (requested == null || requested == session.accountId()) return session.accountId();
         if (!open.is(DeviceRequestPurpose.SIGN_IN)) {
-            throw new ForbiddenResponse("Only a sign-in can be approved for somebody else");
+            throw Refusal.APPROVAL_ONLY_FOR_SIGN_IN.raise();
         }
         if (!manages(session, requested)) {
-            throw new ForbiddenResponse("You do not manage this member");
+            throw Refusal.APPROVAL_MEMBER_NOT_YOURS.raise();
         }
         return requested;
     }
@@ -464,23 +458,23 @@ public class PasskeyRoutes implements Routes {
         RateLimits.enforce(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
         var request = ctx.bodyAsClass(DeviceCodeRequest.class);
         if (isBlank(request.code())) {
-            throw new BadRequestResponse("code is required");
+            throw Refusal.DEVICE_CODE_MISSING_ON_APPROVAL.raise();
         }
-        var open = deviceService.lookup(request.code()).orElseThrow(NotFoundResponse::new);
+        var open = deviceService.lookup(request.code()).orElseThrow(Refusal.DEVICE_CODE_NOT_YOURS_ON_APPROVAL::raise);
         if (!mayConfirm(session, open)) {
-            throw new NotFoundResponse();
+            throw Refusal.DEVICE_CODE_NOT_YOURS_ON_APPROVAL.raise();
         }
         if (request.pickedNumber() == null) {
-            throw new BadRequestResponse("pickedNumber is required");
+            throw Refusal.DEVICE_MATCH_NUMBER_MISSING.raise();
         }
         int subject = subjectFor(session, open, request.forAccountId());
         stepUpGuard.spendLocalProof(session, StepUpCategory.ACCOUNT_SECURITY);
         var result = deviceService.approve(session.accountId(), subject, request.code(), request.pickedNumber());
         if (result == DeviceRequestService.ApprovalResult.WRONG_NUMBER) {
-            throw new HttpResponseException(HttpStatus.CONFLICT.getCode(), "The numbers did not match", Map.of());
+            throw Refusal.DEVICE_MATCH_NUMBER_WRONG.raise();
         }
         if (result != DeviceRequestService.ApprovalResult.APPROVED) {
-            throw new NotFoundResponse();
+            throw Refusal.DEVICE_APPROVAL_NOT_TAKEN.raise();
         }
         ctx.json(Map.of("message", "Device approved"));
     }
@@ -491,7 +485,7 @@ public class PasskeyRoutes implements Routes {
 
     private void requirePasskeysOn() {
         if (modeService.effectiveMode() == PasskeySettings.Mode.OFF) {
-            throw new ForbiddenResponse("Passkeys are not available on this instance");
+            throw Refusal.PASSKEYS_SWITCHED_OFF.raise();
         }
     }
 
@@ -539,19 +533,19 @@ public class PasskeyRoutes implements Routes {
         RateLimits.enforce(rateLimiter.tryPasskeySignIn(clientIp(ctx)));
         var request = ctx.bodyAsClass(SignInFinishRequest.class);
         if (isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
-            throw new BadRequestResponse("challengeToken and credentialJson are required");
+            throw Refusal.PASSKEY_SIGN_IN_DETAILS_MISSING.raise();
         }
 
         Optional<Integer> accountId = passkeyService.finishSignIn(
                 request.challengeToken(), request.credentialJson(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         if (accountId.isEmpty()) {
-            throw new UnauthorizedResponse("Sign-in failed");
+            throw Refusal.PASSKEY_SIGN_IN_REFUSED.raise();
         }
 
         var result = authService.admitPasskeyAccount(
                 accountId.get(), ctx.userAgent(), ctx.header("CF-IPCountry"), request.trustedDevice());
         if (!result.success()) {
-            throw new UnauthorizedResponse(result.message());
+            throw Refusal.PASSKEY_SIGN_IN_REFUSED.raise();
         }
         if (result.passwordChangeRequired()) {
             ctx.json(LoginResponse.passwordChange(result.token(), result.expiresAt()));
@@ -590,7 +584,9 @@ public class PasskeyRoutes implements Routes {
     private void beginCreation(Context ctx) {
         requirePasskeysOn();
         UserSession session = UserSession.from(ctx);
-        var account = accountRepository.findById(session.accountId()).orElseThrow(NotFoundResponse::new);
+        var account = accountRepository
+                .findById(session.accountId())
+                .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CREATION::raise);
         String displayName = NameParts.of(account).official();
         var start = passkeyService.startCreation(
                 session.accountId(), account.email(), displayName.isBlank() ? account.email() : displayName);
@@ -602,7 +598,7 @@ public class PasskeyRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreationFinishRequest.class);
         if (isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
-            throw new BadRequestResponse("challengeToken and credentialJson are required");
+            throw Refusal.PASSKEY_CREATION_DETAILS_MISSING.raise();
         }
         var factor = passkeyService.finishCreation(
                 session.accountId(),
@@ -612,7 +608,7 @@ public class PasskeyRoutes implements Routes {
                 ctx.userAgent(),
                 ctx.header("CF-IPCountry"));
         if (factor.isEmpty()) {
-            throw new BadRequestResponse("Passkey creation failed");
+            throw Refusal.PASSKEY_NOT_CREATED.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(new PasskeyEntryResponse(
@@ -623,7 +619,7 @@ public class PasskeyRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(RenameRequest.class);
         if (!accountService.rename(session.accountId(), pathInt(ctx, "id"), request.label())) {
-            throw new NotFoundResponse();
+            throw Refusal.PASSKEY_NOT_HERE_ON_RENAME.raise();
         }
         ctx.json(Map.of("message", "Passkey renamed"));
     }
@@ -633,12 +629,8 @@ public class PasskeyRoutes implements Routes {
         var outcome = accountService.remove(
                 session.accountId(), pathInt(ctx, "id"), ctx.userAgent(), ctx.header("CF-IPCountry"));
         switch (outcome) {
-            case NOT_FOUND -> throw new NotFoundResponse();
-            case REFUSED_NO_PASSWORD ->
-                throw new HttpResponseException(
-                        HttpStatus.CONFLICT.getCode(),
-                        "This is the only way into the account. Be onboarded again to get a new passkey first.",
-                        Map.of());
+            case NOT_FOUND -> throw Refusal.PASSKEY_NOT_HERE_ON_REMOVAL.raise();
+            case REFUSED_NO_PASSWORD -> throw Refusal.LAST_WAY_INTO_ACCOUNT.raise();
             case REMOVED -> ctx.json(new RemovalResponse(false));
             case REMOVED_PASSWORD_REENABLED -> ctx.json(new RemovalResponse(true));
         }
@@ -651,13 +643,10 @@ public class PasskeyRoutes implements Routes {
                 session.accountId(), request.enabled(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         switch (outcome) {
             case OK -> ctx.json(Map.of("message", "Password sign-in updated"));
-            case MODE_FORBIDS ->
-                throw new ForbiddenResponse("This instance does not allow switching password sign-in off");
-            case NO_REACHABLE_ADDRESS ->
-                throw conflict("Switching password sign-in off needs an address a reset mail can reach");
-            case NO_TRIED_PASSKEY ->
-                throw conflict("Switching password sign-in off needs a passkey that has completed a sign-in");
-            case NO_PASSWORD -> throw conflict("This account holds no password");
+            case MODE_FORBIDS -> throw Refusal.PASSWORD_SIGN_IN_LOCKED_BY_INSTANCE.raise();
+            case NO_REACHABLE_ADDRESS -> throw Refusal.PASSWORD_SIGN_IN_NEEDS_REACHABLE_ADDRESS.raise();
+            case NO_TRIED_PASSKEY -> throw Refusal.PASSWORD_SIGN_IN_NEEDS_TRIED_PASSKEY.raise();
+            case NO_PASSWORD -> throw Refusal.ACCOUNT_HOLDS_NO_PASSWORD_ON_SWITCH.raise();
         }
     }
 
@@ -666,10 +655,6 @@ public class PasskeyRoutes implements Routes {
         var request = ctx.bodyAsClass(SwitchRequest.class);
         accountService.setAskWithPassword(session.accountId(), request.enabled());
         ctx.json(Map.of("message", "Updated"));
-    }
-
-    private static HttpResponseException conflict(String message) {
-        return new HttpResponseException(HttpStatus.CONFLICT.getCode(), message, Map.of());
     }
 
     // -- The offer --
@@ -686,7 +671,7 @@ public class PasskeyRoutes implements Routes {
                 switch (request.answer() == null ? "" : request.answer()) {
                     case "DECLINED" -> true;
                     case "LATER" -> false;
-                    default -> throw new BadRequestResponse("answer must be LATER or DECLINED");
+                    default -> throw Refusal.PASSKEY_OFFER_ANSWER_UNKNOWN.raise();
                 };
         accountService.answerOffer(session.accountId(), declined);
         ctx.json(Map.of("message", "Answer recorded"));
@@ -705,7 +690,7 @@ public class PasskeyRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(SignInFinishRequest.class);
         if (isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
-            throw new BadRequestResponse("challengeToken and credentialJson are required");
+            throw Refusal.PASSKEY_TRIAL_DETAILS_MISSING.raise();
         }
         var outcome =
                 passkeyService.finishTrial(session.accountId(), request.challengeToken(), request.credentialJson());

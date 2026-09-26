@@ -6,13 +6,13 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.service.MemberImportService;
 import dev.chojo.ember.feature.members.service.MemberImportService.ColumnMapping;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -43,10 +43,10 @@ public class MemberImportRoutes implements Routes {
 
     private static void validateCsv(String csv) {
         if (csv == null || csv.isBlank()) {
-            throw new BadRequestResponse("csv is required");
+            throw Refusal.IMPORT_FILE_MISSING.raise();
         }
         if (csv.getBytes(StandardCharsets.UTF_8).length > MAX_CSV_BYTES) {
-            throw new BadRequestResponse("CSV file exceeds maximum size of 2 MB");
+            throw Refusal.IMPORT_FILE_TOO_LARGE.raise();
         }
     }
 

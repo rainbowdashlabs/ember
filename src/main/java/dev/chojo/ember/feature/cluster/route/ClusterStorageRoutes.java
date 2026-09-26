@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
@@ -18,10 +19,8 @@ import dev.chojo.ember.feature.storage.entity.ClusterQuotaDefaults;
 import dev.chojo.ember.feature.storage.entity.ClusterStorageQuotaPreset;
 import dev.chojo.ember.feature.storage.entity.QuotaOrigin;
 import dev.chojo.ember.feature.storage.entity.StationQuotas;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -296,7 +295,7 @@ public class ClusterStorageRoutes implements Routes {
     private void setPool(Context ctx) {
         Cluster cluster = clusterService
                 .findByUid(parseUid(ctx.pathParam("clusterUid")))
-                .orElseThrow(() -> new NotFoundResponse("No such cluster"));
+                .orElseThrow(Refusal.CLUSTER_NOT_HERE_ON_POOL::raise);
         var request = ctx.bodyAsClass(PoolRequest.class);
         quotaService.setStoragePool(cluster.id(), request.quotaBytes());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -305,15 +304,15 @@ public class ClusterStorageRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw new BadRequestResponse("No cluster selected");
-        return clusterService.findById(clusterId).orElseThrow(NotFoundResponse::new);
+        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_STORAGE.raise();
+        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_STORAGE::raise);
     }
 
     private static UUID parseUid(String raw) {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Not an identity: " + raw);
+            throw Refusal.NOT_AN_IDENTITY_IN_CLUSTER_STORAGE.raise(raw);
         }
     }
 

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -24,10 +25,8 @@ import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentPeriod;
 import dev.chojo.ember.util.DocumentWord;
 import dev.chojo.ember.util.SafeContentDisposition;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -90,7 +89,7 @@ public class MemberTableRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(SavePresetRequest.class);
         if (req.name() == null || req.name().isBlank()) {
-            throw new BadRequestResponse("A saved selection needs a name");
+            throw Refusal.MEMBER_TABLE_PRESET_NAME_MISSING.raise();
         }
         ctx.json(presetRepository.save(session.stationId(), req.name().trim(), columnsOf(req.columns())));
     }
@@ -121,8 +120,8 @@ public class MemberTableRoutes implements Routes {
             ctx.contentType("application/pdf");
             ctx.header("Content-Disposition", memberListName(station, "pdf"));
             ctx.result(pdf);
-        } catch (Exception e) {
-            throw new BadRequestResponse("This list cannot be turned into a sheet");
+        } catch (Exception ignored) {
+            throw Refusal.MEMBER_TABLE_NOT_A_SHEET.raise();
         }
     }
 
@@ -144,7 +143,9 @@ public class MemberTableRoutes implements Routes {
     }
 
     private Station stationOf(Context ctx) {
-        return stationRepository.findById(UserSession.from(ctx).stationId()).orElseThrow(NotFoundResponse::new);
+        return stationRepository
+                .findById(UserSession.from(ctx).stationId())
+                .orElseThrow(Refusal.STATION_NOT_HERE_FOR_MEMBER_TABLE::raise);
     }
 
     private String generatedBy(Context ctx) {

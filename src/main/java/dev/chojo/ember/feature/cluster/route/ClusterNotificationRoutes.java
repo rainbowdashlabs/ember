@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.MessageResponse;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
@@ -13,7 +14,6 @@ import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.route.NotificationRoutes.NotificationLinkResponse;
 import dev.chojo.ember.feature.notifications.route.NotificationRoutes.NotificationResponse;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -100,7 +100,7 @@ public class ClusterNotificationRoutes implements Routes {
 
     private static int requireClusterMember(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        if (session.clusterMember() == null) throw new BadRequestResponse("No cluster selected");
+        if (session.clusterMember() == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_NOTIFICATIONS.raise();
         return session.clusterMember().id();
     }
 

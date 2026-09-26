@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -34,9 +35,7 @@ import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.ProbeResult;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
 import dev.chojo.ember.feature.storage.service.StorageMigrationService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -209,7 +208,8 @@ public class StationStorageBackendRoutes implements Routes {
                     existing.orElse(null),
                     target,
                     e.getMessage());
-            throw new BadRequestResponse("Apply failed: " + e.getMessage());
+            log.warn("Storage move for station {} failed", stationId, e);
+            throw Refusal.STATION_STORAGE_MOVE_NOT_DONE.raise();
         }
         auditService.recordMigration(
                 actor, stationId, StorageAuditAction.MIGRATION_COMPLETED, existing.orElse(null), target, null);
@@ -221,9 +221,7 @@ public class StationStorageBackendRoutes implements Routes {
     private void probe(Context ctx) {
         Actor actor = actor(ctx);
         int stationId = sessionStationId(ctx);
-        var row = repository
-                .findOne(stationId)
-                .orElseThrow(() -> new BadRequestResponse("No backend override configured for this station"));
+        var row = repository.findOne(stationId).orElseThrow(Refusal.STATION_KEEPS_NO_STORAGE_OF_ITS_OWN::raise);
         boolean healthy;
         String errorOrNull;
         Instant checkedAt;
@@ -289,17 +287,17 @@ public class StationStorageBackendRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         Integer stationId = session.stationId();
         if (stationId == null) {
-            throw new ForbiddenResponse("No station selected");
+            throw Refusal.NO_STATION_CHOSEN_FOR_STORAGE.raise();
         }
         if (stationRepository.findById(stationId).isEmpty()) {
-            throw new BadRequestResponse("Unknown station");
+            throw Refusal.STORAGE_STATION_NOT_HERE.raise();
         }
         return stationId;
     }
 
     private Actor actor(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        if (session.account() == null) throw new ForbiddenResponse("No account in session");
+        if (session.account() == null) throw Refusal.NO_ACCOUNT_BEHIND_STORAGE_CHANGE.raise();
         Integer memberId = session.member() != null ? session.member().id() : null;
         return Actor.human(session.account().id(), memberId);
     }
@@ -317,13 +315,13 @@ public class StationStorageBackendRoutes implements Routes {
             case StorageBackendPayloads.ClusterRequest ignored -> {
                 Cluster cluster = clusterRepository
                         .findByStation(stationId)
-                        .orElseThrow(() -> new BadRequestResponse("This station answers to no association"));
+                        .orElseThrow(Refusal.STATION_ANSWERS_TO_NO_ASSOCIATION::raise);
                 if (cluster.storageBackendReach() != ClusterBackendReach.EVERY_STATION) {
-                    throw new BadRequestResponse("This association does not keep storage for its stations");
+                    throw Refusal.ASSOCIATION_KEEPS_NO_STORAGE_FOR_STATIONS.raise();
                 }
                 var current = clusterConfigRepository
                         .findCurrent(cluster.id())
-                        .orElseThrow(() -> new BadRequestResponse("This association keeps no storage of its own"));
+                        .orElseThrow(Refusal.ASSOCIATION_KEEPS_NO_STORAGE_OF_ITS_OWN::raise);
                 yield new StorageMigrationService.Destination.Cluster(cluster.id(), current.id(), current.config());
             }
             default -> new StorageMigrationService.Destination.Own(payloads.toEntity(request));
@@ -339,7 +337,7 @@ public class StationStorageBackendRoutes implements Routes {
                 .map(Cluster::storageBackendLocked)
                 .orElse(false);
         if (locked) {
-            throw new ForbiddenResponse("This station's association decides where its files are kept");
+            throw Refusal.ASSOCIATION_DECIDES_WHERE_FILES_ARE_KEPT.raise();
         }
     }
 

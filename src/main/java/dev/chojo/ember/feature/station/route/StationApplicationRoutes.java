@@ -10,9 +10,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.feature.station.service.StationApplicationService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -70,14 +68,14 @@ public class StationApplicationRoutes implements Routes {
             responses = {@OpenApiResponse(status = "201"), @OpenApiResponse(status = "400")})
     private void submit(Context ctx) {
         if (!settingRepository.getBoolean("station_registration_enabled", true)) {
-            throw new ForbiddenResponse("Station registration is currently disabled");
+            throw Refusal.STATION_REGISTRATION_SWITCHED_OFF.raise();
         }
         var request = ctx.bodyAsClass(ApplicationRequest.class);
         if (isBlank(request.firstName())
                 || isBlank(request.lastName())
                 || isBlank(request.email())
                 || isBlank(request.stationName())) {
-            throw new BadRequestResponse("All fields are required");
+            throw Refusal.STATION_APPLICATION_NEEDS_EVERY_FIELD.raise();
         }
         var application = applicationService.submit(
                 request.firstName(),
@@ -98,7 +96,7 @@ public class StationApplicationRoutes implements Routes {
     private void verify(Context ctx) {
         var request = ctx.bodyAsClass(VerifyRequest.class);
         if (isBlank(request.token())) {
-            throw new BadRequestResponse("Token is required");
+            throw Refusal.STATION_APPLICATION_LINK_CARRIES_NOTHING.raise();
         }
         if (applicationService.verify(request.token())) {
             ctx.status(HttpStatus.NO_CONTENT);
@@ -152,7 +150,7 @@ public class StationApplicationRoutes implements Routes {
             throw Refusal.STATION_APPLICATION_NOT_HERE_ON_ACCEPTANCE.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state when accepting station application id={}", id, e);
-            throw new BadRequestResponse(e.getMessage());
+            throw Refusal.STATION_APPLICATION_NOT_ACCEPTED.raise();
         }
     }
 
@@ -179,7 +177,7 @@ public class StationApplicationRoutes implements Routes {
             throw Refusal.STATION_APPLICATION_NOT_HERE_ON_DENIAL.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state when denying station application id={}", id, e);
-            throw new BadRequestResponse(e.getMessage());
+            throw Refusal.STATION_APPLICATION_NOT_DENIED.raise();
         }
     }
 

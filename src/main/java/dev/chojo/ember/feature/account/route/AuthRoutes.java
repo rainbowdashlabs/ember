@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.RateLimits;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -21,12 +22,8 @@ import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.util.ClientIp;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.UnauthorizedResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -128,7 +125,7 @@ public class AuthRoutes implements Routes {
                 || isBlank(request.firstName())
                 || isBlank(request.lastName())
                 || (!passwordless && isBlank(request.password()))) {
-            throw new BadRequestResponse("email, firstName, lastName, and password are required");
+            throw Refusal.REGISTRATION_DETAILS_MISSING.raise();
         }
 
         var result = authService.registerSelf(
@@ -138,7 +135,7 @@ public class AuthRoutes implements Routes {
                 request.password(),
                 request.registrationCode());
         if (!result.success()) {
-            throw new ConflictResponse(result.message());
+            throw Refusal.REGISTRATION_REFUSED.raise();
         }
 
         ctx.status(HttpStatus.CREATED)
@@ -165,13 +162,13 @@ public class AuthRoutes implements Routes {
         RateLimits.enforce(rateLimiter.tryVerifyEmail(clientIp(ctx)));
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) {
-            throw new BadRequestResponse("token is required");
+            throw Refusal.EMAIL_VERIFICATION_TOKEN_MISSING.raise();
         }
 
         if (authService.verifyEmail(request.token())) {
             ctx.status(HttpStatus.OK).json(new MessageResponse("Email verified"));
         } else {
-            throw new BadRequestResponse("Invalid or expired token");
+            throw Refusal.EMAIL_VERIFICATION_LINK_NOT_GOOD.raise();
         }
     }
 
@@ -189,7 +186,7 @@ public class AuthRoutes implements Routes {
     private void resendVerification(Context ctx) {
         var request = ctx.bodyAsClass(EmailRequest.class);
         if (isBlank(request.email())) {
-            throw new BadRequestResponse("email is required");
+            throw Refusal.RESEND_VERIFICATION_ADDRESS_MISSING.raise();
         }
         RateLimits.enforce(rateLimiter.tryResendVerification(clientIp(ctx), request.email()));
 
@@ -215,21 +212,18 @@ public class AuthRoutes implements Routes {
         RateLimits.enforce(rateLimiter.trySetPassword(clientIp(ctx)));
         var request = ctx.bodyAsClass(SetPasswordRequest.class);
         if (isBlank(request.token()) || isBlank(request.password())) {
-            throw new BadRequestResponse("token and password are required");
+            throw Refusal.PASSWORD_SETUP_DETAILS_MISSING.raise();
         }
 
         var result = authService.setPasswordAndSignIn(
                 request.token(), request.password(), ctx.userAgent(), ctx.header("CF-IPCountry"));
-        // The body of each failure carries a stable i18n key (e.g. "setPassword.passwordTooShort"),
-        // not an English sentence. The frontend localises it via vue-i18n. Translations live in
-        // src/i18n/<locale>.ts under the same key path.
         switch (result.outcome()) {
             case OK -> ctx.status(HttpStatus.OK).json(LoginResponse.of(result.login()));
-            case PASSWORD_TOO_SHORT -> throw new BadRequestResponse("setPassword.passwordTooShort");
-            case PASSWORD_BREACHED -> throw new BadRequestResponse("setPassword.passwordBreached");
-            case TOKEN_INVALID -> throw new BadRequestResponse("setPassword.tokenInvalid");
-            case TOKEN_EXPIRED -> throw new BadRequestResponse("setPassword.tokenExpired");
-            case PASSWORDLESS_MODE -> throw new ForbiddenResponse("setPassword.passwordlessMode");
+            case PASSWORD_TOO_SHORT -> throw Refusal.NEW_PASSWORD_TOO_SHORT.raise();
+            case PASSWORD_BREACHED -> throw Refusal.NEW_PASSWORD_BREACHED.raise();
+            case TOKEN_INVALID -> throw Refusal.PASSWORD_SETUP_LINK_UNKNOWN.raise();
+            case TOKEN_EXPIRED -> throw Refusal.PASSWORD_SETUP_LINK_EXPIRED.raise();
+            case PASSWORDLESS_MODE -> throw Refusal.PASSWORDS_SWITCHED_OFF.raise();
             // An outcome added later and not answered here would otherwise fall out of the switch
             // with nothing written, and an empty 200 reads as a password that was set.
             default -> throw new IllegalStateException("Unhandled set-password outcome: " + result.outcome());
@@ -252,18 +246,18 @@ public class AuthRoutes implements Routes {
         RateLimits.enforce(rateLimiter.trySetPassword(clientIp(ctx)));
         var request = ctx.bodyAsClass(SetAddressRequest.class);
         if (isBlank(request.token()) || isBlank(request.email())) {
-            throw new BadRequestResponse("token and email are required");
+            throw Refusal.ADDRESS_SETUP_DETAILS_MISSING.raise();
         }
 
         var result = authService.setRequiredAddress(
                 request.token(), request.email(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         switch (result.outcome()) {
             case OK -> ctx.status(HttpStatus.OK).json(LoginResponse.of(result.login()));
-            case TOKEN_INVALID -> throw new BadRequestResponse("setAddress.tokenInvalid");
-            case TOKEN_EXPIRED -> throw new BadRequestResponse("setAddress.tokenExpired");
-            case ADDRESS_MALFORMED -> throw new BadRequestResponse("setAddress.malformed");
-            case ADDRESS_UNREACHABLE -> throw new BadRequestResponse("setAddress.unreachable");
-            case ADDRESS_TAKEN -> throw new BadRequestResponse("setAddress.taken");
+            case TOKEN_INVALID -> throw Refusal.ADDRESS_SETUP_LINK_UNKNOWN.raise();
+            case TOKEN_EXPIRED -> throw Refusal.ADDRESS_SETUP_LINK_EXPIRED.raise();
+            case ADDRESS_MALFORMED -> throw Refusal.ADDRESS_MALFORMED.raise();
+            case ADDRESS_UNREACHABLE -> throw Refusal.ADDRESS_UNREACHABLE.raise();
+            case ADDRESS_TAKEN -> throw Refusal.ADDRESS_TAKEN_ON_SETUP.raise();
         }
     }
 
@@ -298,7 +292,7 @@ public class AuthRoutes implements Routes {
     private void forgotPassword(Context ctx) {
         var request = ctx.bodyAsClass(EmailRequest.class);
         if (isBlank(request.email())) {
-            throw new BadRequestResponse("email is required");
+            throw Refusal.FORGOTTEN_PASSWORD_ADDRESS_MISSING.raise();
         }
         RateLimits.enforce(rateLimiter.tryForgotPassword(clientIp(ctx), request.email()));
 
@@ -321,7 +315,7 @@ public class AuthRoutes implements Routes {
     private void login(Context ctx) {
         var request = ctx.bodyAsClass(LoginRequest.class);
         if (isBlank(request.identifier()) || isBlank(request.password())) {
-            throw new BadRequestResponse("identifier and password are required");
+            throw Refusal.SIGN_IN_DETAILS_MISSING.raise();
         }
         RateLimits.enforce(rateLimiter.tryLogin(clientIp(ctx), request.identifier()));
 
@@ -333,7 +327,7 @@ public class AuthRoutes implements Routes {
                 ctx.cookie("ember_2fa_trust"),
                 request.trustedDevice());
         if (!result.success()) {
-            throw new UnauthorizedResponse(result.message());
+            throw Refusal.SIGN_IN_REFUSED.raise();
         }
 
         ctx.status(HttpStatus.OK).json(LoginResponse.of(result));
@@ -354,11 +348,11 @@ public class AuthRoutes implements Routes {
     private void demoLogin(Context ctx) {
         var request = ctx.bodyAsClass(DemoLoginRequest.class);
         if (isBlank(request.email())) {
-            throw new BadRequestResponse("email is required");
+            throw Refusal.DEMO_SIGN_IN_ADDRESS_MISSING.raise();
         }
         var result = authService.loginAsDemo(request.email(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         if (!result.success()) {
-            throw new UnauthorizedResponse(result.message());
+            throw Refusal.DEMO_SIGN_IN_REFUSED.raise();
         }
         ctx.status(HttpStatus.OK).json(LoginResponse.of(result));
     }
@@ -378,12 +372,12 @@ public class AuthRoutes implements Routes {
         RateLimits.enforce(rateLimiter.tryRefresh(clientIp(ctx)));
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) {
-            throw new BadRequestResponse("token is required");
+            throw Refusal.SESSION_RENEWAL_TOKEN_MISSING.raise();
         }
 
         var result = authService.refreshSession(request.token(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         if (!result.success()) {
-            throw new UnauthorizedResponse(result.message());
+            throw Refusal.SESSION_NOT_RENEWED.raise();
         }
 
         ctx.status(HttpStatus.OK).json(new SessionResponse(result.token(), result.expiresAt()));
@@ -400,7 +394,7 @@ public class AuthRoutes implements Routes {
     private void logout(Context ctx) {
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) {
-            throw new BadRequestResponse("token is required");
+            throw Refusal.SIGN_OUT_TOKEN_MISSING.raise();
         }
 
         authService.logout(request.token());
@@ -412,19 +406,17 @@ public class AuthRoutes implements Routes {
         RateLimits.enforce(rateLimiter.tryChangePassword(session.accountId()));
         var request = ctx.bodyAsClass(ChangePasswordRequest.class);
         if (isBlank(request.currentPassword()) || isBlank(request.newPassword())) {
-            throw new BadRequestResponse("currentPassword and newPassword are required");
+            throw Refusal.PASSWORD_CHANGE_DETAILS_MISSING.raise();
         }
         String currentSessionToken = extractBearerToken(ctx);
         var outcome = authService.changePassword(
                 session.accountId(), currentSessionToken, request.currentPassword(), request.newPassword());
-        // Each failure carries a stable i18n key rather than an English sentence, as set-password
-        // does. Translations live in src/i18n/<locale>.ts under the same key path.
         switch (outcome) {
             case OK -> ctx.json(new MessageResponse("Password changed"));
-            case NEW_PASSWORD_TOO_SHORT -> throw new BadRequestResponse("changePassword.newPasswordTooShort");
-            case NEW_PASSWORD_BREACHED -> throw new BadRequestResponse("changePassword.newPasswordBreached");
-            case NO_PASSWORD_SET -> throw new BadRequestResponse("changePassword.noPasswordSet");
-            case CURRENT_PASSWORD_WRONG -> throw new BadRequestResponse("changePassword.currentPasswordWrong");
+            case NEW_PASSWORD_TOO_SHORT -> throw Refusal.CHANGED_PASSWORD_TOO_SHORT.raise();
+            case NEW_PASSWORD_BREACHED -> throw Refusal.CHANGED_PASSWORD_BREACHED.raise();
+            case NO_PASSWORD_SET -> throw Refusal.ACCOUNT_HAS_NO_PASSWORD.raise();
+            case CURRENT_PASSWORD_WRONG -> throw Refusal.CURRENT_PASSWORD_WRONG.raise();
             // An outcome added later and not answered here would otherwise fall out of the switch
             // with nothing written, and an empty 200 reads as a password that changed.
             default -> throw new IllegalStateException("Unhandled change-password outcome: " + outcome);
@@ -444,7 +436,7 @@ public class AuthRoutes implements Routes {
     private void confirmEmailChange(Context ctx) {
         RateLimits.enforce(rateLimiter.tryConfirmEmailChange(clientIp(ctx)));
         var request = ctx.bodyAsClass(TokenRequest.class);
-        if (isBlank(request.token())) throw new BadRequestResponse("token is required");
+        if (isBlank(request.token())) throw Refusal.EMAIL_CHANGE_TOKEN_MISSING.raise();
         var result = authService.confirmEmailChange(request.token());
         switch (result) {
             case COMMITTED -> ctx.json(new EmailChangeResponse("COMMITTED", "Email address updated"));
@@ -453,8 +445,8 @@ public class AuthRoutes implements Routes {
                         new EmailChangeResponse(
                                 "WAITING",
                                 "Confirmation received. Waiting for the other address to confirm before the change takes effect."));
-            case DUPLICATE -> throw new BadRequestResponse("Email already in use");
-            case INVALID -> throw new BadRequestResponse("Invalid or expired token");
+            case DUPLICATE -> throw Refusal.EMAIL_CHANGE_ADDRESS_TAKEN.raise();
+            case INVALID -> throw Refusal.EMAIL_CHANGE_LINK_NOT_GOOD.raise();
             // An outcome added later and not answered here would otherwise fall out of the switch
             // with nothing written, and an empty 200 reads as an address that changed.
             default -> throw new IllegalStateException("Unhandled email-change outcome: " + result);

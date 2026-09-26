@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -16,10 +17,8 @@ import dev.chojo.ember.feature.inventory.entity.InventoryContainerHistory;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainerKind;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -72,7 +71,7 @@ public class InventoryContainerRoutes implements Routes {
     }
 
     private InventoryContainer verifyContainerOwnership(int id, UserSession session) {
-        InventoryContainer container = containerService.findById(id).orElseThrow(NotFoundResponse::new);
+        InventoryContainer container = containerService.findById(id).orElseThrow(Refusal.CONTAINER_NOT_HERE::raise);
         RouteSupport.requireSameStation(session, container.stationId());
         return container;
     }
@@ -112,8 +111,8 @@ public class InventoryContainerRoutes implements Routes {
                     body.sortOrder(),
                     body.enabled());
             ctx.status(HttpStatus.CREATED).json(kind);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+        } catch (IllegalArgumentException ignored) {
+            throw Refusal.CONTAINER_KIND_NOT_CREATED.raise();
         }
     }
 
@@ -132,17 +131,17 @@ public class InventoryContainerRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         if (containerService.listKinds(session.stationId()).stream().noneMatch(k -> k.id() == id)) {
-            throw new NotFoundResponse();
+            throw Refusal.CONTAINER_KIND_NOT_HERE.raise();
         }
         var body = ctx.bodyAsClass(KindRequest.class);
         try {
             containerService
                     .updateKind(id, body.label(), body.icon(), body.color(), body.sortOrder(), body.enabled())
                     .ifPresentOrElse(ctx::json, () -> {
-                        throw new NotFoundResponse();
+                        throw Refusal.CONTAINER_KIND_NOT_CHANGED.raise();
                     });
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+        } catch (IllegalArgumentException ignored) {
+            throw Refusal.CONTAINER_KIND_NEEDS_A_NAME.raise();
         }
     }
 
@@ -160,12 +159,12 @@ public class InventoryContainerRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         if (containerService.listKinds(session.stationId()).stream().noneMatch(k -> k.id() == id)) {
-            throw new NotFoundResponse();
+            throw Refusal.CONTAINER_KIND_NOT_HERE_ON_DELETE.raise();
         }
         if (containerService.deleteKind(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.CONTAINER_KIND_NOT_DELETED.raise();
         }
     }
 
@@ -214,8 +213,8 @@ public class InventoryContainerRoutes implements Routes {
                     body.description() != null ? body.description() : "",
                     session.member().id());
             ctx.status(HttpStatus.CREATED).json(created);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+        } catch (IllegalArgumentException ignored) {
+            throw Refusal.CONTAINER_NOT_CREATED.raise();
         }
     }
 
@@ -265,10 +264,10 @@ public class InventoryContainerRoutes implements Routes {
                             body.description() != null ? body.description() : "",
                             session.member().id())
                     .ifPresentOrElse(ctx::json, () -> {
-                        throw new NotFoundResponse();
+                        throw Refusal.CONTAINER_NOT_HERE_ON_CHANGE.raise();
                     });
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+        } catch (IllegalArgumentException ignored) {
+            throw Refusal.CONTAINER_NOT_CHANGED.raise();
         }
     }
 
@@ -289,7 +288,7 @@ public class InventoryContainerRoutes implements Routes {
         if (containerService.delete(id, session.member().id())) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.CONTAINER_NOT_DELETED.raise();
         }
     }
 
@@ -359,10 +358,10 @@ public class InventoryContainerRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         String internalId = ctx.queryParam("internalId");
         if (internalId == null || internalId.isBlank()) {
-            throw new BadRequestResponse("internalId is required");
+            throw Refusal.NO_CODE_GIVEN_FOR_CONTAINER.raise();
         }
         containerService.resolveScan(session.stationId(), internalId).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.CONTAINER_NOT_HERE_BY_CODE.raise();
         });
     }
 

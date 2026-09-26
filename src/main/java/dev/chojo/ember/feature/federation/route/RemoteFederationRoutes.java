@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.federation.route;
 
 import dev.chojo.ember.api.FederationHeaders;
 import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
@@ -20,9 +21,7 @@ import dev.chojo.ember.feature.federation.service.FederationEnrollmentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -126,8 +125,8 @@ public class RemoteFederationRoutes implements Routes {
     private void reject(Context ctx, FederationEnrollmentService.HandshakeRejection reason) {
         var local = FederationContractVersions.current();
         switch (reason) {
-            case INVALID_REQUEST -> throw new BadRequestResponse("The handshake is missing fields it needs");
-            case BAD_SIGNATURE -> throw new ForbiddenResponse("Invalid handshake signature");
+            case INVALID_REQUEST -> throw Refusal.HANDSHAKE_INCOMPLETE.raise();
+            case BAD_SIGNATURE -> throw Refusal.HANDSHAKE_SIGNATURE_NOT_GOOD.raise();
             case CONTRACT_MISMATCH ->
                 ctx.status(HttpStatus.CONFLICT)
                         .json(new FederationContractBinder.MismatchResponse(
@@ -150,10 +149,10 @@ public class RemoteFederationRoutes implements Routes {
         readOnlyGuard.requireWritable(partner.stationId());
         var req = ctx.bodyAsClass(WebhookRegisterRequest.class);
         if (req.webhookUrl() == null || req.webhookUrl().isBlank()) {
-            throw new BadRequestResponse("webhookUrl is required");
+            throw Refusal.WEBHOOK_ADDRESS_MISSING.raise();
         }
         if (!urlValidator.isAllowed(req.webhookUrl())) {
-            throw new BadRequestResponse(RemoteUrlValidator.rejectReason());
+            throw Refusal.WEBHOOK_ADDRESS_NOT_ALLOWED.raise();
         }
 
         repository.setWebhookUrl(partner.id(), req.webhookUrl());
@@ -167,7 +166,7 @@ public class RemoteFederationRoutes implements Routes {
         readOnlyGuard.requireWritable(partner.stationId());
         String sinceParam = ctx.queryParam("since");
         if (sinceParam == null || sinceParam.isBlank()) {
-            throw new BadRequestResponse("since parameter is required");
+            throw Refusal.SYNC_SINCE_MISSING.raise();
         }
 
         Instant since;
@@ -175,7 +174,7 @@ public class RemoteFederationRoutes implements Routes {
             since = Instant.parse(sinceParam);
         } catch (Exception e) {
             log.warn("Invalid since timestamp for sync metadata: {}", sinceParam, e);
-            throw new BadRequestResponse("Invalid since timestamp");
+            throw Refusal.SYNC_SINCE_NOT_A_MOMENT.raise();
         }
 
         var changes = repository.findChangesSince(partner.stationId(), since);
@@ -195,10 +194,10 @@ public class RemoteFederationRoutes implements Routes {
         readOnlyGuard.requireWritable(partner.stationId());
         var req = ctx.bodyAsClass(AnnounceRequest.class);
         if (req.newHost() == null || req.newHost().isBlank()) {
-            throw new BadRequestResponse("newHost is required");
+            throw Refusal.ANNOUNCED_HOST_MISSING.raise();
         }
         if (!urlValidator.isAllowed(req.newHost())) {
-            throw new BadRequestResponse(RemoteUrlValidator.rejectReason());
+            throw Refusal.ANNOUNCED_HOST_NOT_ALLOWED.raise();
         }
 
         // The announcing station is the one identified by the federation signature header (UUID)

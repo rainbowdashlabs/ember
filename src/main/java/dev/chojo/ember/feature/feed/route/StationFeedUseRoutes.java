@@ -6,12 +6,12 @@
 package dev.chojo.ember.feature.feed.route;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -59,7 +59,7 @@ public class StationFeedUseRoutes implements Routes {
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.stationId() == null) {
-            throw new BadRequestResponse("No station selected");
+            throw Refusal.NO_STATION_CHOSEN_FOR_FEED_USE.raise();
         }
         int stationId = session.stationId();
         ctx.json(feedTokenRepository.findUseByStation(stationId).stream()

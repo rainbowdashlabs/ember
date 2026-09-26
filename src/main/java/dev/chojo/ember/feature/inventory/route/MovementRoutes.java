@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -45,9 +46,7 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -236,11 +235,11 @@ public class MovementRoutes implements Routes {
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateMovementRequest.class);
-        if (request.purpose() == null) throw new BadRequestResponse("purpose is required");
+        if (request.purpose() == null) throw Refusal.MOVEMENT_NEEDS_A_PURPOSE.raise();
 
         Integer memberId = request.memberId();
         if (memberId != null && memberId != session.member().id() && !mayActForMember(session, memberId)) {
-            throw new ForbiddenResponse("You do not manage this member");
+            throw Refusal.MEMBER_NOT_YOURS_TO_ACT_FOR.raise();
         }
         ItemMovement movement = movementService.create(
                 session.stationId(),
@@ -299,13 +298,13 @@ public class MovementRoutes implements Routes {
      */
     private InventoryItem recordArrival(ItemMovement movement, NewItemRequest request) {
         if (movement.inventoryId() == null) {
-            throw new BadRequestResponse("This movement is about no inventory, so a new piece has no home");
+            throw Refusal.ARRIVAL_HAS_NOWHERE_TO_GO.raise();
         }
         if (movementService.ownerAnswersHere(movement)) {
-            throw new BadRequestResponse("The owner names what it sends, so pick the piece rather than recording one");
+            throw Refusal.ARRIVAL_NAMED_BY_THE_OWNER.raise();
         }
         if (request.name() == null || request.name().isBlank()) {
-            throw new BadRequestResponse("A piece needs a name");
+            throw Refusal.ARRIVAL_NEEDS_A_NAME.raise();
         }
 
         ItemOwner owner = movementService.ownerOf(movement);
@@ -329,11 +328,11 @@ public class MovementRoutes implements Routes {
     private void returnEverything(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(ReturnEverythingRequest.class);
-        if (request.memberId() == null) throw new BadRequestResponse("memberId is required");
+        if (request.memberId() == null) throw Refusal.RETURN_OF_EVERYTHING_NEEDS_A_MEMBER.raise();
         var member = stationMemberRepository
                 .findById(request.memberId())
                 .filter(row -> row.stationId() == session.stationId())
-                .orElseThrow(() -> new BadRequestResponse("That member is not at this station"));
+                .orElseThrow(Refusal.MEMBER_NOT_AT_THIS_STATION::raise);
 
         var started = movementService.requestEverythingBack(
                 session.stationId(), member.id(), memberName(member.id()), actorOf(session, null));
@@ -350,9 +349,12 @@ public class MovementRoutes implements Routes {
     private void document(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
-        var document = lossReportService.documentOf(movement.id()).orElseThrow(NotFoundResponse::new);
+        var document =
+                lossReportService.documentOf(movement.id()).orElseThrow(Refusal.MOVEMENT_DOCUMENT_NOT_HERE::raise);
         // Kept by the station that raised the report, wherever the reader is answering from
-        byte[] data = lossReportService.read(movement.stationId(), document).orElseThrow(NotFoundResponse::new);
+        byte[] data = lossReportService
+                .read(movement.stationId(), document)
+                .orElseThrow(Refusal.MOVEMENT_DOCUMENT_NOT_READ::raise);
         ctx.contentType(document.mimeType());
         ctx.header(
                 "Content-Disposition",
@@ -405,7 +407,7 @@ public class MovementRoutes implements Routes {
                 request.extraFieldIds() != null ? request.extraFieldIds() : List.of(),
                 generatedBy);
         if (pdf.isEmpty()) {
-            throw new NotFoundResponse("No data to export");
+            throw Refusal.MOVEMENT_LIST_EMPTY.raise();
         }
         ctx.contentType("application/pdf");
         ctx.header("Content-Disposition", pdf.get().contentDisposition());
@@ -437,8 +439,7 @@ public class MovementRoutes implements Routes {
         var request = ctx.bodyAsClass(CorrectMovementRequest.class);
         if (request.outgoing() != null && !ItemMovementService.legalStepCustody(request.outgoing())
                 || request.incoming() != null && !ItemMovementService.legalStepCustody(request.incoming())) {
-            throw new BadRequestResponse(
-                    "A movement can put a piece with its owner, at a station, with a member or in the post");
+            throw Refusal.CUSTODY_NOT_ONE_OF_THESE.raise();
         }
         var correction = new ItemMovementService.Correction(
                 request.outgoing(), request.incoming(), request.detachArrival(), request.closeAs());
@@ -497,7 +498,9 @@ public class MovementRoutes implements Routes {
                 movement.id(),
                 request == null ? null : request.stepIndex(),
                 session.member() != null ? session.member().id() : null);
-        ctx.json(toDetail(movementService.findById(movement.id()).orElseThrow(), session));
+        ctx.json(toDetail(
+                movementService.findById(movement.id()).orElseThrow(Refusal.MOVEMENT_NOT_HERE_AFTER_RECHAIN::raise),
+                session));
     }
 
     /**
@@ -550,7 +553,7 @@ public class MovementRoutes implements Routes {
     private void delete(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
-        if (!movementService.delete(movement.id())) throw new NotFoundResponse();
+        if (!movementService.delete(movement.id())) throw Refusal.MOVEMENT_NOT_DELETED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -613,7 +616,8 @@ public class MovementRoutes implements Routes {
      * on may be theirs to answer, and a step nobody can open is a step nobody can answer.
      */
     private ItemMovement requireVisible(int movementId, UserSession session) {
-        ItemMovement movement = movementService.findById(movementId).orElseThrow(NotFoundResponse::new);
+        ItemMovement movement =
+                movementService.findById(movementId).orElseThrow(Refusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS::raise);
         if (hasOwnerRights(session, movement)) return movement;
 
         RouteSupport.requireSameStation(session, movement.stationId());
@@ -622,7 +626,7 @@ public class MovementRoutes implements Routes {
                 && (movement.memberId() == session.member().id() || mayActForMember(session, movement.memberId()))) {
             return movement;
         }
-        throw new NotFoundResponse();
+        throw Refusal.MOVEMENT_NOT_HERE_OR_NOT_YOURS.raise();
     }
 
     private MovementResponse toResponse(ItemMovement movement, UserSession session) {

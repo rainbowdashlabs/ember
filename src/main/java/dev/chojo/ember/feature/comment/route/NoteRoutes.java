@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.comment.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -13,10 +14,7 @@ import dev.chojo.ember.feature.comment.entity.EntityNote;
 import dev.chojo.ember.feature.comment.entity.NoteEntityType;
 import dev.chojo.ember.feature.comment.entity.NoteVersion;
 import dev.chojo.ember.feature.comment.service.NoteService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -52,7 +50,7 @@ public class NoteRoutes implements Routes {
     private static void requireNoteAccess(UserSession session, NoteEntityType entityType) {
         StationPermission required = requiredPermission(entityType);
         if (!session.hasPermission(required)) {
-            throw new ForbiddenResponse("Missing required permission: " + required.name());
+            throw Refusal.NOTES_NOT_YOURS.raise();
         }
     }
 
@@ -128,7 +126,7 @@ public class NoteRoutes implements Routes {
         var access = resolveAccess(ctx);
         var request = ctx.bodyAsClass(UpdateNoteRequest.class);
         if (request.content() == null) {
-            throw new BadRequestResponse("content is required");
+            throw Refusal.NOTE_NEEDS_TEXT.raise();
         }
         var note = noteService.updateNote(
                 access.entityType(),
@@ -157,7 +155,7 @@ public class NoteRoutes implements Routes {
         var note = noteService
                 .findNote(
                         access.entityType(), access.entityId(), access.session().stationId())
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.NOTE_NOT_HERE::raise);
         var versions = noteService.findVersions(note.id());
         ctx.json(versions.stream().map(this::toVersionResponse).toList());
     }

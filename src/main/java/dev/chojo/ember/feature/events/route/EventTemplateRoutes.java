@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -23,10 +24,8 @@ import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -115,7 +114,7 @@ public class EventTemplateRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CreateTemplateRequest.class);
         if (req.name() == null || req.name().isBlank()) {
-            throw new BadRequestResponse("name is required");
+            throw Refusal.EVENT_TEMPLATE_NEEDS_A_NAME.raise();
         }
         ctx.status(HttpStatus.CREATED).json(eventTemplateService.create(session.stationId(), req.name()));
     }
@@ -199,9 +198,9 @@ public class EventTemplateRoutes implements Routes {
                 req.restrictionMode(),
                 req.attendanceTemplateId(),
                 req.registrationLimit())) {
-            throw new NotFoundResponse();
+            throw Refusal.EVENT_TEMPLATE_NOT_CHANGED.raise();
         }
-        ctx.json(eventTemplateService.findById(id).orElseThrow());
+        ctx.json(eventTemplateService.findById(id).orElseThrow(Refusal.EVENT_TEMPLATE_NOT_HERE_AFTER_CHANGE::raise));
     }
 
     @OpenApi(
@@ -220,7 +219,7 @@ public class EventTemplateRoutes implements Routes {
         if (eventTemplateService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.EVENT_TEMPLATE_NOT_DELETED.raise();
         }
     }
 

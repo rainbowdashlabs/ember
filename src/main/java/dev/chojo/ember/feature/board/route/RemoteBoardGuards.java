@@ -7,14 +7,13 @@ package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -51,7 +50,7 @@ public class RemoteBoardGuards {
     public FederationPartner requirePartner(Context ctx) {
         var session = FederationSession.from(ctx);
         if (session == null) {
-            throw new ForbiddenResponse("Missing or invalid federation signature");
+            throw Refusal.BOARD_FEDERATION_SIGNATURE_NOT_GOOD.raise();
         }
         return session.partner();
     }
@@ -64,7 +63,7 @@ public class RemoteBoardGuards {
         String boardKey = ctx.pathParam("boardKey");
         return boardService
                 .findByShortKey(partner.stationId(), boardKey)
-                .orElseThrow(() -> new NotFoundResponse("Board not found: " + boardKey))
+                .orElseThrow(Refusal.REMOTE_BOARD_NOT_HERE::raise)
                 .id();
     }
 
@@ -76,7 +75,7 @@ public class RemoteBoardGuards {
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         return ticketService
                 .findByBoardAndNumber(boardId, ticketNumber)
-                .orElseThrow(() -> new NotFoundResponse("Ticket not found: " + ticketNumber))
+                .orElseThrow(Refusal.REMOTE_BOARD_TICKET_NOT_HERE::raise)
                 .id();
     }
 
@@ -86,7 +85,7 @@ public class RemoteBoardGuards {
     public int viewableBoardId(Context ctx, FederationPartner partner) {
         int boardId = resolveBoardId(ctx, partner);
         if (!federatedBoardService.canFederatedView(boardId, partner.id())) {
-            throw new ForbiddenResponse("Board not shared with this partner");
+            throw Refusal.REMOTE_BOARD_NOT_SHARED.raise();
         }
         return boardId;
     }
@@ -97,7 +96,7 @@ public class RemoteBoardGuards {
     public int writableBoardId(Context ctx, FederationPartner partner) {
         int boardId = resolveBoardId(ctx, partner);
         if (!federatedBoardService.canFederatedWrite(boardId, partner.id())) {
-            throw new ForbiddenResponse("Write access requires FULL share mode");
+            throw Refusal.REMOTE_BOARD_NOT_WRITABLE.raise();
         }
         return boardId;
     }

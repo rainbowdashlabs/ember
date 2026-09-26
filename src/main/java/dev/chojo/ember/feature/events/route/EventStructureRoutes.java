@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -24,10 +25,8 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -141,7 +140,7 @@ public class EventStructureRoutes implements Routes {
     private void createCategory(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CategoryRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
+        if (req.name() == null || req.name().isBlank()) throw Refusal.EVENT_CATEGORY_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(categoryService.create(session.stationId(), req.name(), req.position(), req.color()));
     }
@@ -168,7 +167,7 @@ public class EventStructureRoutes implements Routes {
                 req.maxShownEvents(),
                 req.isPublic() != null && req.isPublic(),
                 req.color())) {
-            throw new NotFoundResponse();
+            throw Refusal.EVENT_CATEGORY_NOT_CHANGED.raise();
         }
         ctx.status(HttpStatus.OK).json(new MessageResponse("Updated"));
     }
@@ -199,7 +198,7 @@ public class EventStructureRoutes implements Routes {
         if (categoryService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.EVENT_CATEGORY_NOT_DELETED.raise();
         }
     }
 
@@ -227,7 +226,7 @@ public class EventStructureRoutes implements Routes {
     private void createBreak(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(BreakRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
+        if (req.name() == null || req.name().isBlank()) throw Refusal.EVENT_BREAK_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(breakService.create(session.stationId(), req.name(), req.startDate(), req.endDate()));
     }
@@ -248,7 +247,7 @@ public class EventStructureRoutes implements Routes {
         requireOwnedOrNotFound(ctx, id, breakService::findById, EventBreak::stationId);
         var req = ctx.bodyAsClass(BreakRequest.class);
         breakService.update(id, req.name(), req.startDate(), req.endDate()).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.EVENT_BREAK_NOT_CHANGED.raise();
         });
     }
 
@@ -268,7 +267,7 @@ public class EventStructureRoutes implements Routes {
         if (breakService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.EVENT_BREAK_NOT_DELETED.raise();
         }
     }
 
@@ -335,7 +334,7 @@ public class EventStructureRoutes implements Routes {
         try {
             return LocalDate.parse(date);
         } catch (DateTimeParseException e) {
-            throw new BadRequestResponse("date is not a date");
+            throw Refusal.EVENT_DAY_NOT_A_DATE.raise();
         }
     }
 
@@ -388,7 +387,7 @@ public class EventStructureRoutes implements Routes {
         int fieldId = pathInt(ctx, "fieldId");
         requireOwnedEvent(crudService, eventId, session);
         var req = ctx.bodyAsClass(FieldDateValueRequest.class);
-        if (req.date() == null) throw new BadRequestResponse("date is required");
+        if (req.date() == null) throw Refusal.EVENT_FIELD_VALUE_NEEDS_A_DAY.raise();
         ctx.json(eventFieldService.setValueOn(eventId, fieldId, req.date(), req.value()));
     }
 

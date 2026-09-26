@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.MessageResponse;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -18,9 +19,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -111,7 +110,7 @@ public class DiscoveryRoutes implements Routes {
     private void generateInviteForStation(Context ctx) {
         var body = ctx.bodyAsClass(FederationRequestBody.class);
         if (body.stationUid() == null) {
-            throw new BadRequestResponse("stationUid is required");
+            throw Refusal.INVITE_NEEDS_A_STATION.raise();
         }
 
         UserSession session = ctx.attribute(ApiServer.ATTR_SESSION);
@@ -120,7 +119,7 @@ public class DiscoveryRoutes implements Routes {
         var targetStation = candidates.stream()
                 .filter(s -> s.uid().equals(body.stationUid()))
                 .findFirst()
-                .orElseThrow(() -> new NotFoundResponse("Station not found or not discoverable"));
+                .orElseThrow(Refusal.STATION_NOT_OPEN_TO_INVITES::raise);
 
         // Generate a stateless pairing code (no DB storage needed)
         var code = federationService.generatePairingCode(targetStation.uid());
@@ -131,26 +130,26 @@ public class DiscoveryRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var body = ctx.bodyAsClass(FederationRequestBody.class);
         if (body.stationUid() == null) {
-            throw new BadRequestResponse("stationUid is required");
+            throw Refusal.FEDERATION_REQUEST_NEEDS_A_STATION.raise();
         }
         // Look up from discoverable stations (same query path as listing)
         var targetStation = stationService.findDiscoverable(session.stationId()).stream()
                 .filter(s -> s.uid().equals(body.stationUid()))
                 .findFirst()
-                .orElseThrow(() -> new NotFoundResponse("Station not found or not discoverable"));
+                .orElseThrow(Refusal.STATION_NOT_OPEN_TO_FEDERATION::raise);
 
         var existingPartners = federationService.findPartners(session.stationId());
         boolean alreadyFederated =
                 existingPartners.stream().anyMatch(p -> p.partnerStationId().equals(targetStation.uid()));
         if (alreadyFederated) {
-            throw new BadRequestResponse("Already federated with this station");
+            throw Refusal.ALREADY_FEDERATED.raise();
         }
 
         // Also check if there's already a pending request
         var pendingRequests = federationService.findPendingRequests(targetStation.id());
         boolean alreadyRequested = pendingRequests.stream().anyMatch(p -> p.stationId() == session.stationId());
         if (alreadyRequested) {
-            throw new BadRequestResponse("Request already pending");
+            throw Refusal.FEDERATION_REQUEST_ALREADY_SENT.raise();
         }
 
         // Create a pending pair request - the target station must accept

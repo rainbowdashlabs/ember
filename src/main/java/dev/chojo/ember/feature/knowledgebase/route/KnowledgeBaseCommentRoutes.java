@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -15,11 +16,8 @@ import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -57,7 +55,7 @@ public class KnowledgeBaseCommentRoutes implements Routes {
     }
 
     private static String requireContent(String content) {
-        if (content == null || content.isBlank()) throw new BadRequestResponse("content is required");
+        if (content == null || content.isBlank()) throw Refusal.KB_COMMENT_EMPTY.raise();
         return content;
     }
 
@@ -94,11 +92,12 @@ public class KnowledgeBaseCommentRoutes implements Routes {
         var memberIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
         if (comment.author() == null || !comment.author().sameMember(memberIdentity)) {
-            throw new ForbiddenResponse("You can only edit your own comments");
+            throw Refusal.KB_COMMENT_NOT_YOURS_TO_CHANGE.raise();
         }
         var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
         commentRepository.update(commentId, requireContent(req.content()));
-        var updated = commentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        var updated =
+                commentRepository.findById(commentId).orElseThrow(Refusal.KB_COMMENT_NOT_HERE_AFTER_CHANGE::raise);
         ctx.json(federationService.toCommentResponse(updated));
     }
 
@@ -110,9 +109,11 @@ public class KnowledgeBaseCommentRoutes implements Routes {
                 session.stationId(), session.member().id());
         boolean isAuthor = comment.author() != null && comment.author().sameMember(authorIdentity);
         if (!isAuthor && !session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
-            throw new ForbiddenResponse("You can only delete your own comments");
+            throw Refusal.KB_COMMENT_NOT_YOURS_TO_DELETE.raise();
         }
-        if (!commentService.deleteComment(session.stationId(), commentId)) throw new NotFoundResponse();
+        if (!commentService.deleteComment(session.stationId(), commentId)) {
+            throw Refusal.KB_COMMENT_NOT_DELETED.raise();
+        }
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -121,7 +122,7 @@ public class KnowledgeBaseCommentRoutes implements Routes {
      * comment. Answers 404 when the comment is absent or the file belongs to another station.
      */
     private KbComment requireOwnedComment(Context ctx, int commentId) {
-        var comment = commentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
+        var comment = commentRepository.findById(commentId).orElseThrow(Refusal.KB_COMMENT_NOT_HERE::raise);
         requireOwnedFile(ctx, service, comment.fileId());
         return comment;
     }

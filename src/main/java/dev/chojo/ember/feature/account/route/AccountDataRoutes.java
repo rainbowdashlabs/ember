@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.account.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -16,7 +17,6 @@ import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentPeriod;
 import dev.chojo.ember.util.DocumentWord;
 import dev.chojo.ember.util.SafeContentDisposition;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -103,8 +103,7 @@ public class AccountDataRoutes implements Routes {
             var roles = stationMemberRepository.findPermissions(member.id());
             boolean isManager = roles.stream().anyMatch(r -> r.permission() == StationPermission.STATION_ADMINISTRATOR);
             if (isManager) {
-                throw new BadRequestResponse(
-                        "Cannot delete account while you are a station manager. Transfer or delete the station first.");
+                throw Refusal.ACCOUNT_STILL_ADMINISTERS_STATION.raise();
             }
         }
         gdprDeletionService.deleteAccount(session.accountId());

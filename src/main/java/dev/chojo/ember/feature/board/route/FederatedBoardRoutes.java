@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.FederationHeaders;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -27,9 +28,7 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -227,7 +226,7 @@ public class FederatedBoardRoutes implements Routes {
         UUID partnerUid = pathUuid(ctx, "partnerUid");
         return federationRepository
                 .findPartnerByStationAndRemoteUid(session.stationId(), partnerUid)
-                .orElseThrow(() -> new NotFoundResponse("Unknown partner"))
+                .orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE_FOR_BOARD::raise)
                 .id();
     }
 
@@ -240,7 +239,7 @@ public class FederatedBoardRoutes implements Routes {
         if (board == null) return;
         if (!accessService.canView(
                 partnerId, board.uid(), board.id(), session.member().id())) {
-            throw new ForbiddenResponse("No view access to this federated board");
+            throw Refusal.FEDERATED_BOARD_NOT_YOURS_TO_VIEW.raise();
         }
     }
 
@@ -253,7 +252,7 @@ public class FederatedBoardRoutes implements Routes {
         if (board == null) return;
         if (!accessService.canWrite(
                 partnerId, board.uid(), board.id(), session.member().id())) {
-            throw new ForbiddenResponse("No write access to this federated board");
+            throw Refusal.FEDERATED_BOARD_NOT_YOURS_TO_EDIT.raise();
         }
     }
 
@@ -317,7 +316,7 @@ public class FederatedBoardRoutes implements Routes {
         UUID partnerUid = req.partnerUid();
         int partnerId = federationRepository
                 .findPartnerByStationAndRemoteUid(session.stationId(), partnerUid)
-                .orElseThrow(() -> new NotFoundResponse("Unknown partner"))
+                .orElseThrow(Refusal.FEDERATION_PARTNER_NOT_HERE_FOR_BOOKMARK::raise)
                 .id();
         ctx.json(federatedBoardService.createBookmark(
                 session.member().id(),
@@ -1081,7 +1080,7 @@ public class FederatedBoardRoutes implements Routes {
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         UUID boardUid = locator.resolveFederatedBoardUid(partnerId, boardKey);
-        if (boardUid == null) throw new NotFoundResponse("Board not found: " + boardKey);
+        if (boardUid == null) throw Refusal.FEDERATED_BOARD_NOT_HERE_ON_OVERRIDE_READ.raise();
         var view = accessService.getLocalViewOverride(partnerId, boardUid);
         var edit = accessService.getLocalEditOverride(partnerId, boardUid);
         ctx.json(new AccessOverrideResponse(view, edit));
@@ -1102,7 +1101,7 @@ public class FederatedBoardRoutes implements Routes {
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         UUID boardUid = locator.resolveFederatedBoardUid(partnerId, boardKey);
-        if (boardUid == null) throw new NotFoundResponse("Board not found: " + boardKey);
+        if (boardUid == null) throw Refusal.FEDERATED_BOARD_NOT_HERE_ON_OVERRIDE_WRITE.raise();
         var req = ctx.bodyAsClass(LocalOverrideRequest.class);
         accessService.setLocalViewOverride(
                 partnerId, boardUid, new AccessData(req.viewUserTypes(), req.viewGroupIds(), req.viewTagIds()));

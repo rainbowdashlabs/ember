@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -17,7 +18,6 @@ import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -94,9 +94,10 @@ public class SitemapRoutes implements Routes {
 
     private void sitemapStation(Context ctx) {
         var stationUid = ctx.pathParam("stationUid");
-        var station = stationRepository.findByUid(UUID.fromString(stationUid)).orElseThrow(NotFoundResponse::new);
+        var station =
+                stationRepository.findByUid(UUID.fromString(stationUid)).orElseThrow(Refusal.SITEMAP_NOT_HERE::raise);
 
-        if (!hasPublicContent(station)) throw new NotFoundResponse();
+        if (!hasPublicContent(station)) throw Refusal.SITEMAP_NOT_HERE.raise();
 
         var xml = cache.get(stationUid, _ -> {
             var baseUrl = baseUrl();

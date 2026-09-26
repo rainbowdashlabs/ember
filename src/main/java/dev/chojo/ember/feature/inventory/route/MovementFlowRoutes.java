@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -25,7 +26,6 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -136,9 +136,10 @@ public class MovementFlowRoutes implements Routes {
         try {
             target = targeting.resolve(session.stationId(), purpose, memberId, outgoing, incoming, inventoryId);
         } catch (BadRequestResponse refused) {
-            throw new NotFoundResponse("NO_FLOW");
+            throw Refusal.NO_FLOW_FOR_THIS_MOVEMENT.raise();
         }
-        MovementFlow flow = flowService.findFlow(target.flowId()).orElseThrow(() -> new NotFoundResponse("NO_FLOW"));
+        MovementFlow flow =
+                flowService.findFlow(target.flowId()).orElseThrow(Refusal.FLOW_NOT_HERE_BEHIND_BINDING::raise);
         ctx.json(new FlowPreview(toResponse(flow), target.ownerKind(), target.party()));
     }
 
@@ -147,11 +148,11 @@ public class MovementFlowRoutes implements Routes {
      * of its own and asking for one answers a wrong spelling with a fault rather than with a refusal.
      */
     private MovementPurpose purposeOf(String written) {
-        if (written == null || written.isBlank()) throw new BadRequestResponse("purpose is required");
+        if (written == null || written.isBlank()) throw Refusal.MOVEMENT_PURPOSE_MISSING.raise();
         try {
             return MovementPurpose.valueOf(written.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("%s is not a purpose".formatted(written));
+        } catch (IllegalArgumentException ignored) {
+            throw Refusal.MOVEMENT_PURPOSE_NOT_KNOWN.raise(written);
         }
     }
 
@@ -160,8 +161,8 @@ public class MovementFlowRoutes implements Routes {
         if (written == null || written.isBlank()) return null;
         try {
             return Integer.valueOf(written.trim());
-        } catch (NumberFormatException e) {
-            throw new BadRequestResponse("%s is not a number".formatted(name));
+        } catch (NumberFormatException ignored) {
+            throw Refusal.NUMBER_EXPECTED_IN_ADDRESS.raise(written);
         }
     }
 
@@ -190,7 +191,7 @@ public class MovementFlowRoutes implements Routes {
     private void createFlow(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(FlowRequest.class);
-        if (request.purpose() == null) throw new BadRequestResponse("purpose is required");
+        if (request.purpose() == null) throw Refusal.FLOW_NEEDS_A_PURPOSE.raise();
         var flow = flowService.createFlow(session.stationId(), request.name(), request.purpose());
         ctx.status(HttpStatus.CREATED).json(toResponse(flow));
     }
@@ -210,8 +211,8 @@ public class MovementFlowRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = requireOwnFlow(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(FlowRequest.class);
-        if (!flowService.renameFlow(id, request.name())) throw new NotFoundResponse();
-        ctx.json(toResponse(flowService.findFlow(id).orElseThrow(NotFoundResponse::new)));
+        if (!flowService.renameFlow(id, request.name())) throw Refusal.FLOW_NOT_RENAMED.raise();
+        ctx.json(toResponse(flowService.findFlow(id).orElseThrow(Refusal.FLOW_NOT_HERE_AFTER_RENAME::raise)));
     }
 
     @OpenApi(
@@ -224,7 +225,7 @@ public class MovementFlowRoutes implements Routes {
     private void archiveFlow(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = requireOwnFlow(pathInt(ctx, "id"), session);
-        if (!flowService.archiveFlow(id)) throw new NotFoundResponse();
+        if (!flowService.archiveFlow(id)) throw Refusal.FLOW_NOT_ARCHIVED.raise();
         ctx.json(flowAsItStands(id));
     }
 
@@ -272,7 +273,7 @@ public class MovementFlowRoutes implements Routes {
                 request.subject(),
                 request.custodyAfter(),
                 request.picksItem())) {
-            throw new NotFoundResponse();
+            throw Refusal.FLOW_STEP_NOT_CHANGED.raise();
         }
         ctx.json(flowAsItStands(flowId));
     }
@@ -288,7 +289,7 @@ public class MovementFlowRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int stepId = pathInt(ctx, "id");
         int flowId = requireOwnStep(stepId, session);
-        if (!flowService.archiveStep(stepId)) throw new NotFoundResponse();
+        if (!flowService.archiveStep(stepId)) throw Refusal.FLOW_STEP_NOT_ARCHIVED.raise();
         ctx.json(flowAsItStands(flowId));
     }
 
@@ -316,7 +317,7 @@ public class MovementFlowRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(BindingRequest.class);
         if (request.ownerKind() == null || request.purpose() == null) {
-            throw new BadRequestResponse("ownerKind and purpose are required");
+            throw Refusal.BINDING_NEEDS_AN_OWNER_AND_A_PURPOSE.raise();
         }
         flowService.bind(
                 session.stationId(),
@@ -350,7 +351,7 @@ public class MovementFlowRoutes implements Routes {
         int flowId = requireOwnFlow(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(StepOrderRequest.class);
         if (request.stepIds() == null || request.stepIds().isEmpty()) {
-            throw new BadRequestResponse("Name the steps in the order they are to be walked");
+            throw Refusal.STEP_ORDER_NAMES_NO_STEPS.raise();
         }
         flowService.reorderSteps(flowId, request.stepIds());
         ctx.json(flowAsItStands(flowId));
@@ -415,7 +416,7 @@ public class MovementFlowRoutes implements Routes {
 
     private void requireStepFields(StepRequest request) {
         if (request.actor() == null || request.subject() == null || request.custodyAfter() == null) {
-            throw new BadRequestResponse("actor, subject and custodyAfter are required");
+            throw Refusal.STEP_NEEDS_ITS_PARTS.raise();
         }
     }
 
@@ -424,22 +425,22 @@ public class MovementFlowRoutes implements Routes {
      * indistinguishable from outside.
      */
     private int requireOwnFlow(int flowId, UserSession session) {
-        MovementFlow flow = flowService.findFlow(flowId).orElseThrow(NotFoundResponse::new);
+        MovementFlow flow = flowService.findFlow(flowId).orElseThrow(Refusal.FLOW_NOT_HERE::raise);
         if (flow.stationId() == null || !flow.stationId().equals(session.stationId())) {
-            throw new NotFoundResponse();
+            throw Refusal.FLOW_NOT_HERE.raise();
         }
         return flowId;
     }
 
     /** The chain a step belongs to, once it is established that the station may touch it. */
     private int requireOwnStep(int stepId, UserSession session) {
-        MovementFlowStep step = flowService.findStep(stepId).orElseThrow(NotFoundResponse::new);
+        MovementFlowStep step = flowService.findStep(stepId).orElseThrow(Refusal.FLOW_STEP_NOT_HERE::raise);
         return requireOwnFlow(step.flowId(), session);
     }
 
     /** The chain as it now stands, which is what every change to it answers with. */
     private FlowResponse flowAsItStands(int flowId) {
-        return toResponse(flowService.findFlow(flowId).orElseThrow(NotFoundResponse::new));
+        return toResponse(flowService.findFlow(flowId).orElseThrow(Refusal.FLOW_NOT_HERE_AFTER_CHANGE::raise));
     }
 
     private FlowResponse toResponse(MovementFlow flow) {

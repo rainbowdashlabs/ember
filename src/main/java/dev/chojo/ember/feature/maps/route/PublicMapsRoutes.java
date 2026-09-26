@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.maps.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService;
 import dev.chojo.ember.feature.maps.service.MapsConfigService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -45,7 +45,7 @@ public class PublicMapsRoutes implements Routes {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException e) {
-            throw new BadRequestResponse(fieldName + " must be an integer");
+            throw Refusal.PUBLIC_MAP_TILE_NUMBER_NOT_A_NUMBER.raise(fieldName);
         }
     }
 

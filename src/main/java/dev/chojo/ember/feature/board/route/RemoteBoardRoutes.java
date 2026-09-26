@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.BoardField;
@@ -26,7 +27,6 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -176,7 +176,7 @@ public class RemoteBoardRoutes implements Routes {
     private void getBoard(Context ctx) {
         var partner = guards.requirePartner(ctx);
         int boardId = guards.viewableBoardId(ctx, partner);
-        var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
+        var board = boardService.findById(boardId).orElseThrow(Refusal.REMOTE_BOARD_NOT_HERE_ON_READ::raise);
         var mode = federatedBoardService.getShareMode(boardId, partner.id()).orElse(BoardShareMode.READ_ONLY);
         String stationName =
                 stationRepository.findById(board.stationId()).map(Station::name).orElse("");
@@ -226,7 +226,9 @@ public class RemoteBoardRoutes implements Routes {
 
     private void getMembers(Context ctx) {
         var partner = guards.requirePartner(ctx);
-        var board = boardService.findById(guards.viewableBoardId(ctx, partner)).orElseThrow(NotFoundResponse::new);
+        var board = boardService
+                .findById(guards.viewableBoardId(ctx, partner))
+                .orElseThrow(Refusal.REMOTE_BOARD_NOT_HERE_FOR_MEMBERS::raise);
         ctx.json(memberIdentityFactory.enrichCompletions(memberService.findCompletions(board.stationId())));
     }
 

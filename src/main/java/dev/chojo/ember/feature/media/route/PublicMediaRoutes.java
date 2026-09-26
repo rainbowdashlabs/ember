@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.media.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -70,8 +70,8 @@ public class PublicMediaRoutes implements Routes {
     private void serve(Context ctx, Integer stationId) {
         String hash = ctx.pathParam("hash");
         Integer width = parseOptionalWidth(ctx.queryParam("w"));
-        var fileData =
-                media.readVariant(stationId, hash, width, ctx.header("Accept")).orElseThrow(NotFoundResponse::new);
+        var fileData = media.readVariant(stationId, hash, width, ctx.header("Accept"))
+                .orElseThrow(Refusal.PUBLIC_FILE_NOT_HERE::raise);
         String stored = fileData.contentType();
         ctx.contentType(SafeInlineMime.safeContentType(stored));
         var disposition = SafeInlineMime.isInlineSafe(stored)
@@ -84,6 +84,8 @@ public class PublicMediaRoutes implements Routes {
     }
 
     private int resolveStation(Context ctx) {
-        return stationRepository.resolveAddressedId(ctx.pathParam("stationUid")).orElseThrow(NotFoundResponse::new);
+        return stationRepository
+                .resolveAddressedId(ctx.pathParam("stationUid"))
+                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_FILE::raise);
     }
 }

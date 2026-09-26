@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -15,11 +16,8 @@ import dev.chojo.ember.feature.knowledgebase.service.KbFavouriteService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.util.SafeContentDisposition;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.InternalServerErrorResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -50,7 +48,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
     }
 
     private static String requireContent(String content) {
-        if (content == null || content.isBlank()) throw new BadRequestResponse("content is required");
+        if (content == null || content.isBlank()) throw Refusal.PARTNER_KB_COMMENT_EMPTY.raise();
         return content;
     }
 
@@ -133,9 +131,9 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
             ctx.result(rendered.data());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new InternalServerErrorResponse("Failed to render PDF");
+            throw Refusal.PARTNER_KB_PDF_STOPPED.raise();
         } catch (IOException e) {
-            throw new InternalServerErrorResponse("Failed to render PDF");
+            throw Refusal.PARTNER_KB_PDF_NOT_MADE.raise();
         }
     }
 
@@ -185,7 +183,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
                 pathUuid(ctx, "stationuid"),
                 pathInt(ctx, "commentId"),
                 session.member().uid());
-        if (!deleted) throw new NotFoundResponse();
+        if (!deleted) throw Refusal.PARTNER_KB_COMMENT_NOT_DELETED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 }

@@ -26,8 +26,6 @@ import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.MemberListResolver;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -179,7 +177,7 @@ public class PageRoutes implements Routes {
      */
     private void acknowledgeFormResponse(Context ctx, FormPurpose expected) {
         var session = UserSession.from(ctx);
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.PAGE_FORM_ANSWER_NOT_YOURS_TO_MARK.raise();
         var form = resolvePagePublicForm(ctx, expected);
         int responseId = ctx.pathParamAsClass("responseId", Integer.class).get();
         var response = formService.findResponseById(responseId).orElseThrow(Refusal.FORM_ANSWER_NOT_HERE::raise);
@@ -200,7 +198,8 @@ public class PageRoutes implements Routes {
         try {
             body = CellConfig.MAPPER.readTree(ctx.body());
         } catch (Exception e) {
-            throw new BadRequestResponse("Invalid request body");
+            log.warn("Could not read the member list a page editor asked to resolve", e);
+            throw Refusal.PAGE_MEMBER_LIST_NOT_READ.raise();
         }
         var source = body.path("source");
         CellConfig.MemberListSortBy sortBy = null;
@@ -239,7 +238,7 @@ public class PageRoutes implements Routes {
         var session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreatePageRequest.class);
         if (request.title() == null || request.title().isBlank()) {
-            throw new BadRequestResponse("title is required");
+            throw Refusal.PAGE_NEEDS_A_TITLE.raise();
         }
         try {
             var page = pageService.create(
@@ -249,7 +248,8 @@ public class PageRoutes implements Routes {
                     session.member().id());
             ctx.status(HttpStatus.CREATED).json(page);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+            log.warn("Could not create a page in station {}", session.stationId(), e);
+            throw Refusal.PAGE_NOT_CREATED.raise();
         }
     }
 
@@ -263,10 +263,10 @@ public class PageRoutes implements Routes {
         requireOwnedPage(ctx, pid);
         var request = ctx.bodyAsClass(SavePageRequest.class);
         if (request.title() == null || request.title().isBlank()) {
-            throw new BadRequestResponse("title is required");
+            throw Refusal.PAGE_TITLE_MISSING_ON_SAVE.raise();
         }
         if (request.slug() == null || request.slug().isBlank()) {
-            throw new BadRequestResponse("slug is required");
+            throw Refusal.PAGE_ADDRESS_MISSING_ON_SAVE.raise();
         }
 
         List<ContentBlockService.RowData> rows = request.rows() == null
@@ -297,7 +297,7 @@ public class PageRoutes implements Routes {
                     rows)) {
                 throw Refusal.PAGE_NOT_HERE_ON_SAVE.raise();
             }
-            ctx.json(pageService.getPage(pid).orElseThrow());
+            ctx.json(pageService.getPage(pid).orElseThrow(Refusal.PAGE_NOT_HERE_AFTER_SAVE::raise));
         } catch (IllegalArgumentException e) {
             throw Failures.readable(e.getMessage())
                     .map(Refusal.PAGE_NOT_SAVED::raise)
@@ -339,12 +339,12 @@ public class PageRoutes implements Routes {
         requireOwnedPage(ctx, pid);
         var request = ctx.bodyAsClass(VisibilityRequest.class);
         if (request.visibility() == null) {
-            throw new BadRequestResponse("Say which visibility the page is to have");
+            throw Refusal.PAGE_VISIBILITY_MISSING.raise();
         }
         if (!pageService.setVisibility(pid, request.visibility())) {
             throw Refusal.PAGE_NOT_HERE_ON_VISIBILITY_CHANGE.raise();
         }
-        ctx.json(pageService.getPage(pid).orElseThrow());
+        ctx.json(pageService.getPage(pid).orElseThrow(Refusal.PAGE_NOT_HERE_AFTER_VISIBILITY_CHANGE::raise));
     }
 
     /**
@@ -363,7 +363,7 @@ public class PageRoutes implements Routes {
         var request = ctx.bodyAsClass(ReplaceShareLinkRequest.class);
         var replaced = pageService.replaceShareToken(pid, request.currentToken());
         if (replaced.isEmpty()) {
-            throw new ConflictResponse("This page has been given a different link since you last looked");
+            throw Refusal.PAGE_LINK_ALREADY_REPLACED.raise();
         }
         ctx.json(new ShareLinkResponse(replaced.get()));
     }
@@ -375,7 +375,8 @@ public class PageRoutes implements Routes {
             pageService.setLandingPage(session.stationId(), request.pageId());
             ctx.status(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+            log.warn("Could not set the landing page of station {}", session.stationId(), e);
+            throw Refusal.LANDING_PAGE_NOT_SET.raise();
         }
     }
 
@@ -388,8 +389,8 @@ public class PageRoutes implements Routes {
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
         var file = ctx.uploadedFile("file");
-        if (file == null) throw new BadRequestResponse("file is required");
-        if (file.size() > apiConfig.maxUploadSizeBytes()) throw new BadRequestResponse("File too large");
+        if (file == null) throw Refusal.PAGE_UPLOAD_MISSING_FILE.raise();
+        if (file.size() > apiConfig.maxUploadSizeBytes()) throw Refusal.PAGE_UPLOAD_TOO_LARGE.raise();
 
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
@@ -402,10 +403,11 @@ public class PageRoutes implements Routes {
                     data);
             ctx.status(HttpStatus.CREATED).json(stored);
         } catch (StorageQuotaService.StorageQuotaExceededException | IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+            log.warn("Could not keep a file uploaded from the page editor", e);
+            throw Refusal.PAGE_UPLOAD_NOT_SAVED.raise();
         } catch (Exception e) {
             log.warn("Failed to upload page file", e);
-            throw new BadRequestResponse("Failed to upload file");
+            throw Refusal.PAGE_UPLOAD_NOT_PROCESSED.raise();
         }
     }
 

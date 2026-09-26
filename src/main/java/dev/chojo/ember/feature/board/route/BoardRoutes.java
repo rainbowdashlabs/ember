@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -22,11 +23,8 @@ import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -154,8 +152,8 @@ public class BoardRoutes implements Routes {
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CreateBoardRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
-        if (req.shortKey() == null || req.shortKey().isBlank()) throw new BadRequestResponse("shortKey is required");
+        if (req.name() == null || req.name().isBlank()) throw Refusal.BOARD_NEEDS_A_NAME.raise();
+        if (req.shortKey() == null || req.shortKey().isBlank()) throw Refusal.BOARD_NEEDS_A_SHORT_KEY.raise();
         Board board;
         if (req.preset() != null) {
             board = boardService.createWithPreset(
@@ -182,7 +180,7 @@ public class BoardRoutes implements Routes {
         boolean isManager = session.permissions().contains(StationPermission.BOARD_MANAGER);
         if (session.member() != null
                 && !boardService.canView(board.id(), session.member().id(), isManager))
-            throw new ForbiddenResponse("No access to this board");
+            throw Refusal.BOARD_NOT_YOURS_TO_OPEN.raise();
         ctx.json(board);
     }
 
@@ -219,7 +217,7 @@ public class BoardRoutes implements Routes {
         var req = ctx.bodyAsClass(UpdateBoardRequest.class);
         boardService.update(board.id(), req.name(), req.description(), req.hideDoneAfterDays());
         boardService.findById(board.id()).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.BOARD_NOT_HERE_AFTER_CHANGE.raise();
         });
     }
 
@@ -239,7 +237,7 @@ public class BoardRoutes implements Routes {
         if (boardService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.BOARD_NOT_DELETED.raise();
         }
     }
 
@@ -445,7 +443,7 @@ public class BoardRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = resolveBoardId(ctx, session.stationId());
         var req = ctx.bodyAsClass(LabelRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
+        if (req.name() == null || req.name().isBlank()) throw Refusal.BOARD_LABEL_NEEDS_A_NAME.raise();
         var label = boardService.createLabel(id, req.name().trim(), req.color() != null ? req.color() : randomColor());
         ctx.status(HttpStatus.CREATED).json(label);
     }
@@ -466,7 +464,7 @@ public class BoardRoutes implements Routes {
         int boardId = resolveBoardId(ctx, session.stationId());
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
         if (boardService.findLabels(boardId).stream().noneMatch(l -> l.id() == labelId)) {
-            throw new NotFoundResponse();
+            throw Refusal.BOARD_LABEL_NOT_HERE_ON_CHANGE.raise();
         }
         var req = ctx.bodyAsClass(LabelRequest.class);
         boardService.updateLabel(labelId, req.name(), req.color());
@@ -488,7 +486,7 @@ public class BoardRoutes implements Routes {
         int boardId = resolveBoardId(ctx, session.stationId());
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
         if (boardService.findLabels(boardId).stream().noneMatch(l -> l.id() == labelId)) {
-            throw new NotFoundResponse();
+            throw Refusal.BOARD_LABEL_NOT_HERE_ON_DELETE.raise();
         }
         boardService.deleteLabel(labelId);
         ctx.status(HttpStatus.NO_CONTENT);

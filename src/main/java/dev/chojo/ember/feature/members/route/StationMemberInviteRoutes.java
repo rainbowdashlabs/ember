@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -14,7 +15,6 @@ import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.BatchResult;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.GuardianRequest;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.InviteRequest;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -61,7 +61,7 @@ public class StationMemberInviteRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateInvitesRequest.class);
         if (request.invites() == null || request.invites().isEmpty()) {
-            throw new BadRequestResponse("invites is required");
+            throw Refusal.INVITES_MISSING.raise();
         }
         var serviceRequests = request.invites().stream()
                 .map(StationMemberInviteRoutes::toServiceRequest)
@@ -82,19 +82,18 @@ public class StationMemberInviteRoutes implements Routes {
         StationUserType type;
         try {
             type = entry.userType() != null ? StationUserType.valueOf(entry.userType()) : StationUserType.MEMBER;
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Unknown userType: " + entry.userType());
+        } catch (IllegalArgumentException ignored) {
+            throw Refusal.INVITE_USER_TYPE_UNKNOWN.raise(entry.userType());
         }
         if (entry.email() == null || entry.firstName() == null || entry.lastName() == null) {
-            throw new BadRequestResponse("email, firstName and lastName are required on every invite");
+            throw Refusal.INVITE_ENTRY_DETAILS_MISSING.raise();
         }
         List<GuardianRequest> guardians = entry.guardians() == null
                 ? List.of()
                 : entry.guardians().stream()
                         .map(g -> {
                             if (g.email() == null || g.firstName() == null || g.lastName() == null) {
-                                throw new BadRequestResponse(
-                                        "email, firstName and lastName are required on every guardian");
+                                throw Refusal.INVITE_GUARDIAN_DETAILS_MISSING.raise();
                             }
                             return new GuardianRequest(g.email(), g.firstName(), g.lastName());
                         })

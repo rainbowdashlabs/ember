@@ -29,9 +29,7 @@ import dev.chojo.ember.feature.discovery.service.DiscoverySettingsService;
 import dev.chojo.ember.feature.discovery.service.DiscoveryStationFetcher;
 import dev.chojo.ember.feature.discovery.service.FederationPartnerSeeder;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -227,7 +225,7 @@ public class AdminDiscoveryRoutes implements Routes {
     private void probePeer(Context ctx) {
         var body = ctx.bodyAsClass(ProbeRequest.class);
         if (body.baseUrl() == null || body.baseUrl().isBlank()) {
-            throw new BadRequestResponse("baseUrl required");
+            throw Refusal.PROBE_NEEDS_AN_ADDRESS.raise();
         }
         ctx.json(reachPeer(body.baseUrl()));
     }
@@ -235,7 +233,7 @@ public class AdminDiscoveryRoutes implements Routes {
     private void addPeer(Context ctx) {
         var body = ctx.bodyAsClass(AddPeerRequest.class);
         if (body.baseUrl() == null || body.baseUrl().isBlank()) {
-            throw new BadRequestResponse("baseUrl required");
+            throw Refusal.PEER_NEEDS_AN_ADDRESS.raise();
         }
         var info = reachPeer(body.baseUrl());
         if (info.publicKey() == null) {
@@ -245,10 +243,10 @@ public class AdminDiscoveryRoutes implements Routes {
         if (body.expectedPublicKey() != null
                 && !body.expectedPublicKey().isBlank()
                 && !body.expectedPublicKey().equals(info.publicKey())) {
-            throw new BadRequestResponse("expectedPublicKey did not match the peer's actual key");
+            throw Refusal.PEER_KEY_NOT_THE_EXPECTED_ONE.raise();
         }
         if (!info.discoveryEnabled()) {
-            throw new BadRequestResponse("Peer reports discoveryEnabled=false");
+            throw Refusal.PEER_DOES_NOT_WANT_DISCOVERY.raise();
         }
         var peer = peerRepository.upsert(info.publicKey(), info.baseUrl(), info.instanceId(), PeerSource.MANUAL, null);
         // Fire-and-forget ping so the peer's neighborhood starts streaming in immediately.
@@ -297,15 +295,15 @@ public class AdminDiscoveryRoutes implements Routes {
      */
     private void mutateExistingPeer(Context ctx, Consumer<String> mutation) {
         String key = ctx.pathParam("publicKey");
-        peerRepository.findByPublicKey(key).orElseThrow(() -> new NotFoundResponse("Peer not found"));
+        peerRepository.findByPublicKey(key).orElseThrow(Refusal.PEER_NOT_HERE::raise);
         mutation.accept(key);
-        ctx.json(toResponse(
-                peerRepository.findByPublicKey(key).orElseThrow(() -> new NotFoundResponse("Peer disappeared"))));
+        ctx.json(
+                toResponse(peerRepository.findByPublicKey(key).orElseThrow(Refusal.PEER_NOT_HERE_AFTER_CHANGE::raise)));
     }
 
     private void pingPeerNow(Context ctx) {
         String key = ctx.pathParam("publicKey");
-        var peer = peerRepository.findByPublicKey(key).orElseThrow(() -> new NotFoundResponse("Peer not found"));
+        var peer = peerRepository.findByPublicKey(key).orElseThrow(Refusal.PEER_NOT_HERE_ON_PING::raise);
         pingService.sendPing(peer);
         ctx.json(new MessageResponse("Ping dispatched"));
     }
@@ -341,7 +339,7 @@ public class AdminDiscoveryRoutes implements Routes {
     private void addToBlocklist(Context ctx) {
         var body = ctx.bodyAsClass(BlocklistRequest.class);
         if (body.value() == null || body.value().isBlank() || body.kind() == null) {
-            throw new BadRequestResponse("value and kind required");
+            throw Refusal.BLOCKLIST_ENTRY_INCOMPLETE.raise();
         }
         blocklistRepository.add(body.kind(), body.value(), body.note());
         ctx.json(new MessageResponse("Added to blocklist"));

@@ -48,9 +48,7 @@ import dev.chojo.ember.util.CsvWriter;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentWord;
 import dev.chojo.ember.util.SafeContentDisposition;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -338,7 +336,7 @@ public class EventRegistrationRoutes implements Routes {
      * Resolves and authorises the member id a register or decline call targets, defaulting to the caller.
      */
     private int resolveTargetMemberId(UserSession session, RegisterRequest req) {
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_ON_REGISTRATION.raise();
         int memberId;
         if (req.memberId() != null) {
             memberId = req.memberId();
@@ -348,7 +346,7 @@ public class EventRegistrationRoutes implements Routes {
                         .stream()
                         .anyMatch(m -> m.id() == memberId);
                 if (!manages && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
-                    throw new ForbiddenResponse("You do not manage this member");
+                    throw Refusal.MEMBER_NOT_YOURS_TO_REGISTER.raise();
                 }
             }
         } else {
@@ -586,13 +584,13 @@ public class EventRegistrationRoutes implements Routes {
      * answer stays wrong.
      */
     private void requireAnswerAuthor(UserSession session, EventRegistration registration) {
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_ON_ANSWER_CHANGE.raise();
         if (registration.memberId() == session.member().id()) return;
         if (session.hasPermission(StationPermission.EVENT_EDIT)) return;
         if (session.hasPermission(StationPermission.EVENT_REGISTRATION)) return;
         boolean manages = stationMemberService.findManaged(session.member().id()).stream()
                 .anyMatch(m -> m.id() == registration.memberId());
-        if (!manages) throw new ForbiddenResponse("You do not manage this member");
+        if (!manages) throw Refusal.REGISTRATION_ANSWERS_NOT_YOURS.raise();
     }
 
     /**
@@ -661,7 +659,7 @@ public class EventRegistrationRoutes implements Routes {
             ctx.result(pdf);
         } catch (Exception e) {
             log.error("Failed to render the registration table of event {}", eventId, e);
-            throw new BadRequestResponse("This list cannot be turned into a sheet");
+            throw Refusal.REGISTRATION_SHEET_NOT_DRAWN.raise();
         }
     }
 
@@ -687,7 +685,7 @@ public class EventRegistrationRoutes implements Routes {
     private LocalDate tableDate(Context ctx) {
         var req = ctx.bodyAsClass(RegistrationTableRequest.class);
         if (req.date() == null || req.date().isBlank()) {
-            throw new BadRequestResponse("A table of who is coming needs the day it is about");
+            throw Refusal.REGISTRATION_TABLE_NEEDS_A_DAY.raise();
         }
         return LocalDate.parse(req.date());
     }
@@ -726,7 +724,7 @@ public class EventRegistrationRoutes implements Routes {
         var event = requireOwnedEvent(crudService, eventId, session);
         LocalDate date = resolveEventDate(req, event);
         if (!event.requiresRegistration()) {
-            throw new BadRequestResponse("Event does not require registration");
+            throw Refusal.EVENT_TAKES_NO_REGISTRATIONS.raise();
         }
 
         // Whoever runs the event is not answering it, they are keeping its list: somebody who rang up
@@ -735,7 +733,7 @@ public class EventRegistrationRoutes implements Routes {
         if (!runsTheEvent
                 && event.registrationDeadline() != null
                 && Instant.now().isAfter(event.registrationDeadline())) {
-            throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
+            throw Refusal.REGISTRATION_CLOSED.raise();
         }
 
         int memberId = resolveTargetMemberId(session, req);
@@ -743,7 +741,7 @@ public class EventRegistrationRoutes implements Routes {
         boolean isManagerRegistration =
                 req.memberId() != null && req.memberId() != session.member().id() && runsTheEvent;
         if (!isManagerRegistration && !restrictionService.canRegister(eventId, memberId, session.permissions())) {
-            throw new BadRequestResponse("Member is not eligible for this event");
+            throw Refusal.MEMBER_NOT_INVITED_TO_EVENT.raise();
         }
 
         var answers = registrationFieldService.resolveAnswers(eventId, answersOf(req.fields()));
@@ -819,7 +817,7 @@ public class EventRegistrationRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(StatusUpdateRequest.class);
         if (req.status() != RegistrationStatus.ACCEPTED && req.status() != RegistrationStatus.DENIED) {
-            throw new BadRequestResponse("status must be ACCEPTED or DENIED");
+            throw Refusal.REGISTRATION_DECISION_UNKNOWN.raise();
         }
         var registration = registrationService
                 .findById(id)
@@ -872,12 +870,12 @@ public class EventRegistrationRoutes implements Routes {
         boolean runsTheEvent = session.hasPermission(StationPermission.EVENT_MANAGER)
                 || session.hasPermission(StationPermission.EVENT_REGISTRATION);
         if (!manages && !runsTheEvent) {
-            throw new ForbiddenResponse("You cannot answer for this member");
+            throw Refusal.ANSWER_NOT_YOURS_TO_GIVE.raise();
         }
 
         boolean closed = event.registrationDeadline() != null && Instant.now().isAfter(event.registrationDeadline());
         if (closed && !runsTheEvent) {
-            throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
+            throw Refusal.REGISTRATION_CLOSED_ON_ANSWER_CHANGE.raise();
         }
 
         if (!req.attending()) {
@@ -931,7 +929,7 @@ public class EventRegistrationRoutes implements Routes {
         requireMayAnswerFor(session, reg.memberId());
 
         if (!registrationService.undoWithdrawal(id)) {
-            throw new BadRequestResponse("This can no longer be taken back");
+            throw Refusal.WITHDRAWAL_NO_LONGER_UNDONE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -950,7 +948,7 @@ public class EventRegistrationRoutes implements Routes {
                 && !manages
                 && !session.hasPermission(StationPermission.EVENT_MANAGER)
                 && !session.hasPermission(StationPermission.EVENT_REGISTRATION)) {
-            throw new ForbiddenResponse("You cannot answer for this member");
+            throw Refusal.WITHDRAWAL_NOT_YOURS_TO_ANSWER.raise();
         }
     }
 
@@ -995,19 +993,19 @@ public class EventRegistrationRoutes implements Routes {
      */
     private LocalDate resolveEventDate(RegisterRequest req, StationEvent event) {
         if (event.eventType() == StationEvent.EventType.ONE_TIME) {
-            if (event.startTime() == null) throw new BadRequestResponse("Event has no start time");
+            if (event.startTime() == null) throw Refusal.EVENT_HAS_NO_START_TIME.raise();
             var zone = StationFormat.timezoneOf(
                     stationRepository.findById(event.stationId()).orElse(null));
             return event.startTime().atZone(zone).toLocalDate();
         }
         if (req.eventDate() == null) {
-            throw new BadRequestResponse("eventDate is required for recurring events");
+            throw Refusal.REGISTRATION_NEEDS_A_DAY.raise();
         }
         LocalDate date = LocalDate.parse(req.eventDate());
         if (event.dayOfWeek() != null) {
             int isoDow = date.getDayOfWeek().getValue();
             if (isoDow != event.dayOfWeek()) {
-                throw new BadRequestResponse("eventDate does not match the event's day of week");
+                throw Refusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE.raise();
             }
         }
         return date;

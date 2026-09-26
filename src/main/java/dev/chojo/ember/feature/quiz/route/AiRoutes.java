@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -17,10 +18,8 @@ import dev.chojo.ember.feature.quiz.service.AiService;
 import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.util.Json;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -126,7 +125,7 @@ public class AiRoutes implements Routes {
         String provider = ctx.pathParam("provider");
         var req = ctx.bodyAsClass(ProviderRequest.class);
         if (req.apiKey() == null || req.apiKey().isBlank()) {
-            throw new BadRequestResponse("apiKey is required");
+            throw Refusal.AI_PROVIDER_NEEDS_A_KEY.raise();
         }
         aiService.saveProvider(session.stationId(), provider, req.apiKey(), req.model());
         ctx.json(new SuccessResponse(true));
@@ -166,10 +165,10 @@ public class AiRoutes implements Routes {
             ctx.json(models);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument fetching AI models for provider {}", provider, e);
-            throw new BadRequestResponse(e.getMessage());
+            throw Refusal.AI_MODELS_NOT_LISTED_KEY_NOT_GOOD.raise();
         } catch (Exception e) {
             log.warn("Failed to fetch AI models for provider {}", provider, e);
-            throw new BadRequestResponse("Failed to fetch models");
+            throw Refusal.AI_MODELS_NOT_LISTED.raise();
         }
     }
 
@@ -187,10 +186,10 @@ public class AiRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(GenerateRequest.class);
         if (req.question() == null || req.question().isBlank()) {
-            throw new BadRequestResponse("question is required");
+            throw Refusal.AI_GENERATION_NEEDS_A_QUESTION.raise();
         }
         if (req.correctAnswer() == null || req.correctAnswer().isBlank()) {
-            throw new BadRequestResponse("correctAnswer is required");
+            throw Refusal.AI_GENERATION_NEEDS_THE_RIGHT_ANSWER.raise();
         }
         try {
             var results = aiService.generate(
@@ -204,10 +203,10 @@ public class AiRoutes implements Routes {
             ctx.json(new GenerateResponse(results));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument during AI generation", e);
-            throw new BadRequestResponse(e.getMessage());
+            throw Refusal.AI_GENERATION_REFUSED.raise();
         } catch (Exception e) {
             log.warn("AI generation failed", e);
-            throw new BadRequestResponse("Generation failed");
+            throw Refusal.AI_GENERATION_FAILED.raise();
         }
     }
 
@@ -225,7 +224,7 @@ public class AiRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(GenerateQuestionsRequest.class);
         if (req.entries() == null || req.entries().isEmpty()) {
-            throw new BadRequestResponse("entries is required");
+            throw Refusal.AI_GENERATION_NEEDS_ENTRIES.raise();
         }
         String provider = req.provider() != null ? req.provider() : "openai";
         var categories = catalogService.findCategories(session.stationId());
@@ -312,7 +311,9 @@ public class AiRoutes implements Routes {
     private void pollGeneration(Context ctx) {
         String jobId = ctx.pathParam("jobId");
         var job = generationJobs.get(jobId);
-        if (job == null || job.stationId() != UserSession.from(ctx).stationId()) throw new NotFoundResponse();
+        if (job == null || job.stationId() != UserSession.from(ctx).stationId()) {
+            throw Refusal.AI_GENERATION_NOT_HERE.raise();
+        }
         var results = job.drainResults();
         boolean done = job.isDone();
         if (done) generationJobs.remove(jobId);

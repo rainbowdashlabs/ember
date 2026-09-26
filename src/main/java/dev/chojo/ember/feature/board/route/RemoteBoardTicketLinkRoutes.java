@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
@@ -20,7 +21,6 @@ import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiParam;
@@ -205,7 +205,7 @@ public class RemoteBoardTicketLinkRoutes implements Routes {
     private int ticketIdOfNumber(int boardId, int ticketNumber) {
         return ticketService
                 .findByBoardAndNumber(boardId, ticketNumber)
-                .orElseThrow(NotFoundResponse::new)
+                .orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_BY_NUMBER::raise)
                 .id();
     }
 

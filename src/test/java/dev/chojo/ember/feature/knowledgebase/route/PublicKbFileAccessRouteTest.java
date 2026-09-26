@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -26,7 +28,7 @@ import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
+import io.javalin.http.HttpStatus;
 import io.javalin.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -189,13 +192,29 @@ class PublicKbFileAccessRouteTest {
         verify(pdfExportService, never()).renderPublic(any(), any());
     }
 
+    /**
+     * Which refusal an endpoint answered a stranger with, having checked it is a {@code 404}.
+     *
+     * <p>Returned rather than asserted here so each case can also say <em>which</em> refusal it
+     * expects. That is the part worth pinning: the three ways a file can be out of reach all have
+     * to answer with one code, or the code itself tells a stranger which of the three it was.
+     *
+     * @param handler the endpoint to ask
+     * @return the refusal it raised
+     */
+    private Refusal absent(String handler) {
+        var refused = assertThrows(RefusalResponse.class, () -> ask(handler, asking()));
+        assertEquals(HttpStatus.NOT_FOUND.getCode(), refused.getStatus());
+        return refused.refusal();
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"getFilePicture", "getFilePdf"})
     void aFileTheStationKeepsToItselfIsAbsent(String handler) throws Exception {
         when(kbService.findFile(FILE_ID)).thenReturn(Optional.of(file(STATION_ID, KbFileType.MARKDOWN)));
         published(false);
 
-        assertThrows(NotFoundResponse.class, () -> ask(handler, asking()));
+        assertEquals(Refusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(handler));
         nothingWasServed();
     }
 
@@ -209,7 +228,7 @@ class PublicKbFileAccessRouteTest {
         when(kbService.findFile(FILE_ID)).thenReturn(Optional.of(file(STATION_ID + 1, KbFileType.MARKDOWN)));
         published(true);
 
-        assertThrows(NotFoundResponse.class, () -> ask(handler, asking()));
+        assertEquals(Refusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(handler));
         nothingWasServed();
     }
 
@@ -218,7 +237,7 @@ class PublicKbFileAccessRouteTest {
     void anUnknownFileIsAbsent(String handler) throws Exception {
         when(kbService.findFile(FILE_ID)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundResponse.class, () -> ask(handler, asking()));
+        assertEquals(Refusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(handler));
         nothingWasServed();
     }
 
@@ -261,6 +280,6 @@ class PublicKbFileAccessRouteTest {
         published(true);
         when(pictureService.read(STATION_ID, FILE_ID, "application/pdf", 256)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundResponse.class, () -> ask("getFilePicture", asking()));
+        assertEquals(Refusal.PUBLIC_KB_ARTICLE_PICTURE_NOT_HERE, absent("getFilePicture"));
     }
 }

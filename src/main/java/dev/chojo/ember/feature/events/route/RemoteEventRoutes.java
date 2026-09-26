@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.FederationSession;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
@@ -24,11 +25,8 @@ import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.OpenApiName;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -213,7 +211,7 @@ public class RemoteEventRoutes implements Routes {
         var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "id");
         requireSharedEvent(partner, eventId);
-        var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        var event = crudService.findById(eventId).orElseThrow(Refusal.SHARED_EVENT_NOT_HERE::raise);
         var fields = eventFieldService
                 .findByEvent(eventId, dateResolver.nextDate(event).orElse(null))
                 .stream()
@@ -252,11 +250,12 @@ public class RemoteEventRoutes implements Routes {
                 .find(pathInt(ctx, "attachmentId"))
                 .filter(found -> found.eventId() == eventId)
                 .filter(found -> !found.internal())
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.SHARED_EVENT_FILE_NOT_HERE::raise);
 
         EventAttachmentService.requireSizeToTravel(attachment.fileSize(), apiConfig.maxUploadSizeBytes());
-        var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
-        var file = media.read(event.stationId(), attachment.contentHash()).orElseThrow(NotFoundResponse::new);
+        var event = crudService.findById(eventId).orElseThrow(Refusal.EVENT_NOT_HERE_BEHIND_SHARED_FILE::raise);
+        var file = media.read(event.stationId(), attachment.contentHash())
+                .orElseThrow(Refusal.SHARED_EVENT_FILE_CONTENT_NOT_HERE::raise);
         ctx.json(new RemoteAttachmentContent(
                 attachment.id(),
                 attachment.displayName(),
@@ -298,13 +297,13 @@ public class RemoteEventRoutes implements Routes {
         var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
 
         if (!eventFederationService.partnerPlaces(eventId, partner.id()).partnerConfirms()) {
-            throw new ForbiddenResponse("This station decides its own registrations for this event");
+            throw Refusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN.raise();
         }
         var registration = eventFederationService
                 .findRegistration(eventId, partner.id(), req.remoteMemberId(), req.eventDate())
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.PARTNER_REGISTRATION_NOT_HERE::raise);
         if (!eventFederationService.acceptWithinBudget(registration.id(), eventId, partner.id(), req.eventDate())) {
-            throw new BadRequestResponse("No places left");
+            throw Refusal.NO_PLACES_LEFT_FOR_PARTNER.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -322,7 +321,7 @@ public class RemoteEventRoutes implements Routes {
         requireSharedEvent(partner, eventId);
         var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
         if (!eventFederationService.undoWithdrawal(eventId, partner.id(), req.remoteMemberId(), req.eventDate())) {
-            throw new BadRequestResponse("This can no longer be taken back");
+            throw Refusal.PARTNER_WITHDRAWAL_NO_LONGER_UNDONE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -381,7 +380,7 @@ public class RemoteEventRoutes implements Routes {
         requireSharedEvent(partner, eventId);
         var req = ctx.bodyAsClass(RemoteCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
+            throw Refusal.PARTNER_COMMENT_NEEDS_TEXT.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(eventFederationService.createRemoteComment(
@@ -403,7 +402,7 @@ public class RemoteEventRoutes implements Routes {
         try {
             return LocalDate.parse(eventDate);
         } catch (Exception e) {
-            throw new BadRequestResponse("eventDate must be ISO yyyy-MM-dd");
+            throw Refusal.PARTNER_COMMENT_DAY_NOT_A_DATE.raise();
         }
     }
 
@@ -412,7 +411,7 @@ public class RemoteEventRoutes implements Routes {
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteCommentUpdateRequest.class);
         if (req.content() == null || req.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
+            throw Refusal.PARTNER_COMMENT_CHANGE_NEEDS_TEXT.raise();
         }
         ctx.json(eventFederationService.updateRemoteComment(partner, commentId, req.remoteMemberUid(), req.content()));
     }
@@ -424,7 +423,7 @@ public class RemoteEventRoutes implements Routes {
         if (eventFederationService.deleteRemoteComment(partner, commentId, req.remoteMemberUid())) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.PARTNER_COMMENT_NOT_DELETED.raise();
         }
     }
 
@@ -437,7 +436,7 @@ public class RemoteEventRoutes implements Routes {
     private void requireSharedEvent(FederationPartner partner, int eventId) {
         var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
         if (!eventIds.contains(eventId)) {
-            throw new NotFoundResponse();
+            throw Refusal.EVENT_NOT_SHARED_WITH_PARTNER.raise();
         }
     }
 

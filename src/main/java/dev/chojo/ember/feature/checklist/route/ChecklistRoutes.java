@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.checklist.route;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -29,12 +30,8 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.util.CsvWriter;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.InternalServerErrorResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -155,10 +152,10 @@ public class ChecklistRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateRequest.class);
         if (request.name() == null || request.name().isBlank()) {
-            throw new BadRequestResponse("Name is required");
+            throw Refusal.CHECKLIST_NEEDS_A_NAME.raise();
         }
         if (request.columns() == null || request.columns().isEmpty()) {
-            throw new BadRequestResponse("At least one column is required");
+            throw Refusal.CHECKLIST_NEEDS_A_COLUMN.raise();
         }
         var columnSpecs = request.columns().stream()
                 .map(c -> new ColumnSpec(requireLabel(c.label()), c.description() == null ? "" : c.description()))
@@ -205,11 +202,11 @@ public class ChecklistRoutes implements Routes {
         var checklist = loadOwned(ctx);
         var request = ctx.bodyAsClass(UpdateRequest.class);
         String name = request.name() != null ? request.name() : checklist.name();
-        if (name.isBlank()) throw new BadRequestResponse("Name cannot be blank");
+        if (name.isBlank()) throw Refusal.CHECKLIST_RENAME_NEEDS_A_NAME.raise();
         String description = request.description() != null ? request.description() : checklist.description();
         OccurrenceSpec occurrence = resolveOccurrence(session, request.source());
         if (occurrence != null && request.restriction() != null) {
-            throw new BadRequestResponse("A checklist follows either a filter or an appointment, never both");
+            throw Refusal.CHECKLIST_FOLLOWS_ONE_THING.raise();
         }
         RestrictionMode mode = request.restriction() != null ? resolveMode(request.restriction()) : checklist.mode();
         FilterSpec filterSpec = request.restriction() != null ? toFilterSpec(request.restriction()) : null;
@@ -313,12 +310,12 @@ public class ChecklistRoutes implements Routes {
         var checklist = loadOwned(ctx);
         var request = ctx.bodyAsClass(ReorderColumnsRequest.class);
         if (request.orderedIds() == null || request.orderedIds().isEmpty()) {
-            throw new BadRequestResponse("orderedIds is required");
+            throw Refusal.CHECKLIST_COLUMN_ORDER_MISSING.raise();
         }
         try {
             checklistService.reorderColumns(checklist.id(), request.orderedIds());
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
+            throw Refusal.CHECKLIST_COLUMN_ORDER_INCOMPLETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -335,7 +332,7 @@ public class ChecklistRoutes implements Routes {
         var checklist = loadOwned(ctx);
         var request = ctx.bodyAsClass(AddMembersRequest.class);
         if (request.memberIds() == null || request.memberIds().isEmpty()) {
-            throw new BadRequestResponse("memberIds is required");
+            throw Refusal.CHECKLIST_NAMES_NO_MEMBERS.raise();
         }
         var validIds = filterToStation(request.memberIds(), checklist.stationId());
         var result = checklistService.addMembers(checklist.id(), validIds);
@@ -425,7 +422,7 @@ public class ChecklistRoutes implements Routes {
         var column = loadColumn(ctx, checklist);
         var request = ctx.bodyAsClass(BulkSetRequest.class);
         if (request.entryIds() == null) {
-            throw new BadRequestResponse("entryIds is required");
+            throw Refusal.CHECKLIST_NAMES_NO_ROWS.raise();
         }
         var validEntryIds = filterEntryIds(request.entryIds(), checklist.id());
         int updated = checklistService.bulkSetColumn(
@@ -467,10 +464,11 @@ public class ChecklistRoutes implements Routes {
             ctx.result(pdf.bytes());
         } catch (IOException e) {
             log.error("Failed to render checklist PDF for {}", checklist.id(), e);
-            throw new InternalServerErrorResponse("Failed to render PDF");
+            throw Refusal.CHECKLIST_PDF_NOT_MADE.raise();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new InternalServerErrorResponse("PDF rendering interrupted");
+            log.warn("Rendering the PDF of checklist {} was interrupted", checklist.id(), e);
+            throw Refusal.CHECKLIST_PDF_INTERRUPTED.raise();
         }
     }
 
@@ -481,18 +479,18 @@ public class ChecklistRoutes implements Routes {
 
     private ChecklistColumn loadColumn(Context ctx, Checklist checklist) {
         int columnId = pathInt(ctx, "columnId");
-        var column = checklistService.findColumn(columnId).orElseThrow(() -> new NotFoundResponse("Column not found"));
+        var column = checklistService.findColumn(columnId).orElseThrow(Refusal.CHECKLIST_COLUMN_NOT_HERE::raise);
         if (column.checklistId() != checklist.id()) {
-            throw new ForbiddenResponse("Column does not belong to this checklist");
+            throw Refusal.CHECKLIST_COLUMN_ON_ANOTHER_LIST.raise();
         }
         return column;
     }
 
     private ChecklistEntry loadEntry(Context ctx, Checklist checklist) {
         int entryId = pathInt(ctx, "entryId");
-        var entry = checklistService.findEntry(entryId).orElseThrow(() -> new NotFoundResponse("Entry not found"));
+        var entry = checklistService.findEntry(entryId).orElseThrow(Refusal.CHECKLIST_ROW_NOT_HERE::raise);
         if (entry.checklistId() != checklist.id()) {
-            throw new ForbiddenResponse("Entry does not belong to this checklist");
+            throw Refusal.CHECKLIST_ROW_ON_ANOTHER_LIST.raise();
         }
         return entry;
     }
@@ -588,14 +586,14 @@ public class ChecklistRoutes implements Routes {
     private OccurrenceSpec resolveOccurrence(UserSession session, SourceOccurrenceRequest request) {
         if (request == null || request.eventId() == null) return null;
         LocalDate date = parseDate(request.date());
-        if (date == null) throw new BadRequestResponse("An appointment needs the date of the occurrence");
+        if (date == null) throw Refusal.CHECKLIST_OCCURRENCE_DAY_MISSING.raise();
         var event = eventCrudService
                 .findById(request.eventId())
                 .filter(e -> e.stationId() == session.stationId())
-                .orElseThrow(() -> new NotFoundResponse("Appointment not found"));
+                .orElseThrow(Refusal.CHECKLIST_APPOINTMENT_NOT_HERE::raise);
         if (session.member() != null
                 && !eventRestrictionService.canView(event.id(), session.member().id(), session.permissions())) {
-            throw new ForbiddenResponse("Appointment not visible");
+            throw Refusal.CHECKLIST_APPOINTMENT_NOT_YOURS_TO_FOLLOW.raise();
         }
         return new OccurrenceSpec(event.id(), date);
     }
@@ -605,7 +603,7 @@ public class ChecklistRoutes implements Routes {
         try {
             return LocalDate.parse(raw.trim());
         } catch (DateTimeParseException e) {
-            throw new BadRequestResponse("Invalid date: " + raw);
+            throw Refusal.CHECKLIST_DAY_NOT_A_DATE.raise(raw.trim());
         }
     }
 
@@ -677,13 +675,13 @@ public class ChecklistRoutes implements Routes {
         try {
             return RestrictionMode.valueOf(req.mode());
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Invalid mode: " + req.mode());
+            throw Refusal.CHECKLIST_FILTER_MODE_UNKNOWN.raise(req.mode());
         }
     }
 
     private static String requireLabel(String label) {
         if (label == null || label.isBlank()) {
-            throw new BadRequestResponse("Column label is required");
+            throw Refusal.CHECKLIST_COLUMN_NEEDS_A_LABEL.raise();
         }
         return label.trim();
     }

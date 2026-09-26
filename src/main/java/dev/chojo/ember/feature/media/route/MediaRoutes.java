@@ -16,9 +16,7 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -94,7 +92,7 @@ public class MediaRoutes implements Routes {
     }
 
     private static int requireMember(UserSession session) {
-        if (session.member() == null) throw new ForbiddenResponse("Not a station member");
+        if (session.member() == null) throw Refusal.LIBRARY_NOT_YOURS_WITHOUT_MEMBERSHIP.raise();
         return session.member().id();
     }
 
@@ -237,7 +235,7 @@ public class MediaRoutes implements Routes {
         }
         int memberId = requireMember(session);
         if (!media.mayRelease(fileId, memberId)) {
-            throw new ForbiddenResponse("Only the members who uploaded a file may remove it");
+            throw Refusal.FILE_NOT_YOURS_TO_REMOVE.raise();
         }
         media.releaseUpload(fileId, memberId);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -275,7 +273,7 @@ public class MediaRoutes implements Routes {
     private void createFolder(Context ctx) {
         var session = UserSession.from(ctx);
         var body = ctx.bodyAsClass(FolderRequest.class);
-        if (body.name() == null || body.name().isBlank()) throw new BadRequestResponse("name is required");
+        if (body.name() == null || body.name().isBlank()) throw Refusal.FOLDER_NEEDS_A_NAME.raise();
         var folder = media.createFolder(
                 session.stationId(), body.parentId(), body.name(), body.sortOrder() != null ? body.sortOrder() : 0);
         ctx.status(HttpStatus.CREATED).json(folder);
@@ -311,7 +309,7 @@ public class MediaRoutes implements Routes {
     private void createTag(Context ctx) {
         var session = UserSession.from(ctx);
         var body = ctx.bodyAsClass(TagRequest.class);
-        if (body.name() == null || body.name().isBlank()) throw new BadRequestResponse("name is required");
+        if (body.name() == null || body.name().isBlank()) throw Refusal.FILE_TAG_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED).json(media.createTag(session.stationId(), body.name(), body.color()));
     }
 

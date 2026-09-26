@@ -21,7 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RefusalTest {
-    private static final Pattern CODE = Pattern.compile("[A-Z]-\\d{3}");
+    private static final Pattern CODE = Pattern.compile("[A-Z]{1,2}-\\d{3}");
+    private static final Pattern PREFIX = Pattern.compile("[A-Z]{1,2}");
 
     @Test
     void everyRefusalSaysSomethingAReaderCanRead() {
@@ -60,21 +61,36 @@ class RefusalTest {
         }
     }
 
-    /** Two areas claiming one letter would put two features' refusals under the same plate. */
+    /**
+     * A prefix is one letter or two, and nothing else.
+     *
+     * <p>The two widths are safe to mix because the hyphen ends the prefix, so nothing here has to
+     * stop one prefix being the start of another. A third width would be a reader reading out an
+     * eight-character code, which is where a code stops being worth quoting.
+     */
     @Test
-    void noTwoAreasClaimTheSameLetter() {
-        var letters = new HashSet<Character>();
+    void everyPrefixIsOneLetterOrTwo() {
+        for (var area : Refusal.Area.values()) {
+            assertTrue(PREFIX.matcher(area.prefix()).matches(), area + " is prefixed " + area.prefix());
+        }
+    }
+
+    /** Two areas claiming one prefix would put two features' refusals under the same plate. */
+    @Test
+    void noTwoAreasClaimTheSamePrefix() {
+        var prefixes = new HashSet<String>();
 
         for (var area : Refusal.Area.values()) {
-            assertTrue(letters.add(area.letter()), area + " claims a letter another area already has");
+            assertTrue(prefixes.add(area.prefix()), area + " claims a prefix another area already has");
         }
     }
 
     @Test
-    void everyCodeIsALetterAHyphenAndThreeDigits() {
+    void everyCodeIsAPrefixAHyphenAndThreeDigits() {
         for (var refusal : Refusal.values()) {
             assertTrue(CODE.matcher(refusal.code()).matches(), refusal + " is coded as " + refusal.code());
-            assertEquals(refusal.area().letter(), refusal.code().charAt(0), refusal + " opens with the wrong letter");
+            assertTrue(
+                    refusal.code().startsWith(refusal.area().prefix() + "-"), refusal + " opens with the wrong prefix");
         }
     }
 
@@ -91,8 +107,14 @@ class RefusalTest {
 
     /**
      * A fault is the one thing a reader is asked to report, so anything that is really their own
-     * doing must not be dressed as one. Two kinds of failure are ours: one nobody named, and an
-     * upload that broke on the way in.
+     * doing must not be dressed as one. What is listed here is every failure that really is ours:
+     * one nobody named, an upload that broke on the way in, a sheet that broke while it was being
+     * drawn, and a row that was written and then could not be read back.
+     *
+     * <p>The list is long and written out on purpose. Adding a refusal that answers {@code 500} has
+     * to be a decision somebody takes rather than a status they copy from the line above, because
+     * the cost of getting it wrong is a report button on something the reader could have fixed
+     * themselves, and a real fault buried among the reports it produces.
      */
     @Test
     void onlyTheOnesThatReallyAreOursCallThemselvesFaults() {
@@ -105,7 +127,53 @@ class RefusalTest {
                         Refusal.UNEXPECTED_FAULT,
                         Refusal.UNEXPECTED_FAULT_FROM_UNKNOWN_STATE,
                         Refusal.AVATAR_NOT_PROCESSED,
-                        Refusal.UPLOAD_NOT_PROCESSED),
+                        Refusal.UPLOAD_NOT_PROCESSED,
+                        Refusal.EVENT_LIST_NOT_DRAWN,
+                        Refusal.FORM_ANSWERS_NOT_EXPORTED,
+                        Refusal.QUIZ_PICTURE_NOT_PROCESSED,
+                        Refusal.QUIZ_TEST_PDF_NOT_MADE,
+                        Refusal.QUIZ_TEST_SOLUTION_PDF_NOT_MADE,
+                        Refusal.PROTOCOL_RUN_NOT_EXPORTED,
+                        Refusal.CHECKLIST_PDF_NOT_MADE,
+                        Refusal.CHECKLIST_PDF_INTERRUPTED,
+                        Refusal.BLOG_FEED_NOT_MADE,
+                        Refusal.TICKET_UPLOAD_NOT_READ,
+                        Refusal.TICKET_ATTACHMENT_NOT_READ,
+                        Refusal.LOST_ITEM_PICTURE_NOT_PROCESSED,
+                        Refusal.FEED_NOT_BUILT,
+                        Refusal.INSTANCE_STORAGE_MOVE_TAKEN_BACK,
+                        Refusal.KB_PDF_STOPPED,
+                        Refusal.KB_PDF_NOT_MADE,
+                        Refusal.KB_PRESENTATION_NOT_REPLACED,
+                        Refusal.KB_FOLDER_ICON_NOT_PROCESSED,
+                        Refusal.KB_ARTICLE_IMAGE_NOT_PROCESSED,
+                        Refusal.PUBLIC_KB_PDF_STOPPED,
+                        Refusal.PUBLIC_KB_PDF_NOT_MADE,
+                        Refusal.PARTNER_KB_PDF_STOPPED,
+                        Refusal.PARTNER_KB_PDF_NOT_MADE,
+                        Refusal.SESSION_STATION_NOT_HERE,
+                        Refusal.FEDERATION_PARTNER_NOT_HERE_AFTER_SUSPENDING,
+                        Refusal.FEDERATION_PARTNER_NOT_HERE_AFTER_RESUMING,
+                        Refusal.LENDING_REQUEST_NOT_HERE_AFTER_APPROVAL,
+                        Refusal.LENDING_REQUEST_NOT_HERE_AFTER_DECLINE,
+                        Refusal.LENDING_REQUEST_NOT_HERE_AFTER_LENDING,
+                        Refusal.LENDING_REQUEST_NOT_HERE_AFTER_RETURN,
+                        Refusal.LENDING_REQUEST_NOT_HERE_AFTER_CLOSING,
+                        Refusal.PAGE_NOT_HERE_AFTER_SAVE,
+                        Refusal.PAGE_NOT_HERE_AFTER_VISIBILITY_CHANGE,
+                        Refusal.PROCEDURE_NOT_HERE_AFTER_CHANGE,
+                        Refusal.PROCEDURE_NOT_HERE_AFTER_RESOLVING,
+                        Refusal.PROCEDURE_NOT_HERE_AFTER_REOPENING,
+                        Refusal.MOVEMENT_NOT_HERE_AFTER_RECHAIN,
+                        Refusal.EVENT_TEMPLATE_NOT_HERE_AFTER_CHANGE,
+                        Refusal.FORM_NOT_HERE_AFTER_VISIBILITY_CHANGE,
+                        Refusal.KB_FILE_NOT_HERE_AFTER_REUPLOAD,
+                        Refusal.PROTOCOL_NOT_HERE_AFTER_CHANGE,
+                        Refusal.PROTOCOL_RUN_NOT_HERE_AFTER_CHANGE,
+                        Refusal.PROTOCOL_RUN_NOT_HERE_AFTER_CLOSING,
+                        Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_LOCKING,
+                        Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_UNLOCKING,
+                        Refusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_COMPLETION),
                 faults);
     }
 

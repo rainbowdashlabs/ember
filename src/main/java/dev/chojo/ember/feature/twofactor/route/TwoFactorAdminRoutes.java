@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.twofactor.route;
 
 import dev.chojo.ember.api.MessageResponse;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
@@ -22,10 +23,7 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorPolicyService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -74,7 +72,7 @@ public class TwoFactorAdminRoutes implements Routes {
         try {
             return StationUserType.valueOf(value);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Unknown user type");
+            throw Refusal.USER_TYPE_UNKNOWN_ON_POLICY.raise();
         }
     }
 
@@ -88,8 +86,7 @@ public class TwoFactorAdminRoutes implements Routes {
 
     private static int requireStation(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        return session.stationIdOpt()
-                .orElseThrow(() -> new ForbiddenResponse("A station must be selected to manage station 2FA policy"));
+        return session.stationIdOpt().orElseThrow(Refusal.NO_STATION_CHOSEN_ON_POLICY::raise);
     }
 
     // -- Station scope --
@@ -177,7 +174,7 @@ public class TwoFactorAdminRoutes implements Routes {
     private void deleteInstancePolicy(Context ctx) {
         int id = pathInt(ctx, "id");
         if (!policyService.deletePolicy(id)) {
-            throw new BadRequestResponse("Policy not found");
+            throw Refusal.POLICY_NOT_HERE.raise();
         }
         ctx.json(new MessageResponse("Policy removed"));
     }
@@ -200,16 +197,22 @@ public class TwoFactorAdminRoutes implements Routes {
         ctx.json(toDto(saved));
     }
 
+    /**
+     * Removes a rule from the caller's own station.
+     *
+     * <p>The rule is looked for in that station's own list before it is removed, so a station
+     * administrator cannot reach a rule belonging to a station they do not administer by naming its
+     * number.
+     */
     private void deleteStationPolicy(Context ctx) {
         int stationId = requireStation(ctx);
         int id = pathInt(ctx, "id");
-        // Defend against a station admin deleting policies that don't belong to them.
         var policies = policyService.listStationPolicies(stationId);
         if (policies.stream().noneMatch(p -> p.id() == id)) {
-            throw new BadRequestResponse("Policy not found");
+            throw Refusal.POLICY_NOT_HERE_ON_STATION_DELETE.raise();
         }
         if (!policyService.deletePolicy(id)) {
-            throw new BadRequestResponse("Policy not found");
+            throw Refusal.POLICY_NOT_HERE_ON_STATION_DELETE.raise();
         }
         ctx.json(new MessageResponse("Policy removed"));
     }
@@ -244,34 +247,38 @@ public class TwoFactorAdminRoutes implements Routes {
         UserSession actor = UserSession.from(ctx);
         if (!twoFactorService.resetAccount2FA(
                 targetId, actor.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"))) {
-            throw new NotFoundResponse();
+            throw Refusal.SECOND_FACTOR_NOT_RESET.raise();
         }
         ctx.json(new MessageResponse("2FA reset"));
     }
 
+    /**
+     * Clears a member's second factor on behalf of the station that looks after them.
+     *
+     * <p>The target has to be a member of the caller's own station and must not administer the
+     * instance: a station administrator may only act on people they actually manage, and an
+     * instance administrator is somebody only another instance administrator may reach.
+     */
     private void resetByStationAdmin(Context ctx) {
         int targetId = pathInt(ctx, "id");
         UserSession actor = UserSession.from(ctx);
-        int stationId = actor.stationIdOpt()
-                .orElseThrow(() -> new ForbiddenResponse("A station must be selected to reset 2FA on a member"));
+        int stationId = actor.stationIdOpt().orElseThrow(Refusal.NO_STATION_CHOSEN_ON_RESET::raise);
 
-        // The target must be a member of the caller's station and must not be an instance admin -
-        // station admins can only act on people they actually manage.
         var membership = stationMemberRepository.findByStationAndAccount(stationId, targetId);
         if (membership.isEmpty()) {
-            throw new NotFoundResponse();
+            throw Refusal.MEMBER_NOT_YOURS_TO_RESET.raise();
         }
         var targetAccount = accountRepository.findById(targetId);
         if (targetAccount.isEmpty()) {
-            throw new NotFoundResponse();
+            throw Refusal.MEMBER_NOT_YOURS_TO_RESET.raise();
         }
         if (targetAccount.get().instanceUserType() == InstanceUserType.ADMINISTRATOR) {
-            throw new ForbiddenResponse("Instance administrators can only be reset by another instance administrator");
+            throw Refusal.ADMIN_ONLY_RESET_BY_ADMIN.raise();
         }
 
         if (!twoFactorService.resetAccount2FA(
                 targetId, actor.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"))) {
-            throw new NotFoundResponse();
+            throw Refusal.SECOND_FACTOR_NOT_RESET_ON_STATION.raise();
         }
         ctx.json(new MessageResponse("2FA reset"));
     }

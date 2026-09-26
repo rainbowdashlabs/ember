@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -14,11 +15,8 @@ import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.InternalServerErrorResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -27,6 +25,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -39,6 +39,7 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class BoardTicketAttachmentRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(BoardTicketAttachmentRoutes.class);
 
     private final BoardTicketService ticketService;
     private final BoardRouteGuards guards;
@@ -93,8 +94,8 @@ public class BoardTicketAttachmentRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var file = ctx.uploadedFile("file");
-        if (file == null) throw new BadRequestResponse("No file uploaded");
-        if (file.size() > apiConfig.maxUploadSizeBytes()) throw new BadRequestResponse("File too large");
+        if (file == null) throw Refusal.TICKET_UPLOAD_MISSING_FILE.raise();
+        if (file.size() > apiConfig.maxUploadSizeBytes()) throw Refusal.TICKET_UPLOAD_TOO_LARGE.raise();
         try (var content = file.content()) {
             var att = ticketService.uploadAttachment(
                     session.stationId(),
@@ -105,7 +106,8 @@ public class BoardTicketAttachmentRoutes implements Routes {
                     guards.actor(session));
             ctx.status(HttpStatus.CREATED).json(att);
         } catch (IOException e) {
-            throw new InternalServerErrorResponse("Failed to read uploaded file");
+            log.warn("Failed to read an uploaded ticket attachment for ticket {}", ticketId, e);
+            throw Refusal.TICKET_UPLOAD_NOT_READ.raise();
         }
     }
 
@@ -127,7 +129,7 @@ public class BoardTicketAttachmentRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var att = requireAttachmentOfTicket(ctx, guards.viewableTicketId(ctx, session));
         var path = ticketService.getAttachmentPath(session.stationId(), att);
-        if (!Files.exists(path)) throw new NotFoundResponse();
+        if (!Files.exists(path)) throw Refusal.TICKET_ATTACHMENT_CONTENT_NOT_HERE.raise();
         ctx.contentType(SafeInlineMime.safeContentType(att.contentType()));
         ctx.header(
                 "Content-Disposition",
@@ -135,7 +137,8 @@ public class BoardTicketAttachmentRoutes implements Routes {
         try {
             ctx.result(Files.newInputStream(path));
         } catch (IOException e) {
-            throw new InternalServerErrorResponse("Failed to read file");
+            log.warn("Failed to hand out ticket attachment {}", att.id(), e);
+            throw Refusal.TICKET_ATTACHMENT_NOT_READ.raise();
         }
     }
 
@@ -159,7 +162,7 @@ public class BoardTicketAttachmentRoutes implements Routes {
         if (ticketService.deleteAttachment(session.stationId(), att.id())) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.TICKET_ATTACHMENT_NOT_DELETED.raise();
         }
     }
 
@@ -173,8 +176,10 @@ public class BoardTicketAttachmentRoutes implements Routes {
      * never consulted the layout at all.
      */
     private BoardTicketAttachment requireAttachmentOfTicket(Context ctx, int ticketId) {
-        var att = ticketService.findAttachmentById(pathInt(ctx, "attachmentId")).orElseThrow(NotFoundResponse::new);
-        if (att.ticketId() != ticketId) throw new NotFoundResponse();
+        var att = ticketService
+                .findAttachmentById(pathInt(ctx, "attachmentId"))
+                .orElseThrow(Refusal.TICKET_ATTACHMENT_NOT_HERE::raise);
+        if (att.ticketId() != ticketId) throw Refusal.TICKET_ATTACHMENT_NOT_HERE.raise();
         return att;
     }
 }

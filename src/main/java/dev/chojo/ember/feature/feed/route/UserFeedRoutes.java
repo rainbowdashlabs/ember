@@ -10,6 +10,7 @@ import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.feed.synd.SyndFeedImpl;
 import com.rometools.rome.io.SyndFeedOutput;
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.entity.EventCategory;
@@ -35,8 +36,6 @@ import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
-import io.javalin.http.InternalServerErrorResponse;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -191,8 +190,8 @@ public class UserFeedRoutes implements Routes {
 
     private StationMember resolveToken(Context ctx) {
         String token = ctx.pathParam("token");
-        var feedToken = tokenService.findByToken(token).orElseThrow(NotFoundResponse::new);
-        return memberRepository.findById(feedToken.memberId()).orElseThrow(NotFoundResponse::new);
+        var feedToken = tokenService.findByToken(token).orElseThrow(Refusal.FEED_LINK_NOT_GOOD::raise);
+        return memberRepository.findById(feedToken.memberId()).orElseThrow(Refusal.FEED_LINK_NOT_GOOD::raise);
     }
 
     // -- iCal --
@@ -233,7 +232,7 @@ public class UserFeedRoutes implements Routes {
      */
     private int doIcalFeed(Context ctx, StationMember member) {
         tokenService.recordIcalPoll(member.id());
-        var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
+        var station = stationRepository.findById(member.stationId()).orElseThrow(Refusal.FEED_STATION_NOT_HERE::raise);
         String locale = notificationService.resolveLocale(station.locale());
         boolean verbose = !"0".equals(ctx.queryParam("verbose"));
 
@@ -347,13 +346,15 @@ public class UserFeedRoutes implements Routes {
 
         // Cross-station items must look identical to missing items so token holders cannot probe
         // for the existence of foreign images.
-        var item = lostAndFoundService.findById(itemId).orElseThrow(NotFoundResponse::new);
+        var item = lostAndFoundService.findById(itemId).orElseThrow(Refusal.FEED_ITEM_NOT_HERE::raise);
         if (item.stationId() != member.stationId()) {
-            throw new NotFoundResponse();
+            throw Refusal.FEED_ITEM_NOT_HERE.raise();
         }
 
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
-        var image = imageService.read(member.stationId(), itemId, size).orElseThrow(NotFoundResponse::new);
+        var image = imageService
+                .read(member.stationId(), itemId, size)
+                .orElseThrow(Refusal.FEED_ITEM_PICTURE_NOT_HERE::raise);
 
         ctx.contentType(image.contentType());
         ctx.header("Cache-Control", "public, max-age=86400");
@@ -425,7 +426,9 @@ public class UserFeedRoutes implements Routes {
 
     private int doSyndFeed(Context ctx, StationMember member, String token, String feedType, String contentType) {
         tokenService.recordNotificationPoll(member.id());
-        var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
+        var station = stationRepository
+                .findById(member.stationId())
+                .orElseThrow(Refusal.FEED_STATION_NOT_HERE_FOR_NOTIFICATIONS::raise);
         String locale = notificationService.resolveLocale(station.locale());
         String baseUrl = emailService.getBaseUrl();
         boolean verbose = !"0".equals(ctx.queryParam("verbose"));
@@ -489,7 +492,8 @@ public class UserFeedRoutes implements Routes {
             ctx.header("Cache-Control", "public, max-age=3600");
             ctx.result(output.outputString(feed));
         } catch (Exception e) {
-            throw new InternalServerErrorResponse("Failed to generate feed");
+            log.warn("Failed to write out the feed", e);
+            throw Refusal.FEED_NOT_BUILT.raise();
         }
     }
 

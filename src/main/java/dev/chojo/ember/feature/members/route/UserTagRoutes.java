@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -17,10 +18,8 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.UserTagService;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -125,7 +124,7 @@ public class UserTagRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(TagRequest.class);
         if (isBlank(request.name())) {
-            throw new BadRequestResponse("name is required");
+            throw Refusal.TAG_NAME_MISSING_ON_CREATE.raise();
         }
         ctx.status(HttpStatus.CREATED).json(tagService.create(session.stationId(), request.name()));
     }
@@ -147,10 +146,10 @@ public class UserTagRoutes implements Routes {
         requireOwnedOrNotFound(ctx, id, tagService::findById, UserTag::stationId);
         var request = ctx.bodyAsClass(TagRequest.class);
         if (isBlank(request.name())) {
-            throw new BadRequestResponse("name is required");
+            throw Refusal.TAG_NAME_MISSING_ON_CHANGE.raise();
         }
         if (!tagService.update(id, request.name(), request.color(), request.visible(), request.position())) {
-            throw new NotFoundResponse();
+            throw Refusal.MEMBER_TAG_NOT_HERE_ON_CHANGE.raise();
         }
     }
 
@@ -172,7 +171,7 @@ public class UserTagRoutes implements Routes {
         if (tagService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.MEMBER_TAG_NOT_HERE_ON_DELETE.raise();
         }
     }
 

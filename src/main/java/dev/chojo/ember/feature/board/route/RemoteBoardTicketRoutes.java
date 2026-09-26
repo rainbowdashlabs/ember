@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
@@ -26,7 +27,6 @@ import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -147,7 +147,7 @@ public class RemoteBoardTicketRoutes implements Routes {
     private void getTicket(Context ctx) {
         var partner = guards.requirePartner(ctx);
         int ticketId = guards.viewableTicketId(ctx, partner);
-        ctx.json(ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new));
+        ctx.json(ticketService.findById(ticketId).orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_ON_READ::raise));
     }
 
     private void getTransitions(Context ctx) {
@@ -190,7 +190,7 @@ public class RemoteBoardTicketRoutes implements Routes {
         var partner = guards.requirePartner(ctx);
         int boardId = guards.writableBoardId(ctx, partner);
         var req = ctx.bodyAsClass(RemoteCreateTicketRequest.class);
-        boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
+        boardService.findById(boardId).orElseThrow(Refusal.REMOTE_BOARD_NOT_HERE_ON_TICKET_CREATE::raise);
         int laneId = req.laneId() != null
                 ? req.laneId()
                 : boardService.findLanes(boardId).getFirst().id();
@@ -225,7 +225,7 @@ public class RemoteBoardTicketRoutes implements Routes {
         int boardId = guards.writableBoardId(ctx, partner);
         int ticketId = guards.resolveTicketId(ctx, boardId);
         var req = ctx.bodyAsClass(RemoteUpdateTicketRequest.class);
-        var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
+        var board = boardService.findById(boardId).orElseThrow(Refusal.REMOTE_BOARD_NOT_HERE_ON_TICKET_UPDATE::raise);
         MemberIdentity assigneeIdentity = req.assignedMemberId() != null
                 ? memberIdentityFactory.local(board.stationId(), req.assignedMemberId())
                 : null;
@@ -238,7 +238,7 @@ public class RemoteBoardTicketRoutes implements Routes {
                 req.priority() != null ? TicketPriority.valueOf(req.priority()) : null,
                 req.dueDate() != null ? LocalDate.parse(req.dueDate()) : null,
                 guards.remoteActor(partner, req.remoteMemberUid()));
-        ctx.json(ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new));
+        ctx.json(ticketService.findById(ticketId).orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_AFTER_UPDATE::raise));
     }
 
     @OpenApi(
@@ -276,7 +276,7 @@ public class RemoteBoardTicketRoutes implements Routes {
         var partner = guards.requirePartner(ctx);
         int ticketId = guards.writableTicketId(ctx, partner);
         var req = ctx.bodyAsClass(RemoteMoveTicketRequest.class);
-        var ticket = ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
+        var ticket = ticketService.findById(ticketId).orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_ON_MOVE::raise);
         guards.cacheDisplayName(partner, req.remoteMemberUid(), req.displayName());
         ticketService.moveTicket(
                 ticketId,
@@ -284,7 +284,7 @@ public class RemoteBoardTicketRoutes implements Routes {
                 req.toLaneId(),
                 req.position(),
                 guards.remoteActor(partner, req.remoteMemberUid()));
-        ctx.json(ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new));
+        ctx.json(ticketService.findById(ticketId).orElseThrow(Refusal.REMOTE_TICKET_NOT_HERE_AFTER_MOVE::raise));
     }
 
     @OpenApi(

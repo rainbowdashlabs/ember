@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.attendance.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -33,11 +34,8 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.util.CsvWriter;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -245,11 +243,13 @@ public class AttendanceRoutes implements Routes {
     }
 
     private void verifySessionOwnership(int sessionId, UserSession userSession) {
-        var attSession = attendanceService.findSessionById(sessionId).orElseThrow(NotFoundResponse::new);
-        var template =
-                attendanceService.findTemplateById(attSession.templateId()).orElseThrow(NotFoundResponse::new);
+        var attSession =
+                attendanceService.findSessionById(sessionId).orElseThrow(Refusal.ATTENDANCE_SHEET_NOT_HERE::raise);
+        var template = attendanceService
+                .findTemplateById(attSession.templateId())
+                .orElseThrow(Refusal.ATTENDANCE_SHEET_NOT_HERE::raise);
         if (template.stationId() != userSession.stationId()) {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_SHEET_NOT_HERE.raise();
         }
     }
 
@@ -257,9 +257,11 @@ public class AttendanceRoutes implements Routes {
      * Asserts the given template belongs to the caller's station.
      */
     private void verifyTemplateOwnership(int templateId, UserSession userSession) {
-        var template = attendanceService.findTemplateById(templateId).orElseThrow(NotFoundResponse::new);
+        var template = attendanceService
+                .findTemplateById(templateId)
+                .orElseThrow(Refusal.ATTENDANCE_TEMPLATE_NOT_HERE_OR_NOT_YOURS::raise);
         if (template.stationId() != userSession.stationId()) {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_TEMPLATE_NOT_HERE_OR_NOT_YOURS.raise();
         }
     }
 
@@ -267,7 +269,7 @@ public class AttendanceRoutes implements Routes {
      * Asserts the given entry's session (and thus template) belongs to the caller's station.
      */
     private void verifyEntryOwnership(int entryId, UserSession userSession) {
-        var entry = attendanceService.findEntryById(entryId).orElseThrow(NotFoundResponse::new);
+        var entry = attendanceService.findEntryById(entryId).orElseThrow(Refusal.ATTENDANCE_ENTRY_NOT_HERE::raise);
         verifySessionOwnership(entry.sessionId(), userSession);
     }
 
@@ -275,9 +277,9 @@ public class AttendanceRoutes implements Routes {
      * Asserts the given member belongs to the caller's station.
      */
     private void verifyMemberInStation(int memberId, UserSession userSession) {
-        var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
+        var member = stationMemberRepository.findById(memberId).orElseThrow(Refusal.ATTENDANCE_MEMBER_NOT_HERE::raise);
         if (member.stationId() != userSession.stationId()) {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_MEMBER_NOT_HERE.raise();
         }
     }
 
@@ -358,7 +360,7 @@ public class AttendanceRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(TemplateRequest.class);
         if (isBlank(request.name())) {
-            throw new BadRequestResponse("name is required");
+            throw Refusal.ATTENDANCE_TEMPLATE_NEEDS_A_NAME.raise();
         }
         ctx.status(HttpStatus.CREATED).json(attendanceService.createTemplate(session.stationId(), request.name()));
     }
@@ -389,7 +391,7 @@ public class AttendanceRoutes implements Routes {
                                     template.id(), template.stationId(), template.name(), fields, groups));
                         },
                         () -> {
-                            throw new NotFoundResponse();
+                            throw Refusal.ATTENDANCE_TEMPLATE_GONE_WHILE_READ.raise();
                         });
     }
 
@@ -409,10 +411,10 @@ public class AttendanceRoutes implements Routes {
         requireOwnedOrNotFound(ctx, id, attendanceService::findTemplateById, AttendanceTemplate::stationId);
         var request = ctx.bodyAsClass(TemplateRequest.class);
         if (isBlank(request.name())) {
-            throw new BadRequestResponse("name is required");
+            throw Refusal.ATTENDANCE_TEMPLATE_RENAME_NEEDS_A_NAME.raise();
         }
         attendanceService.updateTemplate(id, request.name()).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_TEMPLATE_NOT_HERE_TO_CHANGE.raise();
         });
     }
 
@@ -434,7 +436,7 @@ public class AttendanceRoutes implements Routes {
         if (attendanceService.deleteTemplate(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_TEMPLATE_NOT_HERE_TO_DELETE.raise();
         }
     }
 
@@ -493,7 +495,7 @@ public class AttendanceRoutes implements Routes {
         requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
         var request = ctx.bodyAsClass(TemplateFieldRequest.class);
         if (isBlank(request.name()) || request.fieldType() == null) {
-            throw new BadRequestResponse("name and fieldType are required");
+            throw Refusal.ATTENDANCE_FIELD_DETAILS_MISSING.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(attendanceService.createTemplateField(
@@ -520,13 +522,13 @@ public class AttendanceRoutes implements Routes {
         requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
         var request = ctx.bodyAsClass(TemplateFieldRequest.class);
         if (isBlank(request.name()) || request.fieldType() == null) {
-            throw new BadRequestResponse("name and fieldType are required");
+            throw Refusal.ATTENDANCE_FIELD_CHANGE_DETAILS_MISSING.raise();
         }
         attendanceService
                 .updateTemplateField(
                         templateId, fieldId, request.name(), request.fieldType(), request.config(), request.position())
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw new NotFoundResponse();
+                    throw Refusal.ATTENDANCE_FIELD_NOT_HERE_TO_CHANGE.raise();
                 });
     }
 
@@ -550,7 +552,7 @@ public class AttendanceRoutes implements Routes {
         int fieldId = pathInt(ctx, "fieldId");
         requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
         attendanceService.deleteTemplateField(templateId, fieldId).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_FIELD_NOT_HERE_TO_DELETE.raise();
         });
     }
 
@@ -631,7 +633,7 @@ public class AttendanceRoutes implements Routes {
         try {
             day = date == null || date.isBlank() ? null : LocalDate.parse(date);
         } catch (DateTimeParseException e) {
-            throw new BadRequestResponse("Unreadable date: " + date);
+            throw Refusal.ATTENDANCE_DAY_NOT_A_DATE.raise(date);
         }
         var found = attendanceService.findSessionForEvent(eventId, day);
         if (found.isEmpty()) {
@@ -655,7 +657,7 @@ public class AttendanceRoutes implements Routes {
                             ctx.json(new SessionDetail(session, fields, entries, !attendanceService.isSessionOpen(id)));
                         },
                         () -> {
-                            throw new NotFoundResponse();
+                            throw Refusal.ATTENDANCE_SHEET_GONE_WHILE_READ.raise();
                         });
     }
 
@@ -693,7 +695,7 @@ public class AttendanceRoutes implements Routes {
         int id = pathInt(ctx, "id");
         verifySessionOwnership(id, userSession);
         attendanceService.unlockSession(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_SHEET_NOT_HERE_TO_REOPEN.raise();
         });
     }
 
@@ -712,7 +714,7 @@ public class AttendanceRoutes implements Routes {
         int id = pathInt(ctx, "id");
         verifySessionOwnership(id, userSession);
         attendanceService.lockSession(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_SHEET_NOT_HERE_TO_CLOSE.raise();
         });
     }
 
@@ -734,7 +736,7 @@ public class AttendanceRoutes implements Routes {
         attendanceService
                 .updateSession(id, request.startTime(), request.endTime(), request.title(), request.countedMinutes())
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw new NotFoundResponse();
+                    throw Refusal.ATTENDANCE_SHEET_NOT_HERE_TO_CHANGE.raise();
                 });
     }
 
@@ -756,7 +758,7 @@ public class AttendanceRoutes implements Routes {
         if (attendanceService.deleteSession(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_SHEET_NOT_HERE_TO_DELETE.raise();
         }
     }
 
@@ -827,7 +829,7 @@ public class AttendanceRoutes implements Routes {
         verifySessionOwnership(sessionId, session);
         var request = ctx.bodyAsClass(CreateEntryRequest.class);
         if (request.memberId() == null) {
-            throw new BadRequestResponse("memberId is required");
+            throw Refusal.ATTENDANCE_ENTRY_NAMES_NO_MEMBER.raise();
         }
         verifyMemberInStation(request.memberId(), session);
         var source = request.source() != null ? request.source() : AttendanceEntry.EntrySource.EXTRA;
@@ -850,7 +852,7 @@ public class AttendanceRoutes implements Routes {
         if (attendanceService.checkIn(entryTime.id(), entryTime.time())) {
             ctx.json(new TimestampResponse(entryTime.id(), entryTime.time()));
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_CHECK_IN_ENTRY_NOT_HERE.raise();
         }
     }
 
@@ -870,7 +872,7 @@ public class AttendanceRoutes implements Routes {
         if (attendanceService.checkOut(entryTime.id(), entryTime.time())) {
             ctx.json(new TimestampResponse(entryTime.id(), entryTime.time()));
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_CHECK_OUT_ENTRY_NOT_HERE.raise();
         }
     }
 
@@ -905,7 +907,7 @@ public class AttendanceRoutes implements Routes {
         if (attendanceService.deleteEntry(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_ENTRY_NOT_HERE_TO_DELETE.raise();
         }
     }
 
@@ -928,12 +930,12 @@ public class AttendanceRoutes implements Routes {
         var request = ctx.bodyAsClass(StatusRequest.class);
         AttendanceEntry.AttendanceStatus status = request.status();
         if (status == null) {
-            throw new BadRequestResponse("status must be UNCONFIRMED, PRESENT, ABSENT, or DECLINED");
+            throw Refusal.ATTENDANCE_STATUS_NOT_GIVEN.raise();
         }
         if (attendanceService.updateEntryStatus(id, status)) {
             ctx.json(new StatusResponse(id, status));
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_STATUS_ENTRY_NOT_HERE.raise();
         }
     }
 
@@ -954,7 +956,7 @@ public class AttendanceRoutes implements Routes {
         if (attendanceService.resetTimes(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_RESET_TIMES_ENTRY_NOT_HERE.raise();
         }
     }
 
@@ -990,7 +992,7 @@ public class AttendanceRoutes implements Routes {
         String generatedBy = NameParts.of(session.account()).official();
         var pdf = exportService.exportSessionPdf(sessionId, generatedBy, sheetOptions(ctx));
         if (pdf.isEmpty()) {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_SHEET_PDF_NOT_MADE.raise();
         }
         ctx.contentType("application/pdf");
         ctx.header("Content-Disposition", pdf.get().contentDisposition());
@@ -1051,10 +1053,10 @@ public class AttendanceRoutes implements Routes {
         String toStr = ctx.queryParam("to");
         String rounding = ctx.queryParamAsClass("rounding", String.class).getOrDefault("exact");
         if (fromStr == null || toStr == null) {
-            throw new BadRequestResponse("from and to are required");
+            throw Refusal.ATTENDANCE_REPORT_SPAN_MISSING.raise();
         }
         if (userTypes.isEmpty() && groupIds.isEmpty()) {
-            throw new BadRequestResponse("userTypes or groupIds is required");
+            throw Refusal.ATTENDANCE_REPORT_AUDIENCE_MISSING.raise();
         }
         Instant from = Instant.parse(fromStr);
         Instant to = Instant.parse(toStr);
@@ -1093,7 +1095,7 @@ public class AttendanceRoutes implements Routes {
                 period,
                 CsvWriter.Separator.of(ctx.queryParam("separator")));
         if (csv.isEmpty()) {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_REPORT_TABLE_EMPTY.raise();
         }
         ctx.contentType("text/csv");
         ctx.header("Content-Disposition", csv.get().contentDisposition());
@@ -1115,7 +1117,7 @@ public class AttendanceRoutes implements Routes {
                 generatedBy,
                 period);
         if (pdf.isEmpty()) {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_REPORT_PDF_EMPTY.raise();
         }
         ctx.contentType("application/pdf");
         ctx.header("Content-Disposition", pdf.get().contentDisposition());
@@ -1148,7 +1150,7 @@ public class AttendanceRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreatePresetRequest.class);
         if (isBlank(request.name())) {
-            throw new BadRequestResponse("name is required");
+            throw Refusal.ATTENDANCE_REPORT_PRESET_NEEDS_A_NAME.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(reportService.createPreset(
@@ -1176,12 +1178,12 @@ public class AttendanceRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         if (reportService.findPresets(session.stationId()).stream().noneMatch(p -> p.id() == id)) {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_REPORT_PRESET_NOT_YOURS.raise();
         }
         if (reportService.deletePreset(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.ATTENDANCE_REPORT_PRESET_NOT_HERE_TO_DELETE.raise();
         }
     }
 
@@ -1226,14 +1228,14 @@ public class AttendanceRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(AbsenceRequest.class);
         if (request.memberId() == null) {
-            throw new BadRequestResponse("memberId is required");
+            throw Refusal.ABSENCE_MEMBER_NOT_NAMED.raise();
         }
         verifyMemberInStation(request.memberId(), session);
         if (request.absentFrom() == null || request.absentUntil() == null) {
-            throw new BadRequestResponse("absentFrom and absentUntil are required");
+            throw Refusal.ABSENCE_SPAN_MISSING.raise();
         }
         if (request.absentUntil().isBefore(request.absentFrom())) {
-            throw new BadRequestResponse("absentUntil must not be before absentFrom");
+            throw Refusal.ABSENCE_ENDS_BEFORE_IT_STARTS.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(attendanceService.createAbsence(
@@ -1255,12 +1257,12 @@ public class AttendanceRoutes implements Routes {
     private void deleteAbsence(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var absence = attendanceService.findAbsenceById(id).orElseThrow(NotFoundResponse::new);
+        var absence = attendanceService.findAbsenceById(id).orElseThrow(Refusal.ABSENCE_NOT_HERE::raise);
         verifyMemberInStation(absence.memberId(), session);
         if (attendanceService.deleteAbsence(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw new NotFoundResponse();
+            throw Refusal.ABSENCE_NOT_HERE_TO_DELETE.raise();
         }
     }
 
@@ -1301,16 +1303,16 @@ public class AttendanceRoutes implements Routes {
     private void createMyAbsence(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {
-            throw new BadRequestResponse("Not a station member");
+            throw Refusal.ABSENCE_NOT_A_STATION_MEMBER.raise();
         }
         var req = ctx.bodyAsClass(MyAbsenceRequest.class);
         if (req.absentFrom() == null || req.absentUntil() == null) {
-            throw new BadRequestResponse("absentFrom and absentUntil are required");
+            throw Refusal.MY_ABSENCE_SPAN_MISSING.raise();
         }
         LocalDate from = req.absentFrom();
         LocalDate until = req.absentUntil();
         if (until.isBefore(from)) {
-            throw new BadRequestResponse("absentUntil must not be before absentFrom");
+            throw Refusal.MY_ABSENCE_ENDS_BEFORE_IT_STARTS.raise();
         }
 
         // Determine which members to create absences for
@@ -1323,7 +1325,7 @@ public class AttendanceRoutes implements Routes {
                 if (mid == session.member().id() || managed.contains(mid)) {
                     memberIds.add(mid);
                 } else {
-                    throw new ForbiddenResponse("You do not manage member " + mid);
+                    throw Refusal.ABSENCE_MEMBER_NOT_YOURS.raise();
                 }
             }
         } else {
@@ -1353,7 +1355,7 @@ public class AttendanceRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var absence = attendanceService.findAbsenceById(id);
         if (absence.isEmpty()) {
-            throw new NotFoundResponse();
+            throw Refusal.MY_ABSENCE_NOT_HERE.raise();
         }
         // Allow deleting own or managed members' absences
         int absMemberId = absence.get().memberId();
@@ -1362,10 +1364,10 @@ public class AttendanceRoutes implements Routes {
                 && session.hasPermission(StationPermission.MEMBER_GUARDIAN)
                 && attendanceService.findManagedMemberIds(session.member().id()).contains(absMemberId);
         if (!isOwn && !manages) {
-            throw new ForbiddenResponse("Cannot delete this absence");
+            throw Refusal.MY_ABSENCE_NOT_YOURS_TO_DELETE.raise();
         }
         if (!attendanceService.deleteAbsence(id)) {
-            throw new NotFoundResponse();
+            throw Refusal.MY_ABSENCE_NOT_HERE_TO_DELETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }

@@ -12,9 +12,7 @@ import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.system.service.InstallPresetService;
 import dev.chojo.ember.util.ClientIp;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -59,7 +57,7 @@ public class InstallRoutes implements Routes {
     private void createPreset(Context ctx) {
         var answers = ctx.bodyAsClass(PresetRequest.class);
         if (answers.options() == null || answers.options().isEmpty()) {
-            throw new BadRequestResponse("No options given");
+            throw Refusal.INSTALL_ANSWERS_MISSING.raise();
         }
         String code = presets.store(answers.options());
         ctx.json(new PresetResponse(code, presets.lifetime().toHours()));
@@ -88,8 +86,7 @@ public class InstallRoutes implements Routes {
                             Refusal.SETUP_TOO_OFTEN, Refusal.SETUP_TOO_OFTEN.message(), retryAfter.get()));
             return;
         }
-        var options = presets.find(ctx.pathParam("code"))
-                .orElseThrow(() -> new NotFoundResponse("Unknown or expired install code"));
+        var options = presets.find(ctx.pathParam("code")).orElseThrow(Refusal.INSTALL_CODE_NOT_GOOD::raise);
         var body = new StringBuilder();
         options.forEach(
                 (key, value) -> body.append(key).append('=').append(value).append('\n'));
