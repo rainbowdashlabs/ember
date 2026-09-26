@@ -301,6 +301,10 @@ tasks {
         testClassesDirs = sourceSets.test.get().output.classesDirs
         classpath = sourceSets.test.get().runtimeClasspath
         useJUnitPlatform { excludeTags("locale") }
+        systemProperty(
+            "refusal.baseline.update",
+            providers.systemProperty("refusal.baseline.update").getOrElse("false"),
+        )
         testLogging { events("passed", "skipped", "failed") }
         filter {
             excludeTestsMatching("*.repository.*")

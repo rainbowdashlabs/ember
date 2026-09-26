@@ -161,6 +161,8 @@ Backend
                         testServices suite. A --tests filter must target a single suite: Gradle
                         fails any suite the pattern matches nothing in.
                         Suites: testServices, testRepositories, testOther, testTracking
+  be-refusal-baseline   Rewrite the frozen count of unnamed failures thrown outside the route
+                        layer. Never raises a count, so it only ever records progress.
   be-compile            Compile main and test sources
   be-spotless           Apply Java formatting
   be-coverage           Coverage gate only (needs a prior test run)
@@ -438,6 +440,11 @@ case "$cmd" in
         suite="${1:-testServices}"; shift || true
         cd "$ROOT"
         run ./gradlew "$suite" --tests "$pattern" "$@"
+        ;;
+    be-refusal-baseline)
+        cd "$ROOT"
+        run ./gradlew testOther --tests '*RefusalCoverageTest*' \
+            -Drefusal.baseline.update=true --rerun-tasks "$@"
         ;;
     be-compile)    cd "$ROOT"; run ./gradlew compileJava compileTestJava "$@" ;;
     be-spotless)   cd "$ROOT"; run ./gradlew spotlessJavaApply "$@" ;;
