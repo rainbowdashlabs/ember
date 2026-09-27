@@ -259,7 +259,8 @@ class DemoServiceTest extends RepositoryTestBase {
         var quizService = new QuizService(
                 new QuizCatalogService(quizCatalogRepo),
                 quizQuestionService,
-                new QuizTestService(quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo)),
+                new QuizTestService(
+                        quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo), restrictionService),
                 new QuizAttemptService(quizTestRepo, quizQuestionService, new QuizAnswerGrader()));
         var protocolService = new TestProtocolService(
                 testProtocolRepo,
@@ -532,7 +533,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 new LostAndFoundImageService(imageVariantWriter, stationRepo),
                 formRepo,
                 quizTestRepo,
-                new QuizTestService(quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo)),
+                new QuizTestService(
+                        quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo), restrictionService),
                 accountRepo,
                 stationMemberRepo);
 

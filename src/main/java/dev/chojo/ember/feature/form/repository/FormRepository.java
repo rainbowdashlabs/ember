@@ -171,7 +171,14 @@ public class FormRepository {
                 .first();
     }
 
-    public List<Form> findForcedPending(int stationId, int memberId) {
+    /**
+     * The forms of a station that must be answered and currently take answers, whoever they are
+     * meant for.
+     *
+     * @param stationId the station
+     * @return the forms, by title
+     */
+    public List<Form> findForcedOpen(int stationId) {
         return query("""
                 SELECT %s, %s
                 FROM form f
@@ -180,11 +187,8 @@ public class FormRepository {
                   AND f.status = 'OPEN'
                   AND (f.start_at IS NULL OR f.start_at <= now())
                   AND (f.end_at IS NULL OR f.end_at >= now())
-                  AND NOT exists (
-                      SELECT 1 FROM form_response fr
-                      WHERE fr.form_id = f.id AND fr.member_id = :member_id)
                 ORDER BY f.title;""", FORM_COLUMNS, FORM_COMPUTED)
-                .single(call().bind("station_id", stationId).bind("member_id", memberId))
+                .single(call().bind("station_id", stationId))
                 .map(Form.map())
                 .all();
     }

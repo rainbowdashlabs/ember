@@ -303,8 +303,8 @@ class FormRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(61)
-    void findForcedPendingEmpty() {
-        assertTrue(formRepo.findForcedPending(station.id(), member.id()).isEmpty());
+    void findForcedOpenEmpty() {
+        assertTrue(formRepo.findForcedOpen(station.id()).isEmpty());
     }
 
     @Test

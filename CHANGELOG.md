@@ -15,6 +15,7 @@
 ### Fixes
 
 - **An attendance sheet made from an appointment marked everybody who had accepted as present.** Accepting beforehand counted as having come, so the check had nothing left to check. Those rows are now left open to be marked.
+- **Forms and tests that must be answered were demanded from everybody.** A form or test limited to certain groups still asked every member of the station to fill it in. Now only the people it is meant for are asked, and guardians are asked for the members in their care.
 - **A mention added while editing a comment notified nobody.** Only mentions in a comment as first posted reached anybody, so a name added a moment later went unnoticed. Mentions added by an edit now notify, while those already there are not repeated.
 
 ## v26.19.2

@@ -59,7 +59,7 @@ class RequirementsServiceTest {
 
     @Test
     void getRequirementsWithEmptyLists() {
-        when(formService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(formService.findForcedPending(1, List.of(10))).thenReturn(List.of());
         when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
         when(profileFieldService.isProfileComplete(10)).thenReturn(true);
 
@@ -74,7 +74,7 @@ class RequirementsServiceTest {
     void getRequirementsWithPopulatedLists() {
         var forms = List.of(new RequirementItem(1, "Form A"), new RequirementItem(2, "Form B"));
         var quizzes = List.of(new RequirementItem(3, "Quiz C"));
-        when(formService.findForcedPending(1, 10)).thenReturn(forms);
+        when(formService.findForcedPending(1, List.of(10))).thenReturn(forms);
         when(quizService.findForcedPending(1, 10)).thenReturn(quizzes);
         when(profileFieldService.isProfileComplete(10)).thenReturn(false);
 
@@ -89,7 +89,7 @@ class RequirementsServiceTest {
 
     @Test
     void getRequirementsProfileComplete() {
-        when(formService.findForcedPending(2, 20)).thenReturn(List.of());
+        when(formService.findForcedPending(2, List.of(20))).thenReturn(List.of());
         when(quizService.findForcedPending(2, 20)).thenReturn(List.of());
         when(profileFieldService.isProfileComplete(20)).thenReturn(true);
 
@@ -100,7 +100,7 @@ class RequirementsServiceTest {
 
     @Test
     void getRequirementsProfileIncomplete() {
-        when(formService.findForcedPending(2, 20)).thenReturn(List.of());
+        when(formService.findForcedPending(2, List.of(20))).thenReturn(List.of());
         when(quizService.findForcedPending(2, 20)).thenReturn(List.of());
         when(profileFieldService.isProfileComplete(20)).thenReturn(false);
 
@@ -138,7 +138,7 @@ class RequirementsServiceTest {
 
     @Test
     void getRequirementsWithMultipleRoles() {
-        when(formService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(formService.findForcedPending(1, List.of(10))).thenReturn(List.of());
         when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
         when(profileFieldService.isProfileComplete(10)).thenReturn(true);
 
@@ -150,7 +150,7 @@ class RequirementsServiceTest {
 
     @Test
     void countPendingZeroWhenNothingPending() {
-        when(formService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(formService.findForcedPending(1, List.of(10))).thenReturn(List.of());
         when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
         when(profileFieldService.isProfileComplete(10)).thenReturn(true);
 
@@ -163,7 +163,7 @@ class RequirementsServiceTest {
     void countPendingWithFormsAndQuizzes() {
         var forms = List.of(new RequirementItem(1, "Form A"), new RequirementItem(2, "Form B"));
         var quizzes = List.of(new RequirementItem(3, "Quiz C"));
-        when(formService.findForcedPending(1, 10)).thenReturn(forms);
+        when(formService.findForcedPending(1, List.of(10))).thenReturn(forms);
         when(quizService.findForcedPending(1, 10)).thenReturn(quizzes);
         when(profileFieldService.isProfileComplete(10)).thenReturn(true);
 
@@ -174,7 +174,7 @@ class RequirementsServiceTest {
 
     @Test
     void countPendingWithIncompleteProfile() {
-        when(formService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(formService.findForcedPending(1, List.of(10))).thenReturn(List.of());
         when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
         when(profileFieldService.isProfileComplete(10)).thenReturn(false);
 
@@ -187,7 +187,7 @@ class RequirementsServiceTest {
     void selfChecksAreListedAndCountedWithoutBlockingTheLanding() {
         var task = new SelfCheck(
                 7, 1, 10, null, Instant.EPOCH, LocalDate.of(2026, 11, 1), SelfCheckState.OPEN, null, null, null, null);
-        when(formService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(formService.findForcedPending(1, List.of(10))).thenReturn(List.of());
         when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
         when(profileFieldService.isProfileComplete(10)).thenReturn(true);
         when(selfCheckService.outstandingFor(10, false)).thenReturn(List.of(task));
@@ -207,7 +207,7 @@ class RequirementsServiceTest {
 
     @Test
     void aGuardianIsAskedForTheirOwnAndTheirChargesSelfChecks() {
-        when(formService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(formService.findForcedPending(1, List.of(10))).thenReturn(List.of());
         when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
         when(profileFieldService.isProfileComplete(10)).thenReturn(true);
         when(selfCheckService.countOutstandingFor(10, true)).thenReturn(3);
@@ -219,7 +219,7 @@ class RequirementsServiceTest {
 
     @Test
     void aRegistrationShortOfAnswerIsListedAndCountedWithoutBlockingTheLanding() {
-        when(formService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(formService.findForcedPending(1, List.of(10))).thenReturn(List.of());
         when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
         when(profileFieldService.isProfileComplete(10)).thenReturn(true);
         when(registrationService.findShortOfAnswer(List.of(10)))
@@ -244,7 +244,7 @@ class RequirementsServiceTest {
 
     @Test
     void aGuardianSeesWhoseRegistrationStillOwesAnAnswer() {
-        when(formService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(formService.findForcedPending(1, List.of(10))).thenReturn(List.of());
         when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
         when(profileFieldService.isProfileComplete(10)).thenReturn(true);
         var charge = new StationMember(11, 1, null, null, false, null, "Kid", null, null);
@@ -260,11 +260,26 @@ class RequirementsServiceTest {
         assertEquals(11, result.registrationUpdates().getFirst().memberId());
     }
 
+    /** A guardian is asked for the forms that the members in their care owe, not only their own. */
+    @Test
+    void aGuardianIsAskedForTheFormsOwedInTheirCare() {
+        var charge = new StationMember(11, 1, null, null, false, null, "Kid", null, null);
+        when(stationMemberService.findManaged(10)).thenReturn(List.of(charge));
+        when(formService.findForcedPending(1, List.of(10, 11)))
+                .thenReturn(List.of(new RequirementItem(5, "Übungszeit")));
+        when(profileFieldService.isProfileComplete(10)).thenReturn(true);
+
+        var result = requirementsService.getRequirements(10, 1, List.of("USER", "MEMBER_GUARDIAN"));
+
+        assertEquals(1, result.forcedForms().size());
+        assertEquals("Übungszeit", result.forcedForms().getFirst().title());
+    }
+
     @Test
     void countPendingWithEverythingPending() {
         var forms = List.of(new RequirementItem(1, "Form A"));
         var quizzes = List.of(new RequirementItem(2, "Quiz B"), new RequirementItem(3, "Quiz C"));
-        when(formService.findForcedPending(2, 20)).thenReturn(forms);
+        when(formService.findForcedPending(2, List.of(20))).thenReturn(forms);
         when(quizService.findForcedPending(2, 20)).thenReturn(quizzes);
         when(profileFieldService.isProfileComplete(20)).thenReturn(false);
 

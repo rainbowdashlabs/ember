@@ -133,7 +133,22 @@ public class RestrictionService {
         if (memberPermissions.contains(type.managerPermission())) {
             return true;
         }
+        return includes(type, entityId, memberId);
+    }
 
+    /**
+     * Whether an entity's restrictions take in a member, with no manager bypass.
+     *
+     * <p>This is whom an entity is meant for rather than who may look at it. A manager may open
+     * every restricted form, which does not make them one of the people it asks to answer, so
+     * anything that asks somebody to act reads this and not {@link #checkRestriction}.
+     *
+     * @param type     the restricted entity type
+     * @param entityId the entity
+     * @param memberId the member
+     * @return {@code true} where the entity has no restrictions or the member passes them
+     */
+    public boolean includes(RestrictionType type, int entityId, int memberId) {
         var member = stationMemberRepository.findById(memberId).orElse(null);
         if (member == null) return false;
 

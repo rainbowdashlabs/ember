@@ -15,6 +15,7 @@
 ### Fehlerbehebungen
 
 - **Eine aus einem Termin erstellte Anwesenheitsliste trug alle Zusagen als anwesend ein.** Eine Zusage im Voraus zählte so schon als Kommen, und bei der Kontrolle blieb nichts mehr zu prüfen. Diese Zeilen bleiben jetzt offen, bis sie abgehakt werden.
+- **Pflichtformulare und Pflichttests wurden von allen verlangt.** Ein auf bestimmte Gruppen beschränktes Formular oder ein solcher Test forderte trotzdem jedes Mitglied der Wache zum Ausfüllen auf. Jetzt werden nur die gefragt, für die es gedacht ist, und Erziehungsberechtigte für die Mitglieder in ihrer Obhut.
 - **Eine beim Bearbeiten eines Kommentars ergänzte Erwähnung benachrichtigte niemanden.** Nur Erwähnungen im ursprünglich geschriebenen Kommentar kamen an, ein kurz darauf ergänzter Name blieb also unbemerkt. Beim Bearbeiten ergänzte Erwähnungen benachrichtigen jetzt, bereits vorhandene werden nicht erneut gemeldet.
 
 ## v26.19.2
