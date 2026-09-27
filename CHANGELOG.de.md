@@ -1,5 +1,22 @@
 # Änderungsprotokoll
 
+## v26.19.3
+
+### Verbesserungen
+
+- **Ein Tausch zeigt in der Liste der Bewegungen beide Größen.** Eine Zeile, die eine Größe gegen eine andere tauscht, zeigt die abgegebene und die gewünschte Größe nebeneinander, mit einem Pfeil dazwischen, sodass auf einen Blick klar ist, was getauscht wird.
+- **Beim Auswählen des Ersatzteils ist die richtige Größe sofort zu sehen.** Die gewünschte Größe steht über dem Teil, das ausgewählt oder neu erfasst wird, und Teile im Lager in dieser Größe sind hervorgehoben und stehen oben.
+
+### Änderungen
+
+- **Pro Termin beantworten gibt es nur noch bei wiederkehrenden Terminen.** Der Schalter, eine Frage für jeden Termin einzeln zu beantworten, erscheint bei einem einmaligen Termin nicht mehr, denn dort gibt es nur einen Termin.
+- **Termine → Verwalten zeigt die heutigen Termine nicht mehr oben an.** Die heutigen Termine und das Erfassen der Anwesenheit dafür finden sich auf der Seite Termine, die sich über die Seitenleiste öffnet.
+
+### Fehlerbehebungen
+
+- **Eine aus einem Termin erstellte Anwesenheitsliste trug alle Zusagen als anwesend ein.** Eine Zusage im Voraus zählte so schon als Kommen, und bei der Kontrolle blieb nichts mehr zu prüfen. Diese Zeilen bleiben jetzt offen, bis sie abgehakt werden.
+- **Eine beim Bearbeiten eines Kommentars ergänzte Erwähnung benachrichtigte niemanden.** Nur Erwähnungen im ursprünglich geschriebenen Kommentar kamen an, ein kurz darauf ergänzter Name blieb also unbemerkt. Beim Bearbeiten ergänzte Erwähnungen benachrichtigen jetzt, bereits vorhandene werden nicht erneut gemeldet.
+
 ## v26.19.2
 
 ### Verbesserungen
