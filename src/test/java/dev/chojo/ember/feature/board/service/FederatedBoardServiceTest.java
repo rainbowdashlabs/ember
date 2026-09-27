@@ -92,7 +92,8 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 newStationMemberService(null, null),
                 memberIdentityFactory,
                 memberNameResolver,
-                attachmentSvc);
+                attachmentSvc,
+                silentCommentMentions());
 
         station = stationRepo.create("FedBoardStation");
         partnerStation = stationRepo.create("FedBoardPartner");

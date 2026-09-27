@@ -41,7 +41,8 @@ class QuizAttemptServiceTest extends RepositoryTestBase {
     static void setup() {
         service =
                 new QuizAttemptService(quizTestRepo, new QuizQuestionService(quizCatalogRepo), new QuizAnswerGrader());
-        testService = new QuizTestService(quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo));
+        testService = new QuizTestService(
+                quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo), restrictionService);
         station = stationRepo.create("QuizAttemptSvcStation");
         account = accountRepo.create("quiz-attempt-svc@test.com", "Quiz", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());

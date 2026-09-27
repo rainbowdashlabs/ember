@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -30,6 +31,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.mockito.Mockito.mock;
 
 @Tag("database")
 class QuizPdfExportTest {
@@ -99,7 +101,8 @@ class QuizPdfExportTest {
         stationRepo = new StationRepository();
         catalogRepo = new QuizCatalogRepository();
         testRepo = new QuizTestRepository();
-        testService = new QuizTestService(testRepo, new QuizQuestionSelector(catalogRepo, testRepo));
+        testService = new QuizTestService(
+                testRepo, new QuizQuestionSelector(catalogRepo, testRepo), mock(RestrictionService.class));
         var backend = new LocalStorageBackend();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         var imageService = new QuizQuestionImageService(new ImageVariantService(storage), stationRepo);

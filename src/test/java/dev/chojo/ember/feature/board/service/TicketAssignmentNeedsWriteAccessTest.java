@@ -76,7 +76,8 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
                 memberService,
                 memberIdentityFactory,
                 memberNameResolver,
-                new BoardAttachmentService(storage, stationRepo, backend));
+                new BoardAttachmentService(storage, stationRepo, backend),
+                silentCommentMentions());
 
         station = stationRepo.create("Assignment Station");
         writerAccount = accountRepo.create("assign-writer@test.com", "Wanda", "Writer");

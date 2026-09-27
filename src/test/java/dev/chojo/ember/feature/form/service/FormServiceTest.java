@@ -494,11 +494,39 @@ class FormServiceTest extends RepositoryTestBase {
         }
     }
 
+    /**
+     * A form that must be answered is owed only by the members its restrictions take in. Everybody
+     * else, managers included, is not asked, and a guardian is asked for the members in their care.
+     */
     @Test
     @Order(44)
-    void findForcedPending() {
-        var pending = service.findForcedPending(station.id(), member.id());
-        assertNotNull(pending);
+    void aForcedFormIsOwedOnlyByThoseItIsRestrictedTo() {
+        var childAccount = accountRepo.create("form-forced-child@test.com", "Kind", "Gruppe");
+        var child = stationMemberRepo.create(station.id(), childAccount.id());
+        var group = memberGroupRepo.create(station.id(), "Anfänger");
+        memberGroupRepo.addMember(group.id(), child.id());
+        var form = service.create(
+                station.id(), "Übungszeit", "", false, true, true, null, null, member.id(), FormPurpose.INTERNAL);
+        service.setRestrictions(
+                form.id(), new RestrictionSelection(List.of(), List.of(group.id()), List.of(), List.of(), null));
+        service.publish(form.id());
+        try {
+            assertTrue(owes(List.of(child.id()), form.id()), "the group member owes it");
+            assertFalse(owes(List.of(member.id()), form.id()), "somebody outside the group does not");
+            assertTrue(owes(List.of(member.id(), child.id()), form.id()), "a guardian owes it for the child");
+
+            service.submitResponse(form.id(), child.id(), member.id(), Map.of());
+            assertFalse(owes(List.of(member.id(), child.id()), form.id()), "an answered form is owed by nobody");
+        } finally {
+            service.delete(form.id());
+            memberGroupRepo.delete(group.id());
+            stationMemberRepo.delete(child.id());
+            accountRepo.delete(childAccount.id());
+        }
+    }
+
+    private static boolean owes(List<Integer> household, int formId) {
+        return service.findForcedPending(station.id(), household).stream().anyMatch(item -> item.id() == formId);
     }
 
     @Test

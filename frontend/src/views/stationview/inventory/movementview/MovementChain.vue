@@ -108,6 +108,7 @@ const drawnSteps = computed(() =>
             :sizes="props.sizes"
             :step="step"
             :wanted-size-id="movement.newSizeId ?? movement.oldSizeId"
+            :wanted-size-name="movement.newSizeName ?? movement.oldSizeName"
             @acknowledge="payload => emit('acknowledge', payload)"
             @force="payload => emit('force', payload)"
             @decline="reason => emit('decline', reason)"

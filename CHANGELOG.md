@@ -1,5 +1,23 @@
 # Changelog
 
+## v26.19.3
+
+### Improvements
+
+- **An exchange shows both sizes in the movements list.** A row swapping one size for another shows the size handed in and the size asked for side by side, with an arrow between, so what is being exchanged reads at a glance.
+- **Choosing the replacement piece points at the right size.** The size asked for stands above the piece being picked or written down, and pieces on the shelf in that size are highlighted and offered first.
+
+### Changes
+
+- **Answering per date is offered only on repeating appointments.** The switch to answer a question separately for each date no longer shows on an appointment that happens once, where there is only one date to answer for.
+- **Managing appointments no longer lists today's appointments on top.** Today's appointments, and taking attendance for them, are on the Appointments page that opens from the sidebar.
+
+### Fixes
+
+- **An attendance sheet made from an appointment marked everybody who had accepted as present.** Accepting beforehand counted as having come, so the check had nothing left to check. Those rows are now left open to be marked.
+- **Forms and tests that must be answered were demanded from everybody.** A form or test limited to certain groups still asked every member of the station to fill it in. Now only the people it is meant for are asked, and guardians are asked for the members in their care.
+- **A mention added while editing a comment notified nobody.** Only mentions in a comment as first posted reached anybody, so a name added a moment later went unnoticed. Mentions added by an edit now notify, while those already there are not repeated.
+
 ## v26.19.2
 
 ### Improvements

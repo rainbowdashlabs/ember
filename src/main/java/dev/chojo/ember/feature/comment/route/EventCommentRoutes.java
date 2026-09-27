@@ -163,7 +163,8 @@ public class EventCommentRoutes implements Routes {
         if (request.content() == null || request.content().isBlank()) {
             throw Refusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
         }
-        commentService.update(commentId, request.content());
+        commentService.update(
+                session.stationId(), commentId, NameParts.of(session.account()).called(), request.content());
         var updated = commentService.findById(commentId).orElseThrow(Refusal.COMMENT_NOT_HERE_AFTER_CHANGE::raise);
         ctx.json(toResponse(updated));
     }

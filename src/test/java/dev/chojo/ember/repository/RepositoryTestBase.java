@@ -43,6 +43,7 @@ import dev.chojo.ember.feature.cluster.service.ClusterStorageBackendService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
+import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository;
@@ -658,6 +659,14 @@ public abstract class RepositoryTestBase {
      */
     protected static CellDescriptions noCellDescriptions() {
         return new CellDescriptions(mock(MediaLibraryService.class), (stationId, pageUid) -> Optional.empty());
+    }
+
+    /**
+     * Comment mentions resolved over the shared lookup service and announced to nobody, for tests
+     * that write comments without looking at who they would notify.
+     */
+    protected static CommentMentions silentCommentMentions() {
+        return new CommentMentions(memberLookupService, new DomainEventBus(Set.of()));
     }
 
     /**

@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import GearGlyph from '@/components/inventory/GearGlyph.vue'
+import ItemChipSize from '@/components/inventory/ItemChipSize.vue'
 import type {GlyphSurface} from '@/util/glyphOutline'
 import type {Glyph} from '@/util/glyph'
 
@@ -18,6 +19,8 @@ import type {Glyph} from '@/util/glyph'
  * @property name          what the piece is called
  * @property internalId    what is written on it, absent when nothing is
  * @property sizeName      its size, absent where the inventory keeps none
+ * @property replacedSize  the size it takes the place of, where an exchange swaps one size for another
+ * @property sizeWanted    whether its size is the one asked for, which draws the size as a fit
  * @property inventoryName which inventory it is out of, absent where the reader already knows
  * @property location      where it is or who has it, already put into words by the caller
  */
@@ -26,6 +29,8 @@ export interface ItemChipSource {
   name: string
   internalId?: string | null
   sizeName?: string | null
+  replacedSize?: string | null
+  sizeWanted?: boolean
   inventoryName?: string | null
   location?: string | null
 }
@@ -35,8 +40,10 @@ export interface ItemChipSource {
  *
  * <p>The first line is what the piece is: its picture, its name, its size and the identifier written
  * on it. The size is a chip of its own rather than a word glued to the name with a separator, because
- * a size is a fact about the piece and not part of what it is called. Where the line runs out, the
- * size and the identifier wrap under the name rather than being squeezed off the end of it.
+ * a size is a fact about the piece and not part of what it is called. An exchange shows the size it
+ * hands in before the size it asks for, with an arrow between, so the swap reads at a glance. Where
+ * the line runs out, the size and the identifier wrap under the name rather than being squeezed off
+ * the end of it.
  *
  * <p>The second line is where it is, which a reader only needs where a list spans more than one
  * inventory or more than one holder.
@@ -56,11 +63,16 @@ const hasLocation = () => Boolean(props.source.inventoryName || props.source.loc
     <span class="flex min-w-0 flex-col items-start text-left">
       <span class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
         <span class="truncate font-medium">{{ props.source.name }}</span>
-        <span
+        <template v-if="props.source.replacedSize">
+          <ItemChipSize :label="props.source.replacedSize" data-testid="item-chip-replaced-size"/>
+          <font-awesome-icon :icon="['fas', 'arrow-right']" class="shrink-0 text-xs text-(--text-muted)"/>
+        </template>
+        <ItemChipSize
             v-if="props.source.sizeName"
-            class="shrink-0 rounded-full bg-(--bg-accent) px-1.5 py-0.5 text-xs text-(--text-muted)"
+            :label="props.source.sizeName"
+            :wanted="props.source.sizeWanted"
             data-testid="item-chip-size"
-        >{{ props.source.sizeName }}</span>
+        />
         <span
             v-if="props.source.internalId"
             class="shrink-0 font-mono text-xs text-(--text-muted)"

@@ -7,13 +7,10 @@ package dev.chojo.ember.feature.comment.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
-import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -23,11 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.regex.Pattern;
 
 /**
  * Service providing business logic for event comments, including CRUD operations and @mention handling.
@@ -35,25 +29,30 @@ import java.util.regex.Pattern;
 @Singleton
 public class CommentService {
     private static final Logger log = LoggerFactory.getLogger(CommentService.class);
-    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
-    private static final Pattern BULK_MENTION_PATTERN =
-            Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
+    private static final int PREVIEW_LENGTH = 100;
 
     private final EventCommentRepository commentRepository;
     private final DomainEventBus eventBus;
     private final StationMemberService stationMemberService;
     private final StationRepository stationRepository;
+    private final CommentMentions mentions;
 
     @Inject
     public CommentService(
             EventCommentRepository commentRepository,
             DomainEventBus eventBus,
             StationMemberService stationMemberService,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            CommentMentions mentions) {
         this.commentRepository = commentRepository;
         this.eventBus = eventBus;
         this.stationMemberService = stationMemberService;
         this.stationRepository = stationRepository;
+        this.mentions = mentions;
+    }
+
+    private static String preview(String content) {
+        return content.length() > PREVIEW_LENGTH ? content.substring(0, PREVIEW_LENGTH) + "…" : content;
     }
 
     /**
@@ -127,7 +126,6 @@ public class CommentService {
             commentRepository.findById(parentId).ifPresent(parent -> {
                 Integer parentAuthorId = resolveLocalMemberId(stationId, parent.author());
                 if (parentAuthorId != null && !parentAuthorId.equals(authorMemberId)) {
-                    String preview = content.length() > 100 ? content.substring(0, 100) + "…" : content;
                     eventBus.publish(new CommentCreated(
                             stationId,
                             CommentEntityType.EVENT,
@@ -139,60 +137,79 @@ public class CommentService {
                             parentAuthorId,
                             authorMemberId,
                             authorName,
-                            preview));
+                            preview(content)));
                 }
             });
         }
 
-        // Parse @mentions and publish events (skip for federated comments without a local author)
         if (authorMemberId != null) {
-            String mentionPreview = content.length() > 100 ? content.substring(0, 100) + "…" : content;
-            var mentionedIds = parseMentions(stationId, content);
-            for (int mentionedId : mentionedIds) {
-                if (mentionedId != authorMemberId) {
-                    eventBus.publish(new MentionedInComment(
-                            stationId,
-                            mentionedId,
-                            authorMemberId,
-                            authorName,
-                            CommentEntityType.EVENT,
-                            eventId,
-                            entityTitle,
-                            null,
-                            comment.id(),
-                            mentionPreview));
-                }
-            }
-            parseBulkMentions(
-                    stationId,
-                    authorMemberId,
-                    authorName,
-                    CommentEntityType.EVENT,
-                    eventId,
-                    entityTitle,
-                    comment.id(),
-                    content,
-                    mentionPreview);
+            mentions.announce(
+                    mentionOrigin(stationId, authorMemberId, authorName, eventId, entityTitle, comment.id(), content),
+                    content);
         }
 
         return comment;
     }
 
     /**
-     * Updates the content of a comment.
+     * Updates the content of a comment and announces the mentions the edit added. Whoever the
+     * comment already mentioned is not told again, and a comment without a local author raises
+     * nothing, the same as when it was written.
      *
-     * @param id      the comment ID
-     * @param content the new content
+     * @param stationId  the station the comment was written in
+     * @param id         the comment ID
+     * @param authorName the display name of the author
+     * @param content    the new content
      * @return {@code true} if the comment was updated
      */
-    public boolean update(int id, String content) {
+    public boolean update(int stationId, int id, String authorName, String content) {
+        var previous = commentRepository.findById(id);
         boolean updated = commentRepository.update(id, content);
-        if (updated) {
-            log.info("Updated event comment {}", id);
-        } else {
+        if (!updated) {
             log.warn("Update for event comment {} affected zero rows", id);
+            return false;
         }
-        return updated;
+        log.info("Updated event comment {}", id);
+        previous.ifPresent(comment -> announceAddedMentions(stationId, comment, authorName, content));
+        return true;
+    }
+
+    private void announceAddedMentions(int stationId, Comment previous, String authorName, String content) {
+        Integer authorMemberId = resolveLocalMemberId(stationId, previous.author());
+        if (authorMemberId == null) return;
+        commentRepository
+                .findCommentedEvent(previous.id())
+                .ifPresent(event -> mentions.announceAdded(
+                        mentionOrigin(
+                                stationId,
+                                authorMemberId,
+                                authorName,
+                                event.id(),
+                                event.name(),
+                                previous.id(),
+                                content),
+                        previous.content(),
+                        content));
+    }
+
+    private static CommentMentions.Origin mentionOrigin(
+            int stationId,
+            int authorMemberId,
+            String authorName,
+            int eventId,
+            String eventTitle,
+            int commentId,
+            String content) {
+        return new CommentMentions.Origin(
+                stationId,
+                authorMemberId,
+                authorName,
+                CommentEntityType.EVENT,
+                eventId,
+                eventTitle,
+                null,
+                commentId,
+                preview(content));
     }
 
     /**
@@ -226,62 +243,5 @@ public class CommentService {
                 stationRepository.resolveId(identity.stationUid()).orElse(0);
         if (identityStationId != stationId) return null;
         return stationMemberService.resolveId(stationId, identity.memberUid()).orElse(null);
-    }
-
-    /**
-     * Extracts member IDs from @mention patterns in the content.
-     * Pattern: {@code @[123]} where 123 is the member ID.
-     *
-     * @param content the comment text
-     */
-    private void parseBulkMentions(
-            int stationId,
-            Integer authorMemberId,
-            String authorName,
-            CommentEntityType entityType,
-            int entityId,
-            String entityTitle,
-            int commentId,
-            String content,
-            String preview) {
-        var matcher = BULK_MENTION_PATTERN.matcher(content);
-        int addressed = 0;
-        while (matcher.find() && addressed++ < MentionLimits.MAX_BULK_MENTIONS) {
-            var type = MentionType.valueOf(matcher.group(1));
-            int targetId = Integer.parseInt(matcher.group(3));
-            eventBus.publish(new BulkMentionedInComment(
-                    stationId,
-                    authorMemberId,
-                    authorName,
-                    entityType,
-                    entityId,
-                    entityTitle,
-                    type,
-                    targetId,
-                    null,
-                    commentId,
-                    preview));
-        }
-    }
-
-    /**
-     * The members a comment mentions, resolved through the station the comment was written in.
-     *
-     * <p>Only the form carrying a station and a member uid is read. The numeric form editors used
-     * to write names a member by a bare id, which is an id on the whole instance, so reading it
-     * notifies a stranger in another station and hands them the comment. Comments already written
-     * in that form still render; they simply raise no notification.
-     */
-    private List<Integer> parseMentions(int stationId, String content) {
-        var mentions = new ArrayList<Integer>();
-        var matcher = MENTION_PATTERN.matcher(content);
-        while (matcher.find() && mentions.size() < MentionLimits.MAX_MEMBER_MENTIONS) {
-            try {
-                var memberUid = UUID.fromString(matcher.group(2));
-                stationMemberService.resolveId(stationId, memberUid).ifPresent(mentions::add);
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-        return mentions;
     }
 }

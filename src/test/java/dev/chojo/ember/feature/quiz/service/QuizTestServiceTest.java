@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.SectionEntry;
 import dev.chojo.ember.feature.quiz.entity.SourceEntry;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -38,7 +40,8 @@ class QuizTestServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new QuizTestService(quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo));
+        service = new QuizTestService(
+                quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo), restrictionService);
         station = stationRepo.create("QuizTestSvcStation");
         account = accountRepo.create("quiz-test-svc@test.com", "Quiz", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -255,6 +258,34 @@ class QuizTestServiceTest extends RepositoryTestBase {
         assertTrue(
                 service.findForcedPending(station.id(), member.id()).stream().anyMatch(item -> item.id() == test.id()));
         service.deleteTest(test.id());
+    }
+
+    /** A forced test restricted to a group is owed by its members and by nobody outside it. */
+    @Test
+    @Order(41)
+    void aForcedTestIsOwedOnlyByThoseItIsRestrictedTo() {
+        var insiderAccount = accountRepo.create("quiz-forced-insider@test.com", "In", "Gruppe");
+        var insider = stationMemberRepo.create(station.id(), insiderAccount.id());
+        var group = memberGroupRepo.create(station.id(), "Prüflinge");
+        memberGroupRepo.addMember(group.id(), insider.id());
+        var test = service.createTest(station.id(), "Forced restricted", "", null, false, true, member.id());
+        service.replaceSections(test.id(), oneSection(categoryId, 1));
+        restrictionService.setRestrictions(
+                RestrictionType.QUIZ_TEST,
+                test.id(),
+                new RestrictionSelection(List.of(), List.of(group.id()), List.of(), List.of(), null));
+        service.activateTest(test.id());
+        try {
+            assertTrue(service.findForcedPending(station.id(), insider.id()).stream()
+                    .anyMatch(item -> item.id() == test.id()));
+            assertTrue(service.findForcedPending(station.id(), member.id()).stream()
+                    .noneMatch(item -> item.id() == test.id()));
+        } finally {
+            service.deleteTest(test.id());
+            memberGroupRepo.delete(group.id());
+            stationMemberRepo.delete(insider.id());
+            accountRepo.delete(insiderAccount.id());
+        }
     }
 
     @Test

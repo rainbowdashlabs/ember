@@ -136,7 +136,8 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 newStationMemberService(null, null),
                 memberIdentityFactory,
                 resolver,
-                attachmentSvc);
+                attachmentSvc,
+                silentCommentMentions());
         federationRepository = mock(FederationRepository.class);
 
         var gateway = new FederatedBoardRemoteGateway(httpClient, stationRepo);

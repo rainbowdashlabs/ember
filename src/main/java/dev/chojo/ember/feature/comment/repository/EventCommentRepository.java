@@ -169,6 +169,32 @@ public class EventCommentRepository {
     }
 
     /**
+     * The event a comment hangs under, by id and name.
+     *
+     * @param id   the event
+     * @param name what it is called
+     */
+    public record CommentedEvent(int id, String name) {}
+
+    /**
+     * Finds the event a comment was written under.
+     *
+     * @param commentId the comment ID
+     * @return the event, empty when there is no such comment
+     */
+    public Optional<CommentedEvent> findCommentedEvent(int commentId) {
+        return query("""
+                SELECT e.id, e.name
+                FROM
+                    event_comment c
+                    JOIN station_event e ON e.id = c.event_id
+                WHERE c.id = :id;""")
+                .single(call().bind("id", commentId))
+                .map(row -> new CommentedEvent(row.getInt("id"), row.getString("name")))
+                .first();
+    }
+
+    /**
      * Checks whether a comment has any child replies.
      *
      * @param id the comment ID

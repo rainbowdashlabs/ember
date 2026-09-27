@@ -15,10 +15,12 @@ import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
+import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -41,6 +43,7 @@ class KbCommentServiceTest extends RepositoryTestBase {
     private static KbCommentRepository commentRepository;
     private static DomainEventBus eventBus;
     private static StationMemberService stationMemberService;
+    private static MemberLookupService memberLookup;
     private static Station station;
     private static Account account;
     private static StationMember member;
@@ -51,8 +54,14 @@ class KbCommentServiceTest extends RepositoryTestBase {
         commentRepository = mock(KbCommentRepository.class);
         eventBus = mock(DomainEventBus.class);
         stationMemberService = mock(StationMemberService.class);
+        memberLookup = mock(MemberLookupService.class);
         service = new KbCommentService(
-                knowledgeBaseRepo, commentRepository, memberIdentityFactory, stationMemberService, eventBus);
+                knowledgeBaseRepo,
+                commentRepository,
+                memberIdentityFactory,
+                stationMemberService,
+                eventBus,
+                new CommentMentions(memberLookup, eventBus));
         station = stationRepo.create("KbCommentStation");
         account = accountRepo.create("kb-comment@test.com", "Kb", "CommentTester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -89,7 +98,7 @@ class KbCommentServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void resetMocks() {
-        reset(eventBus, commentRepository, stationMemberService);
+        reset(eventBus, commentRepository, stationMemberService, memberLookup);
     }
 
     /**
@@ -106,7 +115,7 @@ class KbCommentServiceTest extends RepositoryTestBase {
                 .formatted(station.uid(), mentionedUid, numericMemberId);
         when(commentRepository.create(anyInt(), any(), any(), anyString()))
                 .thenReturn(storedComment(500, null, content));
-        when(stationMemberService.resolveId(station.id(), mentionedUid)).thenReturn(Optional.of(mentionedMemberId));
+        when(memberLookup.resolveId(station.id(), mentionedUid)).thenReturn(Optional.of(mentionedMemberId));
 
         var comment = service.createComment(station.id(), fileId, null, member.id(), "Author", content);
         assertEquals(500, comment.id());
@@ -153,14 +162,63 @@ class KbCommentServiceTest extends RepositoryTestBase {
                 .formatted(station.uid(), selfUid, station.uid(), station.uid(), unknownUid, member.id());
         when(commentRepository.create(anyInt(), any(), any(), anyString()))
                 .thenReturn(storedComment(501, null, content));
-        when(stationMemberService.resolveId(station.id(), selfUid)).thenReturn(Optional.of(member.id()));
-        when(stationMemberService.resolveId(station.id(), unknownUid)).thenReturn(Optional.empty());
+        when(memberLookup.resolveId(station.id(), selfUid)).thenReturn(Optional.of(member.id()));
+        when(memberLookup.resolveId(station.id(), unknownUid)).thenReturn(Optional.empty());
 
         service.createComment(station.id(), fileId, null, member.id(), "Author", content);
 
         assertTrue(
                 publishedEvents().stream().noneMatch(MentionedInComment.class::isInstance),
                 "no mention notification should survive");
+    }
+
+    /**
+     * An edit that adds a mention tells the member it adds, and only them: whoever the comment
+     * already mentioned, member or audience, heard about it when it was written.
+     */
+    @Test
+    void editsAnnounceOnlyTheMentionsTheyAdd() {
+        UUID keptUid = UUID.randomUUID();
+        UUID addedUid = UUID.randomUUID();
+        int keptMemberId = member.id() + 3000;
+        int addedMemberId = member.id() + 4000;
+        String before = "Hi @[%s/%s:Kept] @[GROUP:Crew:7]".formatted(station.uid(), keptUid);
+        String after = before + " and @[%s/%s:Added] @[EVENT:Everyone:9]".formatted(station.uid(), addedUid);
+        when(commentRepository.findById(502)).thenReturn(Optional.of(storedComment(502, null, before)));
+        when(memberLookup.resolveId(station.id(), keptUid)).thenReturn(Optional.of(keptMemberId));
+        when(memberLookup.resolveId(station.id(), addedUid)).thenReturn(Optional.of(addedMemberId));
+
+        service.updateComment(station.id(), 502, member.id(), "Author", after);
+
+        verify(commentRepository).update(502, after);
+        var events = publishedEvents();
+        var mentioned = events.stream()
+                .filter(MentionedInComment.class::isInstance)
+                .map(MentionedInComment.class::cast)
+                .toList();
+        assertEquals(1, mentioned.size());
+        assertEquals(addedMemberId, mentioned.getFirst().mentionedMemberId());
+        assertEquals(502, mentioned.getFirst().commentId());
+        assertEquals("Commented File", mentioned.getFirst().entityTitle());
+        var bulk = events.stream()
+                .filter(BulkMentionedInComment.class::isInstance)
+                .map(BulkMentionedInComment.class::cast)
+                .toList();
+        assertEquals(1, bulk.size());
+        assertEquals(MentionType.EVENT, bulk.getFirst().mentionType());
+    }
+
+    /** An edit that leaves the mentions as they were tells nobody anything. */
+    @Test
+    void editsThatKeepTheMentionsAnnounceNothing() {
+        UUID keptUid = UUID.randomUUID();
+        String before = "Hi @[%s/%s:Kept]".formatted(station.uid(), keptUid);
+        when(commentRepository.findById(503)).thenReturn(Optional.of(storedComment(503, null, before)));
+        when(memberLookup.resolveId(station.id(), keptUid)).thenReturn(Optional.of(member.id() + 3000));
+
+        service.updateComment(station.id(), 503, member.id(), "Author", before + " (typo fixed)");
+
+        verify(eventBus, never()).publish(any());
     }
 
     /**

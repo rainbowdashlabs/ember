@@ -33,7 +33,7 @@ const eventRoutes = useEventRoutes()
 
 const {
   tab, isPast, searchInput, categoryId, from, to,
-  todayEvents, breaks, categories, templates, overviewFields,
+  breaks, categories, templates, overviewFields,
   dates, series, isEmpty,
   loading, failure, reload, loadMore,
 } = useEventDashboard()
@@ -145,12 +145,6 @@ async function catchUp() {
   }
 }
 
-function goToAttendance(event: StationEvent) {
-  if (event.templateId) {
-    router.push({name: 'attendance-new', query: {templateId: String(event.templateId), eventId: String(event.id)}})
-  }
-}
-
 </script>
 
 <template>
@@ -175,7 +169,6 @@ function goToAttendance(event: StationEvent) {
       <EventDashboardBody
           v-if="!loading"
           :is-past="isPast"
-          :today-events="todayEvents"
           :dates="dates"
           :series="series"
           :is-empty="isEmpty"
@@ -183,7 +176,6 @@ function goToAttendance(event: StationEvent) {
           :templates="templates"
           :overview-fields="overviewFields"
           :breaks="breaks"
-          @attendance="goToAttendance"
           @add-event="openAddEvent"
           @edit-event="openEditEvent"
           @delete-event="requestDeleteEvent"

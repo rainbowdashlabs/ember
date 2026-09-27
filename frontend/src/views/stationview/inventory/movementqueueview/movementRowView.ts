@@ -26,6 +26,7 @@ export function useMovementRowView(movement: Ref<Movement>) {
         name: movement.value.itemName ?? movement.value.incomingItemName ?? movement.value.inventoryName ?? '',
         internalId: movement.value.itemInternalId,
         sizeName: movement.value.itemSizeName,
+        replacedSize: movement.value.newSizeName ? movement.value.oldSizeName : null,
         inventoryName: movement.value.itemName ? movement.value.inventoryName : null,
     }))
 

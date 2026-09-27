@@ -43,7 +43,8 @@ class QuizServiceTest extends RepositoryTestBase {
     static void setup() {
         var catalogService = new QuizCatalogService(quizCatalogRepo);
         var questionService = new QuizQuestionService(quizCatalogRepo);
-        testService = new QuizTestService(quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo));
+        testService = new QuizTestService(
+                quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo), restrictionService);
         service = new QuizService(
                 catalogService,
                 questionService,

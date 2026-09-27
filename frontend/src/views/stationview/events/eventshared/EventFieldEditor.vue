@@ -32,6 +32,8 @@ const props = defineProps<{
   groupMembers?: Map<number, StationMember[]>
   tags?: UserTag[]
   tagMembers?: Map<number, StationMember[]>
+  /** Whether the event repeats, which is what offers answering a field per date. */
+  recurring?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -214,6 +216,7 @@ watch(modelValue, incoming => {
         v-model:per-date="perDate"
         :field-type="fieldType"
         :groups="groups"
+        :recurring="recurring"
         :tags="tags"
     />
 

@@ -21,7 +21,7 @@ import type {RestrictionSelection} from '@/components/input/restriction'
 import EventFieldList from './EventFieldList.vue'
 import RepeatEndField from './RepeatEndField.vue'
 import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
-import {EventTypes, needsDayOfWeek, type EventCategory, type EventFieldEntry} from '@/api/events'
+import {EventTypes, isRecurringEvent, needsDayOfWeek, type EventCategory, type EventFieldEntry} from '@/api/events'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 
 defineProps<{
@@ -256,6 +256,7 @@ const {t} = useI18n()
         :group-members="groupMembers"
         :tags="tags"
         :tag-members="tagMembers"
+        :recurring="isRecurringEvent(eventType)"
     />
   </div>
 </template>

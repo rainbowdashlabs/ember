@@ -15,7 +15,7 @@ import EventDefaultsSection from './EventDefaultsSection.vue'
 import TemplateAudienceSection from './TemplateAudienceSection.vue'
 import type {RestrictionSelection} from '@/components/input/restriction'
 import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
-import type {EventCategory, EventFieldEntry} from '@/api/events'
+import {isRecurringEvent, type EventCategory, type EventFieldEntry} from '@/api/events'
 import type {MemberGroup, UserTag} from '@/api/types'
 
 /**
@@ -86,6 +86,7 @@ const {t} = useI18n()
         :attendance-fields="sheetFields"
         :groups="groups"
         :tags="tags"
+        :recurring="isRecurringEvent(eventType)"
         :value-label="t('eventFields.defaultValue')"
         show-value
     />

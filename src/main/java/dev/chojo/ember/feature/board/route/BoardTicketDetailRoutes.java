@@ -140,9 +140,10 @@ public class BoardTicketDetailRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void updateComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int commentId = requireCommentOn(ctx, guards.editableTicketId(ctx, session));
+        int ticketId = guards.editableTicketId(ctx, session);
+        int commentId = requireCommentOn(ctx, ticketId);
         var req = ctx.bodyAsClass(CommentRequest.class);
-        ticketService.updateComment(commentId, req.content());
+        ticketService.updateComment(ticketId, commentId, req.content());
         ctx.status(HttpStatus.OK);
     }
 

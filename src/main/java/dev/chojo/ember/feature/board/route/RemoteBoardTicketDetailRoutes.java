@@ -186,9 +186,10 @@ public class RemoteBoardTicketDetailRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void editComment(Context ctx) {
         var partner = guards.requirePartner(ctx);
-        int commentId = requireCommentOnTicket(ctx, guards.writableTicketId(ctx, partner));
+        int ticketId = guards.writableTicketId(ctx, partner);
+        int commentId = requireCommentOnTicket(ctx, ticketId);
         var req = ctx.bodyAsClass(RemoteEditCommentRequest.class);
-        ticketService.updateComment(commentId, req.content());
+        ticketService.updateComment(ticketId, commentId, req.content());
         ctx.status(204);
     }
 

@@ -59,7 +59,7 @@ public class RequirementsService {
     }
 
     public RequirementsResponse getRequirements(int memberId, int stationId, List<String> roleNames) {
-        var forcedForms = formService.findForcedPending(stationId, memberId);
+        var forcedForms = formService.findForcedPending(stationId, household(memberId, guardian(roleNames)));
         var forcedQuizzes = quizService.findForcedPending(stationId, memberId);
         boolean profileIncomplete = !profileFieldService.isProfileComplete(memberId);
         return new RequirementsResponse(
@@ -72,7 +72,9 @@ public class RequirementsService {
 
     public int countPending(int memberId, int stationId, List<String> roleNames) {
         int count = 0;
-        count += formService.findForcedPending(stationId, memberId).size();
+        count += formService
+                .findForcedPending(stationId, household(memberId, guardian(roleNames)))
+                .size();
         count += quizService.findForcedPending(stationId, memberId).size();
         if (!profileFieldService.isProfileComplete(memberId)) count++;
         count += selfCheckService.countOutstandingFor(memberId, guardian(roleNames));
@@ -88,14 +90,7 @@ public class RequirementsService {
      * guardian tell their children apart without the screen naming the reader to themselves.
      */
     private List<RegistrationUpdateItem> registrationUpdates(int memberId, boolean guardian) {
-        var household = new ArrayList<Integer>();
-        household.add(memberId);
-        if (guardian) {
-            for (var managed : stationMemberService.findManaged(memberId)) {
-                household.add(managed.id());
-            }
-        }
-        return registrationService.findShortOfAnswer(household).stream()
+        return registrationService.findShortOfAnswer(household(memberId, guardian)).stream()
                 .map(entry -> new RegistrationUpdateItem(
                         entry.registrationId(),
                         entry.eventId(),
@@ -110,6 +105,18 @@ public class RequirementsService {
         return selfCheckService.outstandingFor(memberId, guardian(roleNames)).stream()
                 .map(task -> new SelfCheckItem(task.id(), task.memberId(), task.dueOn()))
                 .toList();
+    }
+
+    /** The reader, and for a guardian everybody in their care, whose answers the reader gives. */
+    private List<Integer> household(int memberId, boolean guardian) {
+        var household = new ArrayList<Integer>();
+        household.add(memberId);
+        if (guardian) {
+            for (var managed : stationMemberService.findManaged(memberId)) {
+                household.add(managed.id());
+            }
+        }
+        return household;
     }
 
     private static boolean guardian(List<String> roleNames) {

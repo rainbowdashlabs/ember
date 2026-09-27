@@ -31,6 +31,8 @@ const props = defineProps<{
   groupMembers?: Map<number, StationMember[]>
   tags?: UserTag[]
   tagMembers?: Map<number, StationMember[]>
+  /** Whether the event repeats, which is what offers answering a field per date. */
+  recurring?: boolean
 }>()
 
 const {t} = useI18n()
@@ -147,6 +149,7 @@ function moveField(fromIndex: number, toIndex: number) {
           :group-members="groupMembers"
           :tags="tags"
           :tag-members="tagMembers"
+          :recurring="recurring"
           @update:model-value="updateField(index, $event)"
           @remove="removeField(index)"
       />

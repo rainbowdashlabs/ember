@@ -95,7 +95,12 @@ public class KnowledgeBaseCommentRoutes implements Routes {
             throw Refusal.KB_COMMENT_NOT_YOURS_TO_CHANGE.raise();
         }
         var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
-        commentRepository.update(commentId, requireContent(req.content()));
+        commentService.updateComment(
+                session.stationId(),
+                commentId,
+                session.member().id(),
+                authorNameService.resolveMemberName(session.member().id()),
+                requireContent(req.content()));
         var updated =
                 commentRepository.findById(commentId).orElseThrow(Refusal.KB_COMMENT_NOT_HERE_AFTER_CHANGE::raise);
         ctx.json(federationService.toCommentResponse(updated));

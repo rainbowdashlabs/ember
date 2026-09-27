@@ -9,7 +9,6 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
 import dev.chojo.ember.event.events.CommentDeleted;
-import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
@@ -30,7 +29,7 @@ import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.service.MentionLimits;
+import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -42,18 +41,15 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 @Singleton
 public class BoardTicketService {
     private static final Logger log = LoggerFactory.getLogger(BoardTicketService.class);
-    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
 
     private final BoardTicketRepository ticketRepository;
     private final BoardRepository boardRepository;
@@ -63,6 +59,7 @@ public class BoardTicketService {
     private final MemberIdentityFactory memberIdentityFactory;
     private final MemberNameResolver memberNameResolver;
     private final BoardAttachmentService attachmentService;
+    private final CommentMentions mentions;
 
     @Inject
     public BoardTicketService(
@@ -73,7 +70,8 @@ public class BoardTicketService {
             StationMemberService stationMemberService,
             MemberIdentityFactory memberIdentityFactory,
             MemberNameResolver memberNameResolver,
-            BoardAttachmentService attachmentService) {
+            BoardAttachmentService attachmentService,
+            CommentMentions mentions) {
         this.ticketRepository = ticketRepository;
         this.boardRepository = boardRepository;
         this.boardService = boardService;
@@ -82,6 +80,7 @@ public class BoardTicketService {
         this.memberIdentityFactory = memberIdentityFactory;
         this.memberNameResolver = memberNameResolver;
         this.attachmentService = attachmentService;
+        this.mentions = mentions;
     }
 
     public List<BoardTicket> findByBoard(int boardId) {
@@ -423,49 +422,64 @@ public class BoardTicketService {
 
     public BoardComment createComment(int ticketId, Integer parentId, MemberIdentity author, String content) {
         var comment = ticketRepository.createComment(ticketId, parentId, author, content);
-        var ticket = ticketRepository.findById(ticketId).orElse(null);
-        if (ticket != null) {
+        ticketRepository.findById(ticketId).ifPresent(ticket -> {
             notifyWatchers(ticketId, ticket.boardId(), "Neuer Kommentar", null);
-            var board = boardRepository.findById(ticket.boardId()).orElse(null);
-            var ticketKey = board != null ? board.shortKey() + "-" + ticket.ticketNumber() : "?";
-            int stationId = board != null ? board.stationId() : 0;
-            var address = board != null ? new BoardTicketAddress(board.shortKey(), ticket.ticketNumber()) : null;
-            // Resolve local author member ID for mention exclusion
-            Integer authorMemberId = null;
-            if (author != null) {
-                authorMemberId = stationMemberService
-                        .resolveId(stationId, author.memberUid())
-                        .orElse(null);
-            }
-            String mentionPreview = content.length() > 100 ? content.substring(0, 100) + "…" : content;
-            for (int mentionedId : parseMentions(stationId, content)) {
-                if (authorMemberId == null || mentionedId != authorMemberId) {
-                    eventBus.publish(new MentionedInComment(
-                            stationId,
-                            mentionedId,
-                            authorMemberId,
-                            ticketKey,
-                            CommentEntityType.BOARD_TICKET,
-                            ticketId,
-                            ticketKey,
-                            address,
-                            comment.id(),
-                            mentionPreview));
-                }
-            }
-        }
+            mentions.announce(mentionOrigin(ticket, author, comment.id(), content), content);
+        });
         log.info("Created comment {} on ticket {}", comment.id(), ticketId);
         return comment;
     }
 
-    public boolean updateComment(int id, String content) {
-        boolean updated = ticketRepository.updateComment(id, content);
-        if (updated) {
-            log.info("Updated comment {}", id);
-        } else {
+    /**
+     * Updates a comment on a ticket and announces the mentions the edit added. Whoever the comment
+     * already mentioned is not told again.
+     *
+     * @param ticketId the ticket the comment hangs under
+     * @param id       the comment
+     * @param content  the new text
+     * @return {@code true} if the comment was updated
+     */
+    public boolean updateComment(int ticketId, int id, String content) {
+        var previous = findComments(ticketId).stream()
+                .filter(comment -> comment.id() == id)
+                .findFirst();
+        if (!ticketRepository.updateComment(id, content)) {
             log.warn("Update for comment {} affected zero rows", id);
+            return false;
         }
-        return updated;
+        log.info("Updated comment {}", id);
+        previous.ifPresent(comment -> ticketRepository
+                .findById(ticketId)
+                .ifPresent(ticket -> mentions.announceAdded(
+                        mentionOrigin(ticket, comment.author(), id, content), comment.content(), content)));
+        return true;
+    }
+
+    /**
+     * Where a comment on a ticket was written, for the notifications its mentions raise. The ticket's
+     * key stands where an author's name would, and a comment from another station still mentions,
+     * with nobody excluded as its author.
+     */
+    private CommentMentions.Origin mentionOrigin(
+            BoardTicket ticket, MemberIdentity author, int commentId, String content) {
+        var board = boardRepository.findById(ticket.boardId()).orElse(null);
+        var ticketKey = board != null ? board.shortKey() + "-" + ticket.ticketNumber() : "?";
+        int stationId = board != null ? board.stationId() : 0;
+        var address = board != null ? new BoardTicketAddress(board.shortKey(), ticket.ticketNumber()) : null;
+        Integer authorMemberId = author != null
+                ? stationMemberService.resolveId(stationId, author.memberUid()).orElse(null)
+                : null;
+        String preview = content.length() > 100 ? content.substring(0, 100) + "…" : content;
+        return new CommentMentions.Origin(
+                stationId,
+                authorMemberId,
+                ticketKey,
+                CommentEntityType.BOARD_TICKET,
+                ticket.id(),
+                ticketKey,
+                address,
+                commentId,
+                preview);
     }
 
     /**
@@ -666,25 +680,5 @@ public class BoardTicketService {
                 changeDescription,
                 actorMemberId,
                 watchers));
-    }
-
-    // -- Activity feed --
-
-    /**
-     * The members a comment mentions, resolved through the station the ticket belongs to. Only the
-     * form carrying a station and a member uid is read: a bare numeric id names a member anywhere
-     * on the instance, and notifying by it reaches into another station.
-     */
-    private List<Integer> parseMentions(int stationId, String content) {
-        var mentions = new ArrayList<Integer>();
-        var matcher = MENTION_PATTERN.matcher(content);
-        while (matcher.find() && mentions.size() < MentionLimits.MAX_MEMBER_MENTIONS) {
-            try {
-                var memberUid = UUID.fromString(matcher.group(2));
-                stationMemberService.resolveId(stationId, memberUid).ifPresent(mentions::add);
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-        return mentions;
     }
 }

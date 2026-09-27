@@ -8,17 +8,14 @@ package dev.chojo.ember.feature.news.service;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
-import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.event.events.NewsDeleted;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.entity.MentionType;
-import dev.chojo.ember.feature.comment.service.MentionLimits;
+import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentMode;
@@ -49,7 +46,6 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 /**
  * Service layer for managing news articles and comments.
@@ -58,9 +54,7 @@ import java.util.regex.Pattern;
 @Singleton
 public class NewsService {
     private static final Logger log = LoggerFactory.getLogger(NewsService.class);
-    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
-    private static final Pattern BULK_MENTION_PATTERN =
-            Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
+    private static final int COMMENT_PREVIEW_LENGTH = 100;
 
     private final NewsRepository newsRepository;
     private final ContentBlockService blocks;
@@ -78,6 +72,7 @@ public class NewsService {
     private final StationMemberRepository stationMemberRepository;
     private final MemberLookupService memberLookupService;
     private final AccountRepository accountRepository;
+    private final CommentMentions mentions;
 
     @Inject
     public NewsService(
@@ -89,7 +84,8 @@ public class NewsService {
             DomainEventBus eventBus,
             StationMemberRepository stationMemberRepository,
             MemberLookupService memberLookupService,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            CommentMentions mentions) {
         this.newsRepository = newsRepository;
         this.blocks = blocks;
         this.descriptions = descriptions;
@@ -99,6 +95,7 @@ public class NewsService {
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
         this.accountRepository = accountRepository;
+        this.mentions = mentions;
     }
 
     /**
@@ -510,7 +507,7 @@ public class NewsService {
         log.info("Created news comment {} on news {} (station {})", comment.id(), newsId, stationId);
         var news = newsRepository.findById(newsId).orElse(null);
         if (news != null) {
-            String preview = content.length() > 100 ? content.substring(0, 100) + "..." : content;
+            String preview = commentPreview(content);
             Integer parentAuthorMemberId = null;
             if (parentId != null) {
                 var parentComment = newsRepository.findCommentById(parentId).orElse(null);
@@ -539,50 +536,31 @@ public class NewsService {
                     preview));
 
             if (authorMemberId != null) {
-                var matcher = MENTION_PATTERN.matcher(content);
-                int mentioned = 0;
-                while (matcher.find() && mentioned++ < MentionLimits.MAX_MEMBER_MENTIONS) {
-                    try {
-                        var memberUid = UUID.fromString(matcher.group(2));
-                        memberLookupService.resolveId(stationId, memberUid).ifPresent(mentionedId -> {
-                            if (!mentionedId.equals(authorMemberId)) {
-                                eventBus.publish(new MentionedInComment(
-                                        stationId,
-                                        mentionedId,
-                                        authorMemberId,
-                                        authorName,
-                                        CommentEntityType.NEWS,
-                                        newsId,
-                                        news.title(),
-                                        null,
-                                        comment.id(),
-                                        preview));
-                            }
-                        });
-                    } catch (IllegalArgumentException ignored) {
-                    }
-                }
-                var bulkMatcher = BULK_MENTION_PATTERN.matcher(content);
-                int addressed = 0;
-                while (bulkMatcher.find() && addressed++ < MentionLimits.MAX_BULK_MENTIONS) {
-                    var type = MentionType.valueOf(bulkMatcher.group(1));
-                    int targetId = Integer.parseInt(bulkMatcher.group(3));
-                    eventBus.publish(new BulkMentionedInComment(
-                            stationId,
-                            authorMemberId,
-                            authorName,
-                            CommentEntityType.NEWS,
-                            newsId,
-                            news.title(),
-                            type,
-                            targetId,
-                            null,
-                            comment.id(),
-                            preview));
-                }
+                mentions.announce(
+                        mentionOrigin(stationId, authorMemberId, authorName, news, comment.id(), content), content);
             }
         }
         return comment;
+    }
+
+    private static String commentPreview(String content) {
+        return content.length() > COMMENT_PREVIEW_LENGTH
+                ? content.substring(0, COMMENT_PREVIEW_LENGTH) + "..."
+                : content;
+    }
+
+    private static CommentMentions.Origin mentionOrigin(
+            int stationId, int authorMemberId, String authorName, News news, int commentId, String content) {
+        return new CommentMentions.Origin(
+                stationId,
+                authorMemberId,
+                authorName,
+                CommentEntityType.NEWS,
+                news.id(),
+                news.title(),
+                null,
+                commentId,
+                commentPreview(content));
     }
 
     // -- Comments --
@@ -608,7 +586,37 @@ public class NewsService {
     }
 
     /**
-     * Updates the content of a comment.
+     * Updates a comment a member of the given station wrote there, and announces the mentions the
+     * edit added. Whoever the comment already mentioned is not told again.
+     *
+     * @param stationId  the station the comment was written in
+     * @param id         the comment ID
+     * @param authorName the display name of the author
+     * @param content    new comment text
+     * @return {@code true} if the comment was updated
+     */
+    public boolean updateOwnComment(int stationId, int id, String authorName, String content) {
+        var previous = newsRepository.findCommentById(id);
+        if (!updateComment(id, content)) return false;
+        previous.ifPresent(comment -> announceAddedMentions(stationId, comment, authorName, content));
+        return true;
+    }
+
+    private void announceAddedMentions(int stationId, NewsComment previous, String authorName, String content) {
+        if (previous.author() == null) return;
+        var authorMemberId =
+                memberLookupService.resolveId(stationId, previous.author().memberUid());
+        var news = newsRepository.findById(previous.newsId());
+        if (authorMemberId.isEmpty() || news.isEmpty()) return;
+        mentions.announceAdded(
+                mentionOrigin(stationId, authorMemberId.get(), authorName, news.get(), previous.id(), content),
+                previous.content(),
+                content);
+    }
+
+    /**
+     * Updates the content of a comment without announcing its mentions, which is what a comment
+     * written from another station gets: its mentions raised nothing when it was written either.
      *
      * @param id      the comment ID
      * @param content new comment text

@@ -534,7 +534,8 @@ public class NewsRoutes implements Routes {
         if (request.content() == null || request.content().isBlank()) {
             throw Refusal.NEWS_COMMENT_NEEDS_TEXT_ON_UPDATE.raise();
         }
-        newsService.updateComment(commentId, request.content());
+        newsService.updateOwnComment(
+                session.stationId(), commentId, NameParts.of(session.account()).called(), request.content());
         var updated =
                 newsService.findCommentById(commentId).orElseThrow(Refusal.NEWS_COMMENT_NOT_HERE_AFTER_UPDATE::raise);
         ctx.json(toCommentResponse(updated));

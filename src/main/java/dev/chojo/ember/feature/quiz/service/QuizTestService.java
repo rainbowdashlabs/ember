@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
 import dev.chojo.ember.feature.quiz.entity.SectionEntry;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
+import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.system.service.RequirementsService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -37,11 +39,16 @@ public class QuizTestService {
 
     private final QuizTestRepository testRepository;
     private final QuizQuestionSelector questionSelector;
+    private final RestrictionService restrictionService;
 
     @Inject
-    public QuizTestService(QuizTestRepository testRepository, QuizQuestionSelector questionSelector) {
+    public QuizTestService(
+            QuizTestRepository testRepository,
+            QuizQuestionSelector questionSelector,
+            RestrictionService restrictionService) {
         this.testRepository = testRepository;
         this.questionSelector = questionSelector;
+        this.restrictionService = restrictionService;
     }
 
     public List<QuizTest> findTests(int stationId) {
@@ -60,8 +67,21 @@ public class QuizTestService {
         return testRepository.countAttempts(testId);
     }
 
+    /**
+     * The tests that must be taken and that a member still owes.
+     *
+     * <p>A test is owed by whom it is meant for: granted to them directly or taken in by its
+     * restrictions. A manager may open every restricted test, which does not make them one of the
+     * people it is for.
+     *
+     * @param stationId the station
+     * @param memberId  the member
+     * @return one entry per test, by title
+     */
     public List<RequirementsService.RequirementItem> findForcedPending(int stationId, int memberId) {
         return testRepository.findForcedPending(stationId, memberId).stream()
+                .filter(test -> testRepository.hasMemberAccess(test.id(), memberId)
+                        || restrictionService.includes(RestrictionType.QUIZ_TEST, test.id(), memberId))
                 .map(t -> new RequirementsService.RequirementItem(t.id(), t.title()))
                 .toList();
     }

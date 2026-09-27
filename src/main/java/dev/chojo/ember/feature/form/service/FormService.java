@@ -183,10 +183,26 @@ public class FormService {
         return repository.findByPublicUid(publicUid);
     }
 
-    public List<RequirementsService.RequirementItem> findForcedPending(int stationId, int memberId) {
-        return repository.findForcedPending(stationId, memberId).stream()
-                .map(f -> new RequirementsService.RequirementItem(f.id(), f.title()))
+    /**
+     * The forms that must be answered and that somebody in a household still owes an answer.
+     *
+     * <p>A form is owed by whom its restrictions take in, not by whoever may open it: a manager sees
+     * every restricted form and is asked none of them unless they are among the people it is for. A
+     * guardian passes the members in their care along, because they answer for them.
+     *
+     * @param stationId the station
+     * @param household the reader and, for a guardian, everybody in their care
+     * @return one entry per form, however many in the household owe it
+     */
+    public List<RequirementsService.RequirementItem> findForcedPending(int stationId, List<Integer> household) {
+        return repository.findForcedOpen(stationId).stream()
+                .filter(form -> household.stream().anyMatch(memberId -> owesAnswer(form.id(), memberId)))
+                .map(form -> new RequirementsService.RequirementItem(form.id(), form.title()))
                 .toList();
+    }
+
+    private boolean owesAnswer(int formId, int memberId) {
+        return !hasResponded(formId, memberId) && restrictionService.includes(RestrictionType.FORM, formId, memberId);
     }
 
     /**

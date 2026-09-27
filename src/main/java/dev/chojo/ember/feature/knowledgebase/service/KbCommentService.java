@@ -6,13 +6,10 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
-import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.entity.MentionType;
-import dev.chojo.ember.feature.comment.service.MentionLimits;
+import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
@@ -24,25 +21,15 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.UUID;
-import java.util.regex.Pattern;
-
 /**
  * Comments on knowledge-base files and the notifications they trigger. Writing a comment announces
  * the comment itself, tells the author of the comment being replied to, and delivers one
- * notification per mention found in the body.
- *
- * <p>Three mention forms are recognised: the current {@code station/member} form, the legacy
- * numeric member form, and the bulk form addressing a whole group or event audience. Authors are
- * never notified about their own mentions, and a mention that resolves to nobody is dropped rather
- * than failing the comment.
+ * notification per mention found in the body; rewriting one delivers them for the mentions the
+ * edit added.
  */
 @Singleton
 public class KbCommentService {
     private static final Logger log = LoggerFactory.getLogger(KbCommentService.class);
-    private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
-    private static final Pattern BULK_MENTION_PATTERN =
-            Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
     private static final int PREVIEW_LENGTH = 100;
 
     private final KnowledgeBaseRepository repository;
@@ -50,6 +37,7 @@ public class KbCommentService {
     private final MemberIdentityFactory memberIdentityFactory;
     private final StationMemberService stationMemberService;
     private final DomainEventBus eventBus;
+    private final CommentMentions mentions;
 
     @Inject
     public KbCommentService(
@@ -57,12 +45,14 @@ public class KbCommentService {
             KbCommentRepository commentRepository,
             MemberIdentityFactory memberIdentityFactory,
             StationMemberService stationMemberService,
-            DomainEventBus eventBus) {
+            DomainEventBus eventBus,
+            CommentMentions mentions) {
         this.repository = repository;
         this.commentRepository = commentRepository;
         this.memberIdentityFactory = memberIdentityFactory;
         this.stationMemberService = stationMemberService;
         this.eventBus = eventBus;
+        this.mentions = mentions;
     }
 
     /**
@@ -95,7 +85,6 @@ public class KbCommentService {
                 authorId);
 
         String fileTitle = repository.findFileById(fileId).map(KbFile::name).orElse("");
-        String preview = preview(content);
 
         eventBus.publish(new CommentCreated(
                 stationId,
@@ -108,10 +97,54 @@ public class KbCommentService {
                 parentAuthorId(parentId),
                 authorId,
                 authorName,
-                preview));
+                preview(content)));
 
-        notifyMentions(stationId, fileId, fileTitle, comment.id(), authorId, authorName, content, preview);
+        mentions.announce(
+                mentionOrigin(stationId, fileId, fileTitle, comment.id(), authorId, authorName, content), content);
         return comment;
+    }
+
+    /**
+     * Rewrites a comment on a knowledge-base file and announces the mentions the edit added.
+     * Whoever the comment already mentioned is not told again.
+     *
+     * @param stationId  the station owning the file
+     * @param commentId  the comment being rewritten
+     * @param authorId   the writing member
+     * @param authorName the writing member's display name
+     * @param content    the new comment body
+     */
+    public void updateComment(int stationId, int commentId, int authorId, String authorName, String content) {
+        var previous = commentRepository.findById(commentId);
+        commentRepository.update(commentId, content);
+        previous.ifPresent(comment -> {
+            String fileTitle =
+                    repository.findFileById(comment.fileId()).map(KbFile::name).orElse("");
+            mentions.announceAdded(
+                    mentionOrigin(stationId, comment.fileId(), fileTitle, commentId, authorId, authorName, content),
+                    comment.content(),
+                    content);
+        });
+    }
+
+    private static CommentMentions.Origin mentionOrigin(
+            int stationId,
+            int fileId,
+            String fileTitle,
+            int commentId,
+            int authorId,
+            String authorName,
+            String content) {
+        return new CommentMentions.Origin(
+                stationId,
+                authorId,
+                authorName,
+                CommentEntityType.KB,
+                fileId,
+                fileTitle,
+                null,
+                commentId,
+                preview(content));
     }
 
     /**
@@ -138,72 +171,5 @@ public class KbCommentService {
         var parentComment = commentRepository.findById(parentId).orElse(null);
         if (parentComment == null || parentComment.author() == null) return null;
         return stationMemberService.resolveMemberId(parentComment.author()).orElse(null);
-    }
-
-    private void notifyMentions(
-            int stationId,
-            int fileId,
-            String fileTitle,
-            int commentId,
-            int authorId,
-            String authorName,
-            String content,
-            String preview) {
-        var matcher = MENTION_PATTERN.matcher(content);
-        int mentioned = 0;
-        while (matcher.find() && mentioned++ < MentionLimits.MAX_MEMBER_MENTIONS) {
-            UUID memberUid;
-            try {
-                memberUid = UUID.fromString(matcher.group(2));
-            } catch (IllegalArgumentException ignored) {
-                continue;
-            }
-            stationMemberService
-                    .resolveId(stationId, memberUid)
-                    .ifPresent(mentionedId -> notifyMention(
-                            stationId, fileId, fileTitle, commentId, authorId, authorName, mentionedId, preview));
-        }
-
-        var bulkMatcher = BULK_MENTION_PATTERN.matcher(content);
-        int addressed = 0;
-        while (bulkMatcher.find() && addressed++ < MentionLimits.MAX_BULK_MENTIONS) {
-            var type = MentionType.valueOf(bulkMatcher.group(1));
-            int targetId = Integer.parseInt(bulkMatcher.group(3));
-            eventBus.publish(new BulkMentionedInComment(
-                    stationId,
-                    authorId,
-                    authorName,
-                    CommentEntityType.KB,
-                    fileId,
-                    fileTitle,
-                    type,
-                    targetId,
-                    null,
-                    commentId,
-                    preview));
-        }
-    }
-
-    private void notifyMention(
-            int stationId,
-            int fileId,
-            String fileTitle,
-            int commentId,
-            int authorId,
-            String authorName,
-            int mentionedId,
-            String preview) {
-        if (mentionedId == authorId) return;
-        eventBus.publish(new MentionedInComment(
-                stationId,
-                mentionedId,
-                authorId,
-                authorName,
-                CommentEntityType.KB,
-                fileId,
-                fileTitle,
-                null,
-                commentId,
-                preview));
     }
 }

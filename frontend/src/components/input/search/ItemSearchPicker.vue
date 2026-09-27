@@ -51,6 +51,8 @@ const props = defineProps<{
   inventoryType?: InventoryTypeName | null
   /** Whether pieces another open movement has already promised somebody are left out. */
   excludeSpokenFor?: boolean
+  /** The size asked for, whose pieces are drawn as a fit and offered first. */
+  wantedSizeId?: number | null
   placeholder?: string
   disabled?: boolean
 }>()
@@ -145,12 +147,22 @@ function glyphOf(item: InventoryItem) {
   })
 }
 
+function hasWantedSize(item: InventoryItem): boolean {
+  return props.wantedSizeId != null && item.sizeId === props.wantedSizeId
+}
+
+/** Pieces of the size asked for come before the rest, which is the piece a reader is looking for. */
+function byWantedSize(a: InventoryItem, b: InventoryItem): number {
+  return Number(hasWantedSize(b)) - Number(hasWantedSize(a))
+}
+
 function chipOf(item: InventoryItem): ItemChipSource {
   return {
     glyph: glyphOf(item),
     name: (item.name ?? '').trim() || item.internalId || `#${item.id}`,
     internalId: item.internalId,
     sizeName: sizeLabel(item),
+    sizeWanted: hasWantedSize(item),
     inventoryName: inventoryName(item.inventoryId),
     location: locationLabel(item),
   }
@@ -271,7 +283,7 @@ async function searchFn(query: string): Promise<InventoryItem[]> {
   if (tokens.length === 0) {
     return filtered.value
         .slice()
-        .sort((a, b) => displayName(a).localeCompare(displayName(b), 'de'))
+        .sort((a, b) => byWantedSize(a, b) || displayName(a).localeCompare(displayName(b), 'de'))
         .slice(0, 25)
   }
   const scored: Array<[InventoryItem, number]> = []
@@ -281,6 +293,8 @@ async function searchFn(query: string): Promise<InventoryItem[]> {
     scored.push([item, s])
   }
   scored.sort((a, b) => {
+    const fit = byWantedSize(a[0], b[0])
+    if (fit !== 0) return fit
     if (a[1] !== b[1]) return b[1] - a[1]
     return displayName(a[0]).localeCompare(displayName(b[0]), 'de')
   })
