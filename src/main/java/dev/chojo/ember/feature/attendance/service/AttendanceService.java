@@ -584,14 +584,15 @@ public class AttendanceService {
         for (int memberId : expected) {
             var status = attendanceFor(answers.get(memberId), event.requiresRegistration());
             if (status == null) continue;
-            if (status == AttendanceEntry.AttendanceStatus.PRESENT && attendanceRepository.isAbsent(memberId)) {
+            if (status == AttendanceEntry.AttendanceStatus.UNCONFIRMED && attendanceRepository.isAbsent(memberId)) {
                 status = AttendanceEntry.AttendanceStatus.ABSENT;
             }
             var entry = attendanceRepository.findEntry(sessionId, memberId).orElse(null);
             if (entry == null) {
                 if (!hadJoinedBy(sessionDate, memberId)) continue;
                 attendanceRepository.createEntry(sessionId, memberId, status, AttendanceEntry.EntrySource.EXPECTED);
-            } else if (entry.status() == AttendanceEntry.AttendanceStatus.UNCONFIRMED) {
+            } else if (entry.status() == AttendanceEntry.AttendanceStatus.UNCONFIRMED
+                    && status != AttendanceEntry.AttendanceStatus.UNCONFIRMED) {
                 attendanceRepository.updateEntryStatus(entry.id(), status);
             }
         }
@@ -599,6 +600,9 @@ public class AttendanceService {
 
     /**
      * What an answer to the appointment makes of a row on the sheet.
+     *
+     * <p>Accepting puts somebody on the sheet and leaves their row open. Saying yes beforehand is not
+     * having been there, and a sheet that marks every yes present has nothing left to check.
      *
      * <p>Where the appointment demanded an answer, everybody who did not accept is declined: whether
      * they said no, took it back, were refused, are still waiting or never answered at all, the
@@ -613,7 +617,7 @@ public class AttendanceService {
      * @return the status to write, or null to leave the row as it stands
      */
     private static AttendanceEntry.AttendanceStatus attendanceFor(RegistrationStatus answer, boolean demanded) {
-        if (answer == RegistrationStatus.ACCEPTED) return AttendanceEntry.AttendanceStatus.PRESENT;
+        if (answer == RegistrationStatus.ACCEPTED) return AttendanceEntry.AttendanceStatus.UNCONFIRMED;
         if (answer == RegistrationStatus.DECLINED || answer == RegistrationStatus.WITHDRAWN) {
             return AttendanceEntry.AttendanceStatus.DECLINED;
         }
@@ -917,7 +921,7 @@ public class AttendanceService {
      * Sync attendance entries from event registrations, absence data, and autoAttend template fields.
      * - Members of the template's groups → put on the sheet if they are not on it yet
      * - Answers on the event → written into the sheet fields they are tied to, where the sheet is empty
-     * - ACCEPTED registrations → PRESENT (or ABSENT if member has active absence)
+     * - ACCEPTED registrations → on the sheet and still to be checked (or ABSENT if member has active absence)
      * - Anything else, where the event asked everybody to answer → DECLINED
      * - Members with active absence who already have PRESENT status → updated to ABSENT
      * - Members from autoAttend fields → added as PRESENT at the end

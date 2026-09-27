@@ -963,9 +963,13 @@ class AttendanceServiceTest extends RepositoryTestBase {
         service.deleteSession(newSession.id());
     }
 
+    /**
+     * Somebody who accepted is put on the sheet with their row still open: accepting beforehand is
+     * not having been there, and the check is what says whether they came.
+     */
     @Test
     @Order(55)
-    void syncFromEventWithRegistrations() {
+    void anAcceptedRegistrationLeavesTheRowToBeChecked() {
         var event = eventRepo.create(
                 station.id(),
                 "Sync Event",
@@ -998,7 +1002,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var entries = service.syncFromEvent(session.id());
         assertNotNull(entries);
         assertTrue(entries.stream()
-                .anyMatch(e -> e.memberId() == member2.id() && e.status() == AttendanceEntry.AttendanceStatus.PRESENT));
+                .anyMatch(e ->
+                        e.memberId() == member2.id() && e.status() == AttendanceEntry.AttendanceStatus.UNCONFIRMED));
 
         service.deleteSession(session.id());
         service.deleteTemplate(template.id());
@@ -1561,7 +1566,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
     /**
      * A sheet opened for an occasion that demanded an answer arrives filled in: whoever accepted is
-     * present, and whoever never answered is declined, so nobody has to look the answers up.
+     * on it with the row left to check, and whoever never answered is declined, so nobody has to look
+     * the answers up.
      */
     @Test
     @Order(65)
@@ -1599,7 +1605,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var session = openSheet(template.id(), null, null, event.id(), null);
         var entries = service.findEntries(session.id());
         assertEquals(
-                AttendanceEntry.AttendanceStatus.PRESENT,
+                AttendanceEntry.AttendanceStatus.UNCONFIRMED,
                 entries.stream()
                         .filter(e -> e.memberId() == coming.id())
                         .findFirst()
