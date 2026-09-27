@@ -19,6 +19,8 @@ const props = defineProps<{
   fieldType: string
   groups?: MemberGroup[]
   tags?: UserTag[]
+  /** Whether the event repeats, which is the only case where an answer can be given per date. */
+  recurring?: boolean
 }>()
 
 const enumOptions = defineModel<string[]>('enumOptions', {required: true})
@@ -75,7 +77,7 @@ const isMemberField = computed(() => isMemberFieldType(props.fieldType))
     {{ t('eventFields.selfRegistration') }}
   </label>
 
-  <div v-if="isMemberField" class="space-y-1">
+  <div v-if="isMemberField && recurring" class="space-y-1">
     <label class="flex items-center gap-2 text-sm">
       <ToggleInput v-model="perDate"/>
       {{ t('eventFields.perDate') }}
