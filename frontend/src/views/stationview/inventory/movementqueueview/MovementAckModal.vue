@@ -127,6 +127,7 @@ function force(payload: AcknowledgePayload) {
             :sizes="sizes"
             :step="currentStep"
             :wanted-size-id="detail.movement.newSizeId ?? detail.movement.oldSizeId"
+            :wanted-size-name="detail.movement.newSizeName ?? detail.movement.oldSizeName"
             @acknowledge="acknowledge"
             @force="force"
             @decline="reason => run(() => movements.declineMovement(props.movementId, reason))"

@@ -13,6 +13,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import ItemChipSize from '@/components/inventory/ItemChipSize.vue'
 import {ItemOwner, type InventorySize, type InventoryTypeName, type ItemOwnerName} from '@/api/inventory'
 import type {MovementStep, NewItemRequest} from '@/api/movements'
 import {StationPermission} from '@/api/types'
@@ -40,6 +41,8 @@ const props = defineProps<{
   sizes: InventorySize[]
   /** The size the exchange asked for, which the piece written down starts out as. */
   wantedSizeId?: number | null
+  /** That size in words, shown above the piece being chosen so the right one is easy to find. */
+  wantedSizeName?: string | null
   /** Whose gear the movement is about, which is the only gear a replacement may come from. */
   ownerKind?: ItemOwnerName | null
   /** Which association that is, so a station in one association cannot pick another's piece. */
@@ -134,6 +137,11 @@ function payload(): AcknowledgePayload {
     <div v-if="props.step.picksItem && mayPick" class="space-y-2">
       <FieldLabel>{{ t('movements.pickItem') }}</FieldLabel>
 
+      <p v-if="props.wantedSizeName" class="flex items-center gap-2 text-xs text-(--text-muted)" data-testid="movement-wanted-size">
+        {{ t('movements.newSize') }}
+        <ItemChipSize :label="props.wantedSizeName" wanted/>
+      </p>
+
       <ItemSearchPicker
           v-if="!recording"
           v-model="searched"
@@ -143,6 +151,7 @@ function payload(): AcknowledgePayload {
           :owner-cluster-id="props.ownerClusterId"
           :owner-kind="props.ownerKind"
           :placeholder="t('movements.pickItemPlaceholder')"
+          :wanted-size-id="props.wantedSizeId"
           exclude-assigned
           exclude-lost
           exclude-spoken-for
