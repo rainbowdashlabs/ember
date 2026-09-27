@@ -8,7 +8,6 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import TodayEvents from './TodayEvents.vue'
 import BreaksList from './BreaksList.vue'
 import EventDashboardActions from './EventDashboardActions.vue'
 import EventExportPanel from './EventExportPanel.vue'
@@ -20,12 +19,12 @@ import type {DatedEvent, EventBreak, EventCategory, EventField, StationEvent} fr
 /**
  * The dashboard under its tabs: what is coming, or what has been.
  *
- * <p>Today's appointments and the breaks belong to the current tab, because both are current by
- * definition. The export takes its own span of dates and so stands outside the tabs.
+ * <p>The breaks belong to the current tab, because they are current by definition. The export takes
+ * its own span of dates and so stands outside the tabs. What is on today is the upcoming page's to
+ * show, together with taking attendance for it.
  */
 const props = defineProps<{
   isPast: boolean
-  todayEvents: StationEvent[]
   dates: PagedListView<DatedEvent>
   series: PagedListView<DatedEvent>
   isEmpty: boolean
@@ -36,7 +35,6 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  attendance: [event: StationEvent]
   addEvent: []
   editEvent: [event: StationEvent]
   deleteEvent: [event: StationEvent]
@@ -58,8 +56,6 @@ const emptyMessage = computed(() => props.isPast ? t('events.noPastEvents') : t(
 
 <template>
   <div class="space-y-6">
-    <TodayEvents v-if="!isPast" :events="todayEvents" @attendance="event => $emit('attendance', event)"/>
-
     <NeutralContainer class="space-y-4">
       <EventDashboardActions @add-event="$emit('addEvent')"/>
 

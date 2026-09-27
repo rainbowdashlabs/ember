@@ -2752,8 +2752,6 @@ export default {
             missing: 'Bitte ausfüllen: {fields}',
             missingShort: 'fehlt',
         },
-        today: 'Heute',
-        manageAttendance: 'Anwesenheit erfassen',
         allEvents: 'Termine',
         tabCurrent: 'Aktuell',
         tabPast: 'Vergangen',

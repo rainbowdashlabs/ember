@@ -15,7 +15,6 @@ import {
     type EventField,
     type EventKindName,
     type EventPageParams,
-    type StationEvent,
 } from '@/api/events'
 import {StationPermission} from '@/api/types'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -40,8 +39,7 @@ const SERIES_PAGE_SIZE = 50
  * appointments by the date it happens to fall on next. Each is asked for separately, so a page of
  * ten dates is ten dates rather than whatever is left after the series in it were taken out.
  *
- * <p>Today's appointments, the breaks and the attendance templates belong to the current tab and are
- * loaded once. Attendance templates are asked for on their own and only by whoever may record
+ * <p>The breaks and the attendance templates belong to the current tab and are loaded once. Attendance templates are asked for on their own and only by whoever may record
  * attendance: asking for them alongside the appointments sank the whole page for everybody else,
  * because one refused call beside the others left a member with an error instead of the list.
  */
@@ -49,7 +47,6 @@ export function useEventDashboard() {
     const {t} = useI18n()
     const {hasPermission} = useSession()
 
-    const todayEvents = ref<StationEvent[]>([])
     const breaks = ref<EventBreak[]>([])
     const categories = ref<EventCategory[]>([])
     const templates = ref<AttendanceTemplate[]>([])
@@ -79,15 +76,13 @@ export function useEventDashboard() {
     const isEmpty = computed(() => dates.items.value.length === 0 && series.items.value.length === 0)
 
     const {loading, failure, reload} = useAsyncLoader(async () => {
-        const [today, brs, cats, ovFields] = await Promise.all([
-            events.listTodayEvents(),
+        const [brs, cats, ovFields] = await Promise.all([
             events.listBreaks(),
             events.listCategories(),
             events.getOverviewFields(),
             dates.load(),
             series.load(),
         ])
-        todayEvents.value = today
         breaks.value = brs
         categories.value = cats
         overviewFields.value = ovFields
@@ -129,7 +124,6 @@ export function useEventDashboard() {
         categoryId,
         from,
         to,
-        todayEvents,
         breaks,
         categories,
         templates,
