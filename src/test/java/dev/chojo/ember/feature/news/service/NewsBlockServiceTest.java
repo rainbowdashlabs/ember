@@ -52,7 +52,8 @@ class NewsBlockServiceTest extends RepositoryTestBase {
                 new DomainEventBus(Set.of()),
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo);
+                accountRepo,
+                silentCommentMentions());
         station = stationRepo.create("NewsBlockStation");
         account = accountRepo.create("news-blocks@test.com", "News", "Blocks");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -329,7 +330,8 @@ class NewsBlockServiceTest extends RepositoryTestBase {
                 new DomainEventBus(Set.of()),
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo);
+                accountRepo,
+                silentCommentMentions());
     }
 
     private static StationFile picture(String alt, String description) {

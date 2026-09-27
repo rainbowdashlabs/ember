@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -44,7 +46,8 @@ class NewsServiceTest extends RepositoryTestBase {
                 new DomainEventBus(Set.of()),
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo);
+                accountRepo,
+                silentCommentMentions());
         station = stationRepo.create("NewsStation");
         account = accountRepo.create("news-svc@test.com", "News", "Author");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -391,7 +394,8 @@ class NewsServiceTest extends RepositoryTestBase {
                 },
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo);
+                accountRepo,
+                silentCommentMentions());
         var quiet = notifyingService.createSystem("Leise", "Nichts.", List.of(), true, false);
         int afterQuiet = published.size();
         var loud = notifyingService.createSystem("Laut", "Etwas.", List.of(), true, true);
@@ -401,6 +405,65 @@ class NewsServiceTest extends RepositoryTestBase {
         } finally {
             service.delete(quiet.id());
             service.delete(loud.id());
+        }
+    }
+
+    /**
+     * Editing a comment tells whoever the edit newly mentions, and nobody the comment already
+     * mentioned. An edit of a comment that is not there changes and announces nothing.
+     */
+    @Test
+    @Order(44)
+    void editingACommentAnnouncesOnlyTheMentionsItAdds() {
+        var published = new java.util.ArrayList<dev.chojo.ember.event.DomainEvent>();
+        var recordingBus = new DomainEventBus(Set.of()) {
+            @Override
+            public void publish(dev.chojo.ember.event.DomainEvent event) {
+                published.add(event);
+            }
+        };
+        var mentioningService = new NewsService(
+                newsRepo,
+                new ContentBlockService(contentContainerRepo),
+                noCellDescriptions(),
+                stationRepo,
+                restrictionService,
+                recordingBus,
+                stationMemberRepo,
+                memberLookupService,
+                accountRepo,
+                new CommentMentions(memberLookupService, recordingBus));
+        var mentionedAccount = accountRepo.create("news-mentioned@test.com", "Mia", "Mentioned");
+        var mentioned = stationMemberRepo.create(station.id(), mentionedAccount.id());
+        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
+        var news = mentioningService.create(
+                station.id(), "Edited mentions", "Body", authorIdentity, List.of(), List.of(), List.of(), List.of());
+        var mention = "@[" + station.uid() + "/" + mentioned.uid() + ":Mia]";
+        try {
+            var comment = mentioningService.createComment(
+                    station.id(), news.id(), null, authorIdentity, "News Author", "See you");
+            published.clear();
+
+            assertTrue(mentioningService.updateOwnComment(
+                    station.id(), comment.id(), "News Author", "See you " + mention));
+            var told = published.stream()
+                    .filter(MentionedInComment.class::isInstance)
+                    .map(MentionedInComment.class::cast)
+                    .toList();
+            assertEquals(1, told.size());
+            assertEquals(mentioned.id(), told.getFirst().mentionedMemberId());
+            assertEquals("Edited mentions", told.getFirst().entityTitle());
+            assertEquals(comment.id(), told.getFirst().commentId());
+
+            published.clear();
+            assertTrue(mentioningService.updateOwnComment(
+                    station.id(), comment.id(), "News Author", "See you soon " + mention));
+            assertTrue(published.stream().noneMatch(MentionedInComment.class::isInstance));
+
+            assertFalse(mentioningService.updateOwnComment(station.id(), 999999, "News Author", mention));
+        } finally {
+            mentioningService.delete(news.id());
+            accountRepo.delete(mentionedAccount.id());
         }
     }
 }

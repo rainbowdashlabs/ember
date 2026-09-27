@@ -181,7 +181,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 noOpBus,
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo);
+                accountRepo,
+                silentCommentMentions());
         var inventoryService = new InventoryService(
                 inventoryRepo,
                 artRepo,
@@ -203,7 +204,8 @@ class DemoServiceTest extends RepositoryTestBase {
         var feedTokenService = new FeedTokenService(feedTokenRepo);
 
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
-        var commentService = new CommentService(eventCommentRepo, noOpBus, memberSvc, stationRepo);
+        var commentService =
+                new CommentService(eventCommentRepo, noOpBus, memberSvc, stationRepo, silentCommentMentions());
         var kbStorageConfig = new Storage();
         var kbBackend = new LocalStorageBackend();
         var kbResolver = new StorageBackendResolver(kbBackend);
@@ -218,8 +220,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationRepo,
                 kbFileStorage,
                 kbSearchService);
-        var kbCommentService =
-                new KbCommentService(knowledgeBaseRepo, kbCommentRepo, memberIdentityFactory, memberSvc, noOpBus);
+        var kbCommentService = new KbCommentService(
+                knowledgeBaseRepo, kbCommentRepo, memberIdentityFactory, memberSvc, noOpBus, silentCommentMentions());
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 kbFileStorage,
@@ -370,7 +372,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 memberSvc,
                 memberIdentityFactory,
                 memberNameResolver,
-                boardAttachmentSvc);
+                boardAttachmentSvc,
+                silentCommentMentions());
         var procedureService = new ProcedureService(procedureRepo, noOpBus);
 
         // -- Seeders --

@@ -87,7 +87,8 @@ class BoardServiceTest extends RepositoryTestBase {
                 newStationMemberService(null, null),
                 memberIdentityFactory,
                 memberNameResolver,
-                attachmentSvc);
+                attachmentSvc,
+                silentCommentMentions());
 
         station = stationRepo.create("BoardSvcStation");
         account = accountRepo.create("board-svc@test.com", "Board", "Svc");
@@ -341,7 +342,7 @@ class BoardServiceTest extends RepositoryTestBase {
     void updateComment() {
         var comment = ticketService.createComment(
                 ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), "To update");
-        assertTrue(ticketService.updateComment(comment.id(), "Updated"));
+        assertTrue(ticketService.updateComment(ticketId1, comment.id(), "Updated"));
     }
 
     // -- Find by number --
@@ -777,7 +778,7 @@ class BoardServiceTest extends RepositoryTestBase {
         var comment = ticketService.createComment(
                 ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), "Test comment");
         assertNotNull(comment);
-        assertTrue(ticketService.updateComment(comment.id(), "Updated comment"));
+        assertTrue(ticketService.updateComment(ticketId1, comment.id(), "Updated comment"));
         assertTrue(ticketService.deleteComment(ticketId1, comment.id()));
     }
 

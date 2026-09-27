@@ -47,7 +47,12 @@ class CommentServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         eventBus = mock(DomainEventBus.class);
-        service = new CommentService(eventCommentRepo, eventBus, newStationMemberService(null, null), stationRepo);
+        service = new CommentService(
+                eventCommentRepo,
+                eventBus,
+                newStationMemberService(null, null),
+                stationRepo,
+                new CommentMentions(memberLookupService, eventBus));
 
         station = stationRepo.create("CommentStation");
         account1 = accountRepo.create("comment1@test.com", "Alice", "Author");
@@ -205,7 +210,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @Test
     @Order(8)
     void update() {
-        assertTrue(service.update(commentId, "Updated content"));
+        assertTrue(service.update(station.id(), commentId, "Alice", "Updated content"));
         var comment = service.findById(commentId);
         assertTrue(comment.isPresent());
         assertEquals("Updated content", comment.get().content());
@@ -240,7 +245,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @Test
     @Order(13)
     void updateNonExistent() {
-        assertFalse(service.update(999999, "new content"));
+        assertFalse(service.update(station.id(), 999999, "Alice", "new content"));
     }
 
     /** The markup an editor writes for a mention: the member named with its station. */
@@ -287,21 +292,56 @@ class CommentServiceTest extends RepositoryTestBase {
         accountRepo.delete(otherAccount.id());
     }
 
+    /** A member mentioned twice in one comment is told once. */
     @Test
     @Order(14)
-    void createWithMultipleMentions() {
+    void aMemberMentionedTwiceIsToldOnce() {
         reset(eventBus);
-
-        // Multiple mentions in one comment - both different from author
         String content =
                 "Hey " + mention(station, member2, "Bob") + " and " + mention(station, member2, "Bob") + " again";
         var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event", null);
         assertNotNull(comment);
-        // eventBus should have been called for member2 twice
-        verify(eventBus, times(2))
+        verify(eventBus, times(1))
                 .publish(argThat(
                         event -> event instanceof MentionedInComment m && m.mentionedMemberId() == member2.id()));
 
+        service.delete(comment.id());
+    }
+
+    /**
+     * A mention added by editing a comment tells the member it names, with the event's title and
+     * the comment it was added to, just as if the comment had been written with it.
+     */
+    @Test
+    @Order(14)
+    void aMentionAddedByAnEditNotifiesTheMentionedMember() {
+        var comment =
+                service.create(station.id(), eventId, null, identity1, "Alice", "See you there", "Test Event", null);
+        reset(eventBus);
+
+        service.update(station.id(), comment.id(), "Alice", "See you there " + mention(station, member2, "Bob"));
+
+        verify(eventBus)
+                .publish(argThat(event -> event instanceof MentionedInComment m
+                        && m.mentionedMemberId() == member2.id()
+                        && m.authorMemberId() == member1.id()
+                        && m.entityId() == eventId
+                        && "Test Event".equals(m.entityTitle())
+                        && m.commentId() == comment.id()));
+        service.delete(comment.id());
+    }
+
+    /** An edit that leaves a mention standing does not tell the member a second time. */
+    @Test
+    @Order(14)
+    void anEditKeepingAMentionTellsNobodyAgain() {
+        String content = "Hey " + mention(station, member2, "Bob");
+        var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event", null);
+        reset(eventBus);
+
+        service.update(station.id(), comment.id(), "Alice", content + ", typo fixed");
+
+        verify(eventBus, never()).publish(any());
         service.delete(comment.id());
     }
 
@@ -321,7 +361,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @Order(16)
     void updateExistingComment() {
         var comment = service.create(station.id(), eventId, null, identity1, "Alice", "Original", "Test Event", null);
-        assertTrue(service.update(comment.id(), "Modified"));
+        assertTrue(service.update(station.id(), comment.id(), "Alice", "Modified"));
         var found = service.findById(comment.id()).orElseThrow();
         assertEquals("Modified", found.content());
         service.delete(comment.id());

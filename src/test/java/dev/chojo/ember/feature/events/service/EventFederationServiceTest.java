@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -97,7 +98,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var eventBus = new DomainEventBus(Set.of());
         crudService = newEventServices(eventBus).crud();
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
-        commentService = new CommentService(eventCommentRepo, eventBus, memberSvc, stationRepo);
+        commentService = new CommentService(
+                eventCommentRepo, eventBus, memberSvc, stationRepo, new CommentMentions(memberLookupService, eventBus));
         service = new EventFederationService(
                 eventFederationRepo,
                 federationService,
