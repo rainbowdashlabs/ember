@@ -11,7 +11,8 @@ import type { QuestionType } from '@/api/forms'
 /** The top line of a question's tile: its number, its kind, and in the slot the menu in its corner. */
 defineProps<{
   questionType: QuestionType
-  index: number
+  /** The number the question is shown with, counted across every page. */
+  number: number
 }>()
 
 const { t } = useI18n()
@@ -20,7 +21,7 @@ const { t } = useI18n()
 <template>
   <div class="flex items-center justify-between">
     <SectionLabel>
-      {{ index + 1 }}. {{ t(`forms.questionTypes.${questionType}`) }}
+      {{ number }}. {{ t(`forms.questionTypes.${questionType}`) }}
     </SectionLabel>
     <slot/>
   </div>

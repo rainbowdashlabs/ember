@@ -44,7 +44,14 @@ export function optionLabel(options: readonly FormOption[], key: string): string
  * unlikely case they are already taken within the question.
  */
 export function newOptionKey(taken: readonly FormOption[]): string {
-    const used = new Set(taken.map(option => option.key))
+    return freshKey(new Set(taken.map(option => option.key)))
+}
+
+/**
+ * Eight random characters that are not among the given keys, for anything a form names by a key of
+ * its own: an option, a statement, a page.
+ */
+export function freshKey(used: ReadonlySet<string>): string {
     let key = ''
     do {
         const bytes = crypto.getRandomValues(new Uint8Array(KEY_LENGTH))

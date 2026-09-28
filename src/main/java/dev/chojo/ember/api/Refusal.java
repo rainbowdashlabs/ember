@@ -2344,6 +2344,33 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "Every option of a question needs a key of its own, so nothing was saved"),
 
+    /**
+     * Saving a form without a page, or with pages that do not each carry a key of their own. The
+     * page that follows and the path a response took name a page by its key.
+     */
+    FORM_PAGE_KEYS_NOT_DISTINCT(
+            Area.FORMS,
+            54,
+            HttpStatus.BAD_REQUEST,
+            "A form needs at least one page, and every page a key of its own, so nothing was saved"),
+
+    /**
+     * A page that is to be followed by a page that is not further down, or by one the form does not
+     * have. Pages only lead forward, which is what keeps every path through a form finite.
+     */
+    FORM_PAGE_TARGET_NOT_FURTHER_DOWN(
+            Area.FORMS,
+            55,
+            HttpStatus.BAD_REQUEST,
+            "A page can only lead to a page further down, so nothing was saved"),
+
+    /** A question put on a page the form does not have. */
+    QUESTION_ON_NO_PAGE(
+            Area.FORMS,
+            56,
+            HttpStatus.BAD_REQUEST,
+            "Some of these questions stand on a page the form does not have, so nothing was saved"),
+
     /** An invite that is used up or past its date. */
     WAITING_LIST_INVITE_NO_LONGER_VALID(
             Area.WAITING_LISTS, 22, HttpStatus.FORBIDDEN, "This invite can no longer be used"),

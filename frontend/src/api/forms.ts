@@ -143,10 +143,46 @@ export interface FormListEntry {
     restricted?: boolean
 }
 
+/** Where a reader goes from a page: the page below, a chosen page further down, or the end of the form. */
+export const PageTargetKind = {
+    NEXT: 'NEXT',
+    PAGE: 'PAGE',
+    SUBMIT: 'SUBMIT',
+} as const
+
+export type PageTargetKindName = (typeof PageTargetKind)[keyof typeof PageTargetKind]
+
+/** One of the three places a page leads to; `page` names the page for {@link PageTargetKind.PAGE}. */
+export interface PageTarget {
+    kind: PageTargetKindName
+    page?: string | null
+}
+
+/** One page of a form. Every form has at least one, and every question stands on one of them. */
+export interface FormPage {
+    id: number
+    formId: number
+    key: string
+    position: number
+    title: string
+    description: string
+    after: PageTarget
+}
+
+/** One page as the editor saves it, kept by its key the way a question is kept by its id. */
+export interface FormPageRequest {
+    key: string
+    title: string
+    description: string
+    after: PageTarget
+}
+
 export interface FormQuestion {
     id: number
     formId: number
     position: number
+    /** The key of the page the question stands on. */
+    pageKey: string
     formQuestionType: QuestionType
     title: string
     description: string
@@ -197,6 +233,8 @@ export interface FormRequest {
  */
 export interface FormQuestionRequest {
     id?: number
+    /** The key of the page the question stands on. */
+    pageKey: string
     questionType: string
     title: string
     description?: string
@@ -351,14 +389,32 @@ export async function getQuestions(formId: number): Promise<FormQuestion[]> {
     return res.data
 }
 
+/** The pages of a form, in their order. */
+export async function getPages(formId: number): Promise<FormPage[]> {
+    const res = await client.get<FormPage[]>(`/forms/${formId}/pages`)
+    return res.data
+}
+
+/** The pages and questions of a form, each list in its order, as the editor saves them. */
+export interface FormLayoutRequest {
+    pages: FormPageRequest[]
+    questions: FormQuestionRequest[]
+}
+
+/** The pages and questions of a form as stored. */
+export interface FormLayout {
+    pages: FormPage[]
+    questions: FormQuestion[]
+}
+
 /**
- * Saves the questions of a form. Every stored question left out of the list is removed, and the
- * answers given to it with it.
+ * Saves the pages and questions of a form. Every stored question left out of the list is removed, and
+ * the answers given to it with it; every stored page left out is removed as well.
  *
- * @returns the questions as stored, in the order they were sent
+ * @returns the pages and questions as stored, in the order they were sent
  */
-export async function setQuestions(formId: number, questions: FormQuestionRequest[]): Promise<FormQuestion[]> {
-    const res = await client.put<FormQuestion[]>(`/forms/${formId}/questions`, questions)
+export async function saveLayout(formId: number, layout: FormLayoutRequest): Promise<FormLayout> {
+    const res = await client.put<FormLayout>(`/forms/${formId}/questions`, layout)
     return res.data
 }
 

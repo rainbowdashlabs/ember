@@ -15,12 +15,15 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormPage;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.FormVisibility;
+import dev.chojo.ember.feature.form.entity.PageEntry;
+import dev.chojo.ember.feature.form.entity.PageTarget;
 import dev.chojo.ember.feature.form.entity.QuestionAnswerCount;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
@@ -55,7 +58,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -139,6 +141,7 @@ public class FormRoutes implements Routes {
 
         // Questions
         routes.get(prefix + "/forms/{id}/questions", this::listQuestions, StationPermission.USER);
+        routes.get(prefix + "/forms/{id}/pages", this::listPages, StationPermission.USER);
         routes.put(prefix + "/forms/{id}/questions", this::setQuestions, StationPermission.POLL_CREATE);
         routes.get(
                 prefix + "/forms/{id}/questions/answer-counts",
@@ -597,36 +600,51 @@ public class FormRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/forms/{id}/questions",
-            methods = HttpMethod.PUT,
-            summary = "Save the questions of a form",
-            description =
-                    "A question sent with its id is changed in place and keeps its answers, one sent without an id"
-                            + " is added, and a question of the form that is not sent is removed with its answers.",
+            path = "/api/v1/forms/{id}/pages",
+            methods = HttpMethod.GET,
+            summary = "List the pages of a form",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuestionRequest[].class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormPage[].class)))
+    private void listPages(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedForm(id, UserSession.from(ctx));
+        ctx.json(formService.findPages(id));
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/questions",
+            methods = HttpMethod.PUT,
+            summary = "Save the pages and questions of a form",
+            description =
+                    "A question sent with its id is changed in place and keeps its answers, one sent without an id"
+                            + " is added, and a question of the form that is not sent is removed with its answers."
+                            + " Pages are kept by their key the same way.",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LayoutRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormQuestion[].class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormLayout.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setQuestions(Context ctx) {
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, UserSession.from(ctx));
-        var questions = ctx.bodyAsClass(QuestionRequest[].class);
-        var disallowed = Arrays.stream(questions)
-                .map(QuestionRequest::questionType)
-                .filter(t -> !t.allowedFor(form.purpose()))
-                .distinct()
-                .toList();
-        if (!disallowed.isEmpty()) {
+        var layout = ctx.bodyAsClass(LayoutRequest.class);
+        var questions = layout.questions() == null ? List.<QuestionRequest>of() : layout.questions();
+        var pages = layout.pages() == null ? List.<PageRequest>of() : layout.pages();
+        if (questions.stream().map(QuestionRequest::questionType).anyMatch(t -> !t.allowedFor(form.purpose()))) {
             throw Refusal.QUESTIONS_NOT_FOR_THIS_KIND_OF_FORM.raise();
         }
-        formService.saveQuestions(
+        formService.saveLayout(
                 id,
-                Arrays.stream(questions)
+                pages.stream()
+                        .map(p -> new PageEntry(p.key(), p.title(), p.description(), PageTarget.orNext(p.after())))
+                        .toList(),
+                questions.stream()
                         .map(q -> new QuestionEntry(
                                 q.id(),
+                                q.pageKey(),
                                 q.questionType(),
                                 q.title(),
                                 q.description() != null ? q.description() : "",
@@ -634,7 +652,7 @@ public class FormRoutes implements Routes {
                                 q.shuffle() != null && q.shuffle(),
                                 q.config() != null ? q.config() : new FormQuestionConfig.Unknown()))
                         .toList());
-        ctx.json(formService.findQuestions(id));
+        ctx.json(new FormLayout(formService.findPages(id), formService.findQuestions(id)));
     }
 
     // -- Restrictions --
@@ -1060,6 +1078,7 @@ public class FormRoutes implements Routes {
      * One question of a form as the editor saves it.
      *
      * @param id           the question this updates, or {@code null} for a question that is new
+     * @param pageKey      the key of the page the question stands on, or {@code null} for the first page
      * @param questionType the question type name (must match {@link FormQuestionType})
      * @param title        the question text
      * @param description  optional description
@@ -1069,12 +1088,42 @@ public class FormRoutes implements Routes {
      */
     public record QuestionRequest(
             Integer id,
+            String pageKey,
             FormQuestionType questionType,
             String title,
             String description,
             Boolean required,
             Boolean shuffle,
             FormQuestionConfig config) {}
+
+    /**
+     * One page of a form as the editor saves it.
+     *
+     * @param key         the page's key, kept by a stored page and made by the editor for a new one
+     * @param title       optional title
+     * @param description optional description
+     * @param after       where the reader goes once the page is done; the next page where not given
+     */
+    @OpenApiName("FormPageRequest")
+    public record PageRequest(String key, String title, String description, PageTarget after) {}
+
+    /**
+     * The pages and questions of a form as the editor saves them, each list in its order.
+     *
+     * @param pages     the pages, at least one
+     * @param questions the questions, each naming the page it stands on
+     */
+    @OpenApiName("FormLayoutRequest")
+    public record LayoutRequest(List<PageRequest> pages, List<QuestionRequest> questions) {}
+
+    /**
+     * The pages and questions of a form as stored.
+     *
+     * @param pages     the pages, in their order
+     * @param questions the questions, page by page
+     */
+    @OpenApiName("FormLayout")
+    public record FormLayout(List<FormPage> pages, List<FormQuestion> questions) {}
 
     /**
      * Access restrictions for a form, specifying which roles, groups, and tags may access it.

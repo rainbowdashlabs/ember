@@ -10,6 +10,7 @@ import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import {useEditorActionsMenu} from '@/components/content/blockeditor/useEditorActionsMenu'
 import QuestionSettings from './QuestionSettings.vue'
 import type {QuestionDraft} from '../types'
+import type {PageChoice} from '../pageChoice'
 
 /**
  * Everything about a question that is not its title, its content or whether it is required, behind
@@ -28,11 +29,14 @@ defineProps<{
   last: boolean
   /** Whether the description field is already shown, which makes offering it pointless. */
   describing: boolean
+  /** The other pages of the form, which the question can be moved to. */
+  otherPages: PageChoice[]
 }>()
 
 const emit = defineEmits<{
   describe: []
   move: [direction: -1 | 1]
+  moveToPage: [pageIndex: number]
   remove: []
 }>()
 
@@ -69,6 +73,10 @@ defineExpose({show})
       </DropdownMenuItem>
       <DropdownMenuItem :icon="['fas', 'chevron-down']" :disabled="last" @click="take(() => emit('move', 1))">
         {{ t('forms.questionMenu.moveDown') }}
+      </DropdownMenuItem>
+      <DropdownMenuItem v-for="page in otherPages" :key="page.index" :icon="['fas', 'arrow-right']"
+                        @click="take(() => emit('moveToPage', page.index))">
+        {{ t('forms.questionMenu.moveToPage', {page: page.label}) }}
       </DropdownMenuItem>
       <DropdownMenuItem :icon="['fas', 'trash']" destructive @click="take(() => emit('remove'))">
         {{ t('forms.questionMenu.remove') }}

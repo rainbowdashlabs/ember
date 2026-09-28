@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { QuestionType } from '@/api/forms'
+import type { PageTarget, QuestionType } from '@/api/forms'
 
 export interface QuestionDraft {
   id: string
@@ -13,6 +13,15 @@ export interface QuestionDraft {
   required: boolean
   shuffle: boolean
   config: Record<string, unknown>
+}
+
+/** One page of the form being edited, holding its questions in their order. */
+export interface PageDraft {
+  key: string
+  title: string
+  description: string
+  after: PageTarget
+  questions: QuestionDraft[]
 }
 
 const STORED_PREFIX = 'existing-'

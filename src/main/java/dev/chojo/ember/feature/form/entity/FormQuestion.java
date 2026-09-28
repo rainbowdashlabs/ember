@@ -12,7 +12,8 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  *
  * @param id               unique question identifier
  * @param formId           the form this question belongs to
- * @param position         display order position (0-based)
+ * @param position         display order position within the form (0-based)
+ * @param pageKey          the key of the page the question stands on
  * @param formQuestionType the type of question (CHOICE, TEXT, RATING, DATE, RANKING, LIKERT)
  * @param title            the question text shown to respondents
  * @param description      optional additional description or instructions
@@ -24,6 +25,7 @@ public record FormQuestion(
         int id,
         int formId,
         int position,
+        String pageKey,
         FormQuestionType formQuestionType,
         String title,
         String description,
@@ -41,6 +43,7 @@ public record FormQuestion(
                     row.getInt("id"),
                     row.getInt("form_id"),
                     row.getInt("position"),
+                    row.getString("page_key"),
                     type,
                     row.getString("title"),
                     row.getString("description"),

@@ -83,3 +83,61 @@ COMMENT ON COLUMN ember_schema.form_question.config IS
 
 COMMENT ON COLUMN ember_schema.form_answer.value IS
     'Answer value as JSONB. Options and Likert statements are named by their key, never by position.';
+
+-- A form is made of pages, and every question stands on one of them.
+--
+-- Each page says at its end which page follows: the next one, a chosen page further down, or none,
+-- in which case the form is sent. Pages are named by a key of their own, like options are, so the
+-- path a reader took stays readable when pages are renamed or reordered. Every existing form gets
+-- one page, keyed p0, holding all of its questions, and fills exactly as before.
+
+CREATE TABLE IF NOT EXISTS ember_schema.form_page
+(
+    id          SERIAL PRIMARY KEY,
+    form_id     INTEGER NOT NULL REFERENCES ember_schema.form (id) ON DELETE CASCADE,
+    page_key    TEXT    NOT NULL,
+    position    INTEGER NOT NULL,
+    title       TEXT    NOT NULL DEFAULT '',
+    description TEXT    NOT NULL DEFAULT '',
+    after_kind  TEXT    NOT NULL DEFAULT 'NEXT',
+    after_page  TEXT,
+    UNIQUE (form_id, page_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_form_page_form ON ember_schema.form_page (form_id);
+
+COMMENT ON TABLE ember_schema.form_page IS
+    'One page of a form. A form has at least one; its questions stand on its pages.';
+COMMENT ON COLUMN ember_schema.form_page.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.form_page.form_id IS 'References the form.';
+COMMENT ON COLUMN ember_schema.form_page.page_key IS
+    'Stable key of the page within its form, named by the page that follows and by the path a response took.';
+COMMENT ON COLUMN ember_schema.form_page.position IS 'Display order position of the page within its form.';
+COMMENT ON COLUMN ember_schema.form_page.title IS 'Optional title shown above the page.';
+COMMENT ON COLUMN ember_schema.form_page.description IS 'Optional text shown under the page title.';
+COMMENT ON COLUMN ember_schema.form_page.after_kind IS
+    'What follows the page: NEXT for the page below, PAGE for the page named in after_page, SUBMIT to send the form.';
+COMMENT ON COLUMN ember_schema.form_page.after_page IS
+    'Key of the page that follows when after_kind is PAGE, always a page further down.';
+
+INSERT INTO ember_schema.form_page (form_id, page_key, position)
+SELECT f.id, 'p0', 0
+FROM ember_schema.form f
+WHERE NOT EXISTS (SELECT 1 FROM ember_schema.form_page p WHERE p.form_id = f.id);
+
+ALTER TABLE ember_schema.form_question
+    ADD COLUMN IF NOT EXISTS page_id INTEGER REFERENCES ember_schema.form_page (id) ON DELETE CASCADE;
+
+UPDATE ember_schema.form_question q
+SET page_id = p.id
+FROM ember_schema.form_page p
+WHERE p.form_id = q.form_id
+  AND p.page_key = 'p0'
+  AND q.page_id IS NULL;
+
+ALTER TABLE ember_schema.form_question
+    ALTER COLUMN page_id SET NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_form_question_page ON ember_schema.form_question (page_id);
+
+COMMENT ON COLUMN ember_schema.form_question.page_id IS 'References the page of its form the question stands on.';

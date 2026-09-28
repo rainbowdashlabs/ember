@@ -11,6 +11,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { QuestionDraft } from './types'
+import type { PageChoice } from './pageChoice'
 import QuestionHeader from './QuestionHeader.vue'
 import QuestionChips from './QuestionChips.vue'
 import QuestionContent from './QuestionContent.vue'
@@ -26,13 +27,18 @@ import QuestionMenu from './questionmenu/QuestionMenu.vue'
  */
 const props = defineProps<{
   question: QuestionDraft
-  index: number
-  totalQuestions: number
+  /** The number the question is shown with, counted across every page. */
+  number: number
+  first: boolean
+  last: boolean
+  /** The other pages it could be moved to, empty for a form of one page. */
+  otherPages: PageChoice[]
 }>()
 
 const emit = defineEmits<{
-  move: [index: number, direction: -1 | 1]
-  remove: [index: number]
+  move: [direction: -1 | 1]
+  remove: []
+  moveToPage: [pageIndex: number]
 }>()
 
 const { t } = useI18n()
@@ -44,10 +50,11 @@ const menu = ref<InstanceType<typeof QuestionMenu> | null>(null)
 <template>
   <NeutralContainer>
     <div class="space-y-3" data-testid="question-tile">
-      <QuestionHeader :question-type="question.questionType" :index="index">
-        <QuestionMenu ref="menu" :question="question" :first="index === 0" :last="index === totalQuestions - 1"
+      <QuestionHeader :question-type="question.questionType" :number="number">
+        <QuestionMenu ref="menu" :question="question" :first="first" :last="last" :other-pages="otherPages"
                       :describing="describing" @describe="describing = true"
-                      @move="direction => emit('move', index, direction)" @remove="emit('remove', index)"/>
+                      @move="direction => emit('move', direction)" @remove="emit('remove')"
+                      @move-to-page="pageIndex => emit('moveToPage', pageIndex)"/>
       </QuestionHeader>
 
       <TextInput v-model="question.title" :placeholder="t('forms.questionTitle')" />

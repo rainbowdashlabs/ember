@@ -38,7 +38,7 @@ const CAMPS = numberedOptions('Zeltlager', 'Berufsfeuerwehrtag', 'Kreisjugendtag
 function question(id: number, type: FormQuestion['formQuestionType'], title: string,
                   config: Record<string, unknown>, rest: Partial<FormQuestion> = {}): FormQuestion {
     return {
-        id, formId: 1, position: id, formQuestionType: type, title, description: '',
+        id, formId: 1, position: id, pageKey: 'p0', formQuestionType: type, title, description: '',
         required: false, shuffle: false, config, ...rest,
     }
 }

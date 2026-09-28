@@ -17,15 +17,16 @@ import Alert from '@/components/feedback/Alert.vue'
 import InstantSaveNotice from '@/components/feedback/InstantSaveNotice.vue'
 import FormShareLink from '@/components/public/FormShareLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import QuestionListEditor from './builderview/QuestionListEditor.vue'
+import FormPagesEditor from './builderview/pages/FormPagesEditor.vue'
 import FormMetadataEditor from './builderview/FormMetadataEditor.vue'
 import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import { type QuestionDraft, storedDraftId, storedQuestionId } from './builderview/types'
+import { storedQuestionId } from './builderview/types'
+import { useFormLayout } from './builderview/useFormLayout'
 import { AnswerLossDeclined, type Removals, useAnswerLossConsent } from './builderview/useAnswerLossConsent'
-import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, QuestionTypes, type Form, type FormPurposeName, type FormQuestion, type FormQuestionRequest, type FormVisibilityName, type PageUsingForm, type QuestionType} from '@/api/forms'
-import { blankOption, optionKeysOf } from '@/util/formOptions'
+import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, type Form, type FormPurposeName, type FormQuestion, type FormVisibilityName, type PageUsingForm, type QuestionType} from '@/api/forms'
+import { optionKeysOf } from '@/util/formOptions'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
@@ -106,8 +107,7 @@ const restriction = ref<RestrictionSelection>(emptyRestriction())
  */
 const answeredByMembers = computed(() => purpose.value === FormPurpose.INTERNAL)
 
-const questions = ref<QuestionDraft[]>([])
-let nextTempId = 1
+const layout = useFormLayout()
 
 /** A question as the server holds it, with the keys of its options, which a save measures its removals against. */
 interface StoredQuestion {
@@ -130,7 +130,7 @@ const {
 
 /** The stored questions the save removes, and the options it removes from the questions it keeps. */
 function removals(): Removals {
-  const drafts = new Map(questions.value.map(draft => [storedQuestionId(draft), draft]))
+  const drafts = new Map(layout.allQuestions.value.map(draft => [storedQuestionId(draft), draft]))
   const questionIds = storedQuestions.value.filter(stored => !drafts.has(stored.id)).map(stored => stored.id)
   const options = storedQuestions.value.flatMap(stored => {
     const draft = drafts.get(stored.id)
@@ -143,43 +143,6 @@ function removals(): Removals {
 }
 
 const questionTypes = computed<QuestionType[]>(() => QUESTION_TYPES_BY_PURPOSE[purpose.value])
-
-function addQuestion(type: QuestionType) {
-  const defaultConfig = getDefaultConfig(type)
-  questions.value.push({
-    id: `temp-${nextTempId++}`,
-    questionType: type,
-    title: '',
-    description: '',
-    required: false,
-    shuffle: false,
-    config: defaultConfig,
-  })
-}
-
-function getDefaultConfig(type: QuestionType): Record<string, unknown> {
-  switch (type) {
-    case QuestionTypes.CHOICE: return { multiSelect: false, dropdown: false, allowOther: false, options: [blankOption([])], multiLimitType: 'NONE', multiLimit: null }
-    case QuestionTypes.TEXT: return { longAnswer: false }
-    case QuestionTypes.RATING: return { scale: 5, icon: 'STAR' }
-    case QuestionTypes.DATE: return {}
-    case QuestionTypes.RANKING: return { options: [blankOption([])] }
-    case QuestionTypes.LIKERT: return { statements: [blankOption([])], scaleMin: 1, scaleMax: 5, scaleLabels: [] }
-  }
-}
-
-function removeQuestion(index: number) {
-  questions.value.splice(index, 1)
-}
-
-function moveQuestion(index: number, direction: -1 | 1) {
-  const newIndex = index + direction
-  const current = questions.value[index]
-  const target = questions.value[newIndex]
-  if (!current || !target) return
-  questions.value[index] = target
-  questions.value[newIndex] = current
-}
 
 const { loading, failure: loadFailure } = useAsyncLoader(async () => {
   const [groups, tags, members] = await Promise.all([
@@ -199,8 +162,9 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
     return
   }
 
-  const [form, qs, restrictions] = await Promise.all([
+  const [form, pages, qs, restrictions] = await Promise.all([
     forms.getForm(formId.value),
+    forms.getPages(formId.value),
     forms.getQuestions(formId.value),
     forms.getRestrictions(formId.value),
   ])
@@ -225,15 +189,7 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
   }
 
   remember(qs)
-  questions.value = qs.map(q => ({
-    id: storedDraftId(q.id),
-    questionType: q.formQuestionType,
-    title: q.title,
-    description: q.description,
-    required: q.required,
-    shuffle: q.shuffle,
-    config: typeof q.config === 'object' ? { ...q.config } : {},
-  }))
+  layout.load({pages, questions: qs})
 
   settings.arm()
   if (answeredByMembers.value) limits.arm()
@@ -334,26 +290,14 @@ watch(visibility, async now => {
 })
 
 /**
- * Sends the questions, each stored one with its id so it keeps its answers, and takes the ids the
- * server gave the new ones. A second save after a later step failed then changes those questions
- * instead of adding them again.
+ * Sends the pages and questions, each stored question with its id so it keeps its answers, and takes
+ * the ids the server gave the new ones. A second save after a later step failed then changes those
+ * questions instead of adding them again.
  */
 async function saveQuestions(id: number) {
-  const questionRequests: FormQuestionRequest[] = questions.value.map(q => ({
-    id: storedQuestionId(q),
-    questionType: q.questionType,
-    title: q.title,
-    description: q.description,
-    required: q.required,
-    shuffle: q.shuffle,
-    config: {...(q.config as object), questionType: q.questionType},
-  }))
-  const stored = await forms.setQuestions(id, questionRequests)
-  stored.forEach((question, index) => {
-    const draft = questions.value[index]
-    if (draft) draft.id = storedDraftId(question.id)
-  })
-  remember(stored)
+  const stored = await forms.saveLayout(id, layout.toRequest())
+  layout.adoptIds(stored)
+  remember(stored.questions)
 }
 
 /**
@@ -426,13 +370,7 @@ async function save() {
           v-model="restriction"
         />
 
-        <QuestionListEditor
-          :questions="questions"
-          :question-types="questionTypes"
-          @move="moveQuestion"
-          @remove="removeQuestion"
-          @add="addQuestion"
-        />
+        <FormPagesEditor :layout="layout" :question-types="questionTypes"/>
 
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="router.push({ name: returnRouteName })">{{ t('common.cancel') }}</SecondaryButton>

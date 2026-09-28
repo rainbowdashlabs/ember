@@ -8,11 +8,11 @@ import {computed, onMounted, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
-import PublicQuestionFields from '@/components/forms/fill/PublicQuestionFields.vue'
+import PublicPageFields from '@/components/forms/fill/PublicPageFields.vue'
+import FormPageNav from '@/components/forms/fill/FormPageNav.vue'
 import PublicFormClosedNotice from '@/components/forms/fill/PublicFormClosedNotice.vue'
 import {usePublicFormSubmission} from '@/composables/usePublicFormSubmission'
 import {FailureKind} from '@/util/failure'
@@ -48,6 +48,7 @@ const {
   updateText,
   updateDate,
   submit,
+  walk,
 } = usePublicFormSubmission(
     computed(() => props.stationUid),
     computed(() => props.formPublicUid),
@@ -87,30 +88,20 @@ const unreachable = computed(() => !loadFailure.value || loadFailure.value.kind 
             <PublicFormClosedNotice v-if="!open" :state="form.state" :closed-since="form.closedSince"/>
 
             <template v-else-if="!submitted">
-                <div v-for="q in form.questions" :key="q.id" class="space-y-2">
-                    <div>
-                        <span class="font-medium text-sm">{{ q.title }}</span>
-                        <span v-if="q.required" class="ml-1 text-error">*</span>
-                        <MutedText v-if="q.description" tag="p" class="mt-0.5">{{ q.description }}</MutedText>
-                    </div>
-
-                    <PublicQuestionFields
-                        :question="q"
-                        :answer="answers[q.id]"
-                        @update:text="(v: string) => updateText(q, v)"
-                        @update:date="(v: string) => updateDate(q, v)"
-                        @toggle-choice="(key: string) => toggleChoice(q, key)"/>
-                </div>
+                <PublicPageFields :walk="walk" :answers="answers"
+                                @update-text="updateText" @update-date="updateDate" @toggle-choice="toggleChoice"/>
 
                 <PublicConsentCheckbox
+                    v-if="walk.isLast.value"
                     v-model:accepted="consentAccepted"
                     v-model:consent-version="consentVersion"
                     v-model:privacy-version="privacyVersion"
                     v-model:tos-version="tosVersion"/>
 
-                <PrimaryButton :disabled="submitting" @click="submit">
-                    {{ submitting ? t('publicForm.submitting') : t('publicForm.submit') }}
-                </PrimaryButton>
+                <FormPageNav :can-go-back="walk.pageNumber.value > 1" :is-last="walk.isLast.value"
+                             :send-label="submitting ? t('publicForm.submitting') : t('publicForm.submit')"
+                             :sending="submitting"
+                             @back="walk.back()" @next="walk.next()" @send="submit"/>
             </template>
 
             <p v-else class="text-success text-sm">{{ t('publicForm.thanksText') }}</p>

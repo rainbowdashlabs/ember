@@ -72,6 +72,7 @@ const {
   updateText,
   updateDate,
   submit,
+  walk,
 } = usePublicFormSubmission(stationUid, publicUid, token, preloadedForm)
 
 const linkFailure = usePublicFailure(previewError, {
@@ -110,6 +111,7 @@ useHead(computed(() => {
                 :form="form"
                 :open="open"
                 :answers="answers"
+                :walk="walk"
                 v-model:consent-accepted="consentAccepted"
                 v-model:consent-version="consentVersion"
                 v-model:privacy-version="privacyVersion"

@@ -200,6 +200,7 @@ class FormServiceTest extends RepositoryTestBase {
         var entries = List.of(
                 new QuestionEntry(
                         null,
+                        null,
                         FormQuestionType.TEXT,
                         "Question A",
                         "Desc A",
@@ -207,6 +208,7 @@ class FormServiceTest extends RepositoryTestBase {
                         false,
                         new FormQuestionConfig.Text(false)),
                 new QuestionEntry(
+                        null,
                         null,
                         FormQuestionType.TEXT,
                         "Question B",

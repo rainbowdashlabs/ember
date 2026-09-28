@@ -12,12 +12,15 @@ import dev.chojo.ember.event.events.FormPublished;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormPage;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.FormVisibility;
+import dev.chojo.ember.feature.form.entity.PageEntry;
+import dev.chojo.ember.feature.form.entity.PageTarget;
 import dev.chojo.ember.feature.form.entity.QuestionAnswerCount;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.repository.FormRepository;
@@ -536,11 +539,53 @@ public class FormService {
      *                                             their own
      */
     public void saveQuestions(int formId, List<QuestionEntry> questions) {
+        var pages = repository.findPages(formId).stream()
+                .map(page -> new PageEntry(page.key(), page.title(), page.description(), page.after()))
+                .toList();
+        saveLayout(formId, pages, questions);
+    }
+
+    /**
+     * Retrieves the pages of a form, in their order.
+     *
+     * @param formId the form ID
+     * @return the pages, at least one for a form that exists
+     */
+    public List<FormPage> findPages(int formId) {
+        return repository.findPages(formId);
+    }
+
+    /**
+     * Saves a form's pages and its questions as the editor sends them, in the order they are sent.
+     *
+     * <p>Pages are kept by their key the way questions are kept by their id: a page sent with a key
+     * the form has is changed in place, one with a new key is added, and a stored page that is not
+     * sent is removed. Questions are saved as {@link #saveQuestions} describes, each on the page its
+     * entry names, or on the first page where it names none.
+     *
+     * <p>A page only ever leads further down. A form can then never loop and every path through it
+     * ends, which is refused here rather than left to whoever fills it in.
+     *
+     * @param formId    the form ID
+     * @param pages     the pages the form is to have, at least one
+     * @param questions the questions the form is to have
+     * @throws dev.chojo.ember.api.RefusalResponse where the pages do not each carry a key of their own,
+     *                                             one leads anywhere but further down, a question
+     *                                             stands on a page that is not sent, or a question is
+     *                                             refused as {@link #saveQuestions} describes
+     */
+    public void saveLayout(int formId, List<PageEntry> pages, List<QuestionEntry> questions) {
+        requireDistinctPageKeys(pages);
+        requireForwardTargets(pages);
+        requireKnownPages(pages, questions);
+        String firstPage = pages.getFirst().key();
         Transactions.run(() -> {
             var stored = repository.findQuestions(formId).stream()
                     .collect(Collectors.toMap(FormQuestion::id, question -> question));
             requireOwnQuestionsOfUnchangedType(stored, questions);
             requireDistinctOptionKeys(questions);
+            var storedPages = repository.findPages(formId);
+            var pageIds = writePages(formId, storedPages, pages);
             var kept = questions.stream()
                     .map(QuestionEntry::id)
                     .filter(Objects::nonNull)
@@ -548,11 +593,88 @@ public class FormService {
             stored.keySet().stream().filter(id -> !kept.contains(id)).forEach(repository::deleteQuestion);
             for (int position = 0; position < questions.size(); position++) {
                 var question = questions.get(position);
-                writeQuestion(formId, position, question);
+                int pageId = pageIds.get(question.pageKey() == null ? firstPage : question.pageKey());
+                writeQuestion(formId, pageId, position, question);
                 if (question.id() != null) dropRemovedOptions(stored.get(question.id()), question.config());
             }
+            storedPages.stream()
+                    .filter(page -> !pageIds.containsKey(page.key()))
+                    .forEach(page -> repository.deletePage(page.id()));
         });
-        log.info("Saved questions on form {} ({} questions)", formId, questions.size());
+        log.info("Saved form {} ({} pages, {} questions)", formId, pages.size(), questions.size());
+    }
+
+    private static void requireDistinctPageKeys(List<PageEntry> pages) {
+        if (pages.isEmpty()) throw Refusal.FORM_PAGE_KEYS_NOT_DISTINCT.raise();
+        var keys = new HashSet<String>();
+        for (var page : pages) {
+            if (page.key() == null || page.key().isBlank() || !keys.add(page.key())) {
+                throw Refusal.FORM_PAGE_KEYS_NOT_DISTINCT.raise();
+            }
+        }
+    }
+
+    private static void requireForwardTargets(List<PageEntry> pages) {
+        var positions = pagePositions(pages);
+        for (int position = 0; position < pages.size(); position++) {
+            if (!leadsForward(PageTarget.orNext(pages.get(position).after()), position, positions)) {
+                throw Refusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN.raise();
+            }
+        }
+    }
+
+    /**
+     * Whether a target leaves the page at the given position for somewhere further down, or for the
+     * end of the form.
+     */
+    static boolean leadsForward(PageTarget target, int from, Map<String, Integer> positions) {
+        if (target.kind() != PageTarget.TargetKind.PAGE) return true;
+        var to = positions.get(target.page());
+        return to != null && to > from;
+    }
+
+    static Map<String, Integer> pagePositions(List<PageEntry> pages) {
+        var positions = new LinkedHashMap<String, Integer>();
+        for (int position = 0; position < pages.size(); position++)
+            positions.put(pages.get(position).key(), position);
+        return positions;
+    }
+
+    private static void requireKnownPages(List<PageEntry> pages, List<QuestionEntry> questions) {
+        var keys = pages.stream().map(PageEntry::key).collect(Collectors.toSet());
+        for (var question : questions) {
+            if (question.pageKey() != null && !keys.contains(question.pageKey())) {
+                throw Refusal.QUESTION_ON_NO_PAGE.raise();
+            }
+        }
+    }
+
+    /**
+     * Writes the pages as sent, the stored ones in place and the new ones added.
+     *
+     * @return the id of every page sent, by its key
+     */
+    private Map<String, Integer> writePages(int formId, List<FormPage> stored, List<PageEntry> pages) {
+        var storedByKey = stored.stream().collect(Collectors.toMap(FormPage::key, page -> page));
+        var ids = new LinkedHashMap<String, Integer>();
+        for (int position = 0; position < pages.size(); position++) {
+            var page = pages.get(position);
+            var after = PageTarget.orNext(page.after());
+            var existing = storedByKey.get(page.key());
+            String title = page.title() == null ? "" : page.title();
+            String description = page.description() == null ? "" : page.description();
+            if (existing == null) {
+                ids.put(
+                        page.key(),
+                        repository
+                                .createPage(formId, page.key(), position, title, description, after)
+                                .id());
+            } else {
+                repository.updatePage(existing.id(), position, title, description, after);
+                ids.put(page.key(), existing.id());
+            }
+        }
+        return ids;
     }
 
     private static void requireOwnQuestionsOfUnchangedType(
@@ -588,10 +710,11 @@ public class FormService {
         log.info("Dropped removed options {} from the answers to question {}", removed, stored.id());
     }
 
-    private void writeQuestion(int formId, int position, QuestionEntry q) {
+    private void writeQuestion(int formId, int pageId, int position, QuestionEntry q) {
         if (q.id() == null) {
             repository.createQuestion(
                     formId,
+                    pageId,
                     position,
                     q.formQuestionType(),
                     q.title(),
@@ -601,7 +724,8 @@ public class FormService {
                     q.config());
             return;
         }
-        repository.updateQuestion(q.id(), q.title(), q.description(), q.required(), q.shuffle(), q.config(), position);
+        repository.updateQuestion(
+                q.id(), pageId, q.title(), q.description(), q.required(), q.shuffle(), q.config(), position);
     }
 
     // -- Responses --

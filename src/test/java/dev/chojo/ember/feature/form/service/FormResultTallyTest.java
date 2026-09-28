@@ -161,7 +161,7 @@ class FormResultTallyTest {
     }
 
     private static FormQuestion question(int id, FormQuestionType type, FormQuestionConfig config) {
-        return new FormQuestion(id, 1, id, type, "Frage " + id, "", false, false, config);
+        return new FormQuestion(id, 1, id, "p0", type, "Frage " + id, "", false, false, config);
     }
 
     /** One stored answer per value, each from a response of its own, stored the way the app stores it. */

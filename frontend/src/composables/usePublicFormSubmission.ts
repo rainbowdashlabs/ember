@@ -3,13 +3,15 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { publicForms } from '@/api'
 import { PublicFormState, type PublicForm, type PublicFormQuestion } from '@/api/publicForms'
-import { QuestionTypes, type ChoiceAnswer } from '@/api/forms'
-import { optionsOf } from '@/util/formOptions'
+import type { ChoiceAnswer } from '@/api/forms'
+import { emptyAnswer, type AnswerValue } from '@/util/formAnswers'
+import { presentQuestions } from '@/util/formShuffle'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useFormWalk } from '@/composables/useFormWalk'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 
 /**
@@ -17,7 +19,8 @@ import { describeFailure, FailureKind, type Failure } from '@/util/failure'
  * cell embedded in a public page.
  *
  * Answers are keyed by question and shaped per question type, so an empty answer still has the
- * shape the server expects rather than being absent. Consent is collected here too: a public
+ * shape the server expects rather than being absent. The form is walked one page at a time, the same
+ * way on the standalone page and in the cell, and the questions come in the order this reader gets. Consent is collected here too: a public
  * submission comes from someone with no account, so the versions they agreed to travel with the
  * answers instead of being recorded against a profile.
  *
@@ -41,7 +44,7 @@ export function usePublicFormSubmission(
   const { t } = useI18n()
 
   const form = ref<PublicForm | null>(null)
-  const answers = ref<Record<number, Record<string, unknown>>>({})
+  const answers = ref<Record<number, AnswerValue>>({})
   const loading = ref(false)
   const loadFailure = ref<Failure | null>(null)
   const submitted = ref(false)
@@ -52,35 +55,46 @@ export function usePublicFormSubmission(
   const privacyVersion = ref('')
   const tosVersion = ref('')
 
-  /**
-   * Every question starts with an answer of the shape the server expects, so an unanswered one is
-   * empty rather than absent. A ranking starts in the order the options were written, since that is
-   * what the reader is shown before they move anything.
-   */
-  function initAnswerDefaults(questions: PublicFormQuestion[]) {
-    const defaults: Record<number, Record<string, unknown>> = {}
-    for (const q of questions) {
-      if (q.questionType === QuestionTypes.CHOICE) defaults[q.id] = {selected: [] as string[], other: ''}
-      else if (q.questionType === QuestionTypes.TEXT) defaults[q.id] = {text: ''}
-      else if (q.questionType === QuestionTypes.DATE) defaults[q.id] = {date: ''}
-      else if (q.questionType === QuestionTypes.RATING) defaults[q.id] = {rating: 0}
-      else if (q.questionType === QuestionTypes.RANKING) {
-        defaults[q.id] = {order: optionsOf(q.config).map(option => option.key)}
-      } else if (q.questionType === QuestionTypes.LIKERT) defaults[q.id] = {ratings: {}}
-      else defaults[q.id] = {}
-    }
+  const pages = computed(() => form.value?.pages ?? [])
+  const questions = computed(() => form.value?.questions ?? [])
+  const walk = useFormWalk(pages, questions, answers, question => question.questionType)
+
+  /** Every question starts with an answer of the shape the server expects. */
+  function initAnswerDefaults(list: PublicFormQuestion[]) {
+    const defaults: Record<number, AnswerValue> = {}
+    for (const q of list) defaults[q.id] = emptyAnswer(q.questionType, q.config)
     answers.value = defaults
   }
 
-  /** Takes a form that has already been fetched, so the page it is on draws it at once. */
+  /** The form with its questions in the order this reader gets them. */
+  function presented(data: PublicForm): PublicForm {
+    return {...data, questions: presentQuestions(data.questions ?? [], data.shuffleQuestions)}
+  }
+
+  /**
+   * Takes a form that has already been fetched, so the page it is on draws it at once.
+   *
+   * <p>In the order it was written: the server and the browser each draw this page, and two shuffles
+   * would draw two different ones. The shuffle comes once the page is up, before anything is typed.
+   */
   function seed(data: PublicForm | null) {
     form.value = data
     submitted.value = false
     initAnswerDefaults(data?.questions ?? [])
   }
 
+  function shuffleSeeded() {
+    if (!form.value) return
+    form.value = presented(form.value)
+    initAnswerDefaults(form.value.questions)
+  }
+
   if (preloaded.value !== null) seed(preloaded.value)
-  watch(preloaded, seed)
+  watch(preloaded, data => {
+    seed(data)
+    shuffleSeeded()
+  })
+  onMounted(shuffleSeeded)
 
   async function load() {
     if (preloaded.value !== null) return
@@ -95,8 +109,8 @@ export function usePublicFormSubmission(
       const data = shareToken.value
         ? await publicForms.getSharedForm(shareToken.value)
         : await publicForms.getPublicForm(stationUid.value as string, publicUid.value as string)
-      form.value = data
-      initAnswerDefaults(data.questions)
+      form.value = presented(data)
+      initAnswerDefaults(form.value.questions)
     } catch (e) {
       form.value = null
       loadFailure.value = describeLoadFailure(e)
@@ -158,7 +172,7 @@ export function usePublicFormSubmission(
 
   const {running: submitting, failure: sendFailure, run: runSubmit} = useAsyncAction(async () => {
     if (!form.value) return
-    const answerMap: Record<number, Record<string, unknown>> = {}
+    const answerMap: Record<number, AnswerValue> = {}
     for (const q of form.value.questions) {
       const value = answers.value[q.id]
       if (value === undefined) continue
@@ -210,6 +224,7 @@ export function usePublicFormSubmission(
   }
 
   function submit() {
+    if (!walk.checkCurrent()) return
     if (!consentAccepted.value) {
       validationError.value = t('publicConsent.required')
       return
@@ -245,5 +260,6 @@ export function usePublicFormSubmission(
     updateText,
     updateDate,
     submit,
+    walk,
   }
 }

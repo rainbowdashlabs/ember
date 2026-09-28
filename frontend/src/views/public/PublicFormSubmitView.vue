@@ -73,6 +73,7 @@ const {
   updateText,
   updateDate,
   submit,
+  walk,
 } = usePublicFormSubmission(stationUid, publicUid, shareToken, computed(() => preloadedForm.value ?? null))
 
 useHead(computed(() => {
@@ -106,6 +107,7 @@ onMounted(load)
           :form="form"
           :open="open"
           :answers="answers"
+          :walk="walk"
           v-model:consent-accepted="consentAccepted"
           v-model:consent-version="consentVersion"
           v-model:privacy-version="privacyVersion"

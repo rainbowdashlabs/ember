@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {FormPurposeName, QuestionType} from './forms'
+import type {FormPurposeName, PageTarget, QuestionType} from './forms'
 
 export interface PublicFormQuestion {
     id: number
@@ -12,7 +12,19 @@ export interface PublicFormQuestion {
     title: string
     description: string
     required: boolean
+    /** Whether the options come in a different order for every reader. */
+    shuffle: boolean
+    /** The key of the page the question stands on. */
+    pageKey: string
     config: Record<string, unknown>
+}
+
+/** One page of a public form, which the browser walks the way the server does on submit. */
+export interface PublicFormPage {
+    key: string
+    title: string
+    description: string
+    after: PageTarget
 }
 
 /**
@@ -36,6 +48,10 @@ export interface PublicForm {
     state: PublicFormStateName
     /** When it stopped taking answers, or nothing while it still does. */
     closedSince?: string | null
+    /** Whether the questions of each page come in a different order for every reader. */
+    shuffleQuestions: boolean
+    /** The pages in their order; empty unless the form is open, like the questions. */
+    pages: PublicFormPage[]
     /** Empty unless the form is open: a form nobody can answer hands out no questions. */
     questions: PublicFormQuestion[]
 }

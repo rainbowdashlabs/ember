@@ -147,8 +147,8 @@ class FormOptionKeyMigrationTest extends RepositoryTestBase {
 
     private static int oldQuestion(FormQuestionType type, String config) {
         return query("""
-                INSERT INTO form_question(form_id, position, question_type, title, config)
-                VALUES (:form_id, 0, :type, 'Frage', :config::JSONB)
+                INSERT INTO form_question(form_id, page_id, position, question_type, title, config)
+                VALUES (:form_id, (SELECT id FROM form_page WHERE form_id = :form_id), 0, :type, 'Frage', :config::JSONB)
                 RETURNING id;""")
                 .single(call().bind("form_id", formId).bind("type", type.name()).bind("config", config))
                 .map(row -> row.getInt("id"))

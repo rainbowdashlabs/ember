@@ -167,8 +167,16 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void updateQuestion() {
+        int pageId = formRepo.findPages(formId).getFirst().id();
         assertTrue(formRepo.updateQuestion(
-                questionId, "Full name?", "Enter full name", false, true, new FormQuestionConfig.Text(false), 1));
+                questionId,
+                pageId,
+                "Full name?",
+                "Enter full name",
+                false,
+                true,
+                new FormQuestionConfig.Text(false),
+                1));
         var questions = formRepo.findQuestions(formId);
         assertEquals("Full name?", questions.getFirst().title());
         assertEquals(1, questions.getFirst().position());

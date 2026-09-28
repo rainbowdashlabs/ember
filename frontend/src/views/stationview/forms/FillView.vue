@@ -12,13 +12,15 @@ import { useAsyncAction } from '@/composables/useAsyncAction'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
-import {QuestionTypes, type EligibleMembers, type Form, type FormQuestion} from '@/api/forms'
+import FormPageIntro from '@/components/forms/fill/FormPageIntro.vue'
+import FormPageNav from '@/components/forms/fill/FormPageNav.vue'
+import {type EligibleMembers, type Form, type FormPage, type FormQuestion} from '@/api/forms'
 import { forms } from '@/api'
-import { optionsOf } from '@/util/formOptions'
+import { emptyAnswer, type AnswerValue } from '@/util/formAnswers'
+import { presentQuestions } from '@/util/formShuffle'
+import { useFormWalk } from '@/composables/useFormWalk'
 import { describeFailure, type Failure } from '@/util/failure'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
@@ -42,9 +44,12 @@ const pageTitle = computed(() => form.value
     ? t('pages.forms-fill.titleNamed', {name: form.value.title})
     : t('pages.forms-fill.title'))
 
+const pages = ref<FormPage[]>([])
 const questions = ref<FormQuestion[]>([])
-const answers = ref<Record<number, Record<string, unknown>>>({})
+const answers = ref<Record<number, AnswerValue>>({})
 const hasExistingResponse = ref(false)
+
+const walk = useFormWalk(pages, questions, answers, question => question.formQuestionType)
 
 const selectedMemberId = ref<number | null>(null)
 const eligibility = ref<EligibleMembers | null>(null)
@@ -88,22 +93,8 @@ const fillTargetOptions = computed(() => {
 
 const effectiveMemberId = computed(() => selectedMemberId.value)
 
-function parseConfig(config: Record<string, unknown> | string): Record<string, unknown> {
-  if (typeof config === 'object' && config !== null) return config
-  try { return JSON.parse(config || '{}') } catch { return {} }
-}
-
 function initAnswerDefaults() {
-  for (const q of questions.value) {
-    if (q.formQuestionType === QuestionTypes.CHOICE) answers.value[q.id] = { selected: [], other: '' }
-    else if (q.formQuestionType === QuestionTypes.TEXT) answers.value[q.id] = { text: '' }
-    else if (q.formQuestionType === QuestionTypes.RATING) answers.value[q.id] = { rating: 0 }
-    else if (q.formQuestionType === QuestionTypes.DATE) answers.value[q.id] = { date: '' }
-    else if (q.formQuestionType === QuestionTypes.RANKING) {
-      answers.value[q.id] = { order: optionsOf(parseConfig(q.config)).map(option => option.key) }
-    }
-    else if (q.formQuestionType === QuestionTypes.LIKERT) answers.value[q.id] = { ratings: {} }
-  }
+  for (const q of questions.value) answers.value[q.id] = emptyAnswer(q.formQuestionType, q.config)
 }
 
 /**
@@ -125,6 +116,7 @@ async function loadExistingResponse() {
   hasExistingResponse.value = false
   answers.value = {}
   priorAnswerFailure.value = null
+  walk.restart()
 
   const memberId = effectiveMemberId.value
   try {
@@ -153,14 +145,16 @@ async function loadExistingResponse() {
 }
 
 const { loading, failure, reload } = useAsyncLoader(async () => {
-  const [f, qs, elig] = await Promise.all([
+  const [f, formPages, qs, elig] = await Promise.all([
     forms.getForm(formId.value),
+    forms.getPages(formId.value),
     forms.getQuestions(formId.value),
     forms.getEligibleMembers(formId.value),
   ])
   eligibility.value = elig
   form.value = f
-  questions.value = qs
+  questions.value = presentQuestions(qs, f.shuffleQuestions)
+  pages.value = formPages
 
   const firstManaged = eligibleManagedMembers.value[0]
   if (canFillForSelf.value) {
@@ -179,8 +173,8 @@ watch(selectedMemberId, async () => {
   }
 })
 
-const {failure: submitFailure, run: submit} = useAsyncAction(async () => {
-  const answerMap: Record<number, Record<string, unknown>> = {}
+const {failure: submitFailure, run: send} = useAsyncAction(async () => {
+  const answerMap: Record<number, AnswerValue> = {}
   for (const q of questions.value) {
     const value = answers.value[q.id]
     if (value === undefined) continue
@@ -211,6 +205,11 @@ const {failure: submitFailure, run: submit} = useAsyncAction(async () => {
  * reason to look at what they typed, and being told the wrong one costs them the answer.
  */
 const displayFailure = computed(() => submitFailure.value ?? failure.value ?? priorAnswerFailure.value)
+
+/** Sends the form once the page it is sent from is complete. */
+function submit() {
+  if (walk.checkCurrent()) void send()
+}
 
 onMounted(() => {
   if (loaded.value) reload()
@@ -245,18 +244,20 @@ watch(loaded, (isLoaded) => {
           </p>
         </InfoContainer>
 
+        <FormPageIntro v-if="walk.paged.value" :page-number="walk.pageNumber.value" :progress="walk.progress.value"
+                       :title="walk.currentPage.value?.title" :description="walk.currentPage.value?.description"/>
+
         <div class="space-y-4">
-          <QuestionCard v-for="q in questions" :key="q.id"
+          <QuestionCard v-for="q in walk.currentQuestions.value" :key="q.id"
                         v-model="answers[q.id]"
-                        :question="q" />
+                        :question="q" :error="walk.errors.value[q.id]" />
         </div>
 
-        <ButtonRow pair align="end">
+        <FormPageNav :can-go-back="walk.pageNumber.value > 1" :is-last="walk.isLast.value"
+                     :send-label="hasExistingResponse ? t('forms.update') : t('forms.submit')"
+                     @back="walk.back()" @next="walk.next()" @send="submit">
           <SecondaryButton @click="router.push({ name: 'forms-list' })">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton @click="submit">
-            {{ hasExistingResponse ? t('forms.update') : t('forms.submit') }}
-          </PrimaryButton>
-        </ButtonRow>
+        </FormPageNav>
       </template>
     </div>
   </ViewContent>
