@@ -128,6 +128,12 @@ export interface Form {
     visibility: FormVisibilityName
     publicUid: string
     responseCount: number
+    /** What the reader is told once the form is sent, or nothing for the general thanks. */
+    completionMessage?: string | null
+    /** Where the reader may go on to after sending. */
+    completionLink?: string | null
+    /** What that link says, or nothing for the address itself. */
+    completionLinkLabel?: string | null
 }
 
 export interface FormListEntry {
@@ -233,6 +239,9 @@ export interface FormRequest {
     startAt?: string | null
     endAt?: string | null
     purpose?: FormPurposeName
+    completionMessage?: string | null
+    completionLink?: string | null
+    completionLinkLabel?: string | null
 }
 
 /**

@@ -166,3 +166,19 @@ WHERE r.path = '[]'::JSONB
 
 COMMENT ON COLUMN ember_schema.form_response.path IS
     'The keys of the pages the response went through, in order. Empty where it was written without being walked, which counts as having seen every page.';
+
+-- A form can say something of its own once it is sent, with a link to go on to.
+
+ALTER TABLE ember_schema.form
+    ADD COLUMN IF NOT EXISTS completion_message TEXT;
+ALTER TABLE ember_schema.form
+    ADD COLUMN IF NOT EXISTS completion_link TEXT;
+ALTER TABLE ember_schema.form
+    ADD COLUMN IF NOT EXISTS completion_link_label TEXT;
+
+COMMENT ON COLUMN ember_schema.form.completion_message IS
+    'What the reader is told once the form is sent. NULL keeps the general thanks.';
+COMMENT ON COLUMN ember_schema.form.completion_link IS
+    'An address the reader is offered once the form is sent, such as the page of an event. NULL for none.';
+COMMENT ON COLUMN ember_schema.form.completion_link_label IS
+    'What the link offered after sending says. NULL shows the address itself.';

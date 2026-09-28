@@ -44,7 +44,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
 public class FormRepository {
 
     private static final String FORM_COLUMNS_BARE =
-            "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, purpose, visibility, public_uid";
+            "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, purpose, visibility, public_uid, completion_message, completion_link, completion_link_label";
     private static final String FORM_COLUMNS = SqlSupport.alias("f", FORM_COLUMNS_BARE);
     private static final String FORM_COMPUTED =
             "%s, (SELECT count(*) FROM form_response fr WHERE fr.form_id = f.id)::INT AS response_count, GREATEST(f.updated_at, (SELECT MAX(fr2.updated_at) FROM form_response fr2 WHERE fr2.form_id = f.id)) AS last_activity_at"
@@ -333,6 +333,26 @@ public class FormRepository {
                 .single(call().bind("id", id).bind("expected", expected).bind("replacement", replacement))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Sets what a form tells the reader once it is sent.
+     *
+     * @param id      the form
+     * @param message what the reader is told, or {@code null} for the general thanks
+     * @param link    an address offered to go on to, or {@code null}
+     * @param label   what the link says, or {@code null} for the address itself
+     */
+    public void updateCompletion(int id, String message, String link, String label) {
+        query("""
+                UPDATE form
+                SET completion_message = :message, completion_link = :link, completion_link_label = :label
+                WHERE id = :id;""")
+                .single(call().bind("id", id)
+                        .bind("message", message)
+                        .bind("link", link)
+                        .bind("label", label))
+                .update();
     }
 
     public boolean updateVisibility(int id, FormVisibility visibility) {

@@ -346,7 +346,8 @@ public class FormRoutes implements Routes {
                 req.endAt(),
                 session.member().id(),
                 req.purpose() != null ? req.purpose() : FormPurpose.INTERNAL);
-        ctx.status(HttpStatus.CREATED).json(form);
+        formService.setCompletion(form.id(), req.completionMessage(), req.completionLink(), req.completionLinkLabel());
+        ctx.status(HttpStatus.CREATED).json(formService.findById(form.id()).orElse(form));
     }
 
     @OpenApi(
@@ -391,6 +392,7 @@ public class FormRoutes implements Routes {
                 req.endAt())) {
             throw Refusal.FORM_NOT_HERE_ON_CHANGE.raise();
         }
+        formService.setCompletion(id, req.completionMessage(), req.completionLink(), req.completionLinkLabel());
         respondWithForm(ctx, id);
     }
 
@@ -1094,6 +1096,10 @@ public class FormRoutes implements Routes {
      * @param allowEdit        whether respondents may edit their response
      * @param startAt          optional start time for accepting responses
      * @param endAt            optional end time for accepting responses
+     * @param purpose          what the form is for, which is fixed once it is made
+     * @param completionMessage what the reader is told once the form is sent, or nothing for the general thanks
+     * @param completionLink   where the reader may go on to after sending, or nothing
+     * @param completionLinkLabel what that link says, or nothing for the address itself
      */
     public record FormRequest(
             String title,
@@ -1103,7 +1109,10 @@ public class FormRoutes implements Routes {
             Boolean forced,
             Instant startAt,
             Instant endAt,
-            FormPurpose purpose) {}
+            FormPurpose purpose,
+            String completionMessage,
+            String completionLink,
+            String completionLinkLabel) {}
 
     /**
      * One question of a form as the editor saves it.

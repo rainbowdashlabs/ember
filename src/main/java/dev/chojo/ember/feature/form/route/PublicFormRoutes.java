@@ -231,7 +231,11 @@ public class PublicFormRoutes implements Routes {
                 closedSince(form, state),
                 form.shuffleQuestions(),
                 pages,
-                questions);
+                questions,
+                open
+                        ? new PublicCompletion(
+                                form.completionMessage(), form.completionLink(), form.completionLinkLabel())
+                        : null);
     }
 
     /**
@@ -395,7 +399,19 @@ public class PublicFormRoutes implements Routes {
             boolean shuffleQuestions,
             /** The pages, in their order; empty unless the form is open, like the questions. */
             List<PublicFormPage> pages,
-            List<PublicFormQuestion> questions) {}
+            List<PublicFormQuestion> questions,
+            /** What the form says once it is sent, or null for the general thanks; null unless the form is open. */
+            PublicCompletion completion) {}
+
+    /**
+     * What a public form says once it is sent.
+     *
+     * @param message   the form's own message, or null for the general thanks
+     * @param link      where the reader may go on to, or null
+     * @param linkLabel what the link says, or null for the address itself
+     */
+    @OpenApiName("PublicFormCompletion")
+    public record PublicCompletion(String message, String link, String linkLabel) {}
 
     /**
      * One page of a public form, which the browser walks the way the server does on submit.

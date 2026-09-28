@@ -866,6 +866,7 @@ export default {
     'F-062': 'Eine Kopie braucht einen Titel, es wurde nichts kopiert',
     'F-063': 'Du bist kein Mitglied dieser Wache',
     'F-064': FORM_NOT_HERE,
+    'F-065': 'Der Link nach dem Absenden muss mit https://, http:// oder / beginnen, es wurde nichts gespeichert',
 
     'W-022': 'Diese Einladung lässt sich nicht mehr verwenden',
     'W-023': 'Eine Einladung und ein Vorname werden gebraucht, es wurde nichts gespeichert',

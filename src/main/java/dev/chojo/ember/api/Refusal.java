@@ -2407,6 +2407,16 @@ public enum Refusal {
     /** A form that went before it could be copied. */
     FORM_NOT_HERE_ON_COPY(Area.FORMS, 64, HttpStatus.NOT_FOUND, Sentences.FORM_NOT_HERE),
 
+    /**
+     * A link offered after sending a form that is neither a web address nor an address on this site.
+     * The link is put in front of strangers, so nothing else is let through.
+     */
+    FORM_COMPLETION_LINK_NOT_A_LINK(
+            Area.FORMS,
+            65,
+            HttpStatus.BAD_REQUEST,
+            "The link after sending has to start with https://, http:// or /, so nothing was saved"),
+
     /** An invite that is used up or past its date. */
     WAITING_LIST_INVITE_NO_LONGER_VALID(
             Area.WAITING_LISTS, 22, HttpStatus.FORBIDDEN, "This invite can no longer be used"),

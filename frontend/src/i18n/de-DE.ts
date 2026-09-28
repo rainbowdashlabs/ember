@@ -7244,6 +7244,13 @@ export default {
             submit: 'Formular absenden',
             unreached: 'Kein Weg führt hierher',
         },
+        completion: {
+            title: 'Nach dem Absenden',
+            message: 'Eigene Nachricht, zum Beispiel: Danke, bis Samstag! (optional)',
+            link: 'Link, zum Beispiel zur Veranstaltung (optional)',
+            linkLabel: 'Text des Links (optional)',
+            hint: 'Ohne eigene Nachricht erscheint der übliche Dank. Ein Link beginnt mit https:// oder mit / für eine Seite dieser Wache.',
+        },
         preview: {
             toggle: 'Vorschau',
             path: 'Weg bisher: {path}',
@@ -7263,6 +7270,8 @@ export default {
             back: 'Zurück',
             next: 'Weiter',
             required: 'Diese Frage muss beantwortet werden.',
+            backToForms: 'Zurück zu den Umfragen',
+            changeAnswer: 'Antwort ändern',
         },
         chips: {
             multiSelect: 'Mehrfachauswahl',

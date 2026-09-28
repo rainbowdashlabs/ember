@@ -245,6 +245,35 @@ public class FormService {
     }
 
     /**
+     * Sets what a form tells the reader once it is sent: its own message, and a link to go on to.
+     *
+     * <p>Blank parts are stored as none, which keeps the general thanks. The link is shown to anybody
+     * who sends a public form, so only a web address or an address on this site is taken.
+     *
+     * @param id      the form
+     * @param message what the reader is told
+     * @param link    where the reader may go on to
+     * @param label   what the link says
+     * @throws dev.chojo.ember.api.RefusalResponse where the link is neither
+     */
+    public void setCompletion(int id, String message, String link, String label) {
+        String cleanLink = blankToNull(link);
+        if (cleanLink != null && !isOfferableLink(cleanLink)) throw Refusal.FORM_COMPLETION_LINK_NOT_A_LINK.raise();
+        repository.updateCompletion(id, blankToNull(message), cleanLink, blankToNull(label));
+    }
+
+    private static boolean isOfferableLink(String link) {
+        var lower = link.toLowerCase(java.util.Locale.ROOT);
+        return lower.startsWith("https://")
+                || lower.startsWith("http://")
+                || (link.startsWith("/") && !link.startsWith("//"));
+    }
+
+    private static String blankToNull(String text) {
+        return text == null || text.isBlank() ? null : text.trim();
+    }
+
+    /**
      * Makes a draft copy of a form: its settings, pages, branches, questions and restrictions.
      *
      * <p>What belongs to the form being asked rather than to how it asks stays behind: the answers,
@@ -274,6 +303,8 @@ public class FormService {
             if (source.purpose() != FormPurpose.INTERNAL) repository.updateVisibility(made.id(), source.visibility());
             repository.updateRestrictionMode(made.id(), source.restrictionMode());
             copyRestrictions(source, made.id());
+            repository.updateCompletion(
+                    made.id(), source.completionMessage(), source.completionLink(), source.completionLinkLabel());
             saveLayout(made.id(), pageEntries(id), questionEntries(id));
             return made;
         });

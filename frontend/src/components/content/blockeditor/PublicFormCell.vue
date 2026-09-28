@@ -13,6 +13,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import PublicPageFields from '@/components/forms/fill/PublicPageFields.vue'
 import FormPageNav from '@/components/forms/fill/FormPageNav.vue'
+import FormCompletion from '@/components/forms/fill/FormCompletion.vue'
 import PublicFormClosedNotice from '@/components/forms/fill/PublicFormClosedNotice.vue'
 import {usePublicFormSubmission} from '@/composables/usePublicFormSubmission'
 import {FailureKind} from '@/util/failure'
@@ -104,7 +105,8 @@ const unreachable = computed(() => !loadFailure.value || loadFailure.value.kind 
                              @back="walk.back()" @next="walk.next()" @send="submit"/>
             </template>
 
-            <p v-else class="text-success text-sm">{{ t('publicForm.thanksText') }}</p>
+            <FormCompletion v-else :message="form.completion?.message" :link="form.completion?.link"
+                            :link-label="form.completion?.linkLabel"/>
         </template>
 
         <template v-else-if="!loading">

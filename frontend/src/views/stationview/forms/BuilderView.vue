@@ -18,6 +18,7 @@ import InstantSaveNotice from '@/components/feedback/InstantSaveNotice.vue'
 import FormShareLink from '@/components/public/FormShareLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FormQuestionsSection from './builderview/FormQuestionsSection.vue'
+import FormCompletionEditor from './builderview/FormCompletionEditor.vue'
 import FormMetadataEditor from './builderview/FormMetadataEditor.vue'
 import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
@@ -61,6 +62,9 @@ const forced = ref(false)
 const startAt = ref('')
 const endAt = ref('')
 const visibility = ref<FormVisibilityName>(FormVisibility.PUBLIC)
+const completionMessage = ref('')
+const completionLink = ref('')
+const completionLinkLabel = ref('')
 
 /**
  * The reach the form is stored with, which is what a change is measured against.
@@ -189,6 +193,9 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
   purpose.value = form.purpose
   visibility.value = form.visibility
   storedVisibility.value = form.visibility
+  completionMessage.value = form.completionMessage ?? ''
+  completionLink.value = form.completionLink ?? ''
+  completionLinkLabel.value = form.completionLinkLabel ?? ''
 
   restriction.value = {
     userTypes: restrictions.userTypes ?? [],
@@ -248,6 +255,9 @@ function currentSettings() {
     startAt: startAt.value ? new Date(startAt.value).toISOString() : null,
     endAt: endAt.value ? new Date(endAt.value).toISOString() : null,
     purpose: purpose.value,
+    completionMessage: completionMessage.value,
+    completionLink: completionLink.value,
+    completionLinkLabel: completionLinkLabel.value,
   }
 }
 
@@ -367,6 +377,9 @@ async function save() {
           v-model:visibility="visibility"
           :purpose="purpose"
         />
+
+        <FormCompletionEditor v-model:message="completionMessage" v-model:link="completionLink"
+                              v-model:link-label="completionLinkLabel"/>
 
         <FormShareLink v-if="loadedForm && purpose !== FormPurpose.INTERNAL" :form="loadedForm" unsaved/>
 

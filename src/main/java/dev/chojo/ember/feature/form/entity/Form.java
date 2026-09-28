@@ -35,7 +35,10 @@ public record Form(
         FormPurpose purpose,
         FormVisibility visibility,
         UUID publicUid,
-        int responseCount) {
+        int responseCount,
+        String completionMessage,
+        String completionLink,
+        String completionLinkLabel) {
 
     public static RowMapping<Form> map() {
         return row -> new Form(
@@ -59,7 +62,10 @@ public record Form(
                 row.getEnum("purpose", FormPurpose.class),
                 row.getEnum("visibility", FormVisibility.class),
                 row.get("public_uid", StandardValueConverter.UUID_STRING),
-                row.getInt("response_count"));
+                row.getInt("response_count"),
+                row.getString("completion_message"),
+                row.getString("completion_link"),
+                row.getString("completion_link_label"));
     }
 
     public boolean isAcceptingResponses() {

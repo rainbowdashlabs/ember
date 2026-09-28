@@ -56,6 +56,15 @@ export interface PublicForm {
     pages: PublicFormPage[]
     /** Empty unless the form is open: a form nobody can answer hands out no questions. */
     questions: PublicFormQuestion[]
+    /** What the form says once it is sent; nothing unless the form is open. */
+    completion?: PublicFormCompletion | null
+}
+
+/** What a public form says once it is sent, each part empty where the form has none. */
+export interface PublicFormCompletion {
+    message?: string | null
+    link?: string | null
+    linkLabel?: string | null
 }
 
 export interface PublicFormSubmitRequest {

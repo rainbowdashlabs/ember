@@ -14,8 +14,9 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
-import FormPageIntro from '@/components/forms/fill/FormPageIntro.vue'
-import FormPageNav from '@/components/forms/fill/FormPageNav.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
+import FormSentNotice from '@/components/forms/fill/FormSentNotice.vue'
+import FillPages from './fillview/FillPages.vue'
 import {type EligibleMembers, type Form, type FormPage, type FormQuestion} from '@/api/forms'
 import { forms } from '@/api'
 import { emptyAnswer, type AnswerValue } from '@/util/formAnswers'
@@ -25,7 +26,6 @@ import { describeFailure, type Failure } from '@/util/failure'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import MemberSelector from './fillview/MemberSelector.vue'
-import QuestionCard from './fillview/QuestionCard.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -189,7 +189,7 @@ const {failure: submitFailure, run: send} = useAsyncAction(async () => {
     throw e
   }
   refreshSidebarCounts()
-  router.push({ name: 'forms-list' })
+  sent.value = true
 })
 
 /**
@@ -210,6 +210,15 @@ async function sendAnswers(answerMap: Record<number, AnswerValue>) {
   } else {
     await (hasExistingResponse.value ? forms.updateResponse(formId.value, data) : forms.submitResponse(formId.value, data))
   }
+}
+
+/** Whether the answer went through, which leaves the member on a screen saying so. */
+const sent = ref(false)
+
+/** Opens the answer just sent again, to correct it. */
+async function changeAnswer() {
+  sent.value = false
+  await loadExistingResponse()
 }
 
 /** Sends the form once the page it is sent from is complete. */
@@ -250,20 +259,21 @@ watch(loaded, (isLoaded) => {
           </p>
         </InfoContainer>
 
-        <FormPageIntro v-if="walk.paged.value" :page-number="walk.pageNumber.value" :progress="walk.progress.value"
-                       :title="walk.currentPage.value?.title" :description="walk.currentPage.value?.description"/>
+        <FormSentNotice v-if="sent" :message="form.completionMessage" :link="form.completionLink"
+                        :link-label="form.completionLinkLabel">
+          <ButtonRow>
+            <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'forms-list' })">
+              {{ t('forms.fill.backToForms') }}
+            </SecondaryButton>
+            <SecondaryButton v-if="form.allowEdit" :icon="['fas', 'pen']" data-testid="form-change-answer" @click="changeAnswer">
+              {{ t('forms.fill.changeAnswer') }}
+            </SecondaryButton>
+          </ButtonRow>
+        </FormSentNotice>
 
-        <div class="space-y-4">
-          <QuestionCard v-for="q in walk.currentQuestions.value" :key="q.id"
-                        v-model="answers[q.id]"
-                        :question="q" :error="walk.errors.value[q.id]" />
-        </div>
-
-        <FormPageNav :can-go-back="walk.pageNumber.value > 1" :is-last="walk.isLast.value"
-                     :send-label="hasExistingResponse ? t('forms.update') : t('forms.submit')"
-                     @back="walk.back()" @next="walk.next()" @send="submit">
-          <SecondaryButton @click="router.push({ name: 'forms-list' })">{{ t('common.cancel') }}</SecondaryButton>
-        </FormPageNav>
+        <FillPages v-else :walk="walk" :answers="answers"
+                   :send-label="hasExistingResponse ? t('forms.update') : t('forms.submit')"
+                   @send="submit" @cancel="router.push({ name: 'forms-list' })"/>
       </template>
     </div>
   </ViewContent>

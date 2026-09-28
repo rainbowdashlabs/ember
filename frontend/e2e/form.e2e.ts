@@ -22,9 +22,8 @@ test.describe('Forms', () => {
 
     /**
      * A form exists to be answered. The member opens one they are offered, writes into the first
-     * field and sends it. Sending takes them back to the list they came from, which is the only
-     * sign the application gives that the answer went through: staying on the form is what happens
-     * when it did not.
+     * field and sends it. Sending leaves them on a screen that says the answer went through, with
+     * the form's own words where it has any, and from there they go back to the list.
      */
     test('a member fills in a form and sends it', async ({memberPage: page}) => {
         const answer = unique('Antwort')
@@ -38,6 +37,8 @@ test.describe('Forms', () => {
         await field.fill(answer)
         await page.getByRole('button', {name: 'Absenden'}).click()
 
+        await expect(page.getByTestId('form-sent')).toBeVisible()
+        await page.getByRole('button', {name: 'Zurück zu den Umfragen'}).click()
         await page.waitForURL(/\/station\/forms$/)
         await expect(page.getByRole('button', {name: /Ausfüllen|Antwort bearbeiten/}).first()).toBeVisible()
     })
