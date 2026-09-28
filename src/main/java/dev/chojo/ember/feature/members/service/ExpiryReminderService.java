@@ -5,12 +5,16 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
+import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.ExpirySettings;
 import dev.chojo.ember.feature.members.entity.ExpiryState;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
-import dev.chojo.ember.feature.members.entity.ProfileField;
+import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
+import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.SentExpiryReminder;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ExpiryReminderRepository;
@@ -26,6 +30,7 @@ import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.inject.Inject;
+import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,18 +40,21 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * Reminds people of expiry dates that are close or have passed.
+ * Reminds people of expiry dates that are close or have passed, whether a station asks for the date
+ * or the association above it does.
  *
- * <p>One sweep looks at every station's expiry date fields on the station's own clock, so midnight
- * does not come early or late for a station outside UTC. A read-only station sends nothing, as for
- * appointment reminders.
+ * <p>One sweep looks at every expiry date field, and reads each answer on the clock of the station
+ * the member belongs to, so midnight does not come early or late for a station outside UTC. An
+ * association's field reaches members at several stations, which is why the clock is the member's
+ * station's and not the field's. A read-only station sends nothing, as for appointment reminders.
  *
  * <p>Only members the field still applies to are reminded, and never former ones: an answer kept on
  * archive, or one that outlived the group a field is asked of, is still stored. Nobody without a
@@ -55,7 +63,8 @@ import java.util.stream.Collectors;
  *
  * <p>The member and whoever looks after them each get their own reminder. Member management gets one
  * per field per sweep, naming the members who became due in it, because a hundred notifications on
- * one morning are noise; on a day nobody became due, it gets nothing.
+ * one morning are noise; on a day nobody became due, it gets nothing. For a station's field that is
+ * the station's member management, for an association's field the association's own.
  */
 @Singleton
 public class ExpiryReminderService {
@@ -65,6 +74,7 @@ public class ExpiryReminderService {
     private static final int NAMED_MEMBERS = 3;
 
     private final ProfileFieldRepository profileFieldRepository;
+    private final ClusterProfileFieldRepository clusterFieldRepository;
     private final ExpiryReminderRepository reminderRepository;
     private final ProfileFieldService profileFieldService;
     private final StationMemberRepository stationMemberRepository;
@@ -73,10 +83,12 @@ public class ExpiryReminderService {
     private final MemberPermissionResolver permissionResolver;
     private final MemberNameResolver memberNameResolver;
     private final NotificationService notificationService;
+    private final Provider<ClusterService> clusterService;
 
     @Inject
     public ExpiryReminderService(
             ProfileFieldRepository profileFieldRepository,
+            ClusterProfileFieldRepository clusterFieldRepository,
             ExpiryReminderRepository reminderRepository,
             ProfileFieldService profileFieldService,
             StationMemberRepository stationMemberRepository,
@@ -84,8 +96,10 @@ public class ExpiryReminderService {
             StationReadOnlyGuard readOnlyGuard,
             MemberPermissionResolver permissionResolver,
             MemberNameResolver memberNameResolver,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            Provider<ClusterService> clusterService) {
         this.profileFieldRepository = profileFieldRepository;
+        this.clusterFieldRepository = clusterFieldRepository;
         this.reminderRepository = reminderRepository;
         this.profileFieldService = profileFieldService;
         this.stationMemberRepository = stationMemberRepository;
@@ -94,54 +108,71 @@ public class ExpiryReminderService {
         this.permissionResolver = permissionResolver;
         this.memberNameResolver = memberNameResolver;
         this.notificationService = notificationService;
+        this.clusterService = clusterService;
     }
+
+    /**
+     * An expiry date field, the station's or the association's.
+     *
+     * @param origin  whose field it is, which also says which numbering its id belongs to
+     * @param id      the field
+     * @param name    its label
+     * @param config  its settings
+     * @param ownerId the station or the association asking
+     */
+    private record ExpiryField(FieldOrigin origin, int id, String name, ProfileFieldConfig config, int ownerId) {}
 
     /**
      * One member whose date owes a reminder in this sweep.
      *
      * @param member    the member
      * @param expiresOn the last valid day
+     * @param today     the day it is at the member's station
      * @param due       the reminder owed
      */
-    private record DueMember(StationMember member, LocalDate expiresOn, ExpiryReminderSchedule.Due due) {}
+    private record DueMember(
+            StationMember member, LocalDate expiresOn, LocalDate today, ExpiryReminderSchedule.Due due) {}
 
     /**
      * Sends every reminder owed at this moment and records it as done.
      *
-     * <p>One station failing does not stop the others: its reminders stay owed and go out on a later
+     * <p>One field failing does not stop the others: its reminders stay owed and go out on a later
      * sweep.
      *
      * @param now the moment of the sweep
      */
     public void sweep(Instant now) {
-        var byStation = profileFieldRepository.findAllByType(ProfileFieldType.EXPIRY_DATE).stream()
-                .collect(Collectors.groupingBy(ProfileField::stationId, LinkedHashMap::new, Collectors.toList()));
-        for (var station : byStation.entrySet()) {
+        int forgotten = reminderRepository.forgetDeletedFields();
+        if (forgotten > 0) log.info("Cleared {} expiry reminder record(s) of deleted fields", forgotten);
+        var zones = new HashMap<Integer, ZoneId>();
+        for (ExpiryField field : expiryFields()) {
+            var settings = field.config().expiry();
+            if (!settings.remindsAnybody()) continue;
             try {
-                sweepStation(station.getKey(), station.getValue(), now);
+                sweepField(field, settings, now, zones);
             } catch (RuntimeException e) {
-                log.error("Expiry reminders for station {} failed", station.getKey(), e);
+                log.error("Expiry reminders for {} field {} failed", field.origin(), field.id(), e);
             }
         }
     }
 
-    private void sweepStation(int stationId, List<ProfileField> fields, Instant now) {
-        if (!readOnlyGuard.isWritable(stationId)) return;
-        ZoneId zone =
-                StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
-        LocalDate today = LocalDate.ofInstant(now, zone);
-        for (ProfileField field : fields) {
-            var settings = field.config().expiry();
-            if (settings.remindsAnybody()) sweepField(field, settings, today, zone, now);
-        }
+    private List<ExpiryField> expiryFields() {
+        var ofStations = profileFieldRepository.findAllByType(ProfileFieldType.EXPIRY_DATE).stream()
+                .map(field -> new ExpiryField(
+                        FieldOrigin.STATION, field.id(), field.name(), field.config(), field.stationId()));
+        var ofClusters = clusterFieldRepository.findAllByType(ProfileFieldType.EXPIRY_DATE).stream()
+                .map(field -> new ExpiryField(
+                        FieldOrigin.CLUSTER, field.id(), field.name(), field.config(), field.clusterId()));
+        return Stream.concat(ofStations, ofClusters).toList();
     }
 
-    private void sweepField(ProfileField field, ExpirySettings settings, LocalDate today, ZoneId zone, Instant now) {
-        var due = dueMembers(field, settings, today, zone);
+    private void sweepField(ExpiryField field, ExpirySettings settings, Instant now, Map<Integer, ZoneId> zones) {
+        var due = dueMembers(field, settings, now, zones);
         for (DueMember member : due) {
-            if (settings.remindMember()) remindMember(field, member, today);
+            if (settings.remindMember()) remindMember(field, member);
             reminderRepository.markSent(
                     member.member().id(),
+                    field.origin(),
                     field.id(),
                     member.expiresOn(),
                     member.due().done(),
@@ -150,47 +181,66 @@ public class ExpiryReminderService {
         if (settings.remindManagement() && !due.isEmpty()) remindManagement(field, due);
         if (!due.isEmpty()) {
             log.info(
-                    "Expiry reminders for field '{}' (id={}, station={}): {} member(s) due",
+                    "Expiry reminders for {} field '{}' (id={}, owner={}): {} member(s) due",
+                    field.origin(),
                     field.name(),
                     field.id(),
-                    field.stationId(),
+                    field.ownerId(),
                     due.size());
         }
     }
 
     /** The members of one field whose date owes a reminder today, in the order their answers were read. */
-    private List<DueMember> dueMembers(ProfileField field, ExpirySettings settings, LocalDate today, ZoneId zone) {
-        Map<Integer, List<SentExpiryReminder>> sentByMember = reminderRepository.findSent(field.id()).stream()
-                .collect(Collectors.groupingBy(SentExpiryReminder::memberId));
+    private List<DueMember> dueMembers(
+            ExpiryField field, ExpirySettings settings, Instant now, Map<Integer, ZoneId> zones) {
+        Map<Integer, List<SentExpiryReminder>> sentByMember =
+                reminderRepository.findSent(field.origin(), field.id()).stream()
+                        .collect(Collectors.groupingBy(SentExpiryReminder::memberId));
         var due = new ArrayList<DueMember>();
-        for (var value : profileFieldRepository.findValuesOfField(field.id())) {
+        for (var value : valuesOf(field)) {
             LocalDate expiresOn = dayOf(value.plainValue());
             if (expiresOn == null) continue;
-            var sent = sentByMember.getOrDefault(value.memberId(), List.of()).stream()
+            var member = stationMemberRepository.findById(value.memberId()).orElse(null);
+            if (member == null || member.former() || !readOnlyGuard.isWritable(member.stationId())) continue;
+            ZoneId zone = zones.computeIfAbsent(member.stationId(), this::zoneOf);
+            LocalDate today = LocalDate.ofInstant(now, zone);
+            var sent = sentByMember.getOrDefault(member.id(), List.of()).stream()
                     .filter(reminder -> reminder.expiresOn().equals(expiresOn))
                     .toList();
             var owed = ExpiryReminderSchedule.due(expiresOn, settings, today, sent, zone);
-            if (owed.isEmpty()) continue;
-            var member = stationMemberRepository.findById(value.memberId()).orElse(null);
-            if (member == null || member.former() || !isAskedOf(field, member)) continue;
-            due.add(new DueMember(member, expiresOn, owed.get()));
+            if (owed.isEmpty() || !isAskedOf(field, member)) continue;
+            due.add(new DueMember(member, expiresOn, today, owed.get()));
         }
         return due;
     }
 
-    /** Whether the member is still asked the field, by their kind of member or by one of their groups. */
-    private boolean isAskedOf(ProfileField field, StationMember member) {
+    private List<ProfileFieldValue> valuesOf(ExpiryField field) {
+        return field.origin() == FieldOrigin.CLUSTER
+                ? clusterFieldRepository.findValuesOfField(field.id())
+                : profileFieldRepository.findValuesOfField(field.id());
+    }
+
+    /** The clock of one station, or UTC where it has named none. */
+    private ZoneId zoneOf(int stationId) {
+        return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
+    }
+
+    /**
+     * Whether the member is still asked the field: by their kind of member or one of their groups for a
+     * station's field, and at their station for an association's.
+     */
+    private boolean isAskedOf(ExpiryField field, StationMember member) {
         return profileFieldService.findApplicableFields(member.id()).stream()
-                .anyMatch(asked -> asked.origin() == FieldOrigin.STATION && asked.id() == field.id());
+                .anyMatch(asked -> asked.origin() == field.origin() && asked.id() == field.id());
     }
 
     /**
      * Tells the member, where they can sign in, and whoever looks after them. The member's copy leads to
      * their own profile; a guardian's leads to the page for the member in their care.
      */
-    private void remindMember(ProfileField field, DueMember due, LocalDate today) {
+    private void remindMember(ExpiryField field, DueMember due) {
         var member = due.member();
-        long daysLeft = ExpiryState.daysLeft(due.expiresOn(), today);
+        long daysLeft = ExpiryState.daysLeft(due.expiresOn(), due.today());
         var params = new NotificationParams.ExpiryReminder(
                 ExpiryReminderKind.forDaysLeft(daysLeft),
                 field.name(),
@@ -220,17 +270,10 @@ public class ExpiryReminderService {
 
     /**
      * Tells member management once which members became due for one field, naming the first few and
-     * counting all of them, and leads to the member list narrowed to the field's dates running out.
+     * counting all of them. A station's management is led to its member list narrowed to the field's
+     * dates running out; an association's to its own member list, which has no column for the answers.
      */
-    private void remindManagement(ProfileField field, List<DueMember> due) {
-        var recipients =
-                stationMemberRepository
-                        .findMembersWithPermission(field.stationId(), StationPermission.MEMBER_MANAGER)
-                        .stream()
-                        .filter(this::hasLogin)
-                        .map(StationMember::id)
-                        .toList();
-        if (recipients.isEmpty()) return;
+    private void remindManagement(ExpiryField field, List<DueMember> due) {
         var names = due.stream()
                 .map(member -> memberNameResolver.called(member.member().id()))
                 .filter(Objects::nonNull)
@@ -239,6 +282,22 @@ public class ExpiryReminderService {
         String members = names.size() > NAMED_MEMBERS ? named + ", …" : named;
         var params = new NotificationParams.ExpiryReminder(
                 ExpiryReminderKind.MEMBERS_DUE, field.name(), null, null, null, members, due.size());
+        if (field.origin() == FieldOrigin.CLUSTER) {
+            notificationService.notifyClusterMembersIfAbsent(
+                    clusterService.get().findMemberIdsWith(field.ownerId(), ClusterPermission.CLUSTER_MEMBER_MANAGER),
+                    NotificationType.EXPIRY_REMINDER,
+                    NotificationData.of(params, NotificationLinks.clusterMembers()),
+                    null);
+            return;
+        }
+        var recipients =
+                stationMemberRepository
+                        .findMembersWithPermission(field.ownerId(), StationPermission.MEMBER_MANAGER)
+                        .stream()
+                        .filter(this::hasLogin)
+                        .map(StationMember::id)
+                        .toList();
+        if (recipients.isEmpty()) return;
         notificationService.notifyMembers(
                 recipients,
                 NotificationType.EXPIRY_REMINDER,

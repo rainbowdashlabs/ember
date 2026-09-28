@@ -2824,14 +2824,10 @@ public enum Refusal {
             Area.CLUSTERS, 69, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_AN_IDENTITY),
 
     /**
-     * An association asking a question of the expiry date type. Its reminders go to a station's
-     * member management, and an association's question has nobody at the station to answer for it.
+     * The settings of an association's expiry date that count days backwards or repeat without a gap,
+     * the same refusal a station's own field gets.
      */
-    CLUSTER_FIELD_CANNOT_EXPIRE(
-            Area.CLUSTERS,
-            70,
-            HttpStatus.BAD_REQUEST,
-            "An association cannot ask for an expiry date. A station asks for its own"),
+    CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE(Area.CLUSTERS, 70, HttpStatus.BAD_REQUEST, Sentences.EXPIRY_OUT_OF_RANGE),
 
     /**
      * A file in the media library that is gone, or one held back from this reader. The two are one
@@ -3627,11 +3623,7 @@ public enum Refusal {
      * The settings of an expiry date that count days backwards or repeat without a gap: a warning
      * or a reminder a negative number of days before the date, or a repeat every zero days.
      */
-    EXPIRY_SETTINGS_OUT_OF_RANGE(
-            Area.MEMBERS,
-            120,
-            HttpStatus.BAD_REQUEST,
-            "Days before an expiry date cannot be negative and a repeat needs at least one day, so nothing was saved"),
+    EXPIRY_SETTINGS_OUT_OF_RANGE(Area.MEMBERS, 120, HttpStatus.BAD_REQUEST, Sentences.EXPIRY_OUT_OF_RANGE),
 
     /** Asking to set an instance up far more often than a person could. */
     SETUP_TOO_OFTEN(Area.INSTALLATION, 1, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
@@ -5482,6 +5474,8 @@ public enum Refusal {
         private static final String LINK_CARRIES_NOTHING = "That link carries nothing to act on";
         private static final String SESSION_TOKEN_MISSING = "The request named no session";
         private static final String PASSWORD_TOO_SHORT = "That password is too short, so nothing was saved";
+        private static final String EXPIRY_OUT_OF_RANGE =
+                "Days before an expiry date cannot be negative and a repeat needs at least one day, so nothing was saved";
         private static final String PASSWORD_BREACHED =
                 "That password turns up in known data leaks, so choose another one";
         private static final String ACCOUNT_NOT_NAMED = "Name the account this is about";

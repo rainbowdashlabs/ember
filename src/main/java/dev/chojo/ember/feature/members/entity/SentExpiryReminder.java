@@ -13,7 +13,8 @@ import java.time.LocalDate;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * A reminder about an expiry date that is done with.
+ * A reminder about an expiry date that is done with. Which field it was about is known to whoever
+ * asked for it, so the row carries only what differs between reminders of one field.
  *
  * @param memberId     whose date it was about
  * @param expiresOn    the last valid day it was about

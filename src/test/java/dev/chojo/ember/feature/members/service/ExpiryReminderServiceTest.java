@@ -5,8 +5,11 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -66,6 +69,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
         ledger = new ExpiryReminderRepository();
         service = new ExpiryReminderService(
                 profileFieldRepo,
+                clusterProfileFieldRepo,
                 ledger,
                 profileFieldService,
                 stationMemberRepo,
@@ -73,7 +77,8 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
                 readOnlyGuard,
                 memberPermissionResolver,
                 memberNameResolver,
-                notifications);
+                notifications,
+                () -> clusterService);
         station = stationRepo.create("Expiry Sweep " + System.nanoTime());
     }
 
@@ -84,9 +89,13 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
     }
 
     private StationMember member(String first, StationUserType type, StationPermission... granted) {
+        return memberAt(station, first, type, granted);
+    }
+
+    private StationMember memberAt(Station at, String first, StationUserType type, StationPermission... granted) {
         var account = accountRepo.create(first.toLowerCase() + System.nanoTime() + "@expiry.test", first, "Test");
         accounts.add(account.id());
-        var member = stationMemberRepo.create(station.id(), account.id());
+        var member = stationMemberRepo.create(at.id(), account.id());
         stationMemberRepo.setUserType(member.id(), type);
         for (var permission : granted) {
             stationMemberRepo.grantPermission(
@@ -176,7 +185,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
 
         assertEquals(
                 List.of(LocalDate.of(2026, 2, 6), LocalDate.of(2026, 3, 1)),
-                ledger.findSent(field.id()).stream()
+                ledger.findSent(FieldOrigin.STATION, field.id()).stream()
                         .filter(reminder -> reminder.memberId() == ben.id())
                         .map(reminder -> reminder.reminderDate())
                         .sorted()
@@ -200,7 +209,9 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
         service.sweep(MARCH_FIRST);
 
         verify(notifications, never()).notifyMembers(any(), any(), any());
-        assertTrue(ledger.findSent(field.id()).isEmpty(), "their reminders stay owed, should they come back");
+        assertTrue(
+                ledger.findSent(FieldOrigin.STATION, field.id()).isEmpty(),
+                "their reminders stay owed, should they come back");
     }
 
     @Test
@@ -212,7 +223,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
         service.sweep(MARCH_FIRST);
 
         verify(notifications, never()).notifyMembers(any(), any(), any());
-        assertEquals(1, ledger.findSent(field.id()).size());
+        assertEquals(1, ledger.findSent(FieldOrigin.STATION, field.id()).size());
     }
 
     @Test
@@ -271,7 +282,7 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
         answer(anna, silent, "2026-03-31");
 
         service.sweep(MARCH_FIRST);
-        assertTrue(ledger.findSent(silent.id()).isEmpty());
+        assertTrue(ledger.findSent(FieldOrigin.STATION, silent.id()).isEmpty());
 
         var loud = expiryField("Führerschein gültig bis", "{}");
         answer(anna, loud, "2026-03-31");
@@ -280,6 +291,63 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
         service.sweep(MARCH_FIRST);
 
         verify(notifications, never()).notifyMembers(any(), any(), any());
-        assertTrue(ledger.findSent(loud.id()).isEmpty());
+        assertTrue(ledger.findSent(FieldOrigin.STATION, loud.id()).isEmpty());
+    }
+
+    /**
+     * An association's expiry date reminds the member at the station as a station's does, and the
+     * association's own member management instead of the station's.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void anAssociationsExpiryDateRemindsTheMemberAndTheAssociation() {
+        var cluster = clusterService.create("Expiry Association " + System.nanoTime(), null);
+        var clusterStation =
+                clusterService.createStation(cluster.id(), "Expiry Association Station " + System.nanoTime());
+        try {
+            var field = clusterProfileFieldRepo.create(
+                    cluster.id(),
+                    "Maschinist gültig bis",
+                    ProfileFieldType.EXPIRY_DATE,
+                    ProfileFieldConfig.parse("{\"remindManagement\":true}"),
+                    false,
+                    true,
+                    null,
+                    false,
+                    false,
+                    null);
+            clusterProfileFieldRepo.assignToRole(field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+            var anna = memberAt(clusterStation, "Anna", StationUserType.MEMBER, StationPermission.LOGIN);
+            memberAt(clusterStation, "Maria", StationUserType.TEAM, StationPermission.MEMBER_MANAGER);
+            var office = accountRepo.create("office" + System.nanoTime() + "@expiry.test", "Olga", "Office");
+            accounts.add(office.id());
+            var officeMember = clusterService.addMember(cluster.id(), office.id(), ClusterUserType.CLUSTER_USER);
+            clusterService.grant(officeMember.id(), ClusterPermission.CLUSTER_MEMBER_MANAGER);
+            clusterProfileFieldRepo.setValue(anna.id(), field.id(), StringNode.valueOf("2026-03-31"));
+
+            service.sweep(MARCH_FIRST);
+
+            var own = leadingTo(sent(), "profile");
+            assertEquals(List.of(anna.id()), List.copyOf(own.to()));
+            assertEquals("Maschinist gültig bis", own.params().fieldName());
+            assertTrue(
+                    sent().stream().noneMatch(one -> one.data().link().route().equals("members-list")),
+                    "the station's member management is not told about the association's question");
+
+            var to = ArgumentCaptor.forClass(Collection.class);
+            var data = ArgumentCaptor.forClass(NotificationData.class);
+            verify(notifications)
+                    .notifyClusterMembersIfAbsent(
+                            to.capture(), eq(NotificationType.EXPIRY_REMINDER), data.capture(), eq(null));
+            assertEquals(List.of(officeMember.id()), List.copyOf(to.getValue()));
+            assertEquals(NotificationLinks.clusterMembers(), data.getValue().link());
+            assertEquals(1, ((NotificationParams.ExpiryReminder) data.getValue().params()).count());
+
+            assertEquals(1, ledger.findSent(FieldOrigin.CLUSTER, field.id()).size());
+            assertTrue(ledger.findSent(FieldOrigin.STATION, field.id()).isEmpty());
+        } finally {
+            stationRepo.delete(clusterStation.id());
+            clusterService.delete(cluster.id());
+        }
     }
 }

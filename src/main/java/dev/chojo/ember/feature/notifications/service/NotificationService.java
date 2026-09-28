@@ -95,6 +95,7 @@ public class NotificationService {
             Map.entry("members-list", "/station/members/list"),
             Map.entry("profile", "/station/profile"),
             Map.entry("profile-managed", "/station/profile/managed"),
+            Map.entry("cluster-members", "/cluster/members"),
             Map.entry("dashboard-overview", "/station/dashboard/overview"),
             Map.entry("lost-and-found", "/station/lost-and-found"),
             Map.entry("lending-request", "/station/inventory/lending/{id}"),

@@ -88,6 +88,15 @@ public final class NotificationLinks {
     }
 
     /**
+     * The association's own list of the members at its stations.
+     *
+     * @return the link an association's reminders about its members carry
+     */
+    public static NotificationLink clusterMembers() {
+        return new NotificationLink("cluster-members", Map.of());
+    }
+
+    /**
      * The reader's own profile, which is where a member renews a date of their own.
      *
      * @return the link a member's own reminders carry

@@ -5,6 +5,7 @@
  */
 import {describe, expect, it} from 'vitest'
 import {FieldTypes} from '@/api/profileFields'
+import {CLUSTER_FIELD_TYPES} from '@/api/clusterFields'
 import {expirySettingsOf} from '@/util/expiry'
 import {fieldTemplates} from './fieldTemplates'
 
@@ -39,6 +40,17 @@ describe('fieldTemplates', () => {
   it.each(fields)('$template: $name carries only settings the server names', field => {
     const unknown = Object.keys(field.config).filter(key => !SERVER_CONFIG_KEYS.includes(key))
     expect(unknown).toEqual([])
+  })
+
+  /** An association may ask for expiry dates, so the templates holding one are offered to it as well. */
+  it('offers the templates with an expiry date to an association', () => {
+    const offered = fieldTemplates
+      .filter(template => template.fields.every(field =>
+        (CLUSTER_FIELD_TYPES as readonly string[]).includes(field.fieldType)))
+      .map(template => template.name)
+
+    expect(offered).toEqual(expect.arrayContaining(['Führerschein', 'JuLeiCa', 'Erste Hilfe Kurs']))
+    expect(offered).not.toContain('Geburtsdatum')
   })
 
   /** A date that runs out warns as early as renewing it takes; a date that records an event does not run out. */

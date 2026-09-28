@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:ecd7bf764e96dcf9862badb9e7d63979f24b8f9d7ac35f96faad4aabd6ad1897",
-  "generatedAt": "2026-09-28T12:29:21Z",
+  "schemaHash": "sha256:dd4250748302230916d52636fcfc13f3bcde877a8dfe907a8ae13f05f5ea81eb",
+  "generatedAt": "2026-09-28T13:10:49Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -8537,7 +8537,7 @@
     "expiry_reminder_sent": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:685d035b1bf32073f2a4f518a36b7d7363338c0b4e5096626fcb4f32b95af635",
+      "tableHash": "sha256:4463d552b874735dbfa9804c8039995ba56bb510894cbded2375e7be4598df50",
       "columns": [
         {
           "name": "member_id",
@@ -8547,11 +8547,18 @@
           "description": "The member whose date the reminder was about."
         },
         {
+          "name": "field_origin",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Whose field the reminder was about: STATION for a station's own field, CLUSTER for an association's."
+        },
+        {
           "name": "field_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "The expiry date field the reminder was about."
+          "description": "The expiry date field the reminder was about, in profile_field or cluster_profile_field as field_origin says."
         },
         {
           "name": "expires_on",
@@ -8576,12 +8583,6 @@
         }
       ],
       "foreignKeys": [
-        {
-          "column": "field_id",
-          "refTable": "profile_field",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
         {
           "column": "member_id",
           "refTable": "station_member",

@@ -324,9 +324,35 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         assertTrue(refused.getMessage().contains("collide"));
     }
 
-    /** An expiry date reminds a station's own member management, which an association's question has none of. */
+    /** An association asks for an expiry date as a station does, and keeps its settings. */
     @Test
-    void anAssociationCannotAskForAnExpiryDate() {
+    void anAssociationAsksForAnExpiryDateWithItsSettings() {
+        int clusterId = freshCluster();
+
+        var field = clusterProfileFieldService.create(
+                clusterId,
+                "Erste Hilfe gültig bis",
+                ProfileFieldType.EXPIRY_DATE,
+                ProfileFieldConfig.parse("{\"warnFromDays\":90,\"reminderDays\":[90,30]}"),
+                false,
+                false,
+                null,
+                true,
+                false,
+                null);
+
+        var kept = clusterProfileFieldRepo
+                .findById(field.id())
+                .orElseThrow()
+                .config()
+                .expiry();
+        assertEquals(90, kept.warnFromDays());
+        assertEquals(List.of(30, 90), kept.reminderDays());
+    }
+
+    /** Days counted backwards are refused for an association's expiry date as for a station's. */
+    @Test
+    void anAssociationsExpiryDateCountingBackwardsIsRefused() {
         int clusterId = freshCluster();
 
         var refused = assertThrows(
@@ -335,14 +361,14 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         clusterId,
                         "Erste Hilfe gültig bis",
                         ProfileFieldType.EXPIRY_DATE,
-                        ProfileFieldConfig.empty(),
+                        ProfileFieldConfig.parse("{\"warnFromDays\":-1}"),
                         false,
                         false,
                         null,
                         true,
                         false,
                         null));
-        assertEquals(Refusal.CLUSTER_FIELD_CANNOT_EXPIRE, refused.refusal());
+        assertEquals(Refusal.CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE, refused.refusal());
     }
 
     @Test
