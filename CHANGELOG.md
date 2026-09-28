@@ -32,6 +32,8 @@
 - **Shuffling questions and options had no effect.** The settings to shuffle a form's questions or a question's options were saved but ignored when the form was filled in. They now shuffle, questions within each page.
 - **Exported answers were hard to read.** The spreadsheet and the PDF of a form's answers showed each answer the way it is stored. They now show the text of the chosen options.
 - **Questions for a group could be missing from a profile.** In some cases a question a station asks of one group did not appear on a member's profile when the station belongs to an association that asks questions of its own. Such questions now always appear and can be answered.
+- **Members who withdrew could not be added again.** After somebody withdrew or declined, the list for adding members to an appointment no longer offered them, so not even its managers could put them back on. They are offered again.
+- **Members who withdrew could not sign up again everywhere.** In some cases a member who had given their place back was still shown as withdrawn in the list of upcoming appointments and on the appointment's page, with no way to sign up again there. They can now sign up again from both.
 
 ## v26.19.5
 

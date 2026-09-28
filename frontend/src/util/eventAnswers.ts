@@ -60,6 +60,46 @@ export function isRefusal(status: RegistrationStatusName): boolean {
     return status === RegistrationStatus.DECLINED || status === RegistrationStatus.DENIED
 }
 
+/**
+ * Whether a registration is still an answer somebody holds.
+ *
+ * <p>A place that was given back is kept for whoever runs the appointment, so the row outlives the
+ * place. To the member it is not an answer they are holding: they hold nothing, they owe one, and
+ * they may sign up again.
+ */
+export function isStandingAnswer(registration: EventRegistrationEntry): boolean {
+    return registration.status !== RegistrationStatus.WITHDRAWN
+}
+
+/** Whether a registration holds a place or is waiting for one to be confirmed. */
+export function holdsOrAwaitsPlace(registration: EventRegistrationEntry): boolean {
+    return isStandingAnswer(registration) && !isRefusal(registration.status as RegistrationStatusName)
+}
+
+/**
+ * The members whoever runs an appointment can still put on its list for one date.
+ *
+ * <p>Everybody who neither holds a place there nor waits for one. A place given back, a refusal and a
+ * request turned away all keep their row, but none of them is a place, and leaving those members out
+ * meant not even the appointment's managers could put them back on. Rows of other dates say nothing
+ * about this one.
+ *
+ * @param members       everybody who could be registered, as the member menu offers them
+ * @param registrations the appointment's registrations, of any date
+ * @param date          the date the registration is made for, or null where every row belongs to it
+ */
+export function membersToRegister<M extends {value: string}>(
+    members: M[],
+    registrations: EventRegistrationEntry[],
+    date: string | null,
+): M[] {
+    const placed = new Set(registrations
+        .filter(registration => date === null || registration.eventDate === date)
+        .filter(holdsOrAwaitsPlace)
+        .map(registration => Number(registration.memberId)))
+    return members.filter(member => !placed.has(Number(member.value)))
+}
+
 /** What is known about a member somebody answers for. */
 interface ManagedMember {
     id: number
@@ -104,7 +144,8 @@ export function answerableMembers(
  * What each of these people has answered about one appointment on one date.
  *
  * <p>The station's own answers, mapped onto the shape the shared controls read. Taking one back
- * refers to the registration row itself, which is what the server deletes.
+ * refers to the registration row itself, which is what the server deletes. A place given back is no
+ * answer, so whoever gave it back is offered to sign up again rather than to give it back twice.
  *
  * @param asksQuestions whether the appointment asks anything, which is what makes an answer worth
  *                      opening again
@@ -117,7 +158,7 @@ export function localAnswers(
     const answers: GivenAnswer[] = []
     for (const person of people) {
         const registration = registrations.find(entry => entry.memberId === person.key)
-        if (!registration) continue
+        if (!registration || !isStandingAnswer(registration)) continue
         answers.push({
             key: person.key,
             name: person.name,
