@@ -13,6 +13,7 @@
 ### Fixes
 
 - **Search could miss words after a database upgrade.** In some cases, after PostgreSQL moved to a new major version, searches in the wiki, documents and boards no longer found words such as those written with "ae", "oe" or "ue". Ember now builds its search indexes again on the first start after such an upgrade.
+- **Editing a form keeps its answers.** In some cases saving a form that already had answers deleted them. Saving now only removes the answers to questions that were removed, and asks first when there are any.
 
 ## v26.19.4
 

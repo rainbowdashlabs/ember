@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.FormVisibility;
+import dev.chojo.ember.feature.form.entity.QuestionAnswerCount;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalyticsDto;
@@ -139,6 +140,10 @@ public class FormRoutes implements Routes {
         // Questions
         routes.get(prefix + "/forms/{id}/questions", this::listQuestions, StationPermission.USER);
         routes.put(prefix + "/forms/{id}/questions", this::setQuestions, StationPermission.POLL_CREATE);
+        routes.get(
+                prefix + "/forms/{id}/questions/answer-counts",
+                this::countAnswersPerQuestion,
+                StationPermission.POLL_CREATE);
 
         // Restrictions
         routes.get(prefix + "/forms/{id}/restrictions", this::getRestrictions, StationPermission.USER);
@@ -577,13 +582,32 @@ public class FormRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/forms/{id}/questions/answer-counts",
+            methods = HttpMethod.GET,
+            summary = "How many answers each question of a form holds",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuestionAnswerCount[].class)))
+    private void countAnswersPerQuestion(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedForm(id, UserSession.from(ctx));
+        ctx.json(formService.countAnswersPerQuestion(id));
+    }
+
+    @OpenApi(
             path = "/api/v1/forms/{id}/questions",
             methods = HttpMethod.PUT,
-            summary = "Replace all questions for a form",
+            summary = "Save the questions of a form",
+            description =
+                    "A question sent with its id is changed in place and keeps its answers, one sent without an id"
+                            + " is added, and a question of the form that is not sent is removed with its answers.",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuestionRequest[].class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormQuestion[].class)))
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormQuestion[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void setQuestions(Context ctx) {
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, UserSession.from(ctx));
@@ -596,10 +620,11 @@ public class FormRoutes implements Routes {
         if (!disallowed.isEmpty()) {
             throw Refusal.QUESTIONS_NOT_FOR_THIS_KIND_OF_FORM.raise();
         }
-        formService.replaceQuestions(
+        formService.saveQuestions(
                 id,
                 Arrays.stream(questions)
                         .map(q -> new QuestionEntry(
+                                q.id(),
                                 q.questionType(),
                                 q.title(),
                                 q.description() != null ? q.description() : "",
@@ -978,8 +1003,9 @@ public class FormRoutes implements Routes {
             FormPurpose purpose) {}
 
     /**
-     * Request body for creating a form question.
+     * One question of a form as the editor saves it.
      *
+     * @param id           the question this updates, or {@code null} for a question that is new
      * @param questionType the question type name (must match {@link FormQuestionType})
      * @param title        the question text
      * @param description  optional description
@@ -988,6 +1014,7 @@ public class FormRoutes implements Routes {
      * @param config       type-specific configuration as JSON string
      */
     public record QuestionRequest(
+            Integer id,
             FormQuestionType questionType,
             String title,
             String description,

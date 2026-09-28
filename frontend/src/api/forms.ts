@@ -162,7 +162,12 @@ export interface FormRequest {
     purpose?: FormPurposeName
 }
 
+/**
+ * One question as the editor saves it. A question sent with its `id` is changed in place and keeps
+ * its answers; one sent without is added.
+ */
 export interface FormQuestionRequest {
+    id?: number
     questionType: string
     title: string
     description?: string
@@ -317,8 +322,26 @@ export async function getQuestions(formId: number): Promise<FormQuestion[]> {
     return res.data
 }
 
+/**
+ * Saves the questions of a form. Every stored question left out of the list is removed, and the
+ * answers given to it with it.
+ *
+ * @returns the questions as stored, in the order they were sent
+ */
 export async function setQuestions(formId: number, questions: FormQuestionRequest[]): Promise<FormQuestion[]> {
     const res = await client.put<FormQuestion[]>(`/forms/${formId}/questions`, questions)
+    return res.data
+}
+
+/** How many answers one question of a form holds. */
+export interface QuestionAnswerCount {
+    questionId: number
+    answers: number
+}
+
+/** How many answers each question of a form holds, which is what removing one would throw away. */
+export async function getQuestionAnswerCounts(formId: number): Promise<QuestionAnswerCount[]> {
+    const res = await client.get<QuestionAnswerCount[]>(`/forms/${formId}/questions/answer-counts`)
     return res.data
 }
 

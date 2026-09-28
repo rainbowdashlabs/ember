@@ -4860,7 +4860,7 @@ volumes:
             orderText: 'Ziehe eine Frage an eine andere Stelle, um die Reihenfolge zu ändern. Mitglieder sehen die Fragen in genau dieser Reihenfolge.',
             saveTitle: 'Speichern',
             saveText: 'Klicke auf „Speichern", um deine Änderungen zu übernehmen. Solange das Formular noch ein Entwurf ist, werden keine Mitglieder benachrichtigt.',
-            tip: 'Du kannst ein Formular auch nach der Veröffentlichung noch bearbeiten. Bereits abgegebene Antworten bleiben erhalten.',
+            tip: 'Du kannst ein Formular auch nach der Veröffentlichung noch bearbeiten. Bereits abgegebene Antworten bleiben erhalten. Nur wer eine schon beantwortete Frage löscht, verliert ihre Antworten, und vor dem Speichern sagt dir Ember, wie viele das sind.',
         },
         kbFileView: {
             title: 'Datei anzeigen',

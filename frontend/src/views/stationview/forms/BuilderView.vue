@@ -21,7 +21,9 @@ import QuestionListEditor from './builderview/QuestionListEditor.vue'
 import FormMetadataEditor from './builderview/FormMetadataEditor.vue'
 import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
-import type { QuestionDraft } from './builderview/types'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import { type QuestionDraft, storedDraftId, storedQuestionId } from './builderview/types'
+import { AnswerLossDeclined, useAnswerLossConsent } from './builderview/useAnswerLossConsent'
 import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, QuestionTypes, type Form, type FormPurposeName, type FormQuestionRequest, type FormVisibilityName, type PageUsingForm, type QuestionType} from '@/api/forms'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
@@ -106,6 +108,21 @@ const answeredByMembers = computed(() => purpose.value === FormPurpose.INTERNAL)
 const questions = ref<QuestionDraft[]>([])
 let nextTempId = 1
 
+/** The questions the server holds for this form, which a save measures its removals against. */
+const storedQuestionIds = ref<number[]>([])
+
+const {
+  show: askingAboutAnswerLoss,
+  lostAnswers,
+  requireConsent: requireAnswerLossConsent,
+  accept: acceptAnswerLoss,
+} = useAnswerLossConsent()
+
+function removedQuestionIds(): number[] {
+  const kept = new Set(questions.value.map(storedQuestionId))
+  return storedQuestionIds.value.filter(id => !kept.has(id))
+}
+
 const questionTypes = computed<QuestionType[]>(() => QUESTION_TYPES_BY_PURPOSE[purpose.value])
 
 function addQuestion(type: QuestionType) {
@@ -188,8 +205,9 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
     mode: 'AND',
   }
 
+  storedQuestionIds.value = qs.map(q => q.id)
   questions.value = qs.map(q => ({
-    id: `existing-${q.id}`,
+    id: storedDraftId(q.id),
     questionType: q.formQuestionType,
     title: q.title,
     description: q.description,
@@ -296,8 +314,14 @@ watch(visibility, async now => {
   }
 })
 
+/**
+ * Sends the questions, each stored one with its id so it keeps its answers, and takes the ids the
+ * server gave the new ones. A second save after a later step failed then changes those questions
+ * instead of adding them again.
+ */
 async function saveQuestions(id: number) {
   const questionRequests: FormQuestionRequest[] = questions.value.map(q => ({
+    id: storedQuestionId(q),
     questionType: q.questionType,
     title: q.title,
     description: q.description,
@@ -305,7 +329,12 @@ async function saveQuestions(id: number) {
     shuffle: q.shuffle,
     config: {...(q.config as object), questionType: q.questionType},
   }))
-  await forms.setQuestions(id, questionRequests)
+  const stored = await forms.setQuestions(id, questionRequests)
+  stored.forEach((question, index) => {
+    const draft = questions.value[index]
+    if (draft) draft.id = storedDraftId(question.id)
+  })
+  storedQuestionIds.value = stored.map(question => question.id)
 }
 
 /**
@@ -318,6 +347,7 @@ const actionFailure = ref<Failure | null>(null)
 async function save() {
   actionFailure.value = null
   try {
+    if (formId.value) await requireAnswerLossConsent(formId.value, removedQuestionIds())
     const id = await saveForm()
     await saveQuestions(id)
     await limits.flush()
@@ -331,7 +361,7 @@ async function save() {
     }
     router.push({ name: returnRouteName.value })
   } catch (e) {
-    actionFailure.value = describeFailure(e, t)
+    if (!(e instanceof AnswerLossDeclined)) actionFailure.value = describeFailure(e, t)
     throw e
   }
 }
@@ -391,5 +421,10 @@ async function save() {
         </div>
       </template>
     </div>
+
+    <ConfirmDeleteModal v-model="askingAboutAnswerLoss"
+        :message="t('forms.removedQuestionsLoseAnswers', {count: lostAnswers})"
+        :confirm-label="t('forms.saveAndDeleteAnswers')"
+        @confirm="acceptAnswerLoss"/>
   </ViewContent>
 </template>
