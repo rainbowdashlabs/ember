@@ -21,23 +21,19 @@ test.describe('Forms', () => {
     })
 
     /**
-     * A form exists to be answered. The member opens one they are offered, writes into the first
-     * field and sends it. Sending takes them back to the list they came from, which is the only
-     * sign the application gives that the answer went through: staying on the form is what happens
-     * when it did not.
+     * A form exists to be answered. The member opens one they are offered, fills it in and sends
+     * it. Sending leaves them on a screen that says the answer went through, with the form's own
+     * words where it has any, and from there they go back to the list.
      */
     test('a member fills in a form and sends it', async ({memberPage: page}) => {
-        const answer = unique('Antwort')
-
         await page.goto('/station/forms')
-        await page.getByRole('button', {name: 'Ausfüllen'}).first().click()
-        await page.waitForURL(/\/station\/forms\/\d+\/fill/)
+        await openOfferedForm(page)
 
-        const field = page.getByRole('textbox').first()
-        await expect(field).toBeVisible()
-        await field.fill(answer)
+        await answerRequired(page, unique('Antwort'))
         await page.getByRole('button', {name: 'Absenden'}).click()
 
+        await expect(page.getByTestId('form-sent')).toBeVisible()
+        await page.getByRole('button', {name: 'Zurück zu den Umfragen'}).click()
         await page.waitForURL(/\/station\/forms$/)
         await expect(page.getByRole('button', {name: /Ausfüllen|Antwort bearbeiten/}).first()).toBeVisible()
     })
@@ -48,25 +44,15 @@ test.describe('Forms', () => {
      * the one somebody goes to when they want to know what a particular person wrote.
      */
     test('the answers to a form are read by whoever owns it', async ({managerPage: page}) => {
-        const answer = unique('Antwort')
-
         // The manager answers a form of the station and then reads that answer back, so the story
         // depends on nothing but itself: a form nobody has answered has nothing to read, and which
         // of the seeded forms carries an answer is up to whoever ran before.
         await page.goto('/station/forms')
-        await page.getByRole('button', {name: 'Ausfüllen'}).first().click()
-        await page.waitForURL(/\/station\/forms\/(\d+)\/fill/)
-        const id = page.url().match(/forms\/(\d+)/)?.[1]
+        const id = await openOfferedForm(page)
 
-        const field = page.getByRole('textbox').first()
-        await expect(field).toBeVisible()
-        await field.fill(answer)
-
-        // A form may insist on a choice as well, and it refuses to be sent while one is missing.
-        const options = page.getByTestId('choice-option')
-        if (await options.count() > 0) await options.first().click()
-
+        await answerRequired(page, unique('Antwort'))
         await page.getByRole('button', {name: /Absenden|Aktualisieren/}).click()
+        await expect(page.getByTestId('form-sent')).toBeVisible()
 
         await page.goto(`/station/forms/${id}/analytics`)
 
@@ -121,6 +107,167 @@ test.describe('Forms', () => {
         await expect(page.getByRole('button', {name: 'Ausfüllen'}).first()).toBeVisible()
     })
 })
+
+test.describe('Forms with pages', () => {
+    /**
+     * A form can be split into pages, and one answer can decide which page comes next. The manager
+     * builds one through the API, answers "Nein" and is led past the page for those who come, to
+     * the page asking why not, and from there to sending.
+     */
+    test('an answer leads to the page it is set to lead to', async ({managerPage: page}) => {
+        const id = await pagedForm(page)
+
+        await page.goto(`/station/forms/${id}/fill`)
+        await expect(page.getByTestId('form-page-intro')).toContainText('Seite 1')
+        await page.getByTestId('choice-option').filter({hasText: 'Nein'}).click()
+        await page.getByTestId('form-page-next').click()
+
+        await expect(page.getByText('Warum nicht?')).toBeVisible()
+        await expect(page.getByText('Was bringst du mit?')).toHaveCount(0)
+        await page.getByRole('textbox').first().fill(unique('Urlaub'))
+        await page.getByTestId('form-send').click()
+
+        await expect(page.getByTestId('form-sent')).toBeVisible()
+    })
+
+    /**
+     * A required question on the page the reader is on stops them going on, and says so at the
+     * question rather than somewhere above the form.
+     */
+    test('a required question is marked before the page can be left', async ({managerPage: page}) => {
+        const id = await pagedForm(page)
+
+        await page.goto(`/station/forms/${id}/fill`)
+        await page.getByTestId('choice-option').filter({hasText: 'Ja'}).click()
+        await page.getByTestId('form-page-next').click()
+        await page.getByTestId('form-send').click()
+
+        await expect(page.getByTestId('question-error')).toBeVisible()
+        await expect(page.getByTestId('form-sent')).toHaveCount(0)
+    })
+
+    /**
+     * A long form is not always finished in one sitting. Going on to the next page keeps what was
+     * filled in, and opening the form again continues on that page, until the reader starts over.
+     */
+    test('a half-filled form continues where it was left', async ({managerPage: page}) => {
+        const id = await pagedForm(page)
+
+        await page.goto(`/station/forms/${id}/fill`)
+        await page.getByTestId('choice-option').filter({hasText: 'Ja'}).click()
+        await page.getByTestId('form-page-next').click()
+        await expect(page.getByText('Was bringst du mit?')).toBeVisible()
+
+        await expect.poll(async () => {
+            const headers = await apiHeaders(page)
+            return (await (await page.request.get(`/api/v1/forms/${id}/draft`, {headers})).json()).draft?.path
+        }).toEqual(['start', 'yes'])
+
+        await page.goto('/station/forms')
+        await page.goto(`/station/forms/${id}/fill`)
+        await expect(page.getByTestId('form-draft-note')).toBeVisible()
+        await expect(page.getByText('Was bringst du mit?')).toBeVisible()
+
+        await page.getByTestId('form-draft-start-over').click()
+        await expect(page.getByTestId('form-draft-note')).toHaveCount(0)
+        await expect(page.getByText('Kommst du mit?')).toBeVisible()
+    })
+
+    /**
+     * The editor's preview walks the pages the way the form will be filled in, shows the path taken
+     * so far, and sends nothing.
+     */
+    test('the preview walks the pages and sends nothing', async ({managerPage: page}) => {
+        const id = await pagedForm(page)
+
+        await page.goto(`/station/forms/${id}/edit`)
+        await page.getByTestId('form-preview-toggle').click()
+        const preview = page.getByTestId('form-preview')
+        await preview.getByTestId('choice-option').filter({hasText: 'Nein'}).first().click()
+        await preview.getByTestId('form-page-next').click()
+        await expect(preview.getByTestId('preview-path')).toContainText('Warum')
+        await preview.getByTestId('form-send').click()
+
+        await expect(preview.getByText('In der Vorschau wird nichts gespeichert.')).toBeVisible()
+        const headers = await apiHeaders(page)
+        const form = await (await page.request.get(`/api/v1/forms/${id}`, {headers})).json()
+        expect(form.responseCount).toBe(0)
+    })
+})
+
+/** What the forms made by the stories about pages are called, so the other stories can pass them by. */
+const PAGED_FORM = 'Ausflug'
+
+/**
+ * Opens the first form the forms page offers to be filled in, passing by the forms the stories about
+ * pages make while this one runs, and returns its id.
+ */
+async function openOfferedForm(page: Page): Promise<string | undefined> {
+    await page.getByTestId('available-form').filter({hasNotText: PAGED_FORM}).getByRole('button', {name: 'Ausfüllen'})
+        .first().click()
+    await page.waitForURL(/\/station\/forms\/(\d+)\/fill/)
+    return page.url().match(/forms\/(\d+)/)?.[1]
+}
+
+/**
+ * Writes the answer into every text field of the open form and picks the first option where it asks
+ * for a choice. A form refuses to be sent while a required question is unanswered, and the forms a
+ * story is offered first, such as the seeded contact form, ask for more than one field.
+ */
+async function answerRequired(page: Page, answer: string) {
+    const fields = page.getByRole('textbox')
+    await expect(fields.first()).toBeVisible()
+    for (const field of await fields.all()) await field.fill(answer)
+
+    const options = page.getByTestId('choice-option')
+    if (await options.count() > 0) await options.first().click()
+}
+
+/**
+ * An open internal form of three pages, made through the API: whether the reader comes decides
+ * between a page for those who come and one for those who do not, and both send the form after.
+ *
+ * <p>It is put to the manager making it and to nobody else, so no other story finds it among the
+ * forms it is offered.
+ */
+async function pagedForm(page: Page): Promise<number> {
+    const headers = await apiHeaders(page)
+    const made = await (await page.request.post('/api/v1/forms', {
+        headers,
+        data: {title: unique(PAGED_FORM), purpose: 'INTERNAL'},
+    })).json() as {id: number}
+    const me = await (await page.request.get('/api/v1/session', {headers})).json() as {member: {id: number}}
+    await page.request.put(`/api/v1/forms/${made.id}/restrictions`, {
+        headers,
+        data: {userTypes: [], groupIds: [], tagIds: [], memberIds: [me.member.id]},
+    })
+    const choice = {
+        questionType: 'CHOICE',
+        options: [{key: 'yes', label: 'Ja'}, {key: 'no', label: 'Nein'}],
+        multiSelect: false,
+    }
+    const saved = await page.request.put(`/api/v1/forms/${made.id}/questions`, {
+        headers,
+        data: {
+            pages: [
+                {key: 'start', title: '', description: '', after: {kind: 'NEXT'}},
+                {key: 'yes', title: 'Mitfahrt', description: '', after: {kind: 'SUBMIT'}},
+                {key: 'no', title: 'Warum', description: '', after: {kind: 'NEXT'}},
+            ],
+            questions: [
+                {pageKey: 'start', questionType: 'CHOICE', title: 'Kommst du mit?', required: true, config: choice,
+                    branch: {yes: {kind: 'PAGE', page: 'yes'}, no: {kind: 'PAGE', page: 'no'}}},
+                {pageKey: 'yes', questionType: 'TEXT', title: 'Was bringst du mit?', required: true,
+                    config: {questionType: 'TEXT', longAnswer: false}},
+                {pageKey: 'no', questionType: 'TEXT', title: 'Warum nicht?', required: false,
+                    config: {questionType: 'TEXT', longAnswer: false}},
+            ],
+        },
+    })
+    expect(saved.ok(), await saved.text()).toBeTruthy()
+    await page.request.post(`/api/v1/forms/${made.id}/publish`, {headers})
+    return made.id
+}
 
 /**
  * An internal survey of the station that already has answers, found through the API.

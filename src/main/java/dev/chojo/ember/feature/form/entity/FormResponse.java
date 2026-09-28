@@ -6,8 +6,11 @@
 package dev.chojo.ember.feature.form.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.util.Json;
+import tools.jackson.core.type.TypeReference;
 
 import java.time.Instant;
+import java.util.List;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -32,6 +35,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  *                       still unhandled / not applicable
  * @param acknowledgedBy member id of the acknowledger, or {@code null} when not yet acknowledged
  *                       (kept as id rather than UUID since the column is local-only)
+ * @param path           the keys of the pages the response went through, in order; empty where it
+ *                       was written without being walked, which counts as having seen every page
  */
 public record FormResponse(
         int id,
@@ -42,7 +47,10 @@ public record FormResponse(
         Instant updatedAt,
         byte[] submitterHash,
         Instant acknowledgedAt,
-        Integer acknowledgedBy) {
+        Integer acknowledgedBy,
+        List<String> path) {
+    private static final TypeReference<List<String>> KEYS = new TypeReference<>() {};
+
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -56,6 +64,27 @@ public record FormResponse(
                 row.get("updated_at", INSTANT_TIMESTAMP),
                 row.getBytes("submitter_hash"),
                 row.get("acknowledged_at", INSTANT_TIMESTAMP),
-                row.getObject("acknowledged_by", Integer.class));
+                row.getObject("acknowledged_by", Integer.class),
+                readPath(row.getString("path")));
+    }
+
+    /**
+     * Whether the response went through the given page. A response written without being walked went
+     * through every page.
+     *
+     * @param pageKey the page
+     * @return whether it was on the path
+     */
+    public boolean reached(String pageKey) {
+        return path == null || path.isEmpty() || path.contains(pageKey);
+    }
+
+    private static List<String> readPath(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            return Json.MAPPER.readValue(json, KEYS);
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 }

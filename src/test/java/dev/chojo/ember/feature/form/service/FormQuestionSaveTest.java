@@ -138,7 +138,15 @@ class FormQuestionSaveTest extends RepositoryTestBase {
     void anExistingQuestionCannotChangeItsType() {
         var form = answeredForm();
         var retyped = new QuestionEntry(
-                form.first().id(), FormQuestionType.DATE, "First", "", false, false, new FormQuestionConfig.Date());
+                form.first().id(),
+                null,
+                FormQuestionType.DATE,
+                "First",
+                "",
+                false,
+                false,
+                new FormQuestionConfig.Date(),
+                null);
 
         var refused = assertThrows(
                 RefusalResponse.class,
@@ -160,9 +168,9 @@ class FormQuestionSaveTest extends RepositoryTestBase {
 
         assertEquals(
                 List.of(
-                        new QuestionAnswerCount(form.first().id(), 1),
-                        new QuestionAnswerCount(form.second().id(), 1),
-                        new QuestionAnswerCount(third.id(), 0)),
+                        new QuestionAnswerCount(form.first().id(), 1, Map.of()),
+                        new QuestionAnswerCount(form.second().id(), 1, Map.of()),
+                        new QuestionAnswerCount(third.id(), 0, Map.of())),
                 service.countAnswersPerQuestion(form.id()));
     }
 
@@ -190,7 +198,7 @@ class FormQuestionSaveTest extends RepositoryTestBase {
 
     private static QuestionEntry text(Integer id, String title) {
         return new QuestionEntry(
-                id, FormQuestionType.TEXT, title, "", false, false, new FormQuestionConfig.Text(false));
+                id, null, FormQuestionType.TEXT, title, "", false, false, new FormQuestionConfig.Text(false), null);
     }
 
     private static List<Integer> ids(List<FormQuestion> questions) {

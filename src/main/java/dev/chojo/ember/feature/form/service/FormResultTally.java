@@ -10,11 +10,13 @@ import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.FormResponse;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -28,6 +30,9 @@ import java.util.Set;
  * <p>The numbers are the ones the charts always drew: votes per option, a histogram of ratings,
  * a score per ranked option where first place is worth the most, and the average per Likert
  * statement. Written and date answers are listed as they are.
+ *
+ * <p>Options and statements are counted by their key, in the order the question lists them now. An
+ * answer naming a key the question no longer has is not counted for it.
  */
 public final class FormResultTally {
     private static final int DEFAULT_RATING_SCALE = 5;
@@ -37,20 +42,25 @@ public final class FormResultTally {
     /**
      * The counts of one question within one set of responses.
      *
-     * <p>Only the fields that belong to the question's kind are set: option counts and the number of
-     * "other" answers for a choice, rating counts from one star upward for a rating, a score per
-     * option for a ranking, an average per statement for a Likert grid (null where nobody rated that
-     * statement), and the answers themselves for text and date questions.
+     * <p>Only the fields that belong to the question's kind are set: option counts by option key and
+     * the number of "other" answers for a choice, rating counts from one star upward for a rating, a
+     * score per option key for a ranking, an average per statement key for a Likert grid (null where
+     * nobody rated that statement), and the answers themselves for text and date questions.
+     *
+     * <p>{@code reachedCount} is how many of the responses went through the question's page at all.
+     * Without it a question behind a branch looks like one most people skipped: "not shown" is not
+     * "not answered".
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record QuestionTally(
             int questionId,
             int answerCount,
-            List<Integer> optionCounts,
+            Integer reachedCount,
+            Map<String, Integer> optionCounts,
             Integer otherCount,
             List<Integer> ratingCounts,
-            List<Integer> rankingScores,
-            List<Double> statementAverages,
+            Map<String, Integer> rankingScores,
+            Map<String, Double> statementAverages,
             List<String> values) {}
 
     /**
@@ -63,9 +73,28 @@ public final class FormResultTally {
      */
     public static List<QuestionTally> tally(
             List<FormQuestion> questions, Collection<FormAnswer> answers, Set<Integer> responseIds) {
+        return tally(questions, answers, null, responseIds);
+    }
+
+    /**
+     * Counts every question over the answers of the given responses, and how many of them reached it.
+     *
+     * @param questions   the form's questions, in their order
+     * @param answers     every answer of the form
+     * @param responses   every response of the form, which say which pages they went through; {@code
+     *                    null} where that is not asked for
+     * @param responseIds the responses to count, or {@code null} for all of them
+     * @return one tally per question, in the order of the questions
+     */
+    public static List<QuestionTally> tally(
+            List<FormQuestion> questions,
+            Collection<FormAnswer> answers,
+            Collection<FormResponse> responses,
+            Set<Integer> responseIds) {
         return questions.stream()
                 .map(question -> tally(
                         question,
+                        reached(question, responses, responseIds),
                         answers.stream()
                                 .filter(answer -> answer.questionId() == question.id())
                                 .filter(answer -> responseIds == null || responseIds.contains(answer.responseId()))
@@ -75,30 +104,47 @@ public final class FormResultTally {
                 .toList();
     }
 
-    private static QuestionTally tally(FormQuestion question, List<FormAnswerValue> values) {
-        int id = question.id();
-        return switch (question.config()) {
-            case FormQuestionConfig.Choice choice -> choices(id, choice, values);
-            case FormQuestionConfig.Rating rating -> ratings(id, rating, values);
-            case FormQuestionConfig.Ranking ranking -> rankings(id, ranking, values);
-            case FormQuestionConfig.Likert likert -> likert(id, likert, values);
-            case null, default -> listed(id, values);
-        };
+    private static Integer reached(
+            FormQuestion question, Collection<FormResponse> responses, Set<Integer> responseIds) {
+        if (responses == null) return null;
+        return (int) responses.stream()
+                .filter(response -> responseIds == null || responseIds.contains(response.id()))
+                .filter(response -> response.reached(question.pageKey()))
+                .count();
+    }
+
+    private static QuestionTally tally(FormQuestion question, Integer reached, List<FormAnswerValue> values) {
+        var tally =
+                switch (question.config()) {
+                    case FormQuestionConfig.Choice choice -> choices(question.id(), choice, values);
+                    case FormQuestionConfig.Rating rating -> ratings(question.id(), rating, values);
+                    case FormQuestionConfig.Ranking ranking -> rankings(question.id(), ranking, values);
+                    case FormQuestionConfig.Likert likert -> likert(question.id(), likert, values);
+                    case null, default -> listed(question.id(), values);
+                };
+        return new QuestionTally(
+                tally.questionId(),
+                tally.answerCount(),
+                reached,
+                tally.optionCounts(),
+                tally.otherCount(),
+                tally.ratingCounts(),
+                tally.rankingScores(),
+                tally.statementAverages(),
+                tally.values());
     }
 
     private static QuestionTally choices(int id, FormQuestionConfig.Choice config, List<FormAnswerValue> values) {
-        int[] counts = new int[sizeOf(config.options())];
+        var counts = zeroPerOption(config);
         int other = 0;
         for (var value : values) {
-            if (!(value instanceof FormAnswerValue.Choice(List<Integer> selected, String otherText))) continue;
+            if (!(value instanceof FormAnswerValue.Choice(List<String> selected, String otherText))) continue;
             if (selected != null) {
-                for (int index : selected) {
-                    if (index >= 0 && index < counts.length) counts[index]++;
-                }
+                for (var key : selected) counts.computeIfPresent(key, (k, count) -> count + 1);
             }
             if (otherText != null && !otherText.isBlank()) other++;
         }
-        return new QuestionTally(id, values.size(), boxed(counts), other, null, null, null, null);
+        return new QuestionTally(id, values.size(), null, counts, other, null, null, null, null);
     }
 
     private static QuestionTally ratings(int id, FormQuestionConfig.Rating config, List<FormAnswerValue> values) {
@@ -109,40 +155,45 @@ public final class FormResultTally {
                 counts[rating - 1]++;
             }
         }
-        return new QuestionTally(id, values.size(), null, null, boxed(counts), null, null, null);
+        return new QuestionTally(
+                id,
+                values.size(),
+                null,
+                null,
+                null,
+                Arrays.stream(counts).boxed().toList(),
+                null,
+                null,
+                null);
     }
 
     private static QuestionTally rankings(int id, FormQuestionConfig.Ranking config, List<FormAnswerValue> values) {
-        int[] scores = new int[sizeOf(config.options())];
+        var scores = zeroPerOption(config);
         for (var value : values) {
-            if (!(value instanceof FormAnswerValue.Ranking(List<Integer> order)) || order == null) continue;
+            if (!(value instanceof FormAnswerValue.Ranking(List<String> order)) || order == null) continue;
             for (int rank = 0; rank < order.size(); rank++) {
-                int option = order.get(rank);
-                if (option >= 0 && option < scores.length) scores[option] += order.size() - rank;
+                int points = order.size() - rank;
+                scores.computeIfPresent(order.get(rank), (k, score) -> score + points);
             }
         }
-        return new QuestionTally(id, values.size(), null, null, null, boxed(scores), null, null);
+        return new QuestionTally(id, values.size(), null, null, null, null, scores, null, null);
     }
 
     private static QuestionTally likert(int id, FormQuestionConfig.Likert config, List<FormAnswerValue> values) {
-        int statements = sizeOf(config.statements());
-        double[] sums = new double[statements];
-        int[] counts = new int[statements];
+        var sums = new LinkedHashMap<String, Double>();
+        var counts = zeroPerOption(config);
         for (var value : values) {
             if (!(value instanceof FormAnswerValue.Likert(var ratings)) || ratings == null) continue;
-            for (var entry : ratings.entrySet()) {
-                int statement = statementIndex(entry.getKey());
-                if (statement >= 0 && statement < statements && entry.getValue() != null) {
-                    sums[statement] += entry.getValue();
-                    counts[statement]++;
-                }
-            }
+            ratings.forEach((key, rating) -> {
+                if (rating == null || !counts.containsKey(key)) return;
+                sums.merge(key, rating.doubleValue(), Double::sum);
+                counts.merge(key, 1, Integer::sum);
+            });
         }
-        var averages = new ArrayList<Double>(statements);
-        for (int i = 0; i < statements; i++) {
-            averages.add(counts[i] == 0 ? null : Math.round(sums[i] / counts[i] * 10) / 10.0);
-        }
-        return new QuestionTally(id, values.size(), null, null, null, null, averages, null);
+        var averages = new LinkedHashMap<String, Double>();
+        counts.forEach(
+                (key, count) -> averages.put(key, count == 0 ? null : Math.round(sums.get(key) / count * 10) / 10.0));
+        return new QuestionTally(id, values.size(), null, null, null, null, null, averages, null);
     }
 
     private static QuestionTally listed(int id, List<FormAnswerValue> values) {
@@ -154,22 +205,12 @@ public final class FormResultTally {
                 })
                 .filter(text -> text != null && !text.isBlank())
                 .toList();
-        return new QuestionTally(id, values.size(), null, null, null, null, null, listed);
+        return new QuestionTally(id, values.size(), null, null, null, null, null, null, listed);
     }
 
-    private static int statementIndex(String key) {
-        try {
-            return Integer.parseInt(key);
-        } catch (NumberFormatException e) {
-            return -1;
-        }
-    }
-
-    private static int sizeOf(List<String> list) {
-        return list == null ? 0 : list.size();
-    }
-
-    private static List<Integer> boxed(int[] counts) {
-        return Arrays.stream(counts).boxed().toList();
+    private static Map<String, Integer> zeroPerOption(FormQuestionConfig config) {
+        var counts = new LinkedHashMap<String, Integer>();
+        for (var key : config.optionKeys()) counts.put(key, 0);
+        return counts;
     }
 }

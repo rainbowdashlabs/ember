@@ -5,20 +5,15 @@
  */
 package dev.chojo.ember.feature.form.entity;
 
-import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import java.util.Map;
 
 /**
- * How many answers a question of a form holds, which is what removing it would throw away.
+ * How many answers a question of a form holds, which is what removing it would throw away, and how
+ * many of them name each of its options, which is what removing one option would throw away.
  *
- * @param questionId the question
- * @param answers    how many responses answered it
+ * @param questionId    the question
+ * @param answers       how many responses answered it
+ * @param optionAnswers per option key, how many answers pick, rank or rate that option; empty for a
+ *                      question without options
  */
-public record QuestionAnswerCount(int questionId, int answers) {
-
-    /**
-     * Creates a row mapping for database result set conversion.
-     */
-    public static RowMapping<QuestionAnswerCount> map() {
-        return row -> new QuestionAnswerCount(row.getInt("question_id"), row.getInt("answers"));
-    }
-}
+public record QuestionAnswerCount(int questionId, int answers, Map<String, Integer> optionAnswers) {}

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {QuestionTypes, type FormQuestionInfo, type FormQuestionTally, type FormResultGroup} from '@/api/forms'
+import {optionsOf} from '@/util/formOptions'
 
 /**
  * A question's counts laid out for comparing groups: one row per option or statement, one column
@@ -59,9 +60,9 @@ export function matrixOf(question: FormQuestionInfo, groups: FormResultGroup[], 
 
     switch (question.questionType) {
         case QuestionTypes.CHOICE: {
-            const options = (cfg.options as string[]) || []
-            const rows = options.map((_, i) => tallies.map(t => t?.optionCounts?.[i] ?? 0))
-            const labels = [...options]
+            const options = optionsOf(cfg)
+            const rows = options.map(option => tallies.map(t => t?.optionCounts?.[option.key] ?? 0))
+            const labels = options.map(option => option.label)
             if (cfg.allowOther) {
                 rows.push(tallies.map(t => t?.otherCount ?? 0))
                 labels.push(otherLabel)
@@ -74,23 +75,23 @@ export function matrixOf(question: FormQuestionInfo, groups: FormResultGroup[], 
             return percentOf(rows, rows.map((_, i) => String(i + 1)))
         }
         case QuestionTypes.LIKERT: {
-            const statements = (cfg.statements as string[]) || []
+            const statements = optionsOf(cfg, 'statements')
             return {
-                rows: statements.map((statement, i) => statement || `Option ${i + 1}`),
+                rows: statements.map((statement, i) => statement.label || `Option ${i + 1}`),
                 unit: 'average',
-                values: statements.map((_, i) => tallies.map(t => t?.statementAverages?.[i] ?? null)),
+                values: statements.map(statement => tallies.map(t => t?.statementAverages?.[statement.key] ?? null)),
                 counts: statements.map(() => answers),
                 answers,
             }
         }
         case QuestionTypes.RANKING: {
-            const options = (cfg.options as string[]) || []
+            const options = optionsOf(cfg)
             return {
-                rows: options,
+                rows: options.map(option => option.label),
                 unit: 'average',
-                values: options.map((_, i) => tallies.map((t, g) => {
+                values: options.map(option => tallies.map((t, g) => {
                     const of = answers[g] ?? 0
-                    return of > 0 ? Math.round((t?.rankingScores?.[i] ?? 0) / of * 10) / 10 : null
+                    return of > 0 ? Math.round((t?.rankingScores?.[option.key] ?? 0) / of * 10) / 10 : null
                 })),
                 counts: options.map(() => answers),
                 answers,

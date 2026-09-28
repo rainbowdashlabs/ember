@@ -6,8 +6,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
-
-type RankingAnswer = { order: number[] }
+import type { RankingAnswer } from '@/api/forms'
+import { optionLabel, optionsOf } from '@/util/formOptions'
 
 const props = defineProps<{
   config: Record<string, unknown>
@@ -15,7 +15,7 @@ const props = defineProps<{
 
 const answer = defineModel<RankingAnswer>({ required: true })
 
-const options = computed(() => (props.config.options as string[]) || [])
+const options = computed(() => optionsOf(props.config))
 
 function move(fromIdx: number, direction: -1 | 1) {
   const toIdx = fromIdx + direction
@@ -29,10 +29,10 @@ function move(fromIdx: number, direction: -1 | 1) {
 
 <template>
   <div class="space-y-1">
-    <div v-for="(optIdx, rank) in (answer.order ?? [])" :key="rank"
+    <div v-for="(optionKey, rank) in (answer.order ?? [])" :key="optionKey"
          class="flex items-center gap-2 px-3 py-2 rounded border border-bg-light-accent dark:border-bg-dark-accent">
       <span class="text-xs text-(--text-muted) w-5">{{ rank + 1 }}.</span>
-      <span class="flex-1 text-sm">{{ options[optIdx] }}</span>
+      <span class="flex-1 text-sm">{{ optionLabel(options, optionKey) }}</span>
       <MutedIconButton :icon="['fas', 'chevron-up']" :label="'Up'" @click="move(rank, -1)" />
       <MutedIconButton :icon="['fas', 'chevron-down']" :label="'Down'" @click="move(rank, 1)" />
     </div>

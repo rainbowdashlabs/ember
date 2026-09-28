@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { answeredLine } from './reach'
 import { computed } from 'vue'
 import { use, type EChartsCoreOption } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -24,6 +25,7 @@ import {
 } from '@/util/chartLayout'
 import {QuestionTypes, type FormQuestionInfo, type FormQuestionTally, type FormResultGroup} from '@/api/forms'
 import {questionConfig, tallyIn} from './groupedResults'
+import {optionsOf} from '@/util/formOptions'
 import {formatDate} from '@/util/format'
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 /**
@@ -42,6 +44,9 @@ const props = defineProps<{
   groups: FormResultGroup[]
 }>()
 const { t } = useI18n()
+
+/** How many responses are counted, which is what "shown to" is measured against. */
+const total = computed(() => props.groups[0]?.responseCount ?? 0)
 const textColor = computed(() => chartTextColor(isDark.value))
 const RATING = '#FF6421'
 const RANKING = '#3694FF'
@@ -56,9 +61,8 @@ function answered(q: FormQuestionInfo): boolean {
 const axis = computed(() => ({axisLabel: {color: textColor.value}}))
 function buildChoiceChart(q: FormQuestionInfo) {
   const cfg = questionConfig(q.config)
-  const options = (cfg.options as string[]) || []
   const tally = tallyOf(q)
-  const data = options.map((opt, i) => ({ name: opt, value: tally?.optionCounts?.[i] ?? 0 }))
+  const data = optionsOf(cfg).map(opt => ({ name: opt.label, value: tally?.optionCounts?.[opt.key] ?? 0 }))
   const other = tally?.otherCount ?? 0
   if (cfg.allowOther && other > 0) data.push({ name: t('forms.analytics.otherAnswer'), value: other })
   return {
@@ -86,29 +90,29 @@ function buildRatingChart(q: FormQuestionInfo) {
 }
 function buildRankingChart(q: FormQuestionInfo) {
   const cfg = questionConfig(q.config)
-  const options = (cfg.options as string[]) || []
-  const scores = tallyOf(q)?.rankingScores ?? []
+  const options = optionsOf(cfg)
+  const scores = tallyOf(q)?.rankingScores ?? {}
   return {
     tooltip: { trigger: 'axis' },
     grid: cartesianGrid({ rotatedLabels: true }),
-    xAxis: { type: 'category', data: options, axisLabel: { color: textColor.value, rotate: 30 } },
+    xAxis: { type: 'category', data: options.map(opt => opt.label), axisLabel: { color: textColor.value, rotate: 30 } },
     yAxis: { type: 'value', ...axis.value },
-    series: [{ type: 'bar', data: scores, itemStyle: { color: RANKING } }],
+    series: [{ type: 'bar', data: options.map(opt => scores[opt.key] ?? 0), itemStyle: { color: RANKING } }],
   }
 }
 function buildLikertChart(q: FormQuestionInfo) {
   const cfg = questionConfig(q.config)
-  const statements = (cfg.statements as string[]) || []
+  const statements = optionsOf(cfg, 'statements')
   const scaleMin = (cfg.scaleMin as number) || 1
   const scaleMax = (cfg.scaleMax as number) || 5
-  const averages = tallyOf(q)?.statementAverages ?? []
-  const names = statements.map((stmt, i) => stmt || `${i + 1}`)
+  const averages = tallyOf(q)?.statementAverages ?? {}
+  const names = statements.map((stmt, i) => stmt.label || `${i + 1}`)
   return {
     tooltip: { trigger: 'axis' },
     grid: cartesianGrid({ rotatedLabels: true }),
     xAxis: { type: 'category', data: names, axisLabel: { color: textColor.value, rotate: 30 } },
     yAxis: { type: 'value', min: scaleMin, max: scaleMax, ...axis.value },
-    series: [{ type: 'bar', data: names.map((_, i) => averages[i] ?? null), itemStyle: { color: LIKERT } }],
+    series: [{ type: 'bar', data: statements.map(stmt => averages[stmt.key] ?? null), itemStyle: { color: LIKERT } }],
   }
 }
 const CHARTED: Record<string, (q: FormQuestionInfo) => EChartsCoreOption> = {
@@ -146,15 +150,15 @@ function answersOf(q: FormQuestionInfo): string[] {
         :empty-text="t('forms.analytics.noAnswersYet')"
         :height="q.questionType === QuestionTypes.RATING ? 220 : 280"
       >
-        <MutedText tag="p" size="sm">
-          {{ tallyOf(q)?.answerCount ?? 0 }} {{ t('forms.responses') }}
+        <MutedText tag="p" size="sm" data-testid="question-answered">
+          {{ answeredLine(tallyOf(q), total, t) }}
         </MutedText>
       </ChartPanel>
 
       <NeutralContainer v-else class="space-y-2">
         <SectionHeader>{{ q.title }}</SectionHeader>
-        <MutedText tag="p" size="sm">
-          {{ tallyOf(q)?.answerCount ?? 0 }} {{ t('forms.responses') }}
+        <MutedText tag="p" size="sm" data-testid="question-answered">
+          {{ answeredLine(tallyOf(q), total, t) }}
         </MutedText>
 
         <MutedText v-if="!answered(q)" tag="p" size="sm">{{ t('forms.analytics.noAnswersYet') }}</MutedText>

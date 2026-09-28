@@ -332,9 +332,9 @@ class StationTransferTest extends RepositoryTestBase {
                 "",
                 false,
                 false,
-                FormQuestionConfig.parse(
-                        FormQuestionType.CHOICE,
-                        "{\"options\":[\"Löschangriff\",\"Knoten\",\"Erste Hilfe\",\"Sport\"]}"));
+                FormQuestionConfig.parse(FormQuestionType.CHOICE, """
+                        {"options":[{"key":"o0","label":"Löschangriff"},{"key":"o1","label":"Knoten"},\
+                        {"key":"o2","label":"Erste Hilfe"},{"key":"o3","label":"Sport"}]}"""));
     }
 
     // ==================== Export tests ====================

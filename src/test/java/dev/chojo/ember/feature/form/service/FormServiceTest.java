@@ -200,20 +200,24 @@ class FormServiceTest extends RepositoryTestBase {
         var entries = List.of(
                 new QuestionEntry(
                         null,
+                        null,
                         FormQuestionType.TEXT,
                         "Question A",
                         "Desc A",
                         true,
                         false,
-                        new FormQuestionConfig.Text(false)),
+                        new FormQuestionConfig.Text(false),
+                        null),
                 new QuestionEntry(
+                        null,
                         null,
                         FormQuestionType.TEXT,
                         "Question B",
                         "Desc B",
                         false,
                         false,
-                        new FormQuestionConfig.Text(false)));
+                        new FormQuestionConfig.Text(false),
+                        null));
         service.saveQuestions(formId, entries);
         var qs = service.findQuestions(formId);
         assertEquals(2, qs.size());

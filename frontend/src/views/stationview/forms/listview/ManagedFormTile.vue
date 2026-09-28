@@ -36,6 +36,7 @@ const emit = defineEmits<{
   (e: 'analytics', form: Form): void
   (e: 'share', form: Form): void
   (e: 'clear', form: Form): void
+  (e: 'duplicate', form: Form): void
   (e: 'delete', form: Form): void
 }>()
 
@@ -88,6 +89,7 @@ const sentByLinkAlone = computed(
         @analytics="emit('analytics', $event)"
         @share="emit('share', $event)"
         @clear="emit('clear', $event)"
+        @duplicate="emit('duplicate', $event)"
         @delete="emit('delete', $event)"
       />
     </NeutralContainer>

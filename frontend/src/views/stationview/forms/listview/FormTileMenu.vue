@@ -26,6 +26,7 @@ const emit = defineEmits<{
   (e: 'publish', form: Form): void
   (e: 'close', form: Form): void
   (e: 'edit', form: Form): void
+  (e: 'duplicate', form: Form): void
   (e: 'analytics', form: Form): void
   (e: 'share', form: Form): void
   (e: 'clear', form: Form): void
@@ -39,6 +40,7 @@ const actions = {
   publish: () => emit('publish', props.form),
   close: () => emit('close', props.form),
   edit: () => emit('edit', props.form),
+  duplicate: () => emit('duplicate', props.form),
   analytics: () => emit('analytics', props.form),
   share: () => emit('share', props.form),
   clear: () => emit('clear', props.form),
@@ -75,6 +77,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
       </DropdownMenuItem>
       <DropdownMenuItem v-if="canCreatePolls && form.status !== FormStatus.CLOSED" :icon="['fas', 'pen']" @click="pick('edit')">
         {{ t('forms.edit') }}
+      </DropdownMenuItem>
+      <DropdownMenuItem v-if="canCreatePolls" :icon="['fas', 'copy']" data-testid="form-duplicate" @click="pick('duplicate')">
+        {{ t('forms.duplicate') }}
       </DropdownMenuItem>
       <DropdownMenuItem v-if="canCreatePolls && form.purpose !== FormPurpose.INTERNAL" :icon="['fas', 'link']" @click="pick('share')">
         {{ t('forms.share') }}

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:dd4250748302230916d52636fcfc13f3bcde877a8dfe907a8ae13f05f5ea81eb",
-  "generatedAt": "2026-09-28T13:32:32Z",
+  "schemaHash": "sha256:66cdac1bd8068223f955ece77f24deff5f5575aed54529ab09f241612d3a1ca9",
+  "generatedAt": "2026-09-28T14:11:43Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10586,7 +10586,7 @@
     "form": {
       "feature": "forms",
       "scope": "STATION",
-      "tableHash": "sha256:0321d2589e214c80901834156a6027d5e53e79571308f90aaf5e6d3dfcee1536",
+      "tableHash": "sha256:95487eedc54d48d0123b418ee3ac946e0d8f3fb0a17596d97edb4cfa9476952b",
       "columns": [
         {
           "name": "id",
@@ -10720,6 +10720,27 @@
           "nullable": false,
           "verified": true,
           "description": "How far a form meant for people outside the station reaches. PUBLIC: anybody, at the form's own stable address, which is what a form put on a public page needs. UNLISTED: only whoever was sent the link, and the stable address answers nothing, so replacing the link really does end every way in. Says nothing about whether the form takes answers; its status and dates decide that. Existing forms are public, which is what they already were."
+        },
+        {
+          "name": "completion_message",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the reader is told once the form is sent. NULL keeps the general thanks."
+        },
+        {
+          "name": "completion_link",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "An address the reader is offered once the form is sent, such as the page of an event. NULL for none."
+        },
+        {
+          "name": "completion_link_label",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the link offered after sending says. NULL shows the address itself."
         }
       ],
       "foreignKeys": [
@@ -10788,7 +10809,7 @@
           "type": "jsonb",
           "nullable": false,
           "verified": true,
-          "description": "Answer value as JSONB."
+          "description": "Answer value as JSONB. Options and Likert statements are named by their key, never by position."
         }
       ],
       "foreignKeys": [
@@ -10823,10 +10844,193 @@
       },
       "description": "Individual answers within a form response."
     },
+    "form_draft": {
+      "feature": "forms",
+      "scope": "STATION",
+      "tableHash": "sha256:d24e9928901a3a8c3ecd117383c2875c45dd07b52f7c268c09ce8389f73dcf4b",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "form_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the form being filled in."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the member the answer is for."
+        },
+        {
+          "name": "saved_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "References the member who last saved the draft, a guardian where they fill in for somebody in their care."
+        },
+        {
+          "name": "answers",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "The answers filled in so far as JSONB, by question id, in the shape a sent answer has."
+        },
+        {
+          "name": "path",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "The keys of the pages visited so far, the page to continue on last."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the draft was last saved."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "form_id",
+          "refTable": "form",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "saved_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A half-filled form nobody sent; it is not an answer and does not move with the station"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE, removed with the member it was kept for"
+          }
+        ]
+      },
+      "description": "A form a member started and has not sent yet, kept so it can be continued. Never counted as an answer."
+    },
+    "form_page": {
+      "feature": "forms",
+      "scope": "STATION",
+      "tableHash": "sha256:de2789bfad5ef848d114bd4ff0e869a0388eecc1fb7503cc86e50168afc9370d",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "form_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the form."
+        },
+        {
+          "name": "page_key",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Stable key of the page within its form, named by the page that follows and by the path a response took."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Display order position of the page within its form."
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Optional title shown above the page."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Optional text shown under the page title."
+        },
+        {
+          "name": "after_kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What follows the page: NEXT for the page below, PAGE for the page named in after_page, SUBMIT to send the form."
+        },
+        {
+          "name": "after_page",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Key of the page that follows when after_kind is PAGE, always a page further down."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "form_id",
+          "refTable": "form",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Form structure/template data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Form structure/template data, not per-member"
+      },
+      "description": "One page of a form. A form has at least one; its questions stand on its pages."
+    },
     "form_question": {
       "feature": "forms",
       "scope": "STATION",
-      "tableHash": "sha256:a16041d9e677efd647dc18f3797ffbb091b41362875991949b31c1da7a2b0847",
+      "tableHash": "sha256:496c4c065d2055cc04a7ed66d52e939409b390ca6ba17f5554a6e97f5b5d2323",
       "columns": [
         {
           "name": "id",
@@ -10889,13 +11093,33 @@
           "type": "jsonb",
           "nullable": false,
           "verified": true,
-          "description": "Type-specific configuration as JSONB (e.g. options, scale range)."
+          "description": "Type-specific configuration as JSONB (e.g. options, scale range). Choice and ranking options and Likert statements are objects holding a stable key and a label."
+        },
+        {
+          "name": "page_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the page of its form the question stands on."
+        },
+        {
+          "name": "branch",
+          "type": "jsonb",
+          "nullable": true,
+          "verified": true,
+          "description": "For a single-answer choice question that decides where its page leads: per option key, the page that follows. NULL for every other question."
         }
       ],
       "foreignKeys": [
         {
           "column": "form_id",
           "refTable": "form",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "page_id",
+          "refTable": "form_page",
           "refColumn": "id",
           "onDelete": "CASCADE"
         }
@@ -10916,7 +11140,7 @@
     "form_response": {
       "feature": "forms",
       "scope": "STATION",
-      "tableHash": "sha256:d4c85b71851827b8b9ac488786174d73ed7d2afbab8306f8e00040c47a7ae577",
+      "tableHash": "sha256:40e2aa63c0270e856bb71efa8edd790edd04c2853741a36b20177683984526c4",
       "columns": [
         {
           "name": "id",
@@ -10987,6 +11211,13 @@
           "nullable": true,
           "verified": true,
           "description": "JSONB-encoded ConsentProof (consentVersion, privacyVersion, tosVersion, ipAddress, country, userAgent, consentedAt) captured at the time of an anonymous public submission. NULL for member-attached responses (whose consent lives in gdpr_consent)."
+        },
+        {
+          "name": "path",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "The keys of the pages the response went through, in order. Empty where it was written without being walked, which counts as having seen every page."
         }
       ],
       "foreignKeys": [

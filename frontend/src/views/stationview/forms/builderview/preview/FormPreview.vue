@@ -1,0 +1,95 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import PublicPageFields from '@/components/forms/fill/PublicPageFields.vue'
+import FormPageNav from '@/components/forms/fill/FormPageNav.vue'
+import { useFormWalk } from '@/composables/useFormWalk'
+import { usePublicAnswers } from '@/composables/usePublicAnswers'
+import type { PublicFormPage, PublicFormQuestion } from '@/api/publicForms'
+import type { QuestionType } from '@/api/forms'
+import { pageLabel } from '../pageChoice'
+import type { FormLayoutEditor } from '../useFormLayout'
+
+/**
+ * The form as the reader will see it, built from what is in the editor, saved or not.
+ *
+ * <p>It walks the pages and follows the answers the way the real form does, with the same fields, and
+ * sends nothing. The path taken so far stands above it, which is how an editor finds a branch that
+ * sends people to the wrong page before anybody answers.
+ */
+const props = defineProps<{
+  layout: FormLayoutEditor
+}>()
+
+const { t } = useI18n()
+
+const request = props.layout.toRequest()
+
+const pages = ref<PublicFormPage[]>(request.pages.map(page => ({ ...page })))
+const questions = ref<PublicFormQuestion[]>(request.questions.map((question, index) => ({
+  id: index + 1,
+  questionType: question.questionType as QuestionType,
+  title: question.title,
+  description: question.description ?? '',
+  required: question.required ?? false,
+  shuffle: question.shuffle ?? false,
+  pageKey: question.pageKey,
+  config: question.config as Record<string, unknown>,
+  branch: question.branch ?? null,
+})))
+
+const { answers, reset, toggleChoice, updateText, updateDate } = usePublicAnswers()
+reset(questions.value)
+
+const walk = useFormWalk(pages, questions, answers, question => question.questionType)
+
+/** Whether the reader has pressed send, which here only says where the form would end. */
+const sent = ref(false)
+
+const pathLabel = computed(() => {
+  const names = walk.path.value.map(key => {
+    const index = pages.value.findIndex(page => page.key === key)
+    const page = props.layout.pages.value[index]
+    return page ? pageLabel(page, index, t) : key
+  })
+  if (sent.value) names.push(t('forms.preview.sent'))
+  return names.join(', ')
+})
+
+function send() {
+  if (walk.checkCurrent()) sent.value = true
+}
+
+function startOver() {
+  reset(questions.value)
+  walk.restart()
+  sent.value = false
+}
+</script>
+
+<template>
+  <NeutralContainer class="space-y-4" data-testid="form-preview">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <MutedText size="sm" data-testid="preview-path">{{ t('forms.preview.path', {path: pathLabel}) }}</MutedText>
+      <SecondaryButton compact :icon="['fas', 'rotate-left']" @click="startOver">{{ t('forms.preview.startOver') }}</SecondaryButton>
+    </div>
+
+    <Alert v-if="sent" variant="success">{{ t('forms.preview.nothingSent') }}</Alert>
+
+    <template v-else>
+      <PublicPageFields :walk="walk" :answers="answers" framed
+                        @update-text="updateText" @update-date="updateDate" @toggle-choice="toggleChoice"/>
+      <FormPageNav :can-go-back="walk.pageNumber.value > 1" :is-last="walk.isLast.value"
+                   :send-label="t('forms.submit')" @back="walk.back()" @next="walk.next()" @send="send"/>
+    </template>
+  </NeutralContainer>
+</template>

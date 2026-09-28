@@ -6,8 +6,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-
-type LikertAnswer = { ratings: Record<string, number> }
+import type { LikertAnswer } from '@/api/forms'
+import { optionsOf } from '@/util/formOptions'
 
 const props = defineProps<{
   config: Record<string, unknown>
@@ -15,7 +15,7 @@ const props = defineProps<{
 
 const answer = defineModel<LikertAnswer>({ required: true })
 
-const statements = computed(() => (props.config.statements as string[]) || [])
+const statements = computed(() => optionsOf(props.config, 'statements'))
 const scaleMin = computed(() => props.config.scaleMin as number)
 const scaleMax = computed(() => props.config.scaleMax as number)
 const scaleLabels = computed(() => (props.config.scaleLabels as string[]) ?? [])
@@ -29,12 +29,12 @@ function labelFor(n: number): string | number {
   return scaleLabels.value[scaleMin.value + n - 2] || valueFor(n)
 }
 
-function isSelected(stmtIndex: number, n: number): boolean {
-  return answer.value.ratings?.[String(stmtIndex)] === valueFor(n)
+function isSelected(statementKey: string, n: number): boolean {
+  return answer.value.ratings?.[statementKey] === valueFor(n)
 }
 
-function setRating(stmtIndex: number, n: number) {
-  answer.value.ratings[String(stmtIndex)] = valueFor(n)
+function setRating(statementKey: string, n: number) {
+  answer.value.ratings[statementKey] = valueFor(n)
 }
 </script>
 
@@ -51,13 +51,13 @@ function setRating(stmtIndex: number, n: number) {
         </tr>
         </thead>
         <tbody>
-        <tr v-for="(stmt, si) in statements" :key="si"
+        <tr v-for="(stmt, si) in statements" :key="stmt.key"
             class="border-t border-bg-light-accent/50 dark:border-bg-dark-accent/50">
-          <td class="py-2 pr-4 text-sm">{{ stmt || `Option ${si + 1}` }}</td>
+          <td class="py-2 pr-4 text-sm">{{ stmt.label || `Option ${si + 1}` }}</td>
           <td v-for="n in scaleSteps" :key="n" class="text-center px-2 py-2">
             <SelectionToggleButton
-                :selected="isSelected(si, n)"
-                @toggle="setRating(si, n)">
+                :selected="isSelected(stmt.key, n)"
+                @toggle="setRating(stmt.key, n)">
               {{ valueFor(n) }}
             </SelectionToggleButton>
           </td>
@@ -66,16 +66,16 @@ function setRating(stmtIndex: number, n: number) {
       </table>
     </div>
     <div class="sm:hidden space-y-3">
-      <div v-for="(stmt, si) in statements" :key="si"
+      <div v-for="(stmt, si) in statements" :key="stmt.key"
            class="p-3 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent space-y-2">
-        <p class="text-sm font-medium">{{ stmt || `Option ${si + 1}` }}</p>
+        <p class="text-sm font-medium">{{ stmt.label || `Option ${si + 1}` }}</p>
         <div class="flex flex-wrap gap-1">
           <SelectionToggleButton
               v-for="n in scaleSteps"
               :key="n"
-              :selected="isSelected(si, n)"
+              :selected="isSelected(stmt.key, n)"
               size="md"
-              @toggle="setRating(si, n)">
+              @toggle="setRating(stmt.key, n)">
             {{ valueFor(n) }}
           </SelectionToggleButton>
         </div>

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { QuestionType } from '@/api/forms'
+import type { PageTarget, QuestionType } from '@/api/forms'
 
 export interface QuestionDraft {
   id: string
@@ -13,6 +13,20 @@ export interface QuestionDraft {
   required: boolean
   shuffle: boolean
   config: Record<string, unknown>
+  /**
+   * Where the page leads per option key picked, for the one single-answer choice question of the page
+   * that decides it; null for every other question. An option without an entry follows the page.
+   */
+  branch: Record<string, PageTarget> | null
+}
+
+/** One page of the form being edited, holding its questions in their order. */
+export interface PageDraft {
+  key: string
+  title: string
+  description: string
+  after: PageTarget
+  questions: QuestionDraft[]
 }
 
 const STORED_PREFIX = 'existing-'

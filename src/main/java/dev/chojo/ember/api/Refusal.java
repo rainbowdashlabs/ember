@@ -2334,6 +2334,98 @@ public enum Refusal {
     NOT_A_MEMBER_READING_ANSWER_FOR_MEMBER(
             Area.FORMS, 52, HttpStatus.BAD_REQUEST, "You are not a member of this station"),
 
+    /**
+     * Saving a question whose options or statements do not each carry a key of their own. Answers
+     * name an option by its key, so an option without one, or two sharing one, cannot be told apart.
+     */
+    QUESTION_OPTION_KEYS_NOT_DISTINCT(
+            Area.FORMS,
+            53,
+            HttpStatus.BAD_REQUEST,
+            "Every option of a question needs a key of its own, so nothing was saved"),
+
+    /**
+     * Saving a form without a page, or with pages that do not each carry a key of their own. The
+     * page that follows and the path a response took name a page by its key.
+     */
+    FORM_PAGE_KEYS_NOT_DISTINCT(
+            Area.FORMS,
+            54,
+            HttpStatus.BAD_REQUEST,
+            "A form needs at least one page, and every page a key of its own, so nothing was saved"),
+
+    /**
+     * A page that is to be followed by a page that is not further down, or by one the form does not
+     * have. Pages only lead forward, which is what keeps every path through a form finite.
+     */
+    FORM_PAGE_TARGET_NOT_FURTHER_DOWN(
+            Area.FORMS,
+            55,
+            HttpStatus.BAD_REQUEST,
+            "A page can only lead to a page further down, so nothing was saved"),
+
+    /** A question put on a page the form does not have. */
+    QUESTION_ON_NO_PAGE(
+            Area.FORMS,
+            56,
+            HttpStatus.BAD_REQUEST,
+            "Some of these questions stand on a page the form does not have, so nothing was saved"),
+
+    /**
+     * A question that is to decide where its page leads but is not a single-answer choice, or names
+     * options it does not have. Only one picked option can say which page comes next.
+     */
+    QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE(
+            Area.FORMS,
+            57,
+            HttpStatus.BAD_REQUEST,
+            "Only a question with one answer from its own options can decide the next page, so nothing was saved"),
+
+    /** A page on which more than one question is to decide where it leads. */
+    PAGE_BRANCHES_ON_TWO_QUESTIONS(
+            Area.FORMS,
+            58,
+            HttpStatus.BAD_REQUEST,
+            "Only one question per page can decide the next page, so nothing was saved"),
+
+    /** A required question on a page the answers went through, left without an answer. */
+    QUESTION_NEEDS_AN_ANSWER(Area.FORMS, 59, HttpStatus.BAD_REQUEST, "This question needs an answer"),
+
+    /** An answer that does not fit its question: an option it does not have, too many picks, a rating off the scale. */
+    ANSWER_DOES_NOT_FIT_QUESTION(Area.FORMS, 60, HttpStatus.BAD_REQUEST, "This answer does not fit the question"),
+
+    /** An answer to a question the form does not have. */
+    ANSWER_TO_QUESTION_NOT_ON_FORM(
+            Area.FORMS, 61, HttpStatus.BAD_REQUEST, "This answer belongs to a question the form does not have"),
+
+    /** A copy of a form asked for without a title. */
+    FORM_COPY_NEEDS_A_TITLE(Area.FORMS, 62, HttpStatus.BAD_REQUEST, "A copy needs a title, so nothing was copied"),
+
+    /** Copying a form while belonging to no station. */
+    NOT_A_MEMBER_COPYING_FORM(Area.FORMS, 63, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
+
+    /** A form that went before it could be copied. */
+    FORM_NOT_HERE_ON_COPY(Area.FORMS, 64, HttpStatus.NOT_FOUND, Sentences.FORM_NOT_HERE),
+
+    /**
+     * A link offered after sending a form that is neither a web address nor an address on this site.
+     * The link is put in front of strangers, so nothing else is let through.
+     */
+    FORM_COMPLETION_LINK_NOT_A_LINK(
+            Area.FORMS,
+            65,
+            HttpStatus.BAD_REQUEST,
+            "The link after sending has to be a web address or an address on this site, so nothing was saved"),
+
+    /** Keeping, reading or ending a half-filled form while belonging to no station. */
+    NOT_A_MEMBER_KEEPING_FORM_DRAFT(Area.FORMS, 66, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
+
+    /** A half-filled form kept for later on a form that is not taking answers. */
+    FORM_TAKES_NO_DRAFTS(Area.FORMS, 67, HttpStatus.BAD_REQUEST, Sentences.FORM_TAKES_NO_ANSWERS),
+
+    /** A half-filled form kept by a member the form was not put to. */
+    FORM_NOT_YOURS_TO_DRAFT(Area.FORMS, 68, HttpStatus.FORBIDDEN, Sentences.FORM_NOT_YOURS_TO_ANSWER),
+
     /** An invite that is used up or past its date. */
     WAITING_LIST_INVITE_NO_LONGER_VALID(
             Area.WAITING_LISTS, 22, HttpStatus.FORBIDDEN, "This invite can no longer be used"),

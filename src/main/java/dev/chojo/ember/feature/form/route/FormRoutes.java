@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.form.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Failures;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
@@ -15,18 +14,24 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormDraft;
+import dev.chojo.ember.feature.form.entity.FormPage;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.FormVisibility;
+import dev.chojo.ember.feature.form.entity.PageEntry;
+import dev.chojo.ember.feature.form.entity.PageTarget;
 import dev.chojo.ember.feature.form.entity.QuestionAnswerCount;
+import dev.chojo.ember.feature.form.entity.QuestionBranch;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalyticsDto;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntryDto;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.ResponseDetailDto;
+import dev.chojo.ember.feature.form.service.FormAnswersRefused;
 import dev.chojo.ember.feature.form.service.FormResponseExportService;
 import dev.chojo.ember.feature.form.service.FormResultQuery;
 import dev.chojo.ember.feature.form.service.FormService;
@@ -55,7 +60,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -132,6 +136,7 @@ public class FormRoutes implements Routes {
         routes.delete(prefix + "/forms/{id}", this::delete, StationPermission.POLL_CREATE);
         routes.post(prefix + "/forms/{id}/publish", this::publish, StationPermission.POLL_CREATE);
         routes.post(prefix + "/forms/{id}/close", this::close, StationPermission.POLL_CREATE);
+        routes.post(prefix + "/forms/{id}/duplicate", this::duplicate, StationPermission.POLL_CREATE);
         routes.delete(prefix + "/forms/{id}/responses", this::clearResponses, StationPermission.POLL_CREATE);
         routes.put(prefix + "/forms/{id}/visibility", this::setVisibility, StationPermission.POLL_CREATE);
         routes.get(prefix + "/forms/{id}/share-link", this::getShareLink, StationPermission.POLL_CREATE);
@@ -139,6 +144,7 @@ public class FormRoutes implements Routes {
 
         // Questions
         routes.get(prefix + "/forms/{id}/questions", this::listQuestions, StationPermission.USER);
+        routes.get(prefix + "/forms/{id}/pages", this::listPages, StationPermission.USER);
         routes.put(prefix + "/forms/{id}/questions", this::setQuestions, StationPermission.POLL_CREATE);
         routes.get(
                 prefix + "/forms/{id}/questions/answer-counts",
@@ -159,6 +165,13 @@ public class FormRoutes implements Routes {
         routes.post(
                 prefix + "/forms/{id}/respond/{memberId}", this::submitForMember, StationPermission.MEMBER_GUARDIAN);
         routes.put(prefix + "/forms/{id}/respond/{memberId}", this::updateForMember, StationPermission.MEMBER_GUARDIAN);
+        routes.get(prefix + "/forms/{id}/draft", this::getDraft, StationPermission.USER);
+        routes.put(prefix + "/forms/{id}/draft", this::saveDraft, StationPermission.USER);
+        routes.delete(prefix + "/forms/{id}/draft", this::discardDraft, StationPermission.USER);
+        routes.get(prefix + "/forms/{id}/draft/{memberId}", this::getDraftFor, StationPermission.MEMBER_GUARDIAN);
+        routes.put(prefix + "/forms/{id}/draft/{memberId}", this::saveDraftFor, StationPermission.MEMBER_GUARDIAN);
+        routes.delete(
+                prefix + "/forms/{id}/draft/{memberId}", this::discardDraftFor, StationPermission.MEMBER_GUARDIAN);
 
         // Analytics
         routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, StationPermission.POLL_VIEW_RESULTS);
@@ -341,7 +354,8 @@ public class FormRoutes implements Routes {
                 req.endAt(),
                 session.member().id(),
                 req.purpose() != null ? req.purpose() : FormPurpose.INTERNAL);
-        ctx.status(HttpStatus.CREATED).json(form);
+        formService.setCompletion(form.id(), req.completionMessage(), req.completionLink(), req.completionLinkLabel());
+        ctx.status(HttpStatus.CREATED).json(formService.findById(form.id()).orElse(form));
     }
 
     @OpenApi(
@@ -386,6 +400,7 @@ public class FormRoutes implements Routes {
                 req.endAt())) {
             throw Refusal.FORM_NOT_HERE_ON_CHANGE.raise();
         }
+        formService.setCompletion(id, req.completionMessage(), req.completionLink(), req.completionLinkLabel());
         respondWithForm(ctx, id);
     }
 
@@ -427,6 +442,40 @@ public class FormRoutes implements Routes {
 
         respondWithForm(ctx, id);
     }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/duplicate",
+            methods = HttpMethod.POST,
+            summary = "Copy a form as a new draft",
+            description = "Settings, pages, branches, questions and restrictions are copied; answers, the link,"
+                    + " the start and end dates and the status are not. The copy is always a draft.",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DuplicateRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = Form.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void duplicate(Context ctx) {
+        int id = pathInt(ctx, "id");
+        var session = UserSession.from(ctx);
+        requireOwnedForm(id, session);
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_COPYING_FORM.raise();
+        var request = ctx.bodyAsClass(DuplicateRequest.class);
+        if (request.title() == null || request.title().isBlank()) throw Refusal.FORM_COPY_NEEDS_A_TITLE.raise();
+        var copy = formService
+                .duplicate(id, request.title().trim(), session.member().id())
+                .orElseThrow(Refusal.FORM_NOT_HERE_ON_COPY::raise);
+        ctx.status(HttpStatus.CREATED).json(copy);
+    }
+
+    /**
+     * What a copy of a form is called, which the screen words in the reader's language.
+     *
+     * @param title the copy's title
+     */
+    @OpenApiName("FormDuplicateRequest")
+    public record DuplicateRequest(String title) {}
 
     @OpenApi(
             path = "/api/v1/forms/{id}/visibility",
@@ -597,44 +646,60 @@ public class FormRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/forms/{id}/questions",
-            methods = HttpMethod.PUT,
-            summary = "Save the questions of a form",
-            description =
-                    "A question sent with its id is changed in place and keeps its answers, one sent without an id"
-                            + " is added, and a question of the form that is not sent is removed with its answers.",
+            path = "/api/v1/forms/{id}/pages",
+            methods = HttpMethod.GET,
+            summary = "List the pages of a form",
             tags = {"Forms"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuestionRequest[].class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormPage[].class)))
+    private void listPages(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedForm(id, UserSession.from(ctx));
+        ctx.json(formService.findPages(id));
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/questions",
+            methods = HttpMethod.PUT,
+            summary = "Save the pages and questions of a form",
+            description =
+                    "A question sent with its id is changed in place and keeps its answers, one sent without an id"
+                            + " is added, and a question of the form that is not sent is removed with its answers."
+                            + " Pages are kept by their key the same way.",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LayoutRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormQuestion[].class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormLayout.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setQuestions(Context ctx) {
         int id = pathInt(ctx, "id");
         var form = requireOwnedForm(id, UserSession.from(ctx));
-        var questions = ctx.bodyAsClass(QuestionRequest[].class);
-        var disallowed = Arrays.stream(questions)
-                .map(QuestionRequest::questionType)
-                .filter(t -> !t.allowedFor(form.purpose()))
-                .distinct()
-                .toList();
-        if (!disallowed.isEmpty()) {
+        var layout = ctx.bodyAsClass(LayoutRequest.class);
+        var questions = layout.questions() == null ? List.<QuestionRequest>of() : layout.questions();
+        var pages = layout.pages() == null ? List.<PageRequest>of() : layout.pages();
+        if (questions.stream().map(QuestionRequest::questionType).anyMatch(t -> !t.allowedFor(form.purpose()))) {
             throw Refusal.QUESTIONS_NOT_FOR_THIS_KIND_OF_FORM.raise();
         }
-        formService.saveQuestions(
+        formService.saveLayout(
                 id,
-                Arrays.stream(questions)
+                pages.stream()
+                        .map(p -> new PageEntry(p.key(), p.title(), p.description(), PageTarget.orNext(p.after())))
+                        .toList(),
+                questions.stream()
                         .map(q -> new QuestionEntry(
                                 q.id(),
+                                q.pageKey(),
                                 q.questionType(),
                                 q.title(),
                                 q.description() != null ? q.description() : "",
                                 q.required() != null && q.required(),
                                 q.shuffle() != null && q.shuffle(),
-                                q.config() != null ? q.config() : new FormQuestionConfig.Unknown()))
+                                q.config() != null ? q.config() : new FormQuestionConfig.Unknown(),
+                                q.branch()))
                         .toList());
-        ctx.json(formService.findQuestions(id));
+        ctx.json(new FormLayout(formService.findPages(id), formService.findQuestions(id)));
     }
 
     // -- Restrictions --
@@ -782,10 +847,8 @@ public class FormRoutes implements Routes {
             var response = formService.submitResponse(
                     id, session.member().id(), session.member().id(), req.answers());
             ctx.status(HttpStatus.CREATED).json(response);
-        } catch (IllegalArgumentException e) {
-            throw Failures.readable(e.getMessage())
-                    .map(Refusal.FORM_ANSWERS_NOT_SAVED::raise)
-                    .orElseGet(Refusal.FORM_ANSWERS_NOT_SAVED::raise);
+        } catch (FormAnswersRefused refused) {
+            throw refused.as(Refusal.FORM_ANSWERS_NOT_SAVED);
         }
     }
 
@@ -814,10 +877,8 @@ public class FormRoutes implements Routes {
             var response = formService.submitResponse(
                     id, session.member().id(), session.member().id(), req.answers());
             ctx.json(response);
-        } catch (IllegalArgumentException e) {
-            throw Failures.readable(e.getMessage())
-                    .map(Refusal.FORM_ANSWER_CHANGE_NOT_SAVED::raise)
-                    .orElseGet(Refusal.FORM_ANSWER_CHANGE_NOT_SAVED::raise);
+        } catch (FormAnswersRefused refused) {
+            throw refused.as(Refusal.FORM_ANSWER_CHANGE_NOT_SAVED);
         }
     }
 
@@ -895,10 +956,8 @@ public class FormRoutes implements Routes {
             } else {
                 ctx.json(response);
             }
-        } catch (IllegalArgumentException e) {
-            throw Failures.readable(e.getMessage())
-                    .map(Refusal.FORM_ANSWERS_FOR_MEMBER_NOT_SAVED::raise)
-                    .orElseGet(Refusal.FORM_ANSWERS_FOR_MEMBER_NOT_SAVED::raise);
+        } catch (FormAnswersRefused refused) {
+            throw refused.as(Refusal.FORM_ANSWERS_FOR_MEMBER_NOT_SAVED);
         }
     }
 
@@ -934,6 +993,143 @@ public class FormRoutes implements Routes {
             throw Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR.raise();
         }
     }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/draft",
+            methods = HttpMethod.GET,
+            summary = "The half-filled form kept for the caller, if any",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DraftResponse.class)))
+    private void getDraft(Context ctx) {
+        int id = pathInt(ctx, "id");
+        int memberId = draftingMember(ctx, id);
+        ctx.json(new DraftResponse(formService.findDraft(id, memberId).orElse(null)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/draft",
+            methods = HttpMethod.PUT,
+            summary = "Keep what the caller filled in so far, to continue later",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DraftRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void saveDraft(Context ctx) {
+        int id = pathInt(ctx, "id");
+        int memberId = draftingMember(ctx, id);
+        keepDraft(ctx, id, memberId, memberId);
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/draft",
+            methods = HttpMethod.DELETE,
+            summary = "Throw away the caller's half-filled form, to start over",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
+    private void discardDraft(Context ctx) {
+        int id = pathInt(ctx, "id");
+        formService.discardDraft(id, draftingMember(ctx, id));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/draft/{memberId}",
+            methods = HttpMethod.GET,
+            summary = "The half-filled form kept for a member in the caller's care, if any",
+            tags = {"Forms"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "memberId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DraftResponse.class)))
+    private void getDraftFor(Context ctx) {
+        int id = pathInt(ctx, "id");
+        int memberId = managedDraftMember(ctx, id);
+        ctx.json(new DraftResponse(formService.findDraft(id, memberId).orElse(null)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/draft/{memberId}",
+            methods = HttpMethod.PUT,
+            summary = "Keep what was filled in so far for a member in the caller's care",
+            tags = {"Forms"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "memberId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DraftRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void saveDraftFor(Context ctx) {
+        int id = pathInt(ctx, "id");
+        int memberId = managedDraftMember(ctx, id);
+        keepDraft(ctx, id, memberId, UserSession.from(ctx).member().id());
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/draft/{memberId}",
+            methods = HttpMethod.DELETE,
+            summary = "Throw away the half-filled form of a member in the caller's care",
+            tags = {"Forms"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "memberId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
+    private void discardDraftFor(Context ctx) {
+        int id = pathInt(ctx, "id");
+        formService.discardDraft(id, managedDraftMember(ctx, id));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * The caller as the member a draft of the form is kept for, once the form is theirs to answer.
+     */
+    private int draftingMember(Context ctx, int formId) {
+        var session = UserSession.from(ctx);
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_KEEPING_FORM_DRAFT.raise();
+        requireOwnedForm(formId, session);
+        if (!formService.canMemberAccess(formId, session.member().id())) {
+            throw Refusal.FORM_NOT_YOURS_TO_DRAFT.raise();
+        }
+        return session.member().id();
+    }
+
+    /** The member in the caller's care a draft of the form is kept for. */
+    private int managedDraftMember(Context ctx, int formId) {
+        var session = UserSession.from(ctx);
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_KEEPING_FORM_DRAFT.raise();
+        int memberId = pathInt(ctx, "memberId");
+        requireFormForManagedMember(session, formId, memberId);
+        return memberId;
+    }
+
+    /** Keeps a draft while the form takes answers; a closed form keeps none. */
+    private void keepDraft(Context ctx, int formId, int memberId, int savedBy) {
+        var form = requireOwnedForm(formId, UserSession.from(ctx));
+        if (!formService.isAcceptingResponses(form)) throw Refusal.FORM_TAKES_NO_DRAFTS.raise();
+        var request = ctx.bodyAsClass(DraftRequest.class);
+        formService.saveDraft(formId, memberId, savedBy, request.answers(), request.path());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * What a member filled in so far.
+     *
+     * @param answers the answers so far, by question id, in the shape a sent answer has
+     * @param path    the pages visited so far, the page to continue on last
+     */
+    @OpenApiName("FormDraftRequest")
+    public record DraftRequest(Map<Integer, FormAnswerValue> answers, List<String> path) {}
+
+    /**
+     * The draft kept, where there is one.
+     *
+     * @param draft the draft, or {@code null} where nothing is kept
+     */
+    @OpenApiName("FormDraftResponse")
+    public record DraftResponse(FormDraft draft) {}
 
     // -- Analytics --
 
@@ -1045,6 +1241,10 @@ public class FormRoutes implements Routes {
      * @param allowEdit        whether respondents may edit their response
      * @param startAt          optional start time for accepting responses
      * @param endAt            optional end time for accepting responses
+     * @param purpose          what the form is for, which is fixed once it is made
+     * @param completionMessage what the reader is told once the form is sent, or nothing for the general thanks
+     * @param completionLink   where the reader may go on to after sending, or nothing
+     * @param completionLinkLabel what that link says, or nothing for the address itself
      */
     public record FormRequest(
             String title,
@@ -1054,27 +1254,63 @@ public class FormRoutes implements Routes {
             Boolean forced,
             Instant startAt,
             Instant endAt,
-            FormPurpose purpose) {}
+            FormPurpose purpose,
+            String completionMessage,
+            String completionLink,
+            String completionLinkLabel) {}
 
     /**
      * One question of a form as the editor saves it.
      *
      * @param id           the question this updates, or {@code null} for a question that is new
+     * @param pageKey      the key of the page the question stands on, or {@code null} for the first page
      * @param questionType the question type name (must match {@link FormQuestionType})
      * @param title        the question text
      * @param description  optional description
      * @param required     whether an answer is mandatory
      * @param shuffle      whether answer options should be randomized
      * @param config       type-specific configuration as JSON string
+     * @param branch       where the page leads per option picked, for the question that decides it
      */
     public record QuestionRequest(
             Integer id,
+            String pageKey,
             FormQuestionType questionType,
             String title,
             String description,
             Boolean required,
             Boolean shuffle,
-            FormQuestionConfig config) {}
+            FormQuestionConfig config,
+            QuestionBranch branch) {}
+
+    /**
+     * One page of a form as the editor saves it.
+     *
+     * @param key         the page's key, kept by a stored page and made by the editor for a new one
+     * @param title       optional title
+     * @param description optional description
+     * @param after       where the reader goes once the page is done; the next page where not given
+     */
+    @OpenApiName("FormPageRequest")
+    public record PageRequest(String key, String title, String description, PageTarget after) {}
+
+    /**
+     * The pages and questions of a form as the editor saves them, each list in its order.
+     *
+     * @param pages     the pages, at least one
+     * @param questions the questions, each naming the page it stands on
+     */
+    @OpenApiName("FormLayoutRequest")
+    public record LayoutRequest(List<PageRequest> pages, List<QuestionRequest> questions) {}
+
+    /**
+     * The pages and questions of a form as stored.
+     *
+     * @param pages     the pages, in their order
+     * @param questions the questions, page by page
+     */
+    @OpenApiName("FormLayout")
+    public record FormLayout(List<FormPage> pages, List<FormQuestion> questions) {}
 
     /**
      * Access restrictions for a form, specifying which roles, groups, and tags may access it.

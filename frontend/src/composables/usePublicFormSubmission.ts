@@ -3,12 +3,16 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { publicForms } from '@/api'
 import { PublicFormState, type PublicForm, type PublicFormQuestion } from '@/api/publicForms'
-import { QuestionTypes } from '@/api/forms'
+import { typedAnswers } from '@/util/formAnswers'
+import { usePublicAnswers } from '@/composables/usePublicAnswers'
+import { presentQuestions } from '@/util/formShuffle'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useFormWalk } from '@/composables/useFormWalk'
+import { clearFormDraft, readFormDraft, saveFormDraft } from '@/util/formDrafts'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 
 /**
@@ -16,7 +20,8 @@ import { describeFailure, FailureKind, type Failure } from '@/util/failure'
  * cell embedded in a public page.
  *
  * Answers are keyed by question and shaped per question type, so an empty answer still has the
- * shape the server expects rather than being absent. Consent is collected here too: a public
+ * shape the server expects rather than being absent. The form is walked one page at a time, the same
+ * way on the standalone page and in the cell, and the questions come in the order this reader gets. Consent is collected here too: a public
  * submission comes from someone with no account, so the versions they agreed to travel with the
  * answers instead of being recorded against a profile.
  *
@@ -40,7 +45,7 @@ export function usePublicFormSubmission(
   const { t } = useI18n()
 
   const form = ref<PublicForm | null>(null)
-  const answers = ref<Record<number, Record<string, unknown>>>({})
+  const {answers, reset: initAnswerDefaults, toggleChoice, updateText, updateDate} = usePublicAnswers()
   const loading = ref(false)
   const loadFailure = ref<Failure | null>(null)
   const submitted = ref(false)
@@ -51,35 +56,85 @@ export function usePublicFormSubmission(
   const privacyVersion = ref('')
   const tosVersion = ref('')
 
-  /**
-   * Every question starts with an answer of the shape the server expects, so an unanswered one is
-   * empty rather than absent. A ranking starts in the order the options were written, since that is
-   * what the reader is shown before they move anything.
-   */
-  function initAnswerDefaults(questions: PublicFormQuestion[]) {
-    const defaults: Record<number, Record<string, unknown>> = {}
-    for (const q of questions) {
-      if (q.questionType === QuestionTypes.CHOICE) defaults[q.id] = {selected: [] as number[], other: ''}
-      else if (q.questionType === QuestionTypes.TEXT) defaults[q.id] = {text: ''}
-      else if (q.questionType === QuestionTypes.DATE) defaults[q.id] = {date: ''}
-      else if (q.questionType === QuestionTypes.RATING) defaults[q.id] = {rating: 0}
-      else if (q.questionType === QuestionTypes.RANKING) {
-        defaults[q.id] = {order: ((q.config.options as string[]) ?? []).map((_, i) => i)}
-      } else if (q.questionType === QuestionTypes.LIKERT) defaults[q.id] = {ratings: {}}
-      else defaults[q.id] = {}
-    }
-    answers.value = defaults
+  const pages = computed(() => form.value?.pages ?? [])
+  const questions = computed(() => form.value?.questions ?? [])
+  const walk = useFormWalk(pages, questions, answers, question => question.questionType)
+
+  /** The form with its questions in the order this reader gets them. */
+  function presented(data: PublicForm): PublicForm {
+    return {...data, questions: presentQuestions(data.questions ?? [], data.shuffleQuestions)}
   }
 
-  /** Takes a form that has already been fetched, so the page it is on draws it at once. */
+  /**
+   * Takes a form that has already been fetched, so the page it is on draws it at once.
+   *
+   * <p>In the order it was written: the server and the browser each draw this page, and two shuffles
+   * would draw two different ones. The shuffle comes once the page is up, before anything is typed.
+   */
   function seed(data: PublicForm | null) {
     form.value = data
     submitted.value = false
     initAnswerDefaults(data?.questions ?? [])
   }
 
+  function shuffleSeeded() {
+    if (!form.value) return
+    form.value = presented(form.value)
+    initAnswerDefaults(form.value.questions)
+    resumeDraft()
+  }
+
+  /** Where this form's half-filled answers are kept in the browser: by its link, or by its address. */
+  const draftKey = computed(() => (shareToken.value ? `link:${shareToken.value}` : `${stationUid.value}/${publicUid.value}`))
+
+  /** When the half-filled answers the form continues from were kept, or null where it started fresh. */
+  const resumedFrom = ref<string | null>(null)
+
+  /**
+   * Continues from the answers this browser kept, where there are any. A form that no longer takes
+   * answers ends them instead: they could never be sent.
+   */
+  function resumeDraft() {
+    resumedFrom.value = null
+    if (!form.value) return
+    if (form.value.state !== PublicFormState.OPEN) {
+      clearFormDraft(draftKey.value)
+      return
+    }
+    const kept = readFormDraft(draftKey.value)
+    if (!kept) return
+    const known = new Set(form.value.questions.map(question => question.id))
+    for (const [id, answer] of Object.entries(kept.answers)) {
+      if (known.has(Number(id))) answers.value[Number(id)] = answer
+    }
+    if (kept.path.length > 0) walk.showAt(kept.path, {})
+    resumedFrom.value = new Date(kept.savedAt).toISOString()
+  }
+
+  let keeping: ReturnType<typeof setTimeout> | null = null
+
+  /** Keeps what is filled in so far, once the reader pauses. */
+  watch([answers, walk.path], () => {
+    if (!form.value || submitted.value || form.value.state !== PublicFormState.OPEN) return
+    if (keeping) clearTimeout(keeping)
+    keeping = setTimeout(() => saveFormDraft(draftKey.value, {answers: answers.value, path: walk.path.value}), 1000)
+  }, {deep: true})
+
+  /** Throws the kept answers away and starts the form from its first page. */
+  function startOver() {
+    if (keeping) clearTimeout(keeping)
+    clearFormDraft(draftKey.value)
+    resumedFrom.value = null
+    if (form.value) initAnswerDefaults(form.value.questions)
+    walk.restart()
+  }
+
   if (preloaded.value !== null) seed(preloaded.value)
-  watch(preloaded, seed)
+  watch(preloaded, data => {
+    seed(data)
+    shuffleSeeded()
+  })
+  onMounted(shuffleSeeded)
 
   async function load() {
     if (preloaded.value !== null) return
@@ -94,8 +149,9 @@ export function usePublicFormSubmission(
       const data = shareToken.value
         ? await publicForms.getSharedForm(shareToken.value)
         : await publicForms.getPublicForm(stationUid.value as string, publicUid.value as string)
-      form.value = data
-      initAnswerDefaults(data.questions)
+      form.value = presented(data)
+      initAnswerDefaults(form.value.questions)
+      resumeDraft()
     } catch (e) {
       form.value = null
       loadFailure.value = describeLoadFailure(e)
@@ -123,55 +179,33 @@ export function usePublicFormSubmission(
     }
   }
 
-  /**
-   * Selects an option. A single-select question also clears the free-text "other" answer, since
-   * picking a listed option replaces it.
-   */
-  function toggleChoice(q: PublicFormQuestion, optionIndex: number) {
-    const answer = answers.value[q.id] as {selected: number[]; other: string}
-    if (!q.config.multiSelect) {
-      answer.selected = [optionIndex]
-      answer.other = ''
-      return
-    }
-    const existing = answer.selected.indexOf(optionIndex)
-    if (existing >= 0) answer.selected.splice(existing, 1)
-    else answer.selected.push(optionIndex)
-  }
-
-  function updateText(q: PublicFormQuestion, text: string) {
-    (answers.value[q.id] as {text: string}).text = text
-  }
-
-  function updateDate(q: PublicFormQuestion, date: string) {
-    (answers.value[q.id] as {date: string}).date = date
-  }
-
   /** A form that is not taking answers shows why and offers nothing to fill in. */
   const open = computed(() => form.value?.state === PublicFormState.OPEN)
 
   const {running: submitting, failure: sendFailure, run: runSubmit} = useAsyncAction(async () => {
     if (!form.value) return
-    const answerMap: Record<number, Record<string, unknown>> = {}
-    for (const q of form.value.questions) {
-      const value = answers.value[q.id]
-      if (value === undefined) continue
-      answerMap[q.id] = {type: q.questionType, ...value}
-    }
+    const answerMap = typedAnswers(form.value.questions, answers.value, question => question.questionType)
     const payload = {
       answers: answerMap,
       consentVersion: consentVersion.value,
       privacyVersion: privacyVersion.value,
       tosVersion: tosVersion.value,
     }
-    if (shareToken.value) {
-      await publicForms.submitSharedResponse(shareToken.value, payload)
-    } else if (stationUid.value && publicUid.value) {
-      await publicForms.submitPublicResponse(stationUid.value, publicUid.value, payload)
-    } else {
-      return
+    try {
+      if (shareToken.value) {
+        await publicForms.submitSharedResponse(shareToken.value, payload)
+      } else if (stationUid.value && publicUid.value) {
+        await publicForms.submitPublicResponse(stationUid.value, publicUid.value, payload)
+      } else {
+        return
+      }
+    } catch (e) {
+      walk.showRefused(e)
+      throw e
     }
     submitted.value = true
+    if (keeping) clearTimeout(keeping)
+    clearFormDraft(draftKey.value)
   })
 
   /**
@@ -204,6 +238,7 @@ export function usePublicFormSubmission(
   }
 
   function submit() {
+    if (!walk.checkCurrent()) return
     if (!consentAccepted.value) {
       validationError.value = t('publicConsent.required')
       return
@@ -239,5 +274,8 @@ export function usePublicFormSubmission(
     updateText,
     updateDate,
     submit,
+    walk,
+    resumedFrom,
+    startOver,
   }
 }

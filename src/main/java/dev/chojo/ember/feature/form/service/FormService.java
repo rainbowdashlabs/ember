@@ -12,12 +12,16 @@ import dev.chojo.ember.event.events.FormPublished;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormDraft;
+import dev.chojo.ember.feature.form.entity.FormPage;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.FormVisibility;
+import dev.chojo.ember.feature.form.entity.PageEntry;
+import dev.chojo.ember.feature.form.entity.PageTarget;
 import dev.chojo.ember.feature.form.entity.QuestionAnswerCount;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.repository.FormRepository;
@@ -43,7 +47,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -240,6 +246,104 @@ public class FormService {
     }
 
     /**
+     * Sets what a form tells the reader once it is sent: its own message, and a link to go on to.
+     *
+     * <p>Blank parts are stored as none, which keeps the general thanks. The link is shown to anybody
+     * who sends a public form, so only a web address or an address on this site is taken.
+     *
+     * @param id      the form
+     * @param message what the reader is told
+     * @param link    where the reader may go on to
+     * @param label   what the link says
+     * @throws dev.chojo.ember.api.RefusalResponse where the link is neither
+     */
+    public void setCompletion(int id, String message, String link, String label) {
+        String cleanLink = blankToNull(link);
+        if (cleanLink != null && !isOfferableLink(cleanLink)) throw Refusal.FORM_COMPLETION_LINK_NOT_A_LINK.raise();
+        repository.updateCompletion(id, blankToNull(message), cleanLink, blankToNull(label));
+    }
+
+    private static boolean isOfferableLink(String link) {
+        var lower = link.toLowerCase(java.util.Locale.ROOT);
+        return lower.startsWith("https://")
+                || lower.startsWith("http://")
+                || (link.startsWith("/") && !link.startsWith("//"));
+    }
+
+    private static String blankToNull(String text) {
+        return text == null || text.isBlank() ? null : text.trim();
+    }
+
+    /**
+     * Makes a draft copy of a form: its settings, pages, branches, questions and restrictions.
+     *
+     * <p>What belongs to the form being asked rather than to how it asks stays behind: the answers,
+     * the link it was sent with, its start and end dates and its status, which is always draft. A
+     * form is copied within its own kind, since its questions are only allowed for that kind.
+     *
+     * @param id        the form to copy
+     * @param title     what the copy is called
+     * @param createdBy the member making the copy
+     * @return the copy, or empty where the form is not there
+     */
+    public Optional<Form> duplicate(int id, String title, int createdBy) {
+        var source = repository.findById(id).orElse(null);
+        if (source == null) return Optional.empty();
+        var copy = Transactions.call(() -> {
+            var made = repository.create(
+                    source.stationId(),
+                    title,
+                    source.description(),
+                    source.shuffleQuestions(),
+                    source.allowEdit(),
+                    source.forced(),
+                    null,
+                    null,
+                    createdBy,
+                    source.purpose());
+            if (source.purpose() != FormPurpose.INTERNAL) repository.updateVisibility(made.id(), source.visibility());
+            repository.updateRestrictionMode(made.id(), source.restrictionMode());
+            copyRestrictions(source, made.id());
+            repository.updateCompletion(
+                    made.id(), source.completionMessage(), source.completionLink(), source.completionLinkLabel());
+            saveLayout(made.id(), pageEntries(id), questionEntries(id));
+            return made;
+        });
+        log.info("Duplicated form {} as {} (station {})", id, copy.id(), source.stationId());
+        return repository.findById(copy.id());
+    }
+
+    private void copyRestrictions(Form source, int copyId) {
+        if (source.purpose() != FormPurpose.INTERNAL) return;
+        var set = findRestrictions(source.id());
+        restrictionService.setRestrictions(
+                RestrictionType.FORM,
+                copyId,
+                new RestrictionSelection(set.userTypes(), set.groupIds(), set.tagIds(), set.memberIds(), set.mode()));
+    }
+
+    private List<PageEntry> pageEntries(int formId) {
+        return repository.findPages(formId).stream()
+                .map(page -> new PageEntry(page.key(), page.title(), page.description(), page.after()))
+                .toList();
+    }
+
+    private List<QuestionEntry> questionEntries(int formId) {
+        return repository.findQuestions(formId).stream()
+                .map(question -> new QuestionEntry(
+                        null,
+                        question.pageKey(),
+                        question.formQuestionType(),
+                        question.title(),
+                        question.description(),
+                        question.required(),
+                        question.shuffle(),
+                        question.config(),
+                        question.branch()))
+                .toList();
+    }
+
+    /**
      * Updates the editable fields of a form.
      *
      * @param id               the form ID
@@ -387,7 +491,8 @@ public class FormService {
     public boolean close(int id) {
         boolean updated = repository.updateStatus(id, Form.FormStatus.CLOSED);
         if (updated) {
-            log.info("Closed form {}", id);
+            int drafts = repository.deleteDrafts(id);
+            log.info("Closed form {} and ended {} drafts", id, drafts);
         } else {
             log.warn("Form close affected zero rows for form {}", id);
         }
@@ -480,13 +585,29 @@ public class FormService {
     }
 
     /**
-     * How many answers each question of a form holds, so an editor can say what removing one costs.
+     * How many answers each question of a form holds, and how many of them name each of its options,
+     * so an editor can say what removing a question or an option costs.
      *
      * @param formId the form ID
      * @return one count per question, in the order the questions are asked
      */
     public List<QuestionAnswerCount> countAnswersPerQuestion(int formId) {
-        return repository.countAnswersPerQuestion(formId);
+        var answersByQuestion = repository.findAllAnswersForForm(formId).stream()
+                .collect(Collectors.groupingBy(FormAnswer::questionId));
+        return repository.findQuestions(formId).stream()
+                .map(question -> countAnswers(question, answersByQuestion.getOrDefault(question.id(), List.of())))
+                .toList();
+    }
+
+    private static QuestionAnswerCount countAnswers(FormQuestion question, List<FormAnswer> answers) {
+        var perOption = new LinkedHashMap<String, Integer>();
+        for (var key : question.config().optionKeys()) perOption.put(key, 0);
+        for (var answer : answers) {
+            var value = FormAnswerValue.parse(question.formQuestionType(), answer.value());
+            if (value == null) continue;
+            for (var key : value.optionKeys()) perOption.computeIfPresent(key, (k, count) -> count + 1);
+        }
+        return new QuestionAnswerCount(question.id(), answers.size(), perOption);
     }
 
     /**
@@ -502,54 +623,242 @@ public class FormService {
      * Replacing a question by one of another type is removing the one and adding the other, which is
      * what the editor does.
      *
+     * <p>Answers name options by key, so reordering and relabelling options leaves them as they are.
+     * An option the editor removed takes its selections with it: a choice drops it from what was
+     * picked and goes altogether where nothing and no "other" text is left, a ranking drops it from
+     * the order, and a Likert grid drops the rating of that statement.
+     *
      * <p>Everything happens in one transaction, and a refused question leaves the form as it was.
      *
      * @param formId    the form ID
      * @param questions the questions the form is to have
-     * @throws dev.chojo.ember.api.RefusalResponse where an id is not one of this form's questions, or an
-     *                                             existing question is sent with another type
+     * @throws dev.chojo.ember.api.RefusalResponse where an id is not one of this form's questions, an
+     *                                             existing question is sent with another type, or the
+     *                                             options of a question do not each carry a key of
+     *                                             their own
      */
     public void saveQuestions(int formId, List<QuestionEntry> questions) {
+        saveLayout(formId, pageEntries(formId), questions);
+    }
+
+    /**
+     * Retrieves the pages of a form, in their order.
+     *
+     * @param formId the form ID
+     * @return the pages, at least one for a form that exists
+     */
+    public List<FormPage> findPages(int formId) {
+        return repository.findPages(formId);
+    }
+
+    /**
+     * Saves a form's pages and its questions as the editor sends them, in the order they are sent.
+     *
+     * <p>Pages are kept by their key the way questions are kept by their id: a page sent with a key
+     * the form has is changed in place, one with a new key is added, and a stored page that is not
+     * sent is removed. Questions are saved as {@link #saveQuestions} describes, each on the page its
+     * entry names, or on the first page where it names none.
+     *
+     * <p>A page only ever leads further down. A form can then never loop and every path through it
+     * ends, which is refused here rather than left to whoever fills it in.
+     *
+     * @param formId    the form ID
+     * @param pages     the pages the form is to have, at least one
+     * @param questions the questions the form is to have
+     * @throws dev.chojo.ember.api.RefusalResponse where the pages do not each carry a key of their own,
+     *                                             one leads anywhere but further down, a question
+     *                                             stands on a page that is not sent, or a question is
+     *                                             refused as {@link #saveQuestions} describes
+     */
+    public void saveLayout(int formId, List<PageEntry> pages, List<QuestionEntry> questions) {
+        requireDistinctPageKeys(pages);
+        requireForwardTargets(pages);
+        requireKnownPages(pages, questions);
+        requireFittingBranches(pages, questions);
+        String firstPage = pages.getFirst().key();
         Transactions.run(() -> {
             var stored = repository.findQuestions(formId).stream()
-                    .collect(Collectors.toMap(FormQuestion::id, FormQuestion::formQuestionType));
+                    .collect(Collectors.toMap(FormQuestion::id, question -> question));
             requireOwnQuestionsOfUnchangedType(stored, questions);
+            requireDistinctOptionKeys(questions);
+            var storedPages = repository.findPages(formId);
+            var pageIds = writePages(formId, storedPages, pages);
             var kept = questions.stream()
                     .map(QuestionEntry::id)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
             stored.keySet().stream().filter(id -> !kept.contains(id)).forEach(repository::deleteQuestion);
             for (int position = 0; position < questions.size(); position++) {
-                writeQuestion(formId, position, questions.get(position));
+                var question = questions.get(position);
+                int pageId = pageIds.get(question.pageKey() == null ? firstPage : question.pageKey());
+                writeQuestion(formId, pageId, position, question);
+                if (question.id() != null) dropRemovedOptions(stored.get(question.id()), question.config());
             }
+            storedPages.stream()
+                    .filter(page -> !pageIds.containsKey(page.key()))
+                    .forEach(page -> repository.deletePage(page.id()));
         });
-        log.info("Saved questions on form {} ({} questions)", formId, questions.size());
+        log.info("Saved form {} ({} pages, {} questions)", formId, pages.size(), questions.size());
     }
 
-    private static void requireOwnQuestionsOfUnchangedType(
-            Map<Integer, FormQuestionType> stored, List<QuestionEntry> questions) {
-        for (var question : questions) {
-            if (question.id() == null) continue;
-            var storedType = stored.get(question.id());
-            if (storedType == null) throw Refusal.QUESTION_NOT_ON_THIS_FORM.raise();
-            if (storedType != question.formQuestionType()) throw Refusal.QUESTION_TYPE_NOT_CHANGEABLE.raise();
+    private static void requireDistinctPageKeys(List<PageEntry> pages) {
+        if (pages.isEmpty()) throw Refusal.FORM_PAGE_KEYS_NOT_DISTINCT.raise();
+        var keys = new HashSet<String>();
+        for (var page : pages) {
+            if (page.key() == null || page.key().isBlank() || !keys.add(page.key())) {
+                throw Refusal.FORM_PAGE_KEYS_NOT_DISTINCT.raise();
+            }
         }
     }
 
-    private void writeQuestion(int formId, int position, QuestionEntry q) {
+    private static void requireForwardTargets(List<PageEntry> pages) {
+        var positions = pagePositions(pages);
+        for (int position = 0; position < pages.size(); position++) {
+            if (!leadsForward(PageTarget.orNext(pages.get(position).after()), position, positions)) {
+                throw Refusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN.raise();
+            }
+        }
+    }
+
+    /**
+     * Whether a target leaves the page at the given position for somewhere further down, or for the
+     * end of the form.
+     */
+    static boolean leadsForward(PageTarget target, int from, Map<String, Integer> positions) {
+        if (target.kind() != PageTarget.TargetKind.PAGE) return true;
+        var to = positions.get(target.page());
+        return to != null && to > from;
+    }
+
+    static Map<String, Integer> pagePositions(List<PageEntry> pages) {
+        var positions = new LinkedHashMap<String, Integer>();
+        for (int position = 0; position < pages.size(); position++)
+            positions.put(pages.get(position).key(), position);
+        return positions;
+    }
+
+    /**
+     * Refuses a branch on anything but a single-answer choice question, on options it does not have,
+     * to a page that is not further down than its question's, or on a page that already has one.
+     */
+    private static void requireFittingBranches(List<PageEntry> pages, List<QuestionEntry> questions) {
+        var positions = pagePositions(pages);
+        String firstPage = pages.getFirst().key();
+        var deciding = new HashSet<String>();
+        for (var question : questions) {
+            if (question.branch() == null) continue;
+            String pageKey = question.pageKey() == null ? firstPage : question.pageKey();
+            if (!(question.config() instanceof FormQuestionConfig.Choice choice)
+                    || Boolean.TRUE.equals(choice.multiSelect())
+                    || !choice.optionKeys()
+                            .containsAll(question.branch().targets().keySet())) {
+                throw Refusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE.raise();
+            }
+            if (!deciding.add(pageKey)) throw Refusal.PAGE_BRANCHES_ON_TWO_QUESTIONS.raise();
+            int from = positions.get(pageKey);
+            for (var target : question.branch().targets().values()) {
+                if (!leadsForward(PageTarget.orNext(target), from, positions)) {
+                    throw Refusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN.raise();
+                }
+            }
+        }
+    }
+
+    private static void requireKnownPages(List<PageEntry> pages, List<QuestionEntry> questions) {
+        var keys = pages.stream().map(PageEntry::key).collect(Collectors.toSet());
+        for (var question : questions) {
+            if (question.pageKey() != null && !keys.contains(question.pageKey())) {
+                throw Refusal.QUESTION_ON_NO_PAGE.raise();
+            }
+        }
+    }
+
+    /**
+     * Writes the pages as sent, the stored ones in place and the new ones added.
+     *
+     * @return the id of every page sent, by its key
+     */
+    private Map<String, Integer> writePages(int formId, List<FormPage> stored, List<PageEntry> pages) {
+        var storedByKey = stored.stream().collect(Collectors.toMap(FormPage::key, page -> page));
+        var ids = new LinkedHashMap<String, Integer>();
+        for (int position = 0; position < pages.size(); position++) {
+            var page = pages.get(position);
+            var after = PageTarget.orNext(page.after());
+            var existing = storedByKey.get(page.key());
+            String title = page.title() == null ? "" : page.title();
+            String description = page.description() == null ? "" : page.description();
+            if (existing == null) {
+                ids.put(
+                        page.key(),
+                        repository
+                                .createPage(formId, page.key(), position, title, description, after)
+                                .id());
+            } else {
+                repository.updatePage(existing.id(), position, title, description, after);
+                ids.put(page.key(), existing.id());
+            }
+        }
+        return ids;
+    }
+
+    private static void requireOwnQuestionsOfUnchangedType(
+            Map<Integer, FormQuestion> stored, List<QuestionEntry> questions) {
+        for (var question : questions) {
+            if (question.id() == null) continue;
+            var storedQuestion = stored.get(question.id());
+            if (storedQuestion == null) throw Refusal.QUESTION_NOT_ON_THIS_FORM.raise();
+            if (storedQuestion.formQuestionType() != question.formQuestionType()) {
+                throw Refusal.QUESTION_TYPE_NOT_CHANGEABLE.raise();
+            }
+        }
+    }
+
+    private static void requireDistinctOptionKeys(List<QuestionEntry> questions) {
+        for (var question : questions) {
+            if (!question.config().hasDistinctOptionKeys()) throw Refusal.QUESTION_OPTION_KEYS_NOT_DISTINCT.raise();
+        }
+    }
+
+    private void dropRemovedOptions(FormQuestion stored, FormQuestionConfig saved) {
+        var removed = new HashSet<>(stored.config().optionKeys());
+        removed.removeAll(saved.optionKeys());
+        if (removed.isEmpty()) return;
+        for (var answer : repository.findAnswersToQuestion(stored.id())) {
+            var value = FormAnswerValue.parse(stored.formQuestionType(), answer.value());
+            if (value == null || Collections.disjoint(value.optionKeys(), removed)) continue;
+            value.withoutOptions(removed)
+                    .ifPresentOrElse(
+                            left -> repository.updateAnswerValue(answer.id(), left),
+                            () -> repository.deleteAnswer(answer.id()));
+        }
+        log.info("Dropped removed options {} from the answers to question {}", removed, stored.id());
+    }
+
+    private void writeQuestion(int formId, int pageId, int position, QuestionEntry q) {
         if (q.id() == null) {
             repository.createQuestion(
                     formId,
+                    pageId,
                     position,
                     q.formQuestionType(),
                     q.title(),
                     q.description(),
                     q.required(),
                     q.shuffle(),
-                    q.config());
+                    q.config(),
+                    q.branch());
             return;
         }
-        repository.updateQuestion(q.id(), q.title(), q.description(), q.required(), q.shuffle(), q.config(), position);
+        repository.updateQuestion(
+                q.id(),
+                pageId,
+                q.title(),
+                q.description(),
+                q.required(),
+                q.shuffle(),
+                q.config(),
+                q.branch(),
+                position);
     }
 
     // -- Responses --
@@ -613,22 +922,33 @@ public class FormService {
     }
 
     /**
-     * Submits or updates a response for a member, validating all answers against question configs.
+     * Submits or updates a response for a member, walking the form's pages with the answers first.
+     *
+     * <p>The pages the answers lead through are what count: a required question on a page the path
+     * skips is not missing, and an answer to one is dropped. The path is stored with the response.
+     * Saving a response used to only add and change answers, so an edited response that took the
+     * other branch kept the first branch's answers too; every stored answer the new path does not
+     * reach is deleted now, and so is every answer sent empty.
      *
      * @param formId      the form ID
      * @param memberId    the member the response is for
      * @param submittedBy the member who submitted the response (may differ for managed members)
      * @param answers     map of question ID to answer value
      * @return the created or updated response
-     * @throws IllegalArgumentException if any answer fails validation
+     * @throws FormAnswersRefused where an answer is missing, does not fit its question or answers a
+     *                            question the form does not have, one problem per question
      */
     public FormResponse submitResponse(
             int formId, int memberId, int submittedBy, Map<Integer, FormAnswerValue> answers) {
-        validateAnswers(formId, answers);
-        var response = repository.createResponse(formId, memberId, submittedBy);
-        for (var entry : answers.entrySet()) {
-            repository.upsertAnswer(response.id(), entry.getKey(), entry.getValue());
-        }
+        var walk = walked(formId, answers);
+        var response = Transactions.call(() -> {
+            var saved = repository.updateResponsePath(
+                    repository.createResponse(formId, memberId, submittedBy).id(), walk.path());
+            walk.answers().forEach((questionId, value) -> repository.upsertAnswer(saved.id(), questionId, value));
+            repository.deleteAnswersExcept(saved.id(), walk.answers().keySet());
+            repository.deleteDraft(formId, memberId);
+            return saved;
+        });
         log.info(
                 "Submitted form response {} for form {} (member {}, submittedBy {})",
                 response.id(),
@@ -647,18 +967,69 @@ public class FormService {
      * @param answers       map of question ID to answer value
      * @param consent       proof that the submitter accepted privacy / ToS / consent
      * @return the created response
-     * @throws IllegalArgumentException if any answer fails validation
-     * @throws IllegalStateException    if the visitor already submitted a POLL response
+     * @throws FormAnswersRefused where the answers are refused, as {@link #submitResponse} describes
      */
     public FormResponse submitAnonymousResponse(
             int formId, byte[] submitterHash, Map<Integer, FormAnswerValue> answers, ConsentProof consent) {
-        validateAnswers(formId, answers);
-        var response = repository.createAnonymousResponse(formId, submitterHash, consent);
-        for (var entry : answers.entrySet()) {
-            repository.upsertAnswer(response.id(), entry.getKey(), entry.getValue());
-        }
+        var walk = walked(formId, answers);
+        var response = Transactions.call(() -> {
+            var saved = repository.createAnonymousResponse(formId, submitterHash, consent, walk.path());
+            walk.answers().forEach((questionId, value) -> repository.upsertAnswer(saved.id(), questionId, value));
+            return saved;
+        });
         log.info("Submitted anonymous form response {} for form {}", response.id(), formId);
         return response;
+    }
+
+    /**
+     * The draft a member keeps of a form, where there is one.
+     *
+     * @param formId   the form
+     * @param memberId the member the answer is for
+     * @return the draft
+     */
+    public Optional<FormDraft> findDraft(int formId, int memberId) {
+        return repository.findDraft(formId, memberId);
+    }
+
+    /**
+     * Keeps what a member filled in so far, so the form can be continued later, on any device.
+     *
+     * <p>A draft is checked for its shape only: answers that are not answers of this form's questions
+     * and pages the form does not have are left out, and nothing is required. It is not an answer and
+     * is never counted as one.
+     *
+     * @param formId   the form
+     * @param memberId the member the answer is for
+     * @param savedBy  the member saving it, a guardian where they fill in for somebody in their care
+     * @param answers  the answers so far, by question id
+     * @param path     the pages visited so far, the page to continue on last
+     */
+    public void saveDraft(
+            int formId, int memberId, int savedBy, Map<Integer, FormAnswerValue> answers, List<String> path) {
+        var questions =
+                repository.findQuestions(formId).stream().map(FormQuestion::id).collect(Collectors.toSet());
+        var pages = repository.findPages(formId).stream().map(FormPage::key).collect(Collectors.toSet());
+        var kept = new LinkedHashMap<Integer, FormAnswerValue>();
+        if (answers != null) {
+            answers.forEach((id, value) -> {
+                if (id != null && value != null && questions.contains(id)) kept.put(id, value);
+            });
+        }
+        var walked = path == null
+                ? List.<String>of()
+                : path.stream().filter(pages::contains).toList();
+        repository.saveDraft(formId, memberId, savedBy, kept, walked);
+    }
+
+    /**
+     * Throws away a member's draft of a form, which is what starting over amounts to.
+     *
+     * @param formId   the form
+     * @param memberId the member the answer is for
+     */
+    public void discardDraft(int formId, int memberId) {
+        repository.deleteDraft(formId, memberId);
     }
 
     /**
@@ -714,34 +1085,14 @@ public class FormService {
 
     // -- Restrictions --
 
-    private void validateAnswers(int formId, Map<Integer, FormAnswerValue> answers) {
-        var questions = repository.findQuestions(formId);
-        var questionMap = questions.stream().collect(Collectors.toMap(FormQuestion::id, q -> q));
-
-        var errors = new ArrayList<String>();
-
-        for (var question : questions) {
-            var value = answers.get(question.id());
-            if (value == null && question.required()) {
-                errors.add("Question '%s' is required".formatted(question.title()));
-                continue;
-            }
-            if (value == null) continue;
-
-            var validationErrors = question.config().validate(value);
-            if (!validationErrors.isEmpty()) {
-                errors.add("Question '%s': %s".formatted(question.title(), String.join(", ", validationErrors)));
-            }
+    /**
+     * Walks the form with the given answers and refuses them where anything is wrong.
+     */
+    private FormPathWalker.Walk walked(int formId, Map<Integer, FormAnswerValue> answers) {
+        var walk = FormPathWalker.walk(repository.findPages(formId), repository.findQuestions(formId), answers);
+        if (!walk.problems().isEmpty()) {
+            throw new FormAnswersRefused(Refusal.FORM_ANSWER_REFUSED, walk.problems());
         }
-
-        for (var questionId : answers.keySet()) {
-            if (!questionMap.containsKey(questionId)) {
-                errors.add("Answer for unknown question ID: " + questionId);
-            }
-        }
-
-        if (!errors.isEmpty()) {
-            throw new BadRequestResponse(String.join("; ", errors));
-        }
+        return walk;
     }
 }

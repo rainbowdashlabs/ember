@@ -34,6 +34,14 @@ const {t} = useI18n()
       </BulletList>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.formsFill.pagesTitle')">
+      <p>{{ t('helpCenter.formsFill.pagesText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.formsFill.continueTitle')">
+      <p>{{ t('helpCenter.formsFill.continueText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.formsFill.memberManagerTitle')">
       <p>{{ t('helpCenter.formsFill.memberManagerText') }}</p>
     </HelpSection>

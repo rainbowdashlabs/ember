@@ -32,6 +32,19 @@ export interface ApiErrorBody {
      * wait down should not depend on that.
      */
     retryAfterSeconds?: number
+    /**
+     * What was wrong with answers to a form, one entry per question, on a refusal of answers. Each
+     * names its question and the page it stands on, with a code of its own.
+     */
+    problems?: ApiAnswerProblem[]
+}
+
+/** One question an answer to a form was refused at. */
+export interface ApiAnswerProblem {
+    questionId: number
+    pageKey: string | null
+    code: string
+    message: string
 }
 
 interface ApiErrorShape {

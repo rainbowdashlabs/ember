@@ -960,7 +960,7 @@ public class ApiServer {
 
         routes.exception(RefusalResponse.class, (err, ctx) -> {
             logFailure(ctx, err.getStatus(), err.getMessage(), err, devErrors);
-            ctx.json(ErrorResponseWrapper.of(err.refusal(), err.getMessage())).status(err.getStatus());
+            ctx.json(err.body()).status(err.getStatus());
         });
 
         routes.exception(HttpResponseException.class, (err, ctx) -> {

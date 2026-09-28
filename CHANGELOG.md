@@ -5,6 +5,26 @@
 ### New Features
 
 - **Expiry dates with reminders.** A station's or an association's profile field can hold a date that runs out, such as a first aid course or a driving licence, and the quick templates for these now use it. The member list marks it yellow when it is close and red when it has passed, and the member and the member management of the station or association are reminded ahead of time.
+- **Forms with pages and branching.** A form can be split into pages, each leading on to the next page, to a chosen page further down or straight to sending. A single-answer question can decide which page comes next, and the results say how many readers were shown each question.
+- **Continue a form later.** A form that is started and not sent is kept, and opens again on the page where it was left, for station forms on any device and for public forms on the same device. It never counts as an answer until it is sent.
+
+### Improvements
+
+- **Preview, duplicate and a message after sending.** The form editor shows the form as it will be filled in, including the path through its pages, and forms and questions can be duplicated. A form can show its own message and a link once it is sent.
+- **Reorder questions and pages by dragging.** Questions are dragged within a page and between pages, and pages as a whole. Changed questions are no longer lost when the editor is left before saving: leaving asks first, and reopening offers them back.
+- **Errors point at the question.** When answers cannot be sent, the form opens the page with the problem and marks each question it is about.
+
+### Changes
+
+- **Question settings move into a menu.** Settings beyond "required" sit behind the menu in the corner of each question, and changed ones show as labels under its title. New questions are added with one button at the end of each page.
+- **Sending a form shows a confirmation.** After sending a station form you stay on a screen that says so, with the way back to the forms and, where the form allows it, a way to change the answer.
+
+### Fixes
+
+- **Reordering options no longer changes answers.** Reordering or renaming the options of a question that already had answers could change what those answers said. Answers now stay with the option that was chosen, and removing an option somebody chose asks first.
+- **Optional questions could stop a form from being sent.** In some cases a form with an optional choice or rating question left empty, or a choice answered only in the reader's own words, was refused. Such answers are now accepted.
+- **Shuffling questions and options had no effect.** The settings to shuffle a form's questions or a question's options were saved but ignored when the form was filled in. They now shuffle, questions within each page.
+- **Exported answers were hard to read.** The spreadsheet and the PDF of a form's answers showed each answer the way it is stored. They now show the text of the chosen options.
 
 ## v26.19.5
 

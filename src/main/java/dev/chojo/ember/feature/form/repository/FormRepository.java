@@ -5,25 +5,32 @@
  */
 package dev.chojo.ember.feature.form.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormDraft;
+import dev.chojo.ember.feature.form.entity.FormPage;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.FormVisibility;
-import dev.chojo.ember.feature.form.entity.QuestionAnswerCount;
+import dev.chojo.ember.feature.form.entity.PageTarget;
+import dev.chojo.ember.feature.form.entity.QuestionBranch;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.util.Json;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,7 +46,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
 public class FormRepository {
 
     private static final String FORM_COLUMNS_BARE =
-            "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, purpose, visibility, public_uid";
+            "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, purpose, visibility, public_uid, completion_message, completion_link, completion_link_label";
     private static final String FORM_COLUMNS = SqlSupport.alias("f", FORM_COLUMNS_BARE);
     private static final String FORM_COMPUTED =
             "%s, (SELECT count(*) FROM form_response fr WHERE fr.form_id = f.id)::INT AS response_count, GREATEST(f.updated_at, (SELECT MAX(fr2.updated_at) FROM form_response fr2 WHERE fr2.form_id = f.id)) AS last_activity_at"
@@ -47,9 +54,11 @@ public class FormRepository {
     private static final String FORM_VISIBLE_FOR_MEMBER =
             RestrictionSql.visibleFor(RestrictionType.FORM, "f.id", ":member_id");
     private static final String QUESTION_COLUMNS =
-            "id, form_id, position, question_type, title, description, required, shuffle, config";
+            "q.id, q.form_id, q.position, p.page_key, q.question_type, q.title, q.description, q.required, q.shuffle, q.config, q.branch";
+    private static final String PAGE_COLUMNS =
+            "id, form_id, page_key, position, title, description, after_kind, after_page";
     private static final String RESPONSE_COLUMNS =
-            "id, form_id, member_id, submitted_by, submitted_at, updated_at, submitter_hash, acknowledged_at, acknowledged_by";
+            "id, form_id, member_id, submitted_by, submitted_at, updated_at, submitter_hash, acknowledged_at, acknowledged_by, path";
     private static final String ANSWER_COLUMNS = "id, response_id, question_id, value";
 
     // -- Forms --
@@ -195,7 +204,7 @@ public class FormRepository {
     }
 
     /**
-     * Creates a new form in DRAFT status.
+     * Creates a new form in DRAFT status, with the one page every form has, keyed {@code p0}.
      *
      * @param stationId        the station this form belongs to
      * @param title            form title
@@ -220,9 +229,15 @@ public class FormRepository {
             FormPurpose purpose) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO form AS f(station_id, title, description, shuffle_questions, allow_edit, forced, start_at, end_at, created_by, purpose)
-                VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :forced, :start_at, :end_at, :created_by, :purpose)
-                RETURNING %s, %s;""",
+                WITH f AS (
+                    INSERT INTO form(station_id, title, description, shuffle_questions, allow_edit, forced, start_at, end_at, created_by, purpose)
+                    VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :forced, :start_at, :end_at, :created_by, :purpose)
+                    RETURNING *
+                ), first_page AS (
+                    INSERT INTO form_page(form_id, page_key, position)
+                    SELECT id, 'p0', 0 FROM f
+                )
+                SELECT %s, %s FROM f;""",
                 call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("description", description)
@@ -322,6 +337,26 @@ public class FormRepository {
                 .changed();
     }
 
+    /**
+     * Sets what a form tells the reader once it is sent.
+     *
+     * @param id      the form
+     * @param message what the reader is told, or {@code null} for the general thanks
+     * @param link    an address offered to go on to, or {@code null}
+     * @param label   what the link says, or {@code null} for the address itself
+     */
+    public void updateCompletion(int id, String message, String link, String label) {
+        query("""
+                UPDATE form
+                SET completion_message = :message, completion_link = :link, completion_link_label = :label
+                WHERE id = :id;""")
+                .single(call().bind("id", id)
+                        .bind("message", message)
+                        .bind("link", link)
+                        .bind("label", label))
+                .update();
+    }
+
     public boolean updateVisibility(int id, FormVisibility visibility) {
         return query("UPDATE form SET visibility = :visibility, updated_at = now() WHERE id = :id;")
                 .single(call().bind("id", id).bind("visibility", visibility.name()))
@@ -345,20 +380,25 @@ public class FormRepository {
     // -- Questions --
 
     /**
-     * Retrieves all questions for a form, ordered by position.
+     * Retrieves all questions for a form, page by page and in their order on each page.
      *
      * @param formId the form ID
      * @return list of questions
      */
     public List<FormQuestion> findQuestions(int formId) {
-        return query("SELECT %s FROM form_question WHERE form_id = :form_id ORDER BY position;", QUESTION_COLUMNS)
+        return query("""
+                SELECT %s
+                FROM form_question q
+                JOIN form_page p ON p.id = q.page_id
+                WHERE q.form_id = :form_id
+                ORDER BY p.position, q.position;""", QUESTION_COLUMNS)
                 .single(call().bind("form_id", formId))
                 .map(FormQuestion.map())
                 .all();
     }
 
     /**
-     * Creates a new question for a form.
+     * Creates a new question on the first page of a form.
      *
      * @param formId           the form to add the question to
      * @param position         display order position
@@ -379,19 +419,64 @@ public class FormRepository {
             boolean required,
             boolean shuffle,
             FormQuestionConfig config) {
+        var firstPage = findPages(formId).getFirst();
+        return createQuestion(
+                formId,
+                firstPage.id(),
+                position,
+                formQuestionType,
+                title,
+                description,
+                required,
+                shuffle,
+                config,
+                null);
+    }
+
+    /**
+     * Creates a new question on the given page of a form.
+     *
+     * @param formId           the form to add the question to
+     * @param pageId           the page of that form the question stands on
+     * @param position         display order position
+     * @param formQuestionType the type of question
+     * @param title            the question text
+     * @param description      optional description
+     * @param required         whether an answer is mandatory
+     * @param shuffle          whether answer options should be randomized
+     * @param config           type-specific configuration as JSON
+     * @param branch           where the page leads per option picked, or {@code null}
+     * @return the newly created question
+     */
+    public FormQuestion createQuestion(
+            int formId,
+            int pageId,
+            int position,
+            FormQuestionType formQuestionType,
+            String title,
+            String description,
+            boolean required,
+            boolean shuffle,
+            FormQuestionConfig config,
+            QuestionBranch branch) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config)
-                VALUES (:form_id, :position, :question_type, :title, :description, :required, :shuffle, :config::JSONB)
-                RETURNING %s;""",
+                WITH q AS (
+                    INSERT INTO form_question(form_id, page_id, position, question_type, title, description, required, shuffle, config, branch)
+                    VALUES (:form_id, :page_id, :position, :question_type, :title, :description, :required, :shuffle, :config::JSONB, :branch::JSONB)
+                    RETURNING *
+                )
+                SELECT %s FROM q JOIN form_page p ON p.id = q.page_id;""",
                 call().bind("form_id", formId)
+                        .bind("page_id", pageId)
                         .bind("position", position)
                         .bind("question_type", formQuestionType.name())
                         .bind("title", title)
                         .bind("description", description)
                         .bind("required", required)
                         .bind("shuffle", shuffle)
-                        .bind("config", config.toJson()),
+                        .bind("config", config.toJson())
+                        .bind("branch", QuestionBranch.toJson(branch)),
                 FormQuestion.map(),
                 QUESTION_COLUMNS);
     }
@@ -400,36 +485,117 @@ public class FormRepository {
      * Updates an existing question's fields.
      *
      * @param id          the question ID
+     * @param pageId      the page it stands on from now on
      * @param title       new question text
      * @param description new description
      * @param required    whether an answer is mandatory
      * @param shuffle     whether answer options should be randomized
      * @param config      type-specific configuration as JSON
+     * @param branch      where the page leads per option picked, or {@code null}
      * @param position    new display order position
      * @return {@code true} if a row was updated
      */
     public boolean updateQuestion(
             int id,
+            int pageId,
             String title,
             String description,
             boolean required,
             boolean shuffle,
             FormQuestionConfig config,
+            QuestionBranch branch,
             int position) {
         return query("""
                 UPDATE form_question
-                SET title = :title, description = :description, required = :required,
-                    shuffle = :shuffle, config = :config::JSONB, position = :position
+                SET page_id = :page_id, title = :title, description = :description, required = :required,
+                    shuffle = :shuffle, config = :config::JSONB, branch = :branch::JSONB, position = :position
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
+                        .bind("page_id", pageId)
                         .bind("title", title)
                         .bind("description", description)
                         .bind("required", required)
                         .bind("shuffle", shuffle)
                         .bind("config", config.toJson())
+                        .bind("branch", QuestionBranch.toJson(branch))
                         .bind("position", position))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Retrieves the pages of a form, in their order.
+     *
+     * @param formId the form ID
+     * @return the pages, never empty for a form that exists
+     */
+    public List<FormPage> findPages(int formId) {
+        return query("SELECT %s FROM form_page WHERE form_id = :form_id ORDER BY position;", PAGE_COLUMNS)
+                .single(call().bind("form_id", formId))
+                .map(FormPage.map())
+                .all();
+    }
+
+    /**
+     * Adds a page to a form.
+     *
+     * @param formId      the form
+     * @param key         the page's key, unique within the form
+     * @param position    where it stands among the form's pages
+     * @param title       optional title
+     * @param description optional description
+     * @param after       where the reader goes once the page is done
+     * @return the page as stored
+     */
+    public FormPage createPage(
+            int formId, String key, int position, String title, String description, PageTarget after) {
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO form_page(form_id, page_key, position, title, description, after_kind, after_page)
+                VALUES (:form_id, :page_key, :position, :title, :description, :after_kind, :after_page)
+                RETURNING %s;""",
+                call().bind("form_id", formId)
+                        .bind("page_key", key)
+                        .bind("position", position)
+                        .bind("title", title)
+                        .bind("description", description)
+                        .bind("after_kind", after.kind())
+                        .bind("after_page", after.page()),
+                FormPage.map(),
+                PAGE_COLUMNS);
+    }
+
+    /**
+     * Changes a page of a form. Its key stays what it is.
+     *
+     * @param id          the page
+     * @param position    where it stands among the form's pages
+     * @param title       optional title
+     * @param description optional description
+     * @param after       where the reader goes once the page is done
+     */
+    public void updatePage(int id, int position, String title, String description, PageTarget after) {
+        query("""
+                UPDATE form_page
+                SET position = :position, title = :title, description = :description,
+                    after_kind = :after_kind, after_page = :after_page
+                WHERE id = :id;""")
+                .single(call().bind("id", id)
+                        .bind("position", position)
+                        .bind("title", title)
+                        .bind("description", description)
+                        .bind("after_kind", after.kind())
+                        .bind("after_page", after.page()))
+                .update();
+    }
+
+    /**
+     * Deletes a page, and with it any question still standing on it.
+     *
+     * @param id the page
+     */
+    public void deletePage(int id) {
+        SqlSupport.deleteById("form_page", id);
     }
 
     /**
@@ -440,25 +606,6 @@ public class FormRepository {
      */
     public boolean deleteQuestion(int id) {
         return SqlSupport.deleteById("form_question", id);
-    }
-
-    /**
-     * How many answers each question of a form holds, questions nobody answered included.
-     *
-     * @param formId the form ID
-     * @return one count per question, in the order the questions are asked
-     */
-    public List<QuestionAnswerCount> countAnswersPerQuestion(int formId) {
-        return query("""
-                SELECT q.id AS question_id, count(a.id)::INT AS answers
-                FROM form_question q
-                LEFT JOIN form_answer a ON a.question_id = q.id
-                WHERE q.form_id = :form_id
-                GROUP BY q.id, q.position
-                ORDER BY q.position;""")
-                .single(call().bind("form_id", formId))
-                .map(QuestionAnswerCount.map())
-                .all();
     }
 
     // -- Responses --
@@ -548,17 +695,20 @@ public class FormRepository {
      *
      * @param formId        the form ID
      * @param submitterHash SHA-256 hash identifying the submitter
+     * @param path          the keys of the pages the submitter went through
      * @return the newly created response
      */
-    public FormResponse createAnonymousResponse(int formId, byte[] submitterHash, ConsentProof consent) {
+    public FormResponse createAnonymousResponse(
+            int formId, byte[] submitterHash, ConsentProof consent, List<String> path) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO form_response(form_id, member_id, submitted_by, submitter_hash, consent_proof)
-                VALUES (:form_id, NULL, NULL, :submitter_hash, :consent_proof::JSONB)
+                INSERT INTO form_response(form_id, member_id, submitted_by, submitter_hash, consent_proof, path)
+                VALUES (:form_id, NULL, NULL, :submitter_hash, :consent_proof::JSONB, :path::JSONB)
                 RETURNING %s;""",
                 call().bind("form_id", formId)
                         .bind("submitter_hash", submitterHash)
-                        .bind("consent_proof", consent.toJson()),
+                        .bind("consent_proof", consent.toJson())
+                        .bind("path", pathJson(path)),
                 FormResponse.map(),
                 RESPONSE_COLUMNS);
     }
@@ -583,6 +733,110 @@ public class FormRepository {
                 .single(call().bind("form_id", formId).bind("submitter_hash", submitterHash))
                 .map(FormResponse.map())
                 .first();
+    }
+
+    /**
+     * Records the pages a response went through, which the results read to tell a question nobody
+     * reached from one nobody answered.
+     *
+     * @param responseId the response
+     * @param path       the keys of the pages, in the order they were visited
+     * @return the response as it now stands
+     */
+    public FormResponse updateResponsePath(int responseId, List<String> path) {
+        return SqlSupport.insertReturning(
+                "UPDATE form_response SET path = :path::JSONB WHERE id = :id RETURNING %s;",
+                call().bind("id", responseId).bind("path", pathJson(path)), FormResponse.map(), RESPONSE_COLUMNS);
+    }
+
+    private static String pathJson(List<String> path) {
+        try {
+            return Json.MAPPER.writeValueAsString(path == null ? List.of() : path);
+        } catch (Exception e) {
+            return "[]";
+        }
+    }
+
+    /**
+     * Deletes the answers of a response to every question but the given ones, which is what an answer
+     * becomes when a later walk no longer reaches its question.
+     *
+     * @param responseId the response
+     * @param kept       the questions whose answers stay
+     */
+    public void deleteAnswersExcept(int responseId, Collection<Integer> kept) {
+        query("""
+                DELETE FROM form_answer
+                WHERE response_id = :response_id
+                  AND NOT question_id = ANY(:kept);""")
+                .single(call().bind("response_id", responseId).bind("kept", List.copyOf(kept), PostgreSqlTypes.INTEGER))
+                .delete();
+    }
+
+    /**
+     * The draft kept for a member of a form, where there is one.
+     *
+     * @param formId   the form
+     * @param memberId the member the answer is for
+     * @return the draft
+     */
+    public Optional<FormDraft> findDraft(int formId, int memberId) {
+        return query("""
+                SELECT answers, path, updated_at
+                FROM form_draft
+                WHERE form_id = :form_id AND member_id = :member_id;""")
+                .single(call().bind("form_id", formId).bind("member_id", memberId))
+                .map(FormDraft.map())
+                .first();
+    }
+
+    /**
+     * Keeps what a member filled in so far, replacing the draft kept before.
+     *
+     * @param formId   the form
+     * @param memberId the member the answer is for
+     * @param savedBy  the member saving it
+     * @param answers  the answers so far, by question id
+     * @param path     the pages visited so far
+     */
+    public void saveDraft(
+            int formId, int memberId, int savedBy, Map<Integer, FormAnswerValue> answers, List<String> path) {
+        query("""
+                INSERT INTO form_draft(form_id, member_id, saved_by, answers, path)
+                VALUES (:form_id, :member_id, :saved_by, :answers::JSONB, :path::JSONB)
+                ON CONFLICT (form_id, member_id)
+                    DO UPDATE SET saved_by = :saved_by, answers = :answers::JSONB, path = :path::JSONB, updated_at = now();""")
+                .single(call().bind("form_id", formId)
+                        .bind("member_id", memberId)
+                        .bind("saved_by", savedBy)
+                        .bind("answers", FormDraft.answersJson(answers))
+                        .bind("path", pathJson(path)))
+                .insert();
+    }
+
+    /**
+     * Throws away the draft kept for a member of a form.
+     *
+     * @param formId   the form
+     * @param memberId the member the answer is for
+     */
+    public void deleteDraft(int formId, int memberId) {
+        query("DELETE FROM form_draft WHERE form_id = :form_id AND member_id = :member_id;")
+                .single(call().bind("form_id", formId).bind("member_id", memberId))
+                .delete();
+    }
+
+    /**
+     * Throws away every draft of a form.
+     *
+     * @param formId the form
+     * @return how many drafts went
+     */
+    public int deleteDrafts(int formId) {
+        return query("DELETE FROM form_draft WHERE form_id = :form_id;")
+                .single(call().bind("form_id", formId))
+                .delete()
+                .rows();
     }
 
     /**
@@ -663,6 +917,40 @@ public class FormRepository {
                 .single(call().bind("form_id", formId))
                 .map(FormAnswer.map())
                 .all();
+    }
+
+    /**
+     * Retrieves every answer given to one question, whichever response it belongs to.
+     *
+     * @param questionId the question ID
+     * @return all answers to the question
+     */
+    public List<FormAnswer> findAnswersToQuestion(int questionId) {
+        return query("SELECT %s FROM form_answer WHERE question_id = :question_id;", ANSWER_COLUMNS)
+                .single(call().bind("question_id", questionId))
+                .map(FormAnswer.map())
+                .all();
+    }
+
+    /**
+     * Replaces the value of a stored answer.
+     *
+     * @param answerId the answer ID
+     * @param value    the value it is to hold
+     */
+    public void updateAnswerValue(int answerId, FormAnswerValue value) {
+        query("UPDATE form_answer SET value = :value::JSONB WHERE id = :id;")
+                .single(call().bind("id", answerId).bind("value", value.toJson()))
+                .update();
+    }
+
+    /**
+     * Deletes a stored answer, leaving the response it belonged to in place.
+     *
+     * @param answerId the answer ID
+     */
+    public void deleteAnswer(int answerId) {
+        SqlSupport.deleteById("form_answer", answerId);
     }
 
     /**

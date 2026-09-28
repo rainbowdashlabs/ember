@@ -15,6 +15,9 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.PageTarget;
+import dev.chojo.ember.feature.form.entity.QuestionBranch;
+import dev.chojo.ember.feature.form.service.FormAnswersRefused;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.form.service.PublicFormRateLimiter;
 import dev.chojo.ember.feature.form.service.SubmitterHashService;
@@ -189,7 +192,7 @@ public class PublicFormRoutes implements Routes {
     /**
      * What a stranger is shown of a form.
      *
-     * <p>A form that is not taking answers hands out no questions. It used to hand out all of them
+     * <p>A form that is not taking answers hands out no questions and no pages. It used to hand out all of them
      * whatever its state, so a form nobody had opened was readable in full by anybody holding its
      * address, and the reader learned it was closed only after filling it in and pressing send.
      *
@@ -199,7 +202,8 @@ public class PublicFormRoutes implements Routes {
      */
     private PublicForm publicView(Form form) {
         var state = stateOf(form);
-        var questions = state == PublicFormState.OPEN
+        boolean open = state == PublicFormState.OPEN;
+        var questions = open
                 ? formService.findQuestions(form.id()).stream()
                         .map(q -> new PublicFormQuestion(
                                 q.id(),
@@ -207,9 +211,17 @@ public class PublicFormRoutes implements Routes {
                                 q.title(),
                                 q.description(),
                                 q.required(),
-                                q.config()))
+                                q.shuffle(),
+                                q.pageKey(),
+                                q.config(),
+                                q.branch()))
                         .toList()
                 : List.<PublicFormQuestion>of();
+        var pages = open
+                ? formService.findPages(form.id()).stream()
+                        .map(page -> new PublicFormPage(page.key(), page.title(), page.description(), page.after()))
+                        .toList()
+                : List.<PublicFormPage>of();
         return new PublicForm(
                 form.publicUid().toString(),
                 form.title(),
@@ -217,7 +229,13 @@ public class PublicFormRoutes implements Routes {
                 form.purpose(),
                 state,
                 closedSince(form, state),
-                questions);
+                form.shuffleQuestions(),
+                pages,
+                questions,
+                open
+                        ? new PublicCompletion(
+                                form.completionMessage(), form.completionLink(), form.completionLinkLabel())
+                        : null);
     }
 
     /**
@@ -305,10 +323,8 @@ public class PublicFormRoutes implements Routes {
         try {
             var response = formService.submitAnonymousResponse(form.id(), submitterHash, req.answers(), consent);
             ctx.status(HttpStatus.CREATED).json(new PublicSubmitResponse(response.id()));
-        } catch (IllegalArgumentException e) {
-            throw Failures.readable(e.getMessage())
-                    .map(Refusal.FORM_ANSWER_REFUSED::raise)
-                    .orElseGet(Refusal.FORM_ANSWER_REFUSED::raise);
+        } catch (FormAnswersRefused refused) {
+            throw refused.as(Refusal.FORM_ANSWER_REFUSED);
         }
     }
 
@@ -379,7 +395,34 @@ public class PublicFormRoutes implements Routes {
             PublicFormState state,
             /** When it stopped taking answers, or null while it still does. */
             Instant closedSince,
-            List<PublicFormQuestion> questions) {}
+            /** Whether the questions of each page come in a different order for every reader. */
+            boolean shuffleQuestions,
+            /** The pages, in their order; empty unless the form is open, like the questions. */
+            List<PublicFormPage> pages,
+            List<PublicFormQuestion> questions,
+            /** What the form says once it is sent, or null for the general thanks; null unless the form is open. */
+            PublicCompletion completion) {}
+
+    /**
+     * What a public form says once it is sent.
+     *
+     * @param message   the form's own message, or null for the general thanks
+     * @param link      where the reader may go on to, or null
+     * @param linkLabel what the link says, or null for the address itself
+     */
+    @OpenApiName("PublicFormCompletion")
+    public record PublicCompletion(String message, String link, String linkLabel) {}
+
+    /**
+     * One page of a public form, which the browser walks the way the server does on submit.
+     *
+     * @param key         the page's key, which the questions on it name
+     * @param title       optional title
+     * @param description optional description
+     * @param after       where the reader goes once the page is done
+     */
+    @OpenApiName("PublicFormPage")
+    public record PublicFormPage(String key, String title, String description, PageTarget after) {}
 
     @OpenApiName("PublicFormQuestion")
     public record PublicFormQuestion(
@@ -388,7 +431,11 @@ public class PublicFormRoutes implements Routes {
             String title,
             String description,
             boolean required,
-            FormQuestionConfig config) {}
+            boolean shuffle,
+            String pageKey,
+            FormQuestionConfig config,
+            /** Where the page leads per option picked, for the question that decides it, or null. */
+            QuestionBranch branch) {}
 
     @OpenApiName("PublicFormSubmitRequest")
     public record PublicSubmitRequest(

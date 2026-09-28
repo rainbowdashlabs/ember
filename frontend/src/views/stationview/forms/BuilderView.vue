@@ -17,14 +17,19 @@ import Alert from '@/components/feedback/Alert.vue'
 import InstantSaveNotice from '@/components/feedback/InstantSaveNotice.vue'
 import FormShareLink from '@/components/public/FormShareLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import QuestionListEditor from './builderview/QuestionListEditor.vue'
+import FormQuestionsSection from './builderview/FormQuestionsSection.vue'
+import FormCompletionEditor from './builderview/FormCompletionEditor.vue'
 import FormMetadataEditor from './builderview/FormMetadataEditor.vue'
 import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import { type QuestionDraft, storedDraftId, storedQuestionId } from './builderview/types'
-import { AnswerLossDeclined, useAnswerLossConsent } from './builderview/useAnswerLossConsent'
-import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, QuestionTypes, type Form, type FormPurposeName, type FormQuestionRequest, type FormVisibilityName, type PageUsingForm, type QuestionType} from '@/api/forms'
+import { storedQuestionId } from './builderview/types'
+import { useFormLayout } from './builderview/useFormLayout'
+import { useUnsavedLayout } from './builderview/useUnsavedLayout'
+import ContentDraftBanner from '@/components/content/ContentDraftBanner.vue'
+import { AnswerLossDeclined, type Removals, useAnswerLossConsent } from './builderview/useAnswerLossConsent'
+import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, type Form, type FormPurposeName, type FormQuestion, type FormVisibilityName, type PageUsingForm, type QuestionType} from '@/api/forms'
+import { optionKeysOf } from '@/util/formOptions'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
@@ -57,6 +62,9 @@ const forced = ref(false)
 const startAt = ref('')
 const endAt = ref('')
 const visibility = ref<FormVisibilityName>(FormVisibility.PUBLIC)
+const completionMessage = ref('')
+const completionLink = ref('')
+const completionLinkLabel = ref('')
 
 /**
  * The reach the form is stored with, which is what a change is measured against.
@@ -105,62 +113,49 @@ const restriction = ref<RestrictionSelection>(emptyRestriction())
  */
 const answeredByMembers = computed(() => purpose.value === FormPurpose.INTERNAL)
 
-const questions = ref<QuestionDraft[]>([])
-let nextTempId = 1
+const layout = useFormLayout()
+const unsaved = useUnsavedLayout(() => `form-layout-${formId.value ?? `new-${purpose.value}`}`, layout.pages)
 
-/** The questions the server holds for this form, which a save measures its removals against. */
-const storedQuestionIds = ref<number[]>([])
+/** Leaves the editor after the reader agreed to leave the unsaved questions behind. */
+function leaveUnsaved() {
+  const to = unsaved.leaveAnyway()
+  if (to) router.push(to)
+}
+
+/** A question as the server holds it, with the keys of its options, which a save measures its removals against. */
+interface StoredQuestion {
+  id: number
+  optionKeys: string[]
+}
+
+const storedQuestions = ref<StoredQuestion[]>([])
+
+function remember(stored: FormQuestion[]) {
+  storedQuestions.value = stored.map(question => ({id: question.id, optionKeys: optionKeysOf(question.config)}))
+}
 
 const {
   show: askingAboutAnswerLoss,
-  lostAnswers,
+  message: answerLossMessage,
   requireConsent: requireAnswerLossConsent,
   accept: acceptAnswerLoss,
 } = useAnswerLossConsent()
 
-function removedQuestionIds(): number[] {
-  const kept = new Set(questions.value.map(storedQuestionId))
-  return storedQuestionIds.value.filter(id => !kept.has(id))
+/** The stored questions the save removes, and the options it removes from the questions it keeps. */
+function removals(): Removals {
+  const drafts = new Map(layout.allQuestions.value.map(draft => [storedQuestionId(draft), draft]))
+  const questionIds = storedQuestions.value.filter(stored => !drafts.has(stored.id)).map(stored => stored.id)
+  const options = storedQuestions.value.flatMap(stored => {
+    const draft = drafts.get(stored.id)
+    if (!draft) return []
+    const kept = new Set(optionKeysOf(draft.config))
+    const keys = stored.optionKeys.filter(key => !kept.has(key))
+    return keys.length > 0 ? [{questionId: stored.id, keys}] : []
+  })
+  return {questionIds, options}
 }
 
 const questionTypes = computed<QuestionType[]>(() => QUESTION_TYPES_BY_PURPOSE[purpose.value])
-
-function addQuestion(type: QuestionType) {
-  const defaultConfig = getDefaultConfig(type)
-  questions.value.push({
-    id: `temp-${nextTempId++}`,
-    questionType: type,
-    title: '',
-    description: '',
-    required: false,
-    shuffle: false,
-    config: defaultConfig,
-  })
-}
-
-function getDefaultConfig(type: QuestionType): Record<string, unknown> {
-  switch (type) {
-    case QuestionTypes.CHOICE: return { multiSelect: false, dropdown: false, allowOther: false, options: [''], multiLimitType: 'NONE', multiLimit: null }
-    case QuestionTypes.TEXT: return { longAnswer: false }
-    case QuestionTypes.RATING: return { scale: 5, icon: 'STAR' }
-    case QuestionTypes.DATE: return {}
-    case QuestionTypes.RANKING: return { options: [''] }
-    case QuestionTypes.LIKERT: return { statements: [''], scaleMin: 1, scaleMax: 5, scaleLabels: [] }
-  }
-}
-
-function removeQuestion(index: number) {
-  questions.value.splice(index, 1)
-}
-
-function moveQuestion(index: number, direction: -1 | 1) {
-  const newIndex = index + direction
-  const current = questions.value[index]
-  const target = questions.value[newIndex]
-  if (!current || !target) return
-  questions.value[index] = target
-  questions.value[newIndex] = current
-}
 
 const { loading, failure: loadFailure } = useAsyncLoader(async () => {
   const [groups, tags, members] = await Promise.all([
@@ -177,11 +172,13 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
     if (queryPurpose && queryPurpose in FormPurpose) {
       purpose.value = queryPurpose as FormPurposeName
     }
+    unsaved.settle(true)
     return
   }
 
-  const [form, qs, restrictions] = await Promise.all([
+  const [form, pages, qs, restrictions] = await Promise.all([
     forms.getForm(formId.value),
+    forms.getPages(formId.value),
     forms.getQuestions(formId.value),
     forms.getRestrictions(formId.value),
   ])
@@ -196,6 +193,9 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
   purpose.value = form.purpose
   visibility.value = form.visibility
   storedVisibility.value = form.visibility
+  completionMessage.value = form.completionMessage ?? ''
+  completionLink.value = form.completionLink ?? ''
+  completionLinkLabel.value = form.completionLinkLabel ?? ''
 
   restriction.value = {
     userTypes: restrictions.userTypes ?? [],
@@ -205,16 +205,9 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
     mode: 'AND',
   }
 
-  storedQuestionIds.value = qs.map(q => q.id)
-  questions.value = qs.map(q => ({
-    id: storedDraftId(q.id),
-    questionType: q.formQuestionType,
-    title: q.title,
-    description: q.description,
-    required: q.required,
-    shuffle: q.shuffle,
-    config: typeof q.config === 'object' ? { ...q.config } : {},
-  }))
+  remember(qs)
+  layout.load({pages, questions: qs})
+  unsaved.settle(true)
 
   settings.arm()
   if (answeredByMembers.value) limits.arm()
@@ -262,6 +255,9 @@ function currentSettings() {
     startAt: startAt.value ? new Date(startAt.value).toISOString() : null,
     endAt: endAt.value ? new Date(endAt.value).toISOString() : null,
     purpose: purpose.value,
+    completionMessage: completionMessage.value,
+    completionLink: completionLink.value,
+    completionLinkLabel: completionLinkLabel.value,
   }
 }
 
@@ -315,26 +311,14 @@ watch(visibility, async now => {
 })
 
 /**
- * Sends the questions, each stored one with its id so it keeps its answers, and takes the ids the
- * server gave the new ones. A second save after a later step failed then changes those questions
- * instead of adding them again.
+ * Sends the pages and questions, each stored question with its id so it keeps its answers, and takes
+ * the ids the server gave the new ones. A second save after a later step failed then changes those
+ * questions instead of adding them again.
  */
 async function saveQuestions(id: number) {
-  const questionRequests: FormQuestionRequest[] = questions.value.map(q => ({
-    id: storedQuestionId(q),
-    questionType: q.questionType,
-    title: q.title,
-    description: q.description,
-    required: q.required,
-    shuffle: q.shuffle,
-    config: {...(q.config as object), questionType: q.questionType},
-  }))
-  const stored = await forms.setQuestions(id, questionRequests)
-  stored.forEach((question, index) => {
-    const draft = questions.value[index]
-    if (draft) draft.id = storedDraftId(question.id)
-  })
-  storedQuestionIds.value = stored.map(question => question.id)
+  const stored = await forms.saveLayout(id, layout.toRequest())
+  layout.adoptIds(stored)
+  remember(stored.questions)
 }
 
 /**
@@ -347,7 +331,7 @@ const actionFailure = ref<Failure | null>(null)
 async function save() {
   actionFailure.value = null
   try {
-    if (formId.value) await requireAnswerLossConsent(formId.value, removedQuestionIds())
+    if (formId.value) await requireAnswerLossConsent(formId.value, removals())
     const id = await saveForm()
     await saveQuestions(id)
     await limits.flush()
@@ -359,6 +343,7 @@ async function save() {
         memberIds: restriction.value.memberIds,
       })
     }
+    unsaved.settle()
     router.push({ name: returnRouteName.value })
   } catch (e) {
     if (!(e instanceof AnswerLossDeclined)) actionFailure.value = describeFailure(e, t)
@@ -393,6 +378,9 @@ async function save() {
           :purpose="purpose"
         />
 
+        <FormCompletionEditor v-model:message="completionMessage" v-model:link="completionLink"
+                              v-model:link-label="completionLinkLabel"/>
+
         <FormShareLink v-if="loadedForm && purpose !== FormPurpose.INTERNAL" :form="loadedForm" unsaved/>
 
         <Alert v-if="heldBy.length > 0" variant="info">
@@ -407,13 +395,9 @@ async function save() {
           v-model="restriction"
         />
 
-        <QuestionListEditor
-          :questions="questions"
-          :question-types="questionTypes"
-          @move="moveQuestion"
-          @remove="removeQuestion"
-          @add="addQuestion"
-        />
+        <ContentDraftBanner v-if="unsaved.offered.value" :saved-at="unsaved.offered.value.savedAt"
+                            @restore="unsaved.restore()" @discard="unsaved.discard()"/>
+        <FormQuestionsSection :layout="layout" :question-types="questionTypes"/>
 
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="router.push({ name: returnRouteName })">{{ t('common.cancel') }}</SecondaryButton>
@@ -422,8 +406,13 @@ async function save() {
       </template>
     </div>
 
+    <ConfirmDeleteModal v-model="unsaved.askingToLeave.value"
+        :message="t('forms.leaveUnsaved')"
+        :confirm-label="t('forms.leaveAnyway')"
+        @confirm="leaveUnsaved"/>
+
     <ConfirmDeleteModal v-model="askingAboutAnswerLoss"
-        :message="t('forms.removedQuestionsLoseAnswers', {count: lostAnswers})"
+        :message="answerLossMessage"
         :confirm-label="t('forms.saveAndDeleteAnswers')"
         @confirm="acceptAnswerLoss"/>
   </ViewContent>

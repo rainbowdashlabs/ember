@@ -10,8 +10,7 @@ import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import SuccessContainer from '@/components/container/SuccessContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import FormSentNotice from '@/components/forms/fill/FormSentNotice.vue'
 import PublicFormBody from './publicformsubmitview/PublicFormBody.vue'
 import {usePublicFormSubmission} from '@/composables/usePublicFormSubmission'
 import type {PublicForm} from '@/api/publicForms'
@@ -73,6 +72,9 @@ const {
   updateText,
   updateDate,
   submit,
+  walk,
+  resumedFrom,
+  startOver,
 } = usePublicFormSubmission(stationUid, publicUid, shareToken, computed(() => preloadedForm.value ?? null))
 
 useHead(computed(() => {
@@ -96,16 +98,17 @@ onMounted(load)
       <FailureAlert :failure="failure"/>
       <FailureAlert :message="validationError" expected/>
 
-      <SuccessContainer v-if="submitted">
-        <SectionHeader>{{ t('publicForm.thanksTitle') }}</SectionHeader>
-        <p class="mt-2 text-sm">{{ t('publicForm.thanksText') }}</p>
-      </SuccessContainer>
+      <FormSentNotice v-if="submitted" :message="form?.completion?.message" :link="form?.completion?.link"
+                      :link-label="form?.completion?.linkLabel"/>
 
       <PublicFormBody
           v-if="!loading && form && !submitted"
           :form="form"
           :open="open"
           :answers="answers"
+          :walk="walk"
+          :resumed-from="resumedFrom"
+          @start-over="startOver"
           v-model:consent-accepted="consentAccepted"
           v-model:consent-version="consentVersion"
           v-model:privacy-version="privacyVersion"

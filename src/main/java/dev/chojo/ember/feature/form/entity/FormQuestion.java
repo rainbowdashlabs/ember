@@ -12,24 +12,29 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  *
  * @param id               unique question identifier
  * @param formId           the form this question belongs to
- * @param position         display order position (0-based)
+ * @param position         display order position within the form (0-based)
+ * @param pageKey          the key of the page the question stands on
  * @param formQuestionType the type of question (CHOICE, TEXT, RATING, DATE, RANKING, LIKERT)
  * @param title            the question text shown to respondents
  * @param description      optional additional description or instructions
  * @param required         whether an answer is mandatory
  * @param shuffle          whether answer options should be randomized
  * @param config           type-specific configuration
+ * @param branch           where the question's page leads per option picked, for the one single-answer
+ *                         choice question of a page that decides it; {@code null} for every other question
  */
 public record FormQuestion(
         int id,
         int formId,
         int position,
+        String pageKey,
         FormQuestionType formQuestionType,
         String title,
         String description,
         boolean required,
         boolean shuffle,
-        FormQuestionConfig config) {
+        FormQuestionConfig config,
+        QuestionBranch branch) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -41,12 +46,14 @@ public record FormQuestion(
                     row.getInt("id"),
                     row.getInt("form_id"),
                     row.getInt("position"),
+                    row.getString("page_key"),
                     type,
                     row.getString("title"),
                     row.getString("description"),
                     row.getBoolean("required"),
                     row.getBoolean("shuffle"),
-                    FormQuestionConfig.parse(type, row.getString("config")));
+                    FormQuestionConfig.parse(type, row.getString("config")),
+                    QuestionBranch.parse(row.getString("branch")));
         };
     }
 }

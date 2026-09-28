@@ -77,6 +77,35 @@ export type MultiLimitType = 'NONE' | 'EXACTLY' | 'AT_MOST' | 'AT_LEAST'
 
 export type RatingIcon = 'STAR' | 'NUMBER' | 'HEART' | 'THUMB_UP'
 
+/**
+ * One option of a choice or ranking question, or one statement of a Likert grid. Answers name it by
+ * its `key`, which is made when the option is added and never changes; the `label` may change at any
+ * time.
+ */
+export interface FormOption {
+    key: string
+    label: string
+}
+
+/**
+ * A choice answer: the keys of the options picked, and the free "other" text. Answers are typed as
+ * aliases rather than interfaces so an answer held as a plain record can be read as one.
+ */
+export type ChoiceAnswer = {
+    selected: string[]
+    other: string
+}
+
+/** A ranking answer: the option keys from first place to last. */
+export type RankingAnswer = {
+    order: string[]
+}
+
+/** A Likert answer: one rating per statement key. */
+export type LikertAnswer = {
+    ratings: Record<string, number>
+}
+
 export interface Form {
     id: number
     stationId: string
@@ -99,6 +128,12 @@ export interface Form {
     visibility: FormVisibilityName
     publicUid: string
     responseCount: number
+    /** What the reader is told once the form is sent, or nothing for the general thanks. */
+    completionMessage?: string | null
+    /** Where the reader may go on to after sending. */
+    completionLink?: string | null
+    /** What that link says, or nothing for the address itself. */
+    completionLinkLabel?: string | null
 }
 
 export interface FormListEntry {
@@ -114,16 +149,58 @@ export interface FormListEntry {
     restricted?: boolean
 }
 
+/** Where a reader goes from a page: the page below, a chosen page further down, or the end of the form. */
+export const PageTargetKind = {
+    NEXT: 'NEXT',
+    PAGE: 'PAGE',
+    SUBMIT: 'SUBMIT',
+} as const
+
+export type PageTargetKindName = (typeof PageTargetKind)[keyof typeof PageTargetKind]
+
+/** One of the three places a page leads to; `page` names the page for {@link PageTargetKind.PAGE}. */
+export interface PageTarget {
+    kind: PageTargetKindName
+    page?: string | null
+}
+
+/** One page of a form. Every form has at least one, and every question stands on one of them. */
+export interface FormPage {
+    id: number
+    formId: number
+    key: string
+    position: number
+    title: string
+    description: string
+    after: PageTarget
+}
+
+/** One page as the editor saves it, kept by its key the way a question is kept by its id. */
+export interface FormPageRequest {
+    key: string
+    title: string
+    description: string
+    after: PageTarget
+}
+
 export interface FormQuestion {
     id: number
     formId: number
     position: number
+    /** The key of the page the question stands on. */
+    pageKey: string
     formQuestionType: QuestionType
     title: string
     description: string
     required: boolean
     shuffle: boolean
     config: Record<string, unknown>
+    /**
+     * Where the question's page leads per option key picked, for the one single-answer choice question
+     * of a page that decides it; null for every other question. An option without an entry follows the
+     * page's own target.
+     */
+    branch?: Record<string, PageTarget> | null
 }
 
 export interface FormResponse {
@@ -143,6 +220,8 @@ export interface FormResponse {
     acknowledgedBy?: number | null
     /** Enriched identity of the acknowledger so the UI can render it via {@code MemberName}. */
     acknowledgedByIdentity?: MemberIdentity | null
+    /** The keys of the pages the response went through; empty where it saw every page. */
+    path?: string[]
 }
 
 export interface FormAnswer {
@@ -160,6 +239,9 @@ export interface FormRequest {
     startAt?: string | null
     endAt?: string | null
     purpose?: FormPurposeName
+    completionMessage?: string | null
+    completionLink?: string | null
+    completionLinkLabel?: string | null
 }
 
 /**
@@ -168,12 +250,16 @@ export interface FormRequest {
  */
 export interface FormQuestionRequest {
     id?: number
+    /** The key of the page the question stands on. */
+    pageKey: string
     questionType: string
     title: string
     description?: string
     required?: boolean
     shuffle?: boolean
     config?: unknown
+    /** Where the question's page leads per option key picked, for the question that decides it. */
+    branch?: Record<string, PageTarget> | null
 }
 
 export interface FormRestrictions {
@@ -230,19 +316,21 @@ export interface FormResultGroup {
 }
 
 /**
- * The counted answers to one question. Only the fields of the question's kind are present: option
- * counts and "other" answers for a choice, counts from one star up for a rating, a score per option
- * for a ranking, an average per statement for a Likert grid (null where nobody rated it), and the
- * answers themselves for text and date questions.
+ * The counted answers to one question. Only the fields of the question's kind are present: counts
+ * per option key and "other" answers for a choice, counts from one star up for a rating, a score per
+ * option key for a ranking, an average per statement key for a Likert grid (null where nobody rated
+ * it), and the answers themselves for text and date questions.
  */
 export interface FormQuestionTally {
     questionId: number
     answerCount: number
-    optionCounts?: number[]
+    /** How many of the counted responses went through the question's page at all. */
+    reachedCount?: number | null
+    optionCounts?: Record<string, number>
     otherCount?: number
     ratingCounts?: number[]
-    rankingScores?: number[]
-    statementAverages?: (number | null)[]
+    rankingScores?: Record<string, number>
+    statementAverages?: Record<string, number | null>
     values?: string[]
 }
 
@@ -299,6 +387,17 @@ export async function publishForm(id: number): Promise<Form> {
     return res.data
 }
 
+/**
+ * Copies a form as a new draft with its settings, pages, questions and restrictions, and without its
+ * answers, its link, its dates and its status.
+ *
+ * @param title what the copy is called
+ */
+export async function duplicateForm(id: number, title: string): Promise<Form> {
+    const res = await client.post<Form>(`/forms/${id}/duplicate`, {title})
+    return res.data
+}
+
 export async function closeForm(id: number): Promise<Form> {
     const res = await client.post<Form>(`/forms/${id}/close`)
     return res.data
@@ -322,24 +421,49 @@ export async function getQuestions(formId: number): Promise<FormQuestion[]> {
     return res.data
 }
 
-/**
- * Saves the questions of a form. Every stored question left out of the list is removed, and the
- * answers given to it with it.
- *
- * @returns the questions as stored, in the order they were sent
- */
-export async function setQuestions(formId: number, questions: FormQuestionRequest[]): Promise<FormQuestion[]> {
-    const res = await client.put<FormQuestion[]>(`/forms/${formId}/questions`, questions)
+/** The pages of a form, in their order. */
+export async function getPages(formId: number): Promise<FormPage[]> {
+    const res = await client.get<FormPage[]>(`/forms/${formId}/pages`)
     return res.data
 }
 
-/** How many answers one question of a form holds. */
+/** The pages and questions of a form, each list in its order, as the editor saves them. */
+export interface FormLayoutRequest {
+    pages: FormPageRequest[]
+    questions: FormQuestionRequest[]
+}
+
+/** The pages and questions of a form as stored. */
+export interface FormLayout {
+    pages: FormPage[]
+    questions: FormQuestion[]
+}
+
+/**
+ * Saves the pages and questions of a form. Every stored question left out of the list is removed, and
+ * the answers given to it with it; every stored page left out is removed as well.
+ *
+ * @returns the pages and questions as stored, in the order they were sent
+ */
+export async function saveLayout(formId: number, layout: FormLayoutRequest): Promise<FormLayout> {
+    const res = await client.put<FormLayout>(`/forms/${formId}/questions`, layout)
+    return res.data
+}
+
+/**
+ * How many answers one question of a form holds, and per option key how many of them pick, rank or
+ * rate that option.
+ */
 export interface QuestionAnswerCount {
     questionId: number
     answers: number
+    optionAnswers: Record<string, number>
 }
 
-/** How many answers each question of a form holds, which is what removing one would throw away. */
+/**
+ * How many answers each question of a form holds and how many name each option, which is what
+ * removing a question or an option would throw away.
+ */
 export async function getQuestionAnswerCounts(formId: number): Promise<QuestionAnswerCount[]> {
     const res = await client.get<QuestionAnswerCount[]>(`/forms/${formId}/questions/answer-counts`)
     return res.data
@@ -380,6 +504,41 @@ export async function getMyResponse(formId: number): Promise<FormResponseDetail>
 export async function getMemberResponse(formId: number, memberId: number): Promise<FormResponseDetail> {
     const res = await client.get<FormResponseDetail>(`/forms/${formId}/respond/${memberId}`)
     return res.data
+}
+
+/**
+ * A form a member started and has not sent yet, kept so it can be continued on any device. It is never
+ * counted as an answer.
+ */
+export interface FormDraft {
+    answers: Record<number, Record<string, unknown>>
+    /** The pages visited so far, the page to continue on last. */
+    path: string[]
+    updatedAt: string
+}
+
+function draftPath(formId: number, memberId: number | null): string {
+    return memberId ? `/forms/${formId}/draft/${memberId}` : `/forms/${formId}/draft`
+}
+
+/** The draft kept for the reader, or for the member in their care, where there is one. */
+export async function getDraft(formId: number, memberId: number | null): Promise<FormDraft | null> {
+    const res = await client.get<{draft: FormDraft | null}>(draftPath(formId, memberId))
+    return res.data.draft
+}
+
+/** Keeps what was filled in so far. */
+export async function saveDraft(
+    formId: number,
+    memberId: number | null,
+    draft: {answers: Record<number, Record<string, unknown>>, path: string[]},
+): Promise<void> {
+    await client.put(draftPath(formId, memberId), draft)
+}
+
+/** Throws the draft away, which is what starting over amounts to. */
+export async function discardDraft(formId: number, memberId: number | null): Promise<void> {
+    await client.delete(draftPath(formId, memberId))
 }
 
 export async function submitResponse(formId: number, data: FormSubmitRequest): Promise<FormResponse> {

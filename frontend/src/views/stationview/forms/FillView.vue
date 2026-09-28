@@ -6,23 +6,28 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import FormDraftNote from '@/components/forms/fill/FormDraftNote.vue'
+import { useServerDraft } from './fillview/useServerDraft'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
-import {QuestionTypes, type EligibleMembers, type Form, type FormQuestion} from '@/api/forms'
+import ButtonRow from '@/components/button/ButtonRow.vue'
+import FormSentNotice from '@/components/forms/fill/FormSentNotice.vue'
+import FillPages from './fillview/FillPages.vue'
+import {type EligibleMembers, type Form, type FormPage, type FormQuestion} from '@/api/forms'
 import { forms } from '@/api'
+import { emptyAnswer, isEmptyAnswer, typedAnswers, type AnswerValue } from '@/util/formAnswers'
+import { presentQuestions } from '@/util/formShuffle'
+import { useFormWalk } from '@/composables/useFormWalk'
 import { describeFailure, type Failure } from '@/util/failure'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import MemberSelector from './fillview/MemberSelector.vue'
-import QuestionCard from './fillview/QuestionCard.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -41,9 +46,12 @@ const pageTitle = computed(() => form.value
     ? t('pages.forms-fill.titleNamed', {name: form.value.title})
     : t('pages.forms-fill.title'))
 
+const pages = ref<FormPage[]>([])
 const questions = ref<FormQuestion[]>([])
-const answers = ref<Record<number, Record<string, unknown>>>({})
+const answers = ref<Record<number, AnswerValue>>({})
 const hasExistingResponse = ref(false)
+
+const walk = useFormWalk(pages, questions, answers, question => question.formQuestionType)
 
 const selectedMemberId = ref<number | null>(null)
 const eligibility = ref<EligibleMembers | null>(null)
@@ -87,24 +95,10 @@ const fillTargetOptions = computed(() => {
 
 const effectiveMemberId = computed(() => selectedMemberId.value)
 
-function parseConfig(config: Record<string, unknown> | string): Record<string, unknown> {
-  if (typeof config === 'object' && config !== null) return config
-  try { return JSON.parse(config || '{}') } catch { return {} }
-}
+const draft = useServerDraft(formId, effectiveMemberId, questions, answers, walk)
 
 function initAnswerDefaults() {
-  for (const q of questions.value) {
-    if (q.formQuestionType === QuestionTypes.CHOICE) answers.value[q.id] = { selected: [], other: '' }
-    else if (q.formQuestionType === QuestionTypes.TEXT) answers.value[q.id] = { text: '' }
-    else if (q.formQuestionType === QuestionTypes.RATING) answers.value[q.id] = { rating: 0 }
-    else if (q.formQuestionType === QuestionTypes.DATE) answers.value[q.id] = { date: '' }
-    else if (q.formQuestionType === QuestionTypes.RANKING) {
-      const cfg = parseConfig(q.config)
-      const opts = (cfg.options as string[]) || []
-      answers.value[q.id] = { order: opts.map((_: string, i: number) => i) }
-    }
-    else if (q.formQuestionType === QuestionTypes.LIKERT) answers.value[q.id] = { ratings: {} }
-  }
+  for (const q of questions.value) answers.value[q.id] = emptyAnswer(q.formQuestionType, q.config)
 }
 
 /**
@@ -126,6 +120,7 @@ async function loadExistingResponse() {
   hasExistingResponse.value = false
   answers.value = {}
   priorAnswerFailure.value = null
+  walk.restart()
 
   const memberId = effectiveMemberId.value
   try {
@@ -151,17 +146,41 @@ async function loadExistingResponse() {
     priorAnswerFailure.value = {...describeFailure(e, t), message: t('forms.priorAnswerUnknown')}
     initAnswerDefaults()
   }
+  if (memberId === effectiveMemberId.value) await draft.resume()
 }
 
+/** Throws the kept draft away and opens the form the way it stood before it. */
+async function startOver() {
+  await draft.discard()
+  await loadExistingResponse()
+}
+
+/** Goes on to the next page and keeps what is filled in so far. */
+function next() {
+  if (walk.next()) void draft.keep()
+}
+
+/** Whether anything has been filled in or walked, which is what is worth keeping for later. */
+function started(): boolean {
+  return walk.pageNumber.value > 1
+      || questions.value.some(q => !isEmptyAnswer(q.formQuestionType, answers.value[q.id]))
+}
+
+onBeforeRouteLeave(() => {
+  if (!sent.value && form.value && started()) void draft.keep()
+})
+
 const { loading, failure, reload } = useAsyncLoader(async () => {
-  const [f, qs, elig] = await Promise.all([
+  const [f, formPages, qs, elig] = await Promise.all([
     forms.getForm(formId.value),
+    forms.getPages(formId.value),
     forms.getQuestions(formId.value),
     forms.getEligibleMembers(formId.value),
   ])
   eligibility.value = elig
   form.value = f
-  questions.value = qs
+  questions.value = presentQuestions(qs, f.shuffleQuestions)
+  pages.value = formPages
 
   const firstManaged = eligibleManagedMembers.value[0]
   if (canFillForSelf.value) {
@@ -180,30 +199,17 @@ watch(selectedMemberId, async () => {
   }
 })
 
-const {failure: submitFailure, run: submit} = useAsyncAction(async () => {
-  const answerMap: Record<number, Record<string, unknown>> = {}
-  for (const q of questions.value) {
-    const value = answers.value[q.id]
-    if (value === undefined) continue
-    const type = q.formQuestionType
-    answerMap[q.id] = { type, ...value }
-  }
+const {failure: submitFailure, run: send} = useAsyncAction(async () => {
+  const answerMap = typedAnswers(questions.value, answers.value, question => question.formQuestionType)
 
-  if (effectiveMemberId.value) {
-    if (hasExistingResponse.value) {
-      await forms.updateForMember(formId.value, effectiveMemberId.value, { answers: answerMap })
-    } else {
-      await forms.submitForMember(formId.value, effectiveMemberId.value, { answers: answerMap })
-    }
-  } else {
-    if (hasExistingResponse.value) {
-      await forms.updateResponse(formId.value, { answers: answerMap })
-    } else {
-      await forms.submitResponse(formId.value, { answers: answerMap })
-    }
+  try {
+    await sendAnswers(answerMap)
+  } catch (e) {
+    walk.showRefused(e)
+    throw e
   }
   refreshSidebarCounts()
-  router.push({ name: 'forms-list' })
+  sent.value = true
 })
 
 /**
@@ -212,6 +218,33 @@ const {failure: submitFailure, run: submit} = useAsyncAction(async () => {
  * reason to look at what they typed, and being told the wrong one costs them the answer.
  */
 const displayFailure = computed(() => submitFailure.value ?? failure.value ?? priorAnswerFailure.value)
+
+/** Sends the answers as a first answer or a correction, for the reader or the member in their care. */
+async function sendAnswers(answerMap: Record<number, AnswerValue>) {
+  const memberId = effectiveMemberId.value
+  const data = { answers: answerMap }
+  if (memberId) {
+    await (hasExistingResponse.value
+      ? forms.updateForMember(formId.value, memberId, data)
+      : forms.submitForMember(formId.value, memberId, data))
+  } else {
+    await (hasExistingResponse.value ? forms.updateResponse(formId.value, data) : forms.submitResponse(formId.value, data))
+  }
+}
+
+/** Whether the answer went through, which leaves the member on a screen saying so. */
+const sent = ref(false)
+
+/** Opens the answer just sent again, to correct it. */
+async function changeAnswer() {
+  sent.value = false
+  await loadExistingResponse()
+}
+
+/** Sends the form once the page it is sent from is complete. */
+function submit() {
+  if (walk.checkCurrent()) void send()
+}
 
 onMounted(() => {
   if (loaded.value) reload()
@@ -246,18 +279,23 @@ watch(loaded, (isLoaded) => {
           </p>
         </InfoContainer>
 
-        <div class="space-y-4">
-          <QuestionCard v-for="q in questions" :key="q.id"
-                        v-model="answers[q.id]"
-                        :question="q" />
-        </div>
+        <FormSentNotice v-if="sent" :message="form.completionMessage" :link="form.completionLink"
+                        :link-label="form.completionLinkLabel">
+          <ButtonRow>
+            <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'forms-list' })">
+              {{ t('forms.fill.backToForms') }}
+            </SecondaryButton>
+            <SecondaryButton v-if="form.allowEdit" :icon="['fas', 'pen']" data-testid="form-change-answer" @click="changeAnswer">
+              {{ t('forms.fill.changeAnswer') }}
+            </SecondaryButton>
+          </ButtonRow>
+        </FormSentNotice>
 
-        <ButtonRow pair align="end">
-          <SecondaryButton @click="router.push({ name: 'forms-list' })">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton @click="submit">
-            {{ hasExistingResponse ? t('forms.update') : t('forms.submit') }}
-          </PrimaryButton>
-        </ButtonRow>
+        <FormDraftNote v-if="!sent && draft.resumedFrom.value" :saved-at="draft.resumedFrom.value" @start-over="startOver"/>
+
+        <FillPages v-if="!sent" :walk="walk" :answers="answers"
+                   :send-label="hasExistingResponse ? t('forms.update') : t('forms.submit')"
+                   @send="submit" @next="next" @cancel="router.push({ name: 'forms-list' })"/>
       </template>
     </div>
   </ViewContent>

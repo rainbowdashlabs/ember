@@ -14,6 +14,7 @@ import DummyRatingQuestion from '@/views/helpcenter/stationview/forms/builderhel
 import DummyChoiceQuestion from '@/views/helpcenter/stationview/forms/builderhelp/DummyChoiceQuestion.vue'
 import DummyAddQuestionBar from '@/views/helpcenter/stationview/forms/builderhelp/DummyAddQuestionBar.vue'
 import DummyRestrictionsPanel from '@/views/helpcenter/stationview/forms/builderhelp/DummyRestrictionsPanel.vue'
+import FormPagesHelpSections from '@/views/helpcenter/stationview/forms/builderhelp/FormPagesHelpSections.vue'
 import DummyActionsBar from '@/views/helpcenter/stationview/forms/builderhelp/DummyActionsBar.vue'
 
 const {t} = useI18n()
@@ -40,6 +41,8 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.formsBuilder.addQuestionsText') }}</p>
       <DummyAddQuestionBar/>
     </HelpSection>
+
+    <FormPagesHelpSections/>
 
     <HelpSection :title="t('helpCenter.formsBuilder.typesTitle')">
       <p>{{ t('helpCenter.formsBuilder.typesIntro') }}</p>
