@@ -53,20 +53,35 @@ export function useServerDraft(
         resumedFrom.value = draft.updatedAt
     }
 
-    /** Keeps what is filled in so far. */
-    async function keep() {
+    /** The saves still on their way, one after the other, so a later one never lands before an earlier one. */
+    let saving: Promise<void> = Promise.resolve()
+
+    /** Keeps what is filled in so far, as it stands when this is called. */
+    function keep(): Promise<void> {
+        const form = formId.value
+        const forWhom = memberId.value
         const draft = {
             answers: typedAnswers(questions.value, answers.value, question => question.formQuestionType),
             path: walk.path.value,
         }
-        await forms.saveDraft(formId.value, memberId.value, draft).catch(() => undefined)
+        saving = saving.then(() => forms.saveDraft(form, forWhom, draft).catch(() => undefined))
+        return saving
     }
 
-    /** Throws the draft away, so the form starts fresh. */
+    /**
+     * Waits for every save still on its way. Sending the answer ends the draft on the server, so a save
+     * that arrived after it would bring the draft back for an answer already sent.
+     */
+    async function settled() {
+        await saving
+    }
+
+    /** Throws the draft away, so the form starts fresh, once any save still on its way has landed. */
     async function discard() {
         resumedFrom.value = null
+        await settled()
         await forms.discardDraft(formId.value, memberId.value).catch(() => undefined)
     }
 
-    return {resumedFrom, resume, keep, discard}
+    return {resumedFrom, resume, keep, settled, discard}
 }

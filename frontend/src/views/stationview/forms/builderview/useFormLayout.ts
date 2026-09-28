@@ -70,9 +70,21 @@ function savedBranch(question: QuestionDraft): Record<string, PageTarget> | null
  */
 export function useFormLayout() {
   const pages = ref<PageDraft[]>([blankPage('p0')])
-  let nextTempId = 1
 
   const allQuestions = computed(() => pages.value.flatMap(page => page.questions))
+
+  let lastTempId = 0
+
+  /**
+   * An id for a question that is not saved yet, after every one the editor holds and every one it
+   * handed out. The pages can be replaced wholesale, as restoring unsaved questions from the browser
+   * does, so what is there counts as much as what this editor gave out itself.
+   */
+  function freshTempId(): string {
+    const held = allQuestions.value.map(question => Number(/^temp-(\d+)$/.exec(question.id)?.[1] ?? 0))
+    lastTempId = Math.max(lastTempId, ...held) + 1
+    return `temp-${lastTempId}`
+  }
 
   /** Whether the form has more than one page, which is when anything about pages is shown at all. */
   const paged = computed(() => pages.value.length > 1)
@@ -147,13 +159,16 @@ export function useFormLayout() {
 
   /**
    * Removes a page and keeps its questions, which join the page above it, or the page below where it
-   * was the first. The last page is never removed: a form always has one.
+   * was the first. They stop deciding where a page leads, as a question moved to another page does:
+   * the page they decided for is gone, and the page they join may have its own deciding question. The
+   * last page is never removed: a form always has one.
    */
   function removePage(index: number) {
     if (pages.value.length < 2) return
     const [removed] = pages.value.splice(index, 1)
     const neighbour = pages.value[Math.max(0, index - 1)]
     if (removed && neighbour) {
+      for (const question of removed.questions) question.branch = null
       if (index === 0) neighbour.questions.unshift(...removed.questions)
       else neighbour.questions.push(...removed.questions)
     }
@@ -172,7 +187,7 @@ export function useFormLayout() {
 
   function addQuestion(pageIndex: number, type: QuestionType) {
     pages.value[pageIndex]?.questions.push({
-      id: `temp-${nextTempId++}`,
+      id: freshTempId(),
       questionType: type,
       title: '',
       description: '',
@@ -237,7 +252,7 @@ export function useFormLayout() {
         return { ...option, key }
       })
     }
-    questions.splice(index + 1, 0, { ...original, id: `temp-${nextTempId++}`, config, branch: null })
+    questions.splice(index + 1, 0, { ...original, id: freshTempId(), config, branch: null })
   }
 
   /** The number a question is shown with, counted across every page. */

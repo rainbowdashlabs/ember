@@ -126,6 +126,7 @@ export default {
             link: 'Link, for example to the event (optional)',
             linkLabel: 'Link text (optional)',
             hint: 'Without an own message the usual thanks is shown. A link starts with https:// or with / for a page of this station.',
+            notALink: 'This is not a link yet, so it is not saved. It has to start with https://, http:// or /.',
         },
         preview: {
             toggle: 'Preview',

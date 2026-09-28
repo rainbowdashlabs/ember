@@ -7254,6 +7254,7 @@ export default {
             link: 'Link, zum Beispiel zur Veranstaltung (optional)',
             linkLabel: 'Text des Links (optional)',
             hint: 'Ohne eigene Nachricht erscheint der übliche Dank. Ein Link beginnt mit https:// oder mit / für eine Seite dieser Wache.',
+            notALink: 'Das ist noch kein Link und wird deshalb nicht gespeichert. Er muss mit https://, http:// oder / beginnen.',
         },
         preview: {
             toggle: 'Vorschau',

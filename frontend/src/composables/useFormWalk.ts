@@ -49,7 +49,13 @@ export function useFormWalk<P extends PathPage, Q extends WalkQuestion>(
         errors.value = {}
     }
 
-    watch(pages, restart, {immediate: true})
+    /**
+     * The walk starts over only when the form's pages really are different ones, and at once rather
+     * than on the next tick, so a screen that puts the reader back on a page right after the form
+     * arrives is not sent back to the first page a moment later.
+     */
+    const pageKeys = computed(() => pages.value.map(page => page.key).join('\n'))
+    watch(pageKeys, restart, {immediate: true, flush: 'sync'})
 
     const currentPage = computed(() => pages.value.find(page => page.key === current.value) ?? null)
     const currentQuestions = computed(() => questions.value.filter(question => question.pageKey === current.value))
