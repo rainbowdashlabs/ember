@@ -4,7 +4,7 @@
 
 ### New Features
 
-- **Expiry dates with reminders.** A profile field can hold a date that runs out, such as a first aid course or a driving licence, and the quick templates for both now use it. The member list marks it yellow when it is close and red when it has passed, and the member and member management are reminded ahead of time.
+- **Expiry dates with reminders.** A station's or an association's profile field can hold a date that runs out, such as a first aid course or a driving licence, and the quick templates for these now use it. The member list marks it yellow when it is close and red when it has passed, and the member and the member management of the station or association are reminded ahead of time.
 
 ## v26.19.5
 

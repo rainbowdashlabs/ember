@@ -3885,6 +3885,12 @@ volumes:
             readonlyText: 'Standardmäßig darf die Wache den Wert lesen, aber nicht ändern: die Frage ist die des Verbands, und er trägt die Antwort ein. Ihr könnt das pro Feld freigeben, dann darf die Wache mitschreiben.',
             limitsTitle: 'Zwei Dinge gehen nicht',
             limitsText: 'Ein Feld für eine Gruppe der Wache, weil der Verband deren Gruppen nicht kennt. Und ein Geburtsdatum, weil jede Wache genau eines davon selbst führt und ein zweites damit kollidieren würde.',
+            expiryTitle: 'Ablaufdaten',
+            expiryText: 'Ein Ablaufdatum, etwa für einen Führerschein oder eine JuLeiCa, fragt ihr genauso '
+                + 'ab wie eine Wache. Im Profil steht es gelb, wenn es bald abläuft, und rot, wenn es '
+                + 'abgelaufen ist. Erinnert werden das Mitglied und seine Erziehungsberechtigten, und statt '
+                + 'der Mitgliederverwaltung der Wache eure eigene: alle im Verband mit dem Recht '
+                + 'Mitgliederverwaltung.',
             releaseTitle: 'Wenn eine Wache den Verband verlässt',
             releaseText: 'Die Antworten werden gelöscht, der Verlauf bleibt. Wer wann was geändert hat, ist nichts, was der Verband beim Gehen mitnimmt.',
             tip: 'Änderungen durch den Verband landen im selben Änderungsverlauf wie die der Wache, damit ein Profil eine Geschichte erzählt und nicht zwei.',
