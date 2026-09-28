@@ -84,15 +84,15 @@ imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", ver
 smbj = { group = "com.hierynomus", name = "smbj", version = "0.15.0" }
 sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.19.0" }
 sshd-sftp = { group = "org.apache.sshd", name = "sshd-sftp", version = "2.19.0" }
-aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.54.13" }
+aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.54.17" }
 
 # HTML sanitization
 jsoup = { group = "org.jsoup", name = "jsoup", version = "1.23.2" }
 
 # AI SDKs
-openai = { group = "com.openai", name = "openai-java", version = "4.58.0" }
-anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.61.0" }
-google-genai = { group = "com.google.genai", name = "google-genai", version = "1.70.0" }
+openai = { group = "com.openai", name = "openai-java", version = "4.63.1" }
+anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.62.0" }
+google-genai = { group = "com.google.genai", name = "google-genai", version = "1.71.0" }
 
 # CSV
 commons-csv = { group = "org.apache.commons", name = "commons-csv", version = "1.14.1" }
