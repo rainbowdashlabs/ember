@@ -77,24 +77,35 @@ export function holdsOrAwaitsPlace(registration: EventRegistrationEntry): boolea
 }
 
 /**
- * The members whoever runs an appointment can still put on its list for one date.
+ * The rows of one occurrence of an appointment.
  *
- * <p>Everybody who neither holds a place there nor waits for one. A place given back, a refusal and a
+ * <p>Registrations are kept per appointment and date, and a repeating appointment's list carries
+ * every date it ever had. Reading that list as one occurrence showed a member's answer from another
+ * week as theirs for this one, and signing off acted on whichever row came first.
+ *
+ * @param rows   the registrations of every date
+ * @param date   the occurrence in view, or null where the appointment has only the one
+ * @param dateOf where a row keeps its date
+ */
+export function rowsOnDate<T>(rows: T[], date: string | null, dateOf: (row: T) => string): T[] {
+    return date === null ? rows : rows.filter(row => dateOf(row) === date)
+}
+
+/**
+ * The members whoever runs an appointment can still put on its list.
+ *
+ * <p>Everybody who neither holds a place nor waits for one. A place given back, a refusal and a
  * request turned away all keep their row, but none of them is a place, and leaving those members out
- * meant not even the appointment's managers could put them back on. Rows of other dates say nothing
- * about this one.
+ * meant not even the appointment's managers could put them back on.
  *
  * @param members       everybody who could be registered, as the member menu offers them
- * @param registrations the appointment's registrations, of any date
- * @param date          the date the registration is made for, or null where every row belongs to it
+ * @param registrations the registrations of the occurrence the member would be added to
  */
 export function membersToRegister<M extends {value: string}>(
     members: M[],
     registrations: EventRegistrationEntry[],
-    date: string | null,
 ): M[] {
     const placed = new Set(registrations
-        .filter(registration => date === null || registration.eventDate === date)
         .filter(holdsOrAwaitsPlace)
         .map(registration => Number(registration.memberId)))
     return members.filter(member => !placed.has(Number(member.value)))

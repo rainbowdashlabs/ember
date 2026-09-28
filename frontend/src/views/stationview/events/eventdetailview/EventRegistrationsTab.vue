@@ -17,7 +17,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure, type Failure} from '@/util/failure'
-import {RegistrationStatus, type EventPartnerPlaces, type EventRegistrationEntry, type EventRegistrationField, type FederatedEventRegistration, type MemberRegistrationStats, type RegistrationFieldValue, type StationEvent} from '@/api/events'
+import {RegistrationStatus, type EventPartnerPlaces, type EventRegistrationEntry, type EventRegistrationField, type MemberRegistrationStats, type RegistrationFieldValue, type StationEvent} from '@/api/events'
 import {StationPermission} from '@/api/types'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import {events, stationMembers as stationMembersApi} from '@/api'
@@ -29,6 +29,7 @@ import {useConfirmAction} from '@/composables/useConfirmAction'
 import {showToast} from '@/util/toast'
 import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 import RegistrationsPanel from './RegistrationsPanel.vue'
+import {useRegistrationsInView} from './useRegistrationsInView'
 import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
 import SignupListsMenu from './signuplists/SignupListsMenu.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
@@ -51,9 +52,9 @@ const {t} = useI18n()
 const {canManageEvents, hasPermission} = useSession()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
-const registrations = ref<EventRegistrationEntry[]>([])
+const {loadedRegistrations, loadedFederatedRegs, registrations, federatedRegs} =
+    useRegistrationsInView(() => props.event, () => props.effectiveDate)
 const registrationStats = ref<MemberRegistrationStats[]>([])
-const federatedRegs = ref<FederatedEventRegistration[]>([])
 
 /**
  * What each partner may do with this appointment. Read so the list can say which partners decide for
@@ -101,13 +102,9 @@ const nonPendingRegistrations = computed<StatusGroup[]>(() => {
 })
 
 const unregisteredMembers = computed(() =>
-    membersToRegister(allMembers.value, registrations.value, props.effectiveDate))
+    membersToRegister(allMembers.value, registrations.value))
 
-/**
- * The people holding a place on the date in view, which is what anything built from this tab
- * works from. The loaded list carries every occurrence of the appointment, so the date is what
- * makes this one Tuesday rather than all of them.
- */
+/** The people holding a place on the date in view, which is what anything built from this tab works from. */
 const signupMemberSet = useSignupMemberSet({
   event: () => props.event,
   effectiveDate: () => props.effectiveDate,
@@ -145,14 +142,14 @@ function statusLabel(status: string): string {
  */
 async function loadRegistrations(afterAction = false) {
   try {
-    registrations.value = await events.listEventRegistrations(props.eventId)
+    loadedRegistrations.value = await events.listEventRegistrations(props.eventId)
     registrationFields.value = await events.listRegistrationFields(props.eventId).catch(() => [])
     if (hasPermission(StationPermission.EVENT_REGISTRATION) && props.event.requiresRegistration) {
       registrationStats.value = await events.getRegistrationStats(
           props.eventId, props.event.categoryId ?? undefined)
     }
     if (hasPermission(StationPermission.EVENT_REGISTRATION)) {
-      federatedRegs.value = await events.listFederationRegistrations(props.eventId).catch(() => [])
+      loadedFederatedRegs.value = await events.listFederationRegistrations(props.eventId).catch(() => [])
       partnerPlaces.value = await events.getPartnerPlaces(props.eventId).catch(() => [])
       const members = await stationMembersApi.listMembers().catch(() => [])
       allMembers.value = members.map(fromMember)
