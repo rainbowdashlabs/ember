@@ -848,6 +848,8 @@ export default {
     'F-046': 'Nur die Ergebnisse eines internen Formulars lassen sich danach gruppieren, wer geantwortet hat',
     'F-047': 'Die Antworten konnten nicht in eine Datei geschrieben werden',
     'F-048': CHANGE_SAVED_BUT_NOT_READ_BACK,
+    'F-049': 'Einige dieser Fragen gehören nicht zu diesem Formular, es wurde nichts gespeichert',
+    'F-050': 'Eine Frage, die es schon gibt, behält ihre Art, es wurde nichts gespeichert',
 
     'W-022': 'Diese Einladung lässt sich nicht mehr verwenden',
     'W-023': 'Eine Einladung und ein Vorname werden gebraucht, es wurde nichts gespeichert',

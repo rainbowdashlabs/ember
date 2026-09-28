@@ -7135,6 +7135,8 @@ export default {
         forced: 'Pflichtumfrage',
         stillHeldBy: 'Diese Umfrage steht noch auf folgenden Seiten: {pages}. Dort kann sie jetzt niemand mehr beantworten, bis du sie von diesen Seiten nimmst.',
         visibilityFailed: 'Die Sichtbarkeit dieser Umfrage konnte nicht geändert werden.',
+        removedQuestionsLoseAnswers: 'Die entfernten Fragen wurden schon beantwortet. Beim Speichern werden diese Antworten gelöscht, insgesamt {count}. Das lässt sich nicht rückgängig machen.',
+        saveAndDeleteAnswers: 'Speichern und Antworten löschen',
         priorAnswerUnknown: 'Ob du diese Umfrage schon beantwortet hast, konnte nicht geprüft werden. Deine frühere Antwort steht möglicherweise noch, wird hier aber nicht angezeigt.',
         fillForm: 'Ausfüllen',
         fillForWhom: 'Für wen möchtest du die Umfrage ausfüllen?',

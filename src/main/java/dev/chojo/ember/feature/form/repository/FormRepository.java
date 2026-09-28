@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.FormVisibility;
+import dev.chojo.ember.feature.form.entity.QuestionAnswerCount;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
@@ -442,14 +443,22 @@ public class FormRepository {
     }
 
     /**
-     * Deletes all questions belonging to a form.
+     * How many answers each question of a form holds, questions nobody answered included.
      *
      * @param formId the form ID
+     * @return one count per question, in the order the questions are asked
      */
-    public void deleteQuestionsByForm(int formId) {
-        query("DELETE FROM form_question WHERE form_id = :form_id;")
+    public List<QuestionAnswerCount> countAnswersPerQuestion(int formId) {
+        return query("""
+                SELECT q.id AS question_id, count(a.id)::INT AS answers
+                FROM form_question q
+                LEFT JOIN form_answer a ON a.question_id = q.id
+                WHERE q.form_id = :form_id
+                GROUP BY q.id, q.position
+                ORDER BY q.position;""")
                 .single(call().bind("form_id", formId))
-                .delete();
+                .map(QuestionAnswerCount.map())
+                .all();
     }
 
     // -- Responses --

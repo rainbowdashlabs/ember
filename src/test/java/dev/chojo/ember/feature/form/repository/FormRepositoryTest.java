@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
+import dev.chojo.ember.feature.form.entity.QuestionAnswerCount;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -316,11 +317,11 @@ class FormRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(63)
-    void deleteQuestionsByForm() {
+    void countAnswersPerQuestion() {
         var separateForm = formRepo.create(
-                station.id(), "Bulk Delete", "x", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
+                station.id(), "Answer Count", "x", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
         try {
-            formRepo.createQuestion(
+            var answered = formRepo.createQuestion(
                     separateForm.id(),
                     0,
                     FormQuestionType.TEXT,
@@ -329,7 +330,7 @@ class FormRepositoryTest extends RepositoryTestBase {
                     false,
                     false,
                     new FormQuestionConfig.Text(false));
-            formRepo.createQuestion(
+            var unanswered = formRepo.createQuestion(
                     separateForm.id(),
                     1,
                     FormQuestionType.TEXT,
@@ -338,9 +339,12 @@ class FormRepositoryTest extends RepositoryTestBase {
                     false,
                     false,
                     new FormQuestionConfig.Text(false));
-            assertEquals(2, formRepo.findQuestions(separateForm.id()).size());
-            formRepo.deleteQuestionsByForm(separateForm.id());
-            assertTrue(formRepo.findQuestions(separateForm.id()).isEmpty());
+            var response = formRepo.createResponse(separateForm.id(), member.id(), member.id());
+            formRepo.upsertAnswer(response.id(), answered.id(), new FormAnswerValue.Text("Yes"));
+
+            assertEquals(
+                    List.of(new QuestionAnswerCount(answered.id(), 1), new QuestionAnswerCount(unanswered.id(), 0)),
+                    formRepo.countAnswersPerQuestion(separateForm.id()));
         } finally {
             formRepo.delete(separateForm.id());
         }

@@ -50,4 +50,8 @@ export default {
     files: {
         noPreview: 'There is no preview for this kind of file. Download it to look at it.',
     },
+    forms: {
+        removedQuestionsLoseAnswers: 'The removed questions have already been answered. Saving deletes those answers, {count} in total. This cannot be undone.',
+        saveAndDeleteAnswers: 'Save and delete answers',
+    },
 }

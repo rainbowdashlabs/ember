@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.19.5
+
+### Fixes
+
+- **Editing a form keeps its answers.** In some cases saving a form that already had answers deleted them. Saving now only removes the answers to questions that were removed, and asks first when there are any.
+
 ## v26.19.4
 
 ### Improvements

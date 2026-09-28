@@ -196,18 +196,25 @@ class FormServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(13)
-    void replaceQuestions() {
+    void saveQuestions() {
         var entries = List.of(
                 new QuestionEntry(
-                        FormQuestionType.TEXT, "Question A", "Desc A", true, false, new FormQuestionConfig.Text(false)),
+                        null,
+                        FormQuestionType.TEXT,
+                        "Question A",
+                        "Desc A",
+                        true,
+                        false,
+                        new FormQuestionConfig.Text(false)),
                 new QuestionEntry(
+                        null,
                         FormQuestionType.TEXT,
                         "Question B",
                         "Desc B",
                         false,
                         false,
                         new FormQuestionConfig.Text(false)));
-        service.replaceQuestions(formId, entries);
+        service.saveQuestions(formId, entries);
         var qs = service.findQuestions(formId);
         assertEquals(2, qs.size());
     }

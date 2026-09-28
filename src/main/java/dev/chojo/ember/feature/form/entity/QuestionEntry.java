@@ -6,8 +6,9 @@
 package dev.chojo.ember.feature.form.entity;
 
 /**
- * Data transfer object for creating questions during a bulk replace operation.
+ * One question of a form as the editor saves it.
  *
+ * @param id               the question this entry updates, or {@code null} for a question that is new
  * @param formQuestionType the type of question
  * @param title            the question text
  * @param description      optional description
@@ -16,6 +17,7 @@ package dev.chojo.ember.feature.form.entity;
  * @param config           type-specific configuration as JSON
  */
 public record QuestionEntry(
+        Integer id,
         FormQuestionType formQuestionType,
         String title,
         String description,

@@ -1,5 +1,11 @@
 # Änderungsprotokoll
 
+## v26.19.5
+
+### Fehlerbehebungen
+
+- **Das Bearbeiten eines Formulars behält seine Antworten.** In manchen Fällen löschte das Speichern eines Formulars, das schon Antworten hatte, diese Antworten. Jetzt entfernt das Speichern nur die Antworten auf entfernte Fragen und fragt vorher nach, wenn es welche gibt.
+
 ## v26.19.4
 
 ### Verbesserungen
