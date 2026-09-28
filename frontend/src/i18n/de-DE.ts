@@ -7214,6 +7214,9 @@ export default {
         questionShuffle: 'Optionen mischen',
         questionShuffleStatements: 'Aussagen mischen',
         addQuestion: 'Frage hinzufügen',
+        dragQuestion: 'Ziehen, um die Frage zu verschieben',
+        leaveUnsaved: 'Die Fragen haben ungespeicherte Änderungen. Wenn du die Seite jetzt verlässt, gehen sie verloren.',
+        leaveAnyway: 'Verlassen und verwerfen',
         questionMenu: {
             open: 'Einstellungen der Frage',
             describe: 'Beschreibung hinzufügen',
@@ -7232,6 +7235,7 @@ export default {
             moveDown: 'Seite nach unten',
             remove: 'Seite entfernen, Fragen bleiben',
             add: 'Seite hinzufügen',
+            drag: 'Ziehen, um die Seite zu verschieben',
             after: 'Nach dieser Seite',
             next: 'Weiter zur nächsten Seite',
             submit: 'Formular absenden',

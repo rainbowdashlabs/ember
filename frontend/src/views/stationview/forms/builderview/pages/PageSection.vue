@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import { computed } from 'vue'
+import { VueDraggable, type SortableEvent } from 'vue-draggable-plus'
 import { useI18n } from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import QuestionEditor from '../QuestionEditor.vue'
@@ -34,6 +35,15 @@ const { t } = useI18n()
 const page = computed(() => props.layout.pages.value[props.pageIndex]!)
 const lastPage = computed(() => props.pageIndex === props.layout.pages.value.length - 1)
 const otherPages = computed(() => pageChoices(props.layout.pages.value, t, props.pageIndex))
+/**
+ * A question dragged here from another page stops deciding where its old page leads, the same as one
+ * moved here from its menu.
+ */
+function onDroppedHere(event: SortableEvent) {
+  const question = page.value.questions[event.newIndex ?? -1]
+  if (question) question.branch = null
+}
+
 const further = computed(() => pageChoices(props.layout.pages.value, t).filter(choice => choice.index > props.pageIndex))
 </script>
 
@@ -44,12 +54,15 @@ const further = computed(() => pageChoices(props.layout.pages.value, t).filter(c
                       @move="direction => layout.movePage(pageIndex, direction)"
                       @remove="layout.removePage(pageIndex)"/>
 
-    <QuestionEditor v-for="(question, index) in page.questions" :key="question.id"
-                    :question="question" :number="layout.numberOf(question)"
-                    :first="index === 0" :last="index === page.questions.length - 1" :other-pages="otherPages"
-                    @move="direction => layout.moveQuestion(pageIndex, index, direction)"
-                    @remove="layout.removeQuestion(pageIndex, index)"
-                    @move-to-page="target => layout.moveToPage(pageIndex, index, target)"/>
+    <VueDraggable v-model="page.questions" group="form-questions" handle="[data-question-grip]" :animation="150"
+                  class="min-h-8 space-y-3" data-testid="page-questions" @add="onDroppedHere">
+      <QuestionEditor v-for="(question, index) in page.questions" :key="question.id"
+                      :question="question" :number="layout.numberOf(question)"
+                      :first="index === 0" :last="index === page.questions.length - 1" :other-pages="otherPages"
+                      @move="direction => layout.moveQuestion(pageIndex, index, direction)"
+                      @remove="layout.removeQuestion(pageIndex, index)"
+                      @move-to-page="target => layout.moveToPage(pageIndex, index, target)"/>
+    </VueDraggable>
 
     <AddQuestionMenu :question-types="questionTypes" @add="type => layout.addQuestion(pageIndex, type)"/>
 

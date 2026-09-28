@@ -24,6 +24,8 @@ import { type RestrictionSelection, emptyRestriction } from '@/components/input/
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { storedQuestionId } from './builderview/types'
 import { useFormLayout } from './builderview/useFormLayout'
+import { useUnsavedLayout } from './builderview/useUnsavedLayout'
+import ContentDraftBanner from '@/components/content/ContentDraftBanner.vue'
 import { AnswerLossDeclined, type Removals, useAnswerLossConsent } from './builderview/useAnswerLossConsent'
 import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, type Form, type FormPurposeName, type FormQuestion, type FormVisibilityName, type PageUsingForm, type QuestionType} from '@/api/forms'
 import { optionKeysOf } from '@/util/formOptions'
@@ -108,6 +110,13 @@ const restriction = ref<RestrictionSelection>(emptyRestriction())
 const answeredByMembers = computed(() => purpose.value === FormPurpose.INTERNAL)
 
 const layout = useFormLayout()
+const unsaved = useUnsavedLayout(() => `form-layout-${formId.value ?? `new-${purpose.value}`}`, layout.pages)
+
+/** Leaves the editor after the reader agreed to leave the unsaved questions behind. */
+function leaveUnsaved() {
+  const to = unsaved.leaveAnyway()
+  if (to) router.push(to)
+}
 
 /** A question as the server holds it, with the keys of its options, which a save measures its removals against. */
 interface StoredQuestion {
@@ -159,6 +168,7 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
     if (queryPurpose && queryPurpose in FormPurpose) {
       purpose.value = queryPurpose as FormPurposeName
     }
+    unsaved.settle(true)
     return
   }
 
@@ -190,6 +200,7 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
 
   remember(qs)
   layout.load({pages, questions: qs})
+  unsaved.settle(true)
 
   settings.arm()
   if (answeredByMembers.value) limits.arm()
@@ -322,6 +333,7 @@ async function save() {
         memberIds: restriction.value.memberIds,
       })
     }
+    unsaved.settle()
     router.push({ name: returnRouteName.value })
   } catch (e) {
     if (!(e instanceof AnswerLossDeclined)) actionFailure.value = describeFailure(e, t)
@@ -370,6 +382,8 @@ async function save() {
           v-model="restriction"
         />
 
+        <ContentDraftBanner v-if="unsaved.offered.value" :saved-at="unsaved.offered.value.savedAt"
+                            @restore="unsaved.restore()" @discard="unsaved.discard()"/>
         <FormPagesEditor :layout="layout" :question-types="questionTypes"/>
 
         <div class="flex justify-end gap-3">
@@ -378,6 +392,11 @@ async function save() {
         </div>
       </template>
     </div>
+
+    <ConfirmDeleteModal v-model="unsaved.askingToLeave.value"
+        :message="t('forms.leaveUnsaved')"
+        :confirm-label="t('forms.leaveAnyway')"
+        @confirm="leaveUnsaved"/>
 
     <ConfirmDeleteModal v-model="askingAboutAnswerLoss"
         :message="answerLossMessage"

@@ -9,6 +9,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SectionLabel from '@/components/typography/SectionLabel.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import AppIcon from '@/components/display/AppIcon.vue'
 import PageMenu from './PageMenu.vue'
 import type { PageDraft } from '../types'
 
@@ -39,6 +40,8 @@ const { t } = useI18n()
   <div class="space-y-2">
     <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-2">
+        <AppIcon :icon="['fas', 'grip-vertical']" data-page-grip :title="t('forms.pages.drag')"
+                 class="cursor-grab text-(--text-muted) active:cursor-grabbing"/>
         <SectionLabel>{{ t('forms.pages.number', {number: index + 1}) }}</SectionLabel>
         <ErrorBadge v-if="!reached" data-testid="page-unreached">{{ t('forms.pages.unreached') }}</ErrorBadge>
       </div>
