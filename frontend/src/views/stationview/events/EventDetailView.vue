@@ -93,16 +93,15 @@ const effectiveDate = computed((): string | null => focusedDate.value ?? nextOcc
  *
  * <p>A repeating appointment is shown on the occurrence the page is bound to, whose clock is the
  * one it repeats. A one-off is shown on the day its own moment falls on where the station stands,
- * which is the same day {@link effectiveDate} looks its sign-ups up under: the day drawn and the
- * day asked for have to be the one day, or the page reads as though it were showing a date it
- * has nothing for.
+ * which for its start is the same day {@link effectiveDate} looks its sign-ups up under: the day
+ * drawn and the day asked for have to be the one day, or the page reads as though it were showing
+ * a date it has nothing for. Its end is read the same way, so one running over several days ends
+ * on its last day and not on the one it starts on.
  */
 function dayShownFor(iso: string): string {
-  return (
-    focusedDate.value ??
-    nextOccurrenceDate.value ??
-    stationDayOf(new Date(iso), stationTimezone.value)
-  )
+  const ownDay = stationDayOf(new Date(iso), stationTimezone.value)
+  if (!isRecurringEvent(event.value?.eventType)) return ownDay
+  return focusedDate.value ?? nextOccurrenceDate.value ?? ownDay
 }
 
 function combineDateAndTime(iso: string): string {

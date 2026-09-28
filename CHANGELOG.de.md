@@ -1,5 +1,15 @@
 # Änderungsprotokoll
 
+## v26.19.4
+
+### Verbesserungen
+
+- **Mehrtägige Termine zeigen in jeder Liste beide Enden.** Die Terminseite und die Liste zum Verwalten der Termine schreiben einen solchen Termin vom ersten Tag mit Uhrzeit bis zum letzten Tag mit Uhrzeit, sodass er nicht mehr so aussieht, als liefe er an jedem Tag von acht bis vier.
+
+### Fehlerbehebungen
+
+- **Ein mehrtägiger Termin schien an seinem ersten Tag zu enden.** Seine eigene Seite zeigte das Ende am Tag des Beginns. Jetzt steht dort der Tag, an dem er tatsächlich endet.
+
 ## v26.19.3
 
 ### Verbesserungen

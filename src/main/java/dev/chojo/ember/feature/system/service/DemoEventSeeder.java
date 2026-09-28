@@ -416,6 +416,26 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null);
         restrictToUserTypes(kreisWettbewerb.id(), JUGENDFEUERWEHR);
 
+        LocalDate zeltlagerStart = LocalDate.now().plusMonths(3).withDayOfMonth(11);
+        var zeltlager = crudService.create(
+                stationId,
+                "Zeltlager",
+                "Eine Woche Kreiszeltlager mit Übungen, Spielen und Lagerfeuer",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                zeltlagerStart.atTime(8, 0).toInstant(ZoneOffset.UTC),
+                zeltlagerStart.plusDays(6).atTime(16, 0).toInstant(ZoneOffset.UTC),
+                null,
+                true,
+                zeltlagerStart.minusWeeks(3).atTime(23, 59).toInstant(ZoneOffset.UTC),
+                false,
+                catVeranstaltung.id(),
+                null,
+                null,
+                null,
+                null);
+        restrictToUserTypes(zeltlager.id(), JUGENDFEUERWEHR);
+
         // Add some registrations
         LocalDate tagDate = LocalDate.now().plusMonths(1).withDayOfMonth(15);
         LocalDate stadtfestDate = LocalDate.now().plusWeeks(3);
