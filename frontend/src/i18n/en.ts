@@ -52,6 +52,8 @@ export default {
     },
     forms: {
         removedQuestionsLoseAnswers: 'The removed questions have already been answered. Saving deletes those answers, {count} in total. This cannot be undone.',
+        removedOptionsLoseSelections: 'The removed options have already been chosen. Saving deletes them from the answers, {count} times in total. This cannot be undone.',
+        removedQuestionsAndOptionsLoseAnswers: 'The removed questions and options have already been answered. Saving deletes {answers} answers and takes the removed options out of the answers {selections} times. This cannot be undone.',
         saveAndDeleteAnswers: 'Save and delete answers',
     },
 }

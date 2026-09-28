@@ -14,7 +14,6 @@ import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.FormVisibility;
-import dev.chojo.ember.feature.form.entity.QuestionAnswerCount;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
@@ -442,25 +441,6 @@ public class FormRepository {
         return SqlSupport.deleteById("form_question", id);
     }
 
-    /**
-     * How many answers each question of a form holds, questions nobody answered included.
-     *
-     * @param formId the form ID
-     * @return one count per question, in the order the questions are asked
-     */
-    public List<QuestionAnswerCount> countAnswersPerQuestion(int formId) {
-        return query("""
-                SELECT q.id AS question_id, count(a.id)::INT AS answers
-                FROM form_question q
-                LEFT JOIN form_answer a ON a.question_id = q.id
-                WHERE q.form_id = :form_id
-                GROUP BY q.id, q.position
-                ORDER BY q.position;""")
-                .single(call().bind("form_id", formId))
-                .map(QuestionAnswerCount.map())
-                .all();
-    }
-
     // -- Responses --
 
     /**
@@ -663,6 +643,40 @@ public class FormRepository {
                 .single(call().bind("form_id", formId))
                 .map(FormAnswer.map())
                 .all();
+    }
+
+    /**
+     * Retrieves every answer given to one question, whichever response it belongs to.
+     *
+     * @param questionId the question ID
+     * @return all answers to the question
+     */
+    public List<FormAnswer> findAnswersToQuestion(int questionId) {
+        return query("SELECT %s FROM form_answer WHERE question_id = :question_id;", ANSWER_COLUMNS)
+                .single(call().bind("question_id", questionId))
+                .map(FormAnswer.map())
+                .all();
+    }
+
+    /**
+     * Replaces the value of a stored answer.
+     *
+     * @param answerId the answer ID
+     * @param value    the value it is to hold
+     */
+    public void updateAnswerValue(int answerId, FormAnswerValue value) {
+        query("UPDATE form_answer SET value = :value::JSONB WHERE id = :id;")
+                .single(call().bind("id", answerId).bind("value", value.toJson()))
+                .update();
+    }
+
+    /**
+     * Deletes a stored answer, leaving the response it belonged to in place.
+     *
+     * @param answerId the answer ID
+     */
+    public void deleteAnswer(int answerId) {
+        SqlSupport.deleteById("form_answer", answerId);
     }
 
     /**

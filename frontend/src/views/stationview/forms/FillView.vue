@@ -18,6 +18,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import {QuestionTypes, type EligibleMembers, type Form, type FormQuestion} from '@/api/forms'
 import { forms } from '@/api'
+import { optionsOf } from '@/util/formOptions'
 import { describeFailure, type Failure } from '@/util/failure'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
@@ -99,9 +100,7 @@ function initAnswerDefaults() {
     else if (q.formQuestionType === QuestionTypes.RATING) answers.value[q.id] = { rating: 0 }
     else if (q.formQuestionType === QuestionTypes.DATE) answers.value[q.id] = { date: '' }
     else if (q.formQuestionType === QuestionTypes.RANKING) {
-      const cfg = parseConfig(q.config)
-      const opts = (cfg.options as string[]) || []
-      answers.value[q.id] = { order: opts.map((_: string, i: number) => i) }
+      answers.value[q.id] = { order: optionsOf(parseConfig(q.config)).map(option => option.key) }
     }
     else if (q.formQuestionType === QuestionTypes.LIKERT) answers.value[q.id] = { ratings: {} }
   }

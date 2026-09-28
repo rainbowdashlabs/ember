@@ -14,8 +14,11 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static java.lang.Boolean.TRUE;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -66,6 +69,37 @@ public sealed interface FormQuestionConfig {
     }
 
     /**
+     * The options an answer picks from: the options of a choice or ranking question, the statements of
+     * a Likert grid, and nothing for any other kind.
+     *
+     * <p>Answers name an option by its key, never by where it stands, so reordering or renaming the
+     * options of a question leaves every stored answer meaning what it meant.
+     */
+    default List<Option> keyedOptions() {
+        return List.of();
+    }
+
+    /**
+     * The keys of {@link #keyedOptions()}, in their order.
+     */
+    default Set<String> optionKeys() {
+        var keys = new LinkedHashSet<String>();
+        for (var option : keyedOptions()) keys.add(option.key());
+        return keys;
+    }
+
+    /**
+     * Whether every option carries a key and no two carry the same one.
+     */
+    default boolean hasDistinctOptionKeys() {
+        var options = keyedOptions();
+        return options.stream()
+                        .allMatch(
+                                option -> option.key() != null && !option.key().isBlank())
+                && optionKeys().size() == options.size();
+    }
+
+    /**
      * Serializes this config to a JSON string.
      */
     default String toJson() {
@@ -84,11 +118,30 @@ public sealed interface FormQuestionConfig {
     }
 
     /**
+     * One option of a choice or ranking question, or one statement of a Likert grid.
+     *
+     * @param key   short text that names the option for good; made when the option is added and never changed
+     * @param label what the option says, which the editor may change at any time
+     */
+    record Option(String key, String label) {
+        /**
+         * Options with the given labels, keyed by their position the way the options that existed
+         * before keys were given theirs: {@code o0}, {@code o1} and so on. For options written once in
+         * code, such as demo data; the editor gives every new option a random key.
+         */
+        public static List<Option> numbered(String... labels) {
+            var options = new ArrayList<Option>(labels.length);
+            for (int i = 0; i < labels.length; i++) options.add(new Option("o" + i, labels[i]));
+            return options;
+        }
+    }
+
+    /**
      * Choice question: options with optional multi-select, dropdown, and "other" field.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record Choice(
-            List<String> options,
+            List<Option> options,
             Boolean multiSelect,
             Boolean dropdown,
             Boolean allowOther,
@@ -96,17 +149,22 @@ public sealed interface FormQuestionConfig {
             Integer multiLimit)
             implements FormQuestionConfig {
         @Override
+        public List<Option> keyedOptions() {
+            return options == null ? List.of() : options;
+        }
+
+        @Override
         public List<String> validate(FormAnswerValue value) {
-            if (!(value instanceof FormAnswerValue.Choice(List<Integer> selected, String other))) {
+            if (!(value instanceof FormAnswerValue.Choice(List<String> selected, String other))) {
                 return List.of("Expected choice answer");
             }
             var errors = new ArrayList<String>();
             if (selected == null || selected.isEmpty()) return List.of("No options selected");
-            if (options != null) {
-                for (int idx : selected) {
-                    if (idx < 0 || idx >= options.size()) errors.add("Invalid option index: " + idx);
-                }
+            var keys = optionKeys();
+            for (var key : selected) {
+                if (!keys.contains(key)) errors.add("Unknown option: " + key);
             }
+            if (new HashSet<>(selected).size() != selected.size()) errors.add("An option was selected twice");
             if (!TRUE.equals(multiSelect) && selected.size() > 1) {
                 errors.add("Only one option can be selected");
             }
@@ -169,18 +227,20 @@ public sealed interface FormQuestionConfig {
      * Ranking question with orderable options.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Ranking(List<String> options) implements FormQuestionConfig {
+    record Ranking(List<Option> options) implements FormQuestionConfig {
+        @Override
+        public List<Option> keyedOptions() {
+            return options == null ? List.of() : options;
+        }
+
         @Override
         public List<String> validate(FormAnswerValue value) {
-            if (!(value instanceof FormAnswerValue.Ranking(List<Integer> order))) {
+            if (!(value instanceof FormAnswerValue.Ranking(List<String> order))) {
                 return List.of("Expected ranking answer");
             }
             if (options == null) return List.of();
-            if (order == null || order.size() != options.size()) {
-                return List.of("Ranking must contain exactly " + options.size() + " items");
-            }
-            for (int idx : order) {
-                if (idx < 0 || idx >= options.size()) return List.of("Invalid ranking index: " + idx);
+            if (order == null || order.size() != options.size() || !optionKeys().equals(new HashSet<>(order))) {
+                return List.of("Ranking must contain each of the " + options.size() + " options exactly once");
             }
             return List.of();
         }
@@ -190,8 +250,13 @@ public sealed interface FormQuestionConfig {
      * Likert scale with statements and scale range.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Likert(List<String> statements, Integer scaleMin, Integer scaleMax, List<String> scaleLabels)
+    record Likert(List<Option> statements, Integer scaleMin, Integer scaleMax, List<String> scaleLabels)
             implements FormQuestionConfig {
+        @Override
+        public List<Option> keyedOptions() {
+            return statements == null ? List.of() : statements;
+        }
+
         @Override
         public List<String> validate(FormAnswerValue value) {
             if (!(value instanceof FormAnswerValue.Likert(Map<String, Integer> ratings)))
@@ -200,8 +265,11 @@ public sealed interface FormQuestionConfig {
             var errors = new ArrayList<String>();
             int min = scaleMin != null ? scaleMin : 1;
             int max = scaleMax != null ? scaleMax : 5;
+            var keys = optionKeys();
             for (var entry : ratings.entrySet()) {
-                if (entry.getValue() < min || entry.getValue() > max) {
+                if (!keys.contains(entry.getKey())) {
+                    errors.add("Unknown statement: " + entry.getKey());
+                } else if (entry.getValue() == null || entry.getValue() < min || entry.getValue() > max) {
                     errors.add("Rating for '" + entry.getKey() + "' must be between " + min + " and " + max);
                 }
             }

@@ -8,8 +8,8 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-
-type ChoiceAnswer = { selected: number[]; other: string }
+import type { ChoiceAnswer } from '@/api/forms'
+import { optionsOf } from '@/util/formOptions'
 
 const props = defineProps<{
   config: Record<string, unknown>
@@ -19,7 +19,7 @@ const answer = defineModel<ChoiceAnswer>({ required: true })
 
 const { t } = useI18n()
 
-const options = computed(() => (props.config.options as string[]) || [])
+const options = computed(() => optionsOf(props.config))
 const isMulti = computed(() => !!props.config.multiSelect)
 const isDropdown = computed(() => !!props.config.dropdown)
 const allowOther = computed(() => !!props.config.allowOther)
@@ -33,19 +33,26 @@ const atLimit = computed(() => {
   return selectionCount.value >= limit
 })
 
-function toggle(optionIndex: number) {
+function toggle(key: string) {
   if (isMulti.value) {
-    const idx = answer.value.selected.indexOf(optionIndex)
+    const idx = answer.value.selected.indexOf(key)
     if (idx >= 0) {
       answer.value.selected.splice(idx, 1)
     } else {
       if (atLimit.value) return
-      answer.value.selected.push(optionIndex)
+      answer.value.selected.push(key)
     }
   } else {
-    answer.value.selected = [optionIndex]
+    answer.value.selected = [key]
     answer.value.other = ''
   }
+}
+
+/** The dropdown's empty entry clears the choice rather than picking anything. */
+function pick(value: string | number | null | undefined) {
+  const key = String(value ?? '')
+  if (key) toggle(key)
+  else answer.value.selected = []
 }
 
 function onOther(value: string | undefined) {
@@ -68,29 +75,29 @@ function selectedIcon(selected: boolean): string {
   <div class="space-y-1">
     <template v-if="isDropdown">
       <SelectInput
-          :model-value="String(answer.selected?.[0] ?? '')"
-          @update:model-value="(v: string | number | null | undefined) => toggle(Number(v))">
+          :model-value="answer.selected?.[0] ?? ''"
+          @update:model-value="pick">
         <option value="">--</option>
-        <option v-for="(opt, oi) in options" :key="oi" :value="oi">{{ opt }}</option>
+        <option v-for="opt in options" :key="opt.key" :value="opt.key">{{ opt.label }}</option>
       </SelectInput>
     </template>
     <template v-else>
       <div
-          v-for="(opt, oi) in options"
-          :key="oi"
+          v-for="opt in options"
+          :key="opt.key"
           data-testid="choice-option"
           class="flex items-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all cursor-pointer"
-          :class="answer.selected?.includes(oi)
+          :class="answer.selected?.includes(opt.key)
             ? 'border-primary bg-primary/10 text-primary'
             : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text) hover:border-primary/50'"
-          @click="toggle(oi)"
+          @click="toggle(opt.key)"
       >
         <font-awesome-icon
-            :icon="['fas', selectedIcon(answer.selected?.includes(oi))]"
-            :class="answer.selected?.includes(oi) ? 'text-primary' : 'text-(--text-muted)'"
+            :icon="['fas', selectedIcon(answer.selected?.includes(opt.key))]"
+            :class="answer.selected?.includes(opt.key) ? 'text-primary' : 'text-(--text-muted)'"
             class="shrink-0"
         />
-        <span>{{ opt }}</span>
+        <span>{{ opt.label }}</span>
       </div>
     </template>
     <div v-if="allowOther"

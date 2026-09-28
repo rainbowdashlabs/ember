@@ -12,8 +12,9 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubmissionList from './contactsubmissionsview/SubmissionList.vue'
-import {acknowledgeContactResponse, FormAnalyticsBase, QuestionTypes, type Form, type FormAnswer, type FormQuestion, type FormResponse} from '@/api/forms'
+import {acknowledgeContactResponse, FormAnalyticsBase, type Form, type FormAnswer, type FormQuestion, type FormResponse} from '@/api/forms'
 import {forms} from '@/api'
+import {formatAnswerDisplay} from '@/util/formAnswerDisplay'
 import {describeFailure, type Failure} from '@/util/failure'
 import {formatDateTime} from '@/util/format'
 
@@ -103,38 +104,15 @@ function questionTitle(answer: FormAnswer): string {
     return questionsById.value.get(answer.questionId)?.title ?? `#${answer.questionId}`
 }
 
-function parseValue(value: string): Record<string, unknown> {
-    try { return JSON.parse(value || '{}') } catch { return {} }
-}
-
 /**
- * Renders a stored {@code FormAnswer.value} (JSON-encoded per the question type) as the bare
- * human-readable form the contact-submission viewer wants. Falls back to the raw value when the
- * question type is unknown so the manager still sees *something* rather than an empty cell.
+ * Renders a stored {@code FormAnswer.value} as the bare human-readable form the contact-submission
+ * viewer wants, the same way the results view does. An answer to a question that is gone shows as
+ * stored, so the manager still sees *something* rather than an empty cell.
  */
 function formatAnswer(answer: FormAnswer): string {
     const question = questionsById.value.get(answer.questionId)
-    const parsed = parseValue(answer.value)
     if (!question) return answer.value
-    const cfg = question.config ?? {}
-    switch (question.formQuestionType) {
-        case QuestionTypes.TEXT:
-            return (parsed as {text?: string}).text || '–'
-        case QuestionTypes.DATE:
-            return (parsed as {date?: string}).date || '–'
-        case QuestionTypes.RATING:
-            return String((parsed as {rating?: number}).rating ?? '–')
-        case QuestionTypes.CHOICE: {
-            const selected = (parsed as {selected?: number[]}).selected ?? []
-            const options = (cfg.options as string[] | undefined) ?? []
-            const labels = selected.map(i => options[i] ?? `#${i}`)
-            const other = (parsed as {other?: string}).other
-            if (other) labels.push(`Sonstige: ${other}`)
-            return labels.join(', ') || '–'
-        }
-        default:
-            return answer.value
-    }
+    return formatAnswerDisplay(question.formQuestionType, question.config ?? {}, answer.value)
 }
 </script>
 

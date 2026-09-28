@@ -9,7 +9,9 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
+import FormOptionsEditor from './FormOptionsEditor.vue'
+import type { FormOption } from '@/api/forms'
+import { optionsOf } from '@/util/formOptions'
 import type { QuestionDraft } from './types'
 
 const props = defineProps<{
@@ -34,7 +36,7 @@ function setDropdown(val: boolean) {
   }
 }
 
-function updateOptions(items: string[]) {
+function updateOptions(items: FormOption[]) {
   q.config.options = items
 }
 </script>
@@ -64,6 +66,6 @@ function updateOptions(items: string[]) {
     <NumberInput v-if="q.config.multiLimitType !== 'NONE'" v-model="(q.config.multiLimit as number)"
                  :placeholder="t('forms.choice.limitValue')" class="w-24" />
   </div>
-  <QuestionOptionsEditor :add-label="t('forms.choice.addOption')" :label="t('forms.choice.options')"
-                         :model-value="(q.config.options as string[])" @update:model-value="updateOptions"/>
+  <FormOptionsEditor :add-label="t('forms.choice.addOption')" :label="t('forms.choice.options')"
+                     :model-value="optionsOf(q.config)" @update:model-value="updateOptions"/>
 </template>

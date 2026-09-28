@@ -6,6 +6,7 @@
 import type {Form, FormQuestion, FormQuestionInfo, FormResultGroup} from '@/api/forms'
 import type {MemberIdentity} from '@/api/types'
 import type {PitchForm, PitchFormAnalytics} from './pitchTypes'
+import {numberedOptions} from '@/util/formOptions'
 
 /**
  * The survey a demonstration works through. Questions, answers and charts are handed to the
@@ -32,6 +33,8 @@ export const FORMS: Form[] = [
     form(3, 'Ausbildungsbedarf', 'Was möchtet ihr in diesem Jahr lernen?', 'DRAFT', 0),
 ]
 
+const CAMPS = numberedOptions('Zeltlager', 'Berufsfeuerwehrtag', 'Kreisjugendtag')
+
 function question(id: number, type: FormQuestion['formQuestionType'], title: string,
                   config: Record<string, unknown>, rest: Partial<FormQuestion> = {}): FormQuestion {
     return {
@@ -42,15 +45,15 @@ function question(id: number, type: FormQuestion['formQuestionType'], title: str
 
 export const FORM_QUESTIONS: FormQuestion[] = [
     question(1, 'CHOICE', 'Woran hast du teilgenommen?',
-        {options: ['Zeltlager', 'Berufsfeuerwehrtag', 'Kreisjugendtag'], multiSelect: true, allowOther: true},
+        {options: CAMPS, multiSelect: true, allowOther: true},
         {required: true}),
     question(2, 'RATING', 'Wie hat dir das Lager insgesamt gefallen?', {scale: 5, icon: 'STAR'},
         {required: true}),
     question(3, 'RANKING', 'Bring die Programmpunkte in deine Reihenfolge',
-        {options: ['Nachtwanderung', 'Wasserspiele', 'Lagerfeuer', 'Geländespiel']}),
+        {options: numberedOptions('Nachtwanderung', 'Wasserspiele', 'Lagerfeuer', 'Geländespiel')}),
     question(4, 'LIKERT', 'Wie sehr stimmst du zu?',
         {
-            statements: ['Das Essen war gut', 'Die Zelte waren in Ordnung', 'Es war genug Freizeit'],
+            statements: numberedOptions('Das Essen war gut', 'Die Zelte waren in Ordnung', 'Es war genug Freizeit'),
             scaleMin: 1, scaleMax: 5,
             labels: ['gar nicht', 'wenig', 'teils', 'ziemlich', 'völlig'],
         }),
@@ -60,17 +63,17 @@ export const FORM_QUESTIONS: FormQuestion[] = [
 export const FORM_FILL: PitchForm = {
     questions: FORM_QUESTIONS,
     answers: {
-        1: {selected: [0, 2], other: ''},
+        1: {selected: ['o0', 'o2'], other: ''},
         2: {rating: 4},
-        3: {order: [2, 0, 3, 1]},
-        4: {ratings: {0: 5, 1: 3, 2: 4}},
+        3: {order: ['o2', 'o0', 'o3', 'o1']},
+        4: {ratings: {o0: 5, o1: 3, o2: 4}},
     },
 }
 
 const QUESTIONS: FormQuestionInfo[] = [
     {
         questionId: 1, questionType: 'CHOICE', title: 'Woran hast du teilgenommen?',
-        config: {options: ['Zeltlager', 'Berufsfeuerwehrtag', 'Kreisjugendtag'], allowOther: true},
+        config: {options: CAMPS, allowOther: true},
     },
     {
         questionId: 2, questionType: 'RATING', title: 'Wie hat dir das Lager insgesamt gefallen?',
@@ -83,7 +86,7 @@ const EVERYONE: FormResultGroup = {
     label: '',
     responseCount: 10,
     tallies: [
-        {questionId: 1, answerCount: 8, optionCounts: [6, 3, 3], otherCount: 1},
+        {questionId: 1, answerCount: 8, optionCounts: {o0: 6, o1: 3, o2: 3}, otherCount: 1},
         {questionId: 2, answerCount: 10, ratingCounts: [0, 1, 1, 4, 4]},
     ],
 }

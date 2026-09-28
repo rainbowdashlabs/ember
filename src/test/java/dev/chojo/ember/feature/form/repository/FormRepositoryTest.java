@@ -14,7 +14,6 @@ import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
-import dev.chojo.ember.feature.form.entity.QuestionAnswerCount;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -317,11 +316,11 @@ class FormRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(63)
-    void countAnswersPerQuestion() {
+    void answersToOneQuestionAreRewrittenAndDeletedOneByOne() {
         var separateForm = formRepo.create(
-                station.id(), "Answer Count", "x", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
+                station.id(), "Answer Rewrite", "x", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
         try {
-            var answered = formRepo.createQuestion(
+            var question = formRepo.createQuestion(
                     separateForm.id(),
                     0,
                     FormQuestionType.TEXT,
@@ -330,21 +329,23 @@ class FormRepositoryTest extends RepositoryTestBase {
                     false,
                     false,
                     new FormQuestionConfig.Text(false));
-            var unanswered = formRepo.createQuestion(
-                    separateForm.id(),
-                    1,
-                    FormQuestionType.TEXT,
-                    "Q2",
-                    "",
-                    false,
-                    false,
-                    new FormQuestionConfig.Text(false));
             var response = formRepo.createResponse(separateForm.id(), member.id(), member.id());
-            formRepo.upsertAnswer(response.id(), answered.id(), new FormAnswerValue.Text("Yes"));
+            formRepo.upsertAnswer(response.id(), question.id(), new FormAnswerValue.Text("Yes"));
+            var stored = formRepo.findAnswersToQuestion(question.id());
+            assertEquals(1, stored.size());
 
+            formRepo.updateAnswerValue(stored.getFirst().id(), new FormAnswerValue.Text("No"));
             assertEquals(
-                    List.of(new QuestionAnswerCount(answered.id(), 1), new QuestionAnswerCount(unanswered.id(), 0)),
-                    formRepo.countAnswersPerQuestion(separateForm.id()));
+                    new FormAnswerValue.Text("No"),
+                    FormAnswerValue.parse(
+                            FormQuestionType.TEXT,
+                            formRepo.findAnswersToQuestion(question.id())
+                                    .getFirst()
+                                    .value()));
+
+            formRepo.deleteAnswer(stored.getFirst().id());
+            assertTrue(formRepo.findAnswersToQuestion(question.id()).isEmpty());
+            assertTrue(formRepo.findResponseById(response.id()).isPresent(), "the response stays");
         } finally {
             formRepo.delete(separateForm.id());
         }

@@ -12,7 +12,7 @@ import RatingQuestion from './RatingQuestion.vue'
 import RankingQuestion from './RankingQuestion.vue'
 import LikertQuestion from './LikertQuestion.vue'
 import type {PublicFormQuestion} from '@/api/publicForms'
-import {QuestionTypes} from '@/api/forms'
+import {QuestionTypes, type ChoiceAnswer, type LikertAnswer, type RankingAnswer} from '@/api/forms'
 
 /**
  * The fields one question of a public form is answered with.
@@ -28,10 +28,7 @@ import {QuestionTypes} from '@/api/forms'
  */
 interface TextAnswer { text: string }
 interface DateAnswer { date: string }
-interface ChoiceAnswer { selected: number[]; other: string }
 interface RatingAnswer { rating: number }
-interface RankingAnswer { order: number[] }
-interface LikertAnswer { ratings: Record<string, number> }
 
 /**
  * Answers travel as plain records, because which shape one has follows from the question type beside
@@ -45,7 +42,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:text', text: string): void
   (e: 'update:date', date: string): void
-  (e: 'toggle-choice', optionIndex: number): void
+  (e: 'toggle-choice', optionKey: string): void
 }>()
 
 /**
@@ -84,7 +81,7 @@ function dateValue(): string {
         <PublicChoiceQuestion
             :question="question"
             :answer="shaped<ChoiceAnswer>()"
-            @toggle="(oi: number) => emit('toggle-choice', oi)"/>
+            @toggle="(key: string) => emit('toggle-choice', key)"/>
     </template>
 
     <template v-else-if="question.questionType === QuestionTypes.RATING">

@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig.Option;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import org.junit.jupiter.api.Test;
 
@@ -35,19 +36,35 @@ class FormResultTallyTest {
         var question = question(
                 1,
                 FormQuestionType.CHOICE,
-                new FormQuestionConfig.Choice(List.of("Zeltlager", "Kreisjugendtag"), true, false, true, null, null));
+                new FormQuestionConfig.Choice(
+                        Option.numbered("Zeltlager", "Kreisjugendtag"), true, false, true, null, null));
         var answers = answers(
                 1,
-                new FormAnswerValue.Choice(List.of(0), null),
-                new FormAnswerValue.Choice(List.of(0, 1), null),
-                new FormAnswerValue.Choice(List.of(1), "Übungsdienst"),
-                new FormAnswerValue.Choice(List.of(7), null));
+                new FormAnswerValue.Choice(List.of("o0"), null),
+                new FormAnswerValue.Choice(List.of("o0", "o1"), null),
+                new FormAnswerValue.Choice(List.of("o1"), "Übungsdienst"),
+                new FormAnswerValue.Choice(List.of("gone"), null));
 
         var tally = only(question, answers, null);
 
         assertEquals(4, tally.answerCount());
-        assertEquals(List.of(2, 2), tally.optionCounts(), "an index outside the options is not counted");
+        assertEquals(Map.of("o0", 2, "o1", 2), tally.optionCounts(), "a key the options lack is not counted");
         assertEquals(1, tally.otherCount());
+    }
+
+    @Test
+    void optionsAreCountedByKeyInTheOrderTheQuestionListsThem() {
+        var question = question(
+                9,
+                FormQuestionType.CHOICE,
+                new FormQuestionConfig.Choice(
+                        List.of(new Option("b", "Zweite"), new Option("a", "Erste")), false, false, false, null, null));
+        var answers = answers(9, new FormAnswerValue.Choice(List.of("a"), null));
+
+        var tally = only(question, answers, null);
+
+        assertEquals(List.of("b", "a"), List.copyOf(tally.optionCounts().keySet()));
+        assertEquals(1, tally.optionCounts().get("a"));
     }
 
     @Test
@@ -67,13 +84,16 @@ class FormResultTallyTest {
 
     @Test
     void aRankingScoresFirstPlaceHighest() {
-        var question = question(3, FormQuestionType.RANKING, new FormQuestionConfig.Ranking(List.of("A", "B", "C")));
+        var question =
+                question(3, FormQuestionType.RANKING, new FormQuestionConfig.Ranking(Option.numbered("A", "B", "C")));
         var answers = answers(
-                3, new FormAnswerValue.Ranking(List.of(2, 0, 1)), new FormAnswerValue.Ranking(List.of(0, 2, 1)));
+                3,
+                new FormAnswerValue.Ranking(List.of("o2", "o0", "o1")),
+                new FormAnswerValue.Ranking(List.of("o0", "o2", "o1")));
 
         var tally = only(question, answers, null);
 
-        assertEquals(List.of(5, 2, 5), tally.rankingScores());
+        assertEquals(Map.of("o0", 5, "o1", 2, "o2", 5), tally.rankingScores());
     }
 
     @Test
@@ -81,18 +101,20 @@ class FormResultTallyTest {
         var question = question(
                 4,
                 FormQuestionType.LIKERT,
-                new FormQuestionConfig.Likert(List.of("Essen", "Programm", "Unterkunft"), 1, 5, null));
+                new FormQuestionConfig.Likert(Option.numbered("Essen", "Programm", "Unterkunft"), 1, 5, null));
         var answers = answers(
                 4,
-                new FormAnswerValue.Likert(Map.of("0", 4, "1", 5)),
-                new FormAnswerValue.Likert(Map.of("0", 5, "1", 2)),
-                new FormAnswerValue.Likert(Map.of("0", 5)));
+                new FormAnswerValue.Likert(Map.of("o0", 4, "o1", 5)),
+                new FormAnswerValue.Likert(Map.of("o0", 5, "o1", 2, "gone", 1)),
+                new FormAnswerValue.Likert(Map.of("o0", 5)));
 
         var tally = only(question, answers, null);
 
-        assertEquals(4.7, tally.statementAverages().get(0));
-        assertEquals(3.5, tally.statementAverages().get(1));
-        assertNull(tally.statementAverages().get(2), "a statement nobody rated has no average rather than zero");
+        assertEquals(
+                List.of("o0", "o1", "o2"), List.copyOf(tally.statementAverages().keySet()));
+        assertEquals(4.7, tally.statementAverages().get("o0"));
+        assertEquals(3.5, tally.statementAverages().get("o1"));
+        assertNull(tally.statementAverages().get("o2"), "a statement nobody rated has no average rather than zero");
     }
 
     @Test

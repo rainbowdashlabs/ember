@@ -23,8 +23,9 @@ import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { type QuestionDraft, storedDraftId, storedQuestionId } from './builderview/types'
-import { AnswerLossDeclined, useAnswerLossConsent } from './builderview/useAnswerLossConsent'
-import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, QuestionTypes, type Form, type FormPurposeName, type FormQuestionRequest, type FormVisibilityName, type PageUsingForm, type QuestionType} from '@/api/forms'
+import { AnswerLossDeclined, type Removals, useAnswerLossConsent } from './builderview/useAnswerLossConsent'
+import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, QuestionTypes, type Form, type FormPurposeName, type FormQuestion, type FormQuestionRequest, type FormVisibilityName, type PageUsingForm, type QuestionType} from '@/api/forms'
+import { blankOption, optionKeysOf } from '@/util/formOptions'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
@@ -108,19 +109,37 @@ const answeredByMembers = computed(() => purpose.value === FormPurpose.INTERNAL)
 const questions = ref<QuestionDraft[]>([])
 let nextTempId = 1
 
-/** The questions the server holds for this form, which a save measures its removals against. */
-const storedQuestionIds = ref<number[]>([])
+/** A question as the server holds it, with the keys of its options, which a save measures its removals against. */
+interface StoredQuestion {
+  id: number
+  optionKeys: string[]
+}
+
+const storedQuestions = ref<StoredQuestion[]>([])
+
+function remember(stored: FormQuestion[]) {
+  storedQuestions.value = stored.map(question => ({id: question.id, optionKeys: optionKeysOf(question.config)}))
+}
 
 const {
   show: askingAboutAnswerLoss,
-  lostAnswers,
+  message: answerLossMessage,
   requireConsent: requireAnswerLossConsent,
   accept: acceptAnswerLoss,
 } = useAnswerLossConsent()
 
-function removedQuestionIds(): number[] {
-  const kept = new Set(questions.value.map(storedQuestionId))
-  return storedQuestionIds.value.filter(id => !kept.has(id))
+/** The stored questions the save removes, and the options it removes from the questions it keeps. */
+function removals(): Removals {
+  const drafts = new Map(questions.value.map(draft => [storedQuestionId(draft), draft]))
+  const questionIds = storedQuestions.value.filter(stored => !drafts.has(stored.id)).map(stored => stored.id)
+  const options = storedQuestions.value.flatMap(stored => {
+    const draft = drafts.get(stored.id)
+    if (!draft) return []
+    const kept = new Set(optionKeysOf(draft.config))
+    const keys = stored.optionKeys.filter(key => !kept.has(key))
+    return keys.length > 0 ? [{questionId: stored.id, keys}] : []
+  })
+  return {questionIds, options}
 }
 
 const questionTypes = computed<QuestionType[]>(() => QUESTION_TYPES_BY_PURPOSE[purpose.value])
@@ -140,12 +159,12 @@ function addQuestion(type: QuestionType) {
 
 function getDefaultConfig(type: QuestionType): Record<string, unknown> {
   switch (type) {
-    case QuestionTypes.CHOICE: return { multiSelect: false, dropdown: false, allowOther: false, options: [''], multiLimitType: 'NONE', multiLimit: null }
+    case QuestionTypes.CHOICE: return { multiSelect: false, dropdown: false, allowOther: false, options: [blankOption([])], multiLimitType: 'NONE', multiLimit: null }
     case QuestionTypes.TEXT: return { longAnswer: false }
     case QuestionTypes.RATING: return { scale: 5, icon: 'STAR' }
     case QuestionTypes.DATE: return {}
-    case QuestionTypes.RANKING: return { options: [''] }
-    case QuestionTypes.LIKERT: return { statements: [''], scaleMin: 1, scaleMax: 5, scaleLabels: [] }
+    case QuestionTypes.RANKING: return { options: [blankOption([])] }
+    case QuestionTypes.LIKERT: return { statements: [blankOption([])], scaleMin: 1, scaleMax: 5, scaleLabels: [] }
   }
 }
 
@@ -205,7 +224,7 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
     mode: 'AND',
   }
 
-  storedQuestionIds.value = qs.map(q => q.id)
+  remember(qs)
   questions.value = qs.map(q => ({
     id: storedDraftId(q.id),
     questionType: q.formQuestionType,
@@ -334,7 +353,7 @@ async function saveQuestions(id: number) {
     const draft = questions.value[index]
     if (draft) draft.id = storedDraftId(question.id)
   })
-  storedQuestionIds.value = stored.map(question => question.id)
+  remember(stored)
 }
 
 /**
@@ -347,7 +366,7 @@ const actionFailure = ref<Failure | null>(null)
 async function save() {
   actionFailure.value = null
   try {
-    if (formId.value) await requireAnswerLossConsent(formId.value, removedQuestionIds())
+    if (formId.value) await requireAnswerLossConsent(formId.value, removals())
     const id = await saveForm()
     await saveQuestions(id)
     await limits.flush()
@@ -423,7 +442,7 @@ async function save() {
     </div>
 
     <ConfirmDeleteModal v-model="askingAboutAnswerLoss"
-        :message="t('forms.removedQuestionsLoseAnswers', {count: lostAnswers})"
+        :message="answerLossMessage"
         :confirm-label="t('forms.saveAndDeleteAnswers')"
         @confirm="acceptAnswerLoss"/>
   </ViewContent>

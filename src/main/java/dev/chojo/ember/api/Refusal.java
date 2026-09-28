@@ -2334,6 +2334,16 @@ public enum Refusal {
     NOT_A_MEMBER_READING_ANSWER_FOR_MEMBER(
             Area.FORMS, 52, HttpStatus.BAD_REQUEST, "You are not a member of this station"),
 
+    /**
+     * Saving a question whose options or statements do not each carry a key of their own. Answers
+     * name an option by its key, so an option without one, or two sharing one, cannot be told apart.
+     */
+    QUESTION_OPTION_KEYS_NOT_DISTINCT(
+            Area.FORMS,
+            53,
+            HttpStatus.BAD_REQUEST,
+            "Every option of a question needs a key of its own, so nothing was saved"),
+
     /** An invite that is used up or past its date. */
     WAITING_LIST_INVITE_NO_LONGER_VALID(
             Area.WAITING_LISTS, 22, HttpStatus.FORBIDDEN, "This invite can no longer be used"),

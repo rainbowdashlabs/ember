@@ -15,7 +15,9 @@ import QuestionHeader from './QuestionHeader.vue'
 import ChoiceConfigEditor from './ChoiceConfigEditor.vue'
 import RatingConfigEditor from './RatingConfigEditor.vue'
 import LikertConfigEditor from './LikertConfigEditor.vue'
-import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
+import FormOptionsEditor from './FormOptionsEditor.vue'
+import type { FormOption } from '@/api/forms'
+import { optionsOf } from '@/util/formOptions'
 
 const props = defineProps<{
   question: QuestionDraft
@@ -32,7 +34,7 @@ const { t } = useI18n()
 
 const q = props.question
 
-function updateRankingOptions(items: string[]) {
+function updateRankingOptions(items: FormOption[]) {
   q.config.options = items
 }
 </script>
@@ -67,10 +69,10 @@ function updateRankingOptions(items: string[]) {
 
       <RatingConfigEditor v-if="q.questionType === QuestionTypes.RATING" :question="q" />
 
-      <QuestionOptionsEditor v-if="q.questionType === QuestionTypes.RANKING"
-                             :add-label="t('forms.ranking.addOption')" :label="t('forms.ranking.options')"
-                             :model-value="(q.config.options as string[])"
-                             @update:model-value="updateRankingOptions"/>
+      <FormOptionsEditor v-if="q.questionType === QuestionTypes.RANKING"
+                         :add-label="t('forms.ranking.addOption')" :label="t('forms.ranking.options')"
+                         :model-value="optionsOf(q.config)"
+                         @update:model-value="updateRankingOptions"/>
 
       <LikertConfigEditor v-if="q.questionType === QuestionTypes.LIKERT" :question="q" />
     </div>

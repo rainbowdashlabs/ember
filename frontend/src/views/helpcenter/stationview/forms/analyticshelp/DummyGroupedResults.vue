@@ -13,6 +13,7 @@ import {QuestionTypes, ResultDimension, type FormQuestionInfo, type FormResultGr
 import type {MemberGroup, UserTag} from '@/api/types'
 import {darkThemeActive} from '@/util/themeState'
 import {seriesColor} from '@/util/seriesPalette'
+import {numberedOptions} from '@/util/formOptions'
 
 /**
  * The results view's filter bar and grouped charts with example answers: the youth group compared
@@ -34,15 +35,15 @@ const questions = computed<FormQuestionInfo[]>(() => [{
   questionId: 1,
   questionType: QuestionTypes.CHOICE,
   title: t('helpCenter.formsAnalytics.dummyQuestion'),
-  config: {options: [
+  config: {options: numberedOptions(
     t('helpCenter.formsAnalytics.dummyOptionDrills'),
     t('helpCenter.formsAnalytics.dummyOptionCommunity'),
     t('helpCenter.formsAnalytics.dummyOptionTrips'),
-  ]},
+  )},
 }])
 const results = computed<FormResultGroup[]>(() => [
-  {key: '1', label: t('helpCenter.formsAnalytics.dummyGroupYouth'), responseCount: 8, tallies: [{questionId: 1, answerCount: 8, optionCounts: [2, 3, 5], otherCount: 0}]},
-  {key: '2', label: t('helpCenter.formsAnalytics.dummyGroupActive'), responseCount: 12, tallies: [{questionId: 1, answerCount: 12, optionCounts: [9, 4, 1], otherCount: 0}]},
+  {key: '1', label: t('helpCenter.formsAnalytics.dummyGroupYouth'), responseCount: 8, tallies: [{questionId: 1, answerCount: 8, optionCounts: {o0: 2, o1: 3, o2: 5}, otherCount: 0}]},
+  {key: '2', label: t('helpCenter.formsAnalytics.dummyGroupActive'), responseCount: 12, tallies: [{questionId: 1, answerCount: 12, optionCounts: {o0: 9, o1: 4, o2: 1}, otherCount: 0}]},
 ])
 const names = computed(() => results.value.map(group => group.label))
 const series = computed(() => results.value.map((group, slot) => ({

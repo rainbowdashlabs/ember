@@ -854,6 +854,7 @@ export default {
     'F-050': 'Eine Frage, die es schon gibt, behält ihre Art, es wurde nichts gespeichert',
     'F-051': 'Dieses Formular wurde bereits beantwortet, es wurde nichts gespeichert',
     'F-052': 'Du bist kein Mitglied dieser Wache',
+    'F-053': 'Jede Option einer Frage braucht einen eigenen Schlüssel, es wurde nichts gespeichert',
 
     'W-022': 'Diese Einladung lässt sich nicht mehr verwenden',
     'W-023': 'Eine Einladung und ein Vorname werden gebraucht, es wurde nichts gespeichert',

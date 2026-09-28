@@ -26,7 +26,7 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'update-text', question: PublicFormQuestion, text: string): void
   (e: 'update-date', question: PublicFormQuestion, date: string): void
-  (e: 'toggle-choice', question: PublicFormQuestion, optionIndex: number): void
+  (e: 'toggle-choice', question: PublicFormQuestion, optionKey: string): void
   (e: 'submit'): void
 }>()
 
@@ -53,7 +53,7 @@ const tosVersion = defineModel<string>('tosVersion', {required: true})
           :answer="answers[q.id] ?? {}"
           @update:text="(v: string) => emit('update-text', q, v)"
           @update:date="(v: string) => emit('update-date', q, v)"
-          @toggle-choice="(oi: number) => emit('toggle-choice', q, oi)"/>
+          @toggle-choice="(key: string) => emit('toggle-choice', q, key)"/>
     </div>
 
     <NeutralContainer>

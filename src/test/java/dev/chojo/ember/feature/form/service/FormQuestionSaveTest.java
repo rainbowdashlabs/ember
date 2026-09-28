@@ -160,9 +160,9 @@ class FormQuestionSaveTest extends RepositoryTestBase {
 
         assertEquals(
                 List.of(
-                        new QuestionAnswerCount(form.first().id(), 1),
-                        new QuestionAnswerCount(form.second().id(), 1),
-                        new QuestionAnswerCount(third.id(), 0)),
+                        new QuestionAnswerCount(form.first().id(), 1, Map.of()),
+                        new QuestionAnswerCount(form.second().id(), 1, Map.of()),
+                        new QuestionAnswerCount(third.id(), 0, Map.of())),
                 service.countAnswersPerQuestion(form.id()));
     }
 

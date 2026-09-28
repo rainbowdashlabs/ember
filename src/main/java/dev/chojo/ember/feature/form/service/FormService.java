@@ -44,6 +44,9 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -480,13 +483,29 @@ public class FormService {
     }
 
     /**
-     * How many answers each question of a form holds, so an editor can say what removing one costs.
+     * How many answers each question of a form holds, and how many of them name each of its options,
+     * so an editor can say what removing a question or an option costs.
      *
      * @param formId the form ID
      * @return one count per question, in the order the questions are asked
      */
     public List<QuestionAnswerCount> countAnswersPerQuestion(int formId) {
-        return repository.countAnswersPerQuestion(formId);
+        var answersByQuestion = repository.findAllAnswersForForm(formId).stream()
+                .collect(Collectors.groupingBy(FormAnswer::questionId));
+        return repository.findQuestions(formId).stream()
+                .map(question -> countAnswers(question, answersByQuestion.getOrDefault(question.id(), List.of())))
+                .toList();
+    }
+
+    private static QuestionAnswerCount countAnswers(FormQuestion question, List<FormAnswer> answers) {
+        var perOption = new LinkedHashMap<String, Integer>();
+        for (var key : question.config().optionKeys()) perOption.put(key, 0);
+        for (var answer : answers) {
+            var value = FormAnswerValue.parse(question.formQuestionType(), answer.value());
+            if (value == null) continue;
+            for (var key : value.optionKeys()) perOption.computeIfPresent(key, (k, count) -> count + 1);
+        }
+        return new QuestionAnswerCount(question.id(), answers.size(), perOption);
     }
 
     /**
@@ -502,38 +521,71 @@ public class FormService {
      * Replacing a question by one of another type is removing the one and adding the other, which is
      * what the editor does.
      *
+     * <p>Answers name options by key, so reordering and relabelling options leaves them as they are.
+     * An option the editor removed takes its selections with it: a choice drops it from what was
+     * picked and goes altogether where nothing and no "other" text is left, a ranking drops it from
+     * the order, and a Likert grid drops the rating of that statement.
+     *
      * <p>Everything happens in one transaction, and a refused question leaves the form as it was.
      *
      * @param formId    the form ID
      * @param questions the questions the form is to have
-     * @throws dev.chojo.ember.api.RefusalResponse where an id is not one of this form's questions, or an
-     *                                             existing question is sent with another type
+     * @throws dev.chojo.ember.api.RefusalResponse where an id is not one of this form's questions, an
+     *                                             existing question is sent with another type, or the
+     *                                             options of a question do not each carry a key of
+     *                                             their own
      */
     public void saveQuestions(int formId, List<QuestionEntry> questions) {
         Transactions.run(() -> {
             var stored = repository.findQuestions(formId).stream()
-                    .collect(Collectors.toMap(FormQuestion::id, FormQuestion::formQuestionType));
+                    .collect(Collectors.toMap(FormQuestion::id, question -> question));
             requireOwnQuestionsOfUnchangedType(stored, questions);
+            requireDistinctOptionKeys(questions);
             var kept = questions.stream()
                     .map(QuestionEntry::id)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toSet());
             stored.keySet().stream().filter(id -> !kept.contains(id)).forEach(repository::deleteQuestion);
             for (int position = 0; position < questions.size(); position++) {
-                writeQuestion(formId, position, questions.get(position));
+                var question = questions.get(position);
+                writeQuestion(formId, position, question);
+                if (question.id() != null) dropRemovedOptions(stored.get(question.id()), question.config());
             }
         });
         log.info("Saved questions on form {} ({} questions)", formId, questions.size());
     }
 
     private static void requireOwnQuestionsOfUnchangedType(
-            Map<Integer, FormQuestionType> stored, List<QuestionEntry> questions) {
+            Map<Integer, FormQuestion> stored, List<QuestionEntry> questions) {
         for (var question : questions) {
             if (question.id() == null) continue;
-            var storedType = stored.get(question.id());
-            if (storedType == null) throw Refusal.QUESTION_NOT_ON_THIS_FORM.raise();
-            if (storedType != question.formQuestionType()) throw Refusal.QUESTION_TYPE_NOT_CHANGEABLE.raise();
+            var storedQuestion = stored.get(question.id());
+            if (storedQuestion == null) throw Refusal.QUESTION_NOT_ON_THIS_FORM.raise();
+            if (storedQuestion.formQuestionType() != question.formQuestionType()) {
+                throw Refusal.QUESTION_TYPE_NOT_CHANGEABLE.raise();
+            }
         }
+    }
+
+    private static void requireDistinctOptionKeys(List<QuestionEntry> questions) {
+        for (var question : questions) {
+            if (!question.config().hasDistinctOptionKeys()) throw Refusal.QUESTION_OPTION_KEYS_NOT_DISTINCT.raise();
+        }
+    }
+
+    private void dropRemovedOptions(FormQuestion stored, FormQuestionConfig saved) {
+        var removed = new HashSet<>(stored.config().optionKeys());
+        removed.removeAll(saved.optionKeys());
+        if (removed.isEmpty()) return;
+        for (var answer : repository.findAnswersToQuestion(stored.id())) {
+            var value = FormAnswerValue.parse(stored.formQuestionType(), answer.value());
+            if (value == null || Collections.disjoint(value.optionKeys(), removed)) continue;
+            value.withoutOptions(removed)
+                    .ifPresentOrElse(
+                            left -> repository.updateAnswerValue(answer.id(), left),
+                            () -> repository.deleteAnswer(answer.id()));
+        }
+        log.info("Dropped removed options {} from the answers to question {}", removed, stored.id());
     }
 
     private void writeQuestion(int formId, int position, QuestionEntry q) {

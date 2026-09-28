@@ -649,7 +649,8 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
                 true,
                 false,
                 new FormQuestionConfig.Choice(
-                        List.of("Zeltlager", "Wettkampftag", "Übung mit der Feuerwehr", "Filmabend"),
+                        FormQuestionConfig.Option.numbered(
+                                "Zeltlager", "Wettkampftag", "Übung mit der Feuerwehr", "Filmabend"),
                         false,
                         false,
                         false,

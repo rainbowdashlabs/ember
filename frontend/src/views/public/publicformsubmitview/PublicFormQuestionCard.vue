@@ -12,7 +12,7 @@ import type {PublicFormQuestion} from '@/api/publicForms'
 const emit = defineEmits<{
   (e: 'update:text', text: string): void
   (e: 'update:date', date: string): void
-  (e: 'toggle-choice', optionIndex: number): void
+  (e: 'toggle-choice', optionKey: string): void
 }>()
 
 defineProps<{
@@ -35,7 +35,7 @@ defineProps<{
           :answer="answer"
           @update:text="(v: string) => emit('update:text', v)"
           @update:date="(v: string) => emit('update:date', v)"
-          @toggle-choice="(oi: number) => emit('toggle-choice', oi)"/>
+          @toggle-choice="(key: string) => emit('toggle-choice', key)"/>
     </div>
   </NeutralContainer>
 </template>

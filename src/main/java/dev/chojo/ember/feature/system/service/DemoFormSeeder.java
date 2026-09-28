@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.FormQuestionConfig.Option;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -22,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -32,6 +34,7 @@ import java.util.Random;
 @Singleton
 public class DemoFormSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoFormSeeder.class);
+    private static final int RANKED_OPTIONS = 4;
 
     private final FormRepository formRepository;
     private final RestrictionService restrictionService;
@@ -104,7 +107,7 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 false,
                 true,
                 new FormQuestionConfig.Choice(
-                        List.of("Übungen", "Gemeinschaft", "Ausflüge", "Wettbewerbe"),
+                        Option.numbered("Übungen", "Gemeinschaft", "Ausflüge", "Wettbewerbe"),
                         true,
                         false,
                         true,
@@ -135,7 +138,7 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
             formRepository.upsertAnswer(
                     response.id(),
                     surveyQuestions.get(1).id(),
-                    new FormAnswerValue.Choice(List.of(selected[0], selected[1]), ""));
+                    new FormAnswerValue.Choice(List.of(key(selected[0]), key(selected[1])), ""));
             formRepository.upsertAnswer(
                     response.id(),
                     surveyQuestions.get(2).id(),
@@ -160,7 +163,7 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 "",
                 false,
                 true,
-                new FormQuestionConfig.Ranking(List.of("Übungen", "Wettbewerbe", "Ausflüge", "Theorie")));
+                new FormQuestionConfig.Ranking(Option.numbered("Übungen", "Wettbewerbe", "Ausflüge", "Theorie")));
         formRepository.createQuestion(
                 survey.id(),
                 5,
@@ -169,7 +172,8 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 "",
                 false,
                 false,
-                new FormQuestionConfig.Likert(List.of("Ausrüstung", "Betreuung", "Abwechslung"), 1, 5, List.of()));
+                new FormQuestionConfig.Likert(
+                        Option.numbered("Ausrüstung", "Betreuung", "Abwechslung"), 1, 5, List.of()));
 
         // Re-fetch questions after adding more
         surveyQuestions = formRepository.findQuestions(survey.id());
@@ -185,12 +189,12 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
             formRepository.upsertAnswer(
                     existingResponse.id(),
                     surveyQuestions.get(4).id(),
-                    new FormAnswerValue.Ranking(List.of(rankOrder[0], rankOrder[1], rankOrder[2], rankOrder[3])));
+                    new FormAnswerValue.Ranking(fullRanking(rankOrder)));
             formRepository.upsertAnswer(
                     existingResponse.id(),
                     surveyQuestions.get(5).id(),
                     new FormAnswerValue.Likert(
-                            Map.of("0", 3 + rng.nextInt(3), "1", 3 + rng.nextInt(3), "2", 2 + rng.nextInt(4))));
+                            Map.of("o0", 3 + rng.nextInt(3), "o1", 3 + rng.nextInt(3), "o2", 2 + rng.nextInt(4))));
         }
 
         // Form 2: CLOSED comprehensive form with ALL types + responses
@@ -215,7 +219,7 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 true,
                 false,
                 new FormQuestionConfig.Choice(
-                        List.of("Ja", "Vielleicht", "Nein"),
+                        Option.numbered("Ja", "Vielleicht", "Nein"),
                         false,
                         false,
                         false,
@@ -256,7 +260,7 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 "",
                 false,
                 true,
-                new FormQuestionConfig.Ranking(List.of("Teamwork", "Technik", "Fitness", "Spaß")));
+                new FormQuestionConfig.Ranking(Option.numbered("Teamwork", "Technik", "Fitness", "Spaß")));
         formRepository.createQuestion(
                 feedback.id(),
                 5,
@@ -266,7 +270,7 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 true,
                 false,
                 new FormQuestionConfig.Likert(
-                        List.of("Organisation", "Lerninhalte", "Spaßfaktor", "Zeitdauer"), 1, 5, List.of()));
+                        Option.numbered("Organisation", "Lerninhalte", "Spaßfaktor", "Zeitdauer"), 1, 5, List.of()));
 
         var feedbackQuestions = formRepository.findQuestions(feedback.id());
         String[] feedbackTexts = {
@@ -277,7 +281,9 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
             var response = formRepository.createResponse(feedback.id(), member.id(), member.id());
             int choiceIdx = rng.nextInt(3);
             formRepository.upsertAnswer(
-                    response.id(), feedbackQuestions.get(0).id(), new FormAnswerValue.Choice(List.of(choiceIdx), ""));
+                    response.id(),
+                    feedbackQuestions.get(0).id(),
+                    new FormAnswerValue.Choice(List.of(key(choiceIdx)), ""));
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(1).id(),
@@ -288,20 +294,18 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                     response.id(), feedbackQuestions.get(3).id(), new FormAnswerValue.DateValue("2026-05-10"));
             int[] order = {rng.nextInt(4), (1 + rng.nextInt(3)) % 4, 2, 3};
             formRepository.upsertAnswer(
-                    response.id(),
-                    feedbackQuestions.get(4).id(),
-                    new FormAnswerValue.Ranking(List.of(order[0], order[1], order[2], order[3])));
+                    response.id(), feedbackQuestions.get(4).id(), new FormAnswerValue.Ranking(fullRanking(order)));
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(5).id(),
                     new FormAnswerValue.Likert(Map.of(
-                            "0",
+                            "o0",
                             3 + rng.nextInt(3),
-                            "1",
+                            "o1",
                             2 + rng.nextInt(4),
-                            "2",
+                            "o2",
                             4 + rng.nextInt(2),
-                            "3",
+                            "o3",
                             2 + rng.nextInt(3))));
         }
         formRepository.updateStatus(feedback.id(), Form.FormStatus.CLOSED);
@@ -346,7 +350,7 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 true,
                 false,
                 new FormQuestionConfig.Choice(
-                        List.of("Ja, unbedingt", "Nein, lieber nicht", "Vielleicht"),
+                        Option.numbered("Ja, unbedingt", "Nein, lieber nicht", "Vielleicht"),
                         false,
                         false,
                         false,
@@ -388,7 +392,7 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 false,
                 false,
                 new FormQuestionConfig.Choice(
-                        List.of("Ja", "Nein", "Vielleicht"),
+                        Option.numbered("Ja", "Nein", "Vielleicht"),
                         false,
                         false,
                         false,
@@ -431,7 +435,7 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 true,
                 false,
                 new FormQuestionConfig.Choice(
-                        List.of("Löschangriff", "Staffellauf", "Knotenkunde", "Erste Hilfe"),
+                        Option.numbered("Löschangriff", "Staffellauf", "Knotenkunde", "Erste Hilfe"),
                         true,
                         false,
                         true,
@@ -464,7 +468,8 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 true,
                 false,
                 new FormQuestionConfig.Likert(
-                        List.of("Ich verstehe die Übungen", "Ich fühle mich willkommen", "Ich lerne viel Neues"),
+                        Option.numbered(
+                                "Ich verstehe die Übungen", "Ich fühle mich willkommen", "Ich lerne viel Neues"),
                         1,
                         5,
                         List.of()));
@@ -506,7 +511,7 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 true,
                 false,
                 new FormQuestionConfig.Choice(
-                        List.of("Rot", "Blau", "Grün", "Gelb", "Lila"),
+                        Option.numbered("Rot", "Blau", "Grün", "Gelb", "Lila"),
                         false,
                         false,
                         false,
@@ -523,7 +528,7 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 false,
                 true,
                 new FormQuestionConfig.Choice(
-                        List.of("Sport", "Musik", "Lesen", "Gaming", "Kochen", "Basteln"),
+                        Option.numbered("Sport", "Musik", "Lesen", "Gaming", "Kochen", "Basteln"),
                         true,
                         false,
                         true,
@@ -594,7 +599,7 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 "Ziehe die Einträge in die richtige Reihenfolge.",
                 true,
                 true,
-                new FormQuestionConfig.Ranking(List.of("Frühling", "Sommer", "Herbst", "Winter")));
+                new FormQuestionConfig.Ranking(Option.numbered("Frühling", "Sommer", "Herbst", "Winter")));
 
         // 9. LIKERT
         formRepository.createQuestion(
@@ -606,12 +611,29 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 true,
                 false,
                 new FormQuestionConfig.Likert(
-                        List.of("Ich bin gerne draußen", "Ich arbeite gerne im Team", "Ich probiere gerne Neues aus"),
+                        Option.numbered(
+                                "Ich bin gerne draußen", "Ich arbeite gerne im Team", "Ich probiere gerne Neues aus"),
                         1,
                         5,
                         List.of("stimme nicht zu", "", "", "", "stimme zu")));
 
         log.info(
                 "Demo: Created 7 forms (open all types, closed all types, member-only, member+manager, tag-restricted, group-restricted, showcase)");
+    }
+
+    /** The key {@link Option#numbered} gives the option at this position. */
+    private static String key(int position) {
+        return "o" + position;
+    }
+
+    /**
+     * A ranking of the four options that starts with the given positions, each once, and ranks those
+     * the positions left out after them, so a drawn order is always a complete one.
+     */
+    private static List<String> fullRanking(int[] positions) {
+        var ranked = new LinkedHashSet<String>();
+        for (int position : positions) ranked.add(key(position));
+        for (int position = 0; position < RANKED_OPTIONS; position++) ranked.add(key(position));
+        return List.copyOf(ranked);
     }
 }

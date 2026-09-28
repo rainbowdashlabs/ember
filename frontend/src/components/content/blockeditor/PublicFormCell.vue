@@ -99,7 +99,7 @@ const unreachable = computed(() => !loadFailure.value || loadFailure.value.kind 
                         :answer="answers[q.id]"
                         @update:text="(v: string) => updateText(q, v)"
                         @update:date="(v: string) => updateDate(q, v)"
-                        @toggle-choice="(oi: number) => toggleChoice(q, oi)"/>
+                        @toggle-choice="(key: string) => toggleChoice(q, key)"/>
                 </div>
 
                 <PublicConsentCheckbox

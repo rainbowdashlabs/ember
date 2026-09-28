@@ -6,7 +6,9 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import NumberInput from '@/components/input/number/NumberInput.vue'
-import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
+import FormOptionsEditor from './FormOptionsEditor.vue'
+import type { FormOption } from '@/api/forms'
+import { optionsOf } from '@/util/formOptions'
 import type { QuestionDraft } from './types'
 
 const props = defineProps<{
@@ -15,7 +17,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-function updateStatements(items: string[]) {
+function updateStatements(items: FormOption[]) {
   props.question.config.statements = items
 }
 </script>
@@ -27,7 +29,7 @@ function updateStatements(items: string[]) {
     <label class="text-sm">{{ t('forms.likert.scaleMax') }}</label>
     <NumberInput v-model="(question.config.scaleMax as number)" class="w-20" />
   </div>
-  <QuestionOptionsEditor :add-label="t('forms.likert.addStatement')" :label="t('forms.likert.statements')"
-                         :model-value="(question.config.statements as string[])"
-                         @update:model-value="updateStatements"/>
+  <FormOptionsEditor :add-label="t('forms.likert.addStatement')" :label="t('forms.likert.statements')"
+                     :model-value="optionsOf(question.config, 'statements')"
+                     @update:model-value="updateStatements"/>
 </template>

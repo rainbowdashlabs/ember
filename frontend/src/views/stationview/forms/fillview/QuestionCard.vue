@@ -7,7 +7,7 @@
 import { computed } from 'vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {QuestionTypes, type FormQuestion} from '@/api/forms'
+import {QuestionTypes, type ChoiceAnswer, type FormQuestion, type LikertAnswer, type RankingAnswer} from '@/api/forms'
 import ChoiceQuestion from './ChoiceQuestion.vue'
 import TextQuestion from './TextQuestion.vue'
 import RatingQuestion from '@/components/forms/fill/RatingQuestion.vue'
@@ -39,7 +39,7 @@ const config = computed(() => parseConfig(props.question.config))
       </div>
 
       <ChoiceQuestion v-if="question.formQuestionType === QuestionTypes.CHOICE"
-                      v-model="(answer as { selected: number[]; other: string })"
+                      v-model="(answer as ChoiceAnswer)"
                       :config="config" />
       <TextQuestion v-else-if="question.formQuestionType === QuestionTypes.TEXT"
                     v-model="(answer as { text: string })"
@@ -50,10 +50,10 @@ const config = computed(() => parseConfig(props.question.config))
       <DateQuestion v-else-if="question.formQuestionType === QuestionTypes.DATE"
                     v-model="(answer as { date: string })" />
       <RankingQuestion v-else-if="question.formQuestionType === QuestionTypes.RANKING"
-                       v-model="(answer as { order: number[] })"
+                       v-model="(answer as RankingAnswer)"
                        :config="config" />
       <LikertQuestion v-else-if="question.formQuestionType === QuestionTypes.LIKERT"
-                      v-model="(answer as { ratings: Record<string, number> })"
+                      v-model="(answer as LikertAnswer)"
                       :config="config" />
     </div>
   </NeutralContainer>

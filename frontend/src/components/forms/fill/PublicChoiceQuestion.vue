@@ -6,35 +6,33 @@
 <script setup lang="ts">
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import type {PublicFormQuestion} from '@/api/publicForms'
-
-interface ChoiceAnswer {
-  selected: number[]
-  other: string
-}
+import type {ChoiceAnswer, FormOption} from '@/api/forms'
+import {optionsOf} from '@/util/formOptions'
 
 const props = defineProps<{
   question: PublicFormQuestion
   answer: ChoiceAnswer
 }>()
 
+/** Reports the key of the option picked, or an empty key where the dropdown was cleared. */
 const emit = defineEmits<{
-  (e: 'toggle', optionIndex: number): void
+  (e: 'toggle', optionKey: string): void
 }>()
 
-function options(): string[] {
-  return (props.question.config.options as string[]) ?? []
+function options(): FormOption[] {
+  return optionsOf(props.question.config)
 }
 
-function isSelected(optionIndex: number): boolean {
-  return props.answer?.selected?.includes(optionIndex) ?? false
+function isSelected(optionKey: string): boolean {
+  return props.answer?.selected?.includes(optionKey) ?? false
 }
 
 function onSelectChange(v: string | number | null | undefined) {
-  emit('toggle', Number(v))
+  emit('toggle', String(v ?? ''))
 }
 
-function onOptionClick(optionIndex: number) {
-  emit('toggle', optionIndex)
+function onOptionClick(optionKey: string) {
+  emit('toggle', optionKey)
 }
 </script>
 
@@ -42,29 +40,29 @@ function onOptionClick(optionIndex: number) {
   <div class="space-y-1">
     <template v-if="question.config.dropdown">
       <SelectInput
-          :model-value="String(answer?.selected?.[0] ?? '')"
+          :model-value="answer?.selected?.[0] ?? ''"
           @update:model-value="onSelectChange">
         <option value="">--</option>
-        <option v-for="(opt, oi) in options()" :key="oi" :value="oi">
-          {{ opt }}
+        <option v-for="opt in options()" :key="opt.key" :value="opt.key">
+          {{ opt.label }}
         </option>
       </SelectInput>
     </template>
     <template v-else>
-      <div v-for="(opt, oi) in options()"
-           :key="oi"
+      <div v-for="opt in options()"
+           :key="opt.key"
            class="flex cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all"
-           :class="isSelected(oi)
+           :class="isSelected(opt.key)
              ? 'border-primary bg-primary/10 text-primary'
              : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text) hover:border-primary/50'"
-           @click="onOptionClick(oi)">
+           @click="onOptionClick(opt.key)">
         <font-awesome-icon
-            :icon="['fas', isSelected(oi)
+            :icon="['fas', isSelected(opt.key)
               ? (question.config.multiSelect ? 'square-check' : 'circle-dot')
               : (question.config.multiSelect ? 'square' : 'circle')]"
-            :class="isSelected(oi) ? 'text-primary' : 'text-(--text-muted)'"
+            :class="isSelected(opt.key) ? 'text-primary' : 'text-(--text-muted)'"
             class="shrink-0"/>
-        <span>{{ opt }}</span>
+        <span>{{ opt.label }}</span>
       </div>
     </template>
   </div>

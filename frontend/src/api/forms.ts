@@ -77,6 +77,35 @@ export type MultiLimitType = 'NONE' | 'EXACTLY' | 'AT_MOST' | 'AT_LEAST'
 
 export type RatingIcon = 'STAR' | 'NUMBER' | 'HEART' | 'THUMB_UP'
 
+/**
+ * One option of a choice or ranking question, or one statement of a Likert grid. Answers name it by
+ * its `key`, which is made when the option is added and never changes; the `label` may change at any
+ * time.
+ */
+export interface FormOption {
+    key: string
+    label: string
+}
+
+/**
+ * A choice answer: the keys of the options picked, and the free "other" text. Answers are typed as
+ * aliases rather than interfaces so an answer held as a plain record can be read as one.
+ */
+export type ChoiceAnswer = {
+    selected: string[]
+    other: string
+}
+
+/** A ranking answer: the option keys from first place to last. */
+export type RankingAnswer = {
+    order: string[]
+}
+
+/** A Likert answer: one rating per statement key. */
+export type LikertAnswer = {
+    ratings: Record<string, number>
+}
+
 export interface Form {
     id: number
     stationId: string
@@ -230,19 +259,19 @@ export interface FormResultGroup {
 }
 
 /**
- * The counted answers to one question. Only the fields of the question's kind are present: option
- * counts and "other" answers for a choice, counts from one star up for a rating, a score per option
- * for a ranking, an average per statement for a Likert grid (null where nobody rated it), and the
- * answers themselves for text and date questions.
+ * The counted answers to one question. Only the fields of the question's kind are present: counts
+ * per option key and "other" answers for a choice, counts from one star up for a rating, a score per
+ * option key for a ranking, an average per statement key for a Likert grid (null where nobody rated
+ * it), and the answers themselves for text and date questions.
  */
 export interface FormQuestionTally {
     questionId: number
     answerCount: number
-    optionCounts?: number[]
+    optionCounts?: Record<string, number>
     otherCount?: number
     ratingCounts?: number[]
-    rankingScores?: number[]
-    statementAverages?: (number | null)[]
+    rankingScores?: Record<string, number>
+    statementAverages?: Record<string, number | null>
     values?: string[]
 }
 
@@ -333,13 +362,20 @@ export async function setQuestions(formId: number, questions: FormQuestionReques
     return res.data
 }
 
-/** How many answers one question of a form holds. */
+/**
+ * How many answers one question of a form holds, and per option key how many of them pick, rank or
+ * rate that option.
+ */
 export interface QuestionAnswerCount {
     questionId: number
     answers: number
+    optionAnswers: Record<string, number>
 }
 
-/** How many answers each question of a form holds, which is what removing one would throw away. */
+/**
+ * How many answers each question of a form holds and how many name each option, which is what
+ * removing a question or an option would throw away.
+ */
 export async function getQuestionAnswerCounts(formId: number): Promise<QuestionAnswerCount[]> {
     const res = await client.get<QuestionAnswerCount[]>(`/forms/${formId}/questions/answer-counts`)
     return res.data

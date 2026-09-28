@@ -7,7 +7,8 @@ import { computed, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { publicForms } from '@/api'
 import { PublicFormState, type PublicForm, type PublicFormQuestion } from '@/api/publicForms'
-import { QuestionTypes } from '@/api/forms'
+import { QuestionTypes, type ChoiceAnswer } from '@/api/forms'
+import { optionsOf } from '@/util/formOptions'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 
@@ -59,12 +60,12 @@ export function usePublicFormSubmission(
   function initAnswerDefaults(questions: PublicFormQuestion[]) {
     const defaults: Record<number, Record<string, unknown>> = {}
     for (const q of questions) {
-      if (q.questionType === QuestionTypes.CHOICE) defaults[q.id] = {selected: [] as number[], other: ''}
+      if (q.questionType === QuestionTypes.CHOICE) defaults[q.id] = {selected: [] as string[], other: ''}
       else if (q.questionType === QuestionTypes.TEXT) defaults[q.id] = {text: ''}
       else if (q.questionType === QuestionTypes.DATE) defaults[q.id] = {date: ''}
       else if (q.questionType === QuestionTypes.RATING) defaults[q.id] = {rating: 0}
       else if (q.questionType === QuestionTypes.RANKING) {
-        defaults[q.id] = {order: ((q.config.options as string[]) ?? []).map((_, i) => i)}
+        defaults[q.id] = {order: optionsOf(q.config).map(option => option.key)}
       } else if (q.questionType === QuestionTypes.LIKERT) defaults[q.id] = {ratings: {}}
       else defaults[q.id] = {}
     }
@@ -124,19 +125,24 @@ export function usePublicFormSubmission(
   }
 
   /**
-   * Selects an option. A single-select question also clears the free-text "other" answer, since
-   * picking a listed option replaces it.
+   * Selects the option with this key. A single-select question also clears the free-text "other"
+   * answer, since picking a listed option replaces it; an empty key, which the dropdown's blank entry
+   * sends, clears the choice.
    */
-  function toggleChoice(q: PublicFormQuestion, optionIndex: number) {
-    const answer = answers.value[q.id] as {selected: number[]; other: string}
+  function toggleChoice(q: PublicFormQuestion, optionKey: string) {
+    const answer = answers.value[q.id] as ChoiceAnswer
+    if (!optionKey) {
+      answer.selected = []
+      return
+    }
     if (!q.config.multiSelect) {
-      answer.selected = [optionIndex]
+      answer.selected = [optionKey]
       answer.other = ''
       return
     }
-    const existing = answer.selected.indexOf(optionIndex)
+    const existing = answer.selected.indexOf(optionKey)
     if (existing >= 0) answer.selected.splice(existing, 1)
-    else answer.selected.push(optionIndex)
+    else answer.selected.push(optionKey)
   }
 
   function updateText(q: PublicFormQuestion, text: string) {

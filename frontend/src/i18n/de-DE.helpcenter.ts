@@ -2292,7 +2292,7 @@ volumes:
             addQuestionsText: 'Klicke auf einen der Buttons unten, um eine neue Frage des jeweiligen Typs hinzuzufügen. Du kannst beliebig viele Fragen kombinieren.',
             typesTitle: 'Fragetypen im Detail',
             typesIntro: 'Jeder Fragetyp hat eigene Einstellungen. Hier erfährst du, was die einzelnen Typen können:',
-            typeChoiceText: 'Die Auswahl-Frage zeigt eine Liste von Antwortmöglichkeiten. Die Mitglieder wählen eine oder mehrere Optionen aus. Die Antwortmöglichkeiten trägst du einzeln ein, eine pro Zeile; mit den Pfeilen änderst du ihre Reihenfolge.',
+            typeChoiceText: 'Die Auswahl-Frage zeigt eine Liste von Antwortmöglichkeiten. Die Mitglieder wählen eine oder mehrere Optionen aus. Die Antwortmöglichkeiten trägst du einzeln ein, eine pro Zeile; mit den Pfeilen änderst du ihre Reihenfolge. Umsortieren und Umbenennen ändert nichts an Antworten, die schon gegeben wurden. Entfernst du eine Option, die schon jemand gewählt hat, fragt Ember beim Speichern vorher nach.',
             typeChoiceMulti: 'Mehrfachauswahl - Erlaubt das Ankreuzen mehrerer Optionen statt nur einer.',
             typeChoiceDropdown: 'Dropdown - Zeigt die Optionen als Aufklappmenü statt als Liste. Nur für Einzelauswahl.',
             typeChoiceOther: 'Sonstige Option - Fügt ein Textfeld hinzu, in das Mitglieder eine eigene Antwort schreiben können.',
