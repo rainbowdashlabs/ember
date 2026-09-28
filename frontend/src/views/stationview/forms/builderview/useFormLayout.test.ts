@@ -66,6 +66,38 @@ describe('useFormLayout', () => {
         expect(layout.reachable.value.has('c')).toBe(true)
     })
 
+    it('lets one question of a page decide where it leads and saves only the options it has', () => {
+        const layout = useFormLayout()
+        layout.load(stored())
+        layout.addQuestion(0, 'CHOICE')
+        const choice = layout.pages.value[0]!.questions[1]!
+        const option = (choice.config.options as {key: string}[])[0]!.key
+
+        layout.setDeciding(0, choice.id)
+        choice.branch![option] = {kind: 'PAGE', page: 'b'}
+        choice.branch!.gone = {kind: 'SUBMIT'}
+
+        const saved = layout.toRequest().questions.find(question => question.id === undefined)
+        expect(saved?.branch).toEqual({[option]: {kind: 'PAGE', page: 'b'}})
+        expect(layout.reachable.value.has('b')).toBe(true)
+
+        layout.setDeciding(0, null)
+        expect(choice.branch).toBeNull()
+    })
+
+    it('drops an answer\'s target that no longer leads further down', () => {
+        const layout = useFormLayout()
+        layout.load(stored())
+        layout.addQuestion(1, 'CHOICE')
+        const choice = layout.pages.value[1]!.questions[1]!
+        layout.setDeciding(1, choice.id)
+        choice.branch!.x = {kind: 'PAGE', page: 'c'}
+
+        layout.movePage(2, -1)
+
+        expect(choice.branch).toEqual({})
+    })
+
     it('moves a question to the end of another page and numbers it there', () => {
         const layout = useFormLayout()
         layout.load(stored())

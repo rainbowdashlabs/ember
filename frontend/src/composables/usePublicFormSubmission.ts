@@ -184,12 +184,17 @@ export function usePublicFormSubmission(
       privacyVersion: privacyVersion.value,
       tosVersion: tosVersion.value,
     }
-    if (shareToken.value) {
-      await publicForms.submitSharedResponse(shareToken.value, payload)
-    } else if (stationUid.value && publicUid.value) {
-      await publicForms.submitPublicResponse(stationUid.value, publicUid.value, payload)
-    } else {
-      return
+    try {
+      if (shareToken.value) {
+        await publicForms.submitSharedResponse(shareToken.value, payload)
+      } else if (stationUid.value && publicUid.value) {
+        await publicForms.submitPublicResponse(stationUid.value, publicUid.value, payload)
+      } else {
+        return
+      }
+    } catch (e) {
+      walk.showRefused(e)
+      throw e
     }
     submitted.value = true
   })

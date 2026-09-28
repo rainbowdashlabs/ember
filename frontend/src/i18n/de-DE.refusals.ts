@@ -858,6 +858,11 @@ export default {
     'F-054': 'Ein Formular braucht mindestens eine Seite und jede Seite einen eigenen Schlüssel, es wurde nichts gespeichert',
     'F-055': 'Eine Seite kann nur zu einer Seite weiter unten führen, es wurde nichts gespeichert',
     'F-056': 'Einige dieser Fragen stehen auf einer Seite, die das Formular nicht hat, es wurde nichts gespeichert',
+    'F-057': 'Nur eine Frage mit einer Antwort aus ihren eigenen Optionen kann die nächste Seite bestimmen, es wurde nichts gespeichert',
+    'F-058': 'Nur eine Frage pro Seite kann die nächste Seite bestimmen, es wurde nichts gespeichert',
+    'F-059': 'Diese Frage muss beantwortet werden',
+    'F-060': 'Diese Antwort passt nicht zur Frage',
+    'F-061': 'Diese Antwort gehört zu einer Frage, die das Formular nicht hat',
 
     'W-022': 'Diese Einladung lässt sich nicht mehr verwenden',
     'W-023': 'Eine Einladung und ein Vorname werden gebraucht, es wurde nichts gespeichert',

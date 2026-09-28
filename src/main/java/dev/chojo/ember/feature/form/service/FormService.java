@@ -46,7 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -578,6 +577,7 @@ public class FormService {
         requireDistinctPageKeys(pages);
         requireForwardTargets(pages);
         requireKnownPages(pages, questions);
+        requireFittingBranches(pages, questions);
         String firstPage = pages.getFirst().key();
         Transactions.run(() -> {
             var stored = repository.findQuestions(formId).stream()
@@ -638,6 +638,33 @@ public class FormService {
         for (int position = 0; position < pages.size(); position++)
             positions.put(pages.get(position).key(), position);
         return positions;
+    }
+
+    /**
+     * Refuses a branch on anything but a single-answer choice question, on options it does not have,
+     * to a page that is not further down than its question's, or on a page that already has one.
+     */
+    private static void requireFittingBranches(List<PageEntry> pages, List<QuestionEntry> questions) {
+        var positions = pagePositions(pages);
+        String firstPage = pages.getFirst().key();
+        var deciding = new HashSet<String>();
+        for (var question : questions) {
+            if (question.branch() == null) continue;
+            String pageKey = question.pageKey() == null ? firstPage : question.pageKey();
+            if (!(question.config() instanceof FormQuestionConfig.Choice choice)
+                    || Boolean.TRUE.equals(choice.multiSelect())
+                    || !choice.optionKeys()
+                            .containsAll(question.branch().targets().keySet())) {
+                throw Refusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE.raise();
+            }
+            if (!deciding.add(pageKey)) throw Refusal.PAGE_BRANCHES_ON_TWO_QUESTIONS.raise();
+            int from = positions.get(pageKey);
+            for (var target : question.branch().targets().values()) {
+                if (!leadsForward(PageTarget.orNext(target), from, positions)) {
+                    throw Refusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN.raise();
+                }
+            }
+        }
     }
 
     private static void requireKnownPages(List<PageEntry> pages, List<QuestionEntry> questions) {
@@ -721,11 +748,20 @@ public class FormService {
                     q.description(),
                     q.required(),
                     q.shuffle(),
-                    q.config());
+                    q.config(),
+                    q.branch());
             return;
         }
         repository.updateQuestion(
-                q.id(), pageId, q.title(), q.description(), q.required(), q.shuffle(), q.config(), position);
+                q.id(),
+                pageId,
+                q.title(),
+                q.description(),
+                q.required(),
+                q.shuffle(),
+                q.config(),
+                q.branch(),
+                position);
     }
 
     // -- Responses --
@@ -789,22 +825,32 @@ public class FormService {
     }
 
     /**
-     * Submits or updates a response for a member, validating all answers against question configs.
+     * Submits or updates a response for a member, walking the form's pages with the answers first.
+     *
+     * <p>The pages the answers lead through are what count: a required question on a page the path
+     * skips is not missing, and an answer to one is dropped. The path is stored with the response.
+     * Saving a response used to only add and change answers, so an edited response that took the
+     * other branch kept the first branch's answers too; every stored answer the new path does not
+     * reach is deleted now, and so is every answer sent empty.
      *
      * @param formId      the form ID
      * @param memberId    the member the response is for
      * @param submittedBy the member who submitted the response (may differ for managed members)
      * @param answers     map of question ID to answer value
      * @return the created or updated response
-     * @throws IllegalArgumentException if any answer fails validation
+     * @throws FormAnswersRefused where an answer is missing, does not fit its question or answers a
+     *                            question the form does not have, one problem per question
      */
     public FormResponse submitResponse(
             int formId, int memberId, int submittedBy, Map<Integer, FormAnswerValue> answers) {
-        validateAnswers(formId, answers);
-        var response = repository.createResponse(formId, memberId, submittedBy);
-        for (var entry : answers.entrySet()) {
-            repository.upsertAnswer(response.id(), entry.getKey(), entry.getValue());
-        }
+        var walk = walked(formId, answers);
+        var response = Transactions.call(() -> {
+            var saved = repository.updateResponsePath(
+                    repository.createResponse(formId, memberId, submittedBy).id(), walk.path());
+            walk.answers().forEach((questionId, value) -> repository.upsertAnswer(saved.id(), questionId, value));
+            repository.deleteAnswersExcept(saved.id(), walk.answers().keySet());
+            return saved;
+        });
         log.info(
                 "Submitted form response {} for form {} (member {}, submittedBy {})",
                 response.id(),
@@ -823,16 +869,16 @@ public class FormService {
      * @param answers       map of question ID to answer value
      * @param consent       proof that the submitter accepted privacy / ToS / consent
      * @return the created response
-     * @throws IllegalArgumentException if any answer fails validation
-     * @throws IllegalStateException    if the visitor already submitted a POLL response
+     * @throws FormAnswersRefused where the answers are refused, as {@link #submitResponse} describes
      */
     public FormResponse submitAnonymousResponse(
             int formId, byte[] submitterHash, Map<Integer, FormAnswerValue> answers, ConsentProof consent) {
-        validateAnswers(formId, answers);
-        var response = repository.createAnonymousResponse(formId, submitterHash, consent);
-        for (var entry : answers.entrySet()) {
-            repository.upsertAnswer(response.id(), entry.getKey(), entry.getValue());
-        }
+        var walk = walked(formId, answers);
+        var response = Transactions.call(() -> {
+            var saved = repository.createAnonymousResponse(formId, submitterHash, consent, walk.path());
+            walk.answers().forEach((questionId, value) -> repository.upsertAnswer(saved.id(), questionId, value));
+            return saved;
+        });
         log.info("Submitted anonymous form response {} for form {}", response.id(), formId);
         return response;
     }
@@ -890,34 +936,14 @@ public class FormService {
 
     // -- Restrictions --
 
-    private void validateAnswers(int formId, Map<Integer, FormAnswerValue> answers) {
-        var questions = repository.findQuestions(formId);
-        var questionMap = questions.stream().collect(Collectors.toMap(FormQuestion::id, q -> q));
-
-        var errors = new ArrayList<String>();
-
-        for (var question : questions) {
-            var value = answers.get(question.id());
-            if (value == null && question.required()) {
-                errors.add("Question '%s' is required".formatted(question.title()));
-                continue;
-            }
-            if (value == null) continue;
-
-            var validationErrors = question.config().validate(value);
-            if (!validationErrors.isEmpty()) {
-                errors.add("Question '%s': %s".formatted(question.title(), String.join(", ", validationErrors)));
-            }
+    /**
+     * Walks the form with the given answers and refuses them where anything is wrong.
+     */
+    private FormPathWalker.Walk walked(int formId, Map<Integer, FormAnswerValue> answers) {
+        var walk = FormPathWalker.walk(repository.findPages(formId), repository.findQuestions(formId), answers);
+        if (!walk.problems().isEmpty()) {
+            throw new FormAnswersRefused(Refusal.FORM_ANSWER_REFUSED, walk.problems());
         }
-
-        for (var questionId : answers.keySet()) {
-            if (!questionMap.containsKey(questionId)) {
-                errors.add("Answer for unknown question ID: " + questionId);
-            }
-        }
-
-        if (!errors.isEmpty()) {
-            throw new BadRequestResponse(String.join("; ", errors));
-        }
+        return walk;
     }
 }

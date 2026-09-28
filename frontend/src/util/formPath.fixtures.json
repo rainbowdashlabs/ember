@@ -1,0 +1,161 @@
+[
+  {
+    "name": "a form of one page is that page",
+    "pages": [{"key": "p0", "after": {"kind": "NEXT"}}],
+    "questions": [{"id": 1, "pageKey": "p0", "type": "TEXT", "config": {"longAnswer": false}}],
+    "answers": {"1": {"type": "TEXT", "text": "Hallo"}},
+    "path": ["p0"]
+  },
+  {
+    "name": "pages lead on one after another",
+    "pages": [
+      {"key": "p0", "after": {"kind": "NEXT"}},
+      {"key": "p1", "after": {"kind": "NEXT"}},
+      {"key": "p2", "after": {"kind": "NEXT"}}
+    ],
+    "questions": [],
+    "answers": {},
+    "path": ["p0", "p1", "p2"]
+  },
+  {
+    "name": "a page can lead to a chosen page further down",
+    "pages": [
+      {"key": "p0", "after": {"kind": "PAGE", "page": "p2"}},
+      {"key": "p1", "after": {"kind": "NEXT"}},
+      {"key": "p2", "after": {"kind": "NEXT"}}
+    ],
+    "questions": [],
+    "answers": {},
+    "path": ["p0", "p2"]
+  },
+  {
+    "name": "a page can send the form",
+    "pages": [
+      {"key": "p0", "after": {"kind": "SUBMIT"}},
+      {"key": "p1", "after": {"kind": "NEXT"}}
+    ],
+    "questions": [],
+    "answers": {},
+    "path": ["p0"]
+  },
+  {
+    "name": "a page never leads upwards",
+    "pages": [
+      {"key": "p0", "after": {"kind": "NEXT"}},
+      {"key": "p1", "after": {"kind": "PAGE", "page": "p0"}}
+    ],
+    "questions": [],
+    "answers": {},
+    "path": ["p0", "p1"]
+  },
+  {
+    "name": "answered with a, the form goes on to page three",
+    "pages": [
+      {"key": "p0", "after": {"kind": "NEXT"}},
+      {"key": "p1", "after": {"kind": "SUBMIT"}},
+      {"key": "p2", "after": {"kind": "NEXT"}}
+    ],
+    "questions": [
+      {
+        "id": 1, "pageKey": "p0", "type": "CHOICE",
+        "config": {"options": [{"key": "a", "label": "a"}, {"key": "b", "label": "b"}], "multiSelect": false},
+        "branch": {"a": {"kind": "PAGE", "page": "p2"}, "b": {"kind": "PAGE", "page": "p1"}}
+      }
+    ],
+    "answers": {"1": {"type": "CHOICE", "selected": ["a"], "other": ""}},
+    "path": ["p0", "p2"]
+  },
+  {
+    "name": "answered with b, the form goes on to page two",
+    "pages": [
+      {"key": "p0", "after": {"kind": "NEXT"}},
+      {"key": "p1", "after": {"kind": "SUBMIT"}},
+      {"key": "p2", "after": {"kind": "NEXT"}}
+    ],
+    "questions": [
+      {
+        "id": 1, "pageKey": "p0", "type": "CHOICE",
+        "config": {"options": [{"key": "a", "label": "a"}, {"key": "b", "label": "b"}], "multiSelect": false},
+        "branch": {"a": {"kind": "PAGE", "page": "p2"}, "b": {"kind": "PAGE", "page": "p1"}}
+      }
+    ],
+    "answers": {"1": {"type": "CHOICE", "selected": ["b"], "other": ""}},
+    "path": ["p0", "p1"]
+  },
+  {
+    "name": "an option without a target follows the page",
+    "pages": [
+      {"key": "p0", "after": {"kind": "PAGE", "page": "p2"}},
+      {"key": "p1", "after": {"kind": "NEXT"}},
+      {"key": "p2", "after": {"kind": "NEXT"}}
+    ],
+    "questions": [
+      {
+        "id": 1, "pageKey": "p0", "type": "CHOICE",
+        "config": {"options": [{"key": "a", "label": "a"}, {"key": "b", "label": "b"}]},
+        "branch": {"a": {"kind": "PAGE", "page": "p1"}}
+      }
+    ],
+    "answers": {"1": {"type": "CHOICE", "selected": ["b"], "other": ""}},
+    "path": ["p0", "p2"]
+  },
+  {
+    "name": "an unanswered deciding question follows the page",
+    "pages": [
+      {"key": "p0", "after": {"kind": "NEXT"}},
+      {"key": "p1", "after": {"kind": "NEXT"}},
+      {"key": "p2", "after": {"kind": "NEXT"}}
+    ],
+    "questions": [
+      {
+        "id": 1, "pageKey": "p0", "type": "CHOICE",
+        "config": {"options": [{"key": "a", "label": "a"}]},
+        "branch": {"a": {"kind": "PAGE", "page": "p2"}}
+      }
+    ],
+    "answers": {"1": {"type": "CHOICE", "selected": [], "other": ""}},
+    "path": ["p0", "p1", "p2"]
+  },
+  {
+    "name": "an answer can send the form",
+    "pages": [
+      {"key": "p0", "after": {"kind": "NEXT"}},
+      {"key": "p1", "after": {"kind": "NEXT"}}
+    ],
+    "questions": [
+      {
+        "id": 1, "pageKey": "p0", "type": "CHOICE",
+        "config": {"options": [{"key": "no", "label": "Nein"}, {"key": "yes", "label": "Ja"}]},
+        "branch": {"no": {"kind": "SUBMIT"}}
+      }
+    ],
+    "answers": {"1": {"type": "CHOICE", "selected": ["no"], "other": ""}},
+    "path": ["p0"]
+  },
+  {
+    "name": "branches on later pages decide as well",
+    "pages": [
+      {"key": "start", "after": {"kind": "NEXT"}},
+      {"key": "adult", "after": {"kind": "PAGE", "page": "end"}},
+      {"key": "child", "after": {"kind": "NEXT"}},
+      {"key": "end", "after": {"kind": "NEXT"}}
+    ],
+    "questions": [
+      {
+        "id": 1, "pageKey": "start", "type": "CHOICE",
+        "config": {"options": [{"key": "adult", "label": "Erwachsen"}, {"key": "child", "label": "Kind"}]},
+        "branch": {"child": {"kind": "PAGE", "page": "child"}}
+      },
+      {
+        "id": 2, "pageKey": "child", "type": "CHOICE",
+        "config": {"options": [{"key": "stay", "label": "Bleibt"}, {"key": "go", "label": "Geht"}]},
+        "branch": {"go": {"kind": "SUBMIT"}}
+      }
+    ],
+    "answers": {
+      "1": {"type": "CHOICE", "selected": ["child"], "other": ""},
+      "2": {"type": "CHOICE", "selected": ["stay"], "other": ""}
+    },
+    "path": ["start", "child", "end"]
+  }
+]

@@ -5,13 +5,12 @@
  */
 import {computed, ref, watch, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {followingPage, longestFrom, type PathPage} from '@/util/formPath'
+import {followingPage, longestFrom, type PathPage, type PathQuestion} from '@/util/formPath'
 import {isEmptyAnswer, type AnswerValue} from '@/util/formAnswers'
+import {answerProblemsOf, placeProblems} from '@/util/answerProblems'
 
-/** A question as the walk needs it: where it stands, what kind it is, and whether it must be answered. */
-export interface WalkQuestion {
-    id: number
-    pageKey: string
+/** A question as the walk needs it: where it stands, where it leads, and whether it must be answered. */
+export interface WalkQuestion extends PathQuestion {
     required: boolean
 }
 
@@ -54,7 +53,9 @@ export function useFormWalk<P extends PathPage, Q extends WalkQuestion>(
 
     const currentPage = computed(() => pages.value.find(page => page.key === current.value) ?? null)
     const currentQuestions = computed(() => questions.value.filter(question => question.pageKey === current.value))
-    const following = computed(() => (current.value ? followingPage(pages.value, current.value) : null))
+    const following = computed(() => (current.value
+        ? followingPage(pages.value, questions.value, answers.value, current.value)
+        : null))
 
     /** Whether the page shown is the one the form is sent from. */
     const isLast = computed(() => following.value === null)
@@ -68,7 +69,7 @@ export function useFormWalk<P extends PathPage, Q extends WalkQuestion>(
     /** How far along the reader is, from above zero up to one on the page the form is sent from. */
     const progress = computed(() => {
         if (!current.value) return 0
-        const remaining = longestFrom(pages.value, current.value)
+        const remaining = longestFrom(pages.value, questions.value, current.value)
         return pageNumber.value / (pageNumber.value - 1 + Math.max(1, remaining))
     })
 
@@ -123,8 +124,23 @@ export function useFormWalk<P extends PathPage, Q extends WalkQuestion>(
         errors.value = marked
     }
 
+    /**
+     * Shows what the server refused about the answers, where it refused them any: on the first page of
+     * the reader's path that has a problem, at each question it names.
+     *
+     * @param e what sending the answers threw
+     * @return whether the server named problems at single questions
+     */
+    function showRefused(e: unknown): boolean {
+        const problems = answerProblemsOf(e)
+        if (problems.length === 0) return false
+        const {walked, marked} = placeProblems(path.value, problems, t)
+        showAt(walked, marked)
+        return true
+    }
+
     return {
         current, currentPage, currentQuestions, isLast, paged, pageNumber, progress, path, errors,
-        checkCurrent, next, back, restart, showAt,
+        checkCurrent, next, back, restart, showAt, showRefused,
     }
 }

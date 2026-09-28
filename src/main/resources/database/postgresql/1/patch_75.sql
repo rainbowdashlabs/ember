@@ -141,3 +141,28 @@ ALTER TABLE ember_schema.form_question
 CREATE INDEX IF NOT EXISTS idx_form_question_page ON ember_schema.form_question (page_id);
 
 COMMENT ON COLUMN ember_schema.form_question.page_id IS 'References the page of its form the question stands on.';
+
+-- An answer can decide which page comes next, and every response keeps the pages it went through.
+--
+-- A single-answer choice question may carry a branch: for each of its options that decides, the page
+-- that follows. An option without an entry follows the page's own target. The path a response took
+-- is stored when it is sent, so results can tell a question nobody reached from one nobody answered,
+-- whatever the pages and branches say later. A response from before pages existed went through the
+-- only page its form had.
+
+ALTER TABLE ember_schema.form_question
+    ADD COLUMN IF NOT EXISTS branch JSONB;
+
+COMMENT ON COLUMN ember_schema.form_question.branch IS
+    'For a single-answer choice question that decides where its page leads: per option key, the page that follows. NULL for every other question.';
+
+ALTER TABLE ember_schema.form_response
+    ADD COLUMN IF NOT EXISTS path JSONB NOT NULL DEFAULT '[]'::JSONB;
+
+UPDATE ember_schema.form_response r
+SET path = jsonb_build_array((SELECT p.page_key FROM ember_schema.form_page p WHERE p.form_id = r.form_id))
+WHERE r.path = '[]'::JSONB
+  AND (SELECT count(*) FROM ember_schema.form_page p WHERE p.form_id = r.form_id) = 1;
+
+COMMENT ON COLUMN ember_schema.form_response.path IS
+    'The keys of the pages the response went through, in order. Empty where it was written without being walked, which counts as having seen every page.';

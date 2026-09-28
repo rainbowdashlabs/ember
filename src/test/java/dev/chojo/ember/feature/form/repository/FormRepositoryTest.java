@@ -176,6 +176,7 @@ class FormRepositoryTest extends RepositoryTestBase {
                 false,
                 true,
                 new FormQuestionConfig.Text(false),
+                null,
                 1));
         var questions = formRepo.findQuestions(formId);
         assertEquals("Full name?", questions.getFirst().title());
@@ -228,7 +229,7 @@ class FormRepositoryTest extends RepositoryTestBase {
         byte[] hashB = new byte[32];
         for (int i = 0; i < 32; i++) hashB[i] = (byte) (i + 1);
 
-        var anonymous = formRepo.createAnonymousResponse(formId, hashA, TEST_CONSENT);
+        var anonymous = formRepo.createAnonymousResponse(formId, hashA, TEST_CONSENT, List.of("p0"));
         assertNotNull(anonymous);
         assertNull(anonymous.memberId());
         assertNull(anonymous.submittedBy());

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.form.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
@@ -16,14 +17,17 @@ import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.FormVisibility;
 import dev.chojo.ember.feature.form.entity.PageTarget;
+import dev.chojo.ember.feature.form.entity.QuestionBranch;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.util.Json;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,11 +52,11 @@ public class FormRepository {
     private static final String FORM_VISIBLE_FOR_MEMBER =
             RestrictionSql.visibleFor(RestrictionType.FORM, "f.id", ":member_id");
     private static final String QUESTION_COLUMNS =
-            "q.id, q.form_id, q.position, p.page_key, q.question_type, q.title, q.description, q.required, q.shuffle, q.config";
+            "q.id, q.form_id, q.position, p.page_key, q.question_type, q.title, q.description, q.required, q.shuffle, q.config, q.branch";
     private static final String PAGE_COLUMNS =
             "id, form_id, page_key, position, title, description, after_kind, after_page";
     private static final String RESPONSE_COLUMNS =
-            "id, form_id, member_id, submitted_by, submitted_at, updated_at, submitter_hash, acknowledged_at, acknowledged_by";
+            "id, form_id, member_id, submitted_by, submitted_at, updated_at, submitter_hash, acknowledged_at, acknowledged_by, path";
     private static final String ANSWER_COLUMNS = "id, response_id, question_id, value";
 
     // -- Forms --
@@ -395,7 +399,16 @@ public class FormRepository {
             FormQuestionConfig config) {
         var firstPage = findPages(formId).getFirst();
         return createQuestion(
-                formId, firstPage.id(), position, formQuestionType, title, description, required, shuffle, config);
+                formId,
+                firstPage.id(),
+                position,
+                formQuestionType,
+                title,
+                description,
+                required,
+                shuffle,
+                config,
+                null);
     }
 
     /**
@@ -410,6 +423,7 @@ public class FormRepository {
      * @param required         whether an answer is mandatory
      * @param shuffle          whether answer options should be randomized
      * @param config           type-specific configuration as JSON
+     * @param branch           where the page leads per option picked, or {@code null}
      * @return the newly created question
      */
     public FormQuestion createQuestion(
@@ -421,12 +435,13 @@ public class FormRepository {
             String description,
             boolean required,
             boolean shuffle,
-            FormQuestionConfig config) {
+            FormQuestionConfig config,
+            QuestionBranch branch) {
         return SqlSupport.insertReturning(
                 """
                 WITH q AS (
-                    INSERT INTO form_question(form_id, page_id, position, question_type, title, description, required, shuffle, config)
-                    VALUES (:form_id, :page_id, :position, :question_type, :title, :description, :required, :shuffle, :config::JSONB)
+                    INSERT INTO form_question(form_id, page_id, position, question_type, title, description, required, shuffle, config, branch)
+                    VALUES (:form_id, :page_id, :position, :question_type, :title, :description, :required, :shuffle, :config::JSONB, :branch::JSONB)
                     RETURNING *
                 )
                 SELECT %s FROM q JOIN form_page p ON p.id = q.page_id;""",
@@ -438,7 +453,8 @@ public class FormRepository {
                         .bind("description", description)
                         .bind("required", required)
                         .bind("shuffle", shuffle)
-                        .bind("config", config.toJson()),
+                        .bind("config", config.toJson())
+                        .bind("branch", QuestionBranch.toJson(branch)),
                 FormQuestion.map(),
                 QUESTION_COLUMNS);
     }
@@ -453,6 +469,7 @@ public class FormRepository {
      * @param required    whether an answer is mandatory
      * @param shuffle     whether answer options should be randomized
      * @param config      type-specific configuration as JSON
+     * @param branch      where the page leads per option picked, or {@code null}
      * @param position    new display order position
      * @return {@code true} if a row was updated
      */
@@ -464,11 +481,12 @@ public class FormRepository {
             boolean required,
             boolean shuffle,
             FormQuestionConfig config,
+            QuestionBranch branch,
             int position) {
         return query("""
                 UPDATE form_question
                 SET page_id = :page_id, title = :title, description = :description, required = :required,
-                    shuffle = :shuffle, config = :config::JSONB, position = :position
+                    shuffle = :shuffle, config = :config::JSONB, branch = :branch::JSONB, position = :position
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("page_id", pageId)
@@ -477,6 +495,7 @@ public class FormRepository {
                         .bind("required", required)
                         .bind("shuffle", shuffle)
                         .bind("config", config.toJson())
+                        .bind("branch", QuestionBranch.toJson(branch))
                         .bind("position", position))
                 .update()
                 .changed();
@@ -654,17 +673,20 @@ public class FormRepository {
      *
      * @param formId        the form ID
      * @param submitterHash SHA-256 hash identifying the submitter
+     * @param path          the keys of the pages the submitter went through
      * @return the newly created response
      */
-    public FormResponse createAnonymousResponse(int formId, byte[] submitterHash, ConsentProof consent) {
+    public FormResponse createAnonymousResponse(
+            int formId, byte[] submitterHash, ConsentProof consent, List<String> path) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO form_response(form_id, member_id, submitted_by, submitter_hash, consent_proof)
-                VALUES (:form_id, NULL, NULL, :submitter_hash, :consent_proof::JSONB)
+                INSERT INTO form_response(form_id, member_id, submitted_by, submitter_hash, consent_proof, path)
+                VALUES (:form_id, NULL, NULL, :submitter_hash, :consent_proof::JSONB, :path::JSONB)
                 RETURNING %s;""",
                 call().bind("form_id", formId)
                         .bind("submitter_hash", submitterHash)
-                        .bind("consent_proof", consent.toJson()),
+                        .bind("consent_proof", consent.toJson())
+                        .bind("path", pathJson(path)),
                 FormResponse.map(),
                 RESPONSE_COLUMNS);
     }
@@ -689,6 +711,44 @@ public class FormRepository {
                 .single(call().bind("form_id", formId).bind("submitter_hash", submitterHash))
                 .map(FormResponse.map())
                 .first();
+    }
+
+    /**
+     * Records the pages a response went through, which the results read to tell a question nobody
+     * reached from one nobody answered.
+     *
+     * @param responseId the response
+     * @param path       the keys of the pages, in the order they were visited
+     * @return the response as it now stands
+     */
+    public FormResponse updateResponsePath(int responseId, List<String> path) {
+        return SqlSupport.insertReturning(
+                "UPDATE form_response SET path = :path::JSONB WHERE id = :id RETURNING %s;",
+                call().bind("id", responseId).bind("path", pathJson(path)), FormResponse.map(), RESPONSE_COLUMNS);
+    }
+
+    private static String pathJson(List<String> path) {
+        try {
+            return Json.MAPPER.writeValueAsString(path == null ? List.of() : path);
+        } catch (Exception e) {
+            return "[]";
+        }
+    }
+
+    /**
+     * Deletes the answers of a response to every question but the given ones, which is what an answer
+     * becomes when a later walk no longer reaches its question.
+     *
+     * @param responseId the response
+     * @param kept       the questions whose answers stay
+     */
+    public void deleteAnswersExcept(int responseId, Collection<Integer> kept) {
+        query("""
+                DELETE FROM form_answer
+                WHERE response_id = :response_id
+                  AND NOT question_id = ANY(:kept);""")
+                .single(call().bind("response_id", responseId).bind("kept", List.copyOf(kept), PostgreSqlTypes.INTEGER))
+                .delete();
     }
 
     /**

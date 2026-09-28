@@ -20,6 +20,8 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param required         whether an answer is mandatory
  * @param shuffle          whether answer options should be randomized
  * @param config           type-specific configuration
+ * @param branch           where the question's page leads per option picked, for the one single-answer
+ *                         choice question of a page that decides it; {@code null} for every other question
  */
 public record FormQuestion(
         int id,
@@ -31,7 +33,8 @@ public record FormQuestion(
         String description,
         boolean required,
         boolean shuffle,
-        FormQuestionConfig config) {
+        FormQuestionConfig config,
+        QuestionBranch branch) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -49,7 +52,8 @@ public record FormQuestion(
                     row.getString("description"),
                     row.getBoolean("required"),
                     row.getBoolean("shuffle"),
-                    FormQuestionConfig.parse(type, row.getString("config")));
+                    FormQuestionConfig.parse(type, row.getString("config")),
+                    QuestionBranch.parse(row.getString("branch")));
         };
     }
 }

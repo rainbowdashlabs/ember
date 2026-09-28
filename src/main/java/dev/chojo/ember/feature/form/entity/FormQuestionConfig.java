@@ -159,17 +159,19 @@ public sealed interface FormQuestionConfig {
                 return List.of("Expected choice answer");
             }
             var errors = new ArrayList<String>();
-            if (selected == null || selected.isEmpty()) return List.of("No options selected");
+            boolean hasOther = other != null && !other.isBlank();
+            var picked = selected == null ? List.<String>of() : selected;
+            if (picked.isEmpty() && !hasOther) return List.of("No options selected");
             var keys = optionKeys();
-            for (var key : selected) {
+            for (var key : picked) {
                 if (!keys.contains(key)) errors.add("Unknown option: " + key);
             }
-            if (new HashSet<>(selected).size() != selected.size()) errors.add("An option was selected twice");
-            if (!TRUE.equals(multiSelect) && selected.size() > 1) {
+            if (new HashSet<>(picked).size() != picked.size()) errors.add("An option was selected twice");
+            if (!TRUE.equals(multiSelect) && picked.size() > 1) {
                 errors.add("Only one option can be selected");
             }
             if (TRUE.equals(multiSelect) && multiLimitType != null && multiLimit != null) {
-                int size = selected.size();
+                int size = picked.size() + (hasOther ? 1 : 0);
                 switch (multiLimitType) {
                     case AT_MOST -> {
                         if (size > multiLimit) errors.add("Too many options selected (max %d)".formatted(multiLimit));

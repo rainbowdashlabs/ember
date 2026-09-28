@@ -189,6 +189,12 @@ export interface FormQuestion {
     required: boolean
     shuffle: boolean
     config: Record<string, unknown>
+    /**
+     * Where the question's page leads per option key picked, for the one single-answer choice question
+     * of a page that decides it; null for every other question. An option without an entry follows the
+     * page's own target.
+     */
+    branch?: Record<string, PageTarget> | null
 }
 
 export interface FormResponse {
@@ -208,6 +214,8 @@ export interface FormResponse {
     acknowledgedBy?: number | null
     /** Enriched identity of the acknowledger so the UI can render it via {@code MemberName}. */
     acknowledgedByIdentity?: MemberIdentity | null
+    /** The keys of the pages the response went through; empty where it saw every page. */
+    path?: string[]
 }
 
 export interface FormAnswer {
@@ -241,6 +249,8 @@ export interface FormQuestionRequest {
     required?: boolean
     shuffle?: boolean
     config?: unknown
+    /** Where the question's page leads per option key picked, for the question that decides it. */
+    branch?: Record<string, PageTarget> | null
 }
 
 export interface FormRestrictions {

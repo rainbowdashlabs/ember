@@ -16,6 +16,8 @@ package dev.chojo.ember.feature.form.entity;
  * @param required         whether an answer is mandatory
  * @param shuffle          whether answer options should be randomized
  * @param config           type-specific configuration as JSON
+ * @param branch           where the question's page leads per option picked, or {@code null} where the
+ *                         question does not decide it
  */
 public record QuestionEntry(
         Integer id,
@@ -25,4 +27,5 @@ public record QuestionEntry(
         String description,
         boolean required,
         boolean shuffle,
-        FormQuestionConfig config) {}
+        FormQuestionConfig config,
+        QuestionBranch branch) {}

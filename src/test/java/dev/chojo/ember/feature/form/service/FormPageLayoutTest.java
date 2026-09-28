@@ -210,7 +210,7 @@ class FormPageLayoutTest extends RepositoryTestBase {
 
     private static QuestionEntry text(Integer id, String pageKey, String title) {
         return new QuestionEntry(
-                id, pageKey, FormQuestionType.TEXT, title, "", false, false, new FormQuestionConfig.Text(false));
+                id, pageKey, FormQuestionType.TEXT, title, "", false, false, new FormQuestionConfig.Text(false), null);
     }
 
     private static List<String> keys(List<FormPage> pages) {

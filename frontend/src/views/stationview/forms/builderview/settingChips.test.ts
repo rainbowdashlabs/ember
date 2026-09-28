@@ -11,7 +11,7 @@ import type {QuestionType} from '@/api/forms'
 const t = (key: string, named?: Record<string, unknown>) => named ? `${key} ${JSON.stringify(named)}` : key
 
 function question(questionType: QuestionType, config: Record<string, unknown>, shuffle = false): QuestionDraft {
-    return {id: 'temp-1', questionType, title: '', description: '', required: false, shuffle, config}
+    return {id: 'temp-1', questionType, title: '', description: '', required: false, shuffle, config, branch: null}
 }
 
 /**

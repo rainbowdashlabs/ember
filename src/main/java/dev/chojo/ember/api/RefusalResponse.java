@@ -18,9 +18,26 @@ import io.javalin.http.HttpResponseException;
 public class RefusalResponse extends HttpResponseException {
     private final Refusal refusal;
 
-    RefusalResponse(Refusal refusal, String message) {
+    /**
+     * A refusal with the sentence it is answered with. Only {@link Refusal#raise()} and refusals that
+     * carry more than a sentence make one.
+     *
+     * @param refusal what refused
+     * @param message the sentence the reader is shown
+     */
+    protected RefusalResponse(Refusal refusal, String message) {
         super(refusal.status().getCode(), message);
         this.refusal = refusal;
+    }
+
+    /**
+     * What the refusal is answered with. A refusal that says more than one sentence, such as one per
+     * question of a form, answers with that as well.
+     *
+     * @return the error body
+     */
+    public Object body() {
+        return ErrorResponseWrapper.of(refusal, getMessage());
     }
 
     /**

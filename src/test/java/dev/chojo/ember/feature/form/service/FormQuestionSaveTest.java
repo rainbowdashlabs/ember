@@ -145,7 +145,8 @@ class FormQuestionSaveTest extends RepositoryTestBase {
                 "",
                 false,
                 false,
-                new FormQuestionConfig.Date());
+                new FormQuestionConfig.Date(),
+                null);
 
         var refused = assertThrows(
                 RefusalResponse.class,
@@ -197,7 +198,7 @@ class FormQuestionSaveTest extends RepositoryTestBase {
 
     private static QuestionEntry text(Integer id, String title) {
         return new QuestionEntry(
-                id, null, FormQuestionType.TEXT, title, "", false, false, new FormQuestionConfig.Text(false));
+                id, null, FormQuestionType.TEXT, title, "", false, false, new FormQuestionConfig.Text(false), null);
     }
 
     private static List<Integer> ids(List<FormQuestion> questions) {

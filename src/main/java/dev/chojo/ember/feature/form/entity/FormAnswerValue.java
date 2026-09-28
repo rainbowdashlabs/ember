@@ -70,6 +70,18 @@ public sealed interface FormAnswerValue {
     }
 
     /**
+     * Whether this answer says nothing: no option and no text picked, no text written, no star given,
+     * no date set, nothing ranked or no statement rated.
+     *
+     * <p>The fill screens send an answer of the right shape for every question, answered or not, so
+     * this is the one place that decides what counts as not answered. Empty answers are dropped before
+     * anything is checked or stored.
+     *
+     * @return whether the answer is empty
+     */
+    boolean isEmpty();
+
+    /**
      * This answer as it reads once the given options no longer exist.
      *
      * @param removed the keys of the options that are gone
@@ -79,11 +91,20 @@ public sealed interface FormAnswerValue {
         return Optional.of(this);
     }
 
+    private static boolean blank(String text) {
+        return text == null || text.isBlank();
+    }
+
     /**
      * Selected option keys + optional other text.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record Choice(List<String> selected, String other) implements FormAnswerValue {
+        @Override
+        public boolean isEmpty() {
+            return (selected == null || selected.isEmpty()) && blank(other);
+        }
+
         @Override
         public Set<String> optionKeys() {
             return selected == null ? Set.of() : Set.copyOf(selected);
@@ -107,25 +128,45 @@ public sealed interface FormAnswerValue {
      * Free text answer.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Text(String text) implements FormAnswerValue {}
+    record Text(String text) implements FormAnswerValue {
+        @Override
+        public boolean isEmpty() {
+            return blank(text);
+        }
+    }
 
     /**
      * Numeric rating.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Rating(int rating) implements FormAnswerValue {}
+    record Rating(int rating) implements FormAnswerValue {
+        @Override
+        public boolean isEmpty() {
+            return rating < 1;
+        }
+    }
 
     /**
      * Date answer.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record DateValue(String date) implements FormAnswerValue {}
+    record DateValue(String date) implements FormAnswerValue {
+        @Override
+        public boolean isEmpty() {
+            return blank(date);
+        }
+    }
 
     /**
      * Ordered ranking.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record Ranking(List<String> order) implements FormAnswerValue {
+        @Override
+        public boolean isEmpty() {
+            return order == null || order.isEmpty();
+        }
+
         @Override
         public Set<String> optionKeys() {
             return order == null ? Set.of() : Set.copyOf(order);
@@ -145,6 +186,11 @@ public sealed interface FormAnswerValue {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record Likert(Map<String, Integer> ratings) implements FormAnswerValue {
+        @Override
+        public boolean isEmpty() {
+            return ratings == null || ratings.isEmpty();
+        }
+
         @Override
         public Set<String> optionKeys() {
             return ratings == null ? Set.of() : Set.copyOf(ratings.keySet());

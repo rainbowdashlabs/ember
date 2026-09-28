@@ -7237,6 +7237,13 @@ export default {
             submit: 'Formular absenden',
             unreached: 'Kein Weg führt hierher',
         },
+        branch: {
+            question: 'Eine Antwort entscheidet, wie es weitergeht',
+            none: 'Keine, alle gehen gleich weiter',
+            untitled: 'Frage {number}',
+            unnamedOption: 'Option ohne Text',
+            otherwise: 'Wie nach dieser Seite',
+        },
         fill: {
             pageNumber: 'Seite {number}',
             back: 'Zurück',

@@ -134,6 +134,6 @@ class FormRespondentsTest extends RepositoryTestBase {
     }
 
     private static FormResponse response(int id, Integer memberId, Instant submittedAt) {
-        return new FormResponse(id, 1, memberId, memberId, submittedAt, submittedAt, null, null, null);
+        return new FormResponse(id, 1, memberId, memberId, submittedAt, submittedAt, null, null, null, List.of());
     }
 }

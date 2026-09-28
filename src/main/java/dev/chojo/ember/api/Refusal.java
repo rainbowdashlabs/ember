@@ -2371,6 +2371,33 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "Some of these questions stand on a page the form does not have, so nothing was saved"),
 
+    /**
+     * A question that is to decide where its page leads but is not a single-answer choice, or names
+     * options it does not have. Only one picked option can say which page comes next.
+     */
+    QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE(
+            Area.FORMS,
+            57,
+            HttpStatus.BAD_REQUEST,
+            "Only a question with one answer from its own options can decide the next page, so nothing was saved"),
+
+    /** A page on which more than one question is to decide where it leads. */
+    PAGE_BRANCHES_ON_TWO_QUESTIONS(
+            Area.FORMS,
+            58,
+            HttpStatus.BAD_REQUEST,
+            "Only one question per page can decide the next page, so nothing was saved"),
+
+    /** A required question on a page the answers went through, left without an answer. */
+    QUESTION_NEEDS_AN_ANSWER(Area.FORMS, 59, HttpStatus.BAD_REQUEST, "This question needs an answer"),
+
+    /** An answer that does not fit its question: an option it does not have, too many picks, a rating off the scale. */
+    ANSWER_DOES_NOT_FIT_QUESTION(Area.FORMS, 60, HttpStatus.BAD_REQUEST, "This answer does not fit the question"),
+
+    /** An answer to a question the form does not have. */
+    ANSWER_TO_QUESTION_NOT_ON_FORM(
+            Area.FORMS, 61, HttpStatus.BAD_REQUEST, "This answer belongs to a question the form does not have"),
+
     /** An invite that is used up or past its date. */
     WAITING_LIST_INVITE_NO_LONGER_VALID(
             Area.WAITING_LISTS, 22, HttpStatus.FORBIDDEN, "This invite can no longer be used"),

@@ -209,14 +209,16 @@ class FormOptionKeysTest extends RepositoryTestBase {
                 members.getFirst().id(),
                 FormPurpose.INTERNAL);
         service.saveQuestions(
-                form.id(), List.of(new QuestionEntry(null, null, typeOf(config), "Frage", "", false, false, config)));
+                form.id(),
+                List.of(new QuestionEntry(null, null, typeOf(config), "Frage", "", false, false, config, null)));
         return service.findQuestions(form.id()).getFirst();
     }
 
     private static void save(FormQuestion question, FormQuestionConfig config) {
         service.saveQuestions(
                 question.formId(),
-                List.of(new QuestionEntry(question.id(), null, typeOf(config), "Frage", "", false, false, config)));
+                List.of(new QuestionEntry(
+                        question.id(), null, typeOf(config), "Frage", "", false, false, config, null)));
     }
 
     private static void answer(FormQuestion question, int respondent, FormAnswerValue value) {

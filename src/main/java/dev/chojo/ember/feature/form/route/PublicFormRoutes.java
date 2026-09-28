@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.PageTarget;
+import dev.chojo.ember.feature.form.entity.QuestionBranch;
+import dev.chojo.ember.feature.form.service.FormAnswersRefused;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.form.service.PublicFormRateLimiter;
 import dev.chojo.ember.feature.form.service.SubmitterHashService;
@@ -211,7 +213,8 @@ public class PublicFormRoutes implements Routes {
                                 q.required(),
                                 q.shuffle(),
                                 q.pageKey(),
-                                q.config()))
+                                q.config(),
+                                q.branch()))
                         .toList()
                 : List.<PublicFormQuestion>of();
         var pages = open
@@ -316,10 +319,8 @@ public class PublicFormRoutes implements Routes {
         try {
             var response = formService.submitAnonymousResponse(form.id(), submitterHash, req.answers(), consent);
             ctx.status(HttpStatus.CREATED).json(new PublicSubmitResponse(response.id()));
-        } catch (IllegalArgumentException e) {
-            throw Failures.readable(e.getMessage())
-                    .map(Refusal.FORM_ANSWER_REFUSED::raise)
-                    .orElseGet(Refusal.FORM_ANSWER_REFUSED::raise);
+        } catch (FormAnswersRefused refused) {
+            throw refused.as(Refusal.FORM_ANSWER_REFUSED);
         }
     }
 
@@ -416,7 +417,9 @@ public class PublicFormRoutes implements Routes {
             boolean required,
             boolean shuffle,
             String pageKey,
-            FormQuestionConfig config) {}
+            FormQuestionConfig config,
+            /** Where the page leads per option picked, for the question that decides it, or null. */
+            QuestionBranch branch) {}
 
     @OpenApiName("PublicFormSubmitRequest")
     public record PublicSubmitRequest(

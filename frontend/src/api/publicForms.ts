@@ -17,6 +17,8 @@ export interface PublicFormQuestion {
     /** The key of the page the question stands on. */
     pageKey: string
     config: Record<string, unknown>
+    /** Where the page leads per option key picked, for the question that decides it. */
+    branch?: Record<string, PageTarget> | null
 }
 
 /** One page of a public form, which the browser walks the way the server does on submit. */

@@ -13,6 +13,11 @@ export interface QuestionDraft {
   required: boolean
   shuffle: boolean
   config: Record<string, unknown>
+  /**
+   * Where the page leads per option key picked, for the one single-answer choice question of the page
+   * that decides it; null for every other question. An option without an entry follows the page.
+   */
+  branch: Record<string, PageTarget> | null
 }
 
 /** One page of the form being edited, holding its questions in their order. */

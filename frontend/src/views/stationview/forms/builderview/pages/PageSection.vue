@@ -11,6 +11,7 @@ import QuestionEditor from '../QuestionEditor.vue'
 import AddQuestionMenu from '../AddQuestionMenu.vue'
 import PageHeaderEditor from './PageHeaderEditor.vue'
 import PageAfterSelect from './PageAfterSelect.vue'
+import PageBranchEditor from './PageBranchEditor.vue'
 import { pageChoices } from '../pageChoice'
 import type { FormLayoutEditor } from '../useFormLayout'
 import type { QuestionType } from '@/api/forms'
@@ -52,10 +53,13 @@ const further = computed(() => pageChoices(props.layout.pages.value, t).filter(c
 
     <AddQuestionMenu :question-types="questionTypes" @add="type => layout.addQuestion(pageIndex, type)"/>
 
-    <FieldLabel v-if="layout.paged.value" class="space-y-1">
-      {{ t('forms.pages.after') }}
-      <PageAfterSelect v-model="page.after" :further="further"
-                       :default-label="lastPage ? t('forms.pages.submit') : t('forms.pages.next')"/>
-    </FieldLabel>
+    <div v-if="layout.paged.value" class="space-y-3 rounded-theme border border-dashed border-(--border) p-3">
+      <FieldLabel class="space-y-1">
+        {{ t('forms.pages.after') }}
+        <PageAfterSelect v-model="page.after" :further="further"
+                         :default-label="lastPage ? t('forms.pages.submit') : t('forms.pages.next')"/>
+      </FieldLabel>
+      <PageBranchEditor :layout="layout" :page-index="pageIndex" :further="further"/>
+    </div>
   </section>
 </template>

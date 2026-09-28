@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.form.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Failures;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
@@ -25,11 +24,13 @@ import dev.chojo.ember.feature.form.entity.FormVisibility;
 import dev.chojo.ember.feature.form.entity.PageEntry;
 import dev.chojo.ember.feature.form.entity.PageTarget;
 import dev.chojo.ember.feature.form.entity.QuestionAnswerCount;
+import dev.chojo.ember.feature.form.entity.QuestionBranch;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormAnalyticsDto;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseEntryDto;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.ResponseDetailDto;
+import dev.chojo.ember.feature.form.service.FormAnswersRefused;
 import dev.chojo.ember.feature.form.service.FormResponseExportService;
 import dev.chojo.ember.feature.form.service.FormResultQuery;
 import dev.chojo.ember.feature.form.service.FormService;
@@ -650,7 +651,8 @@ public class FormRoutes implements Routes {
                                 q.description() != null ? q.description() : "",
                                 q.required() != null && q.required(),
                                 q.shuffle() != null && q.shuffle(),
-                                q.config() != null ? q.config() : new FormQuestionConfig.Unknown()))
+                                q.config() != null ? q.config() : new FormQuestionConfig.Unknown(),
+                                q.branch()))
                         .toList());
         ctx.json(new FormLayout(formService.findPages(id), formService.findQuestions(id)));
     }
@@ -800,10 +802,8 @@ public class FormRoutes implements Routes {
             var response = formService.submitResponse(
                     id, session.member().id(), session.member().id(), req.answers());
             ctx.status(HttpStatus.CREATED).json(response);
-        } catch (IllegalArgumentException e) {
-            throw Failures.readable(e.getMessage())
-                    .map(Refusal.FORM_ANSWERS_NOT_SAVED::raise)
-                    .orElseGet(Refusal.FORM_ANSWERS_NOT_SAVED::raise);
+        } catch (FormAnswersRefused refused) {
+            throw refused.as(Refusal.FORM_ANSWERS_NOT_SAVED);
         }
     }
 
@@ -832,10 +832,8 @@ public class FormRoutes implements Routes {
             var response = formService.submitResponse(
                     id, session.member().id(), session.member().id(), req.answers());
             ctx.json(response);
-        } catch (IllegalArgumentException e) {
-            throw Failures.readable(e.getMessage())
-                    .map(Refusal.FORM_ANSWER_CHANGE_NOT_SAVED::raise)
-                    .orElseGet(Refusal.FORM_ANSWER_CHANGE_NOT_SAVED::raise);
+        } catch (FormAnswersRefused refused) {
+            throw refused.as(Refusal.FORM_ANSWER_CHANGE_NOT_SAVED);
         }
     }
 
@@ -913,10 +911,8 @@ public class FormRoutes implements Routes {
             } else {
                 ctx.json(response);
             }
-        } catch (IllegalArgumentException e) {
-            throw Failures.readable(e.getMessage())
-                    .map(Refusal.FORM_ANSWERS_FOR_MEMBER_NOT_SAVED::raise)
-                    .orElseGet(Refusal.FORM_ANSWERS_FOR_MEMBER_NOT_SAVED::raise);
+        } catch (FormAnswersRefused refused) {
+            throw refused.as(Refusal.FORM_ANSWERS_FOR_MEMBER_NOT_SAVED);
         }
     }
 
@@ -1085,6 +1081,7 @@ public class FormRoutes implements Routes {
      * @param required     whether an answer is mandatory
      * @param shuffle      whether answer options should be randomized
      * @param config       type-specific configuration as JSON string
+     * @param branch       where the page leads per option picked, for the question that decides it
      */
     public record QuestionRequest(
             Integer id,
@@ -1094,7 +1091,8 @@ public class FormRoutes implements Routes {
             String description,
             Boolean required,
             Boolean shuffle,
-            FormQuestionConfig config) {}
+            FormQuestionConfig config,
+            QuestionBranch branch) {}
 
     /**
      * One page of a form as the editor saves it.

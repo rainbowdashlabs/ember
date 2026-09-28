@@ -182,18 +182,11 @@ const {failure: submitFailure, run: send} = useAsyncAction(async () => {
     answerMap[q.id] = { type, ...value }
   }
 
-  if (effectiveMemberId.value) {
-    if (hasExistingResponse.value) {
-      await forms.updateForMember(formId.value, effectiveMemberId.value, { answers: answerMap })
-    } else {
-      await forms.submitForMember(formId.value, effectiveMemberId.value, { answers: answerMap })
-    }
-  } else {
-    if (hasExistingResponse.value) {
-      await forms.updateResponse(formId.value, { answers: answerMap })
-    } else {
-      await forms.submitResponse(formId.value, { answers: answerMap })
-    }
+  try {
+    await sendAnswers(answerMap)
+  } catch (e) {
+    walk.showRefused(e)
+    throw e
   }
   refreshSidebarCounts()
   router.push({ name: 'forms-list' })
@@ -205,6 +198,19 @@ const {failure: submitFailure, run: send} = useAsyncAction(async () => {
  * reason to look at what they typed, and being told the wrong one costs them the answer.
  */
 const displayFailure = computed(() => submitFailure.value ?? failure.value ?? priorAnswerFailure.value)
+
+/** Sends the answers as a first answer or a correction, for the reader or the member in their care. */
+async function sendAnswers(answerMap: Record<number, AnswerValue>) {
+  const memberId = effectiveMemberId.value
+  const data = { answers: answerMap }
+  if (memberId) {
+    await (hasExistingResponse.value
+      ? forms.updateForMember(formId.value, memberId, data)
+      : forms.submitForMember(formId.value, memberId, data))
+  } else {
+    await (hasExistingResponse.value ? forms.updateResponse(formId.value, data) : forms.submitResponse(formId.value, data))
+  }
+}
 
 /** Sends the form once the page it is sent from is complete. */
 function submit() {
