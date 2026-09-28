@@ -15,6 +15,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import ConfirmButton from '@/components/button/ConfirmButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import ChipButton from '@/components/button/ChipButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import EnlargeableImage from '@/components/button/EnlargeableImage.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -56,6 +57,14 @@ const samplePicture = 'data:image/svg+xml,' + encodeURIComponent(
                              @toggle="toggleStates.has(i) ? toggleStates.delete(i) : toggleStates.add(i)">
         Option {{ i }}
       </SelectionToggleButton>
+    </div>
+  </section>
+
+  <section class="space-y-4">
+    <SectionHeader>Chip Buttons</SectionHeader>
+    <div class="flex flex-wrap gap-2">
+      <ChipButton>Mehrfachauswahl, höchstens 3</ChipButton>
+      <ChipButton>Gemischt</ChipButton>
     </div>
   </section>
 

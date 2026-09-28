@@ -4,9 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {useI18n} from 'vue-i18n'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import QuestionEditor from './QuestionEditor.vue'
+import AddQuestionMenu from './AddQuestionMenu.vue'
 import type {QuestionDraft} from './types'
 import type {QuestionType} from '@/api/forms'
 
@@ -21,8 +20,6 @@ const emit = defineEmits<{
   remove: [index: number]
   add: [type: QuestionType]
 }>()
-
-const {t} = useI18n()
 </script>
 
 <template>
@@ -33,10 +30,6 @@ const {t} = useI18n()
           @move="(index, direction) => emit('move', index, direction)" @remove="emit('remove', $event)"/>
     </div>
 
-    <div class="flex flex-wrap gap-2">
-      <SecondaryButton :icon="['fas', 'plus']" v-for="type in questionTypes" :key="type" @click="emit('add', type)">
-        {{ t(`forms.questionTypes.${type}`) }}
-      </SecondaryButton>
-    </div>
+    <AddQuestionMenu :question-types="questionTypes" @add="emit('add', $event)"/>
   </div>
 </template>

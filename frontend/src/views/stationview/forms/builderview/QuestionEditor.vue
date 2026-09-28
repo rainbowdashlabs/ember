@@ -4,21 +4,26 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import { QuestionTypes } from '@/api/forms'
 import type { QuestionDraft } from './types'
 import QuestionHeader from './QuestionHeader.vue'
-import ChoiceConfigEditor from './ChoiceConfigEditor.vue'
-import RatingConfigEditor from './RatingConfigEditor.vue'
-import LikertConfigEditor from './LikertConfigEditor.vue'
-import FormOptionsEditor from './FormOptionsEditor.vue'
-import type { FormOption } from '@/api/forms'
-import { optionsOf } from '@/util/formOptions'
+import QuestionChips from './QuestionChips.vue'
+import QuestionContent from './QuestionContent.vue'
+import QuestionMenu from './questionmenu/QuestionMenu.vue'
 
+/**
+ * One question of the form being edited, as a tile.
+ *
+ * <p>What stays in sight is what every question needs: its kind, its title, its content and whether
+ * it is required. A description shows once one has been written or asked for. Everything else has a
+ * default and only refines the question, so it sits behind the menu in the corner, and whatever of it
+ * differs from its default shows as a chip under the title.
+ */
 const props = defineProps<{
   question: QuestionDraft
   index: number
@@ -32,49 +37,29 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const q = props.question
-
-function updateRankingOptions(items: FormOption[]) {
-  q.config.options = items
-}
+const describing = ref(!!props.question.description)
+const menu = ref<InstanceType<typeof QuestionMenu> | null>(null)
 </script>
 
 <template>
   <NeutralContainer>
-    <div class="space-y-3">
-      <QuestionHeader :question-type="q.questionType" :index="index" :total-questions="totalQuestions"
-                      @move="(i, d) => emit('move', i, d)" @remove="(i) => emit('remove', i)" />
+    <div class="space-y-3" data-testid="question-tile">
+      <QuestionHeader :question-type="question.questionType" :index="index">
+        <QuestionMenu ref="menu" :question="question" :first="index === 0" :last="index === totalQuestions - 1"
+                      :describing="describing" @describe="describing = true"
+                      @move="direction => emit('move', index, direction)" @remove="emit('remove', index)"/>
+      </QuestionHeader>
 
-      <TextInput v-model="q.title" :placeholder="t('forms.questionTitle')" />
-      <TextInput v-model="q.description" :placeholder="t('forms.questionDescription')" />
+      <TextInput v-model="question.title" :placeholder="t('forms.questionTitle')" />
+      <TextInput v-if="describing" v-model="question.description" :placeholder="t('forms.questionDescription')" />
+      <QuestionChips :question="question" @open="menu?.show($event)"/>
 
-      <div class="flex gap-4">
-        <FieldLabel inline>
-          <ToggleInput v-model="q.required" />
-          {{ t('forms.questionRequired') }}
-        </FieldLabel>
-        <label v-if="q.questionType === QuestionTypes.CHOICE || q.questionType === QuestionTypes.RANKING || q.questionType === QuestionTypes.LIKERT"
-               class="flex items-center gap-2 text-xs">
-          <ToggleInput v-model="q.shuffle" />
-          {{ t('forms.questionShuffle') }}
-        </label>
-      </div>
+      <QuestionContent :question="question"/>
 
-      <ChoiceConfigEditor v-if="q.questionType === QuestionTypes.CHOICE" :question="q" />
-
-      <FieldLabel v-if="q.questionType === QuestionTypes.TEXT" inline>
-        <ToggleInput v-model="(q.config.longAnswer as boolean)" />
-        {{ t('forms.text.longAnswer') }}
+      <FieldLabel inline>
+        <ToggleInput v-model="question.required" />
+        {{ t('forms.questionRequired') }}
       </FieldLabel>
-
-      <RatingConfigEditor v-if="q.questionType === QuestionTypes.RATING" :question="q" />
-
-      <FormOptionsEditor v-if="q.questionType === QuestionTypes.RANKING"
-                         :add-label="t('forms.ranking.addOption')" :label="t('forms.ranking.options')"
-                         :model-value="optionsOf(q.config)"
-                         @update:model-value="updateRankingOptions"/>
-
-      <LikertConfigEditor v-if="q.questionType === QuestionTypes.LIKERT" :question="q" />
     </div>
   </NeutralContainer>
 </template>
