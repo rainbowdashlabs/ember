@@ -17,6 +17,8 @@
 - **Changed dates in the change history were hard to read.** When a date in a member's profile changed, the member's page and the list of changes showed both dates the way they are stored, such as 2026-03-31. They are now written as 31.03.2026, the way the profile shows them.
 - **Team members and managers were offered guardians instead of the members in their care.** Their relations tab, on the member's page and when editing them, was named after guardians and offered to assign one, which cannot be done for them. It now shows the members they look after, as it does for guardians.
 - **Filling in a form again could replace the earlier answer.** Filling in a form for a member in your care always started empty, and sending a form a second time, for them or in some cases for yourself, could replace the answer already given, even on a form whose answers cannot be changed. The earlier answer now opens for editing where the form allows it, and is kept where it does not.
+- **Hiding the age of a date of birth could not be saved.** Switching off the age shown next to a date of birth field made saving the field fail. The setting is now saved and respected.
+- **Quick templates for profile fields could not be added.** Most of the quick templates in the member field settings, such as the address or the date of birth, failed to add their fields. They now add them, with the right fields marked as required or as editable by the member management only.
 
 ## v26.19.4
 

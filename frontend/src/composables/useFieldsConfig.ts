@@ -601,9 +601,18 @@ export function useFieldsConfig(port: FieldsPort) {
      *
      * <p>A template is a set of questions somebody already decided belong together, so it names the
      * audience once rather than leaving a dozen new questions asked of nobody.
+     *
+     * <p>Whether an answer is expected and whether only the member management may write it travel on
+     * the field, beside its settings, which name neither.
      */
     async function applyTemplate(
-        template: {fields: Array<{name: string; fieldType: string; config: ProfileFieldConfig}>},
+        template: {fields: Array<{
+            name: string
+            fieldType: string
+            config: ProfileFieldConfig
+            required?: boolean
+            readonly?: boolean
+        }>},
         role: string,
     ) {
         failure.value = null
@@ -614,6 +623,8 @@ export function useFieldsConfig(port: FieldsPort) {
                     name: f.name,
                     fieldType: f.fieldType,
                     config: f.config,
+                    required: f.required ?? false,
+                    readonly: f.readonly ?? false,
                 }))
                 if (created?.id) {
                     await port.assign(created.id, {role, position: startPosition + i})

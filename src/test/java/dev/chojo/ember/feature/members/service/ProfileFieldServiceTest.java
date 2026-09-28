@@ -27,6 +27,8 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 
@@ -707,6 +709,42 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 "the field that already is the birth date does not clash with itself");
 
         service.delete(plain.id());
+        service.delete(birthDate.id());
+    }
+
+    /**
+     * A date of birth whose age is switched off keeps it switched off.
+     *
+     * <p>The settings are read the way the API reads a request, which refuses anything the record
+     * does not name, so a switch the record forgot is refused here as it was in the running app.
+     */
+    @Test
+    @Order(32)
+    void aBirthDateKeepsItsAgeSwitchedOff() {
+        var strict = JsonMapper.builder()
+                .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .build();
+        var hidden = strict.readValue("{\"showAge\":false}", ProfileFieldConfig.class);
+
+        var birthDate =
+                service.create(station.id(), "Geburtsdatum", ProfileFieldType.BIRTH_DATE, hidden, false, false, null);
+        assertEquals(
+                Boolean.FALSE,
+                service.findById(birthDate.id()).orElseThrow().config().showAge());
+
+        service.update(
+                birthDate.id(),
+                "Geburtsdatum",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                false,
+                false,
+                null,
+                false);
+        assertNull(
+                service.findById(birthDate.id()).orElseThrow().config().showAge(),
+                "a date of birth that says nothing shows the age, as every one did before the switch");
+
         service.delete(birthDate.id());
     }
 

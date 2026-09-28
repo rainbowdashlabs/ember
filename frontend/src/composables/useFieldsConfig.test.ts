@@ -7,8 +7,9 @@
 import {mount} from '@vue/test-utils'
 import {defineComponent} from 'vue'
 import {describe, expect, it} from 'vitest'
-import {FieldTypes, type ProfileField} from '@/api/profileFields'
+import {FieldTypes, type ProfileField, type ProfileFieldRequest} from '@/api/profileFields'
 import type {ProfileFieldAssignment} from '@/util/profileFields'
+import {fieldTemplates} from '@/views/stationview/manage/membersconfig/fieldTemplates'
 import {STATION_ROLES, useFieldsConfig, type FieldsPort} from './useFieldsConfig'
 
 function field(id: number, name: string, fieldType: string = FieldTypes.BIRTH_DATE): ProfileField {
@@ -19,11 +20,18 @@ function askedOf(id: number, fieldId: number, role: string, position = 0): Profi
   return {id, fieldId, targetKind: 'ROLE', role: role as never, position}
 }
 
-function portOf(fields: ProfileField[], assignments: ProfileFieldAssignment[]): FieldsPort {
+function portOf(
+    fields: ProfileField[],
+    assignments: ProfileFieldAssignment[],
+    created: ProfileFieldRequest[] = [],
+): FieldsPort {
   return {
     list: async () => fields,
     listAssignments: async () => assignments,
-    create: async () => field(0, 'Neu'),
+    create: async (request) => {
+      created.push(request)
+      return field(0, 'Neu')
+    },
     update: async () => undefined,
     remove: async () => undefined,
     assign: async () => undefined,
@@ -36,11 +44,15 @@ function portOf(fields: ProfileField[], assignments: ProfileFieldAssignment[]): 
 }
 
 /** The composable reaches for the locale, so it is used from inside a component as the app does. */
-function configFor(fields: ProfileField[], assignments: ProfileFieldAssignment[] = []) {
+function configFor(
+    fields: ProfileField[],
+    assignments: ProfileFieldAssignment[] = [],
+    created: ProfileFieldRequest[] = [],
+) {
   let api: ReturnType<typeof useFieldsConfig> | null = null
   mount(defineComponent({
     setup() {
-      api = useFieldsConfig(portOf(fields, assignments))
+      api = useFieldsConfig(portOf(fields, assignments, created))
       return () => null
     },
   }))
@@ -102,5 +114,20 @@ describe('useFieldsConfig', () => {
 
     config.previewRole.value = 'TEAM'
     expect(config.previewFields.value.map(f => f.id)).toEqual([1])
+  })
+
+  /**
+   * A template's expected and locked answers travel on the field, not in its settings, which the
+   * server reads strictly and would refuse.
+   */
+  it('sends a template\'s required and readonly on the field itself', async () => {
+    const created: ProfileFieldRequest[] = []
+    const config = configFor([], [], created)
+    const birthDate = fieldTemplates.find(template => template.name === 'Geburtsdatum')!
+
+    await config.applyTemplate(birthDate, 'MEMBER')
+
+    expect(created).toHaveLength(1)
+    expect(created[0]).toMatchObject({required: true, readonly: true, config: {}})
   })
 })
