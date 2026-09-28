@@ -1,5 +1,11 @@
 # Änderungsprotokoll
 
+## v26.20.0
+
+### Neue Funktionen
+
+- **Ablaufdaten mit Erinnerungen.** Ein Profilfeld kann ein Datum halten, das abläuft, etwa einen Erste-Hilfe-Kurs oder einen Führerschein, und die Schnellvorlagen für beides nutzen es jetzt. Die Mitgliederliste zeigt es gelb, wenn es bald abläuft, und rot, wenn es abgelaufen ist, und Mitglied und Mitgliederverwaltung werden rechtzeitig erinnert.
+
 ## v26.19.5
 
 ### Neue Funktionen

@@ -13,6 +13,7 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import DummyFieldsPanel from './membersconfighelp/DummyFieldsPanel.vue'
 import DummyAudiencesPanel from './membersconfighelp/DummyAudiencesPanel.vue'
 import DummyTemplatesPanel from './membersconfighelp/DummyTemplatesPanel.vue'
+import DummyExpiryPanel from './membersconfighelp/DummyExpiryPanel.vue'
 import {STATION_ROLES} from '@/composables/useFieldsConfig'
 
 const {t} = useI18n()
@@ -72,11 +73,21 @@ const tabs = STATION_ROLES.map(role => ({key: role, label: t(`membersConfig.role
       <p>{{ t('helpCenter.membersConfig.typeNumber') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeDate') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeBirthDate') }}</p>
+      <p>{{ t('helpCenter.membersConfig.typeExpiryDate') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeBoolean') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeEnum') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeAge') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeSection') }}</p>
     </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersConfig.expiryTitle')">
+      <p>{{ t('helpCenter.membersConfig.expiryStates') }}</p>
+      <p>{{ t('helpCenter.membersConfig.expiryReminders') }}</p>
+      <p>{{ t('helpCenter.membersConfig.expiryRecipients') }}</p>
+      <p>{{ t('helpCenter.membersConfig.expiryFilter') }}</p>
+    </HelpSection>
+
+    <DummyExpiryPanel/>
 
     <HelpSection :title="t('helpCenter.membersConfig.layoutTitle')">
       <p>{{ t('helpCenter.membersConfig.layoutText') }}</p>
