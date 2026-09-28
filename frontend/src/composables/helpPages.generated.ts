@@ -207,7 +207,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-members-changes', path: '/helpcenter/station/members/changes', i18nPrefix: 'helpCenter.membersChanges'},
     {route: 'help-station-members-config', path: '/helpcenter/station/members/config', i18nPrefix: 'helpCenter.membersConfig'},
     {route: 'help-members-create', path: '/helpcenter/station/members/create', i18nPrefix: 'helpCenter.membersCreate'},
-    {route: 'help-members-detail', path: '/helpcenter/station/members/detail', i18nPrefix: ['helpCenter.basics.permissions.mgmt.attendanceManagement', 'helpCenter.exampleFields', 'helpCenter.membersDetail']},
+    {route: 'help-members-detail', path: '/helpcenter/station/members/detail', i18nPrefix: ['helpCenter.exampleFields', 'helpCenter.membersDetail']},
     {route: 'help-member-documents', path: '/helpcenter/station/members/documents', i18nPrefix: 'helpCenter.documents'},
     {route: 'help-members-edit', path: '/helpcenter/station/members/edit', i18nPrefix: 'helpCenter.membersEdit'},
     {route: 'help-members-former', path: '/helpcenter/station/members/former', i18nPrefix: 'helpCenter.membersFormer'},

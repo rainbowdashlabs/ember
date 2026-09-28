@@ -50,6 +50,7 @@ const dbVolume = ref('ember-data')
 
 const trustedProxies = ref('172.16.0.0/12')
 const cloudflare = ref(false)
+const autoUpdate = ref(false)
 
 const code = ref('')
 const validForHours = ref(0)
@@ -63,6 +64,7 @@ const options = computed<Record<string, string>>(() => {
     EMBER_DB_MODE: dbMode.value,
     EMBER_TRUSTED_PROXIES: trustedProxies.value,
     EMBER_CLOUDFLARE: cloudflare.value ? 'true' : 'false',
+    EMBER_AUTO_UPDATE: autoUpdate.value ? 'true' : 'false',
     EMBER_CONFIG_DIR: configDir.value,
     EMBER_DATA_DIR: dataDir.value,
   }
@@ -136,6 +138,7 @@ async function generate() {
           :bundled-database="dbMode === 'bundled'"/>
 
       <InstallProxySettings
+          v-model:auto-update="autoUpdate"
           v-model:cloudflare="cloudflare"
           v-model:tag="tag"
           v-model:trusted-proxies="trustedProxies"/>

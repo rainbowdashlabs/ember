@@ -20,6 +20,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 const {t} = useI18n()
 
 const userTypes = [
+  {key: 'trial', badge: SecondaryBadge, icon: ['fas', 'user-clock']},
   {key: 'member', badge: PrimaryBadge, icon: ['fas', 'user']},
   {key: 'guardian', badge: SecondaryBadge, icon: ['fas', 'users']},
   {key: 'team', badge: InfoBadge, icon: ['fas', 'people-group']},
@@ -27,15 +28,27 @@ const userTypes = [
   {key: 'admin', badge: ErrorBadge, icon: ['fas', 'shield']},
 ]
 
-const managementPermissions = [
-  'attendanceManagement',
-  'inventoryManagement',
-  'eventManagement',
-  'memberManagement',
-  'newsManagement',
-  'pollManagement',
-  'lostAndFoundManagement',
-  'attendanceExport',
+const defaultPermissionTypes = ['trial', 'member', 'guardian', 'team', 'manager']
+
+const managerPermissions = [
+  'ATTENDANCE_MANAGER',
+  'EVENT_MANAGER',
+  'MEMBER_MANAGER',
+  'WAITLIST_MANAGER',
+  'INVENTORY_MANAGER',
+  'LOST_AND_FOUND_MANAGER',
+  'DOCUMENT_MANAGER',
+  'NEWS_MANAGER',
+  'POLL_MANAGER',
+  'TEST_MANAGER',
+  'PROTOCOL_MANAGER',
+  'CHECKLIST_MANAGER',
+  'BOARD_MANAGER',
+  'KNOWLEDGE_MANAGER',
+  'PAGE_MANAGER',
+  'PROCEDURE_MANAGER',
+  'STATION_MANAGER',
+  'STATION_ADMINISTRATOR',
 ]
 </script>
 
@@ -63,29 +76,21 @@ const managementPermissions = [
 
     <HelpSection :title="t('helpCenter.basics.permissions.hierarchy')">
       <p>{{ t('helpCenter.basics.permissions.hierarchyText') }}</p>
-      <NeutralContainer class="p-4 mt-3">
-        <div class="flex flex-col items-center gap-1 text-sm">
-          <ErrorBadge class="text-base px-4 py-1">{{ t('helpCenter.basics.permissions.userType.admin.name') }}</ErrorBadge>
-          <font-awesome-icon :icon="['fas', 'arrow-down']" class="text-(--text-muted)"/>
-          <SuccessBadge class="text-base px-4 py-1">{{ t('helpCenter.basics.permissions.userType.manager.name') }}</SuccessBadge>
-          <font-awesome-icon :icon="['fas', 'arrow-down']" class="text-(--text-muted)"/>
-          <InfoBadge class="text-base px-4 py-1">{{ t('helpCenter.basics.permissions.userType.team.name') }}</InfoBadge>
-          <font-awesome-icon :icon="['fas', 'arrow-down']" class="text-(--text-muted)"/>
-          <div class="flex gap-4">
-            <PrimaryBadge class="text-base px-4 py-1">{{ t('helpCenter.basics.permissions.userType.member.name') }}</PrimaryBadge>
-            <SecondaryBadge class="text-base px-4 py-1">{{ t('helpCenter.basics.permissions.userType.guardian.name') }}</SecondaryBadge>
-          </div>
-        </div>
-      </NeutralContainer>
+      <BulletList>
+        <li v-for="type in defaultPermissionTypes" :key="type">
+          <strong>{{ t(`helpCenter.basics.permissions.userType.${type}.name`) }}:</strong>
+          {{ t(`helpCenter.basics.permissions.defaults.${type}`) }}
+        </li>
+      </BulletList>
       <p class="mt-3">{{ t('helpCenter.basics.permissions.hierarchyText2') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.permissions.management')">
       <p>{{ t('helpCenter.basics.permissions.managementText') }}</p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-        <NeutralContainer v-for="mp in managementPermissions" :key="mp" class="p-3">
-          <p class="font-semibold text-sm">{{ t(`helpCenter.basics.permissions.mgmt.${mp}.name`) }}</p>
-          <p class="text-xs text-(--text-muted)">{{ t(`helpCenter.basics.permissions.mgmt.${mp}.desc`) }}</p>
+        <NeutralContainer v-for="permission in managerPermissions" :key="permission" class="p-3">
+          <p class="font-semibold text-sm">{{ t(`permissions.${permission}.label`) }}</p>
+          <p class="text-xs text-(--text-muted)">{{ t(`permissions.${permission}.desc`) }}</p>
         </NeutralContainer>
       </div>
     </HelpSection>
@@ -101,7 +106,12 @@ const managementPermissions = [
         <li>{{ t('helpCenter.basics.permissions.owner1') }}</li>
         <li>{{ t('helpCenter.basics.permissions.owner2') }}</li>
         <li>{{ t('helpCenter.basics.permissions.owner3') }}</li>
+        <li>{{ t('helpCenter.basics.permissions.owner4') }}</li>
       </BulletList>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.basics.permissions.cluster')">
+      <p>{{ t('helpCenter.basics.permissions.clusterText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.basics.permissions.tip') }}</HelpTip>

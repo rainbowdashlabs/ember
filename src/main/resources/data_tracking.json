@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:6a1fa31fe9712597c48cd329eb8f3559112a84c97353e765467ccfab8e35798b",
-  "generatedAt": "2026-09-24T21:50:29Z",
+  "schemaHash": "sha256:16bbe571c9fd8b14bdd07f671b19c7637cd67175b7c2aa6a8f32607423c9f912",
+  "generatedAt": "2026-09-28T09:42:11Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -15864,7 +15864,7 @@
     "member_document_search": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:ce2051eb12aef50fe455505a24b7548ba2fefab7a8d04ddfcb4f8351bd9b7169",
+      "tableHash": "sha256:18a6737e0c5977b21f102cf040b540d00d1d972f602d09604bdbfdf9cb918cf0",
       "columns": [
         {
           "name": "document_id",
@@ -15877,6 +15877,13 @@
           "type": "tsvector",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "source_text",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The text the search index was built from: the title and whatever could be read out of the file. Empty for documents indexed before it was kept."
         }
       ],
       "foreignKeys": [

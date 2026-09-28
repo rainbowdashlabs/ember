@@ -10,6 +10,7 @@ import de.chojo.sadu.datasource.DataSourceCreator;
 import de.chojo.sadu.postgresql.databases.PostgreSql;
 import de.chojo.sadu.testing.SaduTests;
 import de.chojo.sadu.updater.SqlUpdater;
+import dev.chojo.ember.TestContainers;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
@@ -45,7 +46,7 @@ public class TestSQL {
     }
 
     public static GenericContainer<?> createContainer(String user, String pw) {
-        GenericContainer<?> self = new GenericContainer<>(DockerImageName.parse("postgres:latest"))
+        GenericContainer<?> self = new GenericContainer<>(DockerImageName.parse(TestContainers.POSTGRES_IMAGE))
                 .withExposedPorts(5432)
                 .withEnv("POSTGRES_USER", user)
                 .withEnv("POSTGRES_PASSWORD", pw)

@@ -5327,7 +5327,7 @@ export default {
             title: 'E-Mail',
             instanceTitle: 'Einstellungen der Instanz',
             digestInterval: 'Benachrichtigungsintervall (Minuten)',
-            digestIntervalHint: 'Intervall für die Zusammenfassung von Benachrichtigungen.',
+            digestIntervalHint: 'Mindestabstand in Minuten zwischen zwei Sammelmails an dieselbe Wache. 0 schaltet die Sammelmail ab. Gilt erst nach einem Neustart.',
             clear: 'Alle Anbieter entfernen',
             clearConfirm: 'Die Anbieterliste der Instanz wird vollständig geleert. Bis ein neuer '
                 + 'Anbieter eingetragen ist, bleibt jede Mail liegen. Fortfahren?',
@@ -5343,7 +5343,6 @@ export default {
             imprint: 'Impressum',
             save: 'Speichern',
             contentPlaceholder: 'Markdown-Inhalt hier eingeben...',
-            version: 'Version',
             preview: 'Vorschau',
             edit: 'Bearbeiten',
             addLocale: 'Sprache hinzufügen',
