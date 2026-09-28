@@ -6,7 +6,7 @@
 
 - **Expiry dates with reminders.** A station's or an association's profile field can hold a date that runs out, such as a first aid course or a driving licence, and the quick templates for these now use it. It shows yellow when it is close and red when it has passed, on the member's page and, for a station's fields, in the member list, and the member and the member management of the station or association are reminded ahead of time.
 - **Forms with pages and branching.** A form can be split into pages, each leading on to the next page, to a chosen page further down or straight to sending. A single-answer question can decide which page comes next, and the results say how many readers were shown each question.
-- **Continue a form later.** A form that is started and not sent is kept, and opens again on the page where it was left, for station forms on any device and for public forms on the same device. It never counts as an answer until it is sent.
+- **Continue a form later.** A form that is started and not sent is kept, and opens again on the page where it was left, for station forms on any device and for public forms on the same device. Only the person filling it in, and whoever looks after them, can see it, and it ends when the form closes.
 
 ### Improvements
 
