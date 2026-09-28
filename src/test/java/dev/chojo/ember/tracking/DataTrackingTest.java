@@ -89,6 +89,30 @@ class DataTrackingTest extends RepositoryTestBase {
         }
     }
 
+    /**
+     * The committed file is exactly what a refresh against the live schema writes, apart from its
+     * timestamp.
+     *
+     * <p>Descriptions are copied from the {@code COMMENT ON} statements of the migrations and play no
+     * part in any hash, so a description edited in the file by hand passes every other check here and
+     * is silently reverted by the next refresh.
+     */
+    @Test
+    void committedFileIsWhatARefreshWrites() throws SQLException {
+        var refreshed = new DataTrackingRefresher(new SchemaReader(dataSource, schemaName))
+                .merge(tracking)
+                .tracking();
+        var differences = TrackingDifferences.between(tracking, refreshed);
+        if (!differences.isEmpty()) {
+            fail("data_tracking.json differs from what ./toolchain.sh be-data-tracking writes ("
+                    + differences.size() + " total):\n  "
+                    + String.join("\n  ", differences)
+                    + "\n\nDescriptions come from the COMMENT ON statements of the migrations. Put the wording"
+                    + " into a COMMENT ON in a new migration, never into data_tracking.json by hand, then run"
+                    + " ./toolchain.sh be-data-tracking and commit the result.");
+        }
+    }
+
     @Test
     void topLevelSchemaHashIsCurrent() {
         // Recompute from the tracking file's current tableHashes; should match stored top-level hash

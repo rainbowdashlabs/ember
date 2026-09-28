@@ -171,6 +171,9 @@ Backend
   be-wrapper <version>  Move the Gradle wrapper to a version, e.g. be-wrapper 9.7.1
   be-federation-version Regenerate the federation contract version
   be-data-tracking      Refresh data_tracking.json from the live DB schema (testcontainer)
+  be-data-tracking-check
+                        The data tracking suite CI runs, including the check that the committed file
+                        is exactly what be-data-tracking would write
 
 Docker
   docker-frontend       Build the frontend image, as CI's docker job does. Worth running when a
@@ -454,6 +457,7 @@ case "$cmd" in
     be-wrapper)    cd "$ROOT"; run ./gradlew wrapper --gradle-version "$@" ;;
     be-federation-version) cd "$ROOT"; run ./gradlew generateFederationVersion "$@" ;;
     be-data-tracking)      cd "$ROOT"; run ./gradlew refreshDataTracking spotlessJsonApply "$@" ;;
+    be-data-tracking-check) cd "$ROOT"; run ./gradlew testTracking "$@" ;;
 
     docker-frontend) cd "$ROOT"; run docker build . -f docker/frontend.Dockerfile "$@" ;;
     docker-backend)  cd "$ROOT"; run docker build . -f docker/backend.Dockerfile "$@" ;;

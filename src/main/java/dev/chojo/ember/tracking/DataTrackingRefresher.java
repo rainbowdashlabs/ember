@@ -45,7 +45,16 @@ public final class DataTrackingRefresher {
      * Returns a summary of changes.
      */
     public RefreshSummary refresh(Path path) throws IOException, SQLException {
-        DataTracking existing = DataTrackingLoader.load(path);
+        var refreshed = merge(DataTrackingLoader.load(path));
+        DataTrackingLoader.write(path, refreshed.tracking());
+        return refreshed.summary();
+    }
+
+    /**
+     * Merges the live schema into {@code existing} without writing anything, returning what a refresh
+     * would write together with its summary.
+     */
+    public Refreshed merge(DataTracking existing) throws SQLException {
         var schema = schemaReader.readTables();
 
         var summary = new RefreshSummary();
@@ -162,10 +171,16 @@ public final class DataTrackingRefresher {
         String topHash = HashComputer.schemaHash(newTables);
 
         var refreshed = new DataTracking(DataTracking.CURRENT_VERSION, topHash, Instant.now(), newTables, fileStores);
-        DataTrackingLoader.write(path, refreshed);
-
-        return summary;
+        return new Refreshed(refreshed, summary);
     }
+
+    /**
+     * The tracking a refresh produces and the summary of what it changed.
+     *
+     * @param tracking the refreshed tracking, as a refresh would write it
+     * @param summary  the tables and columns the refresh added, removed or changed
+     */
+    public record Refreshed(DataTracking tracking, RefreshSummary summary) {}
 
     /**
      * Summary of changes detected during a refresh.
