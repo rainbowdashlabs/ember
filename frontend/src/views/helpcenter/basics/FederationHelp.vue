@@ -97,6 +97,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.basics.federation.setupTitle')">
       <p>{{ t('helpCenter.basics.federation.setupText') }}</p>
+      <p>{{ t('helpCenter.basics.federation.setupText2') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.basics.federation.tip') }}</HelpTip>
