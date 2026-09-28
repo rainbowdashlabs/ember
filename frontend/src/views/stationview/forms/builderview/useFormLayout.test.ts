@@ -98,6 +98,23 @@ describe('useFormLayout', () => {
         expect(choice.branch).toEqual({})
     })
 
+    it('puts a copy of a question below it with keys of its own', () => {
+        const layout = useFormLayout()
+        layout.load(stored())
+        layout.addQuestion(0, 'CHOICE')
+        const original = layout.pages.value[0]!.questions[1]!
+        layout.setDeciding(0, original.id)
+
+        layout.duplicateQuestion(0, 1)
+
+        const copy = layout.pages.value[0]!.questions[2]!
+        const keysOf = (config: Record<string, unknown>) => (config.options as {key: string}[]).map(option => option.key)
+        expect(copy.id).not.toBe(original.id)
+        expect(copy.branch).toBeNull()
+        expect(keysOf(copy.config)).not.toEqual(keysOf(original.config))
+        expect(keysOf(copy.config)).toHaveLength(1)
+    })
+
     it('moves a question to the end of another page and numbers it there', () => {
         const layout = useFormLayout()
         layout.load(stored())

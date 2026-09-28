@@ -135,6 +135,7 @@ public class FormRoutes implements Routes {
         routes.delete(prefix + "/forms/{id}", this::delete, StationPermission.POLL_CREATE);
         routes.post(prefix + "/forms/{id}/publish", this::publish, StationPermission.POLL_CREATE);
         routes.post(prefix + "/forms/{id}/close", this::close, StationPermission.POLL_CREATE);
+        routes.post(prefix + "/forms/{id}/duplicate", this::duplicate, StationPermission.POLL_CREATE);
         routes.delete(prefix + "/forms/{id}/responses", this::clearResponses, StationPermission.POLL_CREATE);
         routes.put(prefix + "/forms/{id}/visibility", this::setVisibility, StationPermission.POLL_CREATE);
         routes.get(prefix + "/forms/{id}/share-link", this::getShareLink, StationPermission.POLL_CREATE);
@@ -431,6 +432,40 @@ public class FormRoutes implements Routes {
 
         respondWithForm(ctx, id);
     }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/duplicate",
+            methods = HttpMethod.POST,
+            summary = "Copy a form as a new draft",
+            description = "Settings, pages, branches, questions and restrictions are copied; answers, the link,"
+                    + " the start and end dates and the status are not. The copy is always a draft.",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DuplicateRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = Form.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void duplicate(Context ctx) {
+        int id = pathInt(ctx, "id");
+        var session = UserSession.from(ctx);
+        requireOwnedForm(id, session);
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_COPYING_FORM.raise();
+        var request = ctx.bodyAsClass(DuplicateRequest.class);
+        if (request.title() == null || request.title().isBlank()) throw Refusal.FORM_COPY_NEEDS_A_TITLE.raise();
+        var copy = formService
+                .duplicate(id, request.title().trim(), session.member().id())
+                .orElseThrow(Refusal.FORM_NOT_HERE_ON_COPY::raise);
+        ctx.status(HttpStatus.CREATED).json(copy);
+    }
+
+    /**
+     * What a copy of a form is called, which the screen words in the reader's language.
+     *
+     * @param title the copy's title
+     */
+    @OpenApiName("FormDuplicateRequest")
+    public record DuplicateRequest(String title) {}
 
     @OpenApi(
             path = "/api/v1/forms/{id}/visibility",

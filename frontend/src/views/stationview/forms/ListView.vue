@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useConfirmAction } from '@/composables/useConfirmAction'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -161,6 +162,16 @@ function goEdit(form: Form) {
   router.push(editPage(form))
 }
 
+/** Copies a form as a new draft and opens the copy in the editor. */
+const duplication = useAsyncAction(async (form: Form) => {
+  const copy = await forms.duplicateForm(form.id, t('forms.copyOf', {title: form.title}))
+  await router.push(editPage(copy))
+})
+
+function duplicate(form: Form) {
+  void duplication.run(form)
+}
+
 const sharedForm = ref<Form | null>(null)
 const shareOpen = ref(false)
 
@@ -193,7 +204,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <FailureAlert :failure="confirmAction.failure.value ?? failure"/>
+      <FailureAlert :failure="duplication.failure.value ?? confirmAction.failure.value ?? failure"/>
 
       <template v-if="!loading">
         <ManagedFormsSection
@@ -210,6 +221,7 @@ watch(loaded, (isLoaded) => {
           @analytics="goAnalytics"
           @share="openShareLink"
           @clear="clearResponses"
+          @duplicate="duplicate"
           @delete="deleteForm"
         />
 

@@ -218,6 +218,28 @@ export function useFormLayout() {
     }
   }
 
+  /**
+   * Puts a copy of a question directly below it. The copy's options get keys of their own, so its
+   * answers can never be taken for the original's, and it decides nothing about where the page leads.
+   */
+  function duplicateQuestion(pageIndex: number, index: number) {
+    const questions = pages.value[pageIndex]?.questions
+    const original = questions?.[index]
+    if (!questions || !original) return
+    const config = JSON.parse(JSON.stringify(original.config)) as Record<string, unknown>
+    for (const field of ['options', 'statements'] as const) {
+      const list = config[field]
+      if (!Array.isArray(list)) continue
+      const used = new Set<string>()
+      config[field] = list.map(option => {
+        const key = freshKey(used)
+        used.add(key)
+        return { ...option, key }
+      })
+    }
+    questions.splice(index + 1, 0, { ...original, id: `temp-${nextTempId++}`, config, branch: null })
+  }
+
   /** The number a question is shown with, counted across every page. */
   function numberOf(question: QuestionDraft): number {
     return allQuestions.value.indexOf(question) + 1
@@ -226,7 +248,7 @@ export function useFormLayout() {
   return {
     pages, allQuestions, paged, reachable,
     load, toRequest, adoptIds, addPage, removePage, movePage,
-    addQuestion, removeQuestion, moveQuestion, moveToPage, setDeciding, numberOf,
+    addQuestion, removeQuestion, moveQuestion, moveToPage, setDeciding, duplicateQuestion, numberOf,
   }
 }
 

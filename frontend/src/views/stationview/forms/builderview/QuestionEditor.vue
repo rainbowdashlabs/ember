@@ -39,6 +39,7 @@ const emit = defineEmits<{
   move: [direction: -1 | 1]
   remove: []
   moveToPage: [pageIndex: number]
+  duplicate: []
 }>()
 
 const { t } = useI18n()
@@ -54,7 +55,7 @@ const menu = ref<InstanceType<typeof QuestionMenu> | null>(null)
         <QuestionMenu ref="menu" :question="question" :first="first" :last="last" :other-pages="otherPages"
                       :describing="describing" @describe="describing = true"
                       @move="direction => emit('move', direction)" @remove="emit('remove')"
-                      @move-to-page="pageIndex => emit('moveToPage', pageIndex)"/>
+                      @move-to-page="pageIndex => emit('moveToPage', pageIndex)" @duplicate="emit('duplicate')"/>
       </QuestionHeader>
 
       <TextInput v-model="question.title" :placeholder="t('forms.questionTitle')" />

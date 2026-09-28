@@ -61,7 +61,8 @@ const further = computed(() => pageChoices(props.layout.pages.value, t).filter(c
                       :first="index === 0" :last="index === page.questions.length - 1" :other-pages="otherPages"
                       @move="direction => layout.moveQuestion(pageIndex, index, direction)"
                       @remove="layout.removeQuestion(pageIndex, index)"
-                      @move-to-page="target => layout.moveToPage(pageIndex, index, target)"/>
+                      @move-to-page="target => layout.moveToPage(pageIndex, index, target)"
+                      @duplicate="layout.duplicateQuestion(pageIndex, index)"/>
     </VueDraggable>
 
     <AddQuestionMenu :question-types="questionTypes" @add="type => layout.addQuestion(pageIndex, type)"/>

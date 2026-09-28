@@ -7150,6 +7150,8 @@ export default {
         close: 'Schließen',
         reopen: 'Wieder öffnen',
         clearResponses: 'Antworten zurücksetzen',
+        duplicate: 'Duplizieren',
+        copyOf: 'Kopie von {title}',
         settingsSaved: 'Einstellungen werden automatisch gespeichert. Nur die Fragen brauchen den Speichern-Knopf.',
         settingsSaving: 'Einstellungen werden gespeichert ...',
         settingsSaveFailed: 'Die Einstellungen konnten nicht gespeichert werden. Prüfe die Verbindung und ändere sie noch einmal.',
@@ -7223,6 +7225,7 @@ export default {
             moveUp: 'Nach oben',
             moveDown: 'Nach unten',
             moveToPage: 'Auf {page} verschieben',
+            duplicate: 'Frage duplizieren',
             remove: 'Frage löschen',
         },
         pages: {

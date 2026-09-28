@@ -2398,6 +2398,15 @@ public enum Refusal {
     ANSWER_TO_QUESTION_NOT_ON_FORM(
             Area.FORMS, 61, HttpStatus.BAD_REQUEST, "This answer belongs to a question the form does not have"),
 
+    /** A copy of a form asked for without a title. */
+    FORM_COPY_NEEDS_A_TITLE(Area.FORMS, 62, HttpStatus.BAD_REQUEST, "A copy needs a title, so nothing was copied"),
+
+    /** Copying a form while belonging to no station. */
+    NOT_A_MEMBER_COPYING_FORM(Area.FORMS, 63, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
+
+    /** A form that went before it could be copied. */
+    FORM_NOT_HERE_ON_COPY(Area.FORMS, 64, HttpStatus.NOT_FOUND, Sentences.FORM_NOT_HERE),
+
     /** An invite that is used up or past its date. */
     WAITING_LIST_INVITE_NO_LONGER_VALID(
             Area.WAITING_LISTS, 22, HttpStatus.FORBIDDEN, "This invite can no longer be used"),

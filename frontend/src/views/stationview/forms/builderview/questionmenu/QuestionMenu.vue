@@ -37,6 +37,7 @@ const emit = defineEmits<{
   describe: []
   move: [direction: -1 | 1]
   moveToPage: [pageIndex: number]
+  duplicate: []
   remove: []
 }>()
 
@@ -67,6 +68,9 @@ defineExpose({show})
       <QuestionSettings :question="question"/>
       <DropdownMenuItem v-if="!describing" :icon="['fas', 'align-left']" @click="take(() => emit('describe'))">
         {{ t('forms.questionMenu.describe') }}
+      </DropdownMenuItem>
+      <DropdownMenuItem :icon="['fas', 'copy']" data-testid="question-duplicate" @click="take(() => emit('duplicate'))">
+        {{ t('forms.questionMenu.duplicate') }}
       </DropdownMenuItem>
       <DropdownMenuItem :icon="['fas', 'chevron-up']" :disabled="first" @click="take(() => emit('move', -1))">
         {{ t('forms.questionMenu.moveUp') }}

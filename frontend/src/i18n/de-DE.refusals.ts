@@ -863,6 +863,9 @@ export default {
     'F-059': 'Diese Frage muss beantwortet werden',
     'F-060': 'Diese Antwort passt nicht zur Frage',
     'F-061': 'Diese Antwort gehört zu einer Frage, die das Formular nicht hat',
+    'F-062': 'Eine Kopie braucht einen Titel, es wurde nichts kopiert',
+    'F-063': 'Du bist kein Mitglied dieser Wache',
+    'F-064': FORM_NOT_HERE,
 
     'W-022': 'Diese Einladung lässt sich nicht mehr verwenden',
     'W-023': 'Eine Einladung und ein Vorname werden gebraucht, es wurde nichts gespeichert',

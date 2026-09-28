@@ -245,6 +245,73 @@ public class FormService {
     }
 
     /**
+     * Makes a draft copy of a form: its settings, pages, branches, questions and restrictions.
+     *
+     * <p>What belongs to the form being asked rather than to how it asks stays behind: the answers,
+     * the link it was sent with, its start and end dates and its status, which is always draft. A
+     * form is copied within its own kind, since its questions are only allowed for that kind.
+     *
+     * @param id        the form to copy
+     * @param title     what the copy is called
+     * @param createdBy the member making the copy
+     * @return the copy, or empty where the form is not there
+     */
+    public Optional<Form> duplicate(int id, String title, int createdBy) {
+        var source = repository.findById(id).orElse(null);
+        if (source == null) return Optional.empty();
+        var copy = Transactions.call(() -> {
+            var made = repository.create(
+                    source.stationId(),
+                    title,
+                    source.description(),
+                    source.shuffleQuestions(),
+                    source.allowEdit(),
+                    source.forced(),
+                    null,
+                    null,
+                    createdBy,
+                    source.purpose());
+            if (source.purpose() != FormPurpose.INTERNAL) repository.updateVisibility(made.id(), source.visibility());
+            repository.updateRestrictionMode(made.id(), source.restrictionMode());
+            copyRestrictions(source, made.id());
+            saveLayout(made.id(), pageEntries(id), questionEntries(id));
+            return made;
+        });
+        log.info("Duplicated form {} as {} (station {})", id, copy.id(), source.stationId());
+        return repository.findById(copy.id());
+    }
+
+    private void copyRestrictions(Form source, int copyId) {
+        if (source.purpose() != FormPurpose.INTERNAL) return;
+        var set = findRestrictions(source.id());
+        restrictionService.setRestrictions(
+                RestrictionType.FORM,
+                copyId,
+                new RestrictionSelection(set.userTypes(), set.groupIds(), set.tagIds(), set.memberIds(), set.mode()));
+    }
+
+    private List<PageEntry> pageEntries(int formId) {
+        return repository.findPages(formId).stream()
+                .map(page -> new PageEntry(page.key(), page.title(), page.description(), page.after()))
+                .toList();
+    }
+
+    private List<QuestionEntry> questionEntries(int formId) {
+        return repository.findQuestions(formId).stream()
+                .map(question -> new QuestionEntry(
+                        null,
+                        question.pageKey(),
+                        question.formQuestionType(),
+                        question.title(),
+                        question.description(),
+                        question.required(),
+                        question.shuffle(),
+                        question.config(),
+                        question.branch()))
+                .toList();
+    }
+
+    /**
      * Updates the editable fields of a form.
      *
      * @param id               the form ID
@@ -538,10 +605,7 @@ public class FormService {
      *                                             their own
      */
     public void saveQuestions(int formId, List<QuestionEntry> questions) {
-        var pages = repository.findPages(formId).stream()
-                .map(page -> new PageEntry(page.key(), page.title(), page.description(), page.after()))
-                .toList();
-        saveLayout(formId, pages, questions);
+        saveLayout(formId, pageEntries(formId), questions);
     }
 
     /**

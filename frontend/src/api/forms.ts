@@ -378,6 +378,17 @@ export async function publishForm(id: number): Promise<Form> {
     return res.data
 }
 
+/**
+ * Copies a form as a new draft with its settings, pages, questions and restrictions, and without its
+ * answers, its link, its dates and its status.
+ *
+ * @param title what the copy is called
+ */
+export async function duplicateForm(id: number, title: string): Promise<Form> {
+    const res = await client.post<Form>(`/forms/${id}/duplicate`, {title})
+    return res.data
+}
+
 export async function closeForm(id: number): Promise<Form> {
     const res = await client.post<Form>(`/forms/${id}/close`)
     return res.data
