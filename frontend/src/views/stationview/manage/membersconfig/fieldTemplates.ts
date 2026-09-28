@@ -90,9 +90,9 @@ export const fieldTemplates: FieldTemplate[] = [
   {
     name: 'Jugendflamme', icon: 'fire', fields: [
       {
-        name: 'Jugendflamme Stufe',
+        name: 'Jugendflamme',
         fieldType: 'ENUM',
-        config: {options: ['Jugendflamme 1', 'Jugendflamme 2', 'Jugendflamme 3']},
+        config: {options: ['Keine', 'Jugendflamme 1', 'Jugendflamme 2', 'Jugendflamme 3']},
         readonly: true,
       },
       {name: 'Jugendflamme Datum', fieldType: 'DATE', config: {}, readonly: true},
