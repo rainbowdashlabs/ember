@@ -116,7 +116,7 @@ public class FormAnalyticsAssembler {
                         bucket.key(),
                         bucket.label(),
                         bucket.ids().size(),
-                        FormResultTally.tally(questions, answers, bucket.ids())))
+                        FormResultTally.tally(questions, answers, responses, bucket.ids())))
                 .toList();
         return new FormAnalyticsDto(
                 formId,

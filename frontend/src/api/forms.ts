@@ -315,6 +315,8 @@ export interface FormResultGroup {
 export interface FormQuestionTally {
     questionId: number
     answerCount: number
+    /** How many of the counted responses went through the question's page at all. */
+    reachedCount?: number | null
     optionCounts?: Record<string, number>
     otherCount?: number
     ratingCounts?: number[]

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {reachLines} from './reach'
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {use} from 'echarts/core'
@@ -69,6 +70,7 @@ function listed(group: FormResultGroup): string[] {
 <template>
   <NeutralContainer class="space-y-3">
     <SubHeader>{{ question.title }}</SubHeader>
+    <MutedText v-for="line in reachLines(question.questionId, groups, names, t)" :key="line" size="sm" tag="p">{{ line }}</MutedText>
 
     <template v-if="matrix">
       <VChart v-if="option && !asTable" :option="option" :style="{height: `${height}px`}" autoresize/>

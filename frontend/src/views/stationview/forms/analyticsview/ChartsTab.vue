@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { answeredLine } from './reach'
 import { computed } from 'vue'
 import { use, type EChartsCoreOption } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -43,6 +44,9 @@ const props = defineProps<{
   groups: FormResultGroup[]
 }>()
 const { t } = useI18n()
+
+/** How many responses are counted, which is what "shown to" is measured against. */
+const total = computed(() => props.groups[0]?.responseCount ?? 0)
 const textColor = computed(() => chartTextColor(isDark.value))
 const RATING = '#FF6421'
 const RANKING = '#3694FF'
@@ -146,15 +150,15 @@ function answersOf(q: FormQuestionInfo): string[] {
         :empty-text="t('forms.analytics.noAnswersYet')"
         :height="q.questionType === QuestionTypes.RATING ? 220 : 280"
       >
-        <MutedText tag="p" size="sm">
-          {{ tallyOf(q)?.answerCount ?? 0 }} {{ t('forms.responses') }}
+        <MutedText tag="p" size="sm" data-testid="question-answered">
+          {{ answeredLine(tallyOf(q), total, t) }}
         </MutedText>
       </ChartPanel>
 
       <NeutralContainer v-else class="space-y-2">
         <SectionHeader>{{ q.title }}</SectionHeader>
-        <MutedText tag="p" size="sm">
-          {{ tallyOf(q)?.answerCount ?? 0 }} {{ t('forms.responses') }}
+        <MutedText tag="p" size="sm" data-testid="question-answered">
+          {{ answeredLine(tallyOf(q), total, t) }}
         </MutedText>
 
         <MutedText v-if="!answered(q)" tag="p" size="sm">{{ t('forms.analytics.noAnswersYet') }}</MutedText>

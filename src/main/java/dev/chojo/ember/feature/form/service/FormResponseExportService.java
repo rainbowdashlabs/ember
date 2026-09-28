@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.form.service;
 
+import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.MemberTable;
@@ -92,6 +93,10 @@ public class FormResponseExportService {
     /**
      * One column per question, one row per submission, in the order the form asks and was answered.
      *
+     * <p>Answers are written as their options' labels, never as the keys they are stored by. A form
+     * with more than one page gets a column naming the pages each response went through, so a cell left
+     * empty because its question was never reached can be told from one left empty on purpose.
+     *
      * <p>Where members answered, their user type, groups and age on the day of answering follow the
      * name, so a spreadsheet can be pivoted by the same things the results view groups by. A form
      * answered only without signing in has nobody to describe and leaves those columns out.
@@ -100,6 +105,8 @@ public class FormResponseExportService {
         String language = StationFormat.languageOf(station);
         var zone = StationFormat.timezoneOf(station);
         var questions = formRepository.findQuestions(formId);
+        var pages = formRepository.findPages(formId);
+        boolean paged = pages.size() > 1;
         var responses = formRepository.findResponses(formId);
         boolean describesMembers = responses.stream().anyMatch(response -> response.memberId() != null);
         var described = describesMembers
@@ -118,6 +125,7 @@ public class FormResponseExportService {
             columns.add(column(DocumentWord.AGE.in(language)));
         }
         columns.add(column("en".equals(language) ? "Submitted" : "Abgegeben"));
+        if (paged) columns.add(column("en".equals(language) ? "Path" : "Weg"));
         for (var question : questions) {
             columns.add(column(question.title()));
         }
@@ -149,8 +157,10 @@ public class FormResponseExportService {
                     response.submittedAt() == null
                             ? ""
                             : SUBMITTED_AT.format(response.submittedAt().atZone(zone)));
+            if (paged) values.add(FormAnswerText.path(response.path(), pages, language));
             for (var question : questions) {
-                values.add(answers.getOrDefault(question.id(), ""));
+                var value = FormAnswerValue.parse(question.formQuestionType(), answers.get(question.id()));
+                values.add(FormAnswerText.of(question, value, language));
             }
             rows.add(new MemberTable.MemberTableRow(
                     response.memberId() == null ? 0 : response.memberId(), List.copyOf(values)));

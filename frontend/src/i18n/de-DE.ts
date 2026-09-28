@@ -7333,6 +7333,9 @@ export default {
         analytics: {
             responseFailed: 'Diese Antwort konnte nicht geöffnet werden.',
             totalResponses: 'Antworten gesamt',
+            answered: '{count} Antworten',
+            answeredOfReached: '{answered} Antworten, gezeigt {reached} von {total}',
+            groupReached: '{group}: gezeigt {reached} von {total}',
             noResponses: 'Noch keine Antworten.',
             noAnswersYet: 'Auf diese Frage hat noch niemand geantwortet.',
             otherAnswer: 'Sonstiges',

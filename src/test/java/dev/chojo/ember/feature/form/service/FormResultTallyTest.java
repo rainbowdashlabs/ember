@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig.Option;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
+import dev.chojo.ember.feature.form.entity.FormResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -153,6 +154,39 @@ class FormResultTallyTest {
         answers.addAll(answers(8, new FormAnswerValue.Rating(2)));
 
         assertEquals(1, only(question, answers, null).answerCount());
+    }
+
+    @Test
+    void countsHowManyOfTheChosenResponsesReachedTheQuestionsPage() {
+        var question = new FormQuestion(
+                9,
+                1,
+                9,
+                "later",
+                FormQuestionType.TEXT,
+                "Frage 9",
+                "",
+                false,
+                false,
+                new FormQuestionConfig.Text(false),
+                null);
+        var responses =
+                List.of(response(1, List.of("p0", "later")), response(2, List.of("p0")), response(3, List.of()));
+
+        var all = FormResultTally.tally(List.of(question), List.of(), responses, null)
+                .getFirst();
+        var some = FormResultTally.tally(List.of(question), List.of(), responses, Set.of(2))
+                .getFirst();
+
+        assertEquals(2, all.reachedCount(), "a response written without a walk saw every page");
+        assertEquals(0, some.reachedCount());
+        assertNull(FormResultTally.tally(List.of(question), List.of(), null)
+                .getFirst()
+                .reachedCount());
+    }
+
+    private static FormResponse response(int id, List<String> path) {
+        return new FormResponse(id, 1, id, id, null, null, null, null, null, path);
     }
 
     private static FormResultTally.QuestionTally only(
