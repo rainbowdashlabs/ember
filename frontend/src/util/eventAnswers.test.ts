@@ -6,7 +6,7 @@
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
 import {EventFieldTypes, RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField} from '@/api/events'
-import {answerTotals, localAnswers, membersToRegister} from './eventAnswers'
+import {answerTotals, localAnswers, membersToRegister, rowsOnDate} from './eventAnswers'
 
 const MEALS: EventRegistrationField = {
   id: 1,
@@ -88,10 +88,43 @@ function member(id: number) {
   return {value: String(id), name: `Mitglied ${id}`}
 }
 
-/** A registration of the same member on another date of the appointment. */
-function onAnotherDate(id: number, status: string): EventRegistrationEntry {
-  return {...registration(id, status, {}), eventDate: '2026-09-08'}
+/** One member's registration on one date of a repeating appointment. */
+function onDate(id: number, memberId: number, eventDate: string, status: string): EventRegistrationEntry {
+  return {...registration(id, status, {}), memberId, eventDate}
 }
+
+describe('rowsOnDate', () => {
+  const FIRST = '2026-09-01'
+  const SECOND = '2026-09-08'
+  const rows = [
+    onDate(1, 7, FIRST, RegistrationStatus.ACCEPTED),
+    onDate(2, 7, SECOND, RegistrationStatus.WITHDRAWN),
+    onDate(3, 8, FIRST, RegistrationStatus.PENDING),
+    onDate(4, 8, SECOND, RegistrationStatus.PENDING),
+  ]
+  const dateOf = (row: EventRegistrationEntry) => row.eventDate
+
+  /**
+   * A repeating appointment's list carries every date. Read as one, a place given back on one date
+   * stood for the member on the other, and a pending request was counted once per date.
+   */
+  it('keeps only the rows of the date in view', () => {
+    expect(rowsOnDate(rows, FIRST, dateOf).map(row => row.id)).toEqual([1, 3])
+    expect(rowsOnDate(rows, SECOND, dateOf).map(row => row.id)).toEqual([2, 4])
+  })
+
+  it('answers for the date in view rather than the first row found', () => {
+    const second = rowsOnDate(rows, SECOND, dateOf)
+
+    expect(second.find(row => row.memberId === 7)?.status).toBe(RegistrationStatus.WITHDRAWN)
+    expect(membersToRegister([member(7), member(8)], second).map(entry => entry.value)).toEqual(['7'])
+    expect(membersToRegister([member(7), member(8)], rowsOnDate(rows, FIRST, dateOf))).toEqual([])
+  })
+
+  it('keeps every row where the appointment has only the one date', () => {
+    expect(rowsOnDate(rows, null, dateOf)).toEqual(rows)
+  })
+})
 
 describe('membersToRegister', () => {
   const members = [1, 2, 3, 4, 5, 6].map(member)
@@ -107,24 +140,9 @@ describe('membersToRegister', () => {
       registration(3, RegistrationStatus.WITHDRAWN, {}),
       registration(4, RegistrationStatus.DECLINED, {}),
       registration(5, RegistrationStatus.DENIED, {}),
-    ], '2026-09-01')
+    ])
 
     expect(offered.map(entry => entry.value)).toEqual(['3', '4', '5', '6'])
-  })
-
-  it('reads only the rows of the date the registration is made for', () => {
-    const offered = membersToRegister(
-        members.slice(0, 2),
-        [onAnotherDate(1, RegistrationStatus.ACCEPTED), registration(2, RegistrationStatus.ACCEPTED, {})],
-        '2026-09-01')
-
-    expect(offered.map(entry => entry.value)).toEqual(['1'])
-  })
-
-  it('reads every row where no date is in view', () => {
-    const offered = membersToRegister(members.slice(0, 2), [onAnotherDate(1, RegistrationStatus.ACCEPTED)], null)
-
-    expect(offered.map(entry => entry.value)).toEqual(['2'])
   })
 })
 

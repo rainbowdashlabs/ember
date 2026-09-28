@@ -312,6 +312,55 @@ test.describe('Events', () => {
         })
 
     /**
+     * A place on one date of a repeating appointment says nothing about the next one.
+     *
+     * <p>The registrations tab reads every date the appointment ever had, and it used to take the
+     * first row it found as the member's answer on whichever date was open.
+     */
+    test('a place on one date of a repeating appointment is not shown on another',
+        async ({managerPage, memberPage}) => {
+            const managerHeaders = await apiHeaders(managerPage)
+            const memberHeaders = await apiHeaders(memberPage)
+            const day = (offset: number) => new Date(Date.now() + offset * 86400000)
+            const isoDate = (offset: number) => day(offset).toISOString().slice(0, 10)
+            const start = day(7)
+            start.setUTCHours(10, 0, 0, 0)
+
+            const created = await managerPage.request.post('/api/v1/events', {
+                headers: managerHeaders,
+                data: {
+                    name: `Jede Woche ${test.info().workerIndex}-${Date.now()}`,
+                    description: 'Ein Platz gilt für einen Tag',
+                    eventType: 'RECURRING',
+                    dayOfWeek: start.getUTCDay() === 0 ? 7 : start.getUTCDay(),
+                    startTime: start.toISOString(),
+                    endTime: new Date(start.getTime() + 3600000).toISOString(),
+                    requiresRegistration: true,
+                },
+            })
+            expect(created.ok(), `the organiser made an appointment (${await created.text()})`).toBeTruthy()
+            const eventId = (await created.json()).id
+
+            try {
+                const registered = await memberPage.request.post(`/api/v1/events/${eventId}/register`,
+                    {headers: memberHeaders, data: {eventDate: isoDate(14)}})
+                expect(registered.ok(), `the member signed up for one date (${await registered.text()})`).toBeTruthy()
+
+                const myAnswer = memberPage.locator('[data-testid^="my-answer-"]').first()
+
+                await memberPage.goto(`/station/events/${eventId}/${isoDate(14)}`)
+                await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+                await expect(myAnswer, 'the date signed up for holds the place').toHaveText('Bestätigt', {timeout: 15000})
+
+                await memberPage.goto(`/station/events/${eventId}/${isoDate(21)}`)
+                await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+                await expect(myAnswer, 'the week after is still open').toHaveText('Noch keine Antwort', {timeout: 15000})
+            } finally {
+                await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
+            }
+        })
+
+    /**
      * An answer can be changed while registration is open and not afterwards, when the list has been
      * counted on. After that it is the event's to change: whoever runs it still can, and the member
      * cannot. The deadline is moved underneath a standing registration, because that is the only way to

@@ -34,6 +34,7 @@
 - **Questions for a group could be missing from a profile.** In some cases a question a station asks of one group did not appear on a member's profile when the station belongs to an association that asks questions of its own. Such questions now always appear and can be answered.
 - **Members who withdrew could not be added again.** After somebody withdrew or declined, the list for adding members to an appointment no longer offered them, so not even its managers could put them back on. They are offered again.
 - **Members who withdrew could not sign up again everywhere.** In some cases a member who had given their place back was still shown as withdrawn in the list of upcoming appointments and on the appointment's page, with no way to sign up again there. They can now sign up again from both.
+- **Registrations of a repeating appointment mixed up its dates.** On an appointment that repeats, the registrations tab could show a member's answer, the waiting and confirmed lists and their counts from another date than the one open, and signing off could give up the place on that other date. The tab now shows and acts on the date that is open.
 
 ## v26.19.5
 
