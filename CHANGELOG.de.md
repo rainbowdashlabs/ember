@@ -17,6 +17,7 @@
 ### Sicherheit
 
 - **Einträge nur für benannte Personen waren für die ganze Wache sichtbar.** Ein Formular, ein Termin, ein Blog-Beitrag oder ein Quiz, das auf eine Liste benannter Mitglieder beschränkt war, wurde jedem Mitglied der Wache angezeigt. Jetzt sehen es nur die benannten Personen und diejenigen, die es verwalten.
+- **Benachrichtigungen über beschränkte Einträge erreichten Personen ohne Zugriff.** In manchen Fällen ging die Benachrichtigung über ein neues Formular, einen neuen Termin oder einen neuen Blog-Beitrag an Mitglieder außerhalb des Kreises, für den er bestimmt war, und zeigte seinen Titel. Jetzt erreicht sie nur die Mitglieder, die den Eintrag öffnen dürfen.
 
 ### Änderungen
 

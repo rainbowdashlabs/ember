@@ -8,10 +8,13 @@ package dev.chojo.ember.event.handlers;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventsBatchCreated;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -19,12 +22,18 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.IntStream;
 
 /**
- * Aggregates a batch event creation into a single station-wide NEW_EVENTS_BATCH notification
- * instead of emitting one NEW_EVENT per row. The preview lists up to three event names.
+ * Aggregates a batch event creation into a single NEW_EVENTS_BATCH notification per member instead
+ * of emitting one NEW_EVENT per row. The preview lists up to three event names.
  */
 @Singleton
 public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatchCreated> {
@@ -32,11 +41,19 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
 
     private final NotificationService notificationService;
     private final StationRepository stationRepository;
+    private final StationMemberRepository stationMemberRepository;
+    private final RestrictionService restrictionService;
 
     @Inject
-    public EventsBatchCreatedHandler(NotificationService notificationService, StationRepository stationRepository) {
+    public EventsBatchCreatedHandler(
+            NotificationService notificationService,
+            StationRepository stationRepository,
+            StationMemberRepository stationMemberRepository,
+            RestrictionService restrictionService) {
         this.notificationService = notificationService;
         this.stationRepository = stationRepository;
+        this.stationMemberRepository = stationMemberRepository;
+        this.restrictionService = restrictionService;
     }
 
     @Override
@@ -47,6 +64,9 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
     /**
      * Announces a batch of new appointments as one entry naming when the first of them falls.
      *
+     * <p>Each member hears only about the appointments they may see: the entry counts and names
+     * those alone, and a member who may see none of them hears nothing.
+     *
      * <p>Which day that is belongs to the station's clock rather than the server's: an appointment
      * just after midnight in Berlin is the previous day read in UTC, and the announcement would name
      * a day nobody is meeting on.
@@ -56,6 +76,40 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
         var events = event.events();
         if (events.isEmpty()) return;
 
+        var zone = StationFormat.timezoneOf(
+                stationRepository.findById(event.stationId()).orElse(null));
+        var audiences = events.stream()
+                .map(e -> restrictionService.findMembersPassingRestriction(
+                        RestrictionType.EVENT_VIEW, e.id(), event.stationId()))
+                .toList();
+
+        if (audiences.stream().allMatch(Optional::isEmpty)) {
+            notificationService.notifyStation(
+                    event.stationId(), NotificationType.NEW_EVENTS_BATCH, dataFor(events, zone));
+            return;
+        }
+
+        var membersBySeenEvents = new LinkedHashMap<List<StationEvent>, List<Integer>>();
+        for (var member : stationMemberRepository.findByStation(event.stationId())) {
+            var seen = IntStream.range(0, events.size())
+                    .filter(i -> audiences
+                            .get(i)
+                            .map(ids -> ids.contains(member.id()))
+                            .orElse(true))
+                    .mapToObj(events::get)
+                    .toList();
+            if (seen.isEmpty()) continue;
+            membersBySeenEvents.computeIfAbsent(seen, key -> new ArrayList<>()).add(member.id());
+        }
+        membersBySeenEvents.forEach((seen, memberIds) ->
+                notificationService.notifyMembers(memberIds, NotificationType.NEW_EVENTS_BATCH, dataFor(seen, zone)));
+    }
+
+    /**
+     * The announcement of some appointments: how many, the names of the first few and the day the
+     * earliest falls on.
+     */
+    private static NotificationData dataFor(List<StationEvent> events, ZoneId zone) {
         var preview = new StringBuilder();
         int previewN = Math.min(PREVIEW_LIMIT, events.size());
         for (int i = 0; i < previewN; i++) {
@@ -66,8 +120,6 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
             preview.append(", …");
         }
 
-        var zone = StationFormat.timezoneOf(
-                stationRepository.findById(event.stationId()).orElse(null));
         LocalDate firstEventDate = events.stream()
                 .map(StationEvent::startTime)
                 .filter(Objects::nonNull)
@@ -75,11 +127,8 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
                 .map(instant -> instant.atZone(zone).toLocalDate())
                 .orElse(null);
 
-        notificationService.notifyStation(
-                event.stationId(),
-                NotificationType.NEW_EVENTS_BATCH,
-                NotificationData.of(
-                        new NotificationParams.NewEventsBatch(events.size(), preview.toString(), firstEventDate),
-                        new NotificationData.NotificationLink("events-upcoming", Map.of())));
+        return NotificationData.of(
+                new NotificationParams.NewEventsBatch(events.size(), preview.toString(), firstEventDate),
+                new NotificationData.NotificationLink("events-upcoming", Map.of()));
     }
 }

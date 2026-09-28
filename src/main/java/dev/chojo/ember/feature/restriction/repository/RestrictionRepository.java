@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.restriction.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -15,6 +16,8 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Singleton;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -59,6 +62,63 @@ public class RestrictionRepository {
                 .map(row -> RestrictionMode.valueOf(row.getString("mode")))
                 .first()
                 .orElse(RestrictionMode.AND);
+    }
+
+    /**
+     * The current members of a station who pass the restrictions of an entity, decided per member by
+     * the same {@code check_restriction} database function as {@link #matches}, with no manager
+     * bypass.
+     *
+     * @param type      the restricted entity type
+     * @param entityId  the entity
+     * @param mode      how the entity's restrictions combine
+     * @param stationId the station whose members are tested
+     * @return the IDs of the members who pass
+     */
+    public Set<Integer> findMatchingMembers(RestrictionType type, int entityId, RestrictionMode mode, int stationId) {
+        return query("""
+                SELECT sm.id
+                FROM station_member sm
+                WHERE sm.station_id = :station_id
+                  AND sm.former = FALSE
+                  AND check_restriction(
+                        :rtable, :fk_column, :entity_id, :mode, sm.id, sm.user_type,
+                        ARRAY(SELECT mge.group_id FROM member_group_entry mge WHERE mge.member_id = sm.id),
+                        ARRAY(SELECT ute.tag_id FROM user_tag_entry ute WHERE ute.member_id = sm.id));""")
+                .single(call().bind("station_id", stationId)
+                        .bind("rtable", type.table())
+                        .bind("fk_column", type.fkColumn())
+                        .bind("entity_id", entityId)
+                        .bind("mode", mode.name()))
+                .map(row -> row.getInt("id"))
+                .all()
+                .stream()
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * The current members of a station with the user type, groups and tags a restriction can name,
+     * for deciding many members against one entity at once.
+     *
+     * @param stationId the station
+     * @return one identity per current member
+     */
+    public List<RestrictionMember> findStationMembers(int stationId) {
+        return query("""
+                SELECT sm.id,
+                       sm.user_type,
+                       ARRAY(SELECT mge.group_id FROM member_group_entry mge WHERE mge.member_id = sm.id) AS group_ids,
+                       ARRAY(SELECT ute.tag_id FROM user_tag_entry ute WHERE ute.member_id = sm.id) AS tag_ids
+                FROM station_member sm
+                WHERE sm.station_id = :station_id
+                  AND sm.former = FALSE;""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> new RestrictionMember(
+                        row.getInt("id"),
+                        row.getEnum("user_type", StationUserType.class),
+                        List.of((Integer[]) row.getArray("group_ids").getArray()),
+                        List.of((Integer[]) row.getArray("tag_ids").getArray())))
+                .all();
     }
 
     /**

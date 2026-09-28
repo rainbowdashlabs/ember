@@ -181,7 +181,11 @@ class DomainEventHandlerTest {
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
         verify(notificationService)
-                .notifyStation(eq(STATION_ID), eq(NotificationType.NEW_EVENT), any(NotificationData.class));
+                .notifyAudience(
+                        eq(STATION_ID),
+                        eq(Optional.empty()),
+                        eq(NotificationType.NEW_EVENT),
+                        any(NotificationData.class));
     }
 
     @Test
@@ -221,11 +225,11 @@ class DomainEventHandlerTest {
                 null);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
-        verify(notificationService).notifyStation(eq(STATION_ID), eq(NotificationType.NEW_EVENT), argThat(data -> {
-            var map = data.paramsAsMap();
-            // Full 100 chars survive - no handler-side truncation any more.
-            return map.get("eventDescription").length() == 100;
-        }));
+        verify(notificationService)
+                .notifyAudience(eq(STATION_ID), eq(Optional.empty()), eq(NotificationType.NEW_EVENT), argThat(data -> {
+                    var map = data.paramsAsMap();
+                    return map.get("eventDescription").length() == 100;
+                }));
     }
 
     @Test
@@ -262,7 +266,11 @@ class DomainEventHandlerTest {
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
         verify(notificationService)
-                .notifyStation(eq(STATION_ID), eq(NotificationType.NEW_EVENT), any(NotificationData.class));
+                .notifyAudience(
+                        eq(STATION_ID),
+                        eq(Optional.empty()),
+                        eq(NotificationType.NEW_EVENT),
+                        any(NotificationData.class));
     }
 
     // -- EventDeletedHandler --
@@ -282,7 +290,7 @@ class DomainEventHandlerTest {
 
     @Test
     void eventsBatchCreatedEmitsSingleAggregateNotification() {
-        var handler = new EventsBatchCreatedHandler(notificationService, mock(StationRepository.class));
+        var handler = batchHandler();
         assertEquals(EventsBatchCreated.class, handler.eventType());
 
         var events = List.of(
@@ -309,12 +317,56 @@ class DomainEventHandlerTest {
 
     @Test
     void eventsBatchCreatedDoesNothingForEmptyBatch() {
-        var handler = new EventsBatchCreatedHandler(notificationService, mock(StationRepository.class));
+        var handler = batchHandler();
 
         handler.handle(new EventsBatchCreated(STATION_ID, List.of()));
 
         verify(notificationService, never())
                 .notifyStation(anyInt(), eq(NotificationType.NEW_EVENTS_BATCH), any(NotificationData.class));
+    }
+
+    @Test
+    void eventsBatchCreatedTellsEachMemberOnlyAboutTheAppointmentsTheyMaySee() {
+        var handler = batchHandler();
+        when(restrictionService.findMembersPassingRestriction(RestrictionType.EVENT_VIEW, 2, STATION_ID))
+                .thenReturn(Optional.of(Set.of(30)));
+        when(restrictionService.findMembersPassingRestriction(RestrictionType.EVENT_VIEW, 3, STATION_ID))
+                .thenReturn(Optional.of(Set.of(30)));
+        when(memberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(30), member(31)));
+
+        handler.handle(new EventsBatchCreated(
+                STATION_ID, List.of(stationEvent(1, "Open"), stationEvent(2, "Hidden"), stationEvent(3, "Closed"))));
+
+        verify(notificationService)
+                .notifyMembers(eq(List.of(30)), eq(NotificationType.NEW_EVENTS_BATCH), argThat(data -> "3"
+                        .equals(data.paramsAsMap().get("count"))));
+        verify(notificationService)
+                .notifyMembers(eq(List.of(31)), eq(NotificationType.NEW_EVENTS_BATCH), argThat(data -> {
+                    var map = data.paramsAsMap();
+                    return "1".equals(map.get("count")) && "Open".equals(map.get("eventPreview"));
+                }));
+        verify(notificationService, never())
+                .notifyStation(anyInt(), eq(NotificationType.NEW_EVENTS_BATCH), any(NotificationData.class));
+    }
+
+    @Test
+    void eventsBatchCreatedSkipsMembersWhoMaySeeNoneOfIt() {
+        var handler = batchHandler();
+        when(restrictionService.findMembersPassingRestriction(RestrictionType.EVENT_VIEW, 1, STATION_ID))
+                .thenReturn(Optional.of(Set.of(30)));
+        when(memberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(30), member(31)));
+
+        handler.handle(new EventsBatchCreated(STATION_ID, List.of(stationEvent(1, "Hidden"))));
+
+        verify(notificationService)
+                .notifyMembers(eq(List.of(30)), eq(NotificationType.NEW_EVENTS_BATCH), any(NotificationData.class));
+        verify(notificationService, never())
+                .notifyMembers(eq(List.of(31)), eq(NotificationType.NEW_EVENTS_BATCH), any(NotificationData.class));
+    }
+
+    private EventsBatchCreatedHandler batchHandler() {
+        return new EventsBatchCreatedHandler(
+                notificationService, mock(StationRepository.class), memberRepository, restrictionService);
     }
 
     private StationEvent stationEvent(int id, String name) {
@@ -375,13 +427,17 @@ class DomainEventHandlerTest {
 
     @Test
     void newsCreatedNotifiesStation() {
-        var handler = new NewsCreatedHandler(notificationService);
+        var handler = new NewsCreatedHandler(notificationService, restrictionService);
         assertEquals(NewsCreated.class, handler.eventType());
 
         handler.handle(new NewsCreated(STATION_ID, 5, "Neue Nachricht", "Test Author", "Vorschau-Text"));
 
         verify(notificationService)
-                .notifyStation(eq(STATION_ID), eq(NotificationType.NEW_NEWS), any(NotificationData.class));
+                .notifyAudience(
+                        eq(STATION_ID),
+                        eq(Optional.empty()),
+                        eq(NotificationType.NEW_NEWS),
+                        any(NotificationData.class));
     }
 
     // -- NewsDeletedHandler --
@@ -400,13 +456,17 @@ class DomainEventHandlerTest {
 
     @Test
     void formPublishedNotifiesStation() {
-        var handler = new FormPublishedHandler(notificationService);
+        var handler = new FormPublishedHandler(notificationService, restrictionService);
         assertEquals(FormPublished.class, handler.eventType());
 
         handler.handle(new FormPublished(STATION_ID, 7, "Zufriedenheitsumfrage"));
 
         verify(notificationService)
-                .notifyStation(eq(STATION_ID), eq(NotificationType.NEW_FORM), any(NotificationData.class));
+                .notifyAudience(
+                        eq(STATION_ID),
+                        eq(Optional.empty()),
+                        eq(NotificationType.NEW_FORM),
+                        any(NotificationData.class));
     }
 
     // -- FormDeletedHandler --
@@ -702,7 +762,7 @@ class DomainEventHandlerTest {
         when(eventRepository.findById(42)).thenReturn(Optional.of(stationEvent));
         when(registrationRepository.findByEvent(42)).thenReturn(List.of());
         when(restrictionService.findMembersPassingRestriction(RestrictionType.EVENT_VIEW, 42, STATION_ID))
-                .thenReturn(Set.of());
+                .thenReturn(Optional.empty());
         when(memberRepository.findByStation(STATION_ID, false)).thenReturn(List.of(member(30), member(31)));
         when(memberRepository.findManagers(30)).thenReturn(List.of());
         when(memberRepository.findManagers(31)).thenReturn(List.of());
@@ -736,7 +796,7 @@ class DomainEventHandlerTest {
         when(eventRepository.findById(42)).thenReturn(Optional.of(stationEvent));
         when(registrationRepository.findByEvent(42)).thenReturn(List.of());
         when(restrictionService.findMembersPassingRestriction(RestrictionType.EVENT_VIEW, 42, STATION_ID))
-                .thenReturn(Set.of(30));
+                .thenReturn(Optional.of(Set.of(30)));
         when(memberRepository.findManagers(30)).thenReturn(List.of());
 
         bulkHandler()

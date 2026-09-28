@@ -44,6 +44,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
@@ -372,6 +373,23 @@ public class NotificationService {
         for (int memberId : memberIds) {
             if (!isAppEnabled(memberId, type)) continue;
             notificationRepository.create(memberId, type, data);
+        }
+    }
+
+    /**
+     * Sends a notification about a restricted entity to the members who may open it.
+     *
+     * @param stationId the station the entity belongs to
+     * @param audience  the members who may open it, or empty where every member of the station may
+     * @param type      the notification category
+     * @param data      localized message data
+     */
+    public void notifyAudience(
+            int stationId, Optional<Set<Integer>> audience, NotificationType type, NotificationData data) {
+        if (audience.isPresent()) {
+            notifyMembers(audience.get(), type, data);
+        } else {
+            notifyStation(stationId, type, data);
         }
     }
 

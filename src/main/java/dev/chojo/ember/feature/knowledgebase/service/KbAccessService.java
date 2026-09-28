@@ -385,34 +385,76 @@ public class KbAccessService {
      */
     public KbAccessLevel effectiveLevel(MemberAccess access, Integer folderId, Integer fileId) {
         if (access.canManage()) return KbAccessLevel.MANAGE;
+        return levelWithin(access, gatesOf(folderId, fileId));
+    }
 
+    /**
+     * The members of a batch who may read a folder or file, by the same walk as
+     * {@link #effectiveLevel}, with the tree and its grants read once for all of them.
+     *
+     * @param members  the members to test, each with their memberships and station rights
+     * @param folderId the folder, or {@code null} when asking about a file
+     * @param fileId   the file, or {@code null} when asking about a folder
+     * @return the IDs of the members who may read the item
+     */
+    public Set<Integer> readers(List<MemberAccess> members, Integer folderId, Integer fileId) {
+        var gates = gatesOf(folderId, fileId);
+        return members.stream()
+                .filter(access ->
+                        access.canManage() || levelWithin(access, gates).covers(KbAccessLevel.READ))
+                .map(MemberAccess::memberId)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Reads everything that gates a folder or file: the folders above it, root first, their grants
+     * and, for a file, its own grants and mode. A file that no longer exists is gated by nothing.
+     */
+    private Gates gatesOf(Integer folderId, Integer fileId) {
         Integer startFolder = folderId;
+        RestrictionMode fileMode = RestrictionMode.AND;
         if (fileId != null) {
             var file = repository.findAnyFileById(fileId);
-            if (file.isEmpty()) return stationDefault(access);
+            if (file.isEmpty()) return Gates.NOTHING;
             startFolder = file.get().folderId();
+            if (file.get().restrictionMode() != null) fileMode = file.get().restrictionMode();
         }
 
         var path = startFolder != null ? repository.findFolderPath(startFolder) : List.<FolderPathNode>of();
         var grants = repository.findRestrictionsForPath(
                 path.stream().map(FolderPathNode::id).toList(), fileId);
+        return new Gates(path, grants, fileId, fileMode);
+    }
 
-        KbAccessLevel granted = null;
-        for (var node : path) {
-            var rows = grants.stream()
-                    .filter(grant -> grant.folderId() != null && grant.folderId() == node.id())
+    /**
+     * Walks the gates of one item for one member, root first and the file last.
+     */
+    private KbAccessLevel levelWithin(MemberAccess access, Gates gates) {
+        var granted = applyPath(access, gates.path(), gates.grants());
+        if (granted == KbAccessLevel.NONE) return KbAccessLevel.NONE;
+
+        if (gates.fileId() != null) {
+            var rows = gates.grants().stream()
+                    .filter(grant -> grant.fileId() != null)
                     .toList();
-            granted = applyNode(access, rows, node.restrictionMode(), granted);
-            if (granted == KbAccessLevel.NONE) return KbAccessLevel.NONE;
-        }
-
-        if (fileId != null) {
-            var rows = grants.stream().filter(grant -> grant.fileId() != null).toList();
-            granted = applyNode(access, rows, restrictionMode(null, fileId), granted);
+            granted = applyNode(access, rows, gates.fileMode(), granted);
             if (granted == KbAccessLevel.NONE) return KbAccessLevel.NONE;
         }
 
         return granted != null ? granted : stationDefault(access);
+    }
+
+    /**
+     * What stands between a member and one folder or file.
+     *
+     * @param path     the folders above the item, root first, including the item when it is a folder
+     * @param grants   the grants of those folders and of the file
+     * @param fileId   the file, or {@code null} when the item is a folder
+     * @param fileMode how the file's own grants combine
+     */
+    private record Gates(
+            List<FolderPathNode> path, List<KbAccessGrant> grants, Integer fileId, RestrictionMode fileMode) {
+        private static final Gates NOTHING = new Gates(List.of(), List.of(), null, RestrictionMode.AND);
     }
 
     /**

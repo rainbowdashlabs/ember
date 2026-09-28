@@ -117,6 +117,7 @@ import dev.chojo.ember.feature.inventory.service.MovementTargeting;
 import dev.chojo.ember.feature.inventory.service.SelfCheckReviewService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
+import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
@@ -559,7 +560,12 @@ public abstract class RepositoryTestBase {
         testProtocolRepo = new TestProtocolRepository();
         knowledgeBaseRepo = new KnowledgeBaseRepository();
         restrictionRepo = new RestrictionRepository();
-        restrictionService = new RestrictionService(restrictionRepo, stationMemberRepo, memberGroupRepo, userTagRepo);
+        restrictionService = new RestrictionService(
+                restrictionRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                userTagRepo,
+                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo));
         applicationSettingRepo = new ApplicationSettingRepository();
         problemReportRepo = new ProblemReportRepository();
         boardRepo = new BoardRepository();

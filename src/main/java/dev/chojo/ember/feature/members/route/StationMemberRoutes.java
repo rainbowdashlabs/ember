@@ -302,9 +302,9 @@ public class StationMemberRoutes implements Routes {
                 var rType = RestrictionType.valueOf(rtParam);
                 int entityId = Integer.parseInt(entityIdParam);
                 var allowedIds = restrictionService.findMembersPassingRestriction(rType, entityId, session.stationId());
-                if (!allowedIds.isEmpty()) {
+                if (allowedIds.isPresent()) {
                     completions = completions.stream()
-                            .filter(c -> allowedIds.contains(c.id()))
+                            .filter(c -> allowedIds.get().contains(c.id()))
                             .toList();
                 }
             } catch (IllegalArgumentException ignored) {

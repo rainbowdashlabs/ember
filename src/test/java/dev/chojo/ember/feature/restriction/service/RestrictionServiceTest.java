@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -122,78 +124,145 @@ class RestrictionServiceTest extends RepositoryTestBase {
     void findMembersPassingRestrictionIsEmptyForUnrestrictedEntity() {
         int newsId = createNews("restriction-none");
 
-        assertEquals(Set.of(), restrictionService.findMembersPassingRestriction(TYPE, newsId, station.id()));
+        assertEquals(Optional.empty(), restrictionService.findMembersPassingRestriction(TYPE, newsId, station.id()));
     }
 
     @Test
     void findMembersPassingRestrictionResolvesGroupMembersAndAddsManagers() {
-        int newsId = createNews("restriction-members-group");
-        restrictionService.setRestrictions(TYPE, newsId, groupSelection());
+        int newsId = restrictedNews("restriction-members-group", groupSelection(), RestrictionMode.AND);
 
-        assertEquals(
-                Set.of(groupMember.id(), bothMember.id(), managerMember.id()),
-                restrictionService.findMembersPassingRestriction(TYPE, newsId, station.id()));
+        assertEquals(Set.of(groupMember.id(), bothMember.id(), managerMember.id()), audience(newsId));
     }
 
     @Test
     void findMembersPassingRestrictionResolvesTagMembersAndAddsManagers() {
-        int newsId = createNews("restriction-members-tag");
-        restrictionService.setRestrictions(TYPE, newsId, tagSelection());
+        int newsId = restrictedNews("restriction-members-tag", tagSelection(), RestrictionMode.AND);
 
-        assertEquals(
-                Set.of(tagMember.id(), bothMember.id(), managerMember.id()),
-                restrictionService.findMembersPassingRestriction(TYPE, newsId, station.id()));
+        assertEquals(Set.of(tagMember.id(), bothMember.id(), managerMember.id()), audience(newsId));
     }
 
     @Test
     void findMembersPassingRestrictionResolvesUserTypeMembersAndAddsManagers() {
-        int newsId = createNews("restriction-members-type");
-        restrictionService.setRestrictions(
-                TYPE,
-                newsId,
-                new RestrictionSelection(
-                        List.of(StationUserType.TEAM), List.of(), List.of(), List.of(), RestrictionMode.AND));
+        int newsId = restrictedNews(
+                "restriction-members-type",
+                selection(List.of(StationUserType.TEAM), List.of(), List.of(), List.of()),
+                RestrictionMode.AND);
 
-        assertEquals(
-                Set.of(typeMember.id(), managerMember.id()),
-                restrictionService.findMembersPassingRestriction(TYPE, newsId, station.id()));
+        assertEquals(Set.of(typeMember.id(), managerMember.id()), audience(newsId));
     }
 
     @Test
-    void findMembersPassingRestrictionKeepsDirectlyListedMembersAndAddsManagers() {
-        int newsId = createNews("restriction-members-direct");
-        restrictionService.setRestrictions(
-                TYPE,
-                newsId,
-                new RestrictionSelection(List.of(), List.of(), List.of(), List.of(outsider.id()), RestrictionMode.AND));
+    void findMembersPassingRestrictionGivesOnlyTheNamedMembersAndManagers() {
+        for (var mode : RestrictionMode.values()) {
+            int newsId = restrictedNews("restriction-members-direct-" + mode, directSelection(), mode);
 
-        assertEquals(
-                Set.of(outsider.id(), managerMember.id()),
-                restrictionService.findMembersPassingRestriction(TYPE, newsId, station.id()));
+            assertEquals(Set.of(directMember.id(), managerMember.id()), audience(newsId), mode.name());
+        }
     }
 
     @Test
-    void findMembersPassingRestrictionUnionsEverySelectedSource() {
-        int newsId = createNews("restriction-members-all");
-        restrictionService.setRestrictions(
-                TYPE,
-                newsId,
-                new RestrictionSelection(
+    void findMembersPassingRestrictionRequiresUserTypeAndGroupTogetherInAndMode() {
+        var typeAndGroup = selection(List.of(StationUserType.TEAM), List.of(group.id()), List.of(), List.of());
+
+        int andId = restrictedNews("restriction-members-type-group-and", typeAndGroup, RestrictionMode.AND);
+        int orId = restrictedNews("restriction-members-type-group-or", typeAndGroup, RestrictionMode.OR);
+
+        assertEquals(Set.of(managerMember.id()), audience(andId), "nobody is both on the team and in the group");
+        assertEquals(Set.of(typeMember.id(), groupMember.id(), bothMember.id(), managerMember.id()), audience(orId));
+    }
+
+    @Test
+    void findMembersPassingRestrictionRequiresGroupAndTagTogetherInAndMode() {
+        var groupAndTag = selection(List.of(), List.of(group.id()), List.of(tag.id()), List.of());
+
+        int andId = restrictedNews("restriction-members-group-tag-and", groupAndTag, RestrictionMode.AND);
+        int orId = restrictedNews("restriction-members-group-tag-or", groupAndTag, RestrictionMode.OR);
+
+        assertEquals(Set.of(bothMember.id(), managerMember.id()), audience(andId));
+        assertEquals(Set.of(groupMember.id(), tagMember.id(), bothMember.id(), managerMember.id()), audience(orId));
+    }
+
+    @Test
+    void findMembersPassingRestrictionAddsNamedMembersToAGroupInEitherMode() {
+        var membersAndGroup = selection(List.of(), List.of(group.id()), List.of(), List.of(directMember.id()));
+
+        for (var mode : RestrictionMode.values()) {
+            int newsId = restrictedNews("restriction-members-direct-group-" + mode, membersAndGroup, mode);
+
+            assertEquals(
+                    Set.of(directMember.id(), groupMember.id(), bothMember.id(), managerMember.id()),
+                    audience(newsId),
+                    mode.name());
+        }
+    }
+
+    @Test
+    void findMembersPassingRestrictionAppliesEveryKindInAndMode() {
+        int newsId = restrictedNews(
+                "restriction-members-all",
+                selection(
                         List.of(StationUserType.TEAM),
                         List.of(group.id()),
                         List.of(tag.id()),
-                        List.of(directMember.id()),
-                        RestrictionMode.AND));
+                        List.of(directMember.id())),
+                RestrictionMode.AND);
 
+        assertEquals(Set.of(directMember.id(), managerMember.id()), audience(newsId));
+    }
+
+    @Test
+    void findMembersPassingRestrictionAgreesWithTheAccessCheck() {
+        var everySelection = List.of(
+                groupSelection(),
+                tagSelection(),
+                directSelection(),
+                selection(List.of(StationUserType.TEAM), List.of(group.id()), List.of(tag.id()), List.of()),
+                selection(List.of(), List.of(group.id()), List.of(tag.id()), List.of(directMember.id())));
+        var everyMember = List.of(groupMember, tagMember, bothMember, typeMember, directMember, outsider);
+
+        int index = 0;
+        for (var selection : everySelection) {
+            for (var mode : RestrictionMode.values()) {
+                int newsId = restrictedNews("restriction-members-agree-" + index++, selection, mode);
+                var audience = audience(newsId);
+                for (var member : everyMember) {
+                    assertEquals(
+                            checkFor(newsId, member),
+                            audience.contains(member.id()),
+                            "member %d, %s, %s".formatted(member.id(), mode, selection));
+                }
+            }
+        }
+    }
+
+    @Test
+    void findMembersPassingRestrictionFollowsTheKnowledgeBaseFolderAbove() {
+        var knowledgeManager = createMember("restriction-kb-manager@test.com");
+        var knowledgeManagerPermission = stationMemberRepo
+                .findPermissionByName(StationPermission.KNOWLEDGE_MANAGER)
+                .orElseThrow();
+        stationMemberRepo.grantPermission(knowledgeManager.id(), knowledgeManagerPermission.id());
+        var folder = knowledgeBaseRepo.createFolder(station.id(), null, "Restricted", "", directMember.id());
+        var file = knowledgeBaseRepo.createFile(
+                station.id(),
+                folder.id(),
+                "Inside",
+                "",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                directMember.id());
+        restrictionService.setRestrictions(RestrictionType.KB_FOLDER, folder.id(), groupSelection());
+
+        var expected = Optional.of(Set.of(groupMember.id(), bothMember.id(), knowledgeManager.id()));
         assertEquals(
-                Set.of(
-                        groupMember.id(),
-                        tagMember.id(),
-                        bothMember.id(),
-                        typeMember.id(),
-                        directMember.id(),
-                        managerMember.id()),
-                restrictionService.findMembersPassingRestriction(TYPE, newsId, station.id()));
+                expected,
+                restrictionService.findMembersPassingRestriction(RestrictionType.KB_FILE, file.id(), station.id()),
+                "a file with no grants of its own is read by whoever reads its folder");
+        assertEquals(
+                expected,
+                restrictionService.findMembersPassingRestriction(RestrictionType.KB_FOLDER, folder.id(), station.id()));
     }
 
     @Test
@@ -368,6 +437,24 @@ class RestrictionServiceTest extends RepositoryTestBase {
     private static boolean listsForm(int formId, StationMember member) {
         return formRepo.findByStationForMember(station.id(), member.id()).stream()
                 .anyMatch(form -> form.id() == formId);
+    }
+
+    private static int restrictedNews(String title, RestrictionSelection selection, RestrictionMode mode) {
+        int newsId = createNews(title);
+        restrictionService.setRestrictions(TYPE, newsId, selection);
+        setRestrictionMode(newsId, mode);
+        return newsId;
+    }
+
+    private static Set<Integer> audience(int newsId) {
+        return restrictionService
+                .findMembersPassingRestriction(TYPE, newsId, station.id())
+                .orElseThrow();
+    }
+
+    private static RestrictionSelection selection(
+            List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {
+        return new RestrictionSelection(userTypes, groupIds, tagIds, memberIds, RestrictionMode.AND);
     }
 
     private static RestrictionSelection directSelection() {

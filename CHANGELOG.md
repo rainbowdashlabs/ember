@@ -17,6 +17,7 @@
 ### Security
 
 - **Entries meant for named people only were visible to the whole station.** A form, appointment, blog entry or quiz restricted to a list of named members was shown to every member of the station. It is now shown only to the people named, and to those who manage it.
+- **Notices about restricted entries reached people who could not open them.** In some cases the notice about a new form, appointment or blog entry went to members outside its audience and showed its title. It now reaches only the members who may open the entry.
 
 ### Changes
 

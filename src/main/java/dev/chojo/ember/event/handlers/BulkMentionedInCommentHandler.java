@@ -132,7 +132,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
             ids.removeAll(declinedIds);
             return ids;
         }
-        var ids = new HashSet<>(eligible);
+        var ids = new HashSet<>(eligible.get());
         ids.removeAll(declinedIds);
         return ids;
     }

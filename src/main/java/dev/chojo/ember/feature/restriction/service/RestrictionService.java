@@ -6,12 +6,13 @@
 package dev.chojo.ember.feature.restriction.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
-import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -25,9 +26,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -43,17 +43,20 @@ public class RestrictionService {
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
+    private final KbAccessService kbAccessService;
 
     @Inject
     public RestrictionService(
             RestrictionRepository restrictionRepository,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
-            UserTagRepository userTagRepository) {
+            UserTagRepository userTagRepository,
+            KbAccessService kbAccessService) {
         this.restrictionRepository = restrictionRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
+        this.kbAccessService = kbAccessService;
     }
 
     /**
@@ -87,38 +90,48 @@ public class RestrictionService {
     }
 
     /**
-     * Returns the IDs of the station's members that pass the restrictions of an entity, including
+     * The current members of a station who may open an entity: those its restrictions take in, plus
      * the members holding the manager permission of the entity type, who bypass restrictions.
-     * An unrestricted entity yields an empty set.
+     *
+     * <p>Each member is decided by the rule the access check itself applies, so nobody is told about
+     * an entity they cannot open. Knowledge base items follow the knowledge base's own walk down the
+     * folder tree; everything else goes through the {@code check_restriction} database function.
+     *
+     * @return the members, or empty where the entity carries no restriction and every member passes
      */
-    public Set<Integer> findMembersPassingRestriction(RestrictionType type, int entityId, int stationId) {
-        var restrictions = restrictionRepository.findRestrictions(type, entityId);
-        if (restrictions.isEmpty()) return Set.of();
+    public Optional<Set<Integer>> findMembersPassingRestriction(RestrictionType type, int entityId, int stationId) {
+        var managerIds = stationMemberRepository.findMembersWithPermission(stationId, type.managerPermission()).stream()
+                .map(StationMember::id)
+                .collect(Collectors.toSet());
 
-        var groupIds = nonNullValues(restrictions, Restriction::groupId);
-        var tagIds = nonNullValues(restrictions, Restriction::tagId);
-        var userTypes = nonNullValues(restrictions, Restriction::userType);
-        var memberIds = restrictions.stream()
-                .map(Restriction::memberId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toCollection(HashSet::new));
+        return switch (type) {
+            case KB_FOLDER -> Optional.of(kbAccessService.readers(kbAccessOf(stationId, managerIds), entityId, null));
+            case KB_FILE -> Optional.of(kbAccessService.readers(kbAccessOf(stationId, managerIds), null, entityId));
+            default -> {
+                if (!restrictionRepository.hasRestrictions(type, entityId)) yield Optional.empty();
+                var memberIds = new HashSet<>(restrictionRepository.findMatchingMembers(
+                        type, entityId, restrictionRepository.findMode(type, entityId), stationId));
+                memberIds.addAll(managerIds);
+                yield Optional.of(memberIds);
+            }
+        };
+    }
 
-        for (int groupId : groupIds) {
-            memberGroupRepository.findMembers(groupId).forEach(member -> memberIds.add(member.id()));
-        }
-        for (int tagId : tagIds) {
-            userTagRepository.findMembers(tagId).forEach(member -> memberIds.add(member.id()));
-        }
-        if (!userTypes.isEmpty()) {
-            stationMemberRepository.findByStation(stationId, false).stream()
-                    .filter(member -> userTypes.contains(member.userType()))
-                    .forEach(member -> memberIds.add(member.id()));
-        }
-        stationMemberRepository
-                .findMembersWithPermission(stationId, type.managerPermission())
-                .forEach(member -> memberIds.add(member.id()));
-
-        return memberIds;
+    /**
+     * The knowledge base access context of every current member of a station. Only the manage right
+     * is carried, because the station-wide edit right changes what a member may do with an item,
+     * never whether they may read it.
+     */
+    private List<KbAccessService.MemberAccess> kbAccessOf(int stationId, Set<Integer> managerIds) {
+        return restrictionRepository.findStationMembers(stationId).stream()
+                .map(member -> new KbAccessService.MemberAccess(
+                        member.memberId(),
+                        member.userType(),
+                        member.groupIds(),
+                        member.tagIds(),
+                        false,
+                        managerIds.contains(member.memberId())))
+                .toList();
     }
 
     /**
@@ -162,14 +175,5 @@ public class RestrictionService {
 
         return restrictionRepository.matches(
                 type, entityId, mode, new RestrictionMember(memberId, member.userType(), groupIds, tagIds));
-    }
-
-    /**
-     * Collects the non-null results of applying an extractor to each restriction.
-     *
-     * @param extractor selects a nullable value from a restriction
-     */
-    private static <R> List<R> nonNullValues(List<Restriction> restrictions, Function<Restriction, R> extractor) {
-        return restrictions.stream().map(extractor).filter(Objects::nonNull).toList();
     }
 }
