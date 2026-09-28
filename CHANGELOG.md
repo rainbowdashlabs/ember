@@ -16,6 +16,7 @@
 - **Editing a form keeps its answers.** In some cases saving a form that already had answers deleted them. Saving now only removes the answers to questions that were removed, and asks first when there are any.
 - **Changed dates in the change history were hard to read.** When a date in a member's profile changed, the member's page and the list of changes showed both dates the way they are stored, such as 2026-03-31. They are now written as 31.03.2026, the way the profile shows them.
 - **Team members and managers were offered guardians instead of the members in their care.** Their relations tab, on the member's page and when editing them, was named after guardians and offered to assign one, which cannot be done for them. It now shows the members they look after, as it does for guardians.
+- **Filling in a form again could replace the earlier answer.** Filling in a form for a member in your care always started empty, and sending a form a second time, for them or in some cases for yourself, could replace the answer already given, even on a form whose answers cannot be changed. The earlier answer now opens for editing where the form allows it, and is kept where it does not.
 
 ## v26.19.4
 

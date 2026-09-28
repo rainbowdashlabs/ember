@@ -374,6 +374,14 @@ export async function getMyResponse(formId: number): Promise<FormResponseDetail>
     return res.data
 }
 
+/**
+ * What a member in the caller's care has answered, with an empty detail while they have not answered yet.
+ */
+export async function getMemberResponse(formId: number, memberId: number): Promise<FormResponseDetail> {
+    const res = await client.get<FormResponseDetail>(`/forms/${formId}/respond/${memberId}`)
+    return res.data
+}
+
 export async function submitResponse(formId: number, data: FormSubmitRequest): Promise<FormResponse> {
     const res = await client.post<FormResponse>(`/forms/${formId}/respond`, data)
     return res.data

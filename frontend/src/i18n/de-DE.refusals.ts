@@ -850,6 +850,8 @@ export default {
     'F-048': CHANGE_SAVED_BUT_NOT_READ_BACK,
     'F-049': 'Einige dieser Fragen gehören nicht zu diesem Formular, es wurde nichts gespeichert',
     'F-050': 'Eine Frage, die es schon gibt, behält ihre Art, es wurde nichts gespeichert',
+    'F-051': 'Dieses Formular wurde bereits beantwortet, es wurde nichts gespeichert',
+    'F-052': 'Du bist kein Mitglied dieser Wache',
 
     'W-022': 'Diese Einladung lässt sich nicht mehr verwenden',
     'W-023': 'Eine Einladung und ein Vorname werden gebraucht, es wurde nichts gespeichert',
