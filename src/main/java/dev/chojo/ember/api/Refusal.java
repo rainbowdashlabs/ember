@@ -2322,6 +2322,18 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "A question that already exists keeps its type, so nothing was saved"),
 
+    /**
+     * A first answer given by a member, or for somebody they look after, who has answered already.
+     * The answer on file is changed, where the form allows it, and never replaced by a second first
+     * answer.
+     */
+    FORM_ANSWER_ALREADY_ON_FILE(
+            Area.FORMS, 51, HttpStatus.CONFLICT, "This form has already been answered, so nothing was saved"),
+
+    /** Reading the answer of somebody looked after while belonging to no station. */
+    NOT_A_MEMBER_READING_ANSWER_FOR_MEMBER(
+            Area.FORMS, 52, HttpStatus.BAD_REQUEST, "You are not a member of this station"),
+
     /** An invite that is used up or past its date. */
     WAITING_LIST_INVITE_NO_LONGER_VALID(
             Area.WAITING_LISTS, 22, HttpStatus.FORBIDDEN, "This invite can no longer be used"),

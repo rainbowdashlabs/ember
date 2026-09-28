@@ -154,6 +154,8 @@ public class FormRoutes implements Routes {
         routes.get(prefix + "/forms/{id}/eligible-members", this::getEligibleMembers, StationPermission.USER);
         routes.post(prefix + "/forms/{id}/respond", this::submitResponse, StationPermission.USER);
         routes.put(prefix + "/forms/{id}/respond", this::updateResponse, StationPermission.USER);
+        routes.get(
+                prefix + "/forms/{id}/respond/{memberId}", this::getMemberResponse, StationPermission.MEMBER_GUARDIAN);
         routes.post(
                 prefix + "/forms/{id}/respond/{memberId}", this::submitForMember, StationPermission.MEMBER_GUARDIAN);
         routes.put(prefix + "/forms/{id}/respond/{memberId}", this::updateForMember, StationPermission.MEMBER_GUARDIAN);
@@ -692,12 +694,40 @@ public class FormRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) throw Refusal.NOT_A_MEMBER_READING_OWN_ANSWER.raise();
         requireOwnedForm(id, session);
-        var response = formService.findResponse(id, session.member().id());
-        if (response.isEmpty()) {
-            ctx.json(new ResponseDetailDto(null, List.of()));
-            return;
-        }
-        ctx.json(analyticsAssembler.getResponseDetail(id, response.get().id()));
+        respondWithAnswerOf(ctx, id, session.member().id());
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/respond/{memberId}",
+            methods = HttpMethod.GET,
+            summary = "Get the response of a managed member",
+            tags = {"Forms"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "memberId", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetailDto.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void getMemberResponse(Context ctx) {
+        int id = pathInt(ctx, "id");
+        int memberId = pathInt(ctx, "memberId");
+        UserSession session = UserSession.from(ctx);
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_READING_ANSWER_FOR_MEMBER.raise();
+        requireFormForManagedMember(session, id, memberId);
+        respondWithAnswerOf(ctx, id, memberId);
+    }
+
+    /**
+     * Answers with what the member gave to the form, or with an empty detail when they have not
+     * answered it yet, so the screen can tell a first answer from a correction.
+     */
+    private void respondWithAnswerOf(Context ctx, int formId, int memberId) {
+        ctx.json(formService
+                .findResponse(formId, memberId)
+                .map(response -> analyticsAssembler.getResponseDetail(formId, response.id()))
+                .orElseGet(() -> new ResponseDetailDto(null, List.of())));
     }
 
     @OpenApi(
@@ -743,6 +773,9 @@ public class FormRoutes implements Routes {
         if (!formService.isAcceptingResponses(form)) throw Refusal.FORM_TAKES_NO_ANSWERS.raise();
         if (!formService.canMemberAccess(id, session.member().id())) {
             throw Refusal.FORM_NOT_YOURS_TO_ANSWER.raise();
+        }
+        if (formService.hasResponded(id, session.member().id())) {
+            throw Refusal.FORM_ANSWER_ALREADY_ON_FILE.raise();
         }
         var req = ctx.bodyAsClass(SubmitRequest.class);
         try {
@@ -828,8 +861,12 @@ public class FormRoutes implements Routes {
      * Shared handler for submitting or updating a managed member's response. Verifies station
      * membership, that the caller manages the target member, and that the form belongs to the
      * caller's station before delegating to the form service. When {@code creating} is true the
-     * form must be accepting responses and a {@code 201} is returned; otherwise the form must
-     * allow editing and a {@code 200} is returned.
+     * form must be accepting responses, the member must not have answered yet, and a {@code 201}
+     * is returned; otherwise the form must allow editing and a {@code 200} is returned.
+     *
+     * <p>Saving an answer replaces the one on file, so a first answer given for a member who has
+     * answered already would overwrite theirs, and would do so even on a form whose answers cannot
+     * be changed. The existing answer is corrected through the update instead.
      *
      * @param creating whether this is an initial submission ({@code true}) or an edit ({@code false})
      */
@@ -838,17 +875,16 @@ public class FormRoutes implements Routes {
         int memberId = pathInt(ctx, "memberId");
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) throw Refusal.NOT_A_MEMBER_ANSWERING_FOR_MEMBER.raise();
-        verifyManages(session, memberId);
-        var form = requireOwnedForm(id, session);
+        var form = requireFormForManagedMember(session, id, memberId);
         if (creating) {
             if (!formService.isAcceptingResponses(form)) {
                 throw Refusal.FORM_TAKES_NO_ANSWERS_FOR_MEMBER.raise();
             }
+            if (formService.hasResponded(id, memberId)) {
+                throw Refusal.FORM_ANSWER_ALREADY_ON_FILE.raise();
+            }
         } else if (!form.allowEdit()) {
             throw Refusal.FORM_ANSWER_NOT_CHANGEABLE_FOR_MEMBER.raise();
-        }
-        if (!formService.canMemberAccess(id, memberId)) {
-            throw Refusal.FORM_NOT_FOR_THIS_MEMBER.raise();
         }
         var req = ctx.bodyAsClass(SubmitRequest.class);
         try {
@@ -864,6 +900,24 @@ public class FormRoutes implements Routes {
                     .map(Refusal.FORM_ANSWERS_FOR_MEMBER_NOT_SAVED::raise)
                     .orElseGet(Refusal.FORM_ANSWERS_FOR_MEMBER_NOT_SAVED::raise);
         }
+    }
+
+    /**
+     * Loads a form for somebody the caller answers for, refusing unless the caller manages that
+     * member, the form belongs to the caller's station, and the form was put to the member.
+     *
+     * @param session  the current user session, which belongs to a station member
+     * @param formId   the form to load
+     * @param memberId the managed member the form is answered for
+     * @return the form
+     */
+    private Form requireFormForManagedMember(UserSession session, int formId, int memberId) {
+        verifyManages(session, memberId);
+        var form = requireOwnedForm(formId, session);
+        if (!formService.canMemberAccess(formId, memberId)) {
+            throw Refusal.FORM_NOT_FOR_THIS_MEMBER.raise();
+        }
+        return form;
     }
 
     /**

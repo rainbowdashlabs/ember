@@ -16,6 +16,7 @@
 - **Das Bearbeiten eines Formulars behält seine Antworten.** In manchen Fällen löschte das Speichern eines Formulars, das schon Antworten hatte, diese Antworten. Jetzt entfernt das Speichern nur die Antworten auf entfernte Fragen und fragt vorher nach, wenn es welche gibt.
 - **Geänderte Daten im Änderungsverlauf waren schwer zu lesen.** Änderte sich ein Datum im Profil eines Mitglieds, zeigten die Seite des Mitglieds und die Liste der Änderungen beide Daten so, wie sie gespeichert sind, etwa 2026-03-31. Jetzt stehen sie als 31.03.2026 da, so wie im Profil.
 - **Team-Mitgliedern und Managern wurden Erziehungsberechtigte statt ihrer betreuten Mitglieder angeboten.** Ihr Reiter für Beziehungen, auf der Seite des Mitglieds und beim Bearbeiten, hieß Erziehungsberechtigte und bot an, jemanden zuzuordnen, was für sie nicht möglich ist. Jetzt zeigt er die Mitglieder, um die sie sich kümmern, wie bei Erziehungsberechtigten.
+- **Ein erneut ausgefülltes Formular konnte die frühere Antwort ersetzen.** Ein Formular für ein Mitglied, das man betreut, begann beim Ausfüllen immer leer, und ein zweites Absenden, für das Mitglied oder in manchen Fällen für sich selbst, konnte die bereits gegebene Antwort ersetzen, selbst bei einem Formular, dessen Antworten sich nicht ändern lassen. Die frühere Antwort öffnet sich jetzt zum Bearbeiten, wo das Formular es erlaubt, und bleibt sonst erhalten.
 
 ## v26.19.4
 

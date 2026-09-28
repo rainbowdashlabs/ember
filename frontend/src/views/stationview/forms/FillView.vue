@@ -117,18 +117,22 @@ function initAnswerDefaults() {
  */
 const priorAnswerFailure = ref<Failure | null>(null)
 
+/**
+ * Opens the answer already given by whoever the form is being filled for: the reader themselves or a
+ * member in their care. An answer that arrives after the reader has switched to somebody else is
+ * dropped, so one member's answers never land in another member's form.
+ */
 async function loadExistingResponse() {
   hasExistingResponse.value = false
   answers.value = {}
   priorAnswerFailure.value = null
 
+  const memberId = effectiveMemberId.value
   try {
-    let response
-    if (effectiveMemberId.value) {
-      initAnswerDefaults()
-      return
-    }
-    response = await forms.getMyResponse(formId.value)
+    const response = memberId
+        ? await forms.getMemberResponse(formId.value, memberId)
+        : await forms.getMyResponse(formId.value)
+    if (memberId !== effectiveMemberId.value) return
     if (response.response) {
       hasExistingResponse.value = true
       initAnswerDefaults()
@@ -143,6 +147,7 @@ async function loadExistingResponse() {
       initAnswerDefaults()
     }
   } catch (e) {
+    if (memberId !== effectiveMemberId.value) return
     priorAnswerFailure.value = {...describeFailure(e, t), message: t('forms.priorAnswerUnknown')}
     initAnswerDefaults()
   }
