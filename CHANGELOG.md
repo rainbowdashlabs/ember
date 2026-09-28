@@ -1,5 +1,15 @@
 # Changelog
 
+## v26.19.4
+
+### Improvements
+
+- **Appointments over several days show both ends in every list.** The Appointments page and the list for managing appointments write such an appointment from its first day and time to its last day and time, so it no longer reads as running from eight to four on every day.
+
+### Fixes
+
+- **An appointment over several days seemed to end on its first day.** Its own page showed the end on the day it starts. It now shows the day it actually ends.
+
 ## v26.19.3
 
 ### Improvements

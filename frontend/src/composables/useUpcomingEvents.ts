@@ -6,7 +6,7 @@
 import { ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  isRecurringEvent,
+  multiDayEndDate,
   type AllEventRestrictions,
   type EventBreak,
   type EventCategory,
@@ -23,7 +23,6 @@ import { useEventAnswer } from '@/composables/useEventAnswer'
 import { usePagedList, PAGE_SIZE } from '@/composables/usePagedList'
 import { useEventListFilters } from '@/composables/useEventListFilters'
 import { describeFailure, saying } from '@/util/failure'
-import { toIsoDate } from '@/util/format'
 
 /**
  * The upcoming-events page's data: the paged occurrence list with its filters, the supporting
@@ -60,16 +59,6 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   const showNeedsAction = ref(false)
 
   const { tab, isPast, searchInput, categoryId, from, to } = useEventListFilters(() => reloadOccurrences())
-
-  /**
-   * The end date of an event that spans more than its start day, or {@code null} when it does
-   * not. Recurring events never span days - each occurrence is its own entry.
-   */
-  function multiDayEndDate(event: StationEvent, startDateStr: string): string | null {
-    if (isRecurringEvent(event.eventType) || !event.endTime) return null
-    const endStr = toIsoDate(new Date(event.endTime))
-    return endStr > startDateStr ? endStr : null
-  }
 
   function occurrenceParams(offset: number) {
     return {

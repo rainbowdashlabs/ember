@@ -6,6 +6,7 @@
 import client from './client'
 import {createCrudResource} from './crud'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
+import {toIsoDate} from '@/util/format'
 import type {MemberIdentity, RestrictionSelection} from './types'
 
 export interface EventCategory {
@@ -262,6 +263,16 @@ export type EventTypeName = (typeof EventTypes)[keyof typeof EventTypes]
 
 export function isRecurringEvent(eventType?: string): boolean {
     return eventType != null && eventType !== EventTypes.ONE_TIME
+}
+
+/**
+ * The last day of a one-off appointment that runs past the day it starts on, or `null` where it
+ * ends on that day. A series never spans days: each of its occurrences is an entry of its own.
+ */
+export function multiDayEndDate(event: StationEvent, startDay: string): string | null {
+    if (isRecurringEvent(event.eventType) || !event.endTime) return null
+    const endDay = toIsoDate(new Date(event.endTime))
+    return endDay > startDay ? endDay : null
 }
 
 export function needsDayOfWeek(eventType?: string): boolean {

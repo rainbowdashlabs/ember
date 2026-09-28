@@ -103,6 +103,20 @@ export function formatWeekdayDate(
 }
 
 /**
+ * Writes an appointment that runs over more than one day with the clock at each of its ends -
+ * `Sonntag, 11.07.2027 08:00 – Samstag, 17.07.2027 16:00` - because the hours written once beside
+ * both dates read as though it ran from eight to four on every one of its days.
+ *
+ * @param startDay   the calendar date it starts on
+ * @param startClock the already formatted clock it starts at
+ * @param endDay     the calendar date it ends on
+ * @param endClock   the already formatted clock it ends at
+ */
+export function formatDaySpan(startDay: string, startClock: string, endDay: string, endClock: string): string {
+    return `${formatWeekdayDate(startDay)} ${startClock} – ${formatWeekdayDate(endDay)} ${endClock}`
+}
+
+/**
  * Formats a moment or a calendar date as `dd.MM.` for the narrow places, such as the deadline chip
  * on a board card, where the year would take room the card has not got. Returns an empty string
  * when the input is missing.

@@ -15,8 +15,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
-import {EventTypes, isRecurringEvent, type DatedEvent, type EventCategory, type EventField} from '@/api/events'
-import {formatDate, formatTime, todayIsoDate, weekdayName} from '@/util/format'
+import {EventTypes, isRecurringEvent, multiDayEndDate, type DatedEvent, type EventCategory, type EventField} from '@/api/events'
+import {formatDate, formatDaySpan, formatTime, toIsoDate, todayIsoDate, weekdayName} from '@/util/format'
 
 /**
  * One appointment in the dashboard's lists.
@@ -50,10 +50,14 @@ const recurring = computed(() => isRecurringEvent(props.item.event.eventType))
 
 /**
  * What the row says about when the appointment happens: a series says which day of the week it
- * takes, a one-off says its date, and both say the hours.
+ * takes, a one-off says its date, and both say the hours. A one-off running over several days says
+ * both of its ends instead, each with its clock.
  */
 const when = computed(() => {
   const event = props.item.event
+  const startDay = event.startTime ? toIsoDate(new Date(event.startTime)) : ''
+  const endDay = startDay ? multiDayEndDate(event, startDay) : null
+  if (endDay) return formatDaySpan(startDay, formatTime(event.startTime), endDay, formatTime(event.endTime))
   const hours = `${formatTime(event.startTime)} – ${formatTime(event.endTime)}`
   const lead = recurring.value ? weekdayName(event.dayOfWeek ?? 0) : formatDate(event.startTime)
   return lead ? `${lead}, ${hours}` : hours

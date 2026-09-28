@@ -12,6 +12,7 @@ import {
     formatDateTime,
     formatDateTimeLong,
     formatDayMonth,
+    formatDaySpan,
     formatTime,
     formatWeekdayDate,
     instantToDate,
@@ -102,6 +103,11 @@ describe('the day a value names', () => {
     it('puts the weekday in front where a single day is named', () => {
         expect(formatWeekdayDate('2026-10-12')).toBe('Montag, 12.10.2026')
         expect(formatWeekdayDate('2026-10-12', 'short')).toBe('Mo., 12.10.2026')
+    })
+
+    it('writes an appointment over several days with a clock at each end', () => {
+        expect(formatDaySpan('2027-07-11', '08:00', '2027-07-17', '16:00'))
+            .toBe('Sonntag, 11.07.2027 08:00 – Samstag, 17.07.2027 16:00')
     })
 
     it('writes a long date for editorial pages', () => {
