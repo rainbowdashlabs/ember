@@ -1,5 +1,11 @@
 # Änderungsprotokoll
 
+## v26.19.5
+
+### Neue Funktionen
+
+- **Der Installer hält Ember auf Wunsch aktuell.** Er richtet einen Cronjob ein, der jede Stunde die neueste Version holt, Ember damit neu startet und das abgelöste Image entfernt, und die Installationsseite bietet dasselbe als Schalter an. Die Hilfeseite zum Hosting zeigt die Zeile, um es von Hand einzurichten.
+
 ## v26.19.4
 
 ### Verbesserungen

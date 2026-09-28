@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.19.5
+
+### New Features
+
+- **The installer can keep Ember up to date.** On request it sets up a cron job that pulls the newest version every hour, restarts Ember with it and removes the image it replaced, and the install page offers the same as a switch. The hosting help page shows the line for setting it up by hand.
+
 ## v26.19.4
 
 ### Improvements

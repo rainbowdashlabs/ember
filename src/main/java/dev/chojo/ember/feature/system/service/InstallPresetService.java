@@ -68,7 +68,8 @@ public class InstallPresetService {
             "EMBER_CONFIG_DIR",
             "EMBER_DATA_DIR",
             "EMBER_TRUSTED_PROXIES",
-            "EMBER_CLOUDFLARE");
+            "EMBER_CLOUDFLARE",
+            "EMBER_AUTO_UPDATE");
 
     /** What a value may look like. Anything a shell would read as more than a value is refused. */
     private static final String VALUE_PATTERN = "[A-Za-z0-9._:/,@ -]{0,200}";

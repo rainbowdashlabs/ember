@@ -14,11 +14,12 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 const tag = defineModel<string>('tag', {required: true})
 const trustedProxies = defineModel<string>('trustedProxies', {required: true})
 const cloudflare = defineModel<boolean>('cloudflare', {required: true})
+const autoUpdate = defineModel<boolean>('autoUpdate', {required: true})
 </script>
 
 <template>
   <NeutralContainer class="space-y-3">
-    <SectionHeader>Version und Netz</SectionHeader>
+    <SectionHeader>Version, Updates und Netz</SectionHeader>
 
     <div class="space-y-1">
       <FieldLabel>Version</FieldLabel>
@@ -37,6 +38,18 @@ const cloudflare = defineModel<boolean>('cloudflare', {required: true})
     <div class="flex items-center gap-3">
       <ToggleInput v-model="cloudflare"/>
       <FieldLabel>Die Instanz steht hinter Cloudflare</FieldLabel>
+    </div>
+
+    <div class="space-y-1">
+      <div class="flex items-center gap-3">
+        <ToggleInput v-model="autoUpdate"/>
+        <FieldLabel>Jede Stunde per Cronjob aktualisieren</FieldLabel>
+      </div>
+      <MutedText size="sm" tag="p">
+        Der Installer richtet einen Cronjob ein, der stündlich das neueste Image holt, neu startet
+        und das abgelöste Image wegräumt.
+        Das hilft nur mit einer mitlaufenden Version wie latest.
+      </MutedText>
     </div>
   </NeutralContainer>
 </template>

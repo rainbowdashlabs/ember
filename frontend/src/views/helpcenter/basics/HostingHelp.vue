@@ -123,6 +123,14 @@ const requirements = [
       <p>{{ t('helpCenter.basics.hosting.updatesText2') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.basics.hosting.autoUpdate')">
+      <p>{{ t('helpCenter.basics.hosting.autoUpdateText') }}</p>
+      <NeutralContainer class="p-4 mt-3 font-mono text-xs break-all bg-(--bg-accent)">
+        {{ t('helpCenter.basics.hosting.autoUpdateCron') }}
+      </NeutralContainer>
+      <p class="mt-3">{{ t('helpCenter.basics.hosting.autoUpdateText2') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.basics.hosting.backups')">
       <p>{{ t('helpCenter.basics.hosting.backupsText') }}</p>
       <BulletList>
