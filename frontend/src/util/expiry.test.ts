@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {describe, expect, it} from 'vitest'
-import {daysLeft, expiryConfigOf, expirySettingsOf, expiryStateOf, readExpiry} from './expiry'
+import {daysLeft, expiryConfigOf, expiryReminderKey, expirySettingsOf, expiryStateOf, readExpiry} from './expiry'
 
 /**
  * Where an expiry date stands, on the examples the server's copy of the rule is tested against.
@@ -56,6 +56,15 @@ describe('expiry', () => {
         })
         expect(expirySettingsOf({warnFromDays: 90, reminderDays: [30, 90, 30], repeatEveryDays: 7, remindMember: false}))
             .toEqual({warnFromDays: 90, reminderDays: [30, 90], repeatEveryDays: 7, remindMember: false, remindManagement: false})
+    })
+
+    it('words a reminder by its kind and its count', () => {
+        expect(expiryReminderKey({kind: 'EXPIRES_IN', days: '1'})).toBe('notification.expiryReminderInOne')
+        expect(expiryReminderKey({kind: 'EXPIRES_IN', days: '12'})).toBe('notification.expiryReminderIn')
+        expect(expiryReminderKey({kind: 'EXPIRES_TODAY', days: '0'})).toBe('notification.expiryReminderToday')
+        expect(expiryReminderKey({kind: 'EXPIRED', days: '1'})).toBe('notification.expiryReminderExpiredOne')
+        expect(expiryReminderKey({kind: 'MEMBERS_DUE', count: '4', days: '1'})).toBe('notification.expiryReminderDue')
+        expect(expiryReminderKey({kind: 'LATER'})).toBe('notification.expiryReminder')
     })
 
     it('writes the settings back without a repeat it does not have', () => {

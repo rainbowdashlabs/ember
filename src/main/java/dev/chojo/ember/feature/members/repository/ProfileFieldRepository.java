@@ -306,6 +306,23 @@ public class ProfileFieldRepository {
     }
 
     /**
+     * Every station's fields of one type, which is how a sweep over all stations finds its work.
+     *
+     * @param fieldType the type to look for
+     * @return the fields, grouped by station and oldest first within one
+     */
+    public List<ProfileField> findAllByType(ProfileFieldType fieldType) {
+        return query("""
+                SELECT %s
+                FROM profile_field
+                WHERE field_type = :field_type
+                ORDER BY station_id, id;""", PROFILE_FIELD_COLUMNS)
+                .single(call().bind("field_type", fieldType))
+                .map(ProfileField.map())
+                .all();
+    }
+
+    /**
      * Creates a new profile field definition for a station.
      */
     public ProfileField create(

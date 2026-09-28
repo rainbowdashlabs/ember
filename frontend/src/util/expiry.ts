@@ -104,6 +104,28 @@ export function expiryStateOf(
     return ExpiryStates.VALID
 }
 
+/**
+ * The sentences an expiry reminder is worded by, for one and for several, keyed by the kind the
+ * server names: a date still ahead, the last valid day, a date passed, or member management's list.
+ */
+const REMINDER_KEYS: Record<string, readonly [one: string, other: string]> = {
+    EXPIRES_IN: ['notification.expiryReminderInOne', 'notification.expiryReminderIn'],
+    EXPIRES_TODAY: ['notification.expiryReminderToday', 'notification.expiryReminderToday'],
+    EXPIRED: ['notification.expiryReminderExpiredOne', 'notification.expiryReminderExpired'],
+    MEMBERS_DUE: ['notification.expiryReminderDueOne', 'notification.expiryReminderDue'],
+}
+
+/**
+ * The message key of one expiry reminder. A member's reminder is counted in days, member
+ * management's in members, and a kind this build does not know falls back to the type's own sentence.
+ */
+export function expiryReminderKey(params: Record<string, string>): string {
+    const keys = REMINDER_KEYS[params.kind ?? '']
+    if (!keys) return 'notification.expiryReminder'
+    const count = Number(params.kind === 'MEMBERS_DUE' ? params.count : params.days)
+    return count === 1 ? keys[0] : keys[1]
+}
+
 /** A date read for showing: where it stands, and how many days away it is either way. */
 export interface ExpiryReading {
     state: ExpiryStateName

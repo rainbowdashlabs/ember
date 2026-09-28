@@ -19,6 +19,49 @@ import java.time.LocalDate;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public sealed interface NotificationParams {
 
+    /**
+     * Which of a type's sentences these parameters are worded by, or {@code null} for its one
+     * sentence.
+     *
+     * <p>A type whose notifications say different things, such as a date that runs out tomorrow and
+     * one that ran out last week, names the sentence here, and it is looked up beside the type's own
+     * before the plural of either is chosen.
+     */
+    default String variant() {
+        return null;
+    }
+
+    /**
+     * An expiry date is close or has passed, or several have at once.
+     *
+     * <p>The member's own reminder, and their guardian's copy of it, names the member and the date and
+     * counts the days either way. Member management's reminder is one per field per sweep and names
+     * the members instead, already joined, with their number for the plural: a hundred notifications
+     * on the same morning would be noise.
+     *
+     * @param kind       which sentence this is
+     * @param fieldName  the field, such as a first aid course
+     * @param memberName whose date it is, for the member's own reminder and a guardian's copy
+     * @param expiresOn  the last valid day, for the member's own reminder and a guardian's copy
+     * @param days       the days left, or the days since the last valid day once it has passed
+     * @param members    the first few members who became due, joined, for member management
+     * @param count      how many members became due, for member management
+     */
+    record ExpiryReminder(
+            ExpiryReminderKind kind,
+            String fieldName,
+            String memberName,
+            LocalDate expiresOn,
+            Integer days,
+            String members,
+            Integer count)
+            implements NotificationParams {
+        @Override
+        public String variant() {
+            return kind == null ? null : kind.name();
+        }
+    }
+
     record NewNews(String title, String author, String preview) implements NotificationParams {}
 
     record NewsComment(String newsTitle, String author, String preview) implements NotificationParams {}

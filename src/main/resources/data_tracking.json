@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:16bbe571c9fd8b14bdd07f671b19c7637cd67175b7c2aa6a8f32607423c9f912",
-  "generatedAt": "2026-09-28T09:42:11Z",
+  "schemaHash": "sha256:ecd7bf764e96dcf9862badb9e7d63979f24b8f9d7ac35f96faad4aabd6ad1897",
+  "generatedAt": "2026-09-28T12:29:21Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -8533,6 +8533,81 @@
         "reason": "Event structure/template data, not per-member"
       },
       "description": "Who may know the event exists at all. Empty means everybody. Shaped like event_restriction, which says who may register."
+    },
+    "expiry_reminder_sent": {
+      "feature": "members",
+      "scope": "STATION",
+      "tableHash": "sha256:685d035b1bf32073f2a4f518a36b7d7363338c0b4e5096626fcb4f32b95af635",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The member whose date the reminder was about."
+        },
+        {
+          "name": "field_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The expiry date field the reminder was about."
+        },
+        {
+          "name": "expires_on",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The last valid day the reminder was about. A new date entered later starts its reminders over."
+        },
+        {
+          "name": "reminder_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The day the reminder was due on, which a late sweep still names."
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the reminder was recorded as done. A repeat after the date counts its gap from here."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "field_id",
+          "refTable": "profile_field",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Notification dedup state for expiry reminders, ephemeral"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Bookkeeping of which reminders went out; the date itself is exported with the profile"
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          }
+        ]
+      },
+      "description": "Reminders about an expiry date field that are done with, so none goes out twice."
     },
     "federation_board_bookmark": {
       "feature": "federation",

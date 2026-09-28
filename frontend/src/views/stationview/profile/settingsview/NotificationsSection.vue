@@ -40,6 +40,7 @@ const notifyRows: NotifyRow[] = [
   {type: 'MEMBER_ADDED_TO_GROUP', label: 'notifyGroups', hint: 'notifyGroupsHint'},
   {type: 'PROFILE_FIELD_CHANGED', label: 'notifyProfile', hint: 'notifyProfileHint'},
   {type: 'PROCUREMENT_REQUESTED', label: 'notifyProcurement', hint: 'notifyProcurementHint'},
+  {type: 'EXPIRY_REMINDER', label: 'notifyExpiry', hint: 'notifyExpiryHint'},
 ]
 
 function getToggle(type: string): NotificationToggle {

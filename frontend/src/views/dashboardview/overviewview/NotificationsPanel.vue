@@ -20,6 +20,7 @@ import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import type {NotificationEntry} from '@/api/notifications'
 import {formatDate, formatDateTime} from '@/util/format'
+import {expiryReminderKey} from '@/util/expiry'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -64,6 +65,7 @@ const typeIcons: Record<string, string> = {
   CLUSTER_ITEM_LOST: 'triangle-exclamation',
   CLUSTER_MEMBER_ROLE_CHANGED: 'user-shield',
   CLUSTER_FIELD_VALUE_CHANGED: 'id-card',
+  EXPIRY_REMINDER: 'hourglass-half',
   REGISTRATION_DEADLINE_EXPIRED: 'clock',
   EVENT_CANCELLED: 'calendar-xmark',
   EVENT_REMINDER: 'bell',
@@ -122,6 +124,7 @@ function renderMessage(n: NotificationEntry): string {
     const key = params.itemStayedAway === 'true' ? 'movementCancelledAway' : 'movementCancelled'
     return t(`notification.${key}`, params)
   }
+  if (n.type === 'EXPIRY_REMINDER') return t(expiryReminderKey(params), params)
   return t(n.localeKey, params)
 }
 

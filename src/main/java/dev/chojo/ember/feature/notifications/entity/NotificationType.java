@@ -70,7 +70,8 @@ public enum NotificationType {
     CLUSTER_MEMBER_ROLE_CHANGED(
             NotificationParams.ClusterMemberRoleChanged.class, "notification.clusterMemberRoleChanged"),
     CLUSTER_FIELD_VALUE_CHANGED(
-            NotificationParams.ClusterFieldValueChanged.class, "notification.clusterFieldValueChanged");
+            NotificationParams.ClusterFieldValueChanged.class, "notification.clusterFieldValueChanged"),
+    EXPIRY_REMINDER(NotificationParams.ExpiryReminder.class, "notification.expiryReminder");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;

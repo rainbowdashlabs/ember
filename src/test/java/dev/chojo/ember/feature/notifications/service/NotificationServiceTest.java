@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.ExpiryReminderKind;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
@@ -868,6 +869,78 @@ class NotificationServiceTest extends RepositoryTestBase {
                 2, member1.id(), null, NotificationType.STORAGE_WARNING, storageData, Instant.now(), null);
         String storageMsg = service.resolveMessage("de", storageNotif);
         assertTrue(storageMsg.contains("95"));
+    }
+
+    /**
+     * An expiry reminder is worded by what it is about: a date still ahead, the last valid day, a date
+     * passed, or member management's list, each counted in its plural.
+     */
+    @Test
+    @Order(103)
+    void anExpiryReminderIsWordedByWhatItIsAbout() {
+        assertEquals(
+                "Erste Hilfe von Anna läuft in 12 Tagen ab (2026-03-31)",
+                expiryMessage(ExpiryReminderKind.EXPIRES_IN, 12, null, null));
+        assertEquals(
+                "Erste Hilfe von Anna läuft morgen ab (2026-03-31)",
+                expiryMessage(ExpiryReminderKind.EXPIRES_IN, 1, null, null));
+        assertEquals(
+                "Erste Hilfe von Anna läuft heute ab (2026-03-31)",
+                expiryMessage(ExpiryReminderKind.EXPIRES_TODAY, 0, null, null));
+        assertEquals(
+                "Erste Hilfe von Anna ist seit 3 Tagen abgelaufen (2026-03-31)",
+                expiryMessage(ExpiryReminderKind.EXPIRED, 3, null, null));
+        assertEquals(
+                "Erste Hilfe: bei 5 Mitgliedern fällig (Anna, Ben, Carla, …)",
+                expiryMessage(ExpiryReminderKind.MEMBERS_DUE, null, "Anna, Ben, Carla, …", 5));
+
+        var title = service.resolveFeedTitle(
+                "en", expiryNotification(ExpiryReminderKind.EXPIRED, 3, null, null, NotificationLinks.ownProfile()));
+        assertEquals("Expired: Erste Hilfe - Anna", title);
+    }
+
+    /** Member management's reminder opens the member list narrowed to the field's dates running out. */
+    @Test
+    @Order(103)
+    void anExpiryReminderLeadsToTheNarrowedMemberList() {
+        var data = NotificationData.of(
+                new NotificationParams.ExpiryReminder(
+                        ExpiryReminderKind.MEMBERS_DUE, "Erste Hilfe", null, null, null, "Anna", 1),
+                NotificationLinks.runningOut(17));
+
+        assertEquals(
+                "https://ember.example.com/station/members/list?field=17&state=expiring%2Cexpired",
+                service.resolveNotificationUrl("https://ember.example.com", null, data));
+        assertEquals(
+                "https://ember.example.com/station/profile/managed?member=4",
+                service.resolveNotificationUrl(
+                        "https://ember.example.com",
+                        null,
+                        NotificationData.of(data.params(), NotificationLinks.managedProfile(4))));
+    }
+
+    private String expiryMessage(ExpiryReminderKind kind, Integer days, String members, Integer count) {
+        return service.resolveMessage(
+                "de", expiryNotification(kind, days, members, count, NotificationLinks.ownProfile()));
+    }
+
+    private Notification expiryNotification(
+            ExpiryReminderKind kind,
+            Integer days,
+            String members,
+            Integer count,
+            NotificationData.NotificationLink link) {
+        boolean own = kind != ExpiryReminderKind.MEMBERS_DUE;
+        var params = new NotificationParams.ExpiryReminder(
+                kind, "Erste Hilfe", own ? "Anna" : null, own ? LocalDate.of(2026, 3, 31) : null, days, members, count);
+        return new Notification(
+                20,
+                member1.id(),
+                null,
+                NotificationType.EXPIRY_REMINDER,
+                NotificationData.of(params, link),
+                Instant.now(),
+                null);
     }
 
     @Test

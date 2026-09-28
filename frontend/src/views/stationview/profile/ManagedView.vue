@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -60,8 +61,22 @@ function setValue(fieldId: number, val: string) {
   setFieldValue(values, fieldId, val)
 }
 
+const route = useRoute()
+
+/**
+ * Opens on the member the address names, where it names one in this reader's care. A reminder about
+ * a date that runs out leads here and would otherwise leave the guardian to pick the member again.
+ */
+function openNamedMember() {
+  const named = String(route.query.member ?? '')
+  if (!named || !members.value.some(member => String(member.id) === named)) return
+  selectedMemberId.value = named
+  void loadMemberProfile()
+}
+
 const { loading, failure } = useAsyncLoader(async () => {
   members.value = await managedMembers.listManaged()
+  openNamedMember()
 })
 
 async function loadMemberProfile() {

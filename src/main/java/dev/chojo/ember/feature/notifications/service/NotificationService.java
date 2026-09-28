@@ -92,6 +92,9 @@ public class NotificationService {
             Map.entry("inventory-movements", "/station/inventory/movements"),
             Map.entry("inventory-procurement", "/station/inventory/procurement"),
             Map.entry("members-detail", "/station/members/detail/{id}"),
+            Map.entry("members-list", "/station/members/list"),
+            Map.entry("profile", "/station/profile"),
+            Map.entry("profile-managed", "/station/profile/managed"),
             Map.entry("dashboard-overview", "/station/dashboard/overview"),
             Map.entry("lost-and-found", "/station/lost-and-found"),
             Map.entry("lending-request", "/station/inventory/lending/{id}"),
@@ -105,7 +108,7 @@ public class NotificationService {
     /**
      * Param keys that drive pluralisation in {@link #resolveMessage}.
      */
-    private static final List<String> COUNT_PARAMS = List.of("count", "daysBefore", "pendingCount");
+    private static final List<String> COUNT_PARAMS = List.of("count", "days", "daysBefore", "pendingCount");
 
     private final NotificationRepository notificationRepository;
     private final StationMemberRepository stationMemberRepository;
@@ -243,8 +246,8 @@ public class NotificationService {
     }
 
     /**
-     * Picks the first integer-valued count-like param ({@code count}, {@code daysBefore},
-     * {@code pendingCount}) so {@link #resolveMessage} can route to the right plural variant.
+     * Picks the first integer-valued count-like param ({@code count}, {@code days},
+     * {@code daysBefore}, {@code pendingCount}) so {@link #resolveMessage} can route to the right plural variant.
      * Returns {@code null} when no recognised count param is present or parseable.
      */
     private static Integer extractCountParam(Map<String, String> params) {
@@ -626,13 +629,7 @@ public class NotificationService {
         var params = new LinkedHashMap<>(n.data().paramsAsMap());
         augmentTitleParams(locale, n, params);
 
-        Integer count = extractCountParam(params);
-        String template = null;
-        if (count != null) {
-            String pluralKey = typeKey + (count == 1 ? ".one" : ".other");
-            template = templates.get(pluralKey);
-        }
-        if (template == null) template = templates.get(typeKey);
+        String template = templateFor(templates, typeKey, n, params);
         if (template == null) return resolveCategory(locale, n.type());
 
         // Truncate values defensively - a 5KB description shouldn't fill the inbox row.
@@ -653,6 +650,40 @@ public class NotificationService {
     }
 
     /**
+     * The template one notification is worded by: the sentence its parameters name as their variant
+     * where one is written, otherwise the type's own, each in its plural where a count calls for one.
+     *
+     * <p>Languages like German and English need different words for one and for several, so a count
+     * among the parameters ({@code count}, {@code days}, {@code daysBefore}, {@code pendingCount})
+     * prefers the {@code .one} or {@code .other} spelling of a key where it is written.
+     *
+     * @param templates the section of the bundle the key lives in
+     * @param key       the type's key in that section
+     * @param n         the notification, whose parameters may name a variant
+     * @param params    its parameters as text
+     * @return the template, or {@code null} where none is written
+     */
+    private static String templateFor(
+            Map<String, String> templates, String key, Notification n, Map<String, String> params) {
+        var typed = n.data().params();
+        String variant = typed == null ? null : typed.variant();
+        if (variant != null) {
+            String chosen = pluralOf(templates, key + "." + variant, params);
+            if (chosen != null) return chosen;
+        }
+        return pluralOf(templates, key, params);
+    }
+
+    private static String pluralOf(Map<String, String> templates, String key, Map<String, String> params) {
+        Integer count = extractCountParam(params);
+        if (count != null) {
+            String plural = templates.get(key + (count == 1 ? ".one" : ".other"));
+            if (plural != null) return plural;
+        }
+        return templates.get(key);
+    }
+
+    /**
      * Resolves the localized message body for a notification, substituting any {param} placeholders.
      * Falls back to joining the params with em-dashes (or to the locale key) when no template exists.
      */
@@ -664,17 +695,7 @@ public class NotificationService {
         var params = new LinkedHashMap<>(n.data().paramsAsMap());
         localizeStatusParam(locale, params);
 
-        // Pluralisation: when the params carry an integer "count"/"daysBefore"/"pendingCount",
-        // prefer the .one / .other variant of the localeKey when defined. Languages like German
-        // and English need different surface text for n=1 vs n=other.
-        Integer count = extractCountParam(params);
-        String template = null;
-        if (count != null) {
-            String pluralKey = localeKey + (count == 1 ? ".one" : ".other");
-            template = templates.get(pluralKey);
-        }
-        if (template == null) template = templates.get(localeKey);
-
+        String template = templateFor(templates, localeKey, n, params);
         if (template == null) {
             if (params.isEmpty()) return localeKey;
             var sb = new StringBuilder();
@@ -784,6 +805,13 @@ public class NotificationService {
                 if (params instanceof NotificationParams.ProcedureItemCheckedParams p) {
                     if (notBlank(p.itemTitle())) lines.add(feedKv(locale, "item", p.itemTitle()));
                     if (notBlank(p.checkedByName())) lines.add(feedKv(locale, "by", p.checkedByName()));
+                }
+            }
+            case EXPIRY_REMINDER -> {
+                if (params instanceof NotificationParams.ExpiryReminder p) {
+                    if (p.expiresOn() != null)
+                        lines.add(feedKv(locale, "expiresOn", p.expiresOn().toString()));
+                    if (notBlank(p.members())) lines.add(feedKv(locale, "members", p.members()));
                 }
             }
             case REGISTRATION_DEADLINE_EXPIRED -> {

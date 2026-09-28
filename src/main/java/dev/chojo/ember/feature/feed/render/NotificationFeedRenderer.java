@@ -501,6 +501,17 @@ public class NotificationFeedRenderer {
                     enrichWithEventContext(details, notification, ctx);
                 }
             }
+            case EXPIRY_REMINDER -> {
+                if (params instanceof NotificationParams.ExpiryReminder p) {
+                    putIfPresent(details, label(ctx, "field", "Field"), p.fieldName());
+                    putIfPresent(details, label(ctx, "member", "Member"), p.memberName());
+                    if (p.expiresOn() != null) {
+                        details.put(
+                                label(ctx, "expiresOn", "Valid until"), formatLocalDate(p.expiresOn(), ctx.locale()));
+                    }
+                    putIfPresent(details, label(ctx, "members", "Members"), p.members());
+                }
+            }
             case REGISTRATION_ANSWER_MISSING -> {
                 if (params
                         instanceof
