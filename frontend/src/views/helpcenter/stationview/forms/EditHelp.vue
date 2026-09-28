@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import FormPagesHelpSections from '@/views/helpcenter/stationview/forms/builderhelp/FormPagesHelpSections.vue'
 
 const {t} = useI18n()
 </script>
@@ -76,6 +77,8 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.formsEdit.orderTitle')">
       <p>{{ t('helpCenter.formsEdit.orderText') }}</p>
     </HelpSection>
+
+    <FormPagesHelpSections/>
 
     <HelpSection :title="t('helpCenter.formsEdit.saveTitle')">
       <p>{{ t('helpCenter.formsEdit.saveText') }}</p>

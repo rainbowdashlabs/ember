@@ -51,6 +51,7 @@ function onOptionClick(optionKey: string) {
     <template v-else>
       <div v-for="opt in options()"
            :key="opt.key"
+           data-testid="choice-option"
            class="flex cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all"
            :class="isSelected(opt.key)
              ? 'border-primary bg-primary/10 text-primary'

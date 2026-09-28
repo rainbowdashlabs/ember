@@ -2415,7 +2415,7 @@ public enum Refusal {
             Area.FORMS,
             65,
             HttpStatus.BAD_REQUEST,
-            "The link after sending has to start with https://, http:// or /, so nothing was saved"),
+            "The link after sending has to be a web address or an address on this site, so nothing was saved"),
 
     /** Keeping, reading or ending a half-filled form while belonging to no station. */
     NOT_A_MEMBER_KEEPING_FORM_DRAFT(Area.FORMS, 66, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),

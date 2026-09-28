@@ -23,7 +23,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <NeutralContainer>
+  <NeutralContainer data-testid="available-form">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div class="space-y-1">
         <span class="font-medium">{{ form.title }}</span>

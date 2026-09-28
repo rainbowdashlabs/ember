@@ -23,6 +23,9 @@ const {t} = useI18n()
         <HelpSection :title="t('helpCenter.pageForms.embedTitle')">
             <p>{{ t('helpCenter.pageForms.embedText') }}</p>
         </HelpSection>
+        <HelpSection :title="t('helpCenter.formsPages.publicTitle')">
+            <p>{{ t('helpCenter.formsPages.publicText') }}</p>
+        </HelpSection>
         <HelpTip>{{ t('helpCenter.pageForms.tip') }}</HelpTip>
     </HelpArticle>
 </template>

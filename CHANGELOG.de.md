@@ -5,10 +5,26 @@
 ### Neue Funktionen
 
 - **Ablaufdaten mit Erinnerungen.** Ein Profilfeld einer Wache oder eines Verbands kann ein Datum halten, das abläuft, etwa einen Erste-Hilfe-Kurs oder einen Führerschein, und die Schnellvorlagen dafür nutzen es jetzt. Die Mitgliederliste zeigt es gelb, wenn es bald abläuft, und rot, wenn es abgelaufen ist, und das Mitglied und die Mitgliederverwaltung der Wache oder des Verbands werden rechtzeitig erinnert.
+- **Formulare mit Seiten und Verzweigungen.** Ein Formular lässt sich in Seiten aufteilen, die zur nächsten Seite, zu einer gewählten Seite weiter unten oder direkt zum Absenden führen. Eine Frage mit einer Antwort kann entscheiden, welche Seite als Nächstes kommt, und die Auswertung zeigt, wie viele eine Frage überhaupt gesehen haben.
+- **Ein Formular später fertig ausfüllen.** Ein begonnenes, nicht abgesendetes Formular bleibt erhalten und öffnet sich wieder auf der Seite, auf der es verlassen wurde, bei Formularen der Wache auf jedem Gerät, bei öffentlichen Formularen auf demselben Gerät. Es zählt erst als Antwort, wenn es abgesendet ist.
+
+### Verbesserungen
+
+- **Vorschau, Duplizieren und eine Nachricht nach dem Absenden.** Der Formular-Editor zeigt das Formular so, wie es ausgefüllt wird, samt Weg durch die Seiten, und Formulare und Fragen lassen sich duplizieren. Ein Formular kann nach dem Absenden eine eigene Nachricht und einen Link zeigen.
+- **Fragen und Seiten per Ziehen sortieren.** Fragen werden innerhalb einer Seite und zwischen Seiten gezogen, Seiten als Ganzes. Geänderte Fragen gehen nicht mehr verloren, wenn der Editor vor dem Speichern verlassen wird: Ember fragt vorher nach und bietet sie beim nächsten Öffnen wieder an.
+- **Fehler zeigen auf die Frage.** Lassen sich Antworten nicht absenden, öffnet das Formular die Seite mit dem Problem und markiert jede betroffene Frage.
+
+### Änderungen
+
+- **Einstellungen einer Frage stehen in einem Menü.** Alles außer „Pflichtfeld" steckt im Menü in der Ecke jeder Frage, und geänderte Einstellungen stehen als Etiketten unter ihrem Titel. Neue Fragen kommen über einen Knopf am Ende jeder Seite dazu.
+- **Nach dem Absenden erscheint eine Bestätigung.** Nach dem Absenden eines Formulars der Wache bleibst du auf einer Seite, die das bestätigt, mit dem Weg zurück zu den Umfragen und, wo das Formular es erlaubt, der Möglichkeit, die Antwort zu ändern.
 
 ### Fehlerbehebungen
 
 - **Das Umsortieren von Optionen verändert keine Antworten mehr.** Wurden die Optionen einer Frage, die schon Antworten hatte, umsortiert oder umbenannt, konnte sich ändern, was diese Antworten aussagten. Antworten bleiben jetzt bei der gewählten Option, und das Entfernen einer Option, die jemand gewählt hat, fragt vorher nach.
+- **Freiwillige Fragen konnten das Absenden verhindern.** In manchen Fällen wurde ein Formular abgelehnt, wenn eine freiwillige Auswahl- oder Bewertungsfrage leer blieb oder eine Auswahl nur mit einer eigenen Antwort beantwortet war. Solche Antworten werden jetzt angenommen.
+- **Das Mischen von Fragen und Optionen hatte keine Wirkung.** Die Einstellungen zum Mischen der Fragen eines Formulars oder der Optionen einer Frage wurden gespeichert, beim Ausfüllen aber nicht angewendet. Jetzt wird gemischt, Fragen jeweils innerhalb ihrer Seite.
+- **Exportierte Antworten waren schwer zu lesen.** Die Tabelle und das PDF der Antworten eines Formulars zeigten jede Antwort so, wie sie gespeichert ist. Jetzt steht dort der Text der gewählten Optionen.
 
 ## v26.19.5
 

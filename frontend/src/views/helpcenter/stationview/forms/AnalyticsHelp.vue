@@ -55,6 +55,10 @@ const tabs = [
       <p>{{ t('helpCenter.formsAnalytics.groupingNotesText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.formsAnalytics.reachedTitle')">
+      <p>{{ t('helpCenter.formsAnalytics.reachedText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.formsAnalytics.responsesTitle')">
       <p>{{ t('helpCenter.formsAnalytics.responsesText') }}</p>
     </HelpSection>
@@ -62,6 +66,7 @@ const tabs = [
     <HelpSection :title="t('helpCenter.formsAnalytics.exportTitle')">
       <p>{{ t('helpCenter.formsAnalytics.exportText') }}</p>
       <p>{{ t('helpCenter.formsAnalytics.exportFieldsText') }}</p>
+      <p>{{ t('helpCenter.formsAnalytics.exportPathText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.formsAnalytics.tip') }}</HelpTip>
