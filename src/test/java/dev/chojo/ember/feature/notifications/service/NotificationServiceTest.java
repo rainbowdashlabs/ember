@@ -910,8 +910,11 @@ class NotificationServiceTest extends RepositoryTestBase {
                 "Erste Hilfe von Anna läuft heute ab (2026-03-31)",
                 expiryMessage(ExpiryReminderKind.EXPIRES_TODAY, 0, null, null));
         assertEquals(
-                "Erste Hilfe von Anna ist seit 3 Tagen abgelaufen (2026-03-31)",
+                "Erste Hilfe von Anna war bis vor 3 Tagen gültig (2026-03-31)",
                 expiryMessage(ExpiryReminderKind.EXPIRED, 3, null, null));
+        assertEquals(
+                "Erste Hilfe von Anna war bis gestern gültig (2026-03-31)",
+                expiryMessage(ExpiryReminderKind.EXPIRED, 1, null, null));
         assertEquals(
                 "Erste Hilfe: bei 5 Mitgliedern fällig (Anna, Ben, Carla, …)",
                 expiryMessage(ExpiryReminderKind.MEMBERS_DUE, null, "Anna, Ben, Carla, …", 5));

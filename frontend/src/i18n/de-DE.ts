@@ -2154,8 +2154,8 @@ export default {
         expiresInDays: 'läuft in {days} Tagen ab',
         expiresTomorrow: 'läuft morgen ab',
         expiresToday: 'läuft heute ab',
-        expiredYesterday: 'seit gestern abgelaufen',
-        expiredDaysAgo: 'seit {days} Tagen abgelaufen',
+        validUntilYesterday: 'gültig bis gestern',
+        validUntilDaysAgo: 'gültig bis vor {days} Tagen',
     },
     setupMailChoice: {
         label: 'Einrichtungs-Mail sofort senden',
@@ -6563,8 +6563,8 @@ export default {
         expiryReminderInOne: '{fieldName} von {memberName} läuft morgen ab ({expiresOn})',
         expiryReminderIn: '{fieldName} von {memberName} läuft in {days} Tagen ab ({expiresOn})',
         expiryReminderToday: '{fieldName} von {memberName} läuft heute ab ({expiresOn})',
-        expiryReminderExpiredOne: '{fieldName} von {memberName} ist seit gestern abgelaufen ({expiresOn})',
-        expiryReminderExpired: '{fieldName} von {memberName} ist seit {days} Tagen abgelaufen ({expiresOn})',
+        expiryReminderExpiredOne: '{fieldName} von {memberName} war bis gestern gültig ({expiresOn})',
+        expiryReminderExpired: '{fieldName} von {memberName} war bis vor {days} Tagen gültig ({expiresOn})',
         expiryReminderDueOne: '{fieldName}: bei {members} fällig',
         expiryReminderDue: '{fieldName}: bei {count} Mitgliedern fällig ({members})',
         typeLabel: {
