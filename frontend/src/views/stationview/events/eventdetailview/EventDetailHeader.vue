@@ -17,6 +17,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import {isRecurringEvent, type StationEvent} from '@/api/events'
+import {eventTypeLabelKey} from '../eventshared/eventTypeLabel'
 import {formatDate} from '@/util/format'
 import {computed} from 'vue'
 
@@ -89,10 +90,9 @@ function announce() {
       <SecondaryBadge v-if="event.categoryId && props.categoryName" data-testid="event-category">
         {{ props.categoryName }}
       </SecondaryBadge>
-      <SecondaryBadge v-if="isRecurringEvent(event.eventType)">
-        <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>{{ t('events.typeRecurring') }}
+      <SecondaryBadge data-testid="event-type">
+        <font-awesome-icon v-if="isRecurringEvent(event.eventType)" :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>{{ t(eventTypeLabelKey(event.eventType)) }}
       </SecondaryBadge>
-      <SecondaryBadge v-else>{{ t('events.typeOneTime') }}</SecondaryBadge>
       <SecondaryBadge v-if="repeatEnd" data-testid="event-repeat-end">{{ repeatEnd }}</SecondaryBadge>
       <ErrorBadge v-if="event.cancelled">{{ t('events.cancelled') }}</ErrorBadge>
     </div>
