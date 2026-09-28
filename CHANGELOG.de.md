@@ -35,6 +35,7 @@
 - **Abgemeldete Mitglieder ließen sich nicht wieder eintragen.** Nachdem sich jemand abgemeldet oder abgesagt hatte, bot die Liste zum Eintragen von Mitgliedern in einen Termin ihn nicht mehr an, sodass nicht einmal die Verantwortlichen ihn wieder eintragen konnten. Er wird jetzt wieder angeboten.
 - **Abgemeldete Mitglieder konnten sich nicht überall wieder anmelden.** In manchen Fällen wurde ein Mitglied, das seinen Platz zurückgegeben hatte, in der Liste der kommenden Termine und auf der Seite des Termins weiter als abgemeldet angezeigt, ohne sich dort wieder anmelden zu können. Jetzt geht das an beiden Stellen.
 - **Anmeldungen eines wiederkehrenden Termins vermischten die Tage.** Bei einem wiederkehrenden Termin konnte der Reiter Anmeldungen die Antwort eines Mitglieds, die Listen der offenen und bestätigten Anmeldungen und ihre Zahlen von einem anderen als dem geöffneten Tag zeigen, und das Abmelden konnte den Platz an diesem anderen Tag aufgeben. Der Reiter zeigt und betrifft jetzt den geöffneten Tag.
+- **Die Liste der Profilfelder war auf mittleren Bildschirmen zu eng.** Auf Bildschirmen zwischen Telefon und breitem Desktop drückte die Liste der Profilfelder in den Mitgliedereinstellungen die Namen zusammen, bis sich die Zeilen überlagerten. Jetzt wechselt sie zu Kacheln, sobald die Tabelle nicht mehr hineinpasst.
 
 ## v26.19.5
 

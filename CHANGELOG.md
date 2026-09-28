@@ -35,6 +35,7 @@
 - **Members who withdrew could not be added again.** After somebody withdrew or declined, the list for adding members to an appointment no longer offered them, so not even its managers could put them back on. They are offered again.
 - **Members who withdrew could not sign up again everywhere.** In some cases a member who had given their place back was still shown as withdrawn in the list of upcoming appointments and on the appointment's page, with no way to sign up again there. They can now sign up again from both.
 - **Registrations of a repeating appointment mixed up its dates.** On an appointment that repeats, the registrations tab could show a member's answer, the waiting and confirmed lists and their counts from another date than the one open, and signing off could give up the place on that other date. The tab now shows and acts on the date that is open.
+- **The profile field list was cramped on medium screens.** On screens between phone and wide desktop, the list of profile fields in the member settings squeezed its names until the rows overlapped. It now switches to tiles as soon as the table no longer fits.
 
 ## v26.19.5
 
