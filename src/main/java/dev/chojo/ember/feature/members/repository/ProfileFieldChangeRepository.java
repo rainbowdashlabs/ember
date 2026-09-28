@@ -29,7 +29,8 @@ public class ProfileFieldChangeRepository {
             c.id, c.field_id, c.cluster_field_id, c.member_id, c.old_value, c.new_value,
             c.changed_by, c.changed_at, c.requires_acknowledgement,
             %s AS changed_by_name,
-            coalesce(pf.name, cpf.name) AS field_name""".formatted(MemberNameSql.ofAccount("a"));
+            coalesce(pf.name, cpf.name) AS field_name,
+            coalesce(pf.field_type, cpf.field_type) AS field_type""".formatted(MemberNameSql.ofAccount("a"));
     private static final String ENRICHED_ACKNOWLEDGEMENT_COLUMNS = """
             ack.id, ack.change_id, ack.acknowledged_by, ack.acknowledged_at, ack.comment,
             %s AS acknowledged_by_name""".formatted(MemberNameSql.ofAccount("a"));
@@ -123,7 +124,8 @@ public class ProfileFieldChangeRepository {
                 INSERT INTO profile_field_change(field_id, member_id, old_value, new_value, changed_by, requires_acknowledgement)
                 VALUES (:field_id, :member_id, :old_value::JSONB, :new_value::JSONB, :changed_by, :requires_acknowledgement)
                 RETURNING id, field_id, cluster_field_id, member_id, old_value, new_value, changed_by, changed_at,
-                          requires_acknowledgement, '' AS changed_by_name, '' AS field_name;""",
+                          requires_acknowledgement, '' AS changed_by_name, '' AS field_name,
+                          NULL AS field_type;""",
                 call().bind("field_id", fieldId)
                         .bind("member_id", memberId)
                         .bind("old_value", oldValue)

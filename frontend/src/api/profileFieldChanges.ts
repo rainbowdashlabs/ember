@@ -27,6 +27,7 @@ export interface ProfileFieldChange {
     requiresAcknowledgement: boolean
     changedByName?: string
     fieldName?: string
+    fieldType?: string | null
     acknowledgements: ProfileFieldChangeAcknowledgement[]
     memberName?: string | null
     memberIdentity?: MemberIdentity | null

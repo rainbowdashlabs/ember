@@ -678,6 +678,7 @@ public class ProfileFieldService {
                         c.requiresAcknowledgement(),
                         c.changedByName(),
                         c.fieldName(),
+                        c.fieldType(),
                         acksByChange.getOrDefault(c.id(), List.of()),
                         null))
                 .toList();
@@ -744,6 +745,7 @@ public class ProfileFieldService {
                             c.requiresAcknowledgement(),
                             c.changedByName(),
                             c.fieldName(),
+                            c.fieldType(),
                             acksByChange.getOrDefault(c.id(), List.of()),
                             memberName);
                 })

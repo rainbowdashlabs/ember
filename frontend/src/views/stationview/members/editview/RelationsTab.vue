@@ -12,7 +12,8 @@ import { useMemberManagers } from '../relations/useMemberManagers'
 import { useManagedMembers } from '../relations/useManagedMembers'
 import { useMemberProfileFields } from '../detailview/useMemberProfileFields'
 import { memberDisplayName } from '../listview/useMemberData'
-import { StationUserType, type StationMember } from '@/api/types'
+import { canHaveGuardians, looksAfterMembers } from '../relations/relationSides'
+import type { StationMember } from '@/api/types'
 import { profileFields, stationMembers } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import type { Failure } from '@/util/failure'
@@ -46,10 +47,9 @@ const {
 const {managedMembers, availableManaged, linkManaged, removeManaged} =
     useManagedMembers(memberId, allMembers, failure)
 
-const showGuardians = computed(() =>
-    props.userType === StationUserType.MEMBER || props.userType === StationUserType.TRIAL)
+const showGuardians = computed(() => canHaveGuardians(props.userType))
 
-const showManaged = computed(() => props.userType === StationUserType.GUARDIAN)
+const showManaged = computed(() => looksAfterMembers(props.userType, managedMembers.value.length))
 
 const { loading, failure: loadFailure } = useAsyncLoader(async () => {
   const [allFields, mgrs, managed, values] = await Promise.all([
