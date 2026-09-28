@@ -5,10 +5,16 @@
  */
 import {compareSortValues, type SortValue} from '@/composables/useSortable'
 import {matchesDateFilter, splitDateTokens} from '@/util/dateFilter'
+import {DEFAULT_WARN_FROM_DAYS} from '@/util/expiry'
 import {ColumnTypes, optionIndexOf, scalarsOf, wordScalar, type CellScalar, type TableColumn} from './tableColumn'
 
 /** Which filter body a column's type opens. */
-export type FilterKind = 'values' | 'number' | 'date' | 'birthDate'
+export type FilterKind = 'values' | 'number' | 'date' | 'birthDate' | 'expiryDate'
+
+/** The date filter bodies, which all read and write the date token grammar. */
+export function isDateKind(kind: FilterKind): boolean {
+    return kind === 'date' || kind === 'birthDate' || kind === 'expiryDate'
+}
 
 /** One entry of a filter's list: what is matched against and what the reader ticks. */
 export interface FilterChoice {
@@ -26,6 +32,7 @@ export function filterKindOf(type: string): FilterKind {
     if (type === ColumnTypes.NUMBER) return 'number'
     if (type === ColumnTypes.DATE || type === ColumnTypes.DATE_TIME) return 'date'
     if (type === ColumnTypes.BIRTH_DATE) return 'birthDate'
+    if (type === ColumnTypes.EXPIRY_DATE) return 'expiryDate'
     return 'values'
 }
 
@@ -113,11 +120,11 @@ function matchesNumber(value: string, tokens: NumberFilterTokens): boolean {
 /** Whether one cell, as {@link filterValuesOf} gives it, passes the filter standing on its column. */
 export type CellFilter = (values: readonly string[]) => boolean
 
-function valueMatcher(kind: FilterKind, selected: ReadonlySet<string>): (value: string) => boolean {
-    if (kind === 'date' || kind === 'birthDate') {
+function valueMatcher(kind: FilterKind, selected: ReadonlySet<string>, warnFromDays: number): (value: string) => boolean {
+    if (isDateKind(kind)) {
         const tokens = splitDateTokens(selected)
         const today = new Date()
-        return value => matchesDateFilter(value, tokens, today)
+        return value => matchesDateFilter(value, tokens, today, warnFromDays)
     }
     if (kind === 'number') {
         const tokens = splitNumberTokens(selected)
@@ -132,10 +139,14 @@ function valueMatcher(kind: FilterKind, selected: ReadonlySet<string>): (value: 
  * @param kind         the filter body the column opens
  * @param selected     what the filter holds; nothing held means nothing narrowed but the empties
  * @param includeEmpty whether an empty cell passes
+ * @param warnFromDays how many days ahead an expiry date counts as running out, for its states
  */
-export function prepareFilter(kind: FilterKind, selected: ReadonlySet<string>, includeEmpty: boolean): CellFilter {
+export function prepareFilter(
+    kind: FilterKind, selected: ReadonlySet<string>, includeEmpty: boolean,
+    warnFromDays: number = DEFAULT_WARN_FROM_DAYS,
+): CellFilter {
     if (selected.size === 0) return values => values.length === 0 ? includeEmpty : !includeEmpty
-    const matches = valueMatcher(kind, selected)
+    const matches = valueMatcher(kind, selected, warnFromDays)
     return values => values.length === 0 ? includeEmpty : values.some(matches)
 }
 
@@ -155,6 +166,7 @@ function sortScalar<Row>(column: TableColumn<Row>, scalar: CellScalar, yesNo: Ye
         case ColumnTypes.DATE:
         case ColumnTypes.DATE_TIME:
         case ColumnTypes.BIRTH_DATE:
+        case ColumnTypes.EXPIRY_DATE:
             return String(scalar)
         default:
             return wordScalar(column, scalar, yesNo)

@@ -15,11 +15,11 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import DateFilterBody from './datefilter/DateFilterBody.vue'
 import NumberFilterBody from './NumberFilterBody.vue'
-import type { FilterChoice, FilterKind } from './columnFilter'
+import { isDateKind, type FilterChoice, type FilterKind } from './columnFilter'
 
 /**
  * The filter of one column, in the body its type calls for: a list of values to tick, a date
- * range with its tree, a birth date with its ages, or a number range.
+ * range with its tree, a birth date with its ages, an expiry date with its states, or a number range.
  */
 const props = defineProps<{
   columnLabel: string
@@ -41,7 +41,7 @@ const { t } = useI18n()
 const localSelected = ref<Set<string>>(new Set())
 const localIncludeEmpty = ref(false)
 
-const isDate = computed(() => props.kind === 'date' || props.kind === 'birthDate')
+const isDate = computed(() => isDateKind(props.kind))
 const rawValues = computed(() => props.choices.map(choice => choice.value))
 
 watch(model, (open) => {
@@ -84,7 +84,8 @@ function apply() {
           <CheckboxInput v-model="localIncludeEmpty"/>
           <span class="italic text-(--text-muted)">{{ t('tableFilter.empty') }}</span>
         </FieldLabel>
-        <DateFilterBody v-if="isDate" v-model="localSelected" :values="rawValues" :birth-date="kind === 'birthDate'"/>
+        <DateFilterBody v-if="isDate" v-model="localSelected" :values="rawValues"
+                        :birth-date="kind === 'birthDate'" :expiry-date="kind === 'expiryDate'"/>
         <NumberFilterBody v-else v-model="localSelected"/>
       </template>
 

@@ -39,6 +39,20 @@ describe('splitDateTokens / joinDateTokens', () => {
         expect(joinDateTokens(tokens)).toEqual(set)
     })
 
+    it('reads the states of an expiry date and writes them back small', () => {
+        const set = new Set(['state:expiring', 'state:expired', 'from:2026-01-01'])
+        const tokens = splitDateTokens(set)
+        expect(tokens.states).toEqual(['EXPIRING', 'EXPIRED'])
+        expect(tokens.prefixes).toEqual([])
+        expect(joinDateTokens(tokens)).toEqual(set)
+    })
+
+    it('drops a state it does not know rather than reading it as a day', () => {
+        const tokens = tokensOf('state:someday')
+        expect(tokens.states).toEqual([])
+        expect(tokens.prefixes).toEqual([])
+    })
+
     it('treats an old flat filter as plain day checkmarks', () => {
         const tokens = tokensOf('2024-05-01', '2024-06-01')
         expect(tokens.prefixes).toHaveLength(2)
@@ -47,6 +61,15 @@ describe('splitDateTokens / joinDateTokens', () => {
 })
 
 describe('matchesDateFilter', () => {
+    it('lets an expiry date through by where it stands, on the field\'s own warning', () => {
+        const runningOut = tokensOf('state:expiring', 'state:expired')
+        expect(matchesDateFilter('2026-09-30', runningOut, TODAY)).toBe(true)
+        expect(matchesDateFilter('2026-09-01', runningOut, TODAY)).toBe(true)
+        expect(matchesDateFilter('2026-12-31', runningOut, TODAY)).toBe(false)
+        expect(matchesDateFilter('2026-12-31', runningOut, TODAY, 120)).toBe(true)
+        expect(matchesDateFilter('2026-12-31', tokensOf('state:valid'), TODAY)).toBe(true)
+    })
+
     it('OR-s the checkmark prefixes over year, month and day', () => {
         const tokens = tokensOf('2024', '2025-03', '2026-01-05')
         expect(matchesDateFilter('2024-11-30', tokens, TODAY)).toBe(true)

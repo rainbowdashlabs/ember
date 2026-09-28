@@ -180,6 +180,7 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
                 filterKindOf(column.type),
                 state.value.filters.get(column.key) ?? new Set(),
                 state.value.empties.has(column.key),
+                column.warnFromDays,
             ),
         })))
 

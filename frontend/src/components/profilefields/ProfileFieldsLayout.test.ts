@@ -55,6 +55,16 @@ describe('ProfileFieldsLayout', () => {
         expect(view.text()).toContain('berechnet')
     })
 
+    /** The member sees their own date running out before any reminder tells them. */
+    it('marks an expiry date that has passed beside its label', () => {
+        const firstAid: LaidOutField = {id: 20, name: 'Erste Hilfe gültig bis', fieldType: FieldTypes.EXPIRY_DATE}
+        const view = mount(ProfileFieldsLayout, {
+            props: {fields: [firstAid], getValue: () => '2020-01-31'},
+        })
+
+        expect(view.find('[data-testid="expiry-state"]').attributes('data-state')).toBe('EXPIRED')
+    })
+
     /** Nothing to count from is not a wrong number: it is no number. */
     it('says nothing where the question it counts from is unanswered', () => {
         const view = form({})

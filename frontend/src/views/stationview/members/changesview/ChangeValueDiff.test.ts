@@ -33,6 +33,10 @@ describe('ChangeValueDiff', () => {
         expect(show('"2019-11-03"', '"2019-11-04"', FieldTypes.BIRTH_DATE)).toEqual(['03.11.2019', '04.11.2019'])
     })
 
+    it('leaves the state off a changed expiry date', () => {
+        expect(show('"2020-01-31"', '"2020-02-29"', FieldTypes.EXPIRY_DATE)).toEqual(['31.01.2020', '29.02.2020'])
+    })
+
     it('writes a missing side as a dash', () => {
         expect(show('null', '"2026-04-02"', FieldTypes.DATE)).toEqual(['–', '02.04.2026'])
         expect(show(undefined, '"Blau"', FieldTypes.TEXT)).toEqual(['–', 'Blau'])

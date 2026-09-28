@@ -11,7 +11,8 @@ import MutedText from '@/components/typography/MutedText.vue'
 import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import {questionKindOf} from '@/util/questions'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import ExpiryStateBadge from '@/components/display/ExpiryStateBadge.vue'
+import {FieldTypes, parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import {calculatedAnswer, type FieldOrigin} from '@/util/profileFields'
 import {isSection, isSpacer, spanClass} from './fieldLayout'
 
@@ -115,6 +116,8 @@ function descriptionOf(field: LaidOutField): string {
           </SecondaryBadge>
           <MutedText v-if="worksItselfOut(field)" class="ml-1">({{ t('profile.calculatedHint') }})</MutedText>
           <MutedText v-else-if="locked(field)" class="ml-1">({{ t('profile.readonlyHint') }})</MutedText>
+          <ExpiryStateBadge v-if="field.fieldType === FieldTypes.EXPIRY_DATE" class="ml-1"
+                            :value="valueOf(field)" :config="field.config"/>
         </FieldLabel>
         <MutedText v-if="descriptionOf(field)" class="block text-xs">{{ descriptionOf(field) }}</MutedText>
         <QuestionValueInput
