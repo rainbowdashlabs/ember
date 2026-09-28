@@ -66,7 +66,7 @@ const capabilities = useFieldsCapabilities()
         <DeleteButton @click="emit('delete', field)"/>
       </div>
     </div>
-    <div v-if="holdsAnswer(field)" class="flex flex-wrap gap-3 text-xs" @click.stop>
+    <div v-if="holdsAnswer(field)" class="flex flex-wrap gap-3 text-xs">
       <label class="flex items-center gap-1">
         <CompactToggle :model-value="!!field.required"
                        @update:model-value="v => emit('toggleRequired', field, v)"/>
