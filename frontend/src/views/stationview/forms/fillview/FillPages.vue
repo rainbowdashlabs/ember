@@ -23,6 +23,7 @@ defineProps<{
 
 const emit = defineEmits<{
   send: []
+  next: []
   cancel: []
 }>()
 
@@ -40,7 +41,7 @@ const {t} = useI18n()
   </div>
 
   <FormPageNav :can-go-back="walk.pageNumber.value > 1" :is-last="walk.isLast.value" :send-label="sendLabel"
-               @back="walk.back()" @next="walk.next()" @send="emit('send')">
+               @back="walk.back()" @next="emit('next')" @send="emit('send')">
     <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
   </FormPageNav>
 </template>

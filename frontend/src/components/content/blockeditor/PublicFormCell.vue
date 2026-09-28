@@ -14,6 +14,7 @@ import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue
 import PublicPageFields from '@/components/forms/fill/PublicPageFields.vue'
 import FormPageNav from '@/components/forms/fill/FormPageNav.vue'
 import FormCompletion from '@/components/forms/fill/FormCompletion.vue'
+import FormDraftNote from '@/components/forms/fill/FormDraftNote.vue'
 import PublicFormClosedNotice from '@/components/forms/fill/PublicFormClosedNotice.vue'
 import {usePublicFormSubmission} from '@/composables/usePublicFormSubmission'
 import {FailureKind} from '@/util/failure'
@@ -50,6 +51,8 @@ const {
   updateDate,
   submit,
   walk,
+  resumedFrom,
+  startOver,
 } = usePublicFormSubmission(
     computed(() => props.stationUid),
     computed(() => props.formPublicUid),
@@ -89,6 +92,7 @@ const unreachable = computed(() => !loadFailure.value || loadFailure.value.kind 
             <PublicFormClosedNotice v-if="!open" :state="form.state" :closed-since="form.closedSince"/>
 
             <template v-else-if="!submitted">
+                <FormDraftNote v-if="resumedFrom" :saved-at="resumedFrom" @start-over="startOver"/>
                 <PublicPageFields :walk="walk" :answers="answers"
                                 @update-text="updateText" @update-date="updateDate" @toggle-choice="toggleChoice"/>
 

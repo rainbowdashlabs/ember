@@ -506,6 +506,41 @@ export async function getMemberResponse(formId: number, memberId: number): Promi
     return res.data
 }
 
+/**
+ * A form a member started and has not sent yet, kept so it can be continued on any device. It is never
+ * counted as an answer.
+ */
+export interface FormDraft {
+    answers: Record<number, Record<string, unknown>>
+    /** The pages visited so far, the page to continue on last. */
+    path: string[]
+    updatedAt: string
+}
+
+function draftPath(formId: number, memberId: number | null): string {
+    return memberId ? `/forms/${formId}/draft/${memberId}` : `/forms/${formId}/draft`
+}
+
+/** The draft kept for the reader, or for the member in their care, where there is one. */
+export async function getDraft(formId: number, memberId: number | null): Promise<FormDraft | null> {
+    const res = await client.get<{draft: FormDraft | null}>(draftPath(formId, memberId))
+    return res.data.draft
+}
+
+/** Keeps what was filled in so far. */
+export async function saveDraft(
+    formId: number,
+    memberId: number | null,
+    draft: {answers: Record<number, Record<string, unknown>>, path: string[]},
+): Promise<void> {
+    await client.put(draftPath(formId, memberId), draft)
+}
+
+/** Throws the draft away, which is what starting over amounts to. */
+export async function discardDraft(formId: number, memberId: number | null): Promise<void> {
+    await client.delete(draftPath(formId, memberId))
+}
+
 export async function submitResponse(formId: number, data: FormSubmitRequest): Promise<FormResponse> {
     const res = await client.post<FormResponse>(`/forms/${formId}/respond`, data)
     return res.data

@@ -7244,6 +7244,10 @@ export default {
             submit: 'Formular absenden',
             unreached: 'Kein Weg führt hierher',
         },
+        draft: {
+            resumed: 'Du machst dort weiter, wo du am {when} aufgehört hast.',
+            startOver: 'Von vorn beginnen',
+        },
         completion: {
             title: 'Nach dem Absenden',
             message: 'Eigene Nachricht, zum Beispiel: Danke, bis Samstag! (optional)',

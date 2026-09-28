@@ -12,6 +12,7 @@ import dev.chojo.ember.event.events.FormPublished;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormDraft;
 import dev.chojo.ember.feature.form.entity.FormPage;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
@@ -490,7 +491,8 @@ public class FormService {
     public boolean close(int id) {
         boolean updated = repository.updateStatus(id, Form.FormStatus.CLOSED);
         if (updated) {
-            log.info("Closed form {}", id);
+            int drafts = repository.deleteDrafts(id);
+            log.info("Closed form {} and ended {} drafts", id, drafts);
         } else {
             log.warn("Form close affected zero rows for form {}", id);
         }
@@ -944,6 +946,7 @@ public class FormService {
                     repository.createResponse(formId, memberId, submittedBy).id(), walk.path());
             walk.answers().forEach((questionId, value) -> repository.upsertAnswer(saved.id(), questionId, value));
             repository.deleteAnswersExcept(saved.id(), walk.answers().keySet());
+            repository.deleteDraft(formId, memberId);
             return saved;
         });
         log.info(
@@ -976,6 +979,57 @@ public class FormService {
         });
         log.info("Submitted anonymous form response {} for form {}", response.id(), formId);
         return response;
+    }
+
+    /**
+     * The draft a member keeps of a form, where there is one.
+     *
+     * @param formId   the form
+     * @param memberId the member the answer is for
+     * @return the draft
+     */
+    public Optional<FormDraft> findDraft(int formId, int memberId) {
+        return repository.findDraft(formId, memberId);
+    }
+
+    /**
+     * Keeps what a member filled in so far, so the form can be continued later, on any device.
+     *
+     * <p>A draft is checked for its shape only: answers that are not answers of this form's questions
+     * and pages the form does not have are left out, and nothing is required. It is not an answer and
+     * is never counted as one.
+     *
+     * @param formId   the form
+     * @param memberId the member the answer is for
+     * @param savedBy  the member saving it, a guardian where they fill in for somebody in their care
+     * @param answers  the answers so far, by question id
+     * @param path     the pages visited so far, the page to continue on last
+     */
+    public void saveDraft(
+            int formId, int memberId, int savedBy, Map<Integer, FormAnswerValue> answers, List<String> path) {
+        var questions =
+                repository.findQuestions(formId).stream().map(FormQuestion::id).collect(Collectors.toSet());
+        var pages = repository.findPages(formId).stream().map(FormPage::key).collect(Collectors.toSet());
+        var kept = new LinkedHashMap<Integer, FormAnswerValue>();
+        if (answers != null) {
+            answers.forEach((id, value) -> {
+                if (id != null && value != null && questions.contains(id)) kept.put(id, value);
+            });
+        }
+        var walked = path == null
+                ? List.<String>of()
+                : path.stream().filter(pages::contains).toList();
+        repository.saveDraft(formId, memberId, savedBy, kept, walked);
+    }
+
+    /**
+     * Throws away a member's draft of a form, which is what starting over amounts to.
+     *
+     * @param formId   the form
+     * @param memberId the member the answer is for
+     */
+    public void discardDraft(int formId, int memberId) {
+        repository.deleteDraft(formId, memberId);
     }
 
     /**

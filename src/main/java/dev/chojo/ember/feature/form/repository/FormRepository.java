@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormDraft;
 import dev.chojo.ember.feature.form.entity.FormPage;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
@@ -29,6 +30,7 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -769,6 +771,72 @@ public class FormRepository {
                   AND NOT question_id = ANY(:kept);""")
                 .single(call().bind("response_id", responseId).bind("kept", List.copyOf(kept), PostgreSqlTypes.INTEGER))
                 .delete();
+    }
+
+    /**
+     * The draft kept for a member of a form, where there is one.
+     *
+     * @param formId   the form
+     * @param memberId the member the answer is for
+     * @return the draft
+     */
+    public Optional<FormDraft> findDraft(int formId, int memberId) {
+        return query("""
+                SELECT answers, path, updated_at
+                FROM form_draft
+                WHERE form_id = :form_id AND member_id = :member_id;""")
+                .single(call().bind("form_id", formId).bind("member_id", memberId))
+                .map(FormDraft.map())
+                .first();
+    }
+
+    /**
+     * Keeps what a member filled in so far, replacing the draft kept before.
+     *
+     * @param formId   the form
+     * @param memberId the member the answer is for
+     * @param savedBy  the member saving it
+     * @param answers  the answers so far, by question id
+     * @param path     the pages visited so far
+     */
+    public void saveDraft(
+            int formId, int memberId, int savedBy, Map<Integer, FormAnswerValue> answers, List<String> path) {
+        query("""
+                INSERT INTO form_draft(form_id, member_id, saved_by, answers, path)
+                VALUES (:form_id, :member_id, :saved_by, :answers::JSONB, :path::JSONB)
+                ON CONFLICT (form_id, member_id)
+                    DO UPDATE SET saved_by = :saved_by, answers = :answers::JSONB, path = :path::JSONB, updated_at = now();""")
+                .single(call().bind("form_id", formId)
+                        .bind("member_id", memberId)
+                        .bind("saved_by", savedBy)
+                        .bind("answers", FormDraft.answersJson(answers))
+                        .bind("path", pathJson(path)))
+                .insert();
+    }
+
+    /**
+     * Throws away the draft kept for a member of a form.
+     *
+     * @param formId   the form
+     * @param memberId the member the answer is for
+     */
+    public void deleteDraft(int formId, int memberId) {
+        query("DELETE FROM form_draft WHERE form_id = :form_id AND member_id = :member_id;")
+                .single(call().bind("form_id", formId).bind("member_id", memberId))
+                .delete();
+    }
+
+    /**
+     * Throws away every draft of a form.
+     *
+     * @param formId the form
+     * @return how many drafts went
+     */
+    public int deleteDrafts(int formId) {
+        return query("DELETE FROM form_draft WHERE form_id = :form_id;")
+                .single(call().bind("form_id", formId))
+                .delete()
+                .rows();
     }
 
     /**

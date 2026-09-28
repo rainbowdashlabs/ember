@@ -10,6 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import PublicPageFields from '@/components/forms/fill/PublicPageFields.vue'
 import FormPageNav from '@/components/forms/fill/FormPageNav.vue'
+import FormDraftNote from '@/components/forms/fill/FormDraftNote.vue'
 import PublicFormClosedNotice from '@/components/forms/fill/PublicFormClosedNotice.vue'
 import type {PublicForm, PublicFormPage, PublicFormQuestion} from '@/api/publicForms'
 import type {AnswerValue} from '@/util/formAnswers'
@@ -28,6 +29,8 @@ defineProps<{
   submitting: boolean
   /** A form that is not taking answers shows why and offers nothing to fill in. */
   open: boolean
+  /** When the half-filled answers this browser kept were saved, where the form continues from them. */
+  resumedFrom?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -35,6 +38,7 @@ const emit = defineEmits<{
   (e: 'update-date', question: PublicFormQuestion, date: string): void
   (e: 'toggle-choice', question: PublicFormQuestion, optionKey: string): void
   (e: 'submit'): void
+  (e: 'start-over'): void
 }>()
 
 const consentAccepted = defineModel<boolean>('consentAccepted', {required: true})
@@ -52,6 +56,7 @@ const tosVersion = defineModel<string>('tosVersion', {required: true})
   <PublicFormClosedNotice v-if="!open" :state="form.state" :closed-since="form.closedSince"/>
 
   <template v-else>
+    <FormDraftNote v-if="resumedFrom" :saved-at="resumedFrom" @start-over="emit('start-over')"/>
     <PublicPageFields :walk="walk" :answers="answers" framed
                     @update-text="(q, v) => emit('update-text', q, v)"
                     @update-date="(q, v) => emit('update-date', q, v)"

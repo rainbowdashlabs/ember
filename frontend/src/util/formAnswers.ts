@@ -41,6 +41,27 @@ function none(value: unknown): boolean {
 }
 
 /**
+ * The answers as the server reads them: each marked with the kind of question it answers, which is how
+ * the server tells one shape from another.
+ *
+ * @param questions the questions answered
+ * @param answers   the answers, by question id
+ * @param typeOf    what kind each question is
+ */
+export function typedAnswers<Q extends {id: number}>(
+    questions: readonly Q[],
+    answers: Record<number, AnswerValue | undefined>,
+    typeOf: (question: Q) => string,
+): Record<number, AnswerValue> {
+    const typed: Record<number, AnswerValue> = {}
+    for (const question of questions) {
+        const value = answers[question.id]
+        if (value !== undefined) typed[question.id] = {type: typeOf(question), ...value}
+    }
+    return typed
+}
+
+/**
  * Whether an answer says nothing: no option and no text picked, no text written, no star given, no
  * date set, nothing ranked or no statement rated. The server reads answers the same way, so what is
  * empty here is what it strips before it checks and stores.

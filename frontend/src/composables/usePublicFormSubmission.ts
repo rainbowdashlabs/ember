@@ -7,11 +7,12 @@ import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { publicForms } from '@/api'
 import { PublicFormState, type PublicForm, type PublicFormQuestion } from '@/api/publicForms'
-import type { AnswerValue } from '@/util/formAnswers'
+import { typedAnswers } from '@/util/formAnswers'
 import { usePublicAnswers } from '@/composables/usePublicAnswers'
 import { presentQuestions } from '@/util/formShuffle'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useFormWalk } from '@/composables/useFormWalk'
+import { clearFormDraft, readFormDraft, saveFormDraft } from '@/util/formDrafts'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 
 /**
@@ -80,6 +81,52 @@ export function usePublicFormSubmission(
     if (!form.value) return
     form.value = presented(form.value)
     initAnswerDefaults(form.value.questions)
+    resumeDraft()
+  }
+
+  /** Where this form's half-filled answers are kept in the browser: by its link, or by its address. */
+  const draftKey = computed(() => (shareToken.value ? `link:${shareToken.value}` : `${stationUid.value}/${publicUid.value}`))
+
+  /** When the half-filled answers the form continues from were kept, or null where it started fresh. */
+  const resumedFrom = ref<string | null>(null)
+
+  /**
+   * Continues from the answers this browser kept, where there are any. A form that no longer takes
+   * answers ends them instead: they could never be sent.
+   */
+  function resumeDraft() {
+    resumedFrom.value = null
+    if (!form.value) return
+    if (form.value.state !== PublicFormState.OPEN) {
+      clearFormDraft(draftKey.value)
+      return
+    }
+    const kept = readFormDraft(draftKey.value)
+    if (!kept) return
+    const known = new Set(form.value.questions.map(question => question.id))
+    for (const [id, answer] of Object.entries(kept.answers)) {
+      if (known.has(Number(id))) answers.value[Number(id)] = answer
+    }
+    if (kept.path.length > 0) walk.showAt(kept.path, {})
+    resumedFrom.value = new Date(kept.savedAt).toISOString()
+  }
+
+  let keeping: ReturnType<typeof setTimeout> | null = null
+
+  /** Keeps what is filled in so far, once the reader pauses. */
+  watch([answers, walk.path], () => {
+    if (!form.value || submitted.value || form.value.state !== PublicFormState.OPEN) return
+    if (keeping) clearTimeout(keeping)
+    keeping = setTimeout(() => saveFormDraft(draftKey.value, {answers: answers.value, path: walk.path.value}), 1000)
+  }, {deep: true})
+
+  /** Throws the kept answers away and starts the form from its first page. */
+  function startOver() {
+    if (keeping) clearTimeout(keeping)
+    clearFormDraft(draftKey.value)
+    resumedFrom.value = null
+    if (form.value) initAnswerDefaults(form.value.questions)
+    walk.restart()
   }
 
   if (preloaded.value !== null) seed(preloaded.value)
@@ -104,6 +151,7 @@ export function usePublicFormSubmission(
         : await publicForms.getPublicForm(stationUid.value as string, publicUid.value as string)
       form.value = presented(data)
       initAnswerDefaults(form.value.questions)
+      resumeDraft()
     } catch (e) {
       form.value = null
       loadFailure.value = describeLoadFailure(e)
@@ -136,12 +184,7 @@ export function usePublicFormSubmission(
 
   const {running: submitting, failure: sendFailure, run: runSubmit} = useAsyncAction(async () => {
     if (!form.value) return
-    const answerMap: Record<number, AnswerValue> = {}
-    for (const q of form.value.questions) {
-      const value = answers.value[q.id]
-      if (value === undefined) continue
-      answerMap[q.id] = {type: q.questionType, ...value}
-    }
+    const answerMap = typedAnswers(form.value.questions, answers.value, question => question.questionType)
     const payload = {
       answers: answerMap,
       consentVersion: consentVersion.value,
@@ -161,6 +204,8 @@ export function usePublicFormSubmission(
       throw e
     }
     submitted.value = true
+    if (keeping) clearTimeout(keeping)
+    clearFormDraft(draftKey.value)
   })
 
   /**
@@ -230,5 +275,7 @@ export function usePublicFormSubmission(
     updateDate,
     submit,
     walk,
+    resumedFrom,
+    startOver,
   }
 }

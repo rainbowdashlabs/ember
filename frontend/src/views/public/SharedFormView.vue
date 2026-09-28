@@ -72,6 +72,8 @@ const {
   updateDate,
   submit,
   walk,
+  resumedFrom,
+  startOver,
 } = usePublicFormSubmission(stationUid, publicUid, token, preloadedForm)
 
 const linkFailure = usePublicFailure(previewError, {
@@ -109,6 +111,8 @@ useHead(computed(() => {
                 :open="open"
                 :answers="answers"
                 :walk="walk"
+                :resumed-from="resumedFrom"
+                @start-over="startOver"
                 v-model:consent-accepted="consentAccepted"
                 v-model:consent-version="consentVersion"
                 v-model:privacy-version="privacyVersion"

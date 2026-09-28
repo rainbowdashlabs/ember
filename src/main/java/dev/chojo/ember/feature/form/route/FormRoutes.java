@@ -14,6 +14,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
+import dev.chojo.ember.feature.form.entity.FormDraft;
 import dev.chojo.ember.feature.form.entity.FormPage;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
@@ -164,6 +165,13 @@ public class FormRoutes implements Routes {
         routes.post(
                 prefix + "/forms/{id}/respond/{memberId}", this::submitForMember, StationPermission.MEMBER_GUARDIAN);
         routes.put(prefix + "/forms/{id}/respond/{memberId}", this::updateForMember, StationPermission.MEMBER_GUARDIAN);
+        routes.get(prefix + "/forms/{id}/draft", this::getDraft, StationPermission.USER);
+        routes.put(prefix + "/forms/{id}/draft", this::saveDraft, StationPermission.USER);
+        routes.delete(prefix + "/forms/{id}/draft", this::discardDraft, StationPermission.USER);
+        routes.get(prefix + "/forms/{id}/draft/{memberId}", this::getDraftFor, StationPermission.MEMBER_GUARDIAN);
+        routes.put(prefix + "/forms/{id}/draft/{memberId}", this::saveDraftFor, StationPermission.MEMBER_GUARDIAN);
+        routes.delete(
+                prefix + "/forms/{id}/draft/{memberId}", this::discardDraftFor, StationPermission.MEMBER_GUARDIAN);
 
         // Analytics
         routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, StationPermission.POLL_VIEW_RESULTS);
@@ -985,6 +993,143 @@ public class FormRoutes implements Routes {
             throw Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR.raise();
         }
     }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/draft",
+            methods = HttpMethod.GET,
+            summary = "The half-filled form kept for the caller, if any",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DraftResponse.class)))
+    private void getDraft(Context ctx) {
+        int id = pathInt(ctx, "id");
+        int memberId = draftingMember(ctx, id);
+        ctx.json(new DraftResponse(formService.findDraft(id, memberId).orElse(null)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/draft",
+            methods = HttpMethod.PUT,
+            summary = "Keep what the caller filled in so far, to continue later",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DraftRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void saveDraft(Context ctx) {
+        int id = pathInt(ctx, "id");
+        int memberId = draftingMember(ctx, id);
+        keepDraft(ctx, id, memberId, memberId);
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/draft",
+            methods = HttpMethod.DELETE,
+            summary = "Throw away the caller's half-filled form, to start over",
+            tags = {"Forms"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
+    private void discardDraft(Context ctx) {
+        int id = pathInt(ctx, "id");
+        formService.discardDraft(id, draftingMember(ctx, id));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/draft/{memberId}",
+            methods = HttpMethod.GET,
+            summary = "The half-filled form kept for a member in the caller's care, if any",
+            tags = {"Forms"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "memberId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DraftResponse.class)))
+    private void getDraftFor(Context ctx) {
+        int id = pathInt(ctx, "id");
+        int memberId = managedDraftMember(ctx, id);
+        ctx.json(new DraftResponse(formService.findDraft(id, memberId).orElse(null)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/draft/{memberId}",
+            methods = HttpMethod.PUT,
+            summary = "Keep what was filled in so far for a member in the caller's care",
+            tags = {"Forms"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "memberId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DraftRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void saveDraftFor(Context ctx) {
+        int id = pathInt(ctx, "id");
+        int memberId = managedDraftMember(ctx, id);
+        keepDraft(ctx, id, memberId, UserSession.from(ctx).member().id());
+    }
+
+    @OpenApi(
+            path = "/api/v1/forms/{id}/draft/{memberId}",
+            methods = HttpMethod.DELETE,
+            summary = "Throw away the half-filled form of a member in the caller's care",
+            tags = {"Forms"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "memberId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "204"))
+    private void discardDraftFor(Context ctx) {
+        int id = pathInt(ctx, "id");
+        formService.discardDraft(id, managedDraftMember(ctx, id));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * The caller as the member a draft of the form is kept for, once the form is theirs to answer.
+     */
+    private int draftingMember(Context ctx, int formId) {
+        var session = UserSession.from(ctx);
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_KEEPING_FORM_DRAFT.raise();
+        requireOwnedForm(formId, session);
+        if (!formService.canMemberAccess(formId, session.member().id())) {
+            throw Refusal.FORM_NOT_YOURS_TO_DRAFT.raise();
+        }
+        return session.member().id();
+    }
+
+    /** The member in the caller's care a draft of the form is kept for. */
+    private int managedDraftMember(Context ctx, int formId) {
+        var session = UserSession.from(ctx);
+        if (session.member() == null) throw Refusal.NOT_A_MEMBER_KEEPING_FORM_DRAFT.raise();
+        int memberId = pathInt(ctx, "memberId");
+        requireFormForManagedMember(session, formId, memberId);
+        return memberId;
+    }
+
+    /** Keeps a draft while the form takes answers; a closed form keeps none. */
+    private void keepDraft(Context ctx, int formId, int memberId, int savedBy) {
+        var form = requireOwnedForm(formId, UserSession.from(ctx));
+        if (!formService.isAcceptingResponses(form)) throw Refusal.FORM_TAKES_NO_DRAFTS.raise();
+        var request = ctx.bodyAsClass(DraftRequest.class);
+        formService.saveDraft(formId, memberId, savedBy, request.answers(), request.path());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * What a member filled in so far.
+     *
+     * @param answers the answers so far, by question id, in the shape a sent answer has
+     * @param path    the pages visited so far, the page to continue on last
+     */
+    @OpenApiName("FormDraftRequest")
+    public record DraftRequest(Map<Integer, FormAnswerValue> answers, List<String> path) {}
+
+    /**
+     * The draft kept, where there is one.
+     *
+     * @param draft the draft, or {@code null} where nothing is kept
+     */
+    @OpenApiName("FormDraftResponse")
+    public record DraftResponse(FormDraft draft) {}
 
     // -- Analytics --
 

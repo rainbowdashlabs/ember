@@ -6,7 +6,9 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import FormDraftNote from '@/components/forms/fill/FormDraftNote.vue'
+import { useServerDraft } from './fillview/useServerDraft'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -19,7 +21,7 @@ import FormSentNotice from '@/components/forms/fill/FormSentNotice.vue'
 import FillPages from './fillview/FillPages.vue'
 import {type EligibleMembers, type Form, type FormPage, type FormQuestion} from '@/api/forms'
 import { forms } from '@/api'
-import { emptyAnswer, type AnswerValue } from '@/util/formAnswers'
+import { emptyAnswer, isEmptyAnswer, typedAnswers, type AnswerValue } from '@/util/formAnswers'
 import { presentQuestions } from '@/util/formShuffle'
 import { useFormWalk } from '@/composables/useFormWalk'
 import { describeFailure, type Failure } from '@/util/failure'
@@ -93,6 +95,8 @@ const fillTargetOptions = computed(() => {
 
 const effectiveMemberId = computed(() => selectedMemberId.value)
 
+const draft = useServerDraft(formId, effectiveMemberId, questions, answers, walk)
+
 function initAnswerDefaults() {
   for (const q of questions.value) answers.value[q.id] = emptyAnswer(q.formQuestionType, q.config)
 }
@@ -142,7 +146,29 @@ async function loadExistingResponse() {
     priorAnswerFailure.value = {...describeFailure(e, t), message: t('forms.priorAnswerUnknown')}
     initAnswerDefaults()
   }
+  if (memberId === effectiveMemberId.value) await draft.resume()
 }
+
+/** Throws the kept draft away and opens the form the way it stood before it. */
+async function startOver() {
+  await draft.discard()
+  await loadExistingResponse()
+}
+
+/** Goes on to the next page and keeps what is filled in so far. */
+function next() {
+  if (walk.next()) void draft.keep()
+}
+
+/** Whether anything has been filled in or walked, which is what is worth keeping for later. */
+function started(): boolean {
+  return walk.pageNumber.value > 1
+      || questions.value.some(q => !isEmptyAnswer(q.formQuestionType, answers.value[q.id]))
+}
+
+onBeforeRouteLeave(() => {
+  if (!sent.value && form.value && started()) void draft.keep()
+})
 
 const { loading, failure, reload } = useAsyncLoader(async () => {
   const [f, formPages, qs, elig] = await Promise.all([
@@ -174,13 +200,7 @@ watch(selectedMemberId, async () => {
 })
 
 const {failure: submitFailure, run: send} = useAsyncAction(async () => {
-  const answerMap: Record<number, AnswerValue> = {}
-  for (const q of questions.value) {
-    const value = answers.value[q.id]
-    if (value === undefined) continue
-    const type = q.formQuestionType
-    answerMap[q.id] = { type, ...value }
-  }
+  const answerMap = typedAnswers(questions.value, answers.value, question => question.formQuestionType)
 
   try {
     await sendAnswers(answerMap)
@@ -271,9 +291,11 @@ watch(loaded, (isLoaded) => {
           </ButtonRow>
         </FormSentNotice>
 
-        <FillPages v-else :walk="walk" :answers="answers"
+        <FormDraftNote v-if="!sent && draft.resumedFrom.value" :saved-at="draft.resumedFrom.value" @start-over="startOver"/>
+
+        <FillPages v-if="!sent" :walk="walk" :answers="answers"
                    :send-label="hasExistingResponse ? t('forms.update') : t('forms.submit')"
-                   @send="submit" @cancel="router.push({ name: 'forms-list' })"/>
+                   @send="submit" @next="next" @cancel="router.push({ name: 'forms-list' })"/>
       </template>
     </div>
   </ViewContent>

@@ -182,3 +182,34 @@ COMMENT ON COLUMN ember_schema.form.completion_link IS
     'An address the reader is offered once the form is sent, such as the page of an event. NULL for none.';
 COMMENT ON COLUMN ember_schema.form.completion_link_label IS
     'What the link offered after sending says. NULL shows the address itself.';
+
+-- A member can stop halfway through a form and go on later, on any device.
+--
+-- What they filled in so far is kept per form and per member the answer is for, apart from the
+-- answers: a draft is never counted, listed or exported. It ends when the answer is sent, when the
+-- reader starts over, and when the form is closed or deleted.
+
+CREATE TABLE IF NOT EXISTS ember_schema.form_draft
+(
+    id         SERIAL PRIMARY KEY,
+    form_id    INTEGER   NOT NULL REFERENCES ember_schema.form (id) ON DELETE CASCADE,
+    member_id  INTEGER   NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    saved_by   INTEGER   REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    answers    JSONB     NOT NULL DEFAULT '{}'::JSONB,
+    path       JSONB     NOT NULL DEFAULT '[]'::JSONB,
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
+    UNIQUE (form_id, member_id)
+);
+
+COMMENT ON TABLE ember_schema.form_draft IS
+    'A form a member started and has not sent yet, kept so it can be continued. Never counted as an answer.';
+COMMENT ON COLUMN ember_schema.form_draft.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.form_draft.form_id IS 'References the form being filled in.';
+COMMENT ON COLUMN ember_schema.form_draft.member_id IS 'References the member the answer is for.';
+COMMENT ON COLUMN ember_schema.form_draft.saved_by IS
+    'References the member who last saved the draft, a guardian where they fill in for somebody in their care.';
+COMMENT ON COLUMN ember_schema.form_draft.answers IS
+    'The answers filled in so far as JSONB, by question id, in the shape a sent answer has.';
+COMMENT ON COLUMN ember_schema.form_draft.path IS
+    'The keys of the pages visited so far, the page to continue on last.';
+COMMENT ON COLUMN ember_schema.form_draft.updated_at IS 'When the draft was last saved.';

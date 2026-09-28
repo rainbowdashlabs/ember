@@ -2417,6 +2417,15 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "The link after sending has to start with https://, http:// or /, so nothing was saved"),
 
+    /** Keeping, reading or ending a half-filled form while belonging to no station. */
+    NOT_A_MEMBER_KEEPING_FORM_DRAFT(Area.FORMS, 66, HttpStatus.BAD_REQUEST, Sentences.NOT_A_STATION_MEMBER),
+
+    /** A half-filled form kept for later on a form that is not taking answers. */
+    FORM_TAKES_NO_DRAFTS(Area.FORMS, 67, HttpStatus.BAD_REQUEST, Sentences.FORM_TAKES_NO_ANSWERS),
+
+    /** A half-filled form kept by a member the form was not put to. */
+    FORM_NOT_YOURS_TO_DRAFT(Area.FORMS, 68, HttpStatus.FORBIDDEN, Sentences.FORM_NOT_YOURS_TO_ANSWER),
+
     /** An invite that is used up or past its date. */
     WAITING_LIST_INVITE_NO_LONGER_VALID(
             Area.WAITING_LISTS, 22, HttpStatus.FORBIDDEN, "This invite can no longer be used"),

@@ -73,6 +73,8 @@ const {
   updateDate,
   submit,
   walk,
+  resumedFrom,
+  startOver,
 } = usePublicFormSubmission(stationUid, publicUid, shareToken, computed(() => preloadedForm.value ?? null))
 
 useHead(computed(() => {
@@ -105,6 +107,8 @@ onMounted(load)
           :open="open"
           :answers="answers"
           :walk="walk"
+          :resumed-from="resumedFrom"
+          @start-over="startOver"
           v-model:consent-accepted="consentAccepted"
           v-model:consent-version="consentVersion"
           v-model:privacy-version="privacyVersion"

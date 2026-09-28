@@ -326,6 +326,15 @@
         "de": "Noch nicht gespeicherte Änderungen an Seiten, Neuigkeiten, Wiki-Einträgen und den Fragen von Umfragen, damit sie beim versehentlichen Verlassen der Seite nicht verloren gehen. Ein Entwurf wird nach einer Woche verworfen, ebenso beim Speichern; es werden höchstens zehn Entwürfe behalten.",
         "en": "Changes to pages, news entries, wiki entries and the questions of forms that have not been saved yet, so they are not lost when you leave the page by accident. A draft is discarded after a week, and when you save; at most ten drafts are kept."
       }
+    },
+    {
+      "key": "form_drafts",
+      "necessity": "FUNCTIONAL",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Antworten auf ein öffentliches Formular, die Sie begonnen, aber noch nicht abgesendet haben, damit Sie auf diesem Gerät später dort weitermachen können. Sie verlassen Ihr Gerät nicht, bevor Sie absenden, und werden beim Absenden, beim Neubeginn und nach zwei Wochen gelöscht; es werden höchstens zehn behalten.",
+        "en": "Answers to a public form you started but have not sent yet, so you can continue later on this device. They do not leave your device before you send them and are deleted when you send, when you start over and after two weeks; at most ten are kept."
+      }
     }
   ]
 }

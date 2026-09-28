@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:8d08a4ce8a4b1272287fb1c769a5424667ae8ace858198bd7870731f47b6852b",
-  "generatedAt": "2026-09-28T13:57:25Z",
+  "schemaHash": "sha256:66cdac1bd8068223f955ece77f24deff5f5575aed54529ab09f241612d3a1ca9",
+  "generatedAt": "2026-09-28T14:11:43Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10843,6 +10843,106 @@
         ]
       },
       "description": "Individual answers within a form response."
+    },
+    "form_draft": {
+      "feature": "forms",
+      "scope": "STATION",
+      "tableHash": "sha256:d24e9928901a3a8c3ecd117383c2875c45dd07b52f7c268c09ce8389f73dcf4b",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "form_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the form being filled in."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the member the answer is for."
+        },
+        {
+          "name": "saved_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "References the member who last saved the draft, a guardian where they fill in for somebody in their care."
+        },
+        {
+          "name": "answers",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "The answers filled in so far as JSONB, by question id, in the shape a sent answer has."
+        },
+        {
+          "name": "path",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "The keys of the pages visited so far, the page to continue on last."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the draft was last saved."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "form_id",
+          "refTable": "form",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "saved_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A half-filled form nobody sent; it is not an answer and does not move with the station"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE, removed with the member it was kept for"
+          }
+        ]
+      },
+      "description": "A form a member started and has not sent yet, kept so it can be continued. Never counted as an answer."
     },
     "form_page": {
       "feature": "forms",
