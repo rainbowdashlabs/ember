@@ -214,6 +214,24 @@ public class DiscoveryHttpClient {
      * @param body    Java object to serialize as the request body
      */
     public boolean signedPost(String baseUrl, String path, Object body) {
+        return post(baseUrl, path, body, true);
+    }
+
+    /**
+     * Sends a POST that carries no signature. Returns true on 2xx, false otherwise.
+     *
+     * <p>For a body whose only promise is that it does not say who sent it. A signature would put
+     * this instance's identity beside it and break that promise, however anonymous the body itself.
+     *
+     * @param baseUrl peer base URL (without {@code /api/v1})
+     * @param path    API path including the {@code /api/v1} prefix
+     * @param body    Java object to serialize as the request body
+     */
+    public boolean unsignedPost(String baseUrl, String path, Object body) {
+        return post(baseUrl, path, body, false);
+    }
+
+    private boolean post(String baseUrl, String path, Object body, boolean signed) {
         try {
             String url = joinUrl(baseUrl, path);
             if (!urlValidator.isAllowed(url)) {
@@ -221,15 +239,14 @@ public class DiscoveryHttpClient {
                 return false;
             }
             String json = mapper.writeValueAsString(body);
-            String signature = signingService.sign(json);
             var request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(REQUEST_TIMEOUT)
-                    .header("Content-Type", "application/json")
-                    .header(DiscoverySigningService.SIGNATURE_HEADER, signature)
-                    .POST(HttpRequest.BodyPublishers.ofString(json))
-                    .build();
-            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                    .header("Content-Type", "application/json");
+            if (signed) request.header(DiscoverySigningService.SIGNATURE_HEADER, signingService.sign(json));
+            var response = httpClient.send(
+                    request.POST(HttpRequest.BodyPublishers.ofString(json)).build(),
+                    HttpResponse.BodyHandlers.ofString());
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
             log.debug("Discovery POST {} on {} failed: {}", path, baseUrl, e.getMessage(), e);

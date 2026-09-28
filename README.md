@@ -1,409 +1,55 @@
 # Ember
 
-Ember is an all-in-one platform for managing youth groups (Jugendfeuerwehren). It handles attendance, events, inventory, members, forms, news, knowledge base, quizzes, test protocols, boards, federation, waiting lists, and more - all in a single self-hosted application.
+Ember manages youth fire brigades (Jugendfeuerwehren): members, attendance, appointments, inventory,
+forms, tests, news, a wiki and federation between stations. You host it yourself.
 
-## Quick Start (Docker)
+- Website: https://ember-panel.de
+- Demo: https://demo.ember-panel.de
+- Help center: https://ember-panel.de/helpcenter/station/basics
 
-### Prerequisites
+## Install
 
-- Docker and Docker Compose
-- A 64-bit machine: x86-64, or ARM64 such as a Raspberry Pi 4 or newer. A Raspberry Pi has to be
-  running the 64-bit Raspberry Pi OS, not the 32-bit one.
-- A domain with HTTPS (recommended for production)
-
-### Production Setup
-
-1. **Create a project directory and copy the compose file:**
+You need Docker with the Compose plugin on a 64-bit machine (x86-64 or ARM64). Run this in the
+directory you want to install Ember in:
 
 ```bash
-mkdir ember && cd ember
+curl -fsSL https://ember-panel.de/install.sh | bash
 ```
 
-2. **Create `compose.yaml` as defined [here](/docker/compose.prod.yaml) or create your own.**
+The installer writes a `compose.yaml`, starts Ember and prints the admin login. It can also add a
+cron job for hourly updates.
 
-3. **Start the services:**
+You can also fill in the answers at https://ember-panel.de/install and run the installer with the
+code you get there:
 
 ```bash
-docker compose up -d
+curl -fsSL https://ember-panel.de/install.sh | bash -s ABC123
 ```
 
-4. **Check the logs for the admin credentials:**
-
-```bash
-docker compose logs ember | grep -A 5 "Default admin"
-```
-
-On first startup, Ember creates a default admin account and a default station. The auto-generated password is printed to the logs. You will be required to change it on first login.
-
-5. **Access the application** at `http://localhost:8000` or your configured domain.
-
-### Reverse Proxy
-
-In production, place Ember behind a reverse proxy (nginx, Caddy, Traefik) with HTTPS. Update the `baseUrl` in the config to match your public URL:
-
-```yaml
-# config/config.yaml
-api:
-  baseUrl: "https://ember.yourdomain.com"
-```
-
-If you use Cloudflare as proxy, Ember automatically reads the `CF-IPCountry` header to display session locations.
-
-## Configuration
-
-Ember uses YAML configuration via [Ocular](https://github.com/rainbowdashlabs/ocular). The config file is auto-generated at `config/config.yaml` on first startup. All config values can be overridden via environment variables.
-
-### Environment Variables
-
-#### Database
-
-| Variable      | Description        | Default     |
-|---------------|--------------------|-------------|
-| `DB_HOST`     | PostgreSQL host    | `localhost` |
-| `DB_PORT`     | PostgreSQL port    | `5432`      |
-| `DB_USER`     | Database user      | `ember`     |
-| `DB_PASSWORD` | Database password  | `ember`     |
-| `DB_DATABASE` | Database name      | `ember`     |
-| `DB_SCHEMA`   | Schema name        | `ember`     |
-
-#### API
-
-| Variable                | Description                       | Default                       |
-|-------------------------|-----------------------------------|-------------------------------|
-| `API_HOST`              | Listen address                    | `0.0.0.0`                     |
-| `API_PORT`              | Listen port                       | `8080`                        |
-| `API_BASEURL`           | Public URL (for emails and links) | `http://localhost:5173`       |
-| `API_DEMOURL`           | URL to link to a demo instance    | `https://demo.ember-panel.de` |
-| `API_MAXIMAGESIZEBYTES` | Max upload size in bytes          | `5242880` (5 MB)              |
-
-#### Authentication
-
-| Variable                  | Description                     | Default |
-|---------------------------|---------------------------------|---------|
-| `AUTH_SESSIONMINUTES`     | Session duration in minutes     | `30`    |
-| `AUTH_TOKENBYTES`         | Token entropy in bytes          | `32`    |
-| `AUTH_PASSWORDTOKENHOURS` | Password reset token validity   | `72`    |
-| `AUTH_VERIFYTOKENHOURS`   | Email verification validity     | `24`    |
-
-#### Mailing
-
-| Variable                                    | Description                        | Default  |
-|---------------------------------------------|------------------------------------|----------|
-| `MAILING_PROVIDER`                          | Mail provider (`SMTP`)             | `SMTP`   |
-| `MAILING_SENDERADDRESS`                     | Sender email address               | (empty)  |
-| `MAILING_SENDERNAME`                        | Sender display name                | `Ember`  |
-| `MAILING_SMTP_HOST`                         | SMTP host                          | (empty)  |
-| `MAILING_SMTP_PORT`                         | SMTP port                          | `665`    |
-| `MAILING_SMTP_SSL`                          | Use SSL                            | `false`  |
-| `MAILING_USER`                              | SMTP username                      | (empty)  |
-| `MAILING_PASSWORD`                          | SMTP password                      | (empty)  |
-| `MAILING_DAILYSENDLIMIT`                    | Daily email send limit             | `200`    |
-| `MAILING_NOTIFICATIONDIGESTINTERVALMINUTES` | Notification digest interval (min) | `60`     |
-
-#### Theming
-
-| Variable               | Description                            | Default   |
-|------------------------|----------------------------------------|-----------|
-| `THEMING_DEFAULTTHEME` | Default color theme                    | `ember`   |
-| `THEMING_DEFAULTFEEL`  | Default UI style (`ROUNDED`/`CORNERS`) | `ROUNDED` |
-| `THEMING_LOCKFEEL`     | Lock feel at instance level            | `false`   |
-
-#### Demo
-
-| Variable                    | Description                              | Default |
-|-----------------------------|------------------------------------------|---------|
-| `DEMO_ENABLED`              | Enable demo mode                         | `false` |
-| `DEMO_DEV`                  | Dev mode (demo accounts without reset)   | `false` |
-| `DEMO_RESETINTERVALHOURS`   | How often demo data resets               | `1`     |
-
-#### Tools
-
-| Variable     | Description                         | Default   |
-|--------------|-------------------------------------|-----------|
-| `TYPST_BIN`  | Path to typst binary (PDF export)   | `typst`   |
-| `PANDOC_BIN` | Path to pandoc binary (doc import)  | `pandoc`  |
-
-### Full Config Reference
-
-```yaml
-api:
-  host: "0.0.0.0"
-  port: 8080
-  baseUrl: "https://..."
-  demoUrl: ""
-  maxImageSizeBytes: 5242880
-  privacyPolicyDir: "data/documents/privacy"
-  consentDir: "data/documents/consent"
-  tosDir: "data/documents/tos"
-  imprintDir: "data/documents/imprint"
-  placeholderFile: "data/documents/placeholders.json"
-
-auth:
-  sessionMinutes: 30
-  tokenBytes: 32
-  passwordTokenHours: 72
-  verifyTokenHours: 24
-
-database:
-  host: "localhost"
-  port: "5432"
-  user: "ember"
-  password: "ember"
-  database: "ember"
-  schema: "ember"
-  poolSize: 5
-
-demo:
-  enabled: false
-  dev: false
-  resetIntervalHours: 1
-
-mailing:
-  provider: "SMTP"
-  senderAddress: ""
-  senderName: "Ember"
-  smtp:
-    host: ""
-    port: 665
-    ssl: false
-  user: ""
-  password: ""
-  dailySendLimit: 200
-  notificationDigestIntervalMinutes: 60
-
-theming:
-  defaultTheme: "ember"
-  defaultFeel: "ROUNDED"
-  lockFeel: false
-```
-
-## Email Setup
-
-Ember can send emails for account verification, password resets, and notifications. Configure the SMTP settings in `config/config.yaml`:
-
-```yaml
-mailing:
-  provider: "SMTP"
-  senderAddress: "noreply@yourdomain.com"
-  senderName: "Ember"
-  smtp:
-    host: "smtp.yourdomain.com"
-    port: 587
-    ssl: false
-  user: "your-smtp-user"
-  password: "your-smtp-password"
-```
-
-Without email configuration, Ember still works - users just can't self-register or reset passwords. Admins can invite users and force password changes instead.
-
-## Legal Documents (Privacy Policy, ToS, Consent)
-
-Ember ships with default legal documents in German and English. There are four document types: **Privacy Policy**, **Terms of Service**, **Consent** (shown before login), and **Imprint**.
-
-### Editing via Admin UI
-
-Legal documents are managed through the admin interface at `/admin/settings/legal`:
-
-1. Select the document type (Privacy, ToS, Consent, Imprint)
-2. Select the language (DE, EN, or add new languages)
-3. Each document consists of one or more markdown sections (files), all shown on the same page
-4. Sections can be **reordered** (up/down arrows), **enabled/disabled** (toggle), and **deleted**
-5. Disabled sections are preserved on disk but excluded from the rendered document shown to users
-6. Use the preview button to see the combined rendered result
-7. Save - Ember automatically versions the document and prompts users to re-consent
-
-### File Structure
-
-Documents are stored as numbered markdown files on disk. The admin UI manages these files automatically:
-
-```
-data/
-  privacy/
-    de/
-      01-general.md           # Enabled section
-      02-rights.md            # Enabled section
-      _03-experimental.md     # Disabled section (underscore prefix)
-    en/
-      01-general.md
-      02-rights.md
-  consent/
-    de/01-consent.md
-    en/01-consent.md
-  tos/
-    de/01-terms.md
-    en/01-terms.md
-  imprint/
-    de/01-imprint.md
-    en/01-imprint.md
-  images/               # Uploaded images (avatars, KB icons, quiz images)
-  kb-files/             # Knowledge base binary files (PDFs, etc.)
-```
-
-Files prefixed with `_` are disabled and excluded from rendering. The numeric prefix (`01-`, `02-`, ...) determines the order.
-
-### Placeholders
-
-Any section may contain `{{ name }}` tokens. Ember scans every document type and locale for them, lists the ones it
-finds under Settings → Legal, and substitutes the values entered there when a document is rendered. The same name
-means the same value everywhere, so `{{ betreiber.name }}` in the imprint and in the privacy policy resolve alike.
-A token with no value configured is left standing in the text rather than blanked, so a missing value is visible.
-
-Values are stored in `placeholderFile` (default `data/documents/placeholders.json`) and count towards the document
-version: changing one re-versions every document that uses it and prompts users to consent again.
-
-The bundled imprint ships with placeholders for the operator's name, address, phone number, email address and the
-person responsible for content.
-
-### Version Tracking
-
-Ember automatically tracks changes to legal documents:
-
-- On each startup (and on each save via the admin UI), the content is hashed and compared against `data/{type}/version.txt`
-- If content changed: the old version is archived to `data/{type}/history/`, a diff is generated, and `version.txt` is updated
-- **Users are automatically prompted to re-consent** when any document changes
-- All consent records are stored in the database with timestamps, IP addresses, and document versions for GDPR compliance
-
-The `version.txt` and `history/` directory are auto-managed - do not edit them manually.
-
-## Permissions
-
-Ember uses a hierarchical permission system. Permissions are assigned per member at the station level. Higher permissions implicitly grant their children.
-
-### Top-Level Permissions
-
-| Permission               | Description                                   | Key Children                                                                |
-|--------------------------|-----------------------------------------------|-----------------------------------------------------------------------------|
-| `STATION_ADMINISTRATOR`  | Full station access - grants all permissions  | All manager permissions below                                               |
-| `LOGIN`                  | Can log in to the station                     | `USER`                                                                      |
-
-### Feature Managers
-
-Each feature area has a manager permission that grants all sub-permissions within that area:
-
-| Manager                  | Description                  | Key Sub-Permissions                                                                                                                                   |
-|--------------------------|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `ATTENDANCE_MANAGER`     | Full attendance access       | `ATTENDANCE_EDIT`, `ATTENDANCE_READ`, `ATTENDANCE_CONFIGURE`, `ATTENDANCE_EXPORT`                                                                     |
-| `INVENTORY_MANAGER`      | Full inventory access        | `INVENTORY_EDIT`, `INVENTORY_CREATE`, `INVENTORY_READ`, `INVENTORY_CHECK`, `INVENTORY_EXCHANGE`, `INVENTORY_LENDING_MANAGER`, `INVENTORY_PROCUREMENT` |
-| `EVENT_MANAGER`          | Full event access            | `EVENT_EDIT`, `EVENT_REGISTRATION`, `EVENT_MANAGE_TEMPLATE`, `EVENT_MANAGE_CATEGORY`, `EVENTS_FEDERATE`                                               |
-| `MEMBER_MANAGER`         | Full member access           | `MEMBER_EDIT`, `MEMBER_READ`, `MEMBER_CHANGES`, `MEMBER_EXPORT`, `MEMBER_FIELDS`, `MEMBER_MANAGE_GROUP`, `MEMBER_MANAGE_TAGS`, `MEMBER_NOTES`         |
-| `WAITLIST_MANAGER`       | Full waiting list access     | `WAITLIST_EDIT`, `WAITLIST_ADD`, `WAITLIST_READ`                                                                                                      |
-| `NEWS_MANAGER`           | Full news access             | `NEWS_EDIT`, `NEWS_FEDERATE`                                                                                                                          |
-| `POLL_MANAGER`           | Full forms/survey access     | `POLL_CREATE`, `POLL_VIEW_RESULTS`                                                                                                                    |
-| `TEST_MANAGER`           | Full quiz/test access        | `TEST_CONFIGURE`, `TEST_CATALOG_EDIT`, `TEST_CATALOG_VIEW`, `TEST_REVIEW`, `TEST_RESULT_READ`                                                         |
-| `PROTOCOL_MANAGER`       | Full test protocol access    | `PROTOCOL_CONFIGURE`, `PROTOCOL_CREATE`, `PROTOCOL_TESTER`                                                                                            |
-| `BOARD_MANAGER`          | Full board access            | `BOARD_EDIT`, `BOARD_USE`, `BOARD_FEDERATE`                                                                                                           |
-| `KNOWLEDGE_MANAGER`      | Full knowledge base access   | `KNOWLEDGE_EDIT`, `KNOWLEDGE_FEDERATE`                                                                                                                |
-| `LOST_AND_FOUND_MANAGER` | Full lost & found access     | `LOST_AND_FOUND_MANAGE`, `LOST_AND_FOUND_CREATE`                                                                                                      |
-| `STATION_MANAGER`        | Full station settings access | `STATION_GENERAL`, `STATION_LOOK_AND_FEEL`, `STATION_MAIL`, `STATION_MODULES`, `STATION_IMPORT_EXPORT`, `STATION_FEDERATION`, `STATION_STATISTICS`    |
-
-### Special Roles
-
-| Permission        | Description                                             |
-|-------------------|---------------------------------------------------------|
-| `MEMBER_GUARDIAN` | Parent/guardian - can manage linked children's profiles |
-
-Permissions can also be assigned to entire user types (Trial, Member, Guardian, Team, Manager) station-wide via the user type permissions management page.
-
-## Beacon
-
-A beacon is an Ember instance that other instances report to. Nothing here is on by default, and all
-of it is set under **Administration → Beacon** rather than in the config file, so a change takes
-effect on the next entry rather than after a restart.
-
-| Setting | Default | What it does |
-|---------|---------|--------------|
-| Report to a beacon | off | Whether this instance reports at all. The three below do nothing while it is off. |
-| Beacon address | `https://ember-panel.de` | The beacon reported to. |
-| Forward new errors | off | Forward each new error log entry as it appears. |
-| Forward problem reports | off | Forward each problem report a person writes. |
-| Daily figures | off | Send the daily count of how much this instance holds. |
-| Accept reports | off | Take in what other instances report, which is what makes this instance a beacon. |
-| Contact name and address | empty | How a beacon may answer you. Optional. |
-
-### What travels
-
-A forwarded error carries the exception, the stack frame names without line numbers, how often it
-happened, and the version. A forwarded problem report carries what the person wrote, the page they
-were on without its query string, and the version. **Neither carries a member's name, a member id or
-a station.** The contact you give is your own, and exists so a beacon can write to you rather than to
-anybody in your station.
-
-Error messages quote what failed, and what failed is sometimes an address or a name. The send button
-shows the exact contents first, and it is worth reading before switching automatic forwarding on.
-
-### The daily figures
-
-Counts travel as ranges (`<10`, `10-50`, `50-200`, `200+`) rather than exact numbers, because an
-exact figure reported day after day can be matched against publicly listed stations. Each station and
-the instance carry a `metrics_uid` used for this and nothing else, and it is never sent beside a name,
-an address or the federation identity.
-
-The time of day an instance reports is derived from that identifier, so a fleet updated together does
-not all report at the same second. A restart does not trigger a report and does not move the slot, and
-a missed day is not made up later.
-
-The figures are sent unsigned, since they carry no identity to sign with. Anybody who learns a metrics
-identifier could submit figures for it; the last report for a day wins, so an honest one corrects it.
-
-### What a beacon can and cannot tell
-
-The identifiers keep the figures from being tied to an instance **in the stored data**. Whoever runs a
-beacon still sees which address is talking to them and when, so they can line up a signed error report
-and an unsigned figures submission that arrive minutes apart. Report to a beacon you are willing to
-trust with that.
-
-### Copies and test instances
-
-A database restored from another instance carries that instance's `metrics_uid` values, and a copied
-`data/` directory carries its reporting key, so a copy reports as the instance it came from. Reporting
-is suppressed entirely when `demo.enabled` or `demo.dev` is set. For a real copy that should report as
-itself, delete `data/discovery/` so a new identity is generated.
-
-A station moved between instances is given a fresh metrics identifier rather than carrying the old
-one, so two installations never report as the same station.
-
-## Backup
-
-Back up the PostgreSQL database regularly:
-
-```bash
-docker compose exec postgres pg_dump -U ember ember > backup.sql
-```
-
-The `config/` and `data/` directories should also be backed up as they contain your configuration, legal documents, uploaded images, and knowledge base files.
+To set it up by hand, use [`docker/compose.prod.yaml`](docker/compose.prod.yaml) and the
+[hosting guide](https://ember-panel.de/helpcenter/station/basics/hosting).
+
+## Documentation
+
+- [Hosting, updates and backups](https://ember-panel.de/helpcenter/station/basics/hosting)
+- [Configuration](https://ember-panel.de/helpcenter/station/basics/hosting/configuration)
+- [Mailing](https://ember-panel.de/helpcenter/admin/settings/mailing)
+- [Legal documents](https://ember-panel.de/helpcenter/admin/settings/legal)
+- [Permissions](https://ember-panel.de/helpcenter/station/basics/permissions)
+- [Federation](https://ember-panel.de/helpcenter/station/basics/federation)
+- [Beacon](https://ember-panel.de/helpcenter/admin/beacon)
 
 ## Development
 
-### Prerequisites
-
-- JDK 25
-- Node.js 24
-- PostgreSQL 17
-- Optional: typst (PDF export), pandoc (document import)
-
-### Backend
+You need JDK 25, Node.js 24 and Docker. All build and test commands are in `toolchain.sh`:
 
 ```bash
-./gradlew build          # Build and test
-./gradlew run            # Run the backend
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev              # Start dev server (http://localhost:5173)
-```
-
-### Dev Mode
-
-Use `docker/compose.dev.yaml` to run with demo accounts but without periodic data resets:
-
-```bash
-docker compose -f docker/compose.dev.yaml up --build
+./toolchain.sh help         # list commands
+./toolchain.sh docker-app   # start backend, frontend and database with demo accounts
+./toolchain.sh be-verify    # test the backend
+./toolchain.sh fe-build     # test and build the frontend
 ```
 
 ## License
 
-AGPL-3.0-only - see [LICENSE](LICENSE) for details.
+AGPL-3.0-only, see [LICENSE](LICENSE).

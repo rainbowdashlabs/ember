@@ -2,8 +2,18 @@
 
 ## v26.19.5
 
+### New Features
+
+- **The installer can keep Ember up to date.** On request it sets up a cron job that pulls the newest version every hour, restarts Ember with it and removes the image it replaced, and the install page offers the same as a switch. The hosting help page shows the line for setting it up by hand.
+
+### Security
+
+- **Daily figures no longer reveal which instance sent them.** The counts reported to a beacon were signed with the instance's key, so a beacon could tell which instance they came from. They are now sent unsigned, as the beacon settings always promised.
+
 ### Fixes
 
+- **Search could miss words after a database upgrade.** In some cases, after PostgreSQL moved to a new major version, searches in the wiki, documents and boards no longer found words such as those written with "ae", "oe" or "ue". Ember now builds its search indexes again on the first start after such an upgrade.
+- **Editing a form keeps its answers.** In some cases saving a form that already had answers deleted them. Saving now only removes the answers to questions that were removed, and asks first when there are any.
 - **Changed dates in the change history were hard to read.** When a date in a member's profile changed, the member's page and the list of changes showed both dates the way they are stored, such as 2026-03-31. They are now written as 31.03.2026, the way the profile shows them.
 - **Team members and managers were offered guardians instead of the members in their care.** Their relations tab, on the member's page and when editing them, was named after guardians and offered to assign one, which cannot be done for them. It now shows the members they look after, as it does for guardians.
 

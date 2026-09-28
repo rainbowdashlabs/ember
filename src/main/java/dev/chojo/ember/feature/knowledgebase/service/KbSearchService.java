@@ -124,6 +124,20 @@ public class KbSearchService {
     }
 
     /**
+     * Builds the search index of every wiki file again from its stored text, which a new major
+     * version of the database needs when it stems words differently.
+     *
+     * @return how many files were looked at
+     */
+    public int rebuildSearchIndex() {
+        var fileIds = repository.indexedFileIds();
+        for (int fileId : fileIds) {
+            reindex(fileId, repository.readTextContent(fileId).orElse(null));
+        }
+        return fileIds.size();
+    }
+
+    /**
      * Resolves the PostgreSQL text search configuration a station's content is indexed and queried
      * with, derived from the language part of its locale.
      *

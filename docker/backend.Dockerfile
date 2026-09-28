@@ -49,6 +49,19 @@ COPY templates templates
 
 RUN mkdir -p config
 
+ARG EMBER_VERSION=dev
+
+LABEL org.opencontainers.image.title="Ember Backend" \
+      org.opencontainers.image.version="$EMBER_VERSION" \
+      org.opencontainers.image.authors="RainbowDashLabs and Contributors" \
+      org.opencontainers.image.description="API server of Ember, the management panel for fire brigade stations" \
+      org.opencontainers.image.source="https://github.com/rainbowdashlabs/ember" \
+      org.opencontainers.image.url="https://ember-panel.de" \
+      org.opencontainers.image.documentation="https://ember-panel.de/helpcenter/station/basics/hosting" \
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.vendor="RainbowDashLabs" \
+      org.opencontainers.image.revision="$GITHUB_SHA"
+
 # The environment carries every secret an operator sets: the database password, the token pepper,
 # the mail credentials, the storage encryption key, the second-factor key. Printing it wrote all of
 # them into the container log on every start, and a container that cannot reach its database restarts

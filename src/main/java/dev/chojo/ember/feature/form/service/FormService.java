@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.form.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.FormDeleted;
 import dev.chojo.ember.event.events.FormPublished;
@@ -17,6 +18,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.form.entity.FormVisibility;
+import dev.chojo.ember.feature.form.entity.QuestionAnswerCount;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
@@ -32,6 +34,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.system.service.RequirementsService;
 import dev.chojo.ember.util.ShareTokens;
+import dev.chojo.ember.util.sql.Transactions;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
@@ -43,6 +46,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -444,7 +448,6 @@ public class FormService {
      * @param config           type-specific configuration as JSON
      * @return the newly created question
      */
-    // Individual CRUD - routes use replaceQuestions() instead, kept for programmatic use
     public FormQuestion createQuestion(
             int formId,
             int position,
@@ -466,7 +469,6 @@ public class FormService {
      * @param id the question ID
      * @return {@code true} if the question was deleted
      */
-    // Individual CRUD - routes use replaceQuestions() instead, kept for programmatic use
     public boolean deleteQuestion(int id) {
         boolean deleted = repository.deleteQuestion(id);
         if (deleted) {
@@ -478,19 +480,76 @@ public class FormService {
     }
 
     /**
-     * Replaces all questions for a form. Deletes existing questions and creates new ones with sequential positions.
+     * How many answers each question of a form holds, so an editor can say what removing one costs.
+     *
+     * @param formId the form ID
+     * @return one count per question, in the order the questions are asked
+     */
+    public List<QuestionAnswerCount> countAnswersPerQuestion(int formId) {
+        return repository.countAnswersPerQuestion(formId);
+    }
+
+    /**
+     * Saves a form's questions as the editor sends them, in the order they are sent.
+     *
+     * <p>A question sent with its id is changed in place and keeps every answer given to it, one sent
+     * without an id is added, and a question of the form that is no longer sent is removed together
+     * with its answers. Nothing else is removed: deleting every question and writing them back took
+     * all answers of the form with it, so fixing a typo in a running poll emptied the poll.
+     *
+     * <p>A question keeps its type. The answers stored against it were given to that type and mean
+     * nothing read as another, so a changed type is refused rather than guessed at, answers or not.
+     * Replacing a question by one of another type is removing the one and adding the other, which is
+     * what the editor does.
+     *
+     * <p>Everything happens in one transaction, and a refused question leaves the form as it was.
      *
      * @param formId    the form ID
-     * @param questions the new set of questions to create
+     * @param questions the questions the form is to have
+     * @throws dev.chojo.ember.api.RefusalResponse where an id is not one of this form's questions, or an
+     *                                             existing question is sent with another type
      */
-    public void replaceQuestions(int formId, List<QuestionEntry> questions) {
-        repository.deleteQuestionsByForm(formId);
-        for (int i = 0; i < questions.size(); i++) {
-            var q = questions.get(i);
-            repository.createQuestion(
-                    formId, i, q.formQuestionType(), q.title(), q.description(), q.required(), q.shuffle(), q.config());
+    public void saveQuestions(int formId, List<QuestionEntry> questions) {
+        Transactions.run(() -> {
+            var stored = repository.findQuestions(formId).stream()
+                    .collect(Collectors.toMap(FormQuestion::id, FormQuestion::formQuestionType));
+            requireOwnQuestionsOfUnchangedType(stored, questions);
+            var kept = questions.stream()
+                    .map(QuestionEntry::id)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            stored.keySet().stream().filter(id -> !kept.contains(id)).forEach(repository::deleteQuestion);
+            for (int position = 0; position < questions.size(); position++) {
+                writeQuestion(formId, position, questions.get(position));
+            }
+        });
+        log.info("Saved questions on form {} ({} questions)", formId, questions.size());
+    }
+
+    private static void requireOwnQuestionsOfUnchangedType(
+            Map<Integer, FormQuestionType> stored, List<QuestionEntry> questions) {
+        for (var question : questions) {
+            if (question.id() == null) continue;
+            var storedType = stored.get(question.id());
+            if (storedType == null) throw Refusal.QUESTION_NOT_ON_THIS_FORM.raise();
+            if (storedType != question.formQuestionType()) throw Refusal.QUESTION_TYPE_NOT_CHANGEABLE.raise();
         }
-        log.info("Replaced questions on form {} ({} questions)", formId, questions.size());
+    }
+
+    private void writeQuestion(int formId, int position, QuestionEntry q) {
+        if (q.id() == null) {
+            repository.createQuestion(
+                    formId,
+                    position,
+                    q.formQuestionType(),
+                    q.title(),
+                    q.description(),
+                    q.required(),
+                    q.shuffle(),
+                    q.config());
+            return;
+        }
+        repository.updateQuestion(q.id(), q.title(), q.description(), q.required(), q.shuffle(), q.config(), position);
     }
 
     // -- Responses --

@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -141,14 +142,33 @@ class BeaconReportingTest extends RepositoryTestBase {
     void nothingGoesWhileTheDailyReportIsOff() {
         config.update(true, "https://beacon.test", false, false, true, false, false, "", "");
         assertFalse(metrics.sendIfDue("26.15.0"));
+        verify(httpClient, never()).unsignedPost(anyString(), anyString(), any());
+    }
+
+    /**
+     * The figures go without a signature. They carry no identity on purpose, and a signature would
+     * put this instance's identity right beside them.
+     */
+    @Test
+    void theFiguresAreSentUnsigned() {
+        config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
+        when(httpClient.unsignedPost(anyString(), anyString(), any())).thenReturn(true);
+        settings.set(BeaconMetricsScheduler.LAST_SENT_KEY, Instant.EPOCH.toString());
+        var afterTheSlot = new BeaconMetricsScheduler(settings, new BeaconMetricsIdentity(settings))
+                .slotOn(java.time.LocalDate.now(java.time.ZoneOffset.UTC))
+                .plusSeconds(60);
+
+        assertTrue(metrics.sendIfDue("26.15.0", afterTheSlot));
+        verify(httpClient).unsignedPost(eq("https://beacon.test"), eq("/api/v1/beacon/figures"), any());
         verify(httpClient, never()).signedPost(anyString(), anyString(), any());
+        verify(httpClient, never()).beaconPost(anyString(), anyString(), any());
     }
 
     /** A send that goes through is written down, so the day is not reported twice. */
     @Test
     void aSuccessfulSendIsWrittenDown() {
         config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
-        when(httpClient.signedPost(anyString(), anyString(), any())).thenReturn(true);
+        when(httpClient.unsignedPost(anyString(), anyString(), any())).thenReturn(true);
         settings.set(BeaconMetricsScheduler.LAST_SENT_KEY, Instant.EPOCH.toString());
         var afterTheSlot = new BeaconMetricsScheduler(settings, new BeaconMetricsIdentity(settings))
                 .slotOn(java.time.LocalDate.now(java.time.ZoneOffset.UTC))
@@ -177,7 +197,7 @@ class BeaconReportingTest extends RepositoryTestBase {
 
         suppressed.start("26.15.0");
 
-        verify(httpClient, never()).signedPost(anyString(), anyString(), any());
+        verify(httpClient, never()).unsignedPost(anyString(), anyString(), any());
     }
 
     /** The watch starts on an ordinary instance, and starting it sends nothing by itself. */
@@ -185,7 +205,7 @@ class BeaconReportingTest extends RepositoryTestBase {
     void theWatchStartsWithoutSendingAnything() {
         config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
         metrics.start("26.15.0");
-        verify(httpClient, never()).signedPost(anyString(), anyString(), any());
+        verify(httpClient, never()).unsignedPost(anyString(), anyString(), any());
     }
 
     /**
@@ -196,7 +216,7 @@ class BeaconReportingTest extends RepositoryTestBase {
     @Test
     void aTickThatThrowsDoesNotKillTheWatch() {
         config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
-        when(httpClient.signedPost(anyString(), anyString(), any())).thenThrow(new IllegalStateException("no"));
+        when(httpClient.unsignedPost(anyString(), anyString(), any())).thenThrow(new IllegalStateException("no"));
         settings.set(BeaconMetricsScheduler.LAST_SENT_KEY, Instant.EPOCH.toString());
 
         metrics.tick("26.15.0");
@@ -207,7 +227,7 @@ class BeaconReportingTest extends RepositoryTestBase {
     @Test
     void aFailedSendIsNotWrittenDownAsDone() {
         config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
-        when(httpClient.signedPost(anyString(), anyString(), any())).thenReturn(false);
+        when(httpClient.unsignedPost(anyString(), anyString(), any())).thenReturn(false);
         settings.set(BeaconMetricsScheduler.LAST_SENT_KEY, Instant.EPOCH.toString());
         var afterTheSlot = new BeaconMetricsScheduler(settings, new BeaconMetricsIdentity(settings))
                 .slotOn(java.time.LocalDate.now(java.time.ZoneOffset.UTC))

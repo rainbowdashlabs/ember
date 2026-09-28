@@ -72,6 +72,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Read the project version
+        id: version
+        run: echo "version=$(sed -n 's/^version = "\(.*\)"$/\1/p' build.gradle.kts)" >> "$GITHUB_OUTPUT"
+
       - name: Build Image
         id: build
         uses: docker/build-push-action@v7
@@ -80,6 +84,7 @@ jobs:
           file: ${{ matrix.file }}
           platforms: linux/${{ matrix.arch }}
           build-args: |
+            EMBER_VERSION=${{ steps.version.outputs.version }}
             GITHUB_ACTIONS=true
             GITHUB_REF_TYPE=${{ github.ref_type }}
             GITHUB_REF_NAME=${{ github.ref_name }}

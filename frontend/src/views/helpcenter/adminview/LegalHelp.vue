@@ -28,6 +28,14 @@ const documents = ['privacy', 'tos', 'consent', 'imprint']
       <p>{{ t('helpCenter.adminLegal.howToText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.adminLegal.languagesTitle')">
+      <p>{{ t('helpCenter.adminLegal.languagesText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminLegal.importTitle')">
+      <p>{{ t('helpCenter.adminLegal.importText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.adminLegal.templatesTitle')">
       <p>{{ t('helpCenter.adminLegal.templatesText') }}</p>
     </HelpSection>
@@ -51,11 +59,6 @@ const documents = ['privacy', 'tos', 'consent', 'imprint']
                            :class="document === 'privacy' ? 'ring-2 ring-primary' : ''">
             {{ t(`adminSettings.legal.${document}`) }}
           </SecondaryButton>
-        </div>
-
-        <!-- Version display -->
-        <div class="text-xs text-(--text-muted)">
-          {{ t('adminSettings.legal.version') }}: 3
         </div>
 
         <!-- Markdown editor placeholder -->

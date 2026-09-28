@@ -35,6 +35,27 @@
       "description": "Group all major updates per package manager",
       "matchUpdateTypes": ["major"],
       "groupName": "major updates"
+    },
+    {
+      "description": "Every PostgreSQL image moves in one PR, so the compose files, the installer, the hosting help and the tests never run different versions",
+      "matchDatasources": ["docker"],
+      "matchDepNames": ["postgres"],
+      "groupName": "postgres",
+      "groupSlug": "postgres"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "PostgreSQL images named outside a compose file",
+      "managerFilePatterns": [
+        "/^frontend/public/install\\.sh$/",
+        "/^frontend/src/i18n/de-DE\\.helpcenter\\.ts$/",
+        "/^src/test/java/dev/chojo/ember/TestContainers\\.java$/"
+      ],
+      "matchStrings": ["postgres:(?<currentValue>\\d[^\\s\"'`]*)"],
+      "depNameTemplate": "postgres",
+      "datasourceTemplate": "docker"
     }
   ],
   "vulnerabilityAlerts": {

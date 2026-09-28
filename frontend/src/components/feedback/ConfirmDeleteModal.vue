@@ -16,6 +16,8 @@ const modelValue = defineModel<boolean>({required: true})
 
 defineProps<{
   message: string
+  /** What the confirming button says, where deleting is a side effect of something else. Defaults to "Delete". */
+  confirmLabel?: string
 }>()
 
 const emit = defineEmits<{
@@ -29,7 +31,7 @@ const emit = defineEmits<{
       <p>{{ message }}</p>
       <ButtonRow pair align="end">
         <SecondaryButton data-cancel @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
-        <ErrorButton data-confirm @click="emit('confirm')">{{ t('common.delete') }}</ErrorButton>
+        <ErrorButton data-confirm @click="emit('confirm')">{{ confirmLabel ?? t('common.delete') }}</ErrorButton>
       </ButtonRow>
     </div>
   </Modal>

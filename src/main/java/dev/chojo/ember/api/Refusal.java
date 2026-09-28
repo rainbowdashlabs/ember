@@ -2308,6 +2308,20 @@ public enum Refusal {
     FORM_NOT_HERE_AFTER_VISIBILITY_CHANGE(
             Area.FORMS, 48, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
 
+    /** Saving a form's questions with one that names a question of some other form, or none that exists. */
+    QUESTION_NOT_ON_THIS_FORM(
+            Area.FORMS,
+            49,
+            HttpStatus.BAD_REQUEST,
+            "Some of these questions are not on this form, so nothing was saved"),
+
+    /** Saving a question that already exists under a different type than the one it was asked as. */
+    QUESTION_TYPE_NOT_CHANGEABLE(
+            Area.FORMS,
+            50,
+            HttpStatus.BAD_REQUEST,
+            "A question that already exists keeps its type, so nothing was saved"),
+
     /** An invite that is used up or past its date. */
     WAITING_LIST_INVITE_NO_LONGER_VALID(
             Area.WAITING_LISTS, 22, HttpStatus.FORBIDDEN, "This invite can no longer be used"),

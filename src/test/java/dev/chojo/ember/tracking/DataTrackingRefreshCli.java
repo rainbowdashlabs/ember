@@ -10,6 +10,7 @@ import de.chojo.sadu.datasource.DataSourceCreator;
 import de.chojo.sadu.postgresql.databases.PostgreSql;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
+import dev.chojo.ember.TestContainers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -33,7 +34,7 @@ public final class DataTrackingRefreshCli {
 
     static void main(String[] args) throws Exception {
         log.info("Starting PostgreSQL testcontainer...");
-        try (var container = new PostgreSQLContainer("postgres:17")
+        try (var container = new PostgreSQLContainer(TestContainers.POSTGRES_IMAGE)
                 .withDatabaseName("ember_tracking")
                 .withUsername("test")
                 .withPassword("test")
