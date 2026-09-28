@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
@@ -166,28 +167,51 @@ public class ExpiryReminderService {
         return Stream.concat(ofStations, ofClusters).toList();
     }
 
+    /**
+     * Settles every member of one field owing a reminder, each on their own, then tells member management
+     * about everyone who was reminded. A member whose reminder fails stays owed and is left out of
+     * management's reminder, without costing the members settled before or after them theirs.
+     */
     private void sweepField(ExpiryField field, ExpirySettings settings, Instant now, Map<Integer, ZoneId> zones) {
-        var due = dueMembers(field, settings, now, zones);
-        for (DueMember member : due) {
-            if (settings.remindMember()) remindMember(field, member);
-            reminderRepository.markSent(
-                    member.member().id(),
-                    field.origin(),
-                    field.id(),
-                    member.expiresOn(),
-                    member.due().done(),
-                    now);
+        var reminded = new ArrayList<DueMember>();
+        for (DueMember member : dueMembers(field, settings, now, zones)) {
+            try {
+                Transactions.run(() -> settle(field, settings, member, now));
+            } catch (RuntimeException e) {
+                log.error(
+                        "Expiry reminder for member {} on {} field {} failed",
+                        member.member().id(),
+                        field.origin(),
+                        field.id(),
+                        e);
+                continue;
+            }
+            if (member.due().sends()) reminded.add(member);
         }
-        if (settings.remindManagement() && !due.isEmpty()) remindManagement(field, due);
-        if (!due.isEmpty()) {
-            log.info(
-                    "Expiry reminders for {} field '{}' (id={}, owner={}): {} member(s) due",
-                    field.origin(),
-                    field.name(),
-                    field.id(),
-                    field.ownerId(),
-                    due.size());
-        }
+        if (reminded.isEmpty()) return;
+        if (settings.remindManagement()) remindManagement(field, reminded);
+        log.info(
+                "Expiry reminders for {} field '{}' (id={}, owner={}): {} member(s) due",
+                field.origin(),
+                field.name(),
+                field.id(),
+                field.ownerId(),
+                reminded.size());
+    }
+
+    /**
+     * Reminds one member and records the reminder as done, as one write, so a reminder is never
+     * recorded without going out nor goes out without being recorded.
+     */
+    private void settle(ExpiryField field, ExpirySettings settings, DueMember member, Instant now) {
+        if (settings.remindMember() && member.due().sends()) remindMember(field, member);
+        reminderRepository.markSent(
+                member.member().id(),
+                field.origin(),
+                field.id(),
+                member.expiresOn(),
+                member.due().done(),
+                now);
     }
 
     /** The members of one field whose date owes a reminder today, in the order their answers were read. */
@@ -272,6 +296,10 @@ public class ExpiryReminderService {
      * Tells member management once which members became due for one field, naming the first few and
      * counting all of them. A station's management is led to its member list narrowed to the field's
      * dates running out; an association's to its own member list, which has no column for the answers.
+     *
+     * <p>Both are told on every sweep that has members due, even while an earlier reminder is unread:
+     * a later reminder about the same members reads the same as the first, carrying no date, and must
+     * still go out.
      */
     private void remindManagement(ExpiryField field, List<DueMember> due) {
         var names = due.stream()
@@ -283,11 +311,10 @@ public class ExpiryReminderService {
         var params = new NotificationParams.ExpiryReminder(
                 ExpiryReminderKind.MEMBERS_DUE, field.name(), null, null, null, members, due.size());
         if (field.origin() == FieldOrigin.CLUSTER) {
-            notificationService.notifyClusterMembersIfAbsent(
+            notificationService.notifyClusterMembers(
                     clusterService.get().findMemberIdsWith(field.ownerId(), ClusterPermission.CLUSTER_MEMBER_MANAGER),
                     NotificationType.EXPIRY_REMINDER,
-                    NotificationData.of(params, NotificationLinks.clusterMembers()),
-                    null);
+                    NotificationData.of(params, NotificationLinks.clusterMembers()));
             return;
         }
         var recipients =

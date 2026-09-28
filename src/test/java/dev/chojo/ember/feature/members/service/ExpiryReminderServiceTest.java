@@ -9,6 +9,8 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.cluster.entity.ClusterMember;
+import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -42,8 +44,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -53,6 +58,8 @@ import static org.mockito.Mockito.when;
  */
 class ExpiryReminderServiceTest extends RepositoryTestBase {
     private static final Instant MARCH_FIRST = Instant.parse("2026-03-01T10:00:00Z");
+    private static final Instant MARCH_TWENTY_FOURTH = Instant.parse("2026-03-24T10:00:00Z");
+    private static final Instant FEBRUARY_LAST_NOON = Instant.parse("2026-02-28T12:00:00Z");
 
     private final List<Integer> accounts = new ArrayList<>();
     private NotificationService notifications;
@@ -305,24 +312,10 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
         var clusterStation =
                 clusterService.createStation(cluster.id(), "Expiry Association Station " + System.nanoTime());
         try {
-            var field = clusterProfileFieldRepo.create(
-                    cluster.id(),
-                    "Maschinist gültig bis",
-                    ProfileFieldType.EXPIRY_DATE,
-                    ProfileFieldConfig.parse("{\"remindManagement\":true}"),
-                    false,
-                    true,
-                    null,
-                    false,
-                    false,
-                    null);
-            clusterProfileFieldRepo.assignToRole(field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+            var field = associationExpiryField(cluster.id());
             var anna = memberAt(clusterStation, "Anna", StationUserType.MEMBER, StationPermission.LOGIN);
             memberAt(clusterStation, "Maria", StationUserType.TEAM, StationPermission.MEMBER_MANAGER);
-            var office = accountRepo.create("office" + System.nanoTime() + "@expiry.test", "Olga", "Office");
-            accounts.add(office.id());
-            var officeMember = clusterService.addMember(cluster.id(), office.id(), ClusterUserType.CLUSTER_USER);
-            clusterService.grant(officeMember.id(), ClusterPermission.CLUSTER_MEMBER_MANAGER);
+            var officeMember = associationManager(cluster.id());
             clusterProfileFieldRepo.setValue(anna.id(), field.id(), StringNode.valueOf("2026-03-31"));
 
             service.sweep(MARCH_FIRST);
@@ -337,17 +330,208 @@ class ExpiryReminderServiceTest extends RepositoryTestBase {
             var to = ArgumentCaptor.forClass(Collection.class);
             var data = ArgumentCaptor.forClass(NotificationData.class);
             verify(notifications)
-                    .notifyClusterMembersIfAbsent(
-                            to.capture(), eq(NotificationType.EXPIRY_REMINDER), data.capture(), eq(null));
+                    .notifyClusterMembers(to.capture(), eq(NotificationType.EXPIRY_REMINDER), data.capture());
             assertEquals(List.of(officeMember.id()), List.copyOf(to.getValue()));
             assertEquals(NotificationLinks.clusterMembers(), data.getValue().link());
             assertEquals(1, ((NotificationParams.ExpiryReminder) data.getValue().params()).count());
 
             assertEquals(1, ledger.findSent(FieldOrigin.CLUSTER, field.id()).size());
             assertTrue(ledger.findSent(FieldOrigin.STATION, field.id()).isEmpty());
+
+            service.sweep(MARCH_TWENTY_FOURTH);
+
+            verify(notifications, times(2))
+                    .notifyClusterMembers(to.capture(), eq(NotificationType.EXPIRY_REMINDER), data.capture());
+            assertEquals(
+                    data.getAllValues().getFirst(),
+                    data.getAllValues().getLast(),
+                    "the second reminder reads the same as the first and still goes out");
         } finally {
             stationRepo.delete(clusterStation.id());
             clusterService.delete(cluster.id());
         }
+    }
+
+    /**
+     * An association's field reads each answer on the clock of the member's own station, so a station
+     * whose day has already begun is reminded while one still on the day before is not.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void anAssociationsMembersAreRemindedOnTheirOwnStationsClock() {
+        var cluster = clusterService.create("Expiry Zones " + System.nanoTime(), null);
+        var ahead = clusterService.createStation(cluster.id(), "Expiry Ahead " + System.nanoTime());
+        var behind = clusterService.createStation(cluster.id(), "Expiry Behind " + System.nanoTime());
+        stationRepo.updateTimezone(ahead.id(), "Pacific/Auckland");
+        stationRepo.updateTimezone(behind.id(), "Europe/Berlin");
+        try {
+            var field = associationExpiryField(cluster.id());
+            var anna = memberAt(ahead, "Anna", StationUserType.MEMBER, StationPermission.LOGIN);
+            var ben = memberAt(behind, "Ben", StationUserType.MEMBER, StationPermission.LOGIN);
+            associationManager(cluster.id());
+            clusterProfileFieldRepo.setValue(anna.id(), field.id(), StringNode.valueOf("2026-03-31"));
+            clusterProfileFieldRepo.setValue(ben.id(), field.id(), StringNode.valueOf("2026-03-31"));
+
+            service.sweep(FEBRUARY_LAST_NOON);
+
+            assertEquals(
+                    List.of(anna.id()), List.copyOf(leadingTo(sent(), "profile").to()));
+            var data = ArgumentCaptor.forClass(NotificationData.class);
+            verify(notifications).notifyClusterMembers(any(), eq(NotificationType.EXPIRY_REMINDER), data.capture());
+            var params = (NotificationParams.ExpiryReminder) data.getValue().params();
+            assertEquals(1, params.count(), "only the station already on the first of March is due");
+            assertTrue(params.members().startsWith("Anna"));
+            assertTrue(ledger.findSent(FieldOrigin.CLUSTER, field.id()).stream()
+                    .noneMatch(reminder -> reminder.memberId() == ben.id()));
+        } finally {
+            stationRepo.delete(ahead.id());
+            stationRepo.delete(behind.id());
+            clusterService.delete(cluster.id());
+        }
+    }
+
+    @Test
+    void aStationAheadOfUtcIsRemindedOnItsOwnDay() {
+        stationRepo.updateTimezone(station.id(), "Pacific/Auckland");
+        var field = expiryField("Erste Hilfe gültig bis", "{}");
+        var anna = member("Anna", StationUserType.MEMBER, StationPermission.LOGIN);
+        answer(anna, field, "2026-03-31");
+
+        service.sweep(FEBRUARY_LAST_NOON);
+
+        var own = leadingTo(sent(), "profile");
+        assertEquals(30, own.params().days(), "it is already the first of March in Auckland");
+        assertEquals(
+                List.of(LocalDate.of(2026, 3, 1)),
+                ledger.findSent(FieldOrigin.STATION, field.id()).stream()
+                        .map(reminder -> reminder.reminderDate())
+                        .toList());
+    }
+
+    @Test
+    void aStationBehindUtcWaitsForItsOwnDay() {
+        stationRepo.updateTimezone(station.id(), "America/New_York");
+        var field = expiryField("Erste Hilfe gültig bis", "{}");
+        var anna = member("Anna", StationUserType.MEMBER, StationPermission.LOGIN);
+        answer(anna, field, "2026-03-31");
+
+        service.sweep(Instant.parse("2026-03-01T03:00:00Z"));
+
+        verify(notifications, never()).notifyMembers(any(), any(), any());
+        assertTrue(ledger.findSent(FieldOrigin.STATION, field.id()).isEmpty(), "it is still February in New York");
+    }
+
+    @Test
+    void aFormerGuardianIsNotReminded() {
+        var field = expiryField("Erste Hilfe gültig bis", "{}");
+        var ben = member("Ben", StationUserType.MEMBER);
+        var gerda = member("Gerda", StationUserType.GUARDIAN);
+        stationMemberRepo.addManager(gerda.id(), ben.id());
+        stationMemberRepo.setFormer(gerda.id(), true);
+        answer(ben, field, "2026-03-31");
+
+        service.sweep(MARCH_FIRST);
+
+        verify(notifications, never()).notifyMembers(any(), any(), any());
+        assertEquals(1, ledger.findSent(FieldOrigin.STATION, field.id()).size(), "Ben's reminder is still done");
+    }
+
+    /** A reminder day added once somebody's date has passed does not remind them of it again. */
+    @Test
+    void aReminderDayAddedAfterTheDateRemindsNobody() {
+        var field = expiryField("Erste Hilfe gültig bis", "{\"reminderDays\":[30],\"remindManagement\":true}");
+        member("Maria", StationUserType.TEAM, StationPermission.MEMBER_MANAGER);
+        var anna = member("Anna", StationUserType.MEMBER, StationPermission.LOGIN);
+        var ben = member("Ben", StationUserType.MEMBER, StationPermission.LOGIN);
+        answer(anna, field, "2026-02-20");
+        answer(ben, field, "2026-03-20");
+
+        service.sweep(MARCH_FIRST);
+        assertEquals(3, sent().size(), "Anna hears her date ran out, Ben that his is near, management of both");
+
+        profileFieldRepo.update(
+                field.id(),
+                field.name(),
+                ProfileFieldType.EXPIRY_DATE,
+                ProfileFieldConfig.parse("{\"reminderDays\":[30,20],\"remindManagement\":true}"),
+                false,
+                true,
+                null,
+                false);
+        service.sweep(MARCH_FIRST.plusSeconds(1800));
+
+        var sent = sent();
+        assertEquals(5, sent.size(), "only Ben, still before his date, and management hear of the new day");
+        assertEquals(List.of(ben.id()), List.copyOf(sent.get(3).to()));
+        assertEquals(19, sent.get(3).params().days());
+        assertEquals(1, sent.get(4).params().count());
+        assertTrue(
+                ledger.findSent(FieldOrigin.STATION, field.id()).stream()
+                        .anyMatch(reminder -> reminder.memberId() == anna.id()
+                                && reminder.reminderDate().equals(LocalDate.of(2026, 1, 31))),
+                "Anna's new day is recorded as done");
+
+        service.sweep(MARCH_FIRST.plusSeconds(3600));
+        assertEquals(5, sent().size());
+    }
+
+    /**
+     * A member whose reminder fails stays owed and is left out of management's reminder, while the
+     * others are reminded, recorded and named as usual.
+     */
+    @Test
+    void aFailedReminderCostsNobodyElseTheirs() {
+        var field = expiryField("Erste Hilfe gültig bis", "{\"remindManagement\":true}");
+        member("Maria", StationUserType.TEAM, StationPermission.MEMBER_MANAGER);
+        var anna = member("Anna", StationUserType.MEMBER, StationPermission.LOGIN);
+        var ben = member("Ben", StationUserType.MEMBER, StationPermission.LOGIN);
+        answer(anna, field, "2026-03-31");
+        answer(ben, field, "2026-03-31");
+        doThrow(new IllegalStateException("unreachable"))
+                .when(notifications)
+                .notifyMembers(eq(List.of(ben.id())), any(), any());
+
+        service.sweep(MARCH_FIRST);
+
+        var management = leadingTo(sent(), "members-list");
+        assertEquals(1, management.params().count());
+        assertTrue(management.params().members().startsWith("Anna"));
+        assertTrue(ledger.findSent(FieldOrigin.STATION, field.id()).stream()
+                .noneMatch(reminder -> reminder.memberId() == ben.id()));
+
+        doNothing().when(notifications).notifyMembers(eq(List.of(ben.id())), any(), any());
+        service.sweep(MARCH_FIRST.plusSeconds(1800));
+
+        var retried = sent().stream()
+                .filter(one -> one.data().link().route().equals("members-list"))
+                .toList()
+                .getLast();
+        assertEquals(1, retried.params().count());
+        assertTrue(retried.params().members().startsWith("Ben"), "Ben is still owed and reminded next time");
+    }
+
+    private ClusterProfileField associationExpiryField(int clusterId) {
+        var field = clusterProfileFieldRepo.create(
+                clusterId,
+                "Maschinist gültig bis",
+                ProfileFieldType.EXPIRY_DATE,
+                ProfileFieldConfig.parse("{\"remindManagement\":true}"),
+                false,
+                true,
+                null,
+                false,
+                false,
+                null);
+        clusterProfileFieldRepo.assignToRole(field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        return field;
+    }
+
+    /** Someone in the association's office who manages its members. */
+    private ClusterMember associationManager(int clusterId) {
+        var office = accountRepo.create("office" + System.nanoTime() + "@expiry.test", "Olga", "Office");
+        accounts.add(office.id());
+        var officeMember = clusterService.addMember(clusterId, office.id(), ClusterUserType.CLUSTER_USER);
+        clusterService.grant(officeMember.id(), ClusterPermission.CLUSTER_MEMBER_MANAGER);
+        return officeMember;
     }
 }

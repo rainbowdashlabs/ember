@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Which reminder one expiry date owes on one day.
@@ -28,7 +29,9 @@ import java.util.stream.Collectors;
  *
  * <p>At most one reminder goes out per sweep: the nearest one owed, with every earlier one owed
  * recorded as done beside it. That catches up after a sweep was missed without sending a stack, and a
- * day added to the field later reaches everybody already inside it.
+ * day added to the field later reaches everybody still before the date. Once the date has passed, a
+ * day before it has nothing left to warn about: one owed then is recorded as done without anything
+ * going out, so a day added later does not remind everybody whose date already ran out.
  */
 public final class ExpiryReminderSchedule {
     private ExpiryReminderSchedule() {}
@@ -36,10 +39,20 @@ public final class ExpiryReminderSchedule {
     /**
      * A reminder owed.
      *
-     * @param remindOn the day of the reminder that goes out
+     * @param remindOn the day of the reminder that goes out, or {@code null} where the days owed are
+     *                 only recorded
      * @param done     every day owed, the one going out among them, to be recorded as done
      */
-    public record Due(LocalDate remindOn, List<LocalDate> done) {}
+    public record Due(LocalDate remindOn, List<LocalDate> done) {
+        /**
+         * Whether a reminder goes out, rather than the days owed only being recorded.
+         *
+         * @return true where somebody is reminded
+         */
+        public boolean sends() {
+            return remindOn != null;
+        }
+    }
 
     /**
      * The reminder one date owes today, if any.
@@ -59,23 +72,33 @@ public final class ExpiryReminderSchedule {
             ZoneId zone) {
         Set<LocalDate> recorded =
                 sent.stream().map(SentExpiryReminder::reminderDate).collect(Collectors.toSet());
-        var owed = new ArrayList<LocalDate>();
+        var before = new ArrayList<LocalDate>();
         for (int daysBefore : settings.reminderDays()) {
-            owe(owed, expiresOn.minusDays(daysBefore), today, recorded);
+            owe(before, expiresOn.minusDays(daysBefore), today, recorded);
         }
-        owe(owed, expiresOn.plusDays(1), today, recorded);
+        var after = new ArrayList<LocalDate>();
+        owe(after, expiresOn.plusDays(1), today, recorded);
         if (settings.repeatEveryDays() != null) {
             lastAfter(expiresOn, sent, zone)
-                    .ifPresent(last -> owe(owed, last.plusDays(settings.repeatEveryDays()), today, recorded));
+                    .ifPresent(last -> owe(after, last.plusDays(settings.repeatEveryDays()), today, recorded));
         }
-        return owed.stream()
-                .max(Comparator.naturalOrder())
-                .map(nearest ->
-                        new Due(nearest, owed.stream().distinct().sorted().toList()));
+        var owed = Stream.concat(before.stream(), after.stream())
+                .distinct()
+                .sorted()
+                .toList();
+        if (owed.isEmpty()) return Optional.empty();
+        var sendable = hasPassed(expiresOn, today, recorded) ? after : owed;
+        LocalDate nearest = sendable.stream().max(Comparator.naturalOrder()).orElse(null);
+        return Optional.of(new Due(nearest, owed));
     }
 
     private static void owe(List<LocalDate> owed, LocalDate day, LocalDate today, Set<LocalDate> recorded) {
         if (!day.isAfter(today) && !recorded.contains(day)) owed.add(day);
+    }
+
+    /** Whether the date has run out, by the day it is or by a reminder about it having run out. */
+    private static boolean hasPassed(LocalDate expiresOn, LocalDate today, Set<LocalDate> recorded) {
+        return today.isAfter(expiresOn) || recorded.stream().anyMatch(day -> day.isAfter(expiresOn));
     }
 
     /** The day the last reminder about the passed date went out, on the station's clock. */

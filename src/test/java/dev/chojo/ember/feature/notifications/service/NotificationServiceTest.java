@@ -394,6 +394,28 @@ class NotificationServiceTest extends RepositoryTestBase {
         }
     }
 
+    /** A reminder that repeats reaches a cluster member again while the earlier copy is still unread. */
+    @Test
+    @Order(46)
+    void aClusterMemberIsToldAgainWhereRepeatingIsMeant() {
+        var cluster = clusterRepo.create("RemindedCluster", "keeps being reminded", station.id());
+        var office = clusterRepo.addMember(
+                cluster.id(), account2.id(), dev.chojo.ember.api.auth.ClusterUserType.CLUSTER_USER);
+        try {
+            var data = NotificationData.of(
+                    new NotificationParams.ExpiryReminder(
+                            ExpiryReminderKind.MEMBERS_DUE, "Maschinist gültig bis", null, null, null, "Anna", 1),
+                    NotificationLinks.clusterMembers());
+
+            service.notifyClusterMembers(List.of(office.id()), NotificationType.EXPIRY_REMINDER, data);
+            service.notifyClusterMembers(List.of(office.id()), NotificationType.EXPIRY_REMINDER, data);
+
+            assertEquals(2, service.countUnacknowledgedForClusterMember(office.id()));
+        } finally {
+            clusterRepo.delete(cluster.id());
+        }
+    }
+
     /**
      * An installation that has switched the digest off writes to nobody and says so.
      *
