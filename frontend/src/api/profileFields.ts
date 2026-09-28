@@ -17,6 +17,11 @@ export const FieldTypes = {
     AGE: 'AGE',
     /** A date field holding the date of birth. A station may declare at most one. */
     BIRTH_DATE: 'BIRTH_DATE',
+    /**
+     * A date field holding the last day something is valid. It shows how close that day is and
+     * reminds people before it passes. No source for an age.
+     */
+    EXPIRY_DATE: 'EXPIRY_DATE',
     /** A heading between fields rather than a field. It holds no answer and is asked of nobody. */
     SECTION: 'SECTION',
     /** A gap on a row. It holds no answer either, and keeps its width instead of taking the row. */

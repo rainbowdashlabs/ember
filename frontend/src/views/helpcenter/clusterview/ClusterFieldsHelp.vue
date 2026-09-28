@@ -26,6 +26,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.clusterFields.limitsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.clusterFields.expiryTitle')">
+      <p>{{ t('helpCenter.clusterFields.expiryText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.clusterFields.releaseTitle')">
       <p>{{ t('helpCenter.clusterFields.releaseText') }}</p>
     </HelpSection>

@@ -25,6 +25,13 @@ public enum ProfileFieldType {
      */
     BIRTH_DATE,
     /**
+     * A date field carrying the last day something is valid, such as a first aid course or a licence.
+     * It holds a day like any date, so a date field turns into one and back without losing an answer;
+     * what it adds is that it shows how close the day is and reminds people before it passes, as its
+     * {@link ExpirySettings} say.
+     */
+    EXPIRY_DATE,
+    /**
      * A heading between fields rather than a field. It holds no answer, is never asked of anybody
      * and never leaves in an export: it exists so a long list of fields reads as the few groups of
      * things it actually is.
@@ -67,7 +74,7 @@ public enum ProfileFieldType {
         return switch (this) {
             case TEXT -> Optional.of(QuestionKind.TEXT);
             case NUMBER, AGE -> Optional.of(QuestionKind.DECIMAL);
-            case DATE, BIRTH_DATE -> Optional.of(QuestionKind.DATE);
+            case DATE, BIRTH_DATE, EXPIRY_DATE -> Optional.of(QuestionKind.DATE);
             case BOOLEAN -> Optional.of(QuestionKind.BOOLEAN);
             case ENUM -> Optional.of(QuestionKind.CHOICE);
             case SECTION, SPACER -> Optional.empty();

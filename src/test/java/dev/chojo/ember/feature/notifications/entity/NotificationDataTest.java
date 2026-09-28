@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -144,6 +145,21 @@ class NotificationDataTest {
                     NotificationParams.class.isAssignableFrom(type.paramsType()),
                     type + " paramsType must implement NotificationParams");
         }
+    }
+
+    /** An expiry reminder keeps the sentence it names, and leaves out what it does not say. */
+    @Test
+    void anExpiryReminderSurvivesTheRoundTripWithItsVariant() {
+        var params = new NotificationParams.ExpiryReminder(
+                ExpiryReminderKind.EXPIRED, "Erste Hilfe", "Anna", LocalDate.of(2026, 3, 31), 3, null, null);
+
+        var restored =
+                NotificationData.fromJson(NotificationData.of(params).toJson(), NotificationType.EXPIRY_REMINDER);
+
+        assertEquals(params, restored.params());
+        assertEquals("EXPIRED", restored.params().variant());
+        assertFalse(restored.paramsAsMap().containsKey("members"));
+        assertEquals("3", restored.paramsAsMap().get("days"));
     }
 
     @Test

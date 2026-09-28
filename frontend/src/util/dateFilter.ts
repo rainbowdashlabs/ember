@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ageOn, endOfYear} from '@/util/age'
+import {DEFAULT_WARN_FROM_DAYS, expiryStateOf, FILTERABLE_EXPIRY_STATES, type ExpiryStateName} from '@/util/expiry'
 
 /**
  * The token grammar a date column's filter set speaks.
@@ -11,8 +12,9 @@ import {ageOn, endOfYear} from '@/util/age'
  * <p>Column filters everywhere are a {@code Set<string>}, and saved filters store that set as it
  * is. A date filter therefore encodes itself as tokens in the same set: plain ISO prefixes for the
  * checkmarks ({@code 2026}, {@code 2026-03}, {@code 2026-03-14}), {@code from:}/{@code before:}
- * for the range, and {@code age-*} bounds for birth dates. An old saved filter that stored full
- * dates from the former flat list is a set of day tokens and keeps matching unchanged.
+ * for the range, {@code age-*} bounds for birth dates and {@code state:} for where an expiry date
+ * stands ({@code state:expiring}). An old saved filter that stored full dates from the former flat
+ * list is a set of day tokens and keeps matching unchanged.
  *
  * <p>Bounds follow one rule: lower bounds include their value, upper bounds exclude it. "From" a
  * day includes that day and "before" a day does not; an age of "at least 10" includes 10 and
@@ -29,12 +31,27 @@ export interface DateFilterTokens {
     ageNowBelow: number | null
     ageEoyMin: number | null
     ageEoyBelow: number | null
+    /** Where an expiry date has to stand. Any of them matches; none means any state. */
+    states: ExpiryStateName[]
 }
 
 const PREFIX_PATTERN = /^\d{4}(-\d{2}){0,2}$/
 
 function parseBound(token: string, name: string): string | null {
     return token.startsWith(name + ':') ? token.slice(name.length + 1) : null
+}
+
+const STATE_PREFIX = 'state:'
+
+/** The token a state is filtered by, written small as it stands in an address. */
+export function stateToken(state: ExpiryStateName): string {
+    return STATE_PREFIX + state.toLowerCase()
+}
+
+function parseState(token: string): ExpiryStateName | null {
+    if (!token.startsWith(STATE_PREFIX)) return null
+    const named = token.slice(STATE_PREFIX.length).toUpperCase()
+    return FILTERABLE_EXPIRY_STATES.find(state => state === named) ?? null
 }
 
 function parseAge(token: string, name: string): number | null {
@@ -53,8 +70,12 @@ export function splitDateTokens(selected: ReadonlySet<string>): DateFilterTokens
         ageNowBelow: null,
         ageEoyMin: null,
         ageEoyBelow: null,
+        states: [],
     }
     for (const token of selected) {
+        const state = parseState(token)
+        if (state !== null) { tokens.states.push(state); continue }
+        if (token.startsWith(STATE_PREFIX)) continue
         const from = parseBound(token, 'from')
         if (from !== null) { tokens.from = from; continue }
         const before = parseBound(token, 'before')
@@ -81,6 +102,7 @@ export function joinDateTokens(tokens: DateFilterTokens): Set<string> {
     if (tokens.ageNowBelow !== null) set.add('age-now-below:' + tokens.ageNowBelow)
     if (tokens.ageEoyMin !== null) set.add('age-eoy-min:' + tokens.ageEoyMin)
     if (tokens.ageEoyBelow !== null) set.add('age-eoy-below:' + tokens.ageEoyBelow)
+    for (const state of tokens.states) set.add(stateToken(state))
     return set
 }
 
@@ -94,12 +116,17 @@ function underPrefix(day: string, prefix: string): boolean {
 }
 
 /**
- * Whether one date value passes the filter. Checkmarks are OR-ed; the range and the ages are
- * constraints AND-ed on top, and with no checkmarks at all they alone decide.
+ * Whether one date value passes the filter. Checkmarks are OR-ed; the range, the ages and the states
+ * are constraints AND-ed on top, and with no checkmarks at all they alone decide.
+ *
+ * @param warnFromDays how many days ahead an expiry date counts as running out, for its states
  */
-export function matchesDateFilter(value: string, tokens: DateFilterTokens, today: Date = new Date()): boolean {
+export function matchesDateFilter(
+    value: string, tokens: DateFilterTokens, today: Date = new Date(), warnFromDays: number = DEFAULT_WARN_FROM_DAYS,
+): boolean {
     const day = dayOf(value)
     if (tokens.prefixes.length > 0 && !tokens.prefixes.some(p => underPrefix(day, p))) return false
+    if (tokens.states.length > 0 && !tokens.states.includes(expiryStateOf(day, warnFromDays, today))) return false
     if (tokens.from && day < tokens.from) return false
     if (tokens.before && day >= tokens.before) return false
     if (tokens.ageNowMin !== null || tokens.ageNowBelow !== null) {

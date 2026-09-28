@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -70,6 +71,49 @@ public final class NotificationLinks {
      */
     public static NotificationLink eventDates(int eventId) {
         return new NotificationLink("event-detail-date", Map.of("id", String.valueOf(eventId)));
+    }
+
+    /**
+     * The member list narrowed to the members of one expiry date field whose date runs out or has
+     * passed. The list reads the field and the states from its address when it opens.
+     *
+     * @param fieldId the expiry date field
+     * @return the link member management's reminders carry
+     */
+    public static NotificationLink runningOut(int fieldId) {
+        var query = new LinkedHashMap<String, Object>();
+        query.put("field", fieldId);
+        query.put("state", "expiring,expired");
+        return new NotificationLink("members-list", Map.of(), query);
+    }
+
+    /**
+     * The association's own list of the members at its stations.
+     *
+     * @return the link an association's reminders about its members carry
+     */
+    public static NotificationLink clusterMembers() {
+        return new NotificationLink("cluster-members", Map.of());
+    }
+
+    /**
+     * The reader's own profile, which is where a member renews a date of their own.
+     *
+     * @return the link a member's own reminders carry
+     */
+    public static NotificationLink ownProfile() {
+        return new NotificationLink("profile", Map.of());
+    }
+
+    /**
+     * The page on which a guardian fills in the profile of a member in their care, opened on that
+     * member.
+     *
+     * @param memberId the member in their care
+     * @return the link a guardian's copy of a reminder carries
+     */
+    public static NotificationLink managedProfile(int memberId) {
+        return new NotificationLink("profile-managed", Map.of(), Map.of("member", memberId));
     }
 
     /**

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterFieldValueChanged;
 import dev.chojo.ember.feature.cluster.entity.AssignedClusterProfileField;
@@ -14,6 +15,7 @@ import dev.chojo.ember.feature.cluster.entity.ClusterProfileFieldAssignment;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
+import dev.chojo.ember.feature.members.entity.ExpirySettings;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -353,6 +355,9 @@ public class ClusterProfileFieldService {
         if (fieldType == ProfileFieldType.BIRTH_DATE) {
             throw new BadRequestResponse(
                     "A station declares its own date of birth field, and a second one would collide with it");
+        }
+        if (config != null && ExpirySettings.outOfRange(config)) {
+            throw Refusal.CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE.raise();
         }
     }
 

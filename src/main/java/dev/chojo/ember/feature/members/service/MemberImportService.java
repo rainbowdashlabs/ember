@@ -605,7 +605,7 @@ public class MemberImportService {
      */
     private JsonNode asAnswer(String value, ProfileFieldType fieldType) {
         return switch (fieldType) {
-            case DATE, BIRTH_DATE -> StringNode.valueOf(asIsoDate(value));
+            case DATE, BIRTH_DATE, EXPIRY_DATE -> StringNode.valueOf(asIsoDate(value));
             case NUMBER, AGE -> asNumber(value);
             case BOOLEAN -> asBoolean(value);
             default -> StringNode.valueOf(value);

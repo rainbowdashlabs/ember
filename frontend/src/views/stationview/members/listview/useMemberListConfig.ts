@@ -13,6 +13,7 @@ import {
 } from './useMemberData'
 import {useSavedFilters} from './useSavedFilters'
 import {useMemberListTabs} from './useMemberListTabs'
+import {useAddressFilter} from './useAddressFilter'
 import {memberColumns, roleOf} from './memberColumns'
 import {toCellValue} from '@/components/table/tableColumn'
 import {useExport, type ExportColumn, type ExportFormatName} from '@/composables/useExport'
@@ -126,6 +127,8 @@ export function useMemberListConfig(port: MemberListPort) {
         state: currentTabState,
         searchText: member => member.email ?? '',
     })
+
+    useAddressFilter(loading, activeTab, table)
 
     const exportColumns = computed((): ExportColumn<StationMember>[] => [
         {key: 'firstName', label: t('membersList.export.colFirstName'), value: getMemberFirstName},

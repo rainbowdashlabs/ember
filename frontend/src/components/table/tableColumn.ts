@@ -20,6 +20,8 @@ export const ColumnTypes = {
     DATE_TIME: 'dateTime',
     /** A date of birth: filtered like a date, with bounds on the age it gives as well. */
     BIRTH_DATE: 'birthDate',
+    /** An expiry date: filtered like a date, and by whether it is valid, running out or expired. */
+    EXPIRY_DATE: 'expiryDate',
     BOOLEAN: 'boolean',
     /** One of a fixed set of options, stored as a value and shown by its label. */
     ENUM: 'enum',
@@ -62,6 +64,8 @@ export interface TableColumn<Row> {
     options?: readonly ColumnOption[]
     /** The words for yes and no of a boolean column, where the default ones do not fit. */
     booleanLabels?: {yes: string, no: string}
+    /** How many days ahead an expiry date column counts a date as running out. */
+    warnFromDays?: number
     /** Always shown and never offered in the column list. */
     pinned?: boolean
     /** Whether a reader who has chosen nothing sees it. Defaults to shown. */
@@ -88,6 +92,7 @@ const TYPES_BY_FIELD: Record<string, ColumnType> = {
     AGE: ColumnTypes.NUMBER,
     DATE: ColumnTypes.DATE,
     BIRTH_DATE: ColumnTypes.BIRTH_DATE,
+    EXPIRY_DATE: ColumnTypes.EXPIRY_DATE,
     BOOLEAN: ColumnTypes.BOOLEAN,
     ENUM: ColumnTypes.ENUM,
 }
@@ -146,6 +151,7 @@ export function wordScalar<Row>(column: TableColumn<Row>, scalar: CellScalar, ye
     switch (column.type) {
         case ColumnTypes.DATE:
         case ColumnTypes.BIRTH_DATE:
+        case ColumnTypes.EXPIRY_DATE:
             return formatDate(String(scalar)) || String(scalar)
         case ColumnTypes.DATE_TIME:
             return formatDateTime(String(scalar)) || String(scalar)

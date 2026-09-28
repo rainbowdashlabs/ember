@@ -12,6 +12,7 @@ import {useStations} from '@/composables/useStations'
 import {useCluster} from '@/composables/useCluster'
 import {useSession} from '@/composables/useSession'
 import {formatRelative} from '@/util/format'
+import {expiryReminderKey} from '@/util/expiry'
 import {usableRedirect} from '@/util/redirect'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
@@ -157,7 +158,7 @@ function selectStation(stationId: string) {
           >
             <SecondaryBadge class="shrink-0 mt-0.5">{{ n.stationName }}</SecondaryBadge>
             <div class="flex-1 min-w-0">
-              <p class="text-sm">{{ t(n.localeKey, n.params) }}</p>
+              <p class="text-sm">{{ t(n.type === 'EXPIRY_REMINDER' ? expiryReminderKey(n.params) : n.localeKey, n.params) }}</p>
               <span class="text-xs text-(--text-muted)">{{ formatRelative(n.createdAt) }}</span>
             </div>
           </NeutralContainer>

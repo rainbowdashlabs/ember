@@ -263,7 +263,7 @@ public class MemberTableService {
         var stored = values.getOrDefault(fieldId, Map.of()).get(memberId);
         if (stored == null || stored.isBlank()) return "";
         return switch (field.fieldType()) {
-            case DATE, BIRTH_DATE -> day(stored);
+            case DATE, BIRTH_DATE, EXPIRY_DATE -> day(stored);
             case BOOLEAN -> "true".equalsIgnoreCase(stored) ? "Ja" : "Nein";
             default -> stored;
         };

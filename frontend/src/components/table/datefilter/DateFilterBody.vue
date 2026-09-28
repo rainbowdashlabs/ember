@@ -10,18 +10,22 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateFilterTree from './DateFilterTree.vue'
+import ExpiryStateFilter from './ExpiryStateFilter.vue'
 import {joinDateTokens, splitDateTokens, type DateFilterTokens} from '@/util/dateFilter'
 
 /**
- * The body of a date column's filter: the from/before range, the year/month/day tree, and for a
- * birth date the two age bounds. Everything reads and writes the one token set the column filter
- * state keeps, so applying and saving stay exactly what they are for every other column.
+ * The body of a date column's filter: the from/before range, the year/month/day tree, for a birth
+ * date the two age bounds, and for an expiry date where it stands. Everything reads and writes the
+ * one token set the column filter state keeps, so applying and saving stay exactly what they are for
+ * every other column.
  */
 defineProps<{
   /** The column's distinct raw values, feeding the tree. */
   values: string[]
   /** Offers the age bounds, which only a birth date can answer. */
   birthDate?: boolean
+  /** Offers the states, which only an expiry date has. */
+  expiryDate?: boolean
 }>()
 
 const selected = defineModel<Set<string>>({required: true})
@@ -46,6 +50,10 @@ const before = computed({
   get: () => tokens.value.before ?? '',
   set: value => patch({before: value || null}),
 })
+const states = computed({
+  get: () => tokens.value.states,
+  set: value => patch({states: value}),
+})
 
 function ageBound(key: 'ageNowMin' | 'ageNowBelow' | 'ageEoyMin' | 'ageEoyBelow') {
   return computed<number | undefined>({
@@ -62,6 +70,7 @@ const ageEoyBelow = ageBound('ageEoyBelow')
 
 <template>
   <div class="space-y-3">
+    <ExpiryStateFilter v-if="expiryDate" v-model="states"/>
     <div>
       <FieldLabel>{{ t('tableFilter.range') }}</FieldLabel>
       <div class="grid grid-cols-2 gap-2">

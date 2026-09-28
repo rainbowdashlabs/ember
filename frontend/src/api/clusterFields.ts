@@ -23,10 +23,11 @@ export type ClusterFieldRequest = ProfileFieldRequest
  *
  * <p>Everything except a date of birth: a station declares its own, and a second one would collide.
  * A section holds no answer and is allowed, so an association can head its block of questions rather
- * than having them run into the station's.
+ * than having them run into the station's. An expiry date reminds the association's own member
+ * management rather than the station's.
  */
 export const CLUSTER_FIELD_TYPES
-    = ['TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'ENUM', 'AGE', 'SECTION'] as const
+    = ['TEXT', 'NUMBER', 'DATE', 'EXPIRY_DATE', 'BOOLEAN', 'ENUM', 'AGE', 'SECTION'] as const
 
 /**
  * The kinds of member an association may ask.

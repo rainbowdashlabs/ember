@@ -64,7 +64,22 @@ export const fieldTemplates: FieldTemplate[] = [
   {
     name: 'Führerschein', icon: 'id-card', fields: [
       {name: 'Führerscheinklasse', fieldType: 'TEXT', config: {}},
-      {name: 'Führerschein gültig bis', fieldType: 'DATE', config: {}},
+      {
+        name: 'Führerschein gültig bis',
+        fieldType: 'EXPIRY_DATE',
+        config: {warnFromDays: 60, reminderDays: [60, 14]},
+      },
+    ],
+  },
+  {
+    name: 'JuLeiCa', icon: 'id-card', fields: [
+      {name: 'JuLeiCa', fieldType: 'BOOLEAN', config: {}, readonly: true},
+      {
+        name: 'JuLeiCa Ablaufdatum',
+        fieldType: 'EXPIRY_DATE',
+        config: {warnFromDays: 90, reminderDays: [90, 30]},
+        readonly: true,
+      },
     ],
   },
   {
@@ -90,9 +105,9 @@ export const fieldTemplates: FieldTemplate[] = [
   {
     name: 'Jugendflamme', icon: 'fire', fields: [
       {
-        name: 'Jugendflamme Stufe',
+        name: 'Jugendflamme',
         fieldType: 'ENUM',
-        config: {options: ['Jugendflamme 1', 'Jugendflamme 2', 'Jugendflamme 3']},
+        config: {options: ['Keine', 'Jugendflamme 1', 'Jugendflamme 2', 'Jugendflamme 3']},
         readonly: true,
       },
       {name: 'Jugendflamme Datum', fieldType: 'DATE', config: {}, readonly: true},
@@ -108,6 +123,12 @@ export const fieldTemplates: FieldTemplate[] = [
     name: 'Erste Hilfe Kurs', icon: 'heart', fields: [
       {name: 'Erste Hilfe Kurs Datum', fieldType: 'DATE', config: {}, readonly: true},
       {name: 'Erste Hilfe Kurs Stunden', fieldType: 'NUMBER', config: {}, readonly: true},
+      {
+        name: 'Erste Hilfe gültig bis',
+        fieldType: 'EXPIRY_DATE',
+        config: {warnFromDays: 90, reminderDays: [90, 30]},
+        readonly: true,
+      },
     ],
   },
   {

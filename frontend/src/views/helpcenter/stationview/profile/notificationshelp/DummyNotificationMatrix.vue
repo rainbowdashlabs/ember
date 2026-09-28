@@ -28,6 +28,7 @@ const rows: Row[] = [
   {label: 'userSettings.notifyGroups', hint: 'userSettings.notifyGroupsHint', app: true, email: false, feed: true},
   {label: 'userSettings.notifyProfile', hint: 'userSettings.notifyProfileHint', app: true, email: false, feed: false},
   {label: 'userSettings.notifyProcurement', hint: 'userSettings.notifyProcurementHint', app: false, email: false, feed: false},
+  {label: 'userSettings.notifyExpiry', hint: 'userSettings.notifyExpiryHint', app: true, email: true, feed: true},
 ]
 </script>
 

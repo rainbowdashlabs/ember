@@ -1453,6 +1453,9 @@ volumes:
             typeNumber: 'Zahl - Nur Zahlen.',
             typeDate: 'Datum - Ein Datumsfeld.',
             typeBirthDate: 'Geburtsdatum - Ein Datumsfeld, das als Geburtsdatum gilt. Davon kann es pro Wache nur eines geben; der Typ steht erst wieder zur Auswahl, wenn du das bestehende Feld gelöscht oder umgestellt hast.',
+            typeExpiryDate: 'Ablaufdatum - Ein Datum, das abläuft, etwa ein Erste-Hilfe-Kurs oder ein '
+                + 'Führerschein. Eingetragen wird der letzte gültige Tag. Kurz davor steht es gelb, danach rot, '
+                + 'und Ember erinnert rechtzeitig daran.',
             typeBoolean: 'Ja/Nein - Schalter.',
             typeEnum: 'Auswahl - Auswahl aus vorgegebenen Werten. Die Werte trägst du einzeln ein, einen pro Zeile; mit den Pfeilen änderst du ihre Reihenfolge.',
             typeAge: 'Alter - Wird automatisch aus einem Datumsfeld berechnet.',
@@ -1468,7 +1471,21 @@ volumes:
                 + 'schmaler. Beides gilt nur für dieses Formular, dieselbe Frage kann anderswo anders '
                 + 'stehen.',
             templatesTitle: 'Feld-Vorlagen',
-            templatesText: 'Wenn du noch keine Felder angelegt hast, kannst du aus 11 vordefinierten Vorlagen wählen. Jede Vorlage erstellt ein oder mehrere Felder mit sinnvollen Voreinstellungen - zum Beispiel Adresse, Geburtsdatum, Notfallkontakt oder Jugendflamme.',
+            templatesText: 'Wenn du noch keine Felder angelegt hast, kannst du aus vordefinierten Vorlagen wählen. Jede Vorlage erstellt ein oder mehrere Felder mit sinnvollen Voreinstellungen - zum Beispiel Adresse, Geburtsdatum, Notfallkontakt oder Jugendflamme. Führerschein, JuLeiCa und Erste Hilfe bringen ein Ablaufdatum mit.',
+            expiryTitle: 'Ablaufdaten',
+            expiryStates: 'Ein Ablaufdatum ist gültig, läuft bald ab oder ist abgelaufen. Ab wie vielen Tagen '
+                + 'vorher es als „läuft bald ab" gilt, stellst du bei „Warnen ab" ein. Dann steht es gelb, nach '
+                + 'dem letzten gültigen Tag rot, immer mit ein paar Worten daneben. Das sieht man in der '
+                + 'Mitgliederliste, auf der Seite des Mitglieds und im eigenen Profil.',
+            expiryReminders: 'Bei „Erinnerungen" legst du fest, wie viele Tage vorher eine Erinnerung '
+                + 'kommt. Am Tag nach dem letzten gültigen Tag kommt immer noch eine. Wer will, lässt sie '
+                + 'danach alle paar Tage wiederholen, bis ein neues Datum eingetragen ist.',
+            expiryRecipients: 'Erinnert werden das Mitglied, wenn es sich anmelden kann, und seine '
+                + 'Erziehungsberechtigten. Die Mitgliederverwaltung bekommt auf Wunsch eine gesammelte '
+                + 'Erinnerung pro Feld, die direkt zur gefilterten Mitgliederliste führt.',
+            expiryFilter: 'In der Mitgliederliste filterst du die Spalte eines Ablaufdatums nach gültig, '
+                + 'läuft bald ab, abgelaufen oder leer. So findest du mit einem Filter alle, deren Kurs '
+                + 'bald ausläuft, und kannst ihn wie jeden anderen Filter speichern.',
             tip: 'Überlege dir vorher gut, welche Fragen du brauchst. Angeordnet wird unten je '
                 + 'Zielgruppe, direkt am Formular.',
         },
@@ -3868,6 +3885,12 @@ volumes:
             readonlyText: 'Standardmäßig darf die Wache den Wert lesen, aber nicht ändern: die Frage ist die des Verbands, und er trägt die Antwort ein. Ihr könnt das pro Feld freigeben, dann darf die Wache mitschreiben.',
             limitsTitle: 'Zwei Dinge gehen nicht',
             limitsText: 'Ein Feld für eine Gruppe der Wache, weil der Verband deren Gruppen nicht kennt. Und ein Geburtsdatum, weil jede Wache genau eines davon selbst führt und ein zweites damit kollidieren würde.',
+            expiryTitle: 'Ablaufdaten',
+            expiryText: 'Ein Ablaufdatum, etwa für einen Führerschein oder eine JuLeiCa, fragt ihr genauso '
+                + 'ab wie eine Wache. Im Profil steht es gelb, wenn es bald abläuft, und rot, wenn es '
+                + 'abgelaufen ist. Erinnert werden das Mitglied und seine Erziehungsberechtigten, und statt '
+                + 'der Mitgliederverwaltung der Wache eure eigene: alle im Verband mit dem Recht '
+                + 'Mitgliederverwaltung.',
             releaseTitle: 'Wenn eine Wache den Verband verlässt',
             releaseText: 'Die Antworten werden gelöscht, der Verlauf bleibt. Wer wann was geändert hat, ist nichts, was der Verband beim Gehen mitnimmt.',
             tip: 'Änderungen durch den Verband landen im selben Änderungsverlauf wie die der Wache, damit ein Profil eine Geschichte erzählt und nicht zwei.',

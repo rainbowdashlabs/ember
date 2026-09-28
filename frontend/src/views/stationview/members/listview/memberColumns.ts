@@ -9,6 +9,7 @@ import {
     ColumnTypes, columnTypeOf, enumOptions,
     type CellValue, type ColumnOption, type TableColumn,
 } from '@/components/table/tableColumn'
+import {expirySettingsOf} from '@/util/expiry'
 import {memberDisplayName} from './useMemberData'
 
 /** What the member columns need to know about the people beyond the people themselves. */
@@ -59,6 +60,7 @@ function fieldColumn(field: ProfileField, sources: MemberColumnSources): TableCo
         type: columnTypeOf(field.fieldType),
         value: member => sources.answerOf(member.id, field.id),
         options,
+        warnFromDays: expirySettingsOf(config).warnFromDays,
         defaultVisible: config.overview === true,
     }
 }

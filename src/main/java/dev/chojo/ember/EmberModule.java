@@ -192,6 +192,7 @@ import dev.chojo.ember.feature.members.route.StationMemberRoutes;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
 import dev.chojo.ember.feature.members.route.UserSettingsRoutes;
 import dev.chojo.ember.feature.members.route.UserTagRoutes;
+import dev.chojo.ember.feature.members.service.ExpiryReminderChecker;
 import dev.chojo.ember.feature.members.service.ManagedLoginNoticeSweeper;
 import dev.chojo.ember.feature.news.route.AdminNewsRoutes;
 import dev.chojo.ember.feature.news.route.FederatedNewsRoutes;
@@ -568,6 +569,7 @@ public class EmberModule extends AbstractModule {
         // Eager singletons - started on boot
         bind(EventThresholdChecker.class).asEagerSingleton();
         bind(EventReminderChecker.class).asEagerSingleton();
+        bind(ExpiryReminderChecker.class).asEagerSingleton();
         bind(StorageReconciliationService.class).asEagerSingleton();
         bind(ManagedLoginNoticeSweeper.class).asEagerSingleton();
         bind(AuthCleanupSweeper.class).asEagerSingleton();

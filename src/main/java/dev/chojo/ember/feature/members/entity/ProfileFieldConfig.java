@@ -18,7 +18,10 @@ import java.util.List;
  * to the assignment instead: the same question is asked of several, and they do not have to agree
  * about any of those.
  *
- * @param description    a sentence saying what the question is after, shown under its label. A
+ * <p>The five expiry settings are all optional, and what a missing one means is decided in one place:
+ * {@link ExpirySettings#of(ProfileFieldConfig)}.
+ *
+ * @param description   a sentence saying what the question is after, shown under its label. A
  *                       field name has to be short enough for a table column, which leaves no room
  *                       to say what counts as an answer, and the person filling it in is the one
  *                       who needs that said.
@@ -36,6 +39,13 @@ import java.util.List;
  * @param showAge        whether a date of birth is shown with the age it makes. Only a switched off
  *                       age is written down, so a missing value means shown, which is what every
  *                       date of birth saved before there was a switch still does
+ * @param warnFromDays     how many days before an expiry date its value starts to show as running out
+ * @param reminderDays     the days before an expiry date on which a reminder goes out, 0 meaning the
+ *                         last valid day itself
+ * @param repeatEveryDays  how often a reminder goes out again once an expiry date has passed, until a
+ *                         new date is entered; nothing means once
+ * @param remindMember     whether the member, and whoever looks after them, is reminded
+ * @param remindManagement whether the member management is reminded
  */
 public record ProfileFieldConfig(
         String description,
@@ -47,9 +57,14 @@ public record ProfileFieldConfig(
         String sourceField,
         Integer sourceFieldId,
         String ageMode,
-        Boolean showAge) {
-    private static final ProfileFieldConfig EMPTY =
-            new ProfileFieldConfig(null, false, false, null, null, false, null, null, null, null);
+        Boolean showAge,
+        Integer warnFromDays,
+        List<Integer> reminderDays,
+        Integer repeatEveryDays,
+        Boolean remindMember,
+        Boolean remindManagement) {
+    private static final ProfileFieldConfig EMPTY = new ProfileFieldConfig(
+            null, false, false, null, null, false, null, null, null, null, null, null, null, null, null);
 
     /**
      * The settings of a field that names none.
@@ -79,5 +94,12 @@ public record ProfileFieldConfig(
      */
     public QuestionSettings settings(boolean required) {
         return QuestionSettings.required(required).withDefault(defaultValue).withOptions(options);
+    }
+
+    /**
+     * What this field does as an expiry date, with every setting it leaves out filled in.
+     */
+    public ExpirySettings expiry() {
+        return ExpirySettings.of(this);
     }
 }

@@ -397,4 +397,29 @@ class MemberTableServiceTest extends RepositoryTestBase {
         int expected = LocalDate.now().getYear() - 2000;
         assertEquals(String.valueOf(expected), table.rows().getFirst().values().getFirst());
     }
+
+    /** An expiry date is printed as the day it is, and read back as a date, never as the stored text. */
+    @Test
+    void anExpiryDateIsDrawnAsADay() {
+        var firstAid = profileFieldRepo.create(
+                station.id(),
+                "Erste Hilfe gültig bis",
+                ProfileFieldType.EXPIRY_DATE,
+                ProfileFieldConfig.parse("{}"),
+                false,
+                false,
+                null);
+        profileFieldRepo.assignToRole(firstAid.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        profileFieldRepo.setValue(member.id(), firstAid.id(), StringNode.valueOf("2027-03-31"));
+
+        var table = service.build(
+                station,
+                thisMember(),
+                List.of(MemberTableColumn.profileField(firstAid.id())),
+                Set.of(StationPermission.USER),
+                Map.of());
+
+        assertEquals(MemberTableCellType.DATE, table.columns().getFirst().type());
+        assertEquals("31.03.2027", table.rows().getFirst().values().getFirst());
+    }
 }

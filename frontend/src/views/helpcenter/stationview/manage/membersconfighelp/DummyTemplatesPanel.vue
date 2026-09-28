@@ -18,11 +18,14 @@ const templates = [
   {icon: 'mobile-screen', label: 'Mobilnummer'},
   {icon: 'triangle-exclamation', label: 'Notfallkontakt'},
   {icon: 'id-card', label: 'Führerschein'},
+  {icon: 'id-card', label: 'JuLeiCa'},
   {icon: 'calendar-plus', label: 'Beitrittsdatum'},
   {icon: 'hashtag', label: 'Personalnummer'},
   {icon: 'rainbow', label: 'Geschlecht'},
   {icon: 'fire', label: 'Jugendflamme'},
   {icon: 'medal', label: 'Leistungsspange'},
+  {icon: 'heart', label: 'Erste Hilfe Kurs'},
+  {icon: 'gears', label: 'TS Maschinist'},
 ]
 </script>
 

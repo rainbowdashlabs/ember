@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.cluster.entity.ClusterProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
+import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -41,6 +42,39 @@ public class ClusterProfileFieldRepository {
                 ORDER BY name;""", FIELD_COLUMNS)
                 .single(call().bind("cluster_id", clusterId))
                 .map(ClusterProfileField.map())
+                .all();
+    }
+
+    /**
+     * Every association's fields of one type, which is how a sweep over all associations finds its work.
+     *
+     * @param fieldType the type to look for
+     * @return the fields, grouped by association and oldest first within one
+     */
+    public List<ClusterProfileField> findAllByType(ProfileFieldType fieldType) {
+        return query("""
+                SELECT %s FROM cluster_profile_field
+                WHERE field_type = :field_type
+                ORDER BY cluster_id, id;""", FIELD_COLUMNS)
+                .single(call().bind("field_type", fieldType))
+                .map(ClusterProfileField.map())
+                .all();
+    }
+
+    /**
+     * Every answer given to one of an association's questions, whoever gave it. Whether the question
+     * still reaches them is for the caller to ask.
+     *
+     * @param fieldId the question
+     * @return the answers, in the shape a station's own answers are read in
+     */
+    public List<ProfileFieldValue> findValuesOfField(int fieldId) {
+        return query("""
+                SELECT member_id, field_id, value
+                FROM cluster_profile_field_value
+                WHERE field_id = :field_id;""")
+                .single(call().bind("field_id", fieldId))
+                .map(ProfileFieldValue.map())
                 .all();
     }
 

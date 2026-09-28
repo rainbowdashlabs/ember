@@ -13,6 +13,7 @@ import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
 import AgeFields from './fieldmodal/AgeFields.vue'
 import FieldDefaultValueSection from '@/components/input/FieldDefaultValueSection.vue'
 import BirthDateFields from './fieldmodal/BirthDateFields.vue'
+import ExpiryDateFields from './fieldmodal/ExpiryDateFields.vue'
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
 import WidthField from '@/components/profilefields/WidthField.vue'
@@ -21,6 +22,7 @@ import {
     type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
 } from '@/api/profileFields'
 import {FieldWidths} from '@/components/profilefields/fieldLayout'
+import {expiryConfigOf, expirySettingsOf, type ExpirySettings} from '@/util/expiry'
 
 /**
  * The question itself. Who is asked it is not here: a question is written once and put to as many
@@ -76,6 +78,7 @@ const fieldDefaultToday = ref(false)
 const fieldDefaultNumber = ref<number>(0)
 const fieldKeepOnArchive = ref(false)
 const fieldShowAge = ref(true)
+const fieldExpiry = ref<ExpirySettings>(expirySettingsOf({}))
 const fieldWidth = ref<string>(FieldWidths.FULL)
 const saving = ref(false)
 
@@ -86,6 +89,13 @@ const saving = ref(false)
  * to it or starting it off with a value, is a setting with nothing to act on.
  */
 const isCalculated = computed(() => fieldType.value === FieldTypes.AGE)
+
+/**
+ * Whether the answer can start from a value. A date's only starting value is today, and a
+ * certificate that runs out on the day it is entered is never what anybody means, so an expiry date
+ * starts empty.
+ */
+const offersDefault = computed(() => !isCalculated.value && fieldType.value !== FieldTypes.EXPIRY_DATE)
 
 watch(modelValue, (open) => {
   if (!open) return
@@ -114,6 +124,7 @@ watch(modelValue, (open) => {
     }
     fieldKeepOnArchive.value = f.keepOnArchive ?? false
     fieldShowAge.value = cfg.showAge !== false
+    fieldExpiry.value = expirySettingsOf(cfg)
     fieldWidth.value = f.width ?? FieldWidths.FULL
   } else {
     fieldName.value = ''
@@ -132,6 +143,7 @@ watch(modelValue, (open) => {
     fieldDefaultToday.value = false
     fieldKeepOnArchive.value = false
     fieldShowAge.value = true
+    fieldExpiry.value = expirySettingsOf({})
     fieldWidth.value = FieldWidths.FULL
     fieldDefaultNumber.value = 0
   }
@@ -160,7 +172,8 @@ function buildConfig(): ProfileFieldConfig {
     cfg.ageMode = fieldAgeMode.value
   }
   if (fieldType.value === FieldTypes.BIRTH_DATE && !fieldShowAge.value) cfg.showAge = false
-  if (fieldHasDefault.value) {
+  if (fieldType.value === FieldTypes.EXPIRY_DATE) Object.assign(cfg, expiryConfigOf(fieldExpiry.value))
+  if (offersDefault.value && fieldHasDefault.value) {
     if (fieldType.value === FieldTypes.BOOLEAN) {
       cfg.defaultValue = fieldDefaultBool.value
     } else if (isDateType(fieldType.value)) {
@@ -206,7 +219,7 @@ function submit() {
         <AgeFields v-if="fieldType === 'AGE'" v-model:source-id="fieldAgeSourceId" v-model:mode="fieldAgeMode"
                    :date-fields="dateFields"/>
         <FieldDefaultValueSection
-          v-if="!isCalculated"
+          v-if="offersDefault"
           v-model:has-default="fieldHasDefault"
           v-model:default-value="fieldDefaultValue"
           v-model:default-bool="fieldDefaultBool"
@@ -219,6 +232,7 @@ function submit() {
           :enum-options="fieldEnumOptions"
         />
         <BirthDateFields v-if="fieldType === 'BIRTH_DATE'" v-model:show-age="fieldShowAge"/>
+        <ExpiryDateFields v-if="fieldType === FieldTypes.EXPIRY_DATE" v-model="fieldExpiry"/>
         <BehaviorToggles
           v-model:required="fieldRequired"
           v-model:readonly="fieldReadonly"

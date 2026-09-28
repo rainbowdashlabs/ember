@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -320,6 +322,53 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         false,
                         null));
         assertTrue(refused.getMessage().contains("collide"));
+    }
+
+    /** An association asks for an expiry date as a station does, and keeps its settings. */
+    @Test
+    void anAssociationAsksForAnExpiryDateWithItsSettings() {
+        int clusterId = freshCluster();
+
+        var field = clusterProfileFieldService.create(
+                clusterId,
+                "Erste Hilfe gültig bis",
+                ProfileFieldType.EXPIRY_DATE,
+                ProfileFieldConfig.parse("{\"warnFromDays\":90,\"reminderDays\":[90,30]}"),
+                false,
+                false,
+                null,
+                true,
+                false,
+                null);
+
+        var kept = clusterProfileFieldRepo
+                .findById(field.id())
+                .orElseThrow()
+                .config()
+                .expiry();
+        assertEquals(90, kept.warnFromDays());
+        assertEquals(List.of(30, 90), kept.reminderDays());
+    }
+
+    /** Days counted backwards are refused for an association's expiry date as for a station's. */
+    @Test
+    void anAssociationsExpiryDateCountingBackwardsIsRefused() {
+        int clusterId = freshCluster();
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> clusterProfileFieldService.create(
+                        clusterId,
+                        "Erste Hilfe gültig bis",
+                        ProfileFieldType.EXPIRY_DATE,
+                        ProfileFieldConfig.parse("{\"warnFromDays\":-1}"),
+                        false,
+                        false,
+                        null,
+                        true,
+                        false,
+                        null));
+        assertEquals(Refusal.CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE, refused.refusal());
     }
 
     @Test

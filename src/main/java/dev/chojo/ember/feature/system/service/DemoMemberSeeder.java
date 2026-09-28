@@ -41,6 +41,8 @@ import java.util.Random;
 @Singleton
 public class DemoMemberSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoMemberSeeder.class);
+    private static final String NO_JUGENDFLAMME = "Keine";
+    private static final String[] JUGENDFLAMME_LEVELS = {"Jugendflamme 1", "Jugendflamme 2", "Jugendflamme 3"};
 
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
@@ -114,13 +116,23 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var groupFortgeschritten = memberGroupRepository.create(stationId, "Fortgeschritten");
 
         // -- Profile fields put to the team (Betreuer) --
-        var fieldJuleica = askOf(stationId, "Juleica", ProfileFieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 0);
-        var fieldJuleicaAblauf =
-                askOf(stationId, "Juleica Ablaufdatum", ProfileFieldType.DATE, "{}", ProfileFieldScope.TEAM, 1);
+        var fieldJuleica = askOf(stationId, "JuLeiCa", ProfileFieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 0);
+        var fieldJuleicaAblauf = askOf(
+                stationId,
+                "JuLeiCa Ablaufdatum",
+                ProfileFieldType.EXPIRY_DATE,
+                "{\"warnFromDays\":90,\"reminderDays\":[90,30],\"remindManagement\":true}",
+                ProfileFieldScope.TEAM,
+                1);
         var fieldFuehrerschein =
                 askOf(stationId, "Führerschein", ProfileFieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 2);
-        var fieldFuehrerscheinAblauf =
-                askOf(stationId, "Führerschein Ablaufdatum", ProfileFieldType.DATE, "{}", ProfileFieldScope.TEAM, 3);
+        var fieldFuehrerscheinAblauf = askOf(
+                stationId,
+                "Führerschein Ablaufdatum",
+                ProfileFieldType.EXPIRY_DATE,
+                "{\"warnFromDays\":60,\"reminderDays\":[60,14]}",
+                ProfileFieldScope.TEAM,
+                3);
 
         // -- Profile fields put to the guardians (Eltern) --
         var fieldTelefon = askOf(
@@ -196,39 +208,22 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 ProfileFieldScope.MEMBER,
                 5,
                 true);
-        var fieldJF1 = askOf(
-                stationId, "Jugendflamme 1", ProfileFieldType.BOOLEAN, "{}", false, ProfileFieldScope.MEMBER, 6, true);
-        var fieldJF1Datum = askOf(
+        var fieldJugendflamme = askOf(
                 stationId,
-                "Jugendflamme 1 Datum",
-                ProfileFieldType.DATE,
-                "{}",
+                "Jugendflamme",
+                ProfileFieldType.ENUM,
+                "{\"options\":[\"%s\",\"%s\",\"%s\",\"%s\"]}"
+                        .formatted(
+                                NO_JUGENDFLAMME,
+                                JUGENDFLAMME_LEVELS[0],
+                                JUGENDFLAMME_LEVELS[1],
+                                JUGENDFLAMME_LEVELS[2]),
                 false,
                 ProfileFieldScope.MEMBER,
-                7,
+                6,
                 true);
-        var fieldJF2 = askOf(
-                stationId, "Jugendflamme 2", ProfileFieldType.BOOLEAN, "{}", false, ProfileFieldScope.MEMBER, 8, true);
-        var fieldJF2Datum = askOf(
-                stationId,
-                "Jugendflamme 2 Datum",
-                ProfileFieldType.DATE,
-                "{}",
-                false,
-                ProfileFieldScope.MEMBER,
-                9,
-                true);
-        var fieldJF3 = askOf(
-                stationId, "Jugendflamme 3", ProfileFieldType.BOOLEAN, "{}", false, ProfileFieldScope.MEMBER, 10, true);
-        var fieldJF3Datum = askOf(
-                stationId,
-                "Jugendflamme 3 Datum",
-                ProfileFieldType.DATE,
-                "{}",
-                false,
-                ProfileFieldScope.MEMBER,
-                11,
-                true);
+        var fieldJugendflammeDatum = askOf(
+                stationId, "Jugendflamme Datum", ProfileFieldType.DATE, "{}", false, ProfileFieldScope.MEMBER, 7, true);
 
         // -- Users --
         // Betreuer (team role, in Betreuer group)
@@ -323,7 +318,10 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 profileFieldRepository.setValue(
                         m.id(),
                         fieldJuleicaAblauf.id(),
-                        text(LocalDate.now().plusMonths(rng.nextInt(24)).toString()));
+                        text(LocalDate.now()
+                                .plusMonths(rng.nextInt(24) - 2)
+                                .plusDays(20)
+                                .toString()));
             }
             profileFieldRepository.setValue(m.id(), fieldFuehrerschein.id(), BooleanNode.TRUE);
             profileFieldRepository.setValue(
@@ -385,14 +383,11 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             profileFieldRepository.setValue(
                     m.id(), fieldGeschlecht.id(), text(rng.nextBoolean() ? "männlich" : "weiblich"));
 
-            // Some have Jugendflamme 1
+            var jugendflamme = JugendflammeReached.NONE;
             if (rng.nextInt(3) == 0) {
-                profileFieldRepository.setValue(m.id(), fieldJF1.id(), BooleanNode.TRUE);
-                profileFieldRepository.setValue(
-                        m.id(),
-                        fieldJF1Datum.id(),
-                        text(LocalDate.now().minusMonths(rng.nextInt(12)).toString()));
+                jugendflamme = jugendflamme.reached(1, LocalDate.now().minusMonths(rng.nextInt(12)));
             }
+            seedJugendflamme(m.id(), fieldJugendflamme, fieldJugendflammeDatum, jugendflamme);
             if (rng.nextBoolean()) {
                 profileFieldRepository.setValue(m.id(), fieldAllergien.id(), text(randomAllergy(rng)));
             }
@@ -421,25 +416,17 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             profileFieldRepository.setValue(
                     m.id(), fieldGeschlecht.id(), text(rng.nextBoolean() ? "männlich" : "weiblich"));
 
-            // Most have JF1, some JF2, few JF3
-            profileFieldRepository.setValue(m.id(), fieldJF1.id(), BooleanNode.TRUE);
-            profileFieldRepository.setValue(
-                    m.id(),
-                    fieldJF1Datum.id(),
-                    text(LocalDate.now().minusMonths(rng.nextInt(24) + 6).toString()));
+            var jugendflamme =
+                    JugendflammeReached.NONE.reached(1, LocalDate.now().minusMonths(rng.nextInt(24) + 6));
             if (rng.nextInt(3) != 0) {
-                profileFieldRepository.setValue(m.id(), fieldJF2.id(), BooleanNode.TRUE);
-                profileFieldRepository.setValue(
-                        m.id(),
-                        fieldJF2Datum.id(),
-                        text(LocalDate.now().minusMonths(rng.nextInt(12)).toString()));
+                jugendflamme = jugendflamme.reached(2, LocalDate.now().minusMonths(rng.nextInt(12)));
             }
-            if (rng.nextInt(5) == 0) {
-                profileFieldRepository.setValue(m.id(), fieldJF3.id(), BooleanNode.TRUE);
-                profileFieldRepository.setValue(
-                        m.id(),
-                        fieldJF3Datum.id(),
-                        text(LocalDate.now().minusMonths(rng.nextInt(6)).toString()));
+            boolean reachedThird = rng.nextInt(5) == 0;
+            if (reachedThird) {
+                jugendflamme = jugendflamme.reached(3, LocalDate.now().minusMonths(rng.nextInt(6)));
+            }
+            seedJugendflamme(m.id(), fieldJugendflamme, fieldJugendflammeDatum, jugendflamme);
+            if (reachedThird) {
                 profileFieldRepository.setValue(m.id(), fieldLeistungsspange.id(), BooleanNode.TRUE);
                 profileFieldRepository.setValue(
                         m.id(),
@@ -731,5 +718,37 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 stationId, name, type, ProfileFieldConfig.parse(config), required, readonly, null);
         profileFieldRepository.assignToRole(field.id(), role, position, null, null, null);
         return field;
+    }
+
+    /**
+     * Writes the highest Jugendflamme a member has reached, and the day they reached it where they
+     * reached one at all.
+     */
+    private void seedJugendflamme(
+            int memberId, ProfileField levelField, ProfileField dateField, JugendflammeReached reached) {
+        profileFieldRepository.setValue(memberId, levelField.id(), text(reached.label()));
+        if (reached.on() != null) {
+            profileFieldRepository.setValue(
+                    memberId, dateField.id(), text(reached.on().toString()));
+        }
+    }
+
+    /**
+     * The highest Jugendflamme a member has passed so far.
+     *
+     * @param level the level, 0 for none
+     * @param on    the day it was passed, {@code null} for none
+     */
+    private record JugendflammeReached(int level, LocalDate on) {
+        static final JugendflammeReached NONE = new JugendflammeReached(0, null);
+
+        /** This or the given level, whichever is higher. */
+        JugendflammeReached reached(int passed, LocalDate day) {
+            return passed > level ? new JugendflammeReached(passed, day) : this;
+        }
+
+        String label() {
+            return level == 0 ? NO_JUGENDFLAMME : JUGENDFLAMME_LEVELS[level - 1];
+        }
     }
 }

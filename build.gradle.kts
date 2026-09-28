@@ -505,6 +505,7 @@ tasks {
                     // Daemon/scheduler threads
                     "*.RegistrationDeadlineChecker*",
                     "*.DueDateReminderChecker*",
+                    "*.ExpiryReminderChecker*",
                     "*.FieldRegistrationSweeper*",
                     // Complex CSV parsing with many edge cases
                     "*.MemberImportService*",

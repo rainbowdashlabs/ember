@@ -40,6 +40,42 @@ describe('FieldValueDisplay', () => {
         expect(show(null, FieldTypes.DATE)).toBe('–')
     })
 
+    /** An expiry date says in words how close it is, so it reads without its colour. */
+    describe('an expiry date', () => {
+        function isoInDays(days: number): string {
+            const day = new Date()
+            day.setDate(day.getDate() + days)
+            return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
+        }
+
+        function state(value: string, config?: Record<string, unknown>, bare = false) {
+            const wrapper = mount(FieldValueDisplay, {props: {value, fieldType: FieldTypes.EXPIRY_DATE, config, bare}})
+            return wrapper.find('[data-testid="expiry-state"]')
+        }
+
+        it('stands alone while it is valid', () => {
+            expect(state(isoInDays(200)).exists()).toBe(false)
+        })
+
+        it('says how many days are left once it runs out', () => {
+            const badge = state(isoInDays(12))
+            expect(badge.attributes('data-state')).toBe('EXPIRING')
+            expect(badge.text()).toContain('12')
+        })
+
+        it('runs out as early as the field warns', () => {
+            expect(state(isoInDays(60), {warnFromDays: 90}).attributes('data-state')).toBe('EXPIRING')
+        })
+
+        it('says it has expired once the last valid day has passed', () => {
+            expect(state(isoInDays(-3)).attributes('data-state')).toBe('EXPIRED')
+        })
+
+        it('leaves the state off where it is written bare', () => {
+            expect(state(isoInDays(-3), undefined, true).exists()).toBe(false)
+        })
+    })
+
     /** A date nobody can parse is left as written, because showing nothing would lose it. */
     it('keeps a date it cannot read as it was written', () => {
         expect(show('irgendwann', FieldTypes.DATE)).toBe('irgendwann')

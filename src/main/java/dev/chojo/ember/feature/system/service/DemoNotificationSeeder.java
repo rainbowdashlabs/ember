@@ -14,7 +14,9 @@ import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.ExpiryReminderKind;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
@@ -310,6 +312,20 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                 NotificationData.of(
                         new NotificationParams.ProfileFieldChanged("Lukas Frank", "Allergien"),
                         new NotificationData.NotificationLink("members-detail", Map.of("id", otherMemberId))));
+
+        notificationRepository.create(
+                memberId,
+                NotificationType.EXPIRY_REMINDER,
+                NotificationData.of(
+                        new NotificationParams.ExpiryReminder(
+                                ExpiryReminderKind.EXPIRES_IN,
+                                "JuLeiCa Ablaufdatum",
+                                "Max Mustermann",
+                                LocalDate.now().plusDays(30),
+                                30,
+                                null,
+                                null),
+                        NotificationLinks.ownProfile()));
 
         var formLink = ctx.formId() != null
                 ? new NotificationData.NotificationLink("form-detail", Map.of("id", ctx.formId()))

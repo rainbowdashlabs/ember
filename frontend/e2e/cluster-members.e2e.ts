@@ -316,4 +316,43 @@ test.describe('Cluster members and fields', () => {
         })
         expect(born.ok()).toBeFalsy()
     })
+
+    /**
+     * An association asks for an expiry date as a station does, and sees on the member's page when it
+     * has run out.
+     */
+    test('a cluster field can be an expiry date that shows it ran out', async ({adminPage: page}) => {
+        const cluster = await enterCluster(page)
+        const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
+        const name = `Maschinist gültig bis ${test.info().workerIndex}-${Date.now()}`
+
+        const field = await page.request.post('/api/v1/cluster/fields', {
+            headers,
+            data: {name, fieldType: 'EXPIRY_DATE', config: {warnFromDays: 30}, stationReadonly: true, keepOnArchive: false},
+        })
+        expect(field.ok(), `the association asked for an expiry date (${await field.text()})`).toBeTruthy()
+        const fieldId = (await field.json()).id
+        try {
+            await page.request.put(`/api/v1/cluster/fields/${fieldId}/assignments`, {
+                headers,
+                data: {role: 'MEMBER', position: 0},
+            })
+            const {members} = await page.request
+                .get('/api/v1/cluster/members/manage/search?size=50', {headers})
+                .then(r => r.json())
+            const target = members.find((m: {stationOwner: boolean; userType: string}) =>
+                !m.stationOwner && m.userType === 'MEMBER')
+            expect(target, 'the association has a member to answer for').toBeTruthy()
+
+            const saved = await page.request.put(`/api/v1/cluster/fields/member/${target.id}`,
+                {headers, data: {values: {[fieldId]: JSON.stringify('2020-01-31')}}})
+            expect(saved.ok(), await saved.text()).toBeTruthy()
+
+            await page.goto(`/cluster/members/${target.id}`)
+            await expect(page.locator(`[data-field="${name}"]`).getByTestId('expiry-state'))
+                .toHaveAttribute('data-state', 'EXPIRED', {timeout: 15000})
+        } finally {
+            await page.request.delete(`/api/v1/cluster/fields/${fieldId}`, {headers})
+        }
+    })
 })

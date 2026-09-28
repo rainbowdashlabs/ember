@@ -16,6 +16,7 @@ export const FIELD_TYPE_ORDER: FieldTypeName[] = [
     FieldTypes.NUMBER,
     FieldTypes.DATE,
     FieldTypes.BIRTH_DATE,
+    FieldTypes.EXPIRY_DATE,
     FieldTypes.BOOLEAN,
     FieldTypes.ENUM,
     FieldTypes.AGE,
