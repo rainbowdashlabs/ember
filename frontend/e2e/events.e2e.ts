@@ -21,37 +21,62 @@ import {pickMemberByName} from './fixtures/memberMenu'
  * station whose next ten appointments happen to take none would leave the story hunting a row that
  * is there but not shown.
  *
- * <p>Three things are asked of it, and each of them broke this once. It has to be coming rather
- * than any appointment the station ever wrote, because a day gone by takes no answer. It is opened
- * on its own day rather than by its bare id, so a repeating appointment is bound to an occurrence
- * it really has instead of whichever day the page works out for itself. And it must be one that
- * takes an answer without anybody confirming it, because that is the answer the stories then read
- * back.
- *
- * <p>The last of those is why two lists are asked for rather than one. The list of coming dates
- * carries a summary of each appointment, and a summary does not say whether an answer has to be
- * confirmed. Read off the summary the question came back undefined, so the filter said yes to
- * everything and the story landed on an appointment that does hold answers pending. The full list
- * says, so membership of it is what decides.
+ * <p>It has to be coming rather than any appointment the station ever wrote, because a day gone by
+ * takes no answer. It is opened on its own day rather than by its bare id, so a repeating
+ * appointment is bound to an occurrence it really has instead of whichever day the page works out
+ * for itself.
  */
 async function openEventWithRegistration(page: Page) {
     const headers = await apiHeaders(page)
 
-    const full = await page.request.get('/api/v1/events?requiresRegistration=true', {headers})
-    expect(full.ok(), 'the appointment list answers').toBeTruthy()
-    const answeredOutright = new Set<number>(
-        ((await full.json()) as {id: number, requiresConfirmation: boolean}[])
-            .filter(event => !event.requiresConfirmation)
-            .map(event => event.id))
-
-    const coming = await page.request.get('/api/v1/events/upcoming?requiresRegistration=true&limit=50', {headers})
+    const coming = await page.request.get('/api/v1/events/upcoming?requiresRegistration=true&limit=1', {headers})
     expect(coming.ok(), 'the list of coming dates answers').toBeTruthy()
 
-    const occurrences: {date: string, event: {id: number}}[] = await coming.json()
-    const answerable = occurrences.find(occurrence => answeredOutright.has(occurrence.event.id))
-    expect(answerable, 'the seeded station has a coming appointment that is answered without confirming').toBeTruthy()
+    const [next]: {date: string, event: {id: number}}[] = await coming.json()
+    expect(next, 'the seeded station has a coming appointment that takes sign-ups').toBeTruthy()
 
-    await page.goto(`/station/events/${answerable!.event.id}/${answerable!.date}`)
+    await page.goto(`/station/events/${next!.event.id}/${next!.date}`)
+}
+
+/**
+ * A weekly appointment of the story's own that anybody may sign up for without being confirmed.
+ *
+ * <p>Made rather than picked from the seed, because which seeded appointment comes next depends on
+ * the hour the suite runs: shortly after midnight where the station stands the one planted for
+ * today has already gone by, and the next in line is open to guardians only, so a member's answer
+ * was refused and the story read the refusal as a missing answer.
+ *
+ * <p>It starts a week out at ten in the morning, the same day wherever the station stands.
+ *
+ * @param page who makes it, somebody who runs the station
+ * @param name what it is called, unique to the run
+ */
+async function weeklyAppointment(page: Page, name: string) {
+    const headers = await apiHeaders(page)
+    const week = 7 * 86400000
+    const start = new Date(Date.now() + week)
+    start.setUTCHours(10, 0, 0, 0)
+
+    const created = await page.request.post('/api/v1/events', {
+        headers,
+        data: {
+            name,
+            description: 'Ein Platz gilt für einen Tag',
+            eventType: 'RECURRING',
+            dayOfWeek: start.getUTCDay() === 0 ? 7 : start.getUTCDay(),
+            startTime: start.toISOString(),
+            endTime: new Date(start.getTime() + 3600000).toISOString(),
+            requiresRegistration: true,
+        },
+    })
+    expect(created.ok(), `the organiser made an appointment (${await created.text()})`).toBeTruthy()
+    const id: number = (await created.json()).id
+
+    return {
+        id,
+        dateAfterWeeks: (weeks: number) => new Date(start.getTime() + weeks * week).toISOString().slice(0, 10),
+        remove: () => page.request.delete(`/api/v1/events/${id}`, {headers}),
+    }
 }
 
 /**
@@ -108,6 +133,9 @@ test.describe('Events', () => {
      * weekday. That is the rule a weekly appointment keeps and no other: a monthly one landed on
      * whichever of its weekdays came round first, so the page named a day in the middle of the
      * month and offered its sign-ups under a day the appointment does not happen on.
+     *
+     * <p>The line under the name reads "Details und Anmeldungen" until the server has named the day,
+     * so the story waits for a date there before it reads one off.
      */
     test('a monthly appointment opens on the day it next falls on', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -121,8 +149,9 @@ test.describe('Events', () => {
         await page.goto(`/station/events/${monthly!.id}`)
 
         const shown = page.getByTestId('page-subtitle')
-        await expect(shown).not.toBeEmpty()
-        const dayOfMonth = Number((await shown.textContent())!.match(/(\d{2})\.\d{2}\.\d{4}/)![1])
+        const date = /(\d{2})\.\d{2}\.\d{4}/
+        await expect(shown).toHaveText(date)
+        const dayOfMonth = Number((await shown.textContent())!.match(date)![1])
         expect(dayOfMonth, 'the first of its weekday in the month, so never past the seventh').toBeLessThanOrEqual(7)
     })
 
@@ -143,31 +172,31 @@ test.describe('Events', () => {
      *
      * <p>An event that has to be signed up for takes one answer, so the buttons swap rather than sit
      * beside each other: signing up while there is no place, giving it back while there is one. The
-     * badge read is the one beside the member's own name, because the seeded event is answered by
-     * other stories at the same time.
+     * appointment repeats and is opened on one of its dates, because the tab reads the answers of
+     * that date only and the answer given has to land on it.
      *
      * <p>Giving the place back leaves no answer at all rather than a refusal. Not being signed up is
      * already how somebody says they are not coming, and writing that down a second time would say it
      * twice.
      */
-    test('a member registers for an event and gives the place back', async ({memberPage: page}) => {
-        await openEventWithRegistration(page)
-        await page.getByRole('button', {name: 'Anmeldungen'}).click()
+    test('a member registers for an event and gives the place back', async ({managerPage, memberPage: page}) => {
+        const appointment = await weeklyAppointment(managerPage, `Hin und zurück ${test.info().workerIndex}-${Date.now()}`)
 
-        const myAnswer = page.locator('[data-testid^="my-answer-"]').first()
+        try {
+            await page.goto(`/station/events/${appointment.id}/${appointment.dateAfterWeeks(1)}`)
+            await page.getByRole('button', {name: 'Anmeldungen'}).click()
 
-        // The event is shared with the other stories, so this one starts by putting it back as it found it
-        const withdraw = page.getByTestId('withdraw-household')
-        if (await withdraw.isVisible().catch(() => false)) {
-            await signOff(page, withdraw)
+            const myAnswer = page.locator('[data-testid^="my-answer-"]').first()
             await expect(myAnswer).toHaveText('Noch keine Antwort', {timeout: 15000})
+
+            await page.getByTestId('answer-household').click()
+            await expect(myAnswer).toHaveText('Bestätigt', {timeout: 15000})
+
+            await signOff(page, page.getByTestId('withdraw-household'))
+            await expect(myAnswer).toHaveText('Noch keine Antwort', {timeout: 15000})
+        } finally {
+            await appointment.remove()
         }
-
-        await page.getByTestId('answer-household').click()
-        await expect(myAnswer).toHaveText('Bestätigt', {timeout: 15000})
-
-        await signOff(page, withdraw)
-        await expect(myAnswer).toHaveText('Noch keine Antwort', {timeout: 15000})
     })
 
     /**
@@ -319,44 +348,27 @@ test.describe('Events', () => {
      */
     test('a place on one date of a repeating appointment is not shown on another',
         async ({managerPage, memberPage}) => {
-            const managerHeaders = await apiHeaders(managerPage)
             const memberHeaders = await apiHeaders(memberPage)
-            const day = (offset: number) => new Date(Date.now() + offset * 86400000)
-            const isoDate = (offset: number) => day(offset).toISOString().slice(0, 10)
-            const start = day(7)
-            start.setUTCHours(10, 0, 0, 0)
-
-            const created = await managerPage.request.post('/api/v1/events', {
-                headers: managerHeaders,
-                data: {
-                    name: `Jede Woche ${test.info().workerIndex}-${Date.now()}`,
-                    description: 'Ein Platz gilt für einen Tag',
-                    eventType: 'RECURRING',
-                    dayOfWeek: start.getUTCDay() === 0 ? 7 : start.getUTCDay(),
-                    startTime: start.toISOString(),
-                    endTime: new Date(start.getTime() + 3600000).toISOString(),
-                    requiresRegistration: true,
-                },
-            })
-            expect(created.ok(), `the organiser made an appointment (${await created.text()})`).toBeTruthy()
-            const eventId = (await created.json()).id
+            const appointment = await weeklyAppointment(managerPage, `Jede Woche ${test.info().workerIndex}-${Date.now()}`)
+            const signedUpFor = appointment.dateAfterWeeks(1)
+            const weekAfter = appointment.dateAfterWeeks(2)
 
             try {
-                const registered = await memberPage.request.post(`/api/v1/events/${eventId}/register`,
-                    {headers: memberHeaders, data: {eventDate: isoDate(14)}})
+                const registered = await memberPage.request.post(`/api/v1/events/${appointment.id}/register`,
+                    {headers: memberHeaders, data: {eventDate: signedUpFor}})
                 expect(registered.ok(), `the member signed up for one date (${await registered.text()})`).toBeTruthy()
 
                 const myAnswer = memberPage.locator('[data-testid^="my-answer-"]').first()
 
-                await memberPage.goto(`/station/events/${eventId}/${isoDate(14)}`)
+                await memberPage.goto(`/station/events/${appointment.id}/${signedUpFor}`)
                 await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
                 await expect(myAnswer, 'the date signed up for holds the place').toHaveText('Bestätigt', {timeout: 15000})
 
-                await memberPage.goto(`/station/events/${eventId}/${isoDate(21)}`)
+                await memberPage.goto(`/station/events/${appointment.id}/${weekAfter}`)
                 await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
                 await expect(myAnswer, 'the week after is still open').toHaveText('Noch keine Antwort', {timeout: 15000})
             } finally {
-                await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
+                await appointment.remove()
             }
         })
 
