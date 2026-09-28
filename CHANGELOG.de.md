@@ -32,6 +32,8 @@
 - **Das Mischen von Fragen und Optionen hatte keine Wirkung.** Die Einstellungen zum Mischen der Fragen eines Formulars oder der Optionen einer Frage wurden gespeichert, beim Ausfüllen aber nicht angewendet. Jetzt wird gemischt, Fragen jeweils innerhalb ihrer Seite.
 - **Exportierte Antworten waren schwer zu lesen.** Die Tabelle und das PDF der Antworten eines Formulars zeigten jede Antwort so, wie sie gespeichert ist. Jetzt steht dort der Text der gewählten Optionen.
 - **Fragen an eine Gruppe konnten im Profil fehlen.** In manchen Fällen fehlte eine Frage, die eine Wache nur einer Gruppe stellt, im Profil eines Mitglieds, wenn die Wache zu einem Verband mit eigenen Fragen gehört. Solche Fragen erscheinen jetzt immer und lassen sich beantworten.
+- **Abgemeldete Mitglieder ließen sich nicht wieder eintragen.** Nachdem sich jemand abgemeldet oder abgesagt hatte, bot die Liste zum Eintragen von Mitgliedern in einen Termin ihn nicht mehr an, sodass nicht einmal die Verantwortlichen ihn wieder eintragen konnten. Er wird jetzt wieder angeboten.
+- **Abgemeldete Mitglieder konnten sich nicht überall wieder anmelden.** In manchen Fällen wurde ein Mitglied, das seinen Platz zurückgegeben hatte, in der Liste der kommenden Termine und auf der Seite des Termins weiter als abgemeldet angezeigt, ohne sich dort wieder anmelden zu können. Jetzt geht das an beiden Stellen.
 
 ## v26.19.5
 

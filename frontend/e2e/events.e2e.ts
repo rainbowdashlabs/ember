@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders, type Page} from './fixtures/auth'
+import {pickMemberByName} from './fixtures/memberMenu'
 
 /**
  * Registering for an event, withdrawing again, and the organiser's view of who has signed up.
@@ -255,6 +256,59 @@ test.describe('Events', () => {
                 .toHaveText('Noch keine Antwort', {timeout: 15000})
 
             await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
+        })
+
+    /**
+     * Somebody who gave their place back is put on the list again by whoever runs the appointment.
+     *
+     * <p>A place given back keeps its row, and the list for adding members used to read any row as a
+     * place, so the one person who could have put them back found nobody to pick. The member is found
+     * by address: another story renames them while this one runs, and the station has more than one
+     * member of their surname.
+     */
+    test('a member who gave their place back is put on the list again by the organiser',
+        async ({managerPage, memberPage}) => {
+            const managerHeaders = await apiHeaders(managerPage)
+            const memberHeaders = await apiHeaders(memberPage)
+            const session = await memberPage.request.get('/api/v1/session', {headers: memberHeaders})
+            expect(session.ok(), `the member has a session (${await session.text()})`).toBeTruthy()
+            const reader = await session.json() as {member: {id: number}, account: {email: string}}
+
+            const created = await managerPage.request.post('/api/v1/events', {
+                headers: managerHeaders,
+                data: {
+                    name: `Wieder dabei ${test.info().workerIndex}-${Date.now()}`,
+                    description: 'Abgemeldet und wieder eingetragen',
+                    eventType: 'ONE_TIME',
+                    startTime: new Date(Date.now() + 18 * 86400000).toISOString(),
+                    endTime: new Date(Date.now() + 18 * 86400000 + 3600000).toISOString(),
+                    requiresRegistration: true,
+                },
+            })
+            expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()
+            const eventId = (await created.json()).id
+
+            try {
+                const registered = await memberPage.request.post(`/api/v1/events/${eventId}/register`,
+                    {headers: memberHeaders, data: {}})
+                expect(registered.ok(), `the member signed up (${await registered.text()})`).toBeTruthy()
+                const withdrawn = await memberPage.request.delete(
+                    `/api/v1/events/registrations/${(await registered.json()).id}`, {headers: memberHeaders})
+                expect(withdrawn.ok(), `the member gave the place back (${await withdrawn.text()})`).toBeTruthy()
+
+                await managerPage.goto(`/station/events/${eventId}`)
+                await managerPage.getByRole('button', {name: 'Anmeldungen'}).click()
+                await pickMemberByName(managerPage.getByTestId('manual-register'), reader.account.email)
+
+                await expect.poll(async () => {
+                    const listed = await managerPage.request.get(`/api/v1/events/${eventId}/registrations`,
+                        {headers: managerHeaders})
+                    const registrations = await listed.json() as {memberId: number, status: string}[]
+                    return registrations.find(registration => registration.memberId === reader.member.id)?.status
+                }, {message: 'the member holds a place again', timeout: 15000}).toBe('ACCEPTED')
+            } finally {
+                await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
+            }
         })
 
     /**

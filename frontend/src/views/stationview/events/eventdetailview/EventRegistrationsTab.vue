@@ -33,7 +33,7 @@ import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
 import SignupListsMenu from './signuplists/SignupListsMenu.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import EventAnswerDialog from '../eventshared/EventAnswerDialog.vue'
-import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
+import {isStandingAnswer, membersToRegister, type AnswerablePerson, type PersonAnswer} from '@/util/eventAnswers'
 
 const props = defineProps<{
   event: StationEvent
@@ -100,10 +100,8 @@ const nonPendingRegistrations = computed<StatusGroup[]>(() => {
       .map(s => ({status: s, entries: byStatus.get(s)!}))
 })
 
-const unregisteredMembers = computed(() => {
-  const regIds = new Set(registrations.value.map(r => Number(r.memberId)))
-  return allMembers.value.filter(m => !regIds.has(Number(m.value)))
-})
+const unregisteredMembers = computed(() =>
+    membersToRegister(allMembers.value, registrations.value, props.effectiveDate))
 
 /**
  * The people holding a place on the date in view, which is what anything built from this tab
@@ -124,15 +122,12 @@ function getRegistrationForMember(memberId: number): EventRegistrationEntry | un
 
 /**
  * The answer this member currently has standing, which is what their own side of the screen is
- * about.
- *
- * <p>A place that was given back is kept for whoever runs the appointment, so the row outlives the
- * place. To the member it is not an answer they are holding: they hold nothing, they owe one, and
- * they may sign up again. Saying otherwise left them looking at a state they could not leave.
+ * about. A place given back is none, and saying otherwise left them looking at a state they could
+ * not leave.
  */
 function standingRegistrationFor(memberId: number): EventRegistrationEntry | undefined {
   const registration = getRegistrationForMember(memberId)
-  return registration?.status === RegistrationStatus.WITHDRAWN ? undefined : registration
+  return registration && isStandingAnswer(registration) ? registration : undefined
 }
 
 function statusLabel(status: string): string {

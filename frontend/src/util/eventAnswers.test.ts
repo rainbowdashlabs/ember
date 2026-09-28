@@ -6,7 +6,7 @@
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
 import {EventFieldTypes, RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField} from '@/api/events'
-import {answerTotals} from './eventAnswers'
+import {answerTotals, localAnswers, membersToRegister} from './eventAnswers'
 
 const MEALS: EventRegistrationField = {
   id: 1,
@@ -80,5 +80,64 @@ describe('answerTotals', () => {
     const totals = answerTotals([text], [registration(1, RegistrationStatus.ACCEPTED, {3: 'Bitte früher'})])
 
     expect(totals).toEqual([])
+  })
+})
+
+/** A member as the member menu offers them, which carries the id as text. */
+function member(id: number) {
+  return {value: String(id), name: `Mitglied ${id}`}
+}
+
+/** A registration of the same member on another date of the appointment. */
+function onAnotherDate(id: number, status: string): EventRegistrationEntry {
+  return {...registration(id, status, {}), eventDate: '2026-09-08'}
+}
+
+describe('membersToRegister', () => {
+  const members = [1, 2, 3, 4, 5, 6].map(member)
+
+  /**
+   * A place given back, a refusal and a request turned away all keep their row. Reading any row as a
+   * place left those members out of the list, so not even a manager could put them back on.
+   */
+  it('offers everybody who neither holds a place nor waits for one', () => {
+    const offered = membersToRegister(members, [
+      registration(1, RegistrationStatus.ACCEPTED, {}),
+      registration(2, RegistrationStatus.PENDING, {}),
+      registration(3, RegistrationStatus.WITHDRAWN, {}),
+      registration(4, RegistrationStatus.DECLINED, {}),
+      registration(5, RegistrationStatus.DENIED, {}),
+    ], '2026-09-01')
+
+    expect(offered.map(entry => entry.value)).toEqual(['3', '4', '5', '6'])
+  })
+
+  it('reads only the rows of the date the registration is made for', () => {
+    const offered = membersToRegister(
+        members.slice(0, 2),
+        [onAnotherDate(1, RegistrationStatus.ACCEPTED), registration(2, RegistrationStatus.ACCEPTED, {})],
+        '2026-09-01')
+
+    expect(offered.map(entry => entry.value)).toEqual(['1'])
+  })
+
+  it('reads every row where no date is in view', () => {
+    const offered = membersToRegister(members.slice(0, 2), [onAnotherDate(1, RegistrationStatus.ACCEPTED)], null)
+
+    expect(offered.map(entry => entry.value)).toEqual(['2'])
+  })
+})
+
+describe('localAnswers', () => {
+  const people = [{key: 1, name: 'Ich'}, {key: 2, name: 'Kind'}]
+
+  /** Whoever gave a place back holds nothing and owes an answer, so they are offered to sign up again. */
+  it('leaves out a place given back and keeps a refusal', () => {
+    const answers = localAnswers(people, [
+      registration(1, RegistrationStatus.WITHDRAWN, {}),
+      registration(2, RegistrationStatus.DECLINED, {}),
+    ])
+
+    expect(answers.map(answer => [answer.key, answer.status])).toEqual([[2, RegistrationStatus.DECLINED]])
   })
 })

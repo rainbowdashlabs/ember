@@ -29,7 +29,7 @@ import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useSession} from '@/composables/useSession'
 import {formatDate, formatTime, toIsoDate, todayIsoDate, weekdayName} from '@/util/format'
-import {answerableMembers} from '@/util/eventAnswers'
+import {answerableMembers, isStandingAnswer} from '@/util/eventAnswers'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -178,12 +178,12 @@ function answerableFor(item: UpcomingEvent) {
  * What has been answered for this date, one entry per person who answered.
  *
  * <p>An appointment repeats, so an answer belongs to a date rather than to the appointment: last
- * week's refusal says nothing about next week.
+ * week's refusal says nothing about next week. A place given back is no answer at all.
  */
 function answersOn(item: UpcomingEvent) {
   const answerable = answerableFor(item)
   return myRegistrations.value
-      .filter(reg => reg.eventId === item.event.id && reg.eventDate === item.date)
+      .filter(reg => reg.eventId === item.event.id && reg.eventDate === item.date && isStandingAnswer(reg))
       .map(reg => ({
         registration: reg,
         name: answerable.find(person => person.key === reg.memberId)?.name ?? reg.memberName,
