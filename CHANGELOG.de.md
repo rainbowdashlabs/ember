@@ -10,6 +10,10 @@
 
 - **Die täglichen Zahlen verraten nicht mehr, von welcher Instanz sie kommen.** Die an einen Beacon gemeldeten Zahlen waren mit dem Schlüssel der Instanz signiert, sodass der Beacon den Absender erkennen konnte. Sie werden jetzt unsigniert gesendet, wie es die Beacon-Einstellungen immer versprochen haben.
 
+### Fehlerbehebungen
+
+- **Die Suche konnte nach einem Datenbank-Update Wörter übersehen.** In manchen Fällen fand die Suche im Wiki, in Dokumenten und auf Boards nach dem Wechsel auf eine neue PostgreSQL-Hauptversion Wörter wie solche mit „ae", „oe" oder „ue" nicht mehr. Ember baut die Suchindizes jetzt beim ersten Start nach einem solchen Wechsel neu auf.
+
 ## v26.19.4
 
 ### Verbesserungen

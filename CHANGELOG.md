@@ -10,6 +10,10 @@
 
 - **Daily figures no longer reveal which instance sent them.** The counts reported to a beacon were signed with the instance's key, so a beacon could tell which instance they came from. They are now sent unsigned, as the beacon settings always promised.
 
+### Fixes
+
+- **Search could miss words after a database upgrade.** In some cases, after PostgreSQL moved to a new major version, searches in the wiki, documents and boards no longer found words such as those written with "ae", "oe" or "ue". Ember now builds its search indexes again on the first start after such an upgrade.
+
 ## v26.19.4
 
 ### Improvements

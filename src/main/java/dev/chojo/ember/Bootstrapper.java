@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.system.service.ApplicationLogWriter;
 import dev.chojo.ember.feature.system.service.ChangelogAnnouncer;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
+import dev.chojo.ember.feature.system.service.SearchIndexRebuildService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import dev.chojo.ember.util.service.CloudflareRangesService;
 import org.slf4j.Logger;
@@ -217,6 +218,9 @@ public class Bootstrapper {
         // resumable, so it runs off the boot path and picks up where it left off after a crash.
         var mediaMigration = injector.getInstance(MediaPrefixMigrationService.class);
         Thread.ofPlatform().daemon().name("media-prefix-migration").start(mediaMigration::migrateAll);
+
+        var searchIndexRebuild = injector.getInstance(SearchIndexRebuildService.class);
+        Thread.ofPlatform().daemon().name("search-index-rebuild").start(searchIndexRebuild::rebuildInBackground);
 
         // After the schema is certain: in demo mode the migration runs in DemoService, not above.
         injector.getInstance(ApplicationLogWriter.class).start();
