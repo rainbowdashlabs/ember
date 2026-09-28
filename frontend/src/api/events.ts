@@ -608,13 +608,22 @@ export async function listAllRestrictions(): Promise<AllEventRestrictions> {
     return res.data
 }
 
+/** Whom the reader may sign up for one appointment, themselves and whoever they answer for. */
+export interface EventRegistrationOpening {
+    eventId: number
+    /** Empty where the appointment is open to none of them. */
+    memberIds: number[]
+}
+
 /**
- * Returns a map of eventId -> eligible memberIds (self + managed).
- * Events without restrictions are omitted (all eligible).
+ * Whom the reader may sign up for each appointment they can see, by appointment.
+ *
+ * <p>Every appointment the reader can see is answered, those open to nobody here with an empty list,
+ * so an appointment missing from the result is one the answer is not known for.
  */
 export async function listEligibleMembers(): Promise<Record<number, number[]>> {
-    const res = await client.get<Record<number, number[]>>('/events/eligible-members')
-    return res.data
+    const res = await client.get<EventRegistrationOpening[]>('/events/eligible-members')
+    return Object.fromEntries(res.data.map(opening => [opening.eventId, opening.memberIds]))
 }
 
 export async function registerForEvent(eventId: number, data: {

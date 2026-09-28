@@ -12,7 +12,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import AnsweredAnswers from './eventregistrationactions/AnsweredAnswers.vue'
 import SignOffConfirm from './eventregistrationactions/SignOffConfirm.vue'
 import {useConfirmAction} from '@/composables/useConfirmAction'
-import {isRefusal, type AnswerablePerson, type GivenAnswer} from '@/util/eventAnswers'
+import {isRefusal, notOpenLabelKey, type AnswerablePerson, type GivenAnswer} from '@/util/eventAnswers'
 
 /**
  * Answering an appointment, for oneself and for whoever one answers for.
@@ -69,18 +69,8 @@ const stillOpen = computed(() => {
 /** The one thing somebody who has not answered yet can say, where it can still be said. */
 const canAnswer = computed(() => !props.requiresRegistration || stillOpen.value)
 
-/**
- * Why there is nothing to press, where the appointment is open to nobody in this household.
- *
- * <p>An appointment narrowed for registration is still shown to everybody, so without a word here the
- * reader would meet a date with no answer on it and no reason given. Silence would read as a fault.
- */
-const notOpenLabel = computed(() => {
-  if (props.people.length > 0) return ''
-  return props.hasManagedMembers
-      ? t('events.notOpenToHousehold')
-      : t('events.notOpenToYou')
-})
+/** Why there is nothing to press, where the appointment is open to nobody in this household. */
+const notOpenLabel = computed(() => props.people.length > 0 ? '' : t(notOpenLabelKey(props.hasManagedMembers)))
 
 /** What the button says for somebody who has not answered: coming, or not coming. */
 const answerLabel = computed(() =>

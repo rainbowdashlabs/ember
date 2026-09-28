@@ -2879,8 +2879,8 @@ export default {
         restrictVisibilityHint: 'Wer überhaupt von diesem Termin erfahren darf. Ohne Auswahl alle. Für alle '
             + 'anderen taucht er nirgends auf, weder im Kalender noch in einer Benachrichtigung. Ein so '
             + 'eingeschränkter Termin kann weder öffentlich stehen noch mit Partnerwachen geteilt werden.',
-        notOpenToYou: 'Für dich ist hier keine Anmeldung möglich.',
-        notOpenToHousehold: 'Weder du noch die Personen, die du verwaltest, können sich hier anmelden.',
+        notOpenToYou: 'Die Anmeldung steht nur einem Teil der Wache offen, dir nicht.',
+        notOpenToHousehold: 'Die Anmeldung steht nur einem Teil der Wache offen, weder dir noch den Personen, die du verwaltest.',
         deleteEventConfirm: 'Termin "{name}" wirklich löschen?',
         deleteBreakConfirm: 'Pause "{name}" wirklich löschen?',
         importHolidays: 'Ferien importieren',
@@ -6488,6 +6488,7 @@ export default {
         upcomingEvents: 'Nächste Termine',
         showAll: 'Alle anzeigen',
         registrationRequired: 'Anmeldung nötig',
+        registrationNotOpen: 'Nur für einen Teil der Wache',
         profileIncomplete: 'Dein Profil ist unvollständig',
         profileIncompleteHint: 'Bitte fülle alle Pflichtfelder in deinem Profil aus.',
         completeProfile: 'Profil vervollständigen',

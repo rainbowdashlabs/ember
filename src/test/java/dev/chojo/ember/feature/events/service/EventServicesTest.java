@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
@@ -790,6 +791,81 @@ class EventServicesTest extends RepositoryTestBase {
         assertEquals(
                 RestrictionMode.AND,
                 eventRestrictionService.findViewRestrictions(event.id()).mode());
+    }
+
+    /** Whom the openings name for one event, or null where the event is not answered at all. */
+    private static List<Integer> openingFor(StationEvent event, List<Integer> memberIds, Set<StationPermission> perms) {
+        return eventRestrictionService.registrationOpenings(List.of(event), memberIds, perms).stream()
+                .filter(opening -> opening.eventId() == event.id())
+                .findFirst()
+                .map(EventRegistrationOpening::memberIds)
+                .orElse(null);
+    }
+
+    /** An appointment open to everybody is open to the reader, so they are offered to sign up. */
+    @Test
+    @Order(791)
+    void openingsNameTheReaderWhereTheyMayRegister() {
+        var event = openEvent("Opening For Everybody");
+
+        assertEquals(
+                List.of(member.id()), openingFor(event, List.of(member.id()), EnumSet.noneOf(StationPermission.class)));
+    }
+
+    /**
+     * An appointment narrowed for registration to somebody else is still answered, with nobody in it.
+     * Leaving it out read as open to all, and the reader was offered a sign-up the server refused.
+     */
+    @Test
+    @Order(792)
+    void openingsNameNobodyWhereTheReaderMayNotRegister() {
+        var event = openEvent("Opening For Guardians Only");
+        eventRestrictionService.setRestrictions(event.id(), onlyType(StationUserType.GUARDIAN));
+
+        var none = EnumSet.noneOf(StationPermission.class);
+        assertEquals(List.of(), openingFor(event, List.of(member.id()), none));
+        assertFalse(eventRestrictionService.canRegister(event.id(), member.id(), none));
+    }
+
+    /** Whoever runs the appointments may register anybody, so the restriction does not narrow them. */
+    @Test
+    @Order(793)
+    void openingsNameEverybodyForWhoeverRunsTheEvents() {
+        var event = openEvent("Opening For A Manager");
+        eventRestrictionService.setRestrictions(event.id(), onlyType(StationUserType.GUARDIAN));
+
+        assertEquals(
+                List.of(member.id()),
+                openingFor(event, List.of(member.id()), EnumSet.of(StationPermission.EVENT_MANAGER)));
+    }
+
+    /** A household is answered member by member: only those the appointment is for are named. */
+    @Test
+    @Order(794)
+    void openingsNameOnlyTheMembersOfAHouseholdItIsFor() {
+        var guardianAccount = accountRepo.create("event-opening-guardian@test.com", "Opening", "Guardian");
+        var guardian = stationMemberRepo.create(station.id(), guardianAccount.id());
+        stationMemberRepo.setUserType(guardian.id(), StationUserType.GUARDIAN);
+        try {
+            var event = openEvent("Opening For One Of Two");
+            eventRestrictionService.setRestrictions(event.id(), onlyType(StationUserType.GUARDIAN));
+
+            assertEquals(
+                    List.of(guardian.id()),
+                    openingFor(event, List.of(member.id(), guardian.id()), EnumSet.noneOf(StationPermission.class)));
+        } finally {
+            accountRepo.delete(guardianAccount.id());
+        }
+    }
+
+    /** An appointment the reader may not even see is not named, since that would say it exists. */
+    @Test
+    @Order(795)
+    void openingsLeaveOutWhatTheReaderCannotSee() {
+        var event = openEvent("Opening Hidden");
+        eventRestrictionService.setViewRestrictions(event.id(), onlyType(StationUserType.GUARDIAN));
+
+        assertNull(openingFor(event, List.of(member.id()), EnumSet.noneOf(StationPermission.class)));
     }
 
     @Test
