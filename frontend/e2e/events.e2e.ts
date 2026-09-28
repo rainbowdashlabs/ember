@@ -263,7 +263,8 @@ test.describe('Events', () => {
      *
      * <p>A place given back keeps its row, and the list for adding members used to read any row as a
      * place, so the one person who could have put them back found nobody to pick. The member is found
-     * by surname, because another story renames them while this one runs.
+     * by address: another story renames them while this one runs, and the station has more than one
+     * member of their surname.
      */
     test('a member who gave their place back is put on the list again by the organiser',
         async ({managerPage, memberPage}) => {
@@ -271,7 +272,7 @@ test.describe('Events', () => {
             const memberHeaders = await apiHeaders(memberPage)
             const session = await memberPage.request.get('/api/v1/session', {headers: memberHeaders})
             expect(session.ok(), `the member has a session (${await session.text()})`).toBeTruthy()
-            const reader = await session.json() as {member: {id: number}, account: {lastName: string}}
+            const reader = await session.json() as {member: {id: number}, account: {email: string}}
 
             const created = await managerPage.request.post('/api/v1/events', {
                 headers: managerHeaders,
@@ -297,7 +298,7 @@ test.describe('Events', () => {
 
                 await managerPage.goto(`/station/events/${eventId}`)
                 await managerPage.getByRole('button', {name: 'Anmeldungen'}).click()
-                await pickMemberByName(managerPage.getByTestId('manual-register'), reader.account.lastName)
+                await pickMemberByName(managerPage.getByTestId('manual-register'), reader.account.email)
 
                 await expect.poll(async () => {
                     const listed = await managerPage.request.get(`/api/v1/events/${eventId}/registrations`,
