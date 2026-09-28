@@ -116,13 +116,23 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var groupFortgeschritten = memberGroupRepository.create(stationId, "Fortgeschritten");
 
         // -- Profile fields put to the team (Betreuer) --
-        var fieldJuleica = askOf(stationId, "Juleica", ProfileFieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 0);
-        var fieldJuleicaAblauf =
-                askOf(stationId, "Juleica Ablaufdatum", ProfileFieldType.DATE, "{}", ProfileFieldScope.TEAM, 1);
+        var fieldJuleica = askOf(stationId, "JuLeiCa", ProfileFieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 0);
+        var fieldJuleicaAblauf = askOf(
+                stationId,
+                "JuLeiCa Ablaufdatum",
+                ProfileFieldType.EXPIRY_DATE,
+                "{\"warnFromDays\":90,\"reminderDays\":[90,30],\"remindManagement\":true}",
+                ProfileFieldScope.TEAM,
+                1);
         var fieldFuehrerschein =
                 askOf(stationId, "Führerschein", ProfileFieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 2);
-        var fieldFuehrerscheinAblauf =
-                askOf(stationId, "Führerschein Ablaufdatum", ProfileFieldType.DATE, "{}", ProfileFieldScope.TEAM, 3);
+        var fieldFuehrerscheinAblauf = askOf(
+                stationId,
+                "Führerschein Ablaufdatum",
+                ProfileFieldType.EXPIRY_DATE,
+                "{\"warnFromDays\":60,\"reminderDays\":[60,14]}",
+                ProfileFieldScope.TEAM,
+                3);
 
         // -- Profile fields put to the guardians (Eltern) --
         var fieldTelefon = askOf(
@@ -308,7 +318,10 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 profileFieldRepository.setValue(
                         m.id(),
                         fieldJuleicaAblauf.id(),
-                        text(LocalDate.now().plusMonths(rng.nextInt(24)).toString()));
+                        text(LocalDate.now()
+                                .plusMonths(rng.nextInt(24) - 2)
+                                .plusDays(20)
+                                .toString()));
             }
             profileFieldRepository.setValue(m.id(), fieldFuehrerschein.id(), BooleanNode.TRUE);
             profileFieldRepository.setValue(

@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {describe, expect, it} from 'vitest'
+import {FieldTypes} from '@/api/profileFields'
+import {expirySettingsOf} from '@/util/expiry'
 import {fieldTemplates} from './fieldTemplates'
 
 /**
@@ -23,6 +25,11 @@ const SERVER_CONFIG_KEYS = [
   'sourceFieldId',
   'ageMode',
   'showAge',
+  'warnFromDays',
+  'reminderDays',
+  'repeatEveryDays',
+  'remindMember',
+  'remindManagement',
 ]
 
 describe('fieldTemplates', () => {
@@ -32,5 +39,18 @@ describe('fieldTemplates', () => {
   it.each(fields)('$template: $name carries only settings the server names', field => {
     const unknown = Object.keys(field.config).filter(key => !SERVER_CONFIG_KEYS.includes(key))
     expect(unknown).toEqual([])
+  })
+
+  /** A date that runs out warns as early as renewing it takes; a date that records an event does not run out. */
+  it('makes the dates that run out expiry dates', () => {
+    const expiring = Object.fromEntries(fields
+      .filter(field => field.fieldType === FieldTypes.EXPIRY_DATE)
+      .map(field => [field.name, expirySettingsOf(field.config).warnFromDays]))
+
+    expect(expiring).toEqual({
+      'Führerschein gültig bis': 60,
+      'JuLeiCa Ablaufdatum': 90,
+      'Erste Hilfe gültig bis': 90,
+    })
   })
 })

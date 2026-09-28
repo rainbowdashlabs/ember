@@ -966,6 +966,7 @@ export default {
     'CU-067': CHOOSE_A_STATION,
     'CU-068': CHOOSE_A_STATION,
     'CU-069': NOT_A_CLUSTER_IDENTITY,
+    'CU-070': 'Ein Verband kann kein Ablaufdatum abfragen, das fragt jede Wache selbst ab',
 
     'L-001': FILE_NOT_HERE,
     'L-002': PICTURE_NOT_HERE,
@@ -1178,6 +1179,8 @@ export default {
     'M-117': PASSWORD_BREACHED,
     'M-118': 'Diese Instanz meldet ohne Passwort an, deshalb wurde für dieses Mitglied keines gespeichert',
     'M-119': 'Dieses Mitglied hat eine eigene Adresse und vergibt sein Passwort selbst',
+    'M-120': 'Tage vor einem Ablaufdatum können nicht negativ sein und eine Wiederholung braucht mindestens '
+        + 'einen Tag, es wurde nichts gespeichert',
 
     'N-001': TOO_MANY_ATTEMPTS,
 

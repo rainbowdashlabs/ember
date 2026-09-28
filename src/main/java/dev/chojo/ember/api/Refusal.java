@@ -2824,6 +2824,16 @@ public enum Refusal {
             Area.CLUSTERS, 69, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_AN_IDENTITY),
 
     /**
+     * An association asking a question of the expiry date type. Its reminders go to a station's
+     * member management, and an association's question has nobody at the station to answer for it.
+     */
+    CLUSTER_FIELD_CANNOT_EXPIRE(
+            Area.CLUSTERS,
+            70,
+            HttpStatus.BAD_REQUEST,
+            "An association cannot ask for an expiry date. A station asks for its own"),
+
+    /**
      * A file in the media library that is gone, or one held back from this reader. The two are one
      * code deliberately: telling them apart would say that the file is there and withheld.
      */
@@ -3612,6 +3622,16 @@ public enum Refusal {
             119,
             HttpStatus.FORBIDDEN,
             "This member has an address of their own and sets their own password"),
+
+    /**
+     * The settings of an expiry date that count days backwards or repeat without a gap: a warning
+     * or a reminder a negative number of days before the date, or a repeat every zero days.
+     */
+    EXPIRY_SETTINGS_OUT_OF_RANGE(
+            Area.MEMBERS,
+            120,
+            HttpStatus.BAD_REQUEST,
+            "Days before an expiry date cannot be negative and a repeat needs at least one day, so nothing was saved"),
 
     /** Asking to set an instance up far more often than a person could. */
     SETUP_TOO_OFTEN(Area.INSTALLATION, 1, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),

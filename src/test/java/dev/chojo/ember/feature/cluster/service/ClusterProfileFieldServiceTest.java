@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -320,6 +322,27 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         false,
                         null));
         assertTrue(refused.getMessage().contains("collide"));
+    }
+
+    /** An expiry date reminds a station's own member management, which an association's question has none of. */
+    @Test
+    void anAssociationCannotAskForAnExpiryDate() {
+        int clusterId = freshCluster();
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> clusterProfileFieldService.create(
+                        clusterId,
+                        "Erste Hilfe gültig bis",
+                        ProfileFieldType.EXPIRY_DATE,
+                        ProfileFieldConfig.empty(),
+                        false,
+                        false,
+                        null,
+                        true,
+                        false,
+                        null));
+        assertEquals(Refusal.CLUSTER_FIELD_CANNOT_EXPIRE, refused.refusal());
     }
 
     @Test

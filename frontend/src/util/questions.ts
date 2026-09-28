@@ -50,6 +50,7 @@ export function questionKindOf(fieldType: string | undefined | null, whole = fal
             return whole ? QuestionKinds.NUMBER : QuestionKinds.DECIMAL
         case 'DATE':
         case 'BIRTH_DATE':
+        case 'EXPIRY_DATE':
             return QuestionKinds.DATE
         case 'TIME':
             return QuestionKinds.TIME

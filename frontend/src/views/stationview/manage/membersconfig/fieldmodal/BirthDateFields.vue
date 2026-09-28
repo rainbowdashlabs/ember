@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import SettingToggle from './SettingToggle.vue'
 
 /**
  * What a birth date does beyond holding a date.
@@ -21,11 +21,5 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <div class="space-y-1">
-    <div class="flex items-center justify-between">
-      <label class="text-sm font-medium">{{ t('membersConfig.fieldShowAge') }}</label>
-      <ToggleInput v-model="showAge"/>
-    </div>
-    <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldShowAgeHint') }}</p>
-  </div>
+  <SettingToggle v-model="showAge" :label="t('membersConfig.fieldShowAge')" :hint="t('membersConfig.fieldShowAgeHint')"/>
 </template>

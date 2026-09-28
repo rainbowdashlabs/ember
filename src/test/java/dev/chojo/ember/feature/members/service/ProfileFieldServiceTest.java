@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -746,6 +748,75 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 "a date of birth that says nothing shows the age, as every one did before the switch");
 
         service.delete(birthDate.id());
+    }
+
+    /**
+     * An expiry date keeps what it was told about warning and reminding, read the way the API reads
+     * a request, which refuses anything the record does not name.
+     */
+    @Test
+    @Order(33)
+    void anExpiryDateKeepsItsSettings() {
+        var strict = JsonMapper.builder()
+                .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .build();
+        var settings = strict.readValue("""
+                {"warnFromDays":90,"reminderDays":[90,30],"repeatEveryDays":14,
+                 "remindMember":false,"remindManagement":true}""", ProfileFieldConfig.class);
+
+        var firstAid = service.create(
+                station.id(), "Erste Hilfe gültig bis", ProfileFieldType.EXPIRY_DATE, settings, false, true, null);
+
+        var kept = service.findById(firstAid.id()).orElseThrow().config().expiry();
+        assertEquals(90, kept.warnFromDays());
+        assertEquals(List.of(30, 90), kept.reminderDays());
+        assertEquals(14, kept.repeatEveryDays());
+        assertFalse(kept.remindMember());
+        assertTrue(kept.remindManagement());
+
+        service.delete(firstAid.id());
+    }
+
+    /** Days counted backwards are refused on the way in, whether the field is made or changed. */
+    @Test
+    @Order(34)
+    void anExpiryDateCountingBackwardsIsRefused() {
+        var backwards = ProfileFieldConfig.parse("{\"reminderDays\":[-3]}");
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.create(
+                        station.id(),
+                        "Führerschein gültig bis",
+                        ProfileFieldType.EXPIRY_DATE,
+                        backwards,
+                        false,
+                        false,
+                        null));
+        assertEquals(Refusal.EXPIRY_SETTINGS_OUT_OF_RANGE, refused.refusal());
+
+        var licence = service.create(
+                station.id(),
+                "Führerschein gültig bis",
+                ProfileFieldType.EXPIRY_DATE,
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null);
+        var noGap = ProfileFieldConfig.parse("{\"repeatEveryDays\":0}");
+        assertThrows(
+                RefusalResponse.class,
+                () -> service.update(
+                        licence.id(),
+                        "Führerschein gültig bis",
+                        ProfileFieldType.EXPIRY_DATE,
+                        noGap,
+                        false,
+                        false,
+                        null,
+                        false));
+
+        service.delete(licence.id());
     }
 
     @Test

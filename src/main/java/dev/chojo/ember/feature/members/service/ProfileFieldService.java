@@ -5,11 +5,13 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.members.entity.AssignedProfileField;
+import dev.chojo.ember.feature.members.entity.ExpirySettings;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
@@ -268,6 +270,7 @@ public class ProfileFieldService {
         requireSingleBirthDate(stationId, fieldType, 0);
         String chosen = nameFor(stationId, fieldType, name);
         requireUsableDefault(chosen, fieldType, config);
+        requireUsableExpiry(config);
         var field = profileFieldRepository.create(stationId, chosen, fieldType, config, required, readonly, width);
         log.info(
                 "Profile field created: id={}, station={}, name='{}', type={}", field.id(), stationId, name, fieldType);
@@ -289,6 +292,7 @@ public class ProfileFieldService {
             return Optional.empty();
         }
         requireUsableDefault(name, fieldType, config);
+        requireUsableExpiry(config);
         requireSingleBirthDate(existing.get().stationId(), fieldType, id);
         if (profileFieldRepository.update(id, name, fieldType, config, required, readonly, width, keepOnArchive)) {
             log.info("Profile field updated: id={}, name='{}', type={}", id, name, fieldType);
@@ -580,6 +584,18 @@ public class ProfileFieldService {
                 .ifPresent(problem -> {
                     throw new BadRequestResponse(problem.message());
                 });
+    }
+
+    /**
+     * Refuses expiry settings that count days backwards or repeat without a gap.
+     *
+     * <p>Asked whatever the type, because a field keeps its settings when its type changes and turns
+     * back into an expiry date with them.
+     */
+    private static void requireUsableExpiry(ProfileFieldConfig config) {
+        if (config != null && ExpirySettings.outOfRange(config)) {
+            throw Refusal.EXPIRY_SETTINGS_OUT_OF_RANGE.raise();
+        }
     }
 
     /**

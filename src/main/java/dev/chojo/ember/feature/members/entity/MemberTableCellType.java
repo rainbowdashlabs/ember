@@ -29,13 +29,14 @@ public enum MemberTableCellType {
      * The kind of cell one of the station's own questions draws.
      *
      * <p>An age is a number, however it is worked out. A choice is text, because the table writes it
-     * as it was answered and has no labels for it.
+     * as it was answered and has no labels for it. An expiry date is a date: a drawn table is a
+     * printout, and how close the day is changes after it has been printed.
      */
     public static MemberTableCellType of(ProfileFieldType type) {
         if (type == null) return TEXT;
         return switch (type) {
             case NUMBER, AGE -> NUMBER;
-            case DATE -> DATE;
+            case DATE, EXPIRY_DATE -> DATE;
             case BIRTH_DATE -> BIRTH_DATE;
             case BOOLEAN -> BOOLEAN;
             default -> TEXT;

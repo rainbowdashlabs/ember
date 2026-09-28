@@ -2143,6 +2143,19 @@ export default {
         unsorted: 'Unsortiert',
         direction: 'Reihenfolge umkehren',
         filterColumns: 'Spalten filtern',
+        expiryState: 'Stand',
+    },
+    expiry: {
+        state: {
+            VALID: 'Gültig',
+            EXPIRING: 'Läuft bald ab',
+            EXPIRED: 'Abgelaufen',
+        },
+        expiresInDays: 'läuft in {days} Tagen ab',
+        expiresTomorrow: 'läuft morgen ab',
+        expiresToday: 'läuft heute ab',
+        expiredYesterday: 'seit gestern abgelaufen',
+        expiredDaysAgo: 'seit {days} Tagen abgelaufen',
     },
     setupMailChoice: {
         label: 'Einrichtungs-Mail sofort senden',
@@ -3038,6 +3051,7 @@ export default {
             NUMBER: 'Zahl',
             DATE: 'Datum',
             BIRTH_DATE: 'Geburtsdatum',
+            EXPIRY_DATE: 'Ablaufdatum',
             BOOLEAN: 'Ja/Nein',
             ENUM: 'Auswahl',
             AGE: 'Alter (berechnet)',
@@ -3113,6 +3127,28 @@ export default {
         fieldShowAge: 'Alter hinter dem Datum anzeigen',
         fieldShowAgeHint: 'Das Geburtsdatum steht mit dem heutigen Alter dahinter, etwa 03.11.2019 (6). '
             + 'Schalte es aus, wenn das Alter bereits als eigenes Feld gefragt wird.',
+        expiry: {
+            warnFrom: 'Warnen ab (Tage vorher)',
+            warnFromHint: 'Ab so vielen Tagen vor dem Datum steht es gelb in der Mitgliederliste und im Profil. '
+                + 'Das Datum ist der letzte gültige Tag.',
+            reminders: 'Erinnerungen',
+            remindersHint: 'An diesen Tagen vor dem Datum geht eine Erinnerung raus. Am Tag nach dem letzten '
+                + 'gültigen Tag kommt immer noch eine.',
+            onTheDay: 'am letzten Tag',
+            daysBefore: '{days} Tage vorher',
+            removeDay: 'Tag entfernen',
+            noReminders: 'Keine Erinnerungen vor dem Datum',
+            dayPlaceholder: 'Tage',
+            addDay: 'Hinzufügen',
+            repeat: 'Nach Ablauf wiederholen',
+            repeatHint: 'Erinnert nach Ablauf regelmäßig, bis ein neues Datum eingetragen ist.',
+            repeatEvery: 'Alle so viele Tage',
+            remindMember: 'Mitglied erinnern',
+            remindMemberHint: 'Das Mitglied, wenn es sich anmelden kann, und seine Erziehungsberechtigten.',
+            remindManagement: 'Mitgliederverwaltung erinnern',
+            remindManagementHint: 'Alle mit dem Recht Mitgliederverwaltung bekommen eine gesammelte Erinnerung '
+                + 'pro Feld.',
+        },
         fieldOverview: 'In Übersicht anzeigen',
         fieldKeepOnArchive: 'Bei Archivierung behalten',
         fieldKeepOnArchiveHint: 'Dieses Feld bleibt bei ehemaligen Mitgliedern erhalten.',
