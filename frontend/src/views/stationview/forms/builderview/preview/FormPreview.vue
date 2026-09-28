@@ -14,6 +14,7 @@ import PublicPageFields from '@/components/forms/fill/PublicPageFields.vue'
 import FormPageNav from '@/components/forms/fill/FormPageNav.vue'
 import { useFormWalk } from '@/composables/useFormWalk'
 import { usePublicAnswers } from '@/composables/usePublicAnswers'
+import { presentQuestions } from '@/util/formShuffle'
 import type { PublicFormPage, PublicFormQuestion } from '@/api/publicForms'
 import type { QuestionType } from '@/api/forms'
 import { pageLabel } from '../pageChoice'
@@ -22,12 +23,14 @@ import type { FormLayoutEditor } from '../useFormLayout'
 /**
  * The form as the reader will see it, built from what is in the editor, saved or not.
  *
- * <p>It walks the pages and follows the answers the way the real form does, with the same fields, and
- * sends nothing. The path taken so far stands above it, which is how an editor finds a branch that
- * sends people to the wrong page before anybody answers.
+ * <p>It walks the pages and follows the answers the way the real form does, with the same fields and
+ * the same shuffling, and sends nothing. Starting over shuffles again, as the next reader would get
+ * it. The path taken so far stands above it, which is how an editor finds a branch that sends people
+ * to the wrong page before anybody answers.
  */
 const props = defineProps<{
   layout: FormLayoutEditor
+  shuffleQuestions: boolean
 }>()
 
 const { t } = useI18n()
@@ -35,7 +38,7 @@ const { t } = useI18n()
 const request = props.layout.toRequest()
 
 const pages = ref<PublicFormPage[]>(request.pages.map(page => ({ ...page })))
-const questions = ref<PublicFormQuestion[]>(request.questions.map((question, index) => ({
+const asWritten: PublicFormQuestion[] = request.questions.map((question, index) => ({
   id: index + 1,
   questionType: question.questionType as QuestionType,
   title: question.title,
@@ -45,7 +48,8 @@ const questions = ref<PublicFormQuestion[]>(request.questions.map((question, ind
   pageKey: question.pageKey,
   config: question.config as Record<string, unknown>,
   branch: question.branch ?? null,
-})))
+}))
+const questions = ref<PublicFormQuestion[]>(presentQuestions(asWritten, props.shuffleQuestions))
 
 const { answers, reset, toggleChoice, updateText, updateDate } = usePublicAnswers()
 reset(questions.value)
@@ -70,6 +74,7 @@ function send() {
 }
 
 function startOver() {
+  questions.value = presentQuestions(asWritten, props.shuffleQuestions)
   reset(questions.value)
   walk.restart()
   sent.value = false

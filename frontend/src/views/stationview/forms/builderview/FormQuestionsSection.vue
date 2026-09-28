@@ -20,6 +20,7 @@ import type { QuestionType } from '@/api/forms'
 defineProps<{
   layout: FormLayoutEditor
   questionTypes: QuestionType[]
+  shuffleQuestions: boolean
 }>()
 
 const { t } = useI18n()
@@ -33,7 +34,7 @@ const previewing = ref(false)
       <ToggleInput v-model="previewing" data-testid="form-preview-toggle"/>
       {{ t('forms.preview.toggle') }}
     </FieldLabel>
-    <FormPreview v-if="previewing" :layout="layout"/>
+    <FormPreview v-if="previewing" :layout="layout" :shuffle-questions="shuffleQuestions"/>
     <FormPagesEditor v-else :layout="layout" :question-types="questionTypes"/>
   </div>
 </template>

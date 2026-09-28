@@ -21,9 +21,10 @@ import FormSentNotice from '@/components/forms/fill/FormSentNotice.vue'
 import FillPages from './fillview/FillPages.vue'
 import {type EligibleMembers, type Form, type FormPage, type FormQuestion} from '@/api/forms'
 import { forms } from '@/api'
-import { emptyAnswer, isEmptyAnswer, typedAnswers, type AnswerValue } from '@/util/formAnswers'
+import { emptyAnswer, typedAnswers, type AnswerValue } from '@/util/formAnswers'
 import { presentQuestions } from '@/util/formShuffle'
 import { useFormWalk } from '@/composables/useFormWalk'
+import { useAnswerBaseline } from '@/composables/useAnswerBaseline'
 import { describeFailure, type Failure } from '@/util/failure'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
@@ -96,6 +97,7 @@ const fillTargetOptions = computed(() => {
 const effectiveMemberId = computed(() => selectedMemberId.value)
 
 const draft = useServerDraft(formId, effectiveMemberId, questions, answers, walk)
+const baseline = useAnswerBaseline(answers, walk.path)
 
 function initAnswerDefaults() {
   for (const q of questions.value) answers.value[q.id] = emptyAnswer(q.formQuestionType, q.config)
@@ -146,7 +148,9 @@ async function loadExistingResponse() {
     priorAnswerFailure.value = {...describeFailure(e, t), message: t('forms.priorAnswerUnknown')}
     initAnswerDefaults()
   }
-  if (memberId === effectiveMemberId.value) await draft.resume()
+  if (memberId !== effectiveMemberId.value) return
+  await draft.resume()
+  if (memberId === effectiveMemberId.value) baseline.settle()
 }
 
 /** Throws the kept draft away and opens the form the way it stood before it. */
@@ -155,19 +159,13 @@ async function startOver() {
   await loadExistingResponse()
 }
 
-/** Goes on to the next page and keeps what is filled in so far. */
+/** Goes on to the next page and keeps what is filled in so far, once anything was. */
 function next() {
-  if (walk.next()) void draft.keep()
-}
-
-/** Whether anything has been filled in or walked, which is what is worth keeping for later. */
-function started(): boolean {
-  return walk.pageNumber.value > 1
-      || questions.value.some(q => !isEmptyAnswer(q.formQuestionType, answers.value[q.id]))
+  if (walk.next() && baseline.changed()) void draft.keep()
 }
 
 onBeforeRouteLeave(() => {
-  if (!sent.value && form.value && started()) void draft.keep()
+  if (!sent.value && form.value && baseline.changed()) void draft.keep()
 })
 
 const { loading, failure, reload } = useAsyncLoader(async () => {
@@ -203,6 +201,7 @@ const {failure: submitFailure, run: send} = useAsyncAction(async () => {
   const answerMap = typedAnswers(questions.value, answers.value, question => question.formQuestionType)
 
   try {
+    await draft.settled()
     await sendAnswers(answerMap)
   } catch (e) {
     walk.showRefused(e)

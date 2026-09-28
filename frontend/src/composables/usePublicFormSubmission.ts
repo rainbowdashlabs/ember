@@ -12,6 +12,7 @@ import { usePublicAnswers } from '@/composables/usePublicAnswers'
 import { presentQuestions } from '@/util/formShuffle'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useFormWalk } from '@/composables/useFormWalk'
+import { useAnswerBaseline } from '@/composables/useAnswerBaseline'
 import { clearFormDraft, readFormDraft, saveFormDraft } from '@/util/formDrafts'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 
@@ -59,6 +60,15 @@ export function usePublicFormSubmission(
   const pages = computed(() => form.value?.pages ?? [])
   const questions = computed(() => form.value?.questions ?? [])
   const walk = useFormWalk(pages, questions, answers, question => question.questionType)
+  const baseline = useAnswerBaseline(answers, walk.path)
+
+  /** The answers every question starts with, which alone are nothing worth keeping. */
+  let blankAnswers = ''
+
+  function startBlank(questionList: readonly PublicFormQuestion[]) {
+    initAnswerDefaults(questionList)
+    blankAnswers = JSON.stringify(answers.value)
+  }
 
   /** The form with its questions in the order this reader gets them. */
   function presented(data: PublicForm): PublicForm {
@@ -74,13 +84,14 @@ export function usePublicFormSubmission(
   function seed(data: PublicForm | null) {
     form.value = data
     submitted.value = false
-    initAnswerDefaults(data?.questions ?? [])
+    startBlank(data?.questions ?? [])
+    baseline.settle()
   }
 
   function shuffleSeeded() {
     if (!form.value) return
     form.value = presented(form.value)
-    initAnswerDefaults(form.value.questions)
+    startBlank(form.value.questions)
     resumeDraft()
   }
 
@@ -91,11 +102,17 @@ export function usePublicFormSubmission(
   const resumedFrom = ref<string | null>(null)
 
   /**
-   * Continues from the answers this browser kept, where there are any. A form that no longer takes
-   * answers ends them instead: they could never be sent.
+   * Continues from the answers this browser kept, where there are any, and takes the form as it then
+   * stands as the way it opened: nothing is kept again until the reader changes something.
    */
   function resumeDraft() {
     resumedFrom.value = null
+    continueKept()
+    baseline.settle()
+  }
+
+  /** Puts back the kept answers and page. A form that no longer takes answers ends them: they could never be sent. */
+  function continueKept() {
     if (!form.value) return
     if (form.value.state !== PublicFormState.OPEN) {
       clearFormDraft(draftKey.value)
@@ -113,20 +130,53 @@ export function usePublicFormSubmission(
 
   let keeping: ReturnType<typeof setTimeout> | null = null
 
-  /** Keeps what is filled in so far, once the reader pauses. */
+  function stopKeeping() {
+    if (keeping) clearTimeout(keeping)
+    keeping = null
+  }
+
+  function answeredNothing(): boolean {
+    return JSON.stringify(answers.value) === blankAnswers
+  }
+
+  /** Whether this visit kept anything, which taking every answer back forgets again. */
+  let keptThisVisit = false
+
+  /** Keeps the answers given so far, or forgets them where every answer is back to how it started. */
+  function keepDraft() {
+    keeping = null
+    if (answeredNothing()) {
+      forgetDraft()
+      return
+    }
+    saveFormDraft(draftKey.value, {answers: answers.value, path: walk.path.value})
+    keptThisVisit = true
+  }
+
+  function forgetDraft() {
+    clearFormDraft(draftKey.value)
+    keptThisVisit = false
+  }
+
+  /**
+   * Keeps what is filled in so far once the reader pauses, and only once they changed something from
+   * how the form opened. Taking every answer back forgets what this visit kept.
+   */
   watch([answers, walk.path], () => {
     if (!form.value || submitted.value || form.value.state !== PublicFormState.OPEN) return
-    if (keeping) clearTimeout(keeping)
-    keeping = setTimeout(() => saveFormDraft(draftKey.value, {answers: answers.value, path: walk.path.value}), 1000)
+    stopKeeping()
+    if (baseline.changed()) keeping = setTimeout(keepDraft, 1000)
+    else if (keptThisVisit && answeredNothing()) forgetDraft()
   }, {deep: true})
 
   /** Throws the kept answers away and starts the form from its first page. */
   function startOver() {
-    if (keeping) clearTimeout(keeping)
-    clearFormDraft(draftKey.value)
+    stopKeeping()
+    forgetDraft()
     resumedFrom.value = null
-    if (form.value) initAnswerDefaults(form.value.questions)
+    if (form.value) startBlank(form.value.questions)
     walk.restart()
+    baseline.settle()
   }
 
   if (preloaded.value !== null) seed(preloaded.value)
@@ -150,7 +200,7 @@ export function usePublicFormSubmission(
         ? await publicForms.getSharedForm(shareToken.value)
         : await publicForms.getPublicForm(stationUid.value as string, publicUid.value as string)
       form.value = presented(data)
-      initAnswerDefaults(form.value.questions)
+      startBlank(form.value.questions)
       resumeDraft()
     } catch (e) {
       form.value = null
@@ -184,6 +234,7 @@ export function usePublicFormSubmission(
 
   const {running: submitting, failure: sendFailure, run: runSubmit} = useAsyncAction(async () => {
     if (!form.value) return
+    stopKeeping()
     const answerMap = typedAnswers(form.value.questions, answers.value, question => question.questionType)
     const payload = {
       answers: answerMap,
@@ -204,8 +255,8 @@ export function usePublicFormSubmission(
       throw e
     }
     submitted.value = true
-    if (keeping) clearTimeout(keeping)
-    clearFormDraft(draftKey.value)
+    stopKeeping()
+    forgetDraft()
   })
 
   /**

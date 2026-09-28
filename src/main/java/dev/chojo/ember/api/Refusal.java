@@ -2426,6 +2426,16 @@ public enum Refusal {
     /** A half-filled form kept by a member the form was not put to. */
     FORM_NOT_YOURS_TO_DRAFT(Area.FORMS, 68, HttpStatus.FORBIDDEN, Sentences.FORM_NOT_YOURS_TO_ANSWER),
 
+    /**
+     * Reading, keeping or ending another member's half-filled form without looking after them. An
+     * unsent answer is private: managing the station's polls does not reach it.
+     */
+    FORM_DRAFT_NOT_YOURS(
+            Area.FORMS,
+            69,
+            HttpStatus.FORBIDDEN,
+            "Only the member and whoever looks after them can see or keep an answer that was not sent"),
+
     /** An invite that is used up or past its date. */
     WAITING_LIST_INVITE_NO_LONGER_VALID(
             Area.WAITING_LISTS, 22, HttpStatus.FORBIDDEN, "This invite can no longer be used"),

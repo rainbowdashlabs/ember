@@ -258,9 +258,20 @@ public class FormService {
      * @throws dev.chojo.ember.api.RefusalResponse where the link is neither
      */
     public void setCompletion(int id, String message, String link, String label) {
+        requireOfferableCompletionLink(link);
+        repository.updateCompletion(id, blankToNull(message), blankToNull(link), blankToNull(label));
+    }
+
+    /**
+     * Refuses a link after sending that is neither a web address nor an address on this site. Checked
+     * before a form is created or changed, so a refused link leaves nothing half written.
+     *
+     * @param link the link, possibly blank, which is none
+     * @throws dev.chojo.ember.api.RefusalResponse where the link is neither
+     */
+    public static void requireOfferableCompletionLink(String link) {
         String cleanLink = blankToNull(link);
         if (cleanLink != null && !isOfferableLink(cleanLink)) throw Refusal.FORM_COMPLETION_LINK_NOT_A_LINK.raise();
-        repository.updateCompletion(id, blankToNull(message), cleanLink, blankToNull(label));
     }
 
     private static boolean isOfferableLink(String link) {
@@ -346,6 +357,10 @@ public class FormService {
     /**
      * Updates the editable fields of a form.
      *
+     * <p>Unless the form took answers before and still does, the drafts kept of it end: a form whose
+     * dates now stop it keeps none, and a form they open again starts everybody fresh rather than
+     * continuing answers from before it stopped.
+     *
      * @param id               the form ID
      * @param title            new title
      * @param description      new description
@@ -364,9 +379,14 @@ public class FormService {
             boolean forced,
             Instant startAt,
             Instant endAt) {
+        boolean wasAccepting =
+                repository.findById(id).map(this::isAcceptingResponses).orElse(false);
         boolean updated =
                 repository.update(id, title, description, shuffleQuestions, allowEdit, forced, startAt, endAt);
         if (updated) {
+            boolean accepting =
+                    repository.findById(id).map(this::isAcceptingResponses).orElse(false);
+            if (!wasAccepting || !accepting) endDrafts(id, "its dates stopped or restarted the answers");
             log.info("Updated form {}", id);
         } else {
             log.warn("Form update affected zero rows for form {}", id);
@@ -984,12 +1004,27 @@ public class FormService {
     /**
      * The draft a member keeps of a form, where there is one.
      *
+     * <p>A form that stopped taking answers keeps no drafts, whether somebody closed it or its end date
+     * passed. Closing ends them at once; an end date passes without anybody acting, so the drafts are
+     * ended here, the first time the form is asked for one after it stopped.
+     *
      * @param formId   the form
      * @param memberId the member the answer is for
-     * @return the draft
+     * @return the draft, or empty where there is none or the form takes no answers
      */
     public Optional<FormDraft> findDraft(int formId, int memberId) {
+        var form = repository.findById(formId).orElse(null);
+        if (form == null) return Optional.empty();
+        if (!isAcceptingResponses(form)) {
+            endDrafts(formId, "stopped taking answers");
+            return Optional.empty();
+        }
         return repository.findDraft(formId, memberId);
+    }
+
+    private void endDrafts(int formId, String reason) {
+        int drafts = repository.deleteDrafts(formId);
+        if (drafts > 0) log.info("Ended {} drafts of form {}: {}", drafts, formId, reason);
     }
 
     /**

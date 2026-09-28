@@ -32,8 +32,9 @@ import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, type Form, type 
 import { optionKeysOf } from '@/util/formOptions'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
-import { describeFailure, type Failure } from '@/util/failure'
+import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 import { instantToLocalInput } from '@/util/format'
+import { isOfferableLink } from '@/util/completionLink'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -65,6 +66,18 @@ const visibility = ref<FormVisibilityName>(FormVisibility.PUBLIC)
 const completionMessage = ref('')
 const completionLink = ref('')
 const completionLinkLabel = ref('')
+
+/**
+ * The last link after sending that can be offered, which is the one the settings save with.
+ *
+ * <p>The settings save while they are typed, and a link is not one until it is typed out: saving
+ * "htt" would be refused, and with it the title typed in the same breath. The editor says beside the
+ * field that the link is not one yet, and the other settings go on saving.
+ */
+const offerableLink = ref('')
+watch(completionLink, link => {
+  if (isOfferableLink(link)) offerableLink.value = link
+}, {flush: 'sync'})
 
 /**
  * The reach the form is stored with, which is what a change is measured against.
@@ -195,6 +208,7 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
   storedVisibility.value = form.visibility
   completionMessage.value = form.completionMessage ?? ''
   completionLink.value = form.completionLink ?? ''
+  offerableLink.value = completionLink.value
   completionLinkLabel.value = form.completionLinkLabel ?? ''
 
   restriction.value = {
@@ -256,10 +270,16 @@ function currentSettings() {
     endAt: endAt.value ? new Date(endAt.value).toISOString() : null,
     purpose: purpose.value,
     completionMessage: completionMessage.value,
-    completionLink: completionLink.value,
+    completionLink: offerableLink.value,
     completionLinkLabel: completionLinkLabel.value,
   }
 }
+
+/**
+ * The form this editor created, where a later step of the same save failed. Saving again changes it
+ * rather than creating a second one.
+ */
+const createdId = ref<number | null>(null)
 
 async function saveForm(): Promise<number> {
   const id = formId.value
@@ -267,9 +287,13 @@ async function saveForm(): Promise<number> {
     await settings.flush()
     return id
   }
-  const created = await forms.createForm(currentSettings())
-  await saveVisibility(created.id)
-  return created.id
+  if (createdId.value) {
+    await forms.updateForm(createdId.value, currentSettings())
+  } else {
+    createdId.value = (await forms.createForm(currentSettings())).id
+  }
+  await saveVisibility(createdId.value)
+  return createdId.value
 }
 
 /**
@@ -328,8 +352,20 @@ async function saveQuestions(id: number) {
  */
 const actionFailure = ref<Failure | null>(null)
 
+/**
+ * A link after sending that is not one yet stops the save before anything is written: a form created
+ * with the link refused would stand there without it, and saving again would create a second one.
+ */
+function requireOfferableLink() {
+  if (isOfferableLink(completionLink.value)) return
+  const message = t('forms.completion.notALink')
+  actionFailure.value = {kind: FailureKind.REJECTED, message, guidance: t('failure.REJECTED.guidance'), reportable: false}
+  throw new Error(message)
+}
+
 async function save() {
   actionFailure.value = null
+  requireOfferableLink()
   try {
     if (formId.value) await requireAnswerLossConsent(formId.value, removals())
     const id = await saveForm()
@@ -397,7 +433,7 @@ async function save() {
 
         <ContentDraftBanner v-if="unsaved.offered.value" :saved-at="unsaved.offered.value.savedAt"
                             @restore="unsaved.restore()" @discard="unsaved.discard()"/>
-        <FormQuestionsSection :layout="layout" :question-types="questionTypes"/>
+        <FormQuestionsSection :layout="layout" :question-types="questionTypes" :shuffle-questions="shuffleQuestions"/>
 
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="router.push({ name: returnRouteName })">{{ t('common.cancel') }}</SecondaryButton>

@@ -47,6 +47,34 @@ describe('useFormLayout', () => {
         expect(layout.pages.value[0]!.questions.map(question => question.title)).toEqual(['Frage 1', 'Frage 2'])
     })
 
+    it('leaves no second deciding question on the page a removed page joins', () => {
+        const layout = useFormLayout()
+        layout.load(stored())
+        layout.addQuestion(0, 'CHOICE')
+        layout.addQuestion(1, 'CHOICE')
+        layout.setDeciding(0, layout.pages.value[0]!.questions[1]!.id)
+        layout.setDeciding(1, layout.pages.value[1]!.questions[1]!.id)
+
+        layout.removePage(1)
+
+        const deciding = layout.pages.value[0]!.questions.filter(question => question.branch)
+        expect(deciding).toHaveLength(1)
+        expect(layout.toRequest().questions.filter(question => question.branch)).toHaveLength(1)
+    })
+
+    it('gives a new question an id after every unsaved one the pages hold', () => {
+        const layout = useFormLayout()
+        layout.addQuestion(0, 'TEXT')
+        layout.pages.value = [{...layout.pages.value[0]!, questions: [
+            {...layout.pages.value[0]!.questions[0]!, id: 'temp-5'},
+        ]}]
+
+        layout.addQuestion(0, 'TEXT')
+        layout.duplicateQuestion(0, 1)
+
+        expect(layout.allQuestions.value.map(question => question.id)).toEqual(['temp-5', 'temp-6', 'temp-7'])
+    })
+
     it('resets a page that would lead upwards once pages are moved', () => {
         const layout = useFormLayout()
         layout.load(stored())

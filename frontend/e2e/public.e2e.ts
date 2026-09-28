@@ -5,6 +5,7 @@
  */
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
+import {unique} from './fixtures/unique'
 
 /**
  * What a stranger sees of a station. No session and no fixture: these pages are the reason the
@@ -102,6 +103,62 @@ test.describe.serial('A survey sent by link', () => {
         await page.goto('/f/es-gibt-keinen-solchen-link')
 
         await expect(page.getByRole('button', {name: 'Absenden'})).toHaveCount(0)
+    })
+})
+
+/**
+ * A public survey of two pages, a name on the first and what to bring on the second, made and sent
+ * by link through the API the way a manager would.
+ */
+async function twoPagePollLink(page: Page): Promise<string> {
+    const headers = await apiHeaders(page)
+    const made = await (await page.request.post('/api/v1/forms', {
+        headers,
+        data: {title: unique('Grillabend'), purpose: 'POLL'},
+    })).json() as {id: number}
+    const text = {questionType: 'TEXT', longAnswer: false}
+    const saved = await page.request.put(`/api/v1/forms/${made.id}/questions`, {
+        headers,
+        data: {
+            pages: [
+                {key: 'p0', title: '', description: '', after: {kind: 'NEXT'}},
+                {key: 'p1', title: '', description: '', after: {kind: 'NEXT'}},
+            ],
+            questions: [
+                {pageKey: 'p0', questionType: 'TEXT', title: 'Wie heißt du?', required: false, config: text},
+                {pageKey: 'p1', questionType: 'TEXT', title: 'Was bringst du mit?', required: false, config: text},
+            ],
+        },
+    })
+    expect(saved.ok(), await saved.text()).toBeTruthy()
+    await page.request.post(`/api/v1/forms/${made.id}/publish`, {headers})
+    const link = await page.request.post(`/api/v1/forms/${made.id}/share-link`, {headers, data: {currentToken: null}})
+    return `/f/${(await link.json()).token}`
+}
+
+test.describe('A public survey kept for later', () => {
+    /**
+     * A visitor has no account to keep a half-filled survey under, so their browser keeps it. Leaving
+     * on the second page and opening the link again continues there, with the first page's answer.
+     */
+    test('a visitor who leaves on the second page comes back to it with their answers', async ({managerPage, page}) => {
+        const path = await twoPagePollLink(managerPage)
+        const name = unique('Kim')
+        await page.addInitScript(() => window.localStorage.setItem('storage_consent', 'accepted'))
+
+        await page.goto(path)
+        await page.getByRole('textbox').first().fill(name)
+        await page.getByTestId('form-page-next').click()
+        await expect(page.getByText('Was bringst du mit?')).toBeVisible()
+        await expect.poll(() => page.evaluate(() => window.localStorage.getItem('form_drafts') ?? '')).toContain('p1')
+
+        await page.goto('/f/es-gibt-keinen-solchen-link')
+        await page.goto(path)
+
+        await expect(page.getByTestId('form-draft-note')).toBeVisible()
+        await expect(page.getByText('Was bringst du mit?')).toBeVisible()
+        await page.getByTestId('form-page-back').click()
+        await expect(page.getByRole('textbox').first()).toHaveValue(name)
     })
 })
 

@@ -870,6 +870,7 @@ export default {
     'F-066': 'Du bist kein Mitglied dieser Wache',
     'F-067': FORM_TAKES_NO_ANSWERS,
     'F-068': FORM_NOT_YOURS_TO_ANSWER,
+    'F-069': 'Eine nicht abgesendete Antwort sehen und speichern nur das Mitglied selbst und wer es betreut',
 
     'W-022': 'Diese Einladung lässt sich nicht mehr verwenden',
     'W-023': 'Eine Einladung und ein Vorname werden gebraucht, es wurde nichts gespeichert',

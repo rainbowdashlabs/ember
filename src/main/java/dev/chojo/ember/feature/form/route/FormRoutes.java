@@ -343,6 +343,7 @@ public class FormRoutes implements Routes {
         var req = ctx.bodyAsClass(FormRequest.class);
         if (req.title() == null || req.title().isBlank()) throw Refusal.FORM_NEEDS_A_TITLE.raise();
         if (session.member() == null) throw Refusal.NOT_A_MEMBER_ON_FORM_CREATION.raise();
+        FormService.requireOfferableCompletionLink(req.completionLink());
         var form = formService.create(
                 session.stationId(),
                 req.title(),
@@ -389,6 +390,7 @@ public class FormRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedForm(id, UserSession.from(ctx));
         var req = ctx.bodyAsClass(FormRequest.class);
+        FormService.requireOfferableCompletionLink(req.completionLink());
         if (!formService.update(
                 id,
                 req.title(),
@@ -987,11 +989,14 @@ public class FormRoutes implements Routes {
      * @param memberId the member ID to verify management of
      */
     private void verifyManages(UserSession session, int memberId) {
-        boolean manages =
-                stationMemberService.findManaged(session.member().id()).stream().anyMatch(m -> m.id() == memberId);
-        if (!manages && !session.hasPermission(StationPermission.POLL_MANAGER)) {
+        if (!looksAfter(session, memberId) && !session.hasPermission(StationPermission.POLL_MANAGER)) {
             throw Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR.raise();
         }
+    }
+
+    /** Whether the caller looks after the given member, as their guardian or managing member. */
+    private boolean looksAfter(UserSession session, int memberId) {
+        return stationMemberService.findManaged(session.member().id()).stream().anyMatch(m -> m.id() == memberId);
     }
 
     @OpenApi(
@@ -1096,11 +1101,18 @@ public class FormRoutes implements Routes {
         return session.member().id();
     }
 
-    /** The member in the caller's care a draft of the form is kept for. */
+    /**
+     * The member in the caller's care a draft of the form is kept for.
+     *
+     * <p>An unsent answer is private to the member and whoever looks after them. Managing the station's
+     * polls lets somebody answer for a member, starting from blank or from the answer sent, but never
+     * read or change what the member has not sent.
+     */
     private int managedDraftMember(Context ctx, int formId) {
         var session = UserSession.from(ctx);
         if (session.member() == null) throw Refusal.NOT_A_MEMBER_KEEPING_FORM_DRAFT.raise();
         int memberId = pathInt(ctx, "memberId");
+        if (!looksAfter(session, memberId)) throw Refusal.FORM_DRAFT_NOT_YOURS.raise();
         requireFormForManagedMember(session, formId, memberId);
         return memberId;
     }

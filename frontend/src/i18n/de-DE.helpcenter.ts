@@ -2364,7 +2364,7 @@ volumes:
             pagesTitle: 'Umfragen mit mehreren Seiten',
             pagesText: 'Manche Umfragen haben mehrere Seiten. Mit „Weiter" und „Zurück" gehst du vor und zurück, der Balken oben zeigt, wie weit du bist. Je nachdem, was du antwortest, kann eine Seite übersprungen werden.',
             continueTitle: 'Später weitermachen',
-            continueText: 'Was du ausgefüllt hast, wird bei jedem „Weiter" und beim Verlassen der Seite gespeichert. Öffnest du die Umfrage wieder, auch auf einem anderen Gerät, machst du dort weiter, wo du aufgehört hast. Mit „Von vorn beginnen" fängst du neu an. Solange du nicht absendest, zählt nichts davon als Antwort.',
+            continueText: 'Was du ausgefüllt hast, wird bei jedem „Weiter" und beim Verlassen der Seite gespeichert. Öffnest du die Umfrage wieder, auch auf einem anderen Gerät, machst du dort weiter, wo du aufgehört hast. Mit „Von vorn beginnen" fängst du neu an. Solange du nicht absendest, zählt nichts davon als Antwort, und sehen können es nur du und wer sich um dich kümmert. Endet die Umfrage, wird das Gespeicherte verworfen.',
             tip: 'Du musst alle Pflichtfragen ausfüllen, bevor du absenden kannst. Pflichtfragen erkennst du am roten Stern neben der Frage.',
             dummyChoiceOption1: 'Übungen',
             dummyChoiceOption2: 'Gemeinschaft',
