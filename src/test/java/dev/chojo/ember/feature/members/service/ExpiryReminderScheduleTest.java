@@ -16,6 +16,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -82,6 +83,39 @@ class ExpiryReminderScheduleTest {
                 .orElseThrow();
 
         assertEquals(LocalDate.of(2026, 3, 1), owed.remindOn());
+    }
+
+    /** A reminder day added once the date has passed is recorded, not sent to everybody whose date ran out. */
+    @Test
+    void aNewReminderDayAfterTheDateIsOnlyRecorded() {
+        var passed = List.of(
+                sent(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 1)),
+                sent(LocalDate.of(2026, 3, 24), LocalDate.of(2026, 3, 24)),
+                sent(LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 1)));
+
+        var owed = ExpiryReminderSchedule.due(
+                        EXPIRES, settings("{\"reminderDays\":[30,14,7]}"), LocalDate.of(2026, 4, 15), passed, UTC)
+                .orElseThrow();
+
+        assertFalse(owed.sends());
+        assertEquals(List.of(LocalDate.of(2026, 3, 17)), owed.done());
+    }
+
+    /** A reminder owed after the date still goes out, with a newly added day before it recorded beside it. */
+    @Test
+    void aRepeatAfterTheDateRecordsANewDayBeforeIt() {
+        var passed = List.of(sent(LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 1)));
+
+        var owed = ExpiryReminderSchedule.due(
+                        EXPIRES,
+                        settings("{\"reminderDays\":[7],\"repeatEveryDays\":7}"),
+                        LocalDate.of(2026, 4, 8),
+                        passed,
+                        UTC)
+                .orElseThrow();
+
+        assertEquals(LocalDate.of(2026, 4, 8), owed.remindOn());
+        assertEquals(List.of(LocalDate.of(2026, 3, 24), LocalDate.of(2026, 4, 8)), owed.done());
     }
 
     @Test

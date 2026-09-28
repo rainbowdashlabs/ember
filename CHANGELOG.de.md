@@ -4,7 +4,7 @@
 
 ### Neue Funktionen
 
-- **Ablaufdaten mit Erinnerungen.** Ein Profilfeld einer Wache oder eines Verbands kann ein Datum halten, das abläuft, etwa einen Erste-Hilfe-Kurs oder einen Führerschein, und die Schnellvorlagen dafür nutzen es jetzt. Die Mitgliederliste zeigt es gelb, wenn es bald abläuft, und rot, wenn es abgelaufen ist, und das Mitglied und die Mitgliederverwaltung der Wache oder des Verbands werden rechtzeitig erinnert.
+- **Ablaufdaten mit Erinnerungen.** Ein Profilfeld einer Wache oder eines Verbands kann ein Datum halten, das abläuft, etwa einen Erste-Hilfe-Kurs oder einen Führerschein, und die Schnellvorlagen dafür nutzen es jetzt. Es steht gelb, wenn es bald abläuft, und rot, wenn es abgelaufen ist, auf der Seite des Mitglieds und bei Feldern der Wache auch in der Mitgliederliste, und das Mitglied und die Mitgliederverwaltung der Wache oder des Verbands werden rechtzeitig erinnert.
 - **Formulare mit Seiten und Verzweigungen.** Ein Formular lässt sich in Seiten aufteilen, die zur nächsten Seite, zu einer gewählten Seite weiter unten oder direkt zum Absenden führen. Eine Frage mit einer Antwort kann entscheiden, welche Seite als Nächstes kommt, und die Auswertung zeigt, wie viele eine Frage überhaupt gesehen haben.
 - **Ein Formular später fertig ausfüllen.** Ein begonnenes, nicht abgesendetes Formular bleibt erhalten und öffnet sich wieder auf der Seite, auf der es verlassen wurde, bei Formularen der Wache auf jedem Gerät, bei öffentlichen Formularen auf demselben Gerät. Es zählt erst als Antwort, wenn es abgesendet ist.
 
@@ -23,6 +23,7 @@
 
 - **Einstellungen einer Frage stehen in einem Menü.** Alles außer „Pflichtfeld" steckt im Menü in der Ecke jeder Frage, und geänderte Einstellungen stehen als Etiketten unter ihrem Titel. Neue Fragen kommen über einen Knopf am Ende jeder Seite dazu.
 - **Nach dem Absenden erscheint eine Bestätigung.** Nach dem Absenden eines Formulars der Wache bleibst du auf einer Seite, die das bestätigt, mit dem Weg zurück zu den Umfragen und, wo das Formular es erlaubt, der Möglichkeit, die Antwort zu ändern.
+- **Die Vorlage Jugendflamme bietet „Keine" an.** Die Schnellvorlage Jugendflamme legt ein Auswahlfeld mit „Keine" und den drei Stufen an, sodass jedes Mitglied genau eine Stufe hat. Das Datum, an dem die Stufe erreicht wurde, kommt wie bisher mit.
 
 ### Fehlerbehebungen
 
@@ -30,6 +31,7 @@
 - **Freiwillige Fragen konnten das Absenden verhindern.** In manchen Fällen wurde ein Formular abgelehnt, wenn eine freiwillige Auswahl- oder Bewertungsfrage leer blieb oder eine Auswahl nur mit einer eigenen Antwort beantwortet war. Solche Antworten werden jetzt angenommen.
 - **Das Mischen von Fragen und Optionen hatte keine Wirkung.** Die Einstellungen zum Mischen der Fragen eines Formulars oder der Optionen einer Frage wurden gespeichert, beim Ausfüllen aber nicht angewendet. Jetzt wird gemischt, Fragen jeweils innerhalb ihrer Seite.
 - **Exportierte Antworten waren schwer zu lesen.** Die Tabelle und das PDF der Antworten eines Formulars zeigten jede Antwort so, wie sie gespeichert ist. Jetzt steht dort der Text der gewählten Optionen.
+- **Fragen an eine Gruppe konnten im Profil fehlen.** In manchen Fällen fehlte eine Frage, die eine Wache nur einer Gruppe stellt, im Profil eines Mitglieds, wenn die Wache zu einem Verband mit eigenen Fragen gehört. Solche Fragen erscheinen jetzt immer und lassen sich beantworten.
 
 ## v26.19.5
 

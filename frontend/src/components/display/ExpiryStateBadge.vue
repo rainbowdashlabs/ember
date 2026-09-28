@@ -32,7 +32,7 @@ const reading = computed(() =>
 const words = computed(() => {
   const {state, days} = reading.value
   if (state === ExpiryStates.EXPIRED) {
-    return days === 1 ? t('expiry.expiredYesterday') : t('expiry.expiredDaysAgo', {days})
+    return days === 1 ? t('expiry.validUntilYesterday') : t('expiry.validUntilDaysAgo', {days})
   }
   if (days === 0) return t('expiry.expiresToday')
   return days === 1 ? t('expiry.expiresTomorrow') : t('expiry.expiresInDays', {days})

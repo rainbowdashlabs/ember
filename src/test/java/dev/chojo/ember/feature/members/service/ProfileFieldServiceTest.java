@@ -34,6 +34,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
@@ -895,6 +896,63 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         stationRepo.setCluster(station.id(), null);
         clusterRepo.delete(cluster.id());
         stationRepo.delete(home.id());
+    }
+
+    /**
+     * A station's question asked of a group sits on the profile beside an association's question
+     * that happens to carry the same number, because the two are numbered apart.
+     */
+    @Test
+    @Order(81)
+    void aGroupsQuestionIsKeptBesideAnAssociationsQuestionOfTheSameNumber() {
+        stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
+        var home = stationRepo.create("Träger Gleiche Nummer");
+        var cluster = clusterRepo.create("Kreisverband Gleiche Nummer", null, home.id());
+        stationRepo.setCluster(station.id(), cluster.id());
+        var crew = memberGroupRepo.create(station.id(), "Maschinisten " + member.id());
+        memberGroupRepo.addMember(crew.id(), member.id());
+        alignFieldNumbering();
+
+        var ofTheGroup = service.create(
+                station.id(), "Maschinist seit", ProfileFieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        service.assignToGroup(ofTheGroup.id(), crew.id(), 40, null, null, null);
+        var ofTheAssociation = clusterProfileFieldRepo.create(
+                cluster.id(),
+                "Funkrufname",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                false,
+                false,
+                null,
+                false,
+                false,
+                null);
+        clusterProfileFieldRepo.assignToRole(ofTheAssociation.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        assertEquals(ofTheGroup.id(), ofTheAssociation.id(), "both questions carry the same number");
+
+        var asked = service.findApplicableFields(member.id());
+
+        assertTrue(asked.stream().anyMatch(f -> f.origin() == FieldOrigin.CLUSTER && f.id() == ofTheAssociation.id()));
+        assertTrue(asked.stream().anyMatch(f -> f.origin() == FieldOrigin.STATION && f.id() == ofTheGroup.id()));
+
+        service.delete(ofTheGroup.id());
+        memberGroupRepo.delete(crew.id());
+        stationRepo.setCluster(station.id(), null);
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
+    }
+
+    /** Moves the numbering of station and association questions to the same next number. */
+    private static void alignFieldNumbering() {
+        query("""
+                SELECT
+                    setval(pg_get_serial_sequence('profile_field', 'id'), aligned.top),
+                    setval(pg_get_serial_sequence('cluster_profile_field', 'id'), aligned.top)
+                FROM
+                    (SELECT
+                         GREATEST(
+                                 nextval(pg_get_serial_sequence('profile_field', 'id')),
+                                 nextval(pg_get_serial_sequence('cluster_profile_field', 'id'))) AS top) aligned;""").single().map(row -> row.getLong(1)).first();
     }
 
     /**

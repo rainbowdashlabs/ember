@@ -149,6 +149,10 @@ public class ProfileFieldService {
      * asked at all. Those were declared, stored and shown in the configuration screen, and then
      * reached nobody, because this looked at the member's kind and never at the groups they are in.
      *
+     * <p>A field asked of a group is asked once however many of the member's groups it reaches, and
+     * not a second time where their kind is asked it too. Whether two are the same question is told by
+     * who asked as well as the id, since a station's and its association's fields are numbered apart.
+     *
      * @param memberId the member whose profile is being filled in
      * @return the fields of their kind, followed by the ones their groups are asked
      */
@@ -156,11 +160,9 @@ public class ProfileFieldService {
         var member = stationMemberRepository.findById(memberId).orElse(null);
         if (member == null) return List.of();
         List<MergedField> fields = new ArrayList<>(findMergedFields(member.stationId(), roleOf(member.userType())));
-        var seen = fields.stream().map(MergedField::id).collect(Collectors.toSet());
-        // A field asked of a group is asked once however many of that member's groups it reaches, and
-        // once more is not a second question even where their role is asked it too.
+        var seen = fields.stream().map(MergedField::key).collect(Collectors.toSet());
         for (MergedField field : fieldsOfTheirGroups(member.id(), member.stationId())) {
-            if (seen.add(field.id())) fields.add(field);
+            if (seen.add(field.key())) fields.add(field);
         }
         return fields;
     }
@@ -253,7 +255,24 @@ public class ProfileFieldService {
             boolean readonly,
             ProfileFieldScope role,
             FieldOrigin origin,
-            boolean readonlyAtStation) {}
+            boolean readonlyAtStation) {
+        /**
+         * What tells this question apart from every other one a member can be asked.
+         *
+         * @return who asked, and the id within their numbering
+         */
+        public FieldKey key() {
+            return new FieldKey(origin, id);
+        }
+    }
+
+    /**
+     * One question, named by who asked it and its id within their numbering.
+     *
+     * @param origin who asked
+     * @param id     the field
+     */
+    public record FieldKey(FieldOrigin origin, int id) {}
 
     public Optional<ProfileField> findById(int id) {
         return profileFieldRepository.findById(id);

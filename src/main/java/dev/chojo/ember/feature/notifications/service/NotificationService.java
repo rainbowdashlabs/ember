@@ -421,6 +421,24 @@ public class NotificationService {
     // cluster permissions, and that is checked where the notification is raised.
 
     /**
+     * Sends a notification to cluster members, each time it is called.
+     *
+     * <p>For news that is meant to arrive again even while an identical copy is still unread, such as a
+     * reminder repeated on a schedule.
+     *
+     * @param clusterMemberIds the cluster members to tell
+     * @param type             the notification category
+     * @param data             localized message data
+     */
+    public void notifyClusterMembers(
+            Collection<Integer> clusterMemberIds, NotificationType type, NotificationData data) {
+        requireLink(type, data);
+        for (int clusterMemberId : clusterMemberIds) {
+            notificationRepository.createForClusterMember(clusterMemberId, type, data);
+        }
+    }
+
+    /**
      * Sends a notification to cluster members, skipping any that already have the same one waiting.
      *
      * @param clusterMemberIds       the cluster members to tell

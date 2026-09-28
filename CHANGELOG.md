@@ -4,7 +4,7 @@
 
 ### New Features
 
-- **Expiry dates with reminders.** A station's or an association's profile field can hold a date that runs out, such as a first aid course or a driving licence, and the quick templates for these now use it. The member list marks it yellow when it is close and red when it has passed, and the member and the member management of the station or association are reminded ahead of time.
+- **Expiry dates with reminders.** A station's or an association's profile field can hold a date that runs out, such as a first aid course or a driving licence, and the quick templates for these now use it. It shows yellow when it is close and red when it has passed, on the member's page and, for a station's fields, in the member list, and the member and the member management of the station or association are reminded ahead of time.
 - **Forms with pages and branching.** A form can be split into pages, each leading on to the next page, to a chosen page further down or straight to sending. A single-answer question can decide which page comes next, and the results say how many readers were shown each question.
 - **Continue a form later.** A form that is started and not sent is kept, and opens again on the page where it was left, for station forms on any device and for public forms on the same device. It never counts as an answer until it is sent.
 
@@ -23,6 +23,7 @@
 
 - **Question settings move into a menu.** Settings beyond "required" sit behind the menu in the corner of each question, and changed ones show as labels under its title. New questions are added with one button at the end of each page.
 - **Sending a form shows a confirmation.** After sending a station form you stay on a screen that says so, with the way back to the forms and, where the form allows it, a way to change the answer.
+- **Jugendflamme template offers "None".** The Jugendflamme quick template adds one choice field with "None" and the three levels, so every member holds exactly one level. The date the level was reached comes with it as before.
 
 ### Fixes
 
@@ -30,6 +31,7 @@
 - **Optional questions could stop a form from being sent.** In some cases a form with an optional choice or rating question left empty, or a choice answered only in the reader's own words, was refused. Such answers are now accepted.
 - **Shuffling questions and options had no effect.** The settings to shuffle a form's questions or a question's options were saved but ignored when the form was filled in. They now shuffle, questions within each page.
 - **Exported answers were hard to read.** The spreadsheet and the PDF of a form's answers showed each answer the way it is stored. They now show the text of the chosen options.
+- **Questions for a group could be missing from a profile.** In some cases a question a station asks of one group did not appear on a member's profile when the station belongs to an association that asks questions of its own. Such questions now always appear and can be answered.
 
 ## v26.19.5
 

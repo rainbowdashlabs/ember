@@ -1475,7 +1475,8 @@ volumes:
             expiryTitle: 'Ablaufdaten',
             expiryStates: 'Ein Ablaufdatum ist gültig, läuft bald ab oder ist abgelaufen. Ab wie vielen Tagen '
                 + 'vorher es als „läuft bald ab" gilt, stellst du bei „Warnen ab" ein. Dann steht es gelb, nach '
-                + 'dem letzten gültigen Tag rot, immer mit ein paar Worten daneben. Das sieht man in der '
+                + 'dem letzten gültigen Tag rot, immer mit ein paar Worten daneben. Am Tag danach steht dort '
+                + '„gültig bis gestern", so bleibt klar, welcher Tag der letzte war. Das sieht man in der '
                 + 'Mitgliederliste, auf der Seite des Mitglieds und im eigenen Profil.',
             expiryReminders: 'Bei „Erinnerungen" legst du fest, wie viele Tage vorher eine Erinnerung '
                 + 'kommt. Am Tag nach dem letzten gültigen Tag kommt immer noch eine. Wer will, lässt sie '
