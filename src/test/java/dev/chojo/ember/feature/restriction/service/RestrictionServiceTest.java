@@ -11,6 +11,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
@@ -268,6 +269,110 @@ class RestrictionServiceTest extends RepositoryTestBase {
         assertTrue(checkFor(newsId, outsider), "a directly listed member passes without matching the group");
         assertTrue(checkFor(newsId, groupMember));
         assertFalse(checkFor(newsId, tagMember));
+    }
+
+    @Test
+    void checkRestrictionLetsEverybodyInWithoutRestrictions() {
+        int newsId = createNews("restriction-check-open");
+
+        assertTrue(checkFor(newsId, outsider));
+        assertTrue(checkFor(newsId, groupMember));
+    }
+
+    @Test
+    void checkRestrictionKeepsUnnamedMembersOutOfMemberOnlyRestrictionsInAndMode() {
+        int newsId = createNews("restriction-check-members-and");
+        restrictionService.setRestrictions(TYPE, newsId, directSelection());
+        setRestrictionMode(newsId, RestrictionMode.AND);
+
+        assertTrue(checkFor(newsId, directMember), "the named member gets in");
+        assertFalse(checkFor(newsId, outsider), "a member nobody named stays out");
+        assertFalse(checkFor(newsId, bothMember), "groups and tags do not matter when none are named");
+    }
+
+    @Test
+    void checkRestrictionKeepsUnnamedMembersOutOfMemberOnlyRestrictionsInOrMode() {
+        int newsId = createNews("restriction-check-members-or");
+        restrictionService.setRestrictions(TYPE, newsId, directSelection());
+        setRestrictionMode(newsId, RestrictionMode.OR);
+
+        assertTrue(checkFor(newsId, directMember));
+        assertFalse(checkFor(newsId, outsider));
+    }
+
+    @Test
+    void checkRestrictionCombinesNamedMembersWithAGroupInEitherMode() {
+        int newsId = createNews("restriction-check-members-group");
+        restrictionService.setRestrictions(
+                TYPE,
+                newsId,
+                new RestrictionSelection(
+                        List.of(), List.of(group.id()), List.of(), List.of(directMember.id()), RestrictionMode.AND));
+
+        for (var mode : RestrictionMode.values()) {
+            setRestrictionMode(newsId, mode);
+            assertTrue(checkFor(newsId, directMember), "named member in " + mode);
+            assertTrue(checkFor(newsId, groupMember), "group member in " + mode);
+            assertFalse(checkFor(newsId, tagMember), "neither named nor in the group in " + mode);
+        }
+    }
+
+    @Test
+    void checkRestrictionRequiresUserTypeAndGroupTogetherInAndMode() {
+        int newsId = createNews("restriction-check-type-group");
+        restrictionService.setRestrictions(
+                TYPE,
+                newsId,
+                new RestrictionSelection(
+                        List.of(StationUserType.TEAM), List.of(group.id()), List.of(), List.of(), RestrictionMode.AND));
+        setRestrictionMode(newsId, RestrictionMode.AND);
+
+        assertFalse(checkFor(newsId, typeMember), "AND requires the group as well");
+        assertFalse(checkFor(newsId, groupMember), "AND requires the user type as well");
+
+        setRestrictionMode(newsId, RestrictionMode.OR);
+
+        assertTrue(checkFor(newsId, typeMember));
+        assertTrue(checkFor(newsId, groupMember));
+        assertFalse(checkFor(newsId, tagMember));
+    }
+
+    @Test
+    void formRestrictedToOneMemberIsListedOnlyForThatMemberAndItsManagers() {
+        var pollManager = createMember("restriction-poll-manager@test.com");
+        var pollManagerPermission = stationMemberRepo
+                .findPermissionByName(StationPermission.POLL_MANAGER)
+                .orElseThrow();
+        stationMemberRepo.grantPermission(pollManager.id(), pollManagerPermission.id());
+        var form = formRepo.create(
+                station.id(),
+                "Named only",
+                "x",
+                false,
+                true,
+                false,
+                null,
+                null,
+                directMember.id(),
+                FormPurpose.INTERNAL);
+        restrictionService.setRestrictions(RestrictionType.FORM, form.id(), directSelection());
+
+        for (var mode : RestrictionMode.values()) {
+            formRepo.updateRestrictionMode(form.id(), mode);
+            assertTrue(listsForm(form.id(), directMember), "the named member sees it in " + mode);
+            assertTrue(listsForm(form.id(), pollManager), "a manager sees it in " + mode);
+            assertFalse(listsForm(form.id(), outsider), "an unnamed member does not see it in " + mode);
+        }
+    }
+
+    private static boolean listsForm(int formId, StationMember member) {
+        return formRepo.findByStationForMember(station.id(), member.id()).stream()
+                .anyMatch(form -> form.id() == formId);
+    }
+
+    private static RestrictionSelection directSelection() {
+        return new RestrictionSelection(
+                List.of(), List.of(), List.of(), List.of(directMember.id()), RestrictionMode.AND);
     }
 
     private static boolean checkFor(int newsId, StationMember member) {

@@ -14,6 +14,10 @@
 - **Fragen und Seiten per Ziehen sortieren.** Fragen werden innerhalb einer Seite und zwischen Seiten gezogen, Seiten als Ganzes. Geänderte Fragen gehen nicht mehr verloren, wenn der Editor vor dem Speichern verlassen wird: Ember fragt vorher nach und bietet sie beim nächsten Öffnen wieder an.
 - **Fehler zeigen auf die Frage.** Lassen sich Antworten nicht absenden, öffnet das Formular die Seite mit dem Problem und markiert jede betroffene Frage.
 
+### Sicherheit
+
+- **Einträge nur für benannte Personen waren für die ganze Wache sichtbar.** Ein Formular, ein Termin, ein Blog-Beitrag oder ein Quiz, das auf eine Liste benannter Mitglieder beschränkt war, wurde jedem Mitglied der Wache angezeigt. Jetzt sehen es nur die benannten Personen und diejenigen, die es verwalten.
+
 ### Änderungen
 
 - **Einstellungen einer Frage stehen in einem Menü.** Alles außer „Pflichtfeld" steckt im Menü in der Ecke jeder Frage, und geänderte Einstellungen stehen als Etiketten unter ihrem Titel. Neue Fragen kommen über einen Knopf am Ende jeder Seite dazu.
