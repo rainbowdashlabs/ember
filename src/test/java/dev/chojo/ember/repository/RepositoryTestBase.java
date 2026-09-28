@@ -206,7 +206,7 @@ public abstract class RepositoryTestBase {
      * class). From {@code @BeforeAll} a failure fails only the current class and the next one
      * retries the start.
      */
-    static final PostgreSQLContainer PG = new PostgreSQLContainer("postgres:17")
+    static final PostgreSQLContainer PG = new PostgreSQLContainer(TestContainers.POSTGRES_IMAGE)
             .withDatabaseName("ember_test")
             .withUsername("test")
             .withPassword("test")

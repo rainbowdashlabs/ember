@@ -578,13 +578,13 @@ export default {
                 dockerText: 'Ember besteht aus zwei Containern: dem Backend (Java API) und dem Frontend (Nuxt SSR). Der einfachste Weg ist Docker Compose. Das folgende Beispiel enthält Traefik-Labels für automatisches HTTPS:',
                 dockerCompose: `services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: ember
       POSTGRES_USER: ember
       POSTGRES_PASSWORD: sicher-aendern
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ember"]
       interval: 5s

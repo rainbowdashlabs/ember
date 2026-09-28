@@ -37,7 +37,7 @@ import static org.mockito.Mockito.mock;
 class QuizPdfExportTest {
     private static final String SCHEMA = "ember";
 
-    static final PostgreSQLContainer PG = new PostgreSQLContainer("postgres:17")
+    static final PostgreSQLContainer PG = new PostgreSQLContainer(TestContainers.POSTGRES_IMAGE)
             .withDatabaseName("ember_test")
             .withUsername("test")
             .withPassword("test")
