@@ -86,7 +86,9 @@ test.describe('Public pages without JavaScript', () => {
      * never see one.
      *
      * The link is asked for over plain HTTP rather than through the application, because this
-     * project runs with scripts switched off and cannot press a button to get one.
+     * project runs with scripts switched off and cannot press a button to get one. It is the seeded
+     * survey of one page, not the newest one: other stories make surveys of several pages while this
+     * one runs, and their first page offers to go on rather than to send.
      */
     test('a survey sent by link carries its questions and refuses to be indexed', async ({page, request}) => {
         const manager = (await cast()).manager
@@ -94,9 +96,14 @@ test.describe('Public pages without JavaScript', () => {
         const headers = {Authorization: `Bearer ${session.token}`, ...(manager.stationId ? {'X-Station-Id': manager.stationId} : {})}
 
         const polls = await (await request.get('/api/v1/forms?purpose=POLL', {headers})).json()
-        const link = await (await request.get(`/api/v1/forms/${polls[0].id}/share-link`, {headers})).json()
+        const poll = polls.find((p: {title: string}) => p.title.includes('Aktivität')) ?? polls[polls.length - 1]
+        const existing = await (await request.get(`/api/v1/forms/${poll.id}/share-link`, {headers})).json()
+        const token = existing.token ?? (await (await request.post(`/api/v1/forms/${poll.id}/share-link`, {
+            headers,
+            data: {currentToken: null},
+        })).json()).token
 
-        await visit(page, `/f/${link.token}`)
+        await visit(page, `/f/${token}`)
 
         await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/)
         await expect(page.getByRole('button', {name: 'Absenden'})).toBeVisible()
