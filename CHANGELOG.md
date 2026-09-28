@@ -1,5 +1,19 @@
 # Changelog
 
+## v26.19.5
+
+### New Features
+
+- **The installer can keep Ember up to date.** On request it sets up a cron job that pulls the newest version every hour, restarts Ember with it and removes the image it replaced, and the install page offers the same as a switch. The hosting help page shows the line for setting it up by hand.
+
+### Security
+
+- **Daily figures no longer reveal which instance sent them.** The counts reported to a beacon were signed with the instance's key, so a beacon could tell which instance they came from. They are now sent unsigned, as the beacon settings always promised.
+
+### Fixes
+
+- **Search could miss words after a database upgrade.** In some cases, after PostgreSQL moved to a new major version, searches in the wiki, documents and boards no longer found words such as those written with "ae", "oe" or "ue". Ember now builds its search indexes again on the first start after such an upgrade.
+
 ## v26.19.4
 
 ### Improvements

@@ -570,6 +570,17 @@ public class BoardTicketRepository {
                 .all();
     }
 
+    /**
+     * Makes the database compute every ticket's search vector again, which a new major version needs
+     * when it stems words differently. The vector is a generated column, and writing a row is what
+     * recomputes it; nothing the reader sees changes.
+     *
+     * @return how many tickets were indexed again
+     */
+    public int rebuildSearchVectors() {
+        return query("UPDATE board_ticket SET title = title;").single().update().rows();
+    }
+
     // -- Field values --
 
     public List<BoardTicketFieldValue> findFieldValues(int ticketId) {

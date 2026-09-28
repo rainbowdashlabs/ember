@@ -131,6 +131,32 @@ public class DocumentService {
         repository.updateSearchIndex(documentId, text, searchConfigOf(stationId));
     }
 
+    /**
+     * Builds the search index of every document again, which a new major version of the database
+     * needs when it stems words differently.
+     *
+     * <p>A document indexed before its source text was kept has its file read once more, which also
+     * keeps the text from then on. After that every document is rebuilt from its kept text alone,
+     * one statement per station, since that is the unit that decides the language.
+     *
+     * @return how many documents were indexed again
+     */
+    public int rebuildSearchIndex() {
+        for (var document : repository.findWithoutSourceText()) {
+            var data = read(document);
+            if (data.isEmpty()) {
+                log.warn("Document {} could not be read back for its search index", document.id());
+                continue;
+            }
+            index(document.id(), document.stationId(), document.title(), document.mimeType(), data.get());
+        }
+        int rebuilt = 0;
+        for (int stationId : repository.stationsWithSourceText()) {
+            rebuilt += repository.rebuildSearchIndex(stationId, searchConfigOf(stationId));
+        }
+        return rebuilt;
+    }
+
     /** The language a station writes in, which is what its documents are stemmed by. */
     public String searchConfigOf(int stationId) {
         return stationRepository

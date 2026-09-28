@@ -9,11 +9,9 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MailingProviderExample from './mailinghelp/MailingProviderExample.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
@@ -47,54 +45,14 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.adminMailing.webhookKeyText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Mailing config form -->
     <HelpSection :title="t('helpCenter.adminMailing.exampleTitle')">
-      <NeutralContainer class="space-y-4">
-        <SectionHeader>{{ t('adminSettings.mailing.title') }}</SectionHeader>
+      <MailingProviderExample/>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <FieldLabel class="mb-1">{{ t('mailChain.provider') }}</FieldLabel>
-            <SelectInput :model-value="'SMTP'" class="w-full">
-              <option value="SMTP">SMTP</option>
-              <option value="RAPIDMAIL">RAPIDMAIL</option>
-              <option value="TWILIO">TWILIO</option>
-              <option value="SWEEGO">SWEEGO</option>
-              <option value="BREVO">BREVO</option>
-            </SelectInput>
-          </div>
-          <div>
-            <FieldLabel class="mb-1">{{ t('mailChain.senderAddress') }}</FieldLabel>
-            <TextInput :model-value="'noreply@beispiel.de'" />
-          </div>
-          <div>
-            <FieldLabel class="mb-1">{{ t('mailChain.senderName') }}</FieldLabel>
-            <TextInput :model-value="'DLRG Plattform'" />
-          </div>
-          <div>
-            <FieldLabel class="mb-1">{{ t('mailChain.apiKey') }}</FieldLabel>
-            <TextInput :model-value="'••••••••'" />
-          </div>
-          <div>
-            <FieldLabel class="mb-1">{{ t('mailChain.attempts') }}</FieldLabel>
-            <NumberInput :model-value="2" />
-            <MutedText tag="div" class="mt-1">{{ t('mailChain.attemptsHint') }}</MutedText>
-          </div>
-          <div>
-            <FieldLabel class="mb-1">{{ t('mailChain.dailyLimit') }}</FieldLabel>
-            <NumberInput :model-value="300" />
-            <MutedText tag="div" class="mt-1">{{ t('mailChain.dailyLimitHint') }}</MutedText>
-          </div>
-          <div>
-            <FieldLabel class="mb-1">{{ t('adminSettings.mailing.digestInterval') }}</FieldLabel>
-            <NumberInput :model-value="60" />
-            <MutedText tag="div" class="mt-1">{{ t('adminSettings.mailing.digestIntervalHint') }}</MutedText>
-          </div>
-        </div>
-
-        <div class="flex justify-end">
-          <PrimaryButton>{{ t('adminSettings.legal.save') }}</PrimaryButton>
-        </div>
+      <NeutralContainer class="space-y-2 mt-4">
+        <SectionHeader>{{ t('adminSettings.mailing.instanceTitle') }}</SectionHeader>
+        <FieldLabel>{{ t('adminSettings.mailing.digestInterval') }}</FieldLabel>
+        <NumberInput :model-value="60" />
+        <MutedText tag="div">{{ t('adminSettings.mailing.digestIntervalHint') }}</MutedText>
       </NeutralContainer>
     </HelpSection>
 

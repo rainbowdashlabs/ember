@@ -429,7 +429,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     void searchFederatedKbFindsOnlyWhatAPartnerShares() {
         var file = createFile(stationB.id(), "Loeschangriff");
         knowledgeBaseRepo.storeTextContent(file.id(), "Ablauf beim Loeschangriff");
-        knowledgeBaseRepo.updateSearchIndex(file.id(), "Loeschangriff Ablauf", "simple");
+        knowledgeBaseRepo.updateSearchIndex(file.id(), "Loeschangriff Ablauf", "german");
         var folder = knowledgeBaseRepo.createFolder(stationB.id(), null, "Interner Ablauf", "", member.id());
         var kept = knowledgeBaseRepo.createFile(
                 stationB.id(),
@@ -441,7 +441,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 0,
                 null,
                 member.id());
-        knowledgeBaseRepo.updateSearchIndex(kept.id(), "Loeschangriff intern", "simple");
+        knowledgeBaseRepo.updateSearchIndex(kept.id(), "Loeschangriff intern", "german");
 
         assertTrue(service.searchFederatedKb(station.id(), "Loeschangriff").isEmpty());
 
@@ -717,9 +717,9 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 0,
                 null,
                 member.id());
-        knowledgeBaseRepo.updateSearchIndex(shared.id(), "Atemschutz", "simple");
-        knowledgeBaseRepo.updateSearchIndex(unshared.id(), "Atemschutz", "simple");
-        knowledgeBaseRepo.updateSearchIndex(inFolder.id(), "Atemschutz", "simple");
+        knowledgeBaseRepo.updateSearchIndex(shared.id(), "Atemschutz", "german");
+        knowledgeBaseRepo.updateSearchIndex(unshared.id(), "Atemschutz", "german");
+        knowledgeBaseRepo.updateSearchIndex(inFolder.id(), "Atemschutz", "german");
         var share = federationRepo.createKbShare(station.id(), shared.id(), null, ShareScope.ALL_PARTNERS);
 
         var results = service.searchForPartner(requestingPartner, "Atemschutz");
@@ -747,7 +747,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(42)
     void searchForPartnerHonoursTheStationsAnEntryNames() {
         var aimed = createFile(station.id(), "Kettensaege");
-        knowledgeBaseRepo.updateSearchIndex(aimed.id(), "Kettensaege", "simple");
+        knowledgeBaseRepo.updateSearchIndex(aimed.id(), "Kettensaege", "german");
         var share = federationService.createKbShare(station.id(), aimed.id(), null, ShareScope.SPECIFIC, List.of());
 
         assertTrue(service.searchForPartner(requestingPartner, "Kettensaege").stream()

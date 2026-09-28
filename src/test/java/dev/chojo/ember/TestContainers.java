@@ -31,6 +31,13 @@ import java.nio.file.StandardOpenOption;
  * disabled for the test tasks and the shutdown hook registered here stops the container instead.
  */
 public final class TestContainers {
+    /**
+     * The PostgreSQL image every test database runs: the one the compose files and the installer
+     * ship, so a test never passes against a server no installation has. Renovate updates it
+     * together with those.
+     */
+    public static final String POSTGRES_IMAGE = "postgres:18-alpine";
+
     private static final Path LOCK_FILE =
             Path.of(System.getProperty("java.io.tmpdir"), "ember-testcontainer-start.lock");
     private static final Object JVM_LOCK = new Object();

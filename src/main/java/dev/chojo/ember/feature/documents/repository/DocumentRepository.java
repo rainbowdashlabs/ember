@@ -144,11 +144,55 @@ public class DocumentRepository {
      */
     public void updateSearchIndex(int documentId, String plainText, String tsConfig) {
         query("""
-                INSERT INTO member_document_search(document_id, search_text)
-                VALUES (:document_id, %s)
-                ON CONFLICT (document_id) DO UPDATE SET search_text = excluded.search_text;""", FullTextSearch.vector(tsConfig, "text"))
+                INSERT INTO member_document_search(document_id, search_text, source_text)
+                VALUES (:document_id, %s, :text)
+                ON CONFLICT (document_id) DO UPDATE
+                    SET search_text = excluded.search_text,
+                        source_text = excluded.source_text;""", FullTextSearch.vector(tsConfig, "text"))
                 .single(call().bind("document_id", documentId).bind("text", plainText))
                 .insert();
+    }
+
+    /**
+     * The documents whose index was built before its source text was kept, and which can therefore
+     * only be rebuilt by reading the file again.
+     */
+    public List<Document> findWithoutSourceText() {
+        return query("""
+                SELECT %s
+                FROM member_document d
+                    LEFT JOIN member_document_search s
+                    ON s.document_id = d.id
+                WHERE s.source_text IS NULL;""", JOINED_COLUMNS).single().map(Document.map()).all();
+    }
+
+    /** The stations that hold at least one document with a kept source text. */
+    public List<Integer> stationsWithSourceText() {
+        return query("""
+                SELECT DISTINCT d.station_id
+                FROM member_document d
+                    JOIN member_document_search s
+                    ON s.document_id = d.id
+                WHERE s.source_text IS NOT NULL;""").single().map(row -> row.getInt("station_id")).all();
+    }
+
+    /**
+     * Builds the search index of a station's documents again from the text it was built from, which
+     * is what a new major version of the database needs when it stems words differently.
+     *
+     * @return how many documents were indexed again
+     */
+    public int rebuildSearchIndex(int stationId, String tsConfig) {
+        return query("""
+                UPDATE member_document_search s
+                SET search_text = to_tsvector('%s', s.source_text)
+                FROM member_document d
+                WHERE d.id = s.document_id
+                  AND d.station_id = :station_id
+                  AND s.source_text IS NOT NULL;""", FullTextSearch.config(tsConfig))
+                .single(call().bind("station_id", stationId))
+                .update()
+                .rows();
     }
 
     /**

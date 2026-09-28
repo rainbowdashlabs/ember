@@ -50,15 +50,42 @@ ask() {
     printf '%s' "${answer:-$default}"
 }
 
-ask_yes_no() {
-    local prompt="$1" default="$2" answer
-    answer=$(ask "$prompt (y/n)" "$default")
-    # German answers are taken as well: the pages are German and whoever installs this may answer
-    # the way they read.
-    case "${answer,,}" in
+# German answers are taken as well: the pages are German and whoever installs this may answer
+# the way they read.
+is_yes() {
+    case "${1,,}" in
         y | yes | j | ja | true | 1) return 0 ;;
         *) return 1 ;;
     esac
+}
+
+ask_yes_no() {
+    local prompt="$1" default="$2"
+    is_yes "$(ask "$prompt (y/n)" "$default")"
+}
+
+# Adds the cron line that pulls and restarts this installation on the given schedule, replacing the
+# one an earlier run of the installer left for the same directory rather than adding a second.
+# The image an update replaced is left behind untagged, one per release, so the line clears those
+# away after the restart. Only Ember's own are removed, found by the source label they carry, and
+# never one a container still uses. The output of the last run is kept in update.log, and only the
+# last: enough to see why an update did not happen, without a file that grows by the hour.
+install_update_cron() {
+    local compose="docker compose -f '$COMPOSE_FILE'"
+    local prune="docker image prune -f --filter label=org.opencontainers.image.source=https://github.com/rainbowdashlabs/ember"
+    local line="$1 cd '$PWD' && ($compose pull -q && $compose up -d && $prune) > update.log 2>&1"
+    local marker="# ember auto-update $PWD"
+    if ! command -v crontab > /dev/null 2>&1; then
+        warn "There is no crontab here, so no cron job was set up. The line to add by hand:"
+        say "  $line"
+        return
+    fi
+    if { crontab -l 2> /dev/null | grep -vF "$marker" || true; printf '%s %s\n' "$line" "$marker"; } | crontab -; then
+        say "  crontab: $line"
+    else
+        warn "The cron job could not be written. The line to add by hand:"
+        say "  $line"
+    fi
 }
 
 ask_choice() {
@@ -299,6 +326,22 @@ if [ -z "$BEHIND_CLOUDFLARE" ]; then
     fi
 fi
 
+AUTO_UPDATE_SCHEDULE="${EMBER_AUTO_UPDATE_SCHEDULE:-0 * * * *}"
+if [ -n "${EMBER_AUTO_UPDATE:-}" ]; then
+    is_yes "$EMBER_AUTO_UPDATE" && AUTO_UPDATE=1 || AUTO_UPDATE=0
+elif ask_yes_no "Pull new versions every hour with a cron job?" "n"; then
+    AUTO_UPDATE=1
+else
+    AUTO_UPDATE=0
+fi
+if [ "$AUTO_UPDATE" = 1 ] && [[ "$EMBER_TAG" =~ ^v?[0-9]+(\.[0-9]+)+$ ]]; then
+    warn "Version $EMBER_TAG is fixed, so the cron job will never find anything newer. Use latest for that."
+fi
+if [ "$AUTO_UPDATE" = 1 ] && [[ "$PWD$COMPOSE_FILE" == *[\'%]* ]]; then
+    warn "The path contains a ' or a %, which a cron line cannot carry. No cron job is set up."
+    AUTO_UPDATE=0
+fi
+
 step "Where things are kept"
 
 say "${DIM}The configuration and the uploaded files sit as directories next to this file, so that a"
@@ -486,6 +529,7 @@ YAML
     fi
 } > "$COMPOSE_FILE"
 say "  $COMPOSE_FILE"
+[ "$AUTO_UPDATE" = 1 ] && install_update_cron "$AUTO_UPDATE_SCHEDULE"
 
 # --- Up ------------------------------------------------------------------------------------------
 
@@ -540,6 +584,7 @@ fi
 say "  Open:      ${BOLD}$BASE_URL${OFF}"
 say "  Stop:      docker compose -f $COMPOSE_FILE down"
 say "  Logs:      docker compose -f $COMPOSE_FILE logs -f"
+[ "$AUTO_UPDATE" = 1 ] && say "  Updates:   by cron at '$AUTO_UPDATE_SCHEDULE', last run in update.log (crontab -e to change)"
 say ""
 say "${DIM}  The logs follow now. Ctrl+C stops watching them, not the containers.${OFF}"
 say ""

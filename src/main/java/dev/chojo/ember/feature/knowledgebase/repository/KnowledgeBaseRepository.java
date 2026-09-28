@@ -559,6 +559,14 @@ public class KnowledgeBaseRepository {
                 .insert();
     }
 
+    /** Every file that has a search index, whichever station it belongs to. */
+    public List<Integer> indexedFileIds() {
+        return query("SELECT file_id FROM kb_search_index ORDER BY file_id;")
+                .single()
+                .map(row -> row.getInt("file_id"))
+                .all();
+    }
+
     /**
      * The best-ranked matches in a station, up to the given number.
      *

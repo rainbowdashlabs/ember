@@ -94,8 +94,8 @@ const requirements = [
       <p>{{ t('helpCenter.basics.hosting.dataDirText') }}</p>
       <BulletList>
         <li><code>data/documents/</code> - {{ t('helpCenter.basics.hosting.dataLegal') }}</li>
-        <li><code>data/station/&lt;id&gt;/</code> - {{ t('helpCenter.basics.hosting.dataStation') }}</li>
-        <li><code>data/account/&lt;id&gt;/</code> - {{ t('helpCenter.basics.hosting.dataAccount') }}</li>
+        <li><code>data/station/&lt;uuid&gt;/</code> - {{ t('helpCenter.basics.hosting.dataStation') }}</li>
+        <li><code>data/account/&lt;uuid&gt;/</code> - {{ t('helpCenter.basics.hosting.dataAccount') }}</li>
         <li><code>data/inst/</code> - {{ t('helpCenter.basics.hosting.dataInst') }}</li>
         <li><code>data/discovery/</code> - {{ t('helpCenter.basics.hosting.dataDiscovery') }}</li>
         <li><code>data/maps/</code> - {{ t('helpCenter.basics.hosting.dataMaps') }}</li>
@@ -109,7 +109,6 @@ const requirements = [
       <BulletList>
         <li>{{ t('helpCenter.basics.hosting.proxy1') }}</li>
         <li>{{ t('helpCenter.basics.hosting.proxy2') }}</li>
-        <li>{{ t('helpCenter.basics.hosting.proxy3') }}</li>
       </BulletList>
     </HelpSection>
 
@@ -121,6 +120,14 @@ const requirements = [
     <HelpSection :title="t('helpCenter.basics.hosting.updates')">
       <p>{{ t('helpCenter.basics.hosting.updatesText') }}</p>
       <p>{{ t('helpCenter.basics.hosting.updatesText2') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.basics.hosting.autoUpdate')">
+      <p>{{ t('helpCenter.basics.hosting.autoUpdateText') }}</p>
+      <NeutralContainer class="p-4 mt-3 font-mono text-xs break-all bg-(--bg-accent)">
+        {{ t('helpCenter.basics.hosting.autoUpdateCron') }}
+      </NeutralContainer>
+      <p class="mt-3">{{ t('helpCenter.basics.hosting.autoUpdateText2') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.hosting.backups')">
