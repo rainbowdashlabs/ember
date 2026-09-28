@@ -7241,6 +7241,13 @@ export default {
             submit: 'Formular absenden',
             unreached: 'Kein Weg führt hierher',
         },
+        preview: {
+            toggle: 'Vorschau',
+            path: 'Weg bisher: {path}',
+            sent: 'Absenden',
+            startOver: 'Von vorn',
+            nothingSent: 'Hier würde das Formular abgesendet. In der Vorschau wird nichts gespeichert.',
+        },
         branch: {
             question: 'Eine Antwort entscheidet, wie es weitergeht',
             none: 'Keine, alle gehen gleich weiter',

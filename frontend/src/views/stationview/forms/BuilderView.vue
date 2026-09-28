@@ -17,7 +17,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import InstantSaveNotice from '@/components/feedback/InstantSaveNotice.vue'
 import FormShareLink from '@/components/public/FormShareLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import FormPagesEditor from './builderview/pages/FormPagesEditor.vue'
+import FormQuestionsSection from './builderview/FormQuestionsSection.vue'
 import FormMetadataEditor from './builderview/FormMetadataEditor.vue'
 import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
@@ -384,7 +384,7 @@ async function save() {
 
         <ContentDraftBanner v-if="unsaved.offered.value" :saved-at="unsaved.offered.value.savedAt"
                             @restore="unsaved.restore()" @discard="unsaved.discard()"/>
-        <FormPagesEditor :layout="layout" :question-types="questionTypes"/>
+        <FormQuestionsSection :layout="layout" :question-types="questionTypes"/>
 
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="router.push({ name: returnRouteName })">{{ t('common.cancel') }}</SecondaryButton>

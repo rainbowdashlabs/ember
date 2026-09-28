@@ -7,8 +7,8 @@ import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { publicForms } from '@/api'
 import { PublicFormState, type PublicForm, type PublicFormQuestion } from '@/api/publicForms'
-import type { ChoiceAnswer } from '@/api/forms'
-import { emptyAnswer, type AnswerValue } from '@/util/formAnswers'
+import type { AnswerValue } from '@/util/formAnswers'
+import { usePublicAnswers } from '@/composables/usePublicAnswers'
 import { presentQuestions } from '@/util/formShuffle'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useFormWalk } from '@/composables/useFormWalk'
@@ -44,7 +44,7 @@ export function usePublicFormSubmission(
   const { t } = useI18n()
 
   const form = ref<PublicForm | null>(null)
-  const answers = ref<Record<number, AnswerValue>>({})
+  const {answers, reset: initAnswerDefaults, toggleChoice, updateText, updateDate} = usePublicAnswers()
   const loading = ref(false)
   const loadFailure = ref<Failure | null>(null)
   const submitted = ref(false)
@@ -58,13 +58,6 @@ export function usePublicFormSubmission(
   const pages = computed(() => form.value?.pages ?? [])
   const questions = computed(() => form.value?.questions ?? [])
   const walk = useFormWalk(pages, questions, answers, question => question.questionType)
-
-  /** Every question starts with an answer of the shape the server expects. */
-  function initAnswerDefaults(list: PublicFormQuestion[]) {
-    const defaults: Record<number, AnswerValue> = {}
-    for (const q of list) defaults[q.id] = emptyAnswer(q.questionType, q.config)
-    answers.value = defaults
-  }
 
   /** The form with its questions in the order this reader gets them. */
   function presented(data: PublicForm): PublicForm {
@@ -136,35 +129,6 @@ export function usePublicFormSubmission(
       guidance: t('publicForm.notFoundGuidance'),
       reportable: false,
     }
-  }
-
-  /**
-   * Selects the option with this key. A single-select question also clears the free-text "other"
-   * answer, since picking a listed option replaces it; an empty key, which the dropdown's blank entry
-   * sends, clears the choice.
-   */
-  function toggleChoice(q: PublicFormQuestion, optionKey: string) {
-    const answer = answers.value[q.id] as ChoiceAnswer
-    if (!optionKey) {
-      answer.selected = []
-      return
-    }
-    if (!q.config.multiSelect) {
-      answer.selected = [optionKey]
-      answer.other = ''
-      return
-    }
-    const existing = answer.selected.indexOf(optionKey)
-    if (existing >= 0) answer.selected.splice(existing, 1)
-    else answer.selected.push(optionKey)
-  }
-
-  function updateText(q: PublicFormQuestion, text: string) {
-    (answers.value[q.id] as {text: string}).text = text
-  }
-
-  function updateDate(q: PublicFormQuestion, date: string) {
-    (answers.value[q.id] as {date: string}).date = date
   }
 
   /** A form that is not taking answers shows why and offers nothing to fill in. */
