@@ -6,6 +6,10 @@
 
 - **Der Installer hält Ember auf Wunsch aktuell.** Er richtet einen Cronjob ein, der jede Stunde die neueste Version holt, Ember damit neu startet und das abgelöste Image entfernt, und die Installationsseite bietet dasselbe als Schalter an. Die Hilfeseite zum Hosting zeigt die Zeile, um es von Hand einzurichten.
 
+### Sicherheit
+
+- **Die täglichen Zahlen verraten nicht mehr, von welcher Instanz sie kommen.** Die an einen Beacon gemeldeten Zahlen waren mit dem Schlüssel der Instanz signiert, sodass der Beacon den Absender erkennen konnte. Sie werden jetzt unsigniert gesendet, wie es die Beacon-Einstellungen immer versprochen haben.
+
 ## v26.19.4
 
 ### Verbesserungen
