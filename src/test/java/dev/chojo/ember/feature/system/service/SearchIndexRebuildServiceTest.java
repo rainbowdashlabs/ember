@@ -31,9 +31,12 @@ import java.util.List;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * The search indexes are built again when the database has moved to another major version, and not
@@ -146,5 +149,45 @@ class SearchIndexRebuildServiceTest extends RepositoryTestBase {
 
         assertTrue(service.rebuildIfNeeded());
         assertFalse(service.rebuildIfNeeded(), "the second start on the new version should do nothing");
+    }
+
+    /** The background run records the version like the direct one does. */
+    @Test
+    @Order(5)
+    void theBackgroundRunRecordsTheVersion() {
+        applicationSettingRepo.set(SearchIndexRebuildService.BUILT_ON_KEY, "");
+
+        service.rebuildInBackground();
+
+        assertEquals(
+                currentMajor,
+                applicationSettingRepo
+                        .get(SearchIndexRebuildService.BUILT_ON_KEY)
+                        .orElseThrow());
+    }
+
+    /**
+     * A failure on the background thread is written down rather than thrown, and records nothing, so
+     * the next start tries again.
+     */
+    @Test
+    @Order(6)
+    void aFailedBackgroundRunRecordsNothing() {
+        var failingServer = mock(DatabaseServerRepository.class);
+        when(failingServer.majorVersion()).thenThrow(new IllegalStateException("no database"));
+        var failing = new SearchIndexRebuildService(
+                applicationSettingRepo,
+                failingServer,
+                new KbSearchService(knowledgeBaseRepo, stationRepo),
+                documents,
+                boardTicketRepo);
+        applicationSettingRepo.set(SearchIndexRebuildService.BUILT_ON_KEY, "");
+
+        assertDoesNotThrow(failing::rebuildInBackground);
+        assertEquals(
+                "",
+                applicationSettingRepo
+                        .get(SearchIndexRebuildService.BUILT_ON_KEY)
+                        .orElseThrow());
     }
 }
