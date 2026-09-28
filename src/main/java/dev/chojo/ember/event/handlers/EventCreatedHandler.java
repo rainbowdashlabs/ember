@@ -52,10 +52,6 @@ public class EventCreatedHandler implements DomainEventHandler<EventCreated> {
 
         var viewers =
                 restrictionService.findMembersPassingRestriction(RestrictionType.EVENT_VIEW, e.id(), event.stationId());
-        if (viewers.isEmpty()) {
-            notificationService.notifyStation(event.stationId(), NotificationType.NEW_EVENT, data);
-            return;
-        }
-        notificationService.notifyMembers(viewers, NotificationType.NEW_EVENT, data);
+        notificationService.notifyAudience(event.stationId(), viewers, NotificationType.NEW_EVENT, data);
     }
 }

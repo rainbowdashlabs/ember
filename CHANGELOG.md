@@ -14,6 +14,11 @@
 - **Reorder questions and pages by dragging.** Questions are dragged within a page and between pages, and pages as a whole. Changed questions are no longer lost when the editor is left before saving: leaving asks first, and reopening offers them back.
 - **Errors point at the question.** When answers cannot be sent, the form opens the page with the problem and marks each question it is about.
 
+### Security
+
+- **Entries meant for named people only were visible to the whole station.** A form, appointment, blog entry or quiz restricted to a list of named members was shown to every member of the station. It is now shown only to the people named, and to those who manage it.
+- **Notices about restricted entries reached people who could not open them.** In some cases the notice about a new form, appointment or blog entry went to members outside its audience and showed its title. It now reaches only the members who may open the entry.
+
 ### Changes
 
 - **Question settings move into a menu.** Settings beyond "required" sit behind the menu in the corner of each question, and changed ones show as labels under its title. New questions are added with one button at the end of each page.
