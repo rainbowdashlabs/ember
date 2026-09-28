@@ -168,7 +168,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var fieldGeburtstag = askOf(
                 stationId,
                 "Geburtstag",
-                ProfileFieldType.DATE,
+                ProfileFieldType.BIRTH_DATE,
                 "{\"overview\":true}",
                 true,
                 ProfileFieldScope.MEMBER,

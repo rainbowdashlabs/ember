@@ -33,6 +33,9 @@ import java.util.List;
  * @param sourceFieldId  the question a computed field counts from. Preferred over the name, because
  *                       renaming a question used to leave the age counting from nothing
  * @param ageMode        the age calculation mode (e.g. for AGE-type fields)
+ * @param showAge        whether a date of birth is shown with the age it makes. Only a switched off
+ *                       age is written down, so a missing value means shown, which is what every
+ *                       date of birth saved before there was a switch still does
  */
 public record ProfileFieldConfig(
         String description,
@@ -43,9 +46,10 @@ public record ProfileFieldConfig(
         boolean computed,
         String sourceField,
         Integer sourceFieldId,
-        String ageMode) {
+        String ageMode,
+        Boolean showAge) {
     private static final ProfileFieldConfig EMPTY =
-            new ProfileFieldConfig(null, false, false, null, null, false, null, null, null);
+            new ProfileFieldConfig(null, false, false, null, null, false, null, null, null, null);
 
     /**
      * The settings of a field that names none.

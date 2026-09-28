@@ -6,12 +6,27 @@
 import type {ProfileFieldConfig} from '@/api/profileFields'
 
 /**
+ * One question a template writes down.
+ *
+ * <p>Whether an answer is expected and whether only the member management may write it belong to the
+ * field itself, not to its settings: the server reads the settings strictly and refuses a key they do
+ * not name.
+ */
+export interface TemplateField {
+  name: string
+  fieldType: string
+  config: ProfileFieldConfig
+  required?: boolean
+  readonly?: boolean
+}
+
+/**
  * Built-in profile field presets shown on the members config view.
  */
 export interface FieldTemplate {
   name: string
   icon: string
-  fields: Array<{ name: string; fieldType: string; config: ProfileFieldConfig }>
+  fields: TemplateField[]
 }
 
 /**
@@ -20,14 +35,14 @@ export interface FieldTemplate {
 export const fieldTemplates: FieldTemplate[] = [
   {
     name: 'Adresse', icon: 'house', fields: [
-      {name: 'Straße', fieldType: 'TEXT', config: {required: true}},
-      {name: 'Postleitzahl', fieldType: 'TEXT', config: {required: true}},
-      {name: 'Ort', fieldType: 'TEXT', config: {required: true}},
+      {name: 'Straße', fieldType: 'TEXT', config: {}, required: true},
+      {name: 'Postleitzahl', fieldType: 'TEXT', config: {}, required: true},
+      {name: 'Ort', fieldType: 'TEXT', config: {}, required: true},
     ],
   },
   {
     name: 'Geburtsdatum', icon: 'calendar-plus', fields: [
-      {name: 'Geburtsdatum', fieldType: 'BIRTH_DATE', config: {required: true, readonly: true}},
+      {name: 'Geburtsdatum', fieldType: 'BIRTH_DATE', config: {}, required: true, readonly: true},
     ],
   },
   {
@@ -42,8 +57,8 @@ export const fieldTemplates: FieldTemplate[] = [
   },
   {
     name: 'Notfallkontakt', icon: 'triangle-exclamation', fields: [
-      {name: 'Notfallkontakt Name', fieldType: 'TEXT', config: {required: true}},
-      {name: 'Notfallkontakt Telefon', fieldType: 'TEXT', config: {required: true}},
+      {name: 'Notfallkontakt Name', fieldType: 'TEXT', config: {}, required: true},
+      {name: 'Notfallkontakt Telefon', fieldType: 'TEXT', config: {}, required: true},
     ],
   },
   {
@@ -54,12 +69,12 @@ export const fieldTemplates: FieldTemplate[] = [
   },
   {
     name: 'Beitrittsdatum', icon: 'calendar-plus', fields: [
-      {name: 'Beitrittsdatum', fieldType: 'DATE', config: {readonly: true}},
+      {name: 'Beitrittsdatum', fieldType: 'DATE', config: {}, readonly: true},
     ],
   },
   {
     name: 'Personalnummer', icon: 'hashtag', fields: [
-      {name: 'Personalnummer', fieldType: 'TEXT', config: {readonly: true}},
+      {name: 'Personalnummer', fieldType: 'TEXT', config: {}, readonly: true},
     ],
   },
   {
@@ -67,7 +82,8 @@ export const fieldTemplates: FieldTemplate[] = [
       {
         name: 'Geschlecht',
         fieldType: 'ENUM',
-        config: {options: ['Männlich', 'Weiblich', 'Divers', 'Nicht-binär', 'Andere'], readonly: true},
+        config: {options: ['Männlich', 'Weiblich', 'Divers', 'Nicht-binär', 'Andere']},
+        readonly: true,
       },
     ],
   },
@@ -76,26 +92,27 @@ export const fieldTemplates: FieldTemplate[] = [
       {
         name: 'Jugendflamme Stufe',
         fieldType: 'ENUM',
-        config: {options: ['Jugendflamme 1', 'Jugendflamme 2', 'Jugendflamme 3'], readonly: true},
+        config: {options: ['Jugendflamme 1', 'Jugendflamme 2', 'Jugendflamme 3']},
+        readonly: true,
       },
-      {name: 'Jugendflamme Datum', fieldType: 'DATE', config: {readonly: true}},
+      {name: 'Jugendflamme Datum', fieldType: 'DATE', config: {}, readonly: true},
     ],
   },
   {
     name: 'Leistungsspange', icon: 'medal', fields: [
-      {name: 'Leistungsspange', fieldType: 'BOOLEAN', config: {readonly: true}},
-      {name: 'Leistungsspange Datum', fieldType: 'DATE', config: {readonly: true}},
+      {name: 'Leistungsspange', fieldType: 'BOOLEAN', config: {}, readonly: true},
+      {name: 'Leistungsspange Datum', fieldType: 'DATE', config: {}, readonly: true},
     ],
   },
   {
     name: 'Erste Hilfe Kurs', icon: 'heart', fields: [
-      {name: 'Erste Hilfe Kurs Datum', fieldType: 'DATE', config: {readonly: true}},
-      {name: 'Erste Hilfe Kurs Stunden', fieldType: 'NUMBER', config: {readonly: true}},
+      {name: 'Erste Hilfe Kurs Datum', fieldType: 'DATE', config: {}, readonly: true},
+      {name: 'Erste Hilfe Kurs Stunden', fieldType: 'NUMBER', config: {}, readonly: true},
     ],
   },
   {
     name: 'TS Maschinist', icon: 'gears', fields: [
-      {name: 'TS Maschinist Datum', fieldType: 'DATE', config: {readonly: true}},
+      {name: 'TS Maschinist Datum', fieldType: 'DATE', config: {}, readonly: true},
     ],
   },
 ]

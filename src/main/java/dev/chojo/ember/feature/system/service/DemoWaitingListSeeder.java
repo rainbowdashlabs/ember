@@ -94,7 +94,13 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                 null);
 
         var birthdayField = waitingListRepository.createField(
-                list.id(), "Geburtsdatum", WaitingListFieldType.DATE, WaitingListFieldConfig.EMPTY, 0, true, true);
+                list.id(),
+                "Geburtsdatum",
+                WaitingListFieldType.BIRTH_DATE,
+                WaitingListFieldConfig.EMPTY,
+                0,
+                true,
+                true);
         var expField = waitingListRepository.createField(
                 list.id(),
                 "Erfahrung",
@@ -129,7 +135,7 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
         waitingListRepository.createField(
                 kinderList.id(),
                 "Geburtsdatum",
-                WaitingListFieldType.DATE,
+                WaitingListFieldType.BIRTH_DATE,
                 WaitingListFieldConfig.EMPTY,
                 1,
                 true,
