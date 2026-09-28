@@ -49,7 +49,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -83,6 +82,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
     private final QuizTestService quizTestService;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final DemoClock clock;
 
     @Inject
     public DemoVideoSeeder(
@@ -97,7 +97,9 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
             QuizTestRepository quizTestRepository,
             QuizTestService quizTestService,
             AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository) {
+            StationMemberRepository stationMemberRepository,
+            DemoClock clock) {
+        this.clock = clock;
         this.attendanceRepository = attendanceRepository;
         this.inventoryRepository = inventoryRepository;
         this.movementService = movementService;
@@ -125,14 +127,15 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
         StationMember guardian = members.eltern().getFirst();
         StationMember kid = members.anfaenger().getFirst();
 
-        seedAbsences(guardian, kid);
+        var days = clock.of(station.station());
+        seedAbsences(days, guardian, kid);
         seedExchange(station.stationId(), kid);
-        seedRegistrationEvent(station.stationId());
+        seedRegistrationEvent(days, station.stationId());
         seedMailProvider(station);
         seedLostAndFoundPictures(station.stationId());
         seedOpenTasks(station.stationId());
         seedInvitedMember(station);
-        seedTodaysEvent(station.stationId());
+        seedTodaysEvent(days, station.stationId());
         seedExchangeStages(station);
         seedSwapWaitingToBeHandedOver(station, kid);
         grantAssignRight(station);
@@ -194,19 +197,19 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
      * <p>The demo's own weekly dates only fall on today one day in seven, which is no use to somebody who
      * films on a Wednesday.
      */
-    private void seedTodaysEvent(int stationId) {
+    private void seedTodaysEvent(DemoStationDays days, int stationId) {
         var template = attendanceRepository.findTemplatesByStation(stationId).stream()
                 .findFirst()
                 .orElse(null);
-        LocalDate today = LocalDate.now();
+        LocalDate today = days.today();
         crudService.create(
                 stationId,
                 "Dienstabend",
                 "Der Abend, an dem die Anwesenheit erfasst wird",
                 StationEvent.EventType.ONE_TIME,
                 null,
-                today.atTime(17, 30).toInstant(ZoneOffset.UTC),
-                today.atTime(19, 30).toInstant(ZoneOffset.UTC),
+                days.at(today, 17, 30),
+                days.at(today, 19, 30),
                 template != null ? template.id() : null,
                 false,
                 null,
@@ -359,8 +362,8 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
      * One absence in each of the three states a member ever sees, plus one entered on behalf of a
      * managed member so the guardian's side of the page is not empty either.
      */
-    private void seedAbsences(StationMember guardian, StationMember kid) {
-        LocalDate today = LocalDate.now();
+    private void seedAbsences(DemoStationDays days, StationMember guardian, StationMember kid) {
+        LocalDate today = days.today();
         attendanceRepository.createAbsence(
                 guardian.id(), today.minusDays(24), today.minusDays(17), "Sommerurlaub", null);
         attendanceRepository.createAbsence(guardian.id(), today.minusDays(1), today.plusDays(4), "Krank", null);
@@ -442,19 +445,19 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
      * Two things one screen cannot otherwise show side by side: a date that has to be answered and a
      * deadline near enough that the reminder before it is worth filming.
      */
-    private void seedRegistrationEvent(int stationId) {
-        LocalDate day = LocalDate.now().plusDays(9);
+    private void seedRegistrationEvent(DemoStationDays days, int stationId) {
+        LocalDate day = days.today().plusDays(9);
         crudService.create(
                 stationId,
                 "Ausflug zur Feuerwache",
                 "Begrenzte Plätze, deshalb mit Anmeldung",
                 StationEvent.EventType.ONE_TIME,
                 null,
-                day.atTime(9, 0).toInstant(ZoneOffset.UTC),
-                day.atTime(16, 0).toInstant(ZoneOffset.UTC),
+                days.at(day, 9, 0),
+                days.at(day, 16, 0),
                 null,
                 true,
-                LocalDate.now().plusDays(2).atTime(23, 59).toInstant(ZoneOffset.UTC),
+                days.at(days.today().plusDays(2), 23, 59),
                 false,
                 null,
                 20,

@@ -11,6 +11,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -34,7 +35,7 @@ import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
 import SignupListsMenu from './signuplists/SignupListsMenu.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import EventAnswerDialog from '../eventshared/EventAnswerDialog.vue'
-import {isStandingAnswer, membersToRegister, type AnswerablePerson, type PersonAnswer} from '@/util/eventAnswers'
+import {isStandingAnswer, membersToRegister, notOpenLabelKey, type AnswerablePerson, type PersonAnswer} from '@/util/eventAnswers'
 
 const props = defineProps<{
   event: StationEvent
@@ -402,6 +403,9 @@ onMounted(loadRegistrations)
 
     <NeutralContainer v-if="event.requiresRegistration && !canManageEvents()" class="space-y-3">
       <SubHeader>{{ t('eventDetail.myRegistration') }}</SubHeader>
+      <MutedText v-if="registrableMembers.length === 0" class="text-sm" data-testid="registration-not-open">
+        {{ t(notOpenLabelKey(hasManagedMembers)) }}
+      </MutedText>
       <ButtonRow pair>
         <PrimaryButton v-if="withoutPlace.length > 0" :disabled="registering" data-testid="answer-household"
                        @click="answerForHousehold()">

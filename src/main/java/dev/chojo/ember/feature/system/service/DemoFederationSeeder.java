@@ -48,7 +48,6 @@ import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -81,6 +80,7 @@ public class DemoFederationSeeder implements DemoSeeder {
     private final MemberIdentityFactory memberIdentityFactory;
     private final Demo demoConfig;
     private final Api apiConfig;
+    private final DemoClock clock;
 
     @Inject
     public DemoFederationSeeder(
@@ -104,7 +104,9 @@ public class DemoFederationSeeder implements DemoSeeder {
             CommentService commentService,
             MemberIdentityFactory memberIdentityFactory,
             Demo demoConfig,
-            Api apiConfig) {
+            Api apiConfig,
+            DemoClock clock) {
+        this.clock = clock;
         this.stationRepository = stationRepository;
         this.federationService = federationService;
         this.kbService = kbService;
@@ -419,10 +421,10 @@ public class DemoFederationSeeder implements DemoSeeder {
 
         // Create a public event on the partner station (visible via federation)
         var eventCategory = categoryService.create(partnerStation.id(), "Gemeinsame Übung", 0, "#3694ff");
-        Instant nextSatStart = LocalDate.now()
-                .plusDays(14 - LocalDate.now().getDayOfWeek().getValue() % 7)
-                .atTime(9, 0)
-                .toInstant(ZoneOffset.UTC);
+        var partnerDays = clock.of(partnerStation);
+        LocalDate partnerToday = partnerDays.today();
+        Instant nextSatStart = partnerDays.at(
+                partnerToday.plusDays(14 - partnerToday.getDayOfWeek().getValue() % 7), 9, 0);
         Instant nextSatEnd = nextSatStart.plusSeconds(4 * 3600);
         var fedEvent = crudService.create(
                 partnerStation.id(),

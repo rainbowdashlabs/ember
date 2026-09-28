@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -59,6 +58,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
     private final EventTemplateService eventTemplateService;
     private final EventRestrictionService restrictionService;
     private final EventRegistrationFieldService registrationFieldService;
+    private final DemoClock clock;
 
     @Inject
     public DemoEventSeeder(
@@ -69,7 +69,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
             EventCrudService crudService,
             EventTemplateService eventTemplateService,
             EventRestrictionService restrictionService,
-            EventRegistrationFieldService registrationFieldService) {
+            EventRegistrationFieldService registrationFieldService,
+            DemoClock clock) {
         this.categoryRepository = categoryRepository;
         this.registrationRepository = registrationRepository;
         this.eventFieldRepository = eventFieldRepository;
@@ -78,6 +79,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         this.eventTemplateService = eventTemplateService;
         this.restrictionService = restrictionService;
         this.registrationFieldService = registrationFieldService;
+        this.clock = clock;
     }
 
     @Override
@@ -89,6 +91,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
     public void seedStation(DemoRunContext run, DemoStationContext station) {
         var members = station.members();
         station.events(seed(
+                clock.of(station.station()),
                 station.stationId(),
                 members.groupAnfaenger().id(),
                 members.groupFortgeschritten().id(),
@@ -140,7 +143,13 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         return new RestrictionSelection(List.of(userTypes), List.of(), List.of(), List.of(), RestrictionMode.OR);
     }
 
+    /**
+     * Seeds the station's appointments, each dated on the station's own clock.
+     *
+     * @param days today and the hours of a day as the station has them
+     */
     public SeedResult seed(
+            DemoStationDays days,
             int stationId,
             int groupAnfaengerId,
             int groupFortgeschrittenId,
@@ -182,10 +191,11 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 catVeranstaltung.color());
 
         // -- Events --
-        Instant monStart = LocalDate.now().atTime(17, 30).toInstant(ZoneOffset.UTC);
-        Instant monEnd = LocalDate.now().atTime(19, 0).toInstant(ZoneOffset.UTC);
-        Instant satStart = LocalDate.now().atTime(10, 0).toInstant(ZoneOffset.UTC);
-        Instant satEnd = LocalDate.now().atTime(13, 0).toInstant(ZoneOffset.UTC);
+        LocalDate today = days.today();
+        Instant monStart = days.at(today, 17, 30);
+        Instant monEnd = days.at(today, 19, 0);
+        Instant satStart = days.at(today, 10, 0);
+        Instant satEnd = days.at(today, 13, 0);
 
         var evUebung = crudService.create(
                 stationId,
@@ -222,15 +232,15 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null,
                 null);
 
-        LocalDate firstThursday = LocalDate.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.THURSDAY));
+        LocalDate firstThursday = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.THURSDAY));
         var grundlehrgang = crudService.create(
                 stationId,
                 "Grundlehrgang",
                 "Acht Abende Grundausbildung für die Neuen",
                 StationEvent.EventType.RECURRING,
                 DayOfWeek.THURSDAY.getValue(),
-                firstThursday.atTime(18, 0).toInstant(ZoneOffset.UTC),
-                firstThursday.atTime(20, 0).toInstant(ZoneOffset.UTC),
+                days.at(firstThursday, 18, 0),
+                days.at(firstThursday, 20, 0),
                 null,
                 false,
                 null,
@@ -286,10 +296,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         hideFromEveryoneBut(dienstbesprechung.id(), BETREUER);
 
         // Yearly: Jahreshauptversammlung on Sep 20
-        Instant jhvStart =
-                LocalDate.now().withMonth(9).withDayOfMonth(20).atTime(18, 0).toInstant(ZoneOffset.UTC);
-        Instant jhvEnd =
-                LocalDate.now().withMonth(9).withDayOfMonth(20).atTime(21, 0).toInstant(ZoneOffset.UTC);
+        LocalDate jhvDate = today.withMonth(9).withDayOfMonth(20);
+        Instant jhvStart = days.at(jhvDate, 18, 0);
+        Instant jhvEnd = days.at(jhvDate, 21, 0);
         crudService.create(
                 stationId,
                 "Jahreshauptversammlung",
@@ -309,8 +318,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null);
 
         // One-time event for today (ensures there's always an event today)
-        Instant todayEventStart = LocalDate.now().atTime(16, 0).toInstant(ZoneOffset.UTC);
-        Instant todayEventEnd = LocalDate.now().atTime(18, 0).toInstant(ZoneOffset.UTC);
+        Instant todayEventStart = days.at(today, 16, 0);
+        Instant todayEventEnd = days.at(today, 18, 0);
         var templateTheorie = attendanceRepository.createTemplate(stationId, "Theorieabend");
         attendanceRepository.setTemplateGroups(
                 templateTheorie.id(),
@@ -335,19 +344,16 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null,
                 null);
         restrictToUserTypes(theorieabend.id(), JUGENDFEUERWEHR);
-        LocalDate todayDate = LocalDate.now();
         for (int i = 0; i < 5 && i < anfaengerMembers.size(); i++) {
             registrationRepository.create(
-                    theorieabend.id(), anfaengerMembers.get(i).id(), todayDate, RegistrationStatus.DECLINED, null);
+                    theorieabend.id(), anfaengerMembers.get(i).id(), today, RegistrationStatus.DECLINED, null);
         }
 
         // -- Registration-required events --
-        Instant nextMonth =
-                LocalDate.now().plusMonths(1).withDayOfMonth(15).atTime(10, 0).toInstant(ZoneOffset.UTC);
-        Instant nextMonthEnd =
-                LocalDate.now().plusMonths(1).withDayOfMonth(15).atTime(16, 0).toInstant(ZoneOffset.UTC);
-        Instant deadline =
-                LocalDate.now().plusMonths(1).withDayOfMonth(10).atTime(23, 59).toInstant(ZoneOffset.UTC);
+        LocalDate tagDate = today.plusMonths(1).withDayOfMonth(15);
+        Instant nextMonth = days.at(tagDate, 10, 0);
+        Instant nextMonthEnd = days.at(tagDate, 16, 0);
+        Instant deadline = days.at(today.plusMonths(1).withDayOfMonth(10), 23, 59);
 
         var tagDerOffenenTuer = crudService.create(
                 stationId,
@@ -367,10 +373,10 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null,
                 null);
 
-        Instant oeffentlichkeit = LocalDate.now().plusWeeks(3).atTime(14, 0).toInstant(ZoneOffset.UTC);
-        Instant oeffentlichkeitEnd = LocalDate.now().plusWeeks(3).atTime(17, 0).toInstant(ZoneOffset.UTC);
-        Instant oeffentlichkeitDeadline =
-                LocalDate.now().plusWeeks(2).atTime(23, 59).toInstant(ZoneOffset.UTC);
+        LocalDate stadtfestDate = today.plusWeeks(3);
+        Instant oeffentlichkeit = days.at(stadtfestDate, 14, 0);
+        Instant oeffentlichkeitEnd = days.at(stadtfestDate, 17, 0);
+        Instant oeffentlichkeitDeadline = days.at(today.plusWeeks(2), 23, 59);
 
         var stadtfest = crudService.create(
                 stationId,
@@ -390,12 +396,10 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null,
                 null);
 
-        Instant wettbewerb =
-                LocalDate.now().plusMonths(2).withDayOfMonth(20).atTime(8, 0).toInstant(ZoneOffset.UTC);
-        Instant wettbewerbEnd =
-                LocalDate.now().plusMonths(2).withDayOfMonth(20).atTime(17, 0).toInstant(ZoneOffset.UTC);
-        Instant wettbewerbDeadline =
-                LocalDate.now().plusMonths(2).withDayOfMonth(1).atTime(23, 59).toInstant(ZoneOffset.UTC);
+        LocalDate kwDate = today.plusMonths(2).withDayOfMonth(20);
+        Instant wettbewerb = days.at(kwDate, 8, 0);
+        Instant wettbewerbEnd = days.at(kwDate, 17, 0);
+        Instant wettbewerbDeadline = days.at(today.plusMonths(2).withDayOfMonth(1), 23, 59);
 
         var kreisWettbewerb = crudService.create(
                 stationId,
@@ -416,18 +420,18 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null);
         restrictToUserTypes(kreisWettbewerb.id(), JUGENDFEUERWEHR);
 
-        LocalDate zeltlagerStart = LocalDate.now().plusMonths(3).withDayOfMonth(11);
+        LocalDate zeltlagerStart = today.plusMonths(3).withDayOfMonth(11);
         var zeltlager = crudService.create(
                 stationId,
                 "Zeltlager",
                 "Eine Woche Kreiszeltlager mit Übungen, Spielen und Lagerfeuer",
                 StationEvent.EventType.ONE_TIME,
                 null,
-                zeltlagerStart.atTime(8, 0).toInstant(ZoneOffset.UTC),
-                zeltlagerStart.plusDays(6).atTime(16, 0).toInstant(ZoneOffset.UTC),
+                days.at(zeltlagerStart, 8, 0),
+                days.at(zeltlagerStart.plusDays(6), 16, 0),
                 null,
                 true,
-                zeltlagerStart.minusWeeks(3).atTime(23, 59).toInstant(ZoneOffset.UTC),
+                days.at(zeltlagerStart.minusWeeks(3), 23, 59),
                 false,
                 catVeranstaltung.id(),
                 null,
@@ -437,8 +441,6 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         restrictToUserTypes(zeltlager.id(), JUGENDFEUERWEHR);
 
         // Add some registrations
-        LocalDate tagDate = LocalDate.now().plusMonths(1).withDayOfMonth(15);
-        LocalDate stadtfestDate = LocalDate.now().plusWeeks(3);
         for (int i = 0; i < 8 && i < fortgeschrittenMembers.size(); i++) {
             registrationRepository.create(
                     tagDerOffenenTuer.id(),
@@ -460,7 +462,6 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                     null);
         }
         // Some pending registrations for Kreiswettbewerb
-        LocalDate kwDate = LocalDate.now().plusMonths(2).withDayOfMonth(20);
         for (int i = 0; i < 6 && i < fortgeschrittenMembers.size(); i++) {
             registrationRepository.create(
                     kreisWettbewerb.id(), fortgeschrittenMembers.get(i).id(), kwDate, RegistrationStatus.PENDING, null);
@@ -486,7 +487,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                     tagDerOffenenTuer.id(), anfaengerMembers.get(9).id(), tagDate, RegistrationStatus.DENIED, null);
         }
 
-        seedMarathon(stationId, catVeranstaltung.id(), fortgeschrittenMembers, anfaengerMembers);
+        seedMarathon(days, stationId, catVeranstaltung.id(), fortgeschrittenMembers, anfaengerMembers);
 
         // -- Oeffentlichkeitsarbeit events --
         var catOeffentlichkeit = categoryRepository.create(stationId, "Öffentlichkeitsarbeit", 3, "#00c507");
@@ -519,9 +520,9 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         int[] oeMemberCounts = {15, 12, 14, 16, 18};
 
         for (int e = 0; e < oeNames.length; e++) {
-            LocalDate eventDate = LocalDate.now().minusWeeks(oeNames.length - e);
-            Instant oeStart = eventDate.atTime(10, 0).toInstant(ZoneOffset.UTC);
-            Instant oeEnd = eventDate.atTime(16, 0).toInstant(ZoneOffset.UTC);
+            LocalDate eventDate = today.minusWeeks(oeNames.length - e);
+            Instant oeStart = days.at(eventDate, 10, 0);
+            Instant oeEnd = days.at(eventDate, 16, 0);
             var oeEvent = crudService.create(
                     stationId,
                     oeNames[e],
@@ -571,10 +572,10 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         }
 
         // One open event with pending (unconfirmed) registrations
-        LocalDate openDate = LocalDate.now().plusWeeks(1);
-        Instant openStart = openDate.atTime(9, 0).toInstant(ZoneOffset.UTC);
-        Instant openEnd = openDate.atTime(15, 0).toInstant(ZoneOffset.UTC);
-        Instant openDeadline = LocalDate.now().plusDays(3).atTime(23, 59).toInstant(ZoneOffset.UTC);
+        LocalDate openDate = today.plusWeeks(1);
+        Instant openStart = days.at(openDate, 9, 0);
+        Instant openEnd = days.at(openDate, 15, 0);
+        Instant openDeadline = days.at(today.plusDays(3), 23, 59);
         var oeOpen = crudService.create(
                 stationId,
                 "Blaulichtmeile Bürgerfest",
@@ -853,11 +854,15 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
      * list with empty answers would not show what the feature does.
      */
     private void seedMarathon(
-            int stationId, int categoryId, List<StationMember> teamMembers, List<StationMember> members) {
-        LocalDate raceDay = LocalDate.now().plusMonths(1).withDayOfMonth(8);
-        Instant start = raceDay.atTime(9, 0).toInstant(ZoneOffset.UTC);
-        Instant end = raceDay.atTime(15, 0).toInstant(ZoneOffset.UTC);
-        Instant deadline = raceDay.minusWeeks(2).atTime(23, 59).toInstant(ZoneOffset.UTC);
+            DemoStationDays days,
+            int stationId,
+            int categoryId,
+            List<StationMember> teamMembers,
+            List<StationMember> members) {
+        LocalDate raceDay = days.today().plusMonths(1).withDayOfMonth(8);
+        Instant start = days.at(raceDay, 9, 0);
+        Instant end = days.at(raceDay, 15, 0);
+        Instant deadline = days.at(raceDay.minusWeeks(2), 23, 59);
 
         var marathon = crudService.create(
                 stationId,

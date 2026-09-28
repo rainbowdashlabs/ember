@@ -38,12 +38,15 @@ public class DemoSelfCheckSeeder implements DemoPerStationSeeder {
     private final SelfCheckRepository repository;
     private final InventoryRepository inventoryRepository;
     private final ItemCustodyService custodyService;
+    private final DemoClock clock;
 
     @Inject
     public DemoSelfCheckSeeder(
             SelfCheckRepository repository,
             InventoryRepository inventoryRepository,
-            ItemCustodyService custodyService) {
+            ItemCustodyService custodyService,
+            DemoClock clock) {
+        this.clock = clock;
         this.repository = repository;
         this.inventoryRepository = inventoryRepository;
         this.custodyService = custodyService;
@@ -64,17 +67,18 @@ public class DemoSelfCheckSeeder implements DemoPerStationSeeder {
         if (asked.size() < 3) return;
         StationMember checker = station.adminMember();
 
-        untouched(station.stationId(), asked.get(0), checker);
-        waitingToBeRead(station.stationId(), asked.get(1), checker);
-        partlySentBack(station.stationId(), asked.get(2), checker);
+        LocalDate today = clock.of(station.station()).today();
+        untouched(today, station.stationId(), asked.get(0), checker);
+        waitingToBeRead(today, station.stationId(), asked.get(1), checker);
+        partlySentBack(today, station.stationId(), asked.get(2), checker);
         log.info("Demo: Created self-check data");
     }
 
     /**
      * A task that went out this week and that nobody has opened yet.
      */
-    private void untouched(int stationId, StationMember member, StationMember checker) {
-        repository.create(stationId, member.id(), checker.id(), LocalDate.now().plusWeeks(4));
+    private void untouched(LocalDate today, int stationId, StationMember member, StationMember checker) {
+        repository.create(stationId, member.id(), checker.id(), today.plusWeeks(4));
     }
 
     /**
@@ -82,9 +86,8 @@ public class DemoSelfCheckSeeder implements DemoPerStationSeeder {
      * effect the moment it was given and waits for nobody, which is exactly what the reviewer's
      * screen has to be able to show.
      */
-    private void waitingToBeRead(int stationId, StationMember member, StationMember checker) {
-        SelfCheck task = repository.create(
-                stationId, member.id(), checker.id(), LocalDate.now().plusWeeks(2));
+    private void waitingToBeRead(LocalDate today, int stationId, StationMember member, StationMember checker) {
+        SelfCheck task = repository.create(stationId, member.id(), checker.id(), today.plusWeeks(2));
         List<InventoryItem> gear = ownGear(member);
         if (gear.size() < 2) return;
         InventoryItem missing = gear.getLast();
@@ -126,9 +129,8 @@ public class DemoSelfCheckSeeder implements DemoPerStationSeeder {
      * <p>What was taken is gone from it, because nothing that has been settled is asked a second
      * time, and what came back carries the reviewer's words.
      */
-    private void partlySentBack(int stationId, StationMember member, StationMember checker) {
-        SelfCheck task = repository.create(
-                stationId, member.id(), checker.id(), LocalDate.now().minusDays(3));
+    private void partlySentBack(LocalDate today, int stationId, StationMember member, StationMember checker) {
+        SelfCheck task = repository.create(stationId, member.id(), checker.id(), today.minusDays(3));
         List<InventoryItem> gear = ownGear(member);
         if (gear.size() < 2) return;
         InventoryItem taken = gear.get(0);

@@ -54,6 +54,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
     private final BoardTicketService boardTicketService;
     private final ProcedureService procedureService;
     private final LendingService lendingService;
+    private final DemoClock clock;
 
     @Inject
     public DemoNotificationSeeder(
@@ -62,7 +63,9 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
             BoardService boardService,
             BoardTicketService boardTicketService,
             ProcedureService procedureService,
-            LendingService lendingService) {
+            LendingService lendingService,
+            DemoClock clock) {
+        this.clock = clock;
         this.notificationRepository = notificationRepository;
         this.inventoryRepository = inventoryRepository;
         this.boardService = boardService;
@@ -84,9 +87,9 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
     @Override
     public void seedStation(DemoRunContext run, DemoStationContext station) {
         int stationId = station.stationId();
-        var nextMonday = LocalDate.now()
-                .with(DayOfWeek.MONDAY)
-                .plusWeeks(LocalDate.now().getDayOfWeek().getValue() > 1 ? 1 : 0);
+        LocalDate today = clock.of(station.station()).today();
+        var nextMonday =
+                today.with(DayOfWeek.MONDAY).plusWeeks(today.getDayOfWeek().getValue() > 1 ? 1 : 0);
 
         Integer inventoryId = inventoryRepository.findByStation(stationId).stream()
                 .filter(inv -> "Blouson".equals(inv.name()))
@@ -142,7 +145,8 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                 procedureId,
                 inventoryId,
                 null,
-                stationId);
+                stationId,
+                today);
         seedShowcase(station.adminMember(), station.members().anfaenger(), showcase);
         log.info("Demo: Created showcase notification for every NotificationType");
     }
@@ -227,7 +231,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                         new NotificationParams.NewEventsBatch(
                                 3,
                                 "Offenes Training, Übungstag, Sommerfest",
-                                LocalDate.now().plusDays(7)),
+                                ctx.today().plusDays(7)),
                         new NotificationData.NotificationLink("events-upcoming")));
 
         notificationRepository.create(
@@ -253,7 +257,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                 NotificationType.EVENT_REMINDER,
                 NotificationData.of(
                         new NotificationParams.EventReminder(
-                                "Offenes Training", 1, LocalDate.now().plusDays(1)),
+                                "Offenes Training", 1, ctx.today().plusDays(1)),
                         recurringLink));
 
         notificationRepository.create(
@@ -321,7 +325,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                                 ExpiryReminderKind.EXPIRES_IN,
                                 "JuLeiCa Ablaufdatum",
                                 "Max Mustermann",
-                                LocalDate.now().plusDays(30),
+                                ctx.today().plusDays(30),
                                 30,
                                 null,
                                 null),
@@ -450,6 +454,9 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                 NotificationData.of(new NotificationParams.StorageWarning(91, "9.1 GiB", "10 GiB"), storageLink));
     }
 
+    /**
+     * The seeded records the showcase links to, and the station's today its dates are counted from.
+     */
     public record ShowcaseContext(
             Integer newsId,
             Integer oneTimeEventId,
@@ -465,5 +472,6 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
             Integer procedureId,
             Integer inventoryId,
             Integer waitlistChildId,
-            Integer stationIdForStorage) {}
+            Integer stationIdForStorage,
+            LocalDate today) {}
 }

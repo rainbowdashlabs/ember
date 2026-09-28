@@ -121,9 +121,9 @@ interface ManagedMember {
 /**
  * Who an appointment can be answered for, in the order they are offered.
  *
- * <p>Oneself and whoever one answers for, narrowed to those the appointment is open to. An
- * appointment that names nobody is open to all of them, which is why an absent entry reads as
- * everybody rather than as nobody.
+ * <p>Oneself and whoever one answers for, narrowed to those the appointment is open to. The server
+ * answers every appointment the reader can see, one open to nobody here with an empty list, so an
+ * absent entry only means the answer is not known, and the server is then left to decide.
  *
  * @param eventId  the appointment
  * @param eligible who each appointment is open to, as the server answered it
@@ -149,6 +149,18 @@ export function answerableMembers(
         if (member) answerable.push({key: id, name: member.name ?? member.email ?? `#${id}`})
     }
     return answerable
+}
+
+/**
+ * What an appointment says to a reader it is open to nobody for, where there is nothing to press.
+ *
+ * <p>An appointment narrowed for registration is still shown to everybody, so without a word the
+ * reader would meet a date with no answer on it and no reason given.
+ *
+ * @param hasManagedMembers whether the reader answers for others too, who are then named as well
+ */
+export function notOpenLabelKey(hasManagedMembers: boolean): string {
+    return hasManagedMembers ? 'events.notOpenToHousehold' : 'events.notOpenToYou'
 }
 
 /**

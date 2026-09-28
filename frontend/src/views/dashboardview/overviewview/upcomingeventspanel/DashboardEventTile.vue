@@ -10,6 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
 import type {EventCategory, EventRegistrationEntry, StationEvent} from '@/api/events'
@@ -23,7 +24,10 @@ defineProps<{
   category?: EventCategory | null
   /** What the household has answered for this date, one entry per person. */
   answers: {registration: EventRegistrationEntry; name: string}[]
-  /** How many people the reader answers for have not said anything yet. */
+  /**
+   * How many people the reader answers for have not said anything yet, counting only those the
+   * appointment is open to, so none where it is open to nobody here.
+   */
   openCount: number
   /** Whether to name who answered, which only helps somebody answering for others. */
   showNames: boolean
@@ -57,7 +61,11 @@ const {t} = useI18n()
           </p>
         </div>
 
-        <InfoBadge v-if="event.requiresRegistration && answers.length === 0" class="shrink-0">
+        <SecondaryBadge v-if="event.requiresRegistration && answers.length === 0 && openCount === 0"
+                        class="shrink-0" :data-testid="`dashboard-not-open-${event.id}`">
+          {{ t('dashboard.registrationNotOpen') }}
+        </SecondaryBadge>
+        <InfoBadge v-else-if="event.requiresRegistration && answers.length === 0" class="shrink-0">
           {{ t('dashboard.registrationRequired') }}
         </InfoBadge>
         <SecondaryButton

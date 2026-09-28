@@ -19,7 +19,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import EventDetailBody from './eventdetailview/EventDetailBody.vue'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import {useEventAnswer} from '@/composables/useEventAnswer'
-import type {AnswerablePerson} from '@/util/eventAnswers'
+import {answerableMembers, type AnswerablePerson} from '@/util/eventAnswers'
 import {formatTime, formatWeekdayDate, stationDayOf} from '@/util/format'
 
 const {t} = useI18n()
@@ -132,20 +132,17 @@ const pageTitle = computed(() => event.value?.name || t('pages.event-detail.titl
 const pageSubtitle = computed(() =>
     formatWeekdayDate(effectiveDate.value) || t('pages.event-detail.subtitle'))
 
-const registrableMembers = computed((): AnswerablePerson[] => {
-  const eligible = eligibleMembers.value[eventId.value]
-  const ids = eligible ?? [currentMemberId.value, ...managedMembers.value.map(m => m.id)]
-  const result: AnswerablePerson[] = []
-  for (const id of ids) {
-    if (id === currentMemberId.value) {
-      result.push({key: id, name: t('eventsUpcoming.myself')})
-    } else {
-      const m = managedMembers.value.find(mm => mm.id === id)
-      if (m) result.push({key: id, name: m.name ?? m.email ?? `#${id}`})
-    }
-  }
-  return result
-})
+/**
+ * Whom the reader may sign up here, themselves and whoever they answer for, narrowed to those the
+ * server says the appointment is open to. It is asked for every reader, not only for guardians: a
+ * member the appointment is not open to must not be offered a sign-up the server refuses.
+ */
+const registrableMembers = computed((): AnswerablePerson[] => answerableMembers(
+    eventId.value,
+    eligibleMembers.value,
+    currentMemberId.value,
+    managedMembers.value,
+    t('eventsUpcoming.myself')))
 
 const hasManagedMembers = computed(() => managedMembers.value.length > 0)
 
@@ -185,16 +182,14 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
   if (canManageEvents()) {
     templates.value = await attendance.listTemplates()
   }
-  if (isGuardian()) {
-    const [managed, elig] = await Promise.all([
-      managedMembersApi.listManaged(),
-      events.listEligibleMembers(),
-    ])
-    managedMembers.value = managed.map(m => ({
-      id: m.id, stationId: m.stationId, accountId: m.accountId, name: m.name, email: m.email,
-    }))
-    eligibleMembers.value = elig
-  }
+  const [managed, elig] = await Promise.all([
+    isGuardian() ? managedMembersApi.listManaged() : Promise.resolve([]),
+    events.listEligibleMembers(),
+  ])
+  managedMembers.value = managed.map(m => ({
+    id: m.id, stationId: m.stationId, accountId: m.accountId, name: m.name, email: m.email,
+  }))
+  eligibleMembers.value = elig
   if ((canManageEvents() || canManageAttendance()) && isRecurringEvent(ev.eventType) && ev.dayOfWeek) {
     await loadAbsences()
   }

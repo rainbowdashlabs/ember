@@ -15,7 +15,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
-import {EventTypes, isRecurringEvent, multiDayEndDate, type DatedEvent, type EventCategory, type EventField} from '@/api/events'
+import {isRecurringEvent, multiDayEndDate, type DatedEvent, type EventCategory, type EventField} from '@/api/events'
+import {eventTypeLabelKey} from '../eventshared/eventTypeLabel'
 import {formatDate, formatDaySpan, formatTime, toIsoDate, todayIsoDate, weekdayName} from '@/util/format'
 
 /**
@@ -63,14 +64,7 @@ const when = computed(() => {
   return lead ? `${lead}, ${hours}` : hours
 })
 
-const typeLabel = computed(() => {
-  const eventType = props.item.event.eventType
-  if (eventType === EventTypes.RECURRING) return t('events.typeRecurring')
-  if (eventType === EventTypes.MONTHLY_FIRST) return t('events.typeMonthlyFirst')
-  if (eventType === EventTypes.QUARTERLY) return t('events.typeQuarterly')
-  if (eventType === EventTypes.YEARLY) return t('events.typeYearly')
-  return t('events.typeOneTime')
-})
+const typeLabel = computed(() => t(eventTypeLabelKey(props.item.event.eventType)))
 
 /** The date the row is about, which is the one its tab is ordered by, or nothing where it has none. */
 const shownDate = computed(() => props.isPast ? props.item.previousDate : props.item.nextDate)

@@ -47,6 +47,13 @@ export default {
         quarter: 'Quarter',
         week: 'Calendar week',
     },
+    events: {
+        notOpenToYou: 'Registration is open only to part of the station, not to you.',
+        notOpenToHousehold: 'Registration is open only to part of the station, not to you or the people you look after.',
+    },
+    dashboard: {
+        registrationNotOpen: 'Only for part of the station',
+    },
     files: {
         noPreview: 'There is no preview for this kind of file. Download it to look at it.',
     },

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.DatedEvent;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
 import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.IntervalType;
@@ -51,8 +52,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -557,39 +556,28 @@ public class EventRoutes implements Routes {
     }
 
     /**
-     * For each event, returns which member IDs (from self + managed) are eligible.
-     * If an event has no restrictions, all members are eligible and the event is omitted from the result
-     * (the frontend treats missing = all eligible).
+     * Whom the reader may sign up for each appointment they can see, themselves and the people they
+     * answer for. An appointment open to none of them is listed with nobody rather than left out.
      */
     @OpenApi(
             path = "/api/v1/events/eligible-members",
             methods = HttpMethod.GET,
-            summary = "List eligible members per event",
+            summary = "List whom the reader may register per event",
             tags = {"Events"},
-            responses = @OpenApiResponse(status = "200"))
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = EventRegistrationOpening[].class)))
     private void listEligibleMembers(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {
-            ctx.json(Collections.emptyMap());
+            ctx.json(List.of());
             return;
         }
-
-        var memberIds = stationMemberService.findSpokenForIds(session);
-        var allEvents = crudService.findByStation(session.stationId());
-        var result = new HashMap<Integer, List<Integer>>();
-
-        for (var event : allEvents) {
-            var eligible = new ArrayList<Integer>();
-            for (int mid : memberIds) {
-                if (restrictionService.canRegister(event.id(), mid, session.permissions())) {
-                    eligible.add(mid);
-                }
-            }
-            if (!eligible.isEmpty()) {
-                result.put(event.id(), eligible);
-            }
-        }
-        ctx.json(result);
+        ctx.json(restrictionService.registrationOpenings(
+                crudService.findByStation(session.stationId()),
+                stationMemberService.findSpokenForIds(session),
+                session.permissions()));
     }
 
     @OpenApi(

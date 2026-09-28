@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -18,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -144,6 +147,31 @@ public class EventRestrictionService {
     public boolean canRegister(int eventId, int memberId, Set<StationPermission> memberPermissions) {
         return canView(eventId, memberId, memberPermissions)
                 && restrictionService.checkRestriction(RestrictionType.EVENT, eventId, memberId, memberPermissions);
+    }
+
+    /**
+     * Whom a reader may sign up for each of these events, read with {@link #canRegister} so the offer
+     * and the registration itself cannot disagree.
+     *
+     * <p>Every event one of these members may see is answered, including those none of them may
+     * register for, which then carry an empty list. An event none of them may see is left out, since
+     * naming it would tell the reader it exists.
+     *
+     * @param events            the events to answer for
+     * @param memberIds         the reader and the members they answer for
+     * @param memberPermissions the reader's permissions, which is what lets whoever runs the events
+     *                          register anybody
+     */
+    public List<EventRegistrationOpening> registrationOpenings(
+            Collection<StationEvent> events, List<Integer> memberIds, Set<StationPermission> memberPermissions) {
+        return events.stream()
+                .filter(event -> canViewAny(event.id(), memberIds, memberPermissions))
+                .map(event -> new EventRegistrationOpening(
+                        event.id(),
+                        memberIds.stream()
+                                .filter(memberId -> canRegister(event.id(), memberId, memberPermissions))
+                                .toList()))
+                .toList();
     }
 
     /**
