@@ -87,6 +87,23 @@ class FormBranchingTest extends RepositoryTestBase {
                 service.findResponse(form.id(), member.id()).orElseThrow().path());
     }
 
+    /** A target sent without a kind is stored as the page below, which is also where the walk goes. */
+    @Test
+    void aTargetWithoutAKindLeadsOnToThePageBelow() {
+        int form = newForm();
+        service.saveLayout(
+                form,
+                List.of(page("p0"), page("p1")),
+                List.of(question(null, "p0", single(), branch("o0", new PageTarget(null, null)))));
+        int coming = service.findQuestions(form).getFirst().id();
+
+        var response = service.submitResponse(form, member.id(), member.id(), Map.of(coming, choice("o0")));
+
+        assertEquals(List.of("p0", "p1"), response.path());
+        assertEquals(
+                PageTarget.NEXT, service.findQuestions(form).getFirst().branch().targetOf("o0"));
+    }
+
     @Test
     void takingTheOtherBranchOnEditDeletesTheAnswersOffThePath() {
         var form = branchingForm();

@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * What a set of responses answered to each question, counted.
@@ -94,7 +95,7 @@ public final class FormResultTally {
         return questions.stream()
                 .map(question -> tally(
                         question,
-                        reached(question, responses, responseIds),
+                        reached(question, responses, answers, responseIds),
                         answers.stream()
                                 .filter(answer -> answer.questionId() == question.id())
                                 .filter(answer -> responseIds == null || responseIds.contains(answer.responseId()))
@@ -104,12 +105,24 @@ public final class FormResultTally {
                 .toList();
     }
 
+    /**
+     * How many of the responses reached the question: those whose path holds its page, and those that
+     * answered it. A response given before the form had pages holds only the first page as its path,
+     * and an answer to a question further down still says it was shown.
+     */
     private static Integer reached(
-            FormQuestion question, Collection<FormResponse> responses, Set<Integer> responseIds) {
+            FormQuestion question,
+            Collection<FormResponse> responses,
+            Collection<FormAnswer> answers,
+            Set<Integer> responseIds) {
         if (responses == null) return null;
+        var answered = answers.stream()
+                .filter(answer -> answer.questionId() == question.id())
+                .map(FormAnswer::responseId)
+                .collect(Collectors.toSet());
         return (int) responses.stream()
                 .filter(response -> responseIds == null || responseIds.contains(response.id()))
-                .filter(response -> response.reached(question.pageKey()))
+                .filter(response -> response.reached(question.pageKey()) || answered.contains(response.id()))
                 .count();
     }
 

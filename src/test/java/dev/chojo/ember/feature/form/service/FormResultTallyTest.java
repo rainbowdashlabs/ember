@@ -185,6 +185,30 @@ class FormResultTallyTest {
                 .reachedCount());
     }
 
+    /** A response from before the form was split holds only the first page, and still reached what it answered. */
+    @Test
+    void aResponseThatAnsweredTheQuestionReachedIt() {
+        var question = new FormQuestion(
+                10,
+                1,
+                10,
+                "later",
+                FormQuestionType.TEXT,
+                "Frage 10",
+                "",
+                false,
+                false,
+                new FormQuestionConfig.Text(false),
+                null);
+        var responses = List.of(response(1, List.of("p0")), response(2, List.of("p0")));
+        var answers = List.of(new FormAnswer(nextAnswerId++, 1, 10, new FormAnswerValue.Text("früher").toJson()));
+
+        var tally = FormResultTally.tally(List.of(question), answers, responses, null)
+                .getFirst();
+
+        assertEquals(1, tally.reachedCount());
+    }
+
     private static FormResponse response(int id, List<String> path) {
         return new FormResponse(id, 1, id, id, null, null, null, null, null, path);
     }

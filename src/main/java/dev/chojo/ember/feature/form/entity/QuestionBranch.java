@@ -31,10 +31,13 @@ public record QuestionBranch(@JsonValue Map<String, PageTarget> targets) {
     private static final TypeReference<Map<String, PageTarget>> TARGETS = new TypeReference<>() {};
 
     /**
-     * Keeps the targets in the order they were given.
+     * Keeps the targets in the order they were given, each with a kind: a target sent without one leads
+     * on to the page below, so what is stored is what was checked and what the walk follows.
      */
     public QuestionBranch {
-        targets = targets == null ? Map.of() : new LinkedHashMap<>(targets);
+        var normalised = new LinkedHashMap<String, PageTarget>();
+        if (targets != null) targets.forEach((key, target) -> normalised.put(key, PageTarget.orNext(target)));
+        targets = normalised;
     }
 
     /**

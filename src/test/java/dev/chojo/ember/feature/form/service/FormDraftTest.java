@@ -23,6 +23,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -125,6 +127,45 @@ class FormDraftTest extends RepositoryTestBase {
 
         service.close(form);
         assertTrue(service.findDraft(form, guardian.id()).isEmpty());
+    }
+
+    @Test
+    void endsOnceTheEndDateHasPassed() {
+        var form = textForm();
+        service.saveDraft(form, member.id(), member.id(), Map.of(), List.of("p0"));
+
+        runOut(form);
+
+        assertTrue(service.findDraft(form, member.id()).isEmpty(), "no draft of a form past its end");
+        assertTrue(formRepo.findDraft(form, member.id()).isEmpty(), "asking ended it for good");
+    }
+
+    @Test
+    void aFormOpenedAgainByItsDatesStartsEverybodyFresh() {
+        var form = textForm();
+        service.saveDraft(form, member.id(), member.id(), Map.of(), List.of("p0"));
+        runOut(form);
+
+        service.update(
+                form, "Später", "", false, true, false, null, Instant.now().plus(1, ChronoUnit.DAYS));
+
+        assertTrue(formRepo.findDraft(form, member.id()).isEmpty());
+    }
+
+    @Test
+    void aFormThatKeepsTakingAnswersKeepsItsDrafts() {
+        var form = textForm();
+        service.saveDraft(form, member.id(), member.id(), Map.of(), List.of("p0"));
+
+        service.update(form, "Umbenannt", "", false, true, false, null, null);
+
+        assertTrue(service.findDraft(form, member.id()).isPresent());
+    }
+
+    /** Moves the end date into the past the way time does: without anybody saving the form. */
+    private static void runOut(int form) {
+        formRepo.update(
+                form, "Später", "", false, true, false, null, Instant.now().minus(1, ChronoUnit.HOURS));
     }
 
     private static int textForm() {
