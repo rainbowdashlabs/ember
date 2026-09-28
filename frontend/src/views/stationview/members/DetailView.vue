@@ -21,7 +21,8 @@ import { useMemberInventory } from './detailview/useMemberInventory'
 import { useMemberLifecycle } from './detailview/useMemberLifecycle'
 import { memberDisplayName } from './listview/useMemberData'
 import type { ProfileFieldChange } from '@/api/profileFieldChanges'
-import {StationModules, StationPermission, StationUserType, type MemberGroup, type PermissionGrant, type StationMember, type UserTag} from '@/api/types'
+import { canHaveGuardians, looksAfterMembers, relationsTabLabel } from './relations/relationSides'
+import {StationModules, StationPermission, type MemberGroup, type PermissionGrant, type StationMember, type UserTag} from '@/api/types'
 import { memberGroups, profileFieldChanges, profileFields, stationMembers, userTags } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -98,7 +99,7 @@ const tabs = computed(() => {
   const t_ = [
     { key: 'profile', label: t('memberDetail.tabProfile') },
     { key: 'permissions', label: t('memberDetail.tabPermissions') },
-    { key: 'relations', label: relationsTabLabel.value },
+    { key: 'relations', label: relationsLabel.value },
     { key: 'documents', label: t('memberDetail.tabDocuments') },
   ]
   if (canEdit.value) {
@@ -113,21 +114,11 @@ const tabs = computed(() => {
   return t_
 })
 
-const showGuardians = computed(() =>
-  memberUserType.value === StationUserType.MEMBER || memberUserType.value === StationUserType.TRIAL
-)
+const showGuardians = computed(() => canHaveGuardians(memberUserType.value))
 
-/**
- * Whether this member looks after somebody else, which is what the tab is about for a guardian:
- * asking who their own guardians are says nothing, and the answer was always the same empty line.
- */
-const managesMembers = computed(() =>
-  managedMembers.value.length > 0 || memberUserType.value === StationUserType.GUARDIAN
-)
+const managesMembers = computed(() => looksAfterMembers(memberUserType.value, managedMembers.value.length))
 
-const relationsTabLabel = computed(() =>
-  managesMembers.value ? t('memberDetail.tabManagedMembers') : t('memberDetail.tabGuardians')
-)
+const relationsLabel = computed(() => relationsTabLabel(t, memberUserType.value, managedMembers.value.length))
 
 /**
  * The person's own name at the head of the page, and nothing besides: it is what makes the tab,

@@ -25,6 +25,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param requiresAcknowledgement whether this change needs to be acknowledged by a manager
  * @param changedByName           the display name of the person who made the change
  * @param fieldName               the name of the changed profile field
+ * @param fieldType               the type of the changed profile field, which says how its values read
  * @param acknowledgements        the list of acknowledgements for this change
  * @param memberName              the display name of the member whose field was changed
  */
@@ -40,6 +41,7 @@ public record ProfileFieldChange(
         boolean requiresAcknowledgement,
         String changedByName,
         String fieldName,
+        String fieldType,
         List<ProfileFieldChangeAcknowledgement> acknowledgements,
         String memberName) {
     /**
@@ -69,6 +71,7 @@ public record ProfileFieldChange(
                 row.getBoolean("requires_acknowledgement"),
                 row.getString("changed_by_name"),
                 row.getString("field_name"),
+                row.getString("field_type"),
                 List.of(),
                 null);
     }

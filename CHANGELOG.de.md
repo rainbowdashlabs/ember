@@ -14,6 +14,8 @@
 
 - **Die Suche konnte nach einem Datenbank-Update Wörter übersehen.** In manchen Fällen fand die Suche im Wiki, in Dokumenten und auf Boards nach dem Wechsel auf eine neue PostgreSQL-Hauptversion Wörter wie solche mit „ae", „oe" oder „ue" nicht mehr. Ember baut die Suchindizes jetzt beim ersten Start nach einem solchen Wechsel neu auf.
 - **Das Bearbeiten eines Formulars behält seine Antworten.** In manchen Fällen löschte das Speichern eines Formulars, das schon Antworten hatte, diese Antworten. Jetzt entfernt das Speichern nur die Antworten auf entfernte Fragen und fragt vorher nach, wenn es welche gibt.
+- **Geänderte Daten im Änderungsverlauf waren schwer zu lesen.** Änderte sich ein Datum im Profil eines Mitglieds, zeigten die Seite des Mitglieds und die Liste der Änderungen beide Daten so, wie sie gespeichert sind, etwa 2026-03-31. Jetzt stehen sie als 31.03.2026 da, so wie im Profil.
+- **Team-Mitgliedern und Managern wurden Erziehungsberechtigte statt ihrer betreuten Mitglieder angeboten.** Ihr Reiter für Beziehungen, auf der Seite des Mitglieds und beim Bearbeiten, hieß Erziehungsberechtigte und bot an, jemanden zuzuordnen, was für sie nicht möglich ist. Jetzt zeigt er die Mitglieder, um die sie sich kümmern, wie bei Erziehungsberechtigten.
 
 ## v26.19.4
 

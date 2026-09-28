@@ -63,7 +63,7 @@ function updateComment(v: string | undefined) {
       </div>
     </div>
 
-    <ChangeValueDiff :old-value="change.oldValue" :new-value="change.newValue"/>
+    <ChangeValueDiff :change="change"/>
 
     <AcknowledgementList
         v-if="change.requiresAcknowledgement"

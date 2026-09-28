@@ -45,7 +45,7 @@ defineProps<{
       </div>
     </div>
 
-    <ChangeValueDiff :old-value="change.oldValue" :new-value="change.newValue"/>
+    <ChangeValueDiff :change="change"/>
 
     <AcknowledgementList :acknowledgements="change.acknowledgements" :format-date="formatDate"/>
   </NeutralContainer>
