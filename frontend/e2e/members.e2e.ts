@@ -503,7 +503,7 @@ test.describe('Members', () => {
         await mapColumn(page, 'Vorname', 'firstName')
         await mapColumn(page, 'Nachname', 'lastName')
         await mapColumn(page, 'Allergie', {label: 'Allergien (Text)'})
-        await mapColumn(page, 'Geburtstag', {label: 'Geburtstag (Datum)'})
+        await mapColumn(page, 'Geburtstag', {label: 'Geburtstag (Geburtsdatum)'})
         await mapColumn(page, 'Kontakt', 'manager:1:firstName')
         await mapColumn(page, 'Telefon', 'manager:1:phone')
         await mapColumn(page, 'Kontakt Email', 'manager:1:email')
