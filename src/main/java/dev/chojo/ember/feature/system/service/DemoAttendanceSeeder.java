@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.format.TextStyle;
 import java.time.temporal.IsoFields;
 import java.util.ArrayList;
@@ -36,12 +35,16 @@ public class DemoAttendanceSeeder implements DemoPerStationSeeder {
 
     private final AttendanceRepository attendanceRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final DemoClock clock;
 
     @Inject
     public DemoAttendanceSeeder(
-            AttendanceRepository attendanceRepository, StationMemberRepository stationMemberRepository) {
+            AttendanceRepository attendanceRepository,
+            StationMemberRepository stationMemberRepository,
+            DemoClock clock) {
         this.attendanceRepository = attendanceRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.clock = clock;
     }
 
     @Override
@@ -54,6 +57,7 @@ public class DemoAttendanceSeeder implements DemoPerStationSeeder {
         var members = station.members();
         var events = station.events();
         seedAttendanceSessions(
+                clock.of(station.station()),
                 new Random(42_001),
                 events.templateUebung(),
                 events.templateGesamt(),
@@ -91,7 +95,13 @@ public class DemoAttendanceSeeder implements DemoPerStationSeeder {
         }
     }
 
+    /**
+     * Seeds fourteen months of sessions up to the station's today, each at the hours its clock shows.
+     *
+     * @param days today and the hours of a day as the station has them
+     */
     public void seedAttendanceSessions(
+            DemoStationDays days,
             Random rng,
             AttendanceTemplate templateUebung,
             AttendanceTemplate templateGesamt,
@@ -106,7 +116,7 @@ public class DemoAttendanceSeeder implements DemoPerStationSeeder {
         var teilnehmer = new ArrayList<>(anfaenger);
         teilnehmer.addAll(fortgeschritten);
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = days.today();
         LocalDate startDate = today.minusMonths(14).withDayOfMonth(1);
         int sessionCount = 0;
 
@@ -118,8 +128,8 @@ public class DemoAttendanceSeeder implements DemoPerStationSeeder {
             boolean isToday = date.equals(today);
 
             if (dow == 1) { // Monday: Übung
-                Instant start = date.atTime(17, 30).toInstant(ZoneOffset.UTC);
-                Instant end = date.atTime(19, 0).toInstant(ZoneOffset.UTC);
+                Instant start = days.at(date, 17, 30);
+                Instant end = days.at(date, 19, 0);
                 var sess = attendanceRepository.createSession(
                         templateUebung.id(), start, end, evUebung.id(), "Übung KW" + weekOfYear, null);
                 if (!isToday) {
@@ -142,8 +152,8 @@ public class DemoAttendanceSeeder implements DemoPerStationSeeder {
             }
 
             if (dow == 6 && date.getDayOfMonth() <= 7) { // 1st Saturday: Gesamtübung
-                Instant start = date.atTime(10, 0).toInstant(ZoneOffset.UTC);
-                Instant end = date.atTime(13, 0).toInstant(ZoneOffset.UTC);
+                Instant start = days.at(date, 10, 0);
+                Instant end = days.at(date, 13, 0);
                 var sess = attendanceRepository.createSession(
                         templateGesamt.id(),
                         start,

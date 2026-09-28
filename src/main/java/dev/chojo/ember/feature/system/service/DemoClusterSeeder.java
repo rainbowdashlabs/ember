@@ -46,6 +46,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.ClusterQuotaDefaults;
 import jakarta.inject.Inject;
@@ -58,7 +59,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
@@ -659,7 +659,11 @@ public class DemoClusterSeeder implements DemoSeeder {
             registrationRepository.create(
                     drill.id(),
                     head.id(),
-                    LocalDate.ofInstant(start, ZoneOffset.UTC),
+                    LocalDate.ofInstant(
+                            start,
+                            StationFormat.timezoneOf(stationRepository
+                                    .findById(cluster.homeStationId())
+                                    .orElse(null))),
                     RegistrationStatus.ACCEPTED,
                     null);
         }

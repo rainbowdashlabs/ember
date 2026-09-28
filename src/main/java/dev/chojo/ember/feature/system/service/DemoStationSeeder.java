@@ -58,7 +58,10 @@ public class DemoStationSeeder implements DemoSeeder {
         }
     }
 
-    /** One station, set up the way every full demo station is set up. */
+    /**
+     * One station, set up the way every full demo station is set up, read back so the seeders after
+     * it see the zone it was given.
+     */
     private Station create(DemoStationProfile profile) {
         var station = stationRepository.create(profile.name(), profile.uid());
         stationRepository.updateTimezone(station.id(), "Europe/Berlin");
@@ -77,6 +80,6 @@ public class DemoStationSeeder implements DemoSeeder {
         } catch (IOException e) {
             log.warn("Demo: Could not load logo.png", e);
         }
-        return station;
+        return stationRepository.findById(station.id()).orElse(station);
     }
 }

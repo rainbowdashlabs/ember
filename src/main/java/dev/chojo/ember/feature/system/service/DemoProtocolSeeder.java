@@ -25,10 +25,12 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
     private static final double HALF = 0.5;
 
     private final TestProtocolRepository repo;
+    private final DemoClock clock;
 
     @Inject
-    public DemoProtocolSeeder(TestProtocolRepository repo) {
+    public DemoProtocolSeeder(TestProtocolRepository repo, DemoClock clock) {
         this.repo = repo;
+        this.clock = clock;
     }
 
     @Override
@@ -39,11 +41,20 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
     @Override
     public void seedStation(DemoRunContext run, DemoStationContext station) {
         var testees = station.members().anfaenger().stream().map(m -> m.id()).toList();
-        seed(station.stationId(), station.adminMember().id(), testees);
+        seed(
+                clock.of(station.station()).today(),
+                station.stationId(),
+                station.adminMember().id(),
+                testees);
         log.info("Demo: Created Test Protocol data");
     }
 
-    public void seed(int stationId, int createdBy, List<Integer> memberIds) {
+    /**
+     * Seeds a protocol with an open run dated today and a completed one from last year.
+     *
+     * @param today the station's today
+     */
+    public void seed(LocalDate today, int stationId, int createdBy, List<Integer> memberIds) {
         var protocol = repo.createProtocol(
                 stationId,
                 "Jugendflamme Stufe 1",
@@ -209,7 +220,7 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
 
         // === Open run for 2026 ===
         if (!memberIds.isEmpty()) {
-            var run = repo.createRun(protocol.id(), stationId, "Übungsprüfung 2026", LocalDate.now(), createdBy);
+            var run = repo.createRun(protocol.id(), stationId, "Übungsprüfung 2026", today, createdBy);
             for (int memberId : memberIds) {
                 repo.addRunMember(run.id(), memberId);
             }
@@ -220,7 +231,7 @@ public class DemoProtocolSeeder implements DemoPerStationSeeder {
             var allItems = repo.findAllItemsByProtocol(protocol.id());
             var rng = new Random(42);
 
-            var lastYear = LocalDate.now().minusYears(1);
+            var lastYear = today.minusYears(1);
             var pastRun = repo.createRun(
                     protocol.id(),
                     stationId,

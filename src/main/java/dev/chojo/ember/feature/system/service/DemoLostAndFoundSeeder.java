@@ -27,10 +27,12 @@ public class DemoLostAndFoundSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoLostAndFoundSeeder.class);
 
     private final LostAndFoundService service;
+    private final DemoClock clock;
 
     @Inject
-    public DemoLostAndFoundSeeder(LostAndFoundService service) {
+    public DemoLostAndFoundSeeder(LostAndFoundService service, DemoClock clock) {
         this.service = service;
+        this.clock = clock;
     }
 
     @Override
@@ -41,40 +43,42 @@ public class DemoLostAndFoundSeeder implements DemoPerStationSeeder {
     @Override
     public void seedStation(DemoRunContext run, DemoStationContext station) {
         var members = station.members();
-        station.lostAndFoundItem(seed(station.stationId(), members.betreuer(), members.anfaenger(), members.eltern()));
+        station.lostAndFoundItem(seed(
+                clock.of(station.station()).today(),
+                station.stationId(),
+                members.betreuer(),
+                members.anfaenger(),
+                members.eltern()));
     }
 
     /**
+     * @param today the station's today, which the days the items were found are counted back from
      * @return one of the seeded items so callers (e.g. the notification showcase) can
      * construct a deep link with a real id.
      */
     public LostAndFoundItem seed(
-            int stationId, List<StationMember> betreuer, List<StationMember> anfaenger, List<StationMember> eltern) {
+            LocalDate today,
+            int stationId,
+            List<StationMember> betreuer,
+            List<StationMember> anfaenger,
+            List<StationMember> eltern) {
         if (betreuer.isEmpty()) return null;
         int finder = betreuer.getFirst().id();
 
         // An unclaimed item - produces a LOST_AND_FOUND_NEW notification for every member.
-        var jacket = service.create(
-                stationId,
-                "Blaue Jacke Größe M, im Geräteraum gefunden",
-                LocalDate.now().minusDays(2),
-                finder);
+        var jacket =
+                service.create(stationId, "Blaue Jacke Größe M, im Geräteraum gefunden", today.minusDays(2), finder);
 
         // A second item that's been claimed - produces both LOST_AND_FOUND_NEW (on create) and
         // LOST_AND_FOUND_CLAIMED (on claim, sent to LOST_AND_FOUND_MANAGER members).
-        var helmet =
-                service.create(stationId, "Roter Helm Größe S", LocalDate.now().minusDays(5), finder);
+        var helmet = service.create(stationId, "Roter Helm Größe S", today.minusDays(5), finder);
         if (!anfaenger.isEmpty()) {
             String claimerName = "Lena Schmidt";
             service.claim(helmet.id(), anfaenger.getFirst().id(), stationId, claimerName);
         }
 
         // One more so the lost-and-found page has at least three rows to scroll through.
-        service.create(
-                stationId,
-                "Trinkflasche mit Wachsabzeichen, Marke unklar",
-                LocalDate.now().minusDays(1),
-                finder);
+        service.create(stationId, "Trinkflasche mit Wachsabzeichen, Marke unklar", today.minusDays(1), finder);
         if (!eltern.isEmpty()) {
             // No-op; eltern parameter kept symmetric with the other seeders.
         }

@@ -124,6 +124,12 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -131,6 +137,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -140,10 +147,21 @@ import static org.mockito.Mockito.when;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DemoServiceTest extends RepositoryTestBase {
 
+    private static final ZoneId STATION_ZONE = ZoneId.of("Europe/Berlin");
+
+    /**
+     * Half past midnight at the demo stations, when the server's UTC clock still reads yesterday. The
+     * whole demo is seeded at this moment, because it is the one where asking the server for today
+     * puts today's appointments on the wrong day.
+     */
+    private static final Instant JUST_AFTER_MIDNIGHT =
+            LocalDate.now(STATION_ZONE).atTime(0, 30).atZone(STATION_ZONE).toInstant();
+
     private static DemoService demoService;
 
     @BeforeAll
     static void setup() {
+        var demoClock = new DemoClock(Clock.fixed(JUST_AFTER_MIDNIGHT, ZoneOffset.UTC));
         var noOpBus = new DomainEventBus(Set.of());
         var passwordHasher = new PasswordHasher();
         var demoConfig = new Demo();
@@ -395,8 +413,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventServices.crud(),
                 eventTemplateService,
                 eventServices.restriction(),
-                new EventRegistrationFieldService(new EventRegistrationFieldRepository()));
-        var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo, stationMemberRepo);
+                new EventRegistrationFieldService(new EventRegistrationFieldRepository()),
+                demoClock);
+        var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo, stationMemberRepo, demoClock);
         var containerSvc =
                 new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);
         var fieldDefSvc = new InventoryFieldDefinitionService(fieldDefinitionRepo, artRepo, inventoryRepo);
@@ -435,12 +454,18 @@ class DemoServiceTest extends RepositoryTestBase {
                 notificationRepo);
         var formSeeder = new DemoFormSeeder(formRepo, restrictionService);
         var notificationSeeder = new DemoNotificationSeeder(
-                notificationRepo, inventoryRepo, boardService, boardTicketService, procedureService, lendingService);
+                notificationRepo,
+                inventoryRepo,
+                boardService,
+                boardTicketService,
+                procedureService,
+                lendingService,
+                demoClock);
         var waitingListSeeder =
                 new DemoWaitingListSeeder(waitingListRepo, memberGroupRepo, stationMemberRepo, accountRepo);
         var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, quizImageService);
         var kbSeeder = new DemoKnowledgeBaseSeeder(kbService, kbContentService, knowledgeBaseRepo);
-        var protocolSeeder = new DemoProtocolSeeder(testProtocolRepo);
+        var protocolSeeder = new DemoProtocolSeeder(testProtocolRepo, demoClock);
         var avatarSeeder = new DemoAvatarSeeder(avatarService, accountRepo);
         var federationSeeder = new DemoFederationSeeder(
                 stationRepo,
@@ -463,17 +488,19 @@ class DemoServiceTest extends RepositoryTestBase {
                 commentService,
                 memberIdentityFactory,
                 demoConfig,
-                apiConfig);
+                apiConfig,
+                demoClock);
         var equipmentSeeder = new DemoEquipmentSeeder(equipmentNeedRepo, eventRepo, inventoryRepo, artRepo);
         var lendingSeeder = new DemoLendingSeeder(
                 lendingService,
                 new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo, artRepo),
                 inventoryRepo,
-                artRepo);
+                artRepo,
+                demoClock);
         var boardSeeder = new DemoBoardSeeder(
-                boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
+                boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory, demoClock);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
-        var selfCheckSeeder = new DemoSelfCheckSeeder(selfCheckRepo, inventoryRepo, itemCustodyService);
+        var selfCheckSeeder = new DemoSelfCheckSeeder(selfCheckRepo, inventoryRepo, itemCustodyService, demoClock);
         var demoStorageConfig = new Storage();
         var demoBackend = new LocalStorageBackend();
         var demoResolver = new StorageBackendResolver(demoBackend);
@@ -500,7 +527,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 formRepo,
                 quizCatalogRepo);
         var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);
-        var lostAndFoundSeederLocal = new DemoLostAndFoundSeeder(lostAndFoundService);
+        var lostAndFoundSeederLocal = new DemoLostAndFoundSeeder(lostAndFoundService, demoClock);
         var checklistService = new ChecklistService(
                 new ChecklistRepository(), stationMemberRepo, memberGroupRepo, userTagRepo, eventRegistrationRepo);
         var checklistSeederLocal = new DemoChecklistSeeder(checklistService);
@@ -536,7 +563,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 new QuizTestService(
                         quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo), restrictionService),
                 accountRepo,
-                stationMemberRepo);
+                stationMemberRepo,
+                demoClock);
 
         // -- DemoService --
         demoService = new DemoService(
@@ -716,6 +744,34 @@ class DemoServiceTest extends RepositoryTestBase {
         var federations = new FederationRepository();
         assertFalse(federations.findPartners(musterstadt.id()).isEmpty(), "Musterstadt has its partner");
         assertFalse(federations.findPartners(nordstadt.id()).isEmpty(), "Nordstadt has the same partner");
+    }
+
+    /**
+     * The appointment seeded for today lands on the station's today, at the hour its clock shows, even
+     * when the seed runs just after midnight there and the server's clock still reads yesterday.
+     */
+    @Test
+    @Order(7)
+    void todaysAppointmentIsOnTheStationsToday() {
+        var stationToday = LocalDate.ofInstant(JUST_AFTER_MIDNIGHT, STATION_ZONE);
+        assertNotEquals(
+                LocalDate.ofInstant(JUST_AFTER_MIDNIGHT, ZoneOffset.UTC),
+                stationToday,
+                "the seed runs while the server's clock is still on the day before");
+
+        var musterstadt = stationByName("Jugendfeuerwehr Musterstadt");
+        var theorieabend = eventRepo.findByStation(musterstadt.id()).stream()
+                .filter(event -> "Theorieabend".equals(event.name()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo should have an appointment today"));
+
+        var start = theorieabend.startTime().atZone(STATION_ZONE);
+        assertEquals(stationToday, start.toLocalDate(), "today's appointment falls on the station's today");
+        assertEquals(LocalTime.of(16, 0), start.toLocalTime(), "at the hour the station's clock shows");
+        assertTrue(
+                eventRegistrationRepo.findByEvent(theorieabend.id()).stream()
+                        .allMatch(registration -> stationToday.equals(registration.eventDate())),
+                "and its answers are for that day");
     }
 
     private static Station stationByName(String name) {

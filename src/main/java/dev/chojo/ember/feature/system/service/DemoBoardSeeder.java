@@ -38,6 +38,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
     private final FederationService federationService;
     private final MemberIdentityFactory memberIdentityFactory;
     private int currentStationId;
+    private final DemoClock clock;
 
     @Inject
     public DemoBoardSeeder(
@@ -45,7 +46,9 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
             BoardTicketRepository ticketRepo,
             FederatedBoardService federatedBoardService,
             FederationService federationService,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            DemoClock clock) {
+        this.clock = clock;
         this.boardRepo = boardRepo;
         this.ticketRepo = ticketRepo;
         this.federatedBoardService = federatedBoardService;
@@ -64,7 +67,9 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
     @Override
     public void seedStation(DemoRunContext run, DemoStationContext station) {
         var members = station.members();
+        LocalDate today = clock.of(station.station()).today();
         seed(
+                today,
                 station.stationId(),
                 station.adminMember(),
                 members.betreuer(),
@@ -73,6 +78,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 new Random(42_004));
         log.info("Demo: Created board data");
         seedSharedBoard(
+                today,
                 station.stationId(),
                 run.federation().partnerStationId(),
                 station.adminMember(),
@@ -83,7 +89,13 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         log.info("Demo: Created shared board data");
     }
 
+    /**
+     * Seeds the station's own boards, with due dates counted from its today.
+     *
+     * @param today the station's today
+     */
     public void seed(
+            LocalDate today,
             int stationId,
             StationMember admin,
             List<StationMember> teamMembers,
@@ -112,7 +124,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Schichten für den Juni einteilen und an alle verteilen.",
                 null,
                 TicketPriority.HIGH,
-                LocalDate.now().plusDays(7),
+                today.plusDays(7),
                 admin.id());
         var t2 = createTicket(
                 board1.id(),
@@ -122,7 +134,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Einweisung für die drei neuen Helfer organisieren.",
                 teamMember(teamMembers, rng),
                 TicketPriority.MEDIUM,
-                LocalDate.now().plusDays(14),
+                today.plusDays(14),
                 admin.id());
         createTicket(
                 board1.id(),
@@ -144,7 +156,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Alle Funkgeräte prüfen und defekte markieren.",
                 teamMember(teamMembers, rng),
                 TicketPriority.HIGH,
-                LocalDate.now().plusDays(3),
+                today.plusDays(3),
                 admin.id());
         var t5 = createTicket(
                 board1.id(),
@@ -154,7 +166,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Themen und Termine für Juli–September festlegen.",
                 admin.id(),
                 TicketPriority.MEDIUM,
-                LocalDate.now().plusDays(10),
+                today.plusDays(10),
                 admin.id());
 
         // Tickets in "Erledigt"
@@ -235,7 +247,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Termin, Programm und Helfer für das Sommerfest organisieren.",
                 null,
                 TicketPriority.HIGH,
-                LocalDate.now().plusDays(30),
+                today.plusDays(30),
                 admin.id());
         createTicket(
                 board2.id(),
@@ -255,7 +267,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Anmeldeformular erstellen und Eltern informieren.",
                 teamMember(teamMembers, rng),
                 TicketPriority.MEDIUM,
-                LocalDate.now().plusDays(21),
+                today.plusDays(21),
                 admin.id());
 
         // Tickets in "In Arbeit"
@@ -267,7 +279,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Trainingsplan für den Kreiswettbewerb erstellen.",
                 teamMember(teamMembers, rng),
                 TicketPriority.HIGHEST,
-                LocalDate.now().plusDays(5),
+                today.plusDays(5),
                 admin.id());
         var j5 = createTicket(
                 board2.id(),
@@ -289,7 +301,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Folien für den Elternabend vorbereiten - bitte prüfen.",
                 admin.id(),
                 TicketPriority.MEDIUM,
-                LocalDate.now().plusDays(2),
+                today.plusDays(2),
                 admin.id());
 
         // Tickets in "Erledigt"
@@ -353,11 +365,20 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
         ticketRepo.createComment(j1, null, localIdentity(admin.id()), "Vorschlag: 12. Juli als Termin.");
 
         // ── Additional tickets for Board 1 (Dienstplanung) ──
-        seedExtraTicketsBoard1(board1.id(), lane1Open.id(), lane1Work.id(), lane1Done.id(), admin, teamMembers, rng);
+        seedExtraTicketsBoard1(
+                today, board1.id(), lane1Open.id(), lane1Work.id(), lane1Done.id(), admin, teamMembers, rng);
 
         // ── Additional tickets for Board 2 (Jugendarbeit) ──
         seedExtraTicketsBoard2(
-                board2.id(), lane2Open.id(), lane2Work.id(), lane2Feed.id(), lane2Done.id(), admin, teamMembers, rng);
+                today,
+                board2.id(),
+                lane2Open.id(),
+                lane2Work.id(),
+                lane2Feed.id(),
+                lane2Done.id(),
+                admin,
+                teamMembers,
+                rng);
 
         // ── Backlog tickets for Board 2 ──
         createTicket(
@@ -462,8 +483,11 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
      * Seeds a shared board between primary and partner stations.
      * The board is owned by the primary station, shared with FULL mode to the partner.
      * View: all members, Edit: TEAM only.
+     *
+     * @param today the primary station's today, which the due dates are counted from
      */
     public void seedSharedBoard(
+            LocalDate today,
             int stationId,
             int partnerStationId,
             StationMember admin,
@@ -509,7 +533,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Termin und Thema für die nächste gemeinsame Übung mit der Partnerwache abstimmen.",
                 admin.id(),
                 TicketPriority.HIGH,
-                LocalDate.now().plusDays(14),
+                today.plusDays(14),
                 admin.id());
         boardRepo.addLabelToTicket(t1, labelGemeinsam.id());
         boardRepo.addLabelToTicket(t1, labelUebung.id());
@@ -522,7 +546,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Gemeinsamen Funkkanal für die Übung festlegen und testen.",
                 teamMember(teamMembers, rng),
                 TicketPriority.MEDIUM,
-                LocalDate.now().plusDays(7),
+                today.plusDays(7),
                 admin.id());
         ticketRepo.logTransition(t2, laneOpen.id(), laneWork.id(), localIdentity(admin.id()));
         boardRepo.addLabelToTicket(t2, labelOrga.id());
@@ -548,7 +572,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Gemeinsames Team für den Kreiswettbewerb aufstellen.",
                 null,
                 TicketPriority.HIGHEST,
-                LocalDate.now().plusDays(21),
+                today.plusDays(21),
                 admin.id());
         boardRepo.addLabelToTicket(t4, labelGemeinsam.id());
 
@@ -560,7 +584,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Welche Materialien bringt welche Wache mit?",
                 teamMember(teamMembers, rng),
                 TicketPriority.MEDIUM,
-                LocalDate.now().plusDays(10),
+                today.plusDays(10),
                 admin.id());
         ticketRepo.logTransition(t5, laneOpen.id(), laneWork.id(), localIdentity(teamMember(teamMembers, rng)));
         boardRepo.addLabelToTicket(t5, labelUebung.id());
@@ -592,7 +616,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Wir kümmern uns um Getränke und Snacks für die Übungsteilnehmer.",
                 null,
                 TicketPriority.LOW,
-                LocalDate.now().plusDays(12),
+                today.plusDays(12),
                 admin.id());
         boardRepo.addLabelToTicket(t6, labelGemeinsam.id());
 
@@ -604,7 +628,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                 "Wir bereiten das Gelände bei uns vor. Anfahrt wird noch geteilt.",
                 null,
                 TicketPriority.HIGH,
-                LocalDate.now().plusDays(5),
+                today.plusDays(5),
                 admin.id());
         ticketRepo.logTransition(t7, laneOpen.id(), laneWork.id(), localIdentity(admin.id()));
         boardRepo.addLabelToTicket(t7, labelUebung.id());
@@ -666,6 +690,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
     }
 
     private void seedExtraTicketsBoard1(
+            LocalDate today,
             int boardId,
             int openLane,
             int workLane,
@@ -709,7 +734,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                     tickets[i][1],
                     rng.nextInt(3) == 0 ? null : teamMember(team, rng),
                     prios[rng.nextInt(prios.length)],
-                    rng.nextInt(3) == 0 ? LocalDate.now().plusDays(rng.nextInt(30)) : null,
+                    rng.nextInt(3) == 0 ? today.plusDays(rng.nextInt(30)) : null,
                     admin.id());
             if (lanes[i] == workLane) {
                 ticketRepo.logTransition(tid, openLane, workLane, localIdentity(admin.id()));
@@ -738,6 +763,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
     }
 
     private void seedExtraTicketsBoard2(
+            LocalDate today,
             int boardId,
             int openLane,
             int workLane,
@@ -782,7 +808,7 @@ public class DemoBoardSeeder implements DemoPerStationSeeder {
                     tickets[i][1],
                     rng.nextInt(3) == 0 ? null : teamMember(team, rng),
                     prios[rng.nextInt(prios.length)],
-                    rng.nextInt(3) == 0 ? LocalDate.now().plusDays(rng.nextInt(45)) : null,
+                    rng.nextInt(3) == 0 ? today.plusDays(rng.nextInt(45)) : null,
                     admin.id());
             if (lanes[i] != openLane) {
                 ticketRepo.logTransition(

@@ -33,13 +33,16 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
     private final InventoryShareService shareService;
     private final InventoryRepository inventoryRepository;
     private final InventoryArtRepository artRepository;
+    private final DemoClock clock;
 
     @Inject
     public DemoLendingSeeder(
             LendingService lendingService,
             InventoryShareService shareService,
             InventoryRepository inventoryRepository,
-            InventoryArtRepository artRepository) {
+            InventoryArtRepository artRepository,
+            DemoClock clock) {
+        this.clock = clock;
         this.lendingService = lendingService;
         this.shareService = shareService;
         this.inventoryRepository = inventoryRepository;
@@ -58,6 +61,7 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
     public void seedStation(DemoRunContext run, DemoStationContext station) {
         var federation = run.federation();
         seed(
+                clock.of(station.station()).today(),
                 station.stationId(),
                 federation.partnerStationId(),
                 station.adminMember().id(),
@@ -68,11 +72,12 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
     /**
      * Seeds lending demo data between two federated stations.
      *
+     * @param today            the primary station's today, which the lending periods are placed around
      * @param stationId        the primary station ID
      * @param partnerStationId the partner station ID
      * @param createdBy        the member ID who creates the requests
      */
-    public void seed(int stationId, int partnerStationId, int createdBy, int partnerMemberId) {
+    public void seed(LocalDate today, int stationId, int partnerStationId, int createdBy, int partnerMemberId) {
         // The partner's shelf, stocked once however many stations borrow from it
         var partnerFeuerloescher = partnerStock(
                 partnerStationId,
@@ -102,14 +107,7 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
 
         // -- Request 1: APPROVED - partner lends Feuerlöscher to main station --
         var approvedRequest = lendingService.createRequest(
-                stationId,
-                partnerStationId,
-                LocalDate.now().plusDays(7),
-                LocalDate.now().plusDays(14),
-                createdBy,
-                null,
-                null,
-                "");
+                stationId, partnerStationId, today.plusDays(7), today.plusDays(14), createdBy, null, null, "");
         lendingService.addRequestItem(approvedRequest.id(), partnerFeuerloescher.id(), null, null, 2, null);
         lendingService.approveRequest(approvedRequest.id(), partnerStationId);
 
@@ -129,14 +127,7 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
 
         // -- Request 2: REQUESTED - main station wants Schläuche from partner --
         var requestedRequest = lendingService.createRequest(
-                stationId,
-                partnerStationId,
-                LocalDate.now().plusDays(21),
-                LocalDate.now().plusDays(28),
-                createdBy,
-                null,
-                null,
-                "");
+                stationId, partnerStationId, today.plusDays(21), today.plusDays(28), createdBy, null, null, "");
         lendingService.addRequestItem(requestedRequest.id(), partnerSchlaeuche.id(), null, null, 3, null);
 
         // Chat message
@@ -149,14 +140,7 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
 
         // -- Request 3: RETURNED - completed lending from last month --
         var returnedRequest = lendingService.createRequest(
-                stationId,
-                partnerStationId,
-                LocalDate.now().minusDays(30),
-                LocalDate.now().minusDays(23),
-                createdBy,
-                null,
-                null,
-                "");
+                stationId, partnerStationId, today.minusDays(30), today.minusDays(23), createdBy, null, null, "");
         lendingService.addRequestItem(returnedRequest.id(), partnerZelte.id(), null, null, 1, null);
         lendingService.approveRequest(returnedRequest.id(), partnerStationId);
         lendingService.markLent(returnedRequest.id(), partnerStationId);
@@ -192,14 +176,7 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
 
         // -- Request 4 (INCOMING): partner requests Funkgeräte from main station (LENT - currently out) --
         var lentRequest = lendingService.createRequest(
-                partnerStationId,
-                stationId,
-                LocalDate.now().minusDays(3),
-                LocalDate.now().plusDays(4),
-                createdBy,
-                null,
-                null,
-                "");
+                partnerStationId, stationId, today.minusDays(3), today.plusDays(4), createdBy, null, null, "");
         lendingService.addRequestItem(lentRequest.id(), walkieTalkies.id(), wt1.id(), null, 1, null);
         lendingService.addRequestItem(lentRequest.id(), walkieTalkies.id(), wt2.id(), null, 1, null);
         lendingService.approveRequest(lentRequest.id(), stationId);
@@ -215,14 +192,7 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
 
         // -- Request 5 (INCOMING): partner requests Funkgeräte from main station (REQUESTED - pending) --
         var incomingPending = lendingService.createRequest(
-                partnerStationId,
-                stationId,
-                LocalDate.now().plusDays(14),
-                LocalDate.now().plusDays(16),
-                createdBy,
-                null,
-                null,
-                "");
+                partnerStationId, stationId, today.plusDays(14), today.plusDays(16), createdBy, null, null, "");
         lendingService.addRequestItem(incomingPending.id(), walkieTalkies.id(), null, null, 3, null);
 
         lendingService.sendMessage(
@@ -234,14 +204,7 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
 
         // -- Request 6 (INCOMING): partner wants Zelte - APPROVED, about to be picked up --
         var aboutToLend = lendingService.createRequest(
-                partnerStationId,
-                stationId,
-                LocalDate.now().plusDays(1),
-                LocalDate.now().plusDays(5),
-                createdBy,
-                null,
-                null,
-                "");
+                partnerStationId, stationId, today.plusDays(1), today.plusDays(5), createdBy, null, null, "");
         lendingService.addRequestItem(aboutToLend.id(), walkieTalkies.id(), null, null, 2, null);
         lendingService.approveRequest(aboutToLend.id(), stationId);
 
@@ -256,14 +219,7 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
 
         // -- Request 7 (INCOMING): OVERDUE - partner has items past return date --
         var overdueRequest = lendingService.createRequest(
-                partnerStationId,
-                stationId,
-                LocalDate.now().minusDays(14),
-                LocalDate.now().minusDays(7),
-                createdBy,
-                null,
-                null,
-                "");
+                partnerStationId, stationId, today.minusDays(14), today.minusDays(7), createdBy, null, null, "");
         lendingService.addRequestItem(overdueRequest.id(), walkieTalkies.id(), null, null, 1, null);
         lendingService.approveRequest(overdueRequest.id(), stationId);
         lendingService.markLent(overdueRequest.id(), stationId);
@@ -281,8 +237,8 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 partnerStationId,
                 null,
                 null,
-                LocalDate.now().plusMonths(1).withDayOfMonth(1),
-                LocalDate.now().plusMonths(1).withDayOfMonth(3),
+                today.plusMonths(1).withDayOfMonth(1),
+                today.plusMonths(1).withDayOfMonth(3),
                 "Kreisfeuerwehrtag");
 
         log.info("Demo: Created lending requests, messages, and blocks");
