@@ -3,13 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {afterEach, describe, expect, it} from 'vitest'
-import {mount, type VueWrapper} from '@vue/test-utils'
+import {flushPromises, mount, type VueWrapper} from '@vue/test-utils'
 import EnlargeableImage from './EnlargeableImage.vue'
 
 /**
- * A picture that opens large on a click and closes again on the close button, a click beside it or
+ * A picture that opens large on a click and closes again on the close button, a press beside it or
  * Escape.
  */
 describe('EnlargeableImage', () => {
@@ -20,44 +20,51 @@ describe('EnlargeableImage', () => {
         document.body.innerHTML = ''
     })
 
-    function picture() {
+    /** Opens the picture and waits until it listens for presses beside it, which starts a timer later. */
+    async function openPicture() {
         view = mount(EnlargeableImage, {
             props: {src: '/large.webp', alt: 'Wappen', caption: 'Am Tor'},
             slots: {default: '<img src="/small.webp" alt="Wappen"/>'},
             attachTo: document.body,
         })
-        return view
+        await view.find('button').trigger('click')
+        await flushPromises()
+        await new Promise(resolve => setTimeout(resolve, 0))
     }
 
-    function overlay(): HTMLElement | null {
+    function dialog(): HTMLElement | null {
         return document.body.querySelector('[role="dialog"]')
     }
 
-    it('opens the larger copy with its caption on a click', async () => {
-        await picture().find('button').trigger('click')
+    function pressOn(target: Element) {
+        target.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true, button: 0}))
+    }
 
-        expect(overlay()?.querySelector('img')?.getAttribute('src')).toBe('/large.webp')
-        expect(overlay()?.textContent).toContain('Am Tor')
+    it('opens the larger copy with its caption on a click', async () => {
+        await openPicture()
+
+        expect(dialog()?.querySelector('img')?.getAttribute('src')).toBe('/large.webp')
+        expect(dialog()?.textContent).toContain('Am Tor')
     })
 
     it('closes on Escape', async () => {
-        await picture().find('button').trigger('click')
+        await openPicture()
 
-        window.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'}))
-        await view!.vm.$nextTick()
+        document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}))
+        await flushPromises()
 
-        expect(overlay()).toBeNull()
+        expect(dialog()).toBeNull()
     })
 
-    it('closes on a click beside the picture but not on the picture', async () => {
-        await picture().find('button').trigger('click')
+    it('closes on a press beside the picture but not on the picture', async () => {
+        await openPicture()
 
-        overlay()!.querySelector('img')!.dispatchEvent(new MouseEvent('click', {bubbles: true}))
-        await view!.vm.$nextTick()
-        expect(overlay()).not.toBeNull()
+        pressOn(dialog()!.querySelector('img')!)
+        await flushPromises()
+        expect(dialog()).not.toBeNull()
 
-        overlay()!.dispatchEvent(new MouseEvent('click', {bubbles: true}))
-        await view!.vm.$nextTick()
-        expect(overlay()).toBeNull()
+        pressOn(dialog()!.parentElement!)
+        await flushPromises()
+        expect(dialog()).toBeNull()
     })
 })

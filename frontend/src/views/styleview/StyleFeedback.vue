@@ -17,10 +17,12 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Popover from '@/components/feedback/Popover.vue'
+import SidePanel from '@/components/feedback/SidePanel.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 
 const modalOpen = ref(false)
+const sidePanelOpen = ref(false)
 </script>
 
 <template>
@@ -92,6 +94,17 @@ const modalOpen = ref(false)
       <SubHeader>Modal Title</SubHeader>
       <MutedText tag="p" size="sm" class="mt-2">This is an example modal dialog with some content.</MutedText>
     </Modal>
+  </section>
+
+  <section class="space-y-4">
+    <SectionHeader>Side Panel</SectionHeader>
+    <PrimaryButton @click="sidePanelOpen = true">Open Side Panel</PrimaryButton>
+    <SidePanel v-model="sidePanelOpen">
+      <div class="space-y-2 p-4">
+        <SubHeader>Side Panel Title</SubHeader>
+        <MutedText tag="p" size="sm">A dialog along the right edge, for a record with more to it.</MutedText>
+      </div>
+    </SidePanel>
   </section>
 
   <section class="space-y-4">

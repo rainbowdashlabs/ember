@@ -25,7 +25,7 @@ async function runAction(id: number, action: ToastAction) {
                 <div
                     v-for="toast in toasts"
                     :key="toast.id"
-                    class="flex items-start gap-3 rounded-theme border p-3 shadow-lg cursor-pointer"
+                    class="pointer-events-auto flex items-start gap-3 rounded-theme border p-3 shadow-lg cursor-pointer"
                     :class="{
                         'border-info bg-info/10 dark:bg-info/20': toast.variant === 'info',
                         'border-success bg-success/10 dark:bg-success/20': toast.variant === 'success',

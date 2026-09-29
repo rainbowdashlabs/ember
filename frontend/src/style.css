@@ -57,6 +57,21 @@
 
     /* Border radius */
     --radius-theme: 0.5rem;
+
+    --animate-fade-in: fade-in 0.2s ease;
+    --animate-fade-out: fade-out 0.2s ease;
+
+    @keyframes fade-in {
+        from {
+            opacity: 0;
+        }
+    }
+
+    @keyframes fade-out {
+        to {
+            opacity: 0;
+        }
+    }
 }
 
 :root {

@@ -29,6 +29,8 @@ export default {
         close: 'Close',
         previous: 'Previous',
         next: 'Next',
+        download: 'Download',
+        preview: 'Preview',
     },
     exportFormat: {
         title: 'Export',

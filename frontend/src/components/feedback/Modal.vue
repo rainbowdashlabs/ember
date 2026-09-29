@@ -4,10 +4,25 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, nextTick, onUnmounted, ref, watch} from 'vue'
+import {computed, ref, type ComponentPublicInstance} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {DialogContent, DialogOverlay, DialogPortal, DialogRoot} from 'reka-ui'
 import IconButton from '@/components/button/IconButton.vue'
-import {baseDialogLayer, claimDialogLayer, releaseDialogLayer} from '@/components/feedback/dialogLayers'
+import ModalBody from '@/components/feedback/ModalBody.vue'
+import {useDialogOverlay} from '@/components/feedback/dialogLayers'
+
+/**
+ * The dialog behind every screen that asks something on top of a page.
+ *
+ * <p>It is a modal dialog in the full sense: Escape and the close button close it, so does a press
+ * on the dimmed page around it, the focus is held inside while it is open and goes back to where
+ * it came from once it closes, and the page underneath neither scrolls nor reaches a screen reader.
+ * The dialog is labelled by the first heading of its content.
+ *
+ * <p>Which of two open dialogs is in front is decided by the order they were opened in, through
+ * the layers in `dialogLayers`, since the order they were mounted in says nothing about it.
+ */
+defineOptions({inheritAttrs: false})
 
 const {t} = useI18n()
 
@@ -40,30 +55,8 @@ const sizeClass = computed(() => {
   }
 })
 
-/**
- * A dialog is as tall as the screen actually is, not as tall as the screen would be.
- *
- * <p>`vh` measures the viewport with the browser's own bars counted in, and does not move when an
- * on-screen keyboard opens. A dialog sized that way keeps its full height while the keyboard takes
- * the bottom third of the screen, so the button that answers it sits behind the keyboard the text
- * field just summoned and cannot be pressed or scrolled to. `dvh` follows what is left.
- */
-const dialog = ref<HTMLElement | null>(null)
-const layer = ref(baseDialogLayer)
-let claimed = false
-
-watch(model, (open) => {
-  if (import.meta.server || open === claimed) return
-  claimed = open
-  if (open) layer.value = claimDialogLayer()
-  else releaseDialogLayer()
-}, {immediate: true})
-
-onUnmounted(() => {
-  if (!claimed) return
-  claimed = false
-  releaseDialogLayer()
-})
+const dialog = ref<ComponentPublicInstance | null>(null)
+const {overlay, layer, keepOpenUnlessOverlay} = useDialogOverlay(model)
 
 /**
  * The button this dialog is answered with.
@@ -74,7 +67,7 @@ onUnmounted(() => {
  * dialog on the first day instead of in the ones somebody remembered to go back to.
  */
 function confirmButton(): HTMLElement | null {
-  const root = dialog.value
+  const root: HTMLElement | undefined = dialog.value?.$el
   if (!root) return null
   const named = root.querySelector<HTMLElement>('[data-confirm]')
   if (named) return named
@@ -83,12 +76,13 @@ function confirmButton(): HTMLElement | null {
   return answers.at(-1) ?? null
 }
 
-watch(model, async (open) => {
-  if (!open) return
-  await nextTick()
-  const target = confirmButton() ?? dialog.value
-  target?.focus()
-})
+/** The dialog opens with the focus on the button it is answered with, so enter alone answers it. */
+function focusAnswer(event: Event) {
+  const target: HTMLElement | null | undefined = confirmButton() ?? dialog.value?.$el
+  if (!target) return
+  event.preventDefault()
+  target.focus()
+}
 
 /**
  * Shift and enter answer the dialog from anywhere inside it, including from a text field, where
@@ -104,59 +98,40 @@ function onKeydown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="modal">
-      <div
-          v-if="model"
-          class="fixed inset-0 flex items-center justify-center"
+  <DialogRoot v-model:open="model">
+    <DialogPortal>
+      <DialogOverlay
+          ref="overlay"
+          class="fixed inset-0 flex items-center justify-center bg-black/50 data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out"
           :class="{'invisible opacity-0': props.hidden}"
           :style="{zIndex: layer}"
       >
-        <!-- Backdrop -->
-        <div
-            class="absolute inset-0 bg-black/50"
-            @click="model = false"
-        />
-        <!-- Content -->
-        <div
+        <DialogContent
             ref="dialog"
             data-testid="modal"
-            role="dialog"
-            aria-modal="true"
-            tabindex="-1"
-            @keydown="onKeydown"
+            :aria-describedby="undefined"
             :class="[
-              'relative z-10 w-full mx-4 rounded-theme border border-bg-light-accent bg-bg-light p-6 shadow-xl dark:border-bg-dark-accent dark:bg-bg-dark',
-              'flex flex-col max-h-[90dvh]',
+              'data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out relative w-full mx-4 rounded-theme border border-bg-light-accent bg-bg-light p-6 shadow-xl dark:border-bg-dark-accent dark:bg-bg-dark',
+              'flex flex-col max-h-[90dvh] outline-none',
               sizeClass,
               props.mobileFull ? 'max-sm:h-full max-sm:mx-0 max-sm:rounded-none max-sm:border-0 max-sm:overflow-y-auto max-sm:flex max-sm:flex-col' : '',
-            ]">
+            ]"
+            @keydown="onKeydown"
+            @open-auto-focus="focusAnswer"
+            @pointer-down-outside="keepOpenUnlessOverlay"
+        >
           <IconButton
               :icon="['fas', 'xmark']"
               :label="t('common.close')"
               class="absolute top-3 right-3 z-10 text-[var(--text-muted)] hover:text-[var(--text)]"
               data-cancel
               @click="model = false"
-          >
-            <font-awesome-icon :icon="['fas', 'xmark']" class="h-5 w-5"/>
-          </IconButton>
-          <div class="flex-1 min-h-0 overflow-y-auto">
+          />
+          <ModalBody>
             <slot/>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+          </ModalBody>
+        </DialogContent>
+      </DialogOverlay>
+    </DialogPortal>
+  </DialogRoot>
 </template>
-
-<style scoped>
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-</style>

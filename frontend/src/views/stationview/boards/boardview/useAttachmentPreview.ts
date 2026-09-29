@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { nextTick, ref, watch, type Ref } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 import { boards } from '@/api'
 import type { BoardTicketAttachment } from '@/api/boards'
 import { useAuthImages } from '@/composables/useAuthImage'
@@ -28,7 +28,6 @@ export function useAttachmentPreview(
 ) {
   const {srcFor, load: loadBlob} = useAuthImages<number>()
 
-  const overlayRef = ref<HTMLElement | null>(null)
   const url = ref<string | null>(null)
   const name = ref('')
   const csv = ref<string[][] | null>(null)
@@ -74,9 +73,6 @@ export function useAttachmentPreview(
   }
 
   watch(attachments, loadThumbnails, {immediate: true})
-  watch(shown, (visible) => {
-    if (visible) nextTick(() => overlayRef.value?.focus())
-  })
 
   /**
    * Splits a CSV into rows and cells, accepting both comma and semicolon separators because
@@ -144,7 +140,6 @@ export function useAttachmentPreview(
 
   return {
     srcFor,
-    overlayRef,
     url,
     name,
     csv,

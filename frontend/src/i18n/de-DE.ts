@@ -8187,6 +8187,8 @@ export default {
         saved: 'Gespeichert',
         close: 'Schließen',
         enlargeImage: 'Bild vergrößern',
+        download: 'Herunterladen',
+        preview: 'Vorschau',
         add: 'Hinzufügen',
         back: 'Zurück',
         open: 'Öffnen',

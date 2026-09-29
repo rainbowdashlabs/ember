@@ -3,6 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {onUnmounted, readonly, ref, watch, type ComponentPublicInstance, type Ref} from 'vue'
+
 /**
  * Which of two open dialogs is in front.
  *
@@ -36,4 +38,54 @@ export function releaseDialogLayer(): void {
         openDialogs = 0
         topLayer = BASE_LAYER
     }
+}
+
+/**
+ * The layer a dialog paints on, claimed while it is open and given back when it closes or goes
+ * away. Nothing is claimed on the server, where no dialog is ever open.
+ *
+ * @param open whether the dialog is showing
+ */
+export function useDialogLayer(open: Ref<boolean>): Readonly<Ref<number>> {
+    const layer = ref(BASE_LAYER)
+    let claimed = false
+
+    watch(open, (showing) => {
+        if (import.meta.server || showing === claimed) return
+        claimed = showing
+        if (showing) layer.value = claimDialogLayer()
+        else releaseDialogLayer()
+    }, {immediate: true})
+
+    onUnmounted(() => {
+        if (!claimed) return
+        claimed = false
+        releaseDialogLayer()
+    })
+
+    return readonly(layer)
+}
+
+/** A press somewhere outside a dialog, as the dialog primitives report it. */
+export type PointerDownOutsideEvent = CustomEvent<{ originalEvent: PointerEvent }>
+
+/**
+ * The dimmed page behind a dialog: the layer it paints on, the element to hand its `ref`, and the
+ * rule for presses outside the dialog.
+ *
+ * <p>Only a press on the dimmed page itself closes the dialog. Anything else outside it, a toast or
+ * a panel that some control inside the dialog opened at the end of the page, belongs to the
+ * reader's work in the dialog and leaves it open.
+ *
+ * @param open whether the dialog is showing
+ */
+export function useDialogOverlay(open: Ref<boolean>) {
+    const overlay = ref<ComponentPublicInstance | null>(null)
+    const layer = useDialogLayer(open)
+
+    function keepOpenUnlessOverlay(event: PointerDownOutsideEvent) {
+        if (event.detail.originalEvent.target !== overlay.value?.$el) event.preventDefault()
+    }
+
+    return {overlay, layer, keepOpenUnlessOverlay}
 }
