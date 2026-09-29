@@ -1276,6 +1276,9 @@ export default {
     'MP-001': 'Nenne die Kachel der Karte, die du willst',
     'MP-002': MAP_TILE_NOT_A_NUMBER,
     'MP-003': MAP_TILE_NOT_A_NUMBER,
+    'MP-004': 'Die Karte wird in dieser Zoomstufe nicht angeboten',
+    'MP-005': 'Diese Kachel liegt außerhalb der Karte',
+    'MP-006': TOO_MANY_ATTEMPTS,
 
     'ML-001': 'Hier nimmt nichts diese Meldung entgegen',
 

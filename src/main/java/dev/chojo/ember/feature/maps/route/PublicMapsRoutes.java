@@ -5,12 +5,16 @@
  */
 package dev.chojo.ember.feature.maps.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
+import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService;
+import dev.chojo.ember.feature.maps.service.MapTileRateLimiter;
 import dev.chojo.ember.feature.maps.service.MapsConfigService;
+import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -34,11 +38,19 @@ public class PublicMapsRoutes implements Routes {
 
     private final MapsConfigService configService;
     private final MapTileCacheService cacheService;
+    private final MapTileRateLimiter rateLimiter;
+    private final Network network;
 
     @Inject
-    public PublicMapsRoutes(MapsConfigService configService, MapTileCacheService cacheService) {
+    public PublicMapsRoutes(
+            MapsConfigService configService,
+            MapTileCacheService cacheService,
+            MapTileRateLimiter rateLimiter,
+            Network network) {
         this.configService = configService;
         this.cacheService = cacheService;
+        this.rateLimiter = rateLimiter;
+        this.network = network;
     }
 
     private static int parseInt(String value, String fieldName) {
@@ -71,8 +83,21 @@ public class PublicMapsRoutes implements Routes {
                 tiles.provider(), urlTemplate, tiles.resolvedAttribution(), tiles.minZoom(), tiles.maxZoom()));
     }
 
+    /**
+     * Serves one tile. Every tile the cache does not hold costs an upstream request on the
+     * operator's key, so each address is held to {@link MapTileRateLimiter}'s rate before anything
+     * else is looked at.
+     */
     @StationFree("the parameters are map coordinates, not a row; the tile is the same for everyone")
     private void getTile(Context ctx) {
+        var retryAfter = rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress());
+        if (retryAfter.isPresent()) {
+            ctx.status(Refusal.MAP_TILES_TOO_OFTEN.status())
+                    .header("Retry-After", String.valueOf(retryAfter.get()))
+                    .json(ErrorResponseWrapper.of(
+                            Refusal.MAP_TILES_TOO_OFTEN, Refusal.MAP_TILES_TOO_OFTEN.message(), retryAfter.get()));
+            return;
+        }
         int z = parseInt(ctx.pathParam("z"), "z");
         int x = parseInt(ctx.pathParam("x"), "x");
         int y = parseInt(ctx.pathParam("y"), "y");

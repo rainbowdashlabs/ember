@@ -4048,6 +4048,15 @@ public enum Refusal {
     /** A piece of the map asked for on a public page and named by something that is not a number. */
     PUBLIC_MAP_TILE_NUMBER_NOT_A_NUMBER(Area.MAPS, 3, HttpStatus.BAD_REQUEST, Sentences.MAP_TILE_NOT_A_NUMBER),
 
+    /** A piece of the map asked for at a zoom this instance does not serve. */
+    MAP_TILE_ZOOM_OUT_OF_RANGE(Area.MAPS, 4, HttpStatus.NOT_FOUND, "The map is not served at that zoom"),
+
+    /** A piece of the map whose column or row lies outside the map at its zoom. */
+    MAP_TILE_OFF_THE_MAP(Area.MAPS, 5, HttpStatus.NOT_FOUND, "That piece lies outside the map"),
+
+    /** Pieces of the map asked for faster than one address may ask for them. */
+    MAP_TILES_TOO_OFTEN(Area.MAPS, 6, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
     /**
      * A delivery report from a mail provider whose key opens nothing, or whose signature does not
      * match what it carries. One code deliberately: two would tell whoever is trying the addresses
