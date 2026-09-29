@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.events.entity.OccurrenceRule;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
-import dev.chojo.ember.feature.events.entity.StationCalendar.DateCheck;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -69,17 +68,6 @@ public class OccurrenceCalendar {
     /** The clock the station keeps its days by, which is the one its appointments are read on. */
     public ZoneId zoneOf(int stationId) {
         return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
-    }
-
-    /**
-     * Whether an appointment takes place on a date, and if not, why not.
-     *
-     * @param event the appointment
-     * @param date  the date asked about, on the station's clock
-     * @return what that date is to the appointment
-     */
-    public DateCheck check(StationEvent event, LocalDate date) {
-        return forStation(event.stationId()).check(event, date);
     }
 
     /**
