@@ -212,7 +212,7 @@ jobs:
           merge-multiple: true
       # Before the gate: the run that fails it is the one whose uncovered lines somebody wants.
       - name: Build the coverage report
-        run: ./gradlew --build-cache jacocoFullReport -x test -x testRepositories -x testServices -x testTracking -x testOther
+        run: ./gradlew --build-cache jacocoFullReport -x testRepositories -x testServices -x testTracking -x testOther
       - name: Upload the coverage report
         uses: actions/upload-artifact@v7
         if: always()
@@ -220,7 +220,7 @@ jobs:
           name: coverage-report
           path: build/reports/jacoco/jacocoFullReport/
       - name: Verify coverage thresholds
-        run: ./gradlew --build-cache jacocoCoverageCheck -x test -x testRepositories -x testServices -x testTracking -x testOther
+        run: ./gradlew --build-cache jacocoCoverageCheck -x testRepositories -x testServices -x testTracking -x testOther
 
   verify-javadoc:
     runs-on: ubuntu-latest

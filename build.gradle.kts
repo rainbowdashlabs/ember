@@ -401,18 +401,20 @@ tasks {
         dependsOn("javadoc")
     }
 
+    val testSuites = listOf("testRepositories", "testServices", "testTracking", "testOther")
+
     register("verify") {
         group = "verification"
         description = "Runs all verification tasks in parallel"
-        dependsOn("testRepositories", "testServices", "testTracking", "testOther", "jacocoCoverageCheck", "verifyJavadoc", "checkLicenseBackend", "checkLicenseFrontend")
+        dependsOn(testSuites, "jacocoCoverageCheck", "verifyJavadoc", "checkLicenseBackend", "checkLicenseFrontend")
     }
 
     register<JacocoReport>("jacocoFullReport") {
         group = "verification"
-        description = "Merged coverage report from all test tasks"
-        dependsOn("test", "testRepositories", "testServices", "testTracking", "testOther")
+        description = "Merged coverage report from the four test suites"
+        dependsOn(testSuites)
         executionData(
-            fileTree("build/jacoco") { include("*.exec") }
+            fileTree("build/jacoco") { include(testSuites.map { "$it.exec" }) }
         )
         sourceSets(sourceSets.main.get())
         reports {
@@ -425,9 +427,9 @@ tasks {
     register<JacocoCoverageVerification>("jacocoCoverageCheck") {
         group = "verification"
         description = "Enforces 80% line coverage for services and repositories"
-        dependsOn("test", "testRepositories", "testServices", "testTracking", "testOther")
+        dependsOn(testSuites)
         executionData(
-            fileTree("build/jacoco") { include("*.exec") }
+            fileTree("build/jacoco") { include(testSuites.map { "$it.exec" }) }
         )
         sourceSets(sourceSets.main.get())
         violationRules {
