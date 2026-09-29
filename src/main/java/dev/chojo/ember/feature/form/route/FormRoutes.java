@@ -37,7 +37,7 @@ import dev.chojo.ember.feature.form.service.FormResultQuery;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -82,7 +82,7 @@ public class FormRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(FormRoutes.class);
 
     private final FormService formService;
-    private final StationMemberService stationMemberService;
+    private final GuardianPolicy guardianPolicy;
     private final FormAnalyticsAssembler analyticsAssembler;
     private final FormResponseExportService exportService;
     private final StationRepository stationRepository;
@@ -91,13 +91,13 @@ public class FormRoutes implements Routes {
     @Inject
     public FormRoutes(
             FormService formService,
-            StationMemberService stationMemberService,
+            GuardianPolicy guardianPolicy,
             FormAnalyticsAssembler analyticsAssembler,
             FormResponseExportService exportService,
             StationRepository stationRepository,
             PageRepository pageRepository) {
         this.formService = formService;
-        this.stationMemberService = stationMemberService;
+        this.guardianPolicy = guardianPolicy;
         this.analyticsAssembler = analyticsAssembler;
         this.exportService = exportService;
         this.stationRepository = stationRepository;
@@ -161,18 +161,15 @@ public class FormRoutes implements Routes {
         routes.get(prefix + "/forms/{id}/eligible-members", this::getEligibleMembers, StationPermission.USER);
         routes.post(prefix + "/forms/{id}/respond", this::submitResponse, StationPermission.USER);
         routes.put(prefix + "/forms/{id}/respond", this::updateResponse, StationPermission.USER);
-        routes.get(
-                prefix + "/forms/{id}/respond/{memberId}", this::getMemberResponse, StationPermission.MEMBER_GUARDIAN);
-        routes.post(
-                prefix + "/forms/{id}/respond/{memberId}", this::submitForMember, StationPermission.MEMBER_GUARDIAN);
-        routes.put(prefix + "/forms/{id}/respond/{memberId}", this::updateForMember, StationPermission.MEMBER_GUARDIAN);
+        routes.get(prefix + "/forms/{id}/respond/{memberId}", this::getMemberResponse, StationPermission.USER);
+        routes.post(prefix + "/forms/{id}/respond/{memberId}", this::submitForMember, StationPermission.USER);
+        routes.put(prefix + "/forms/{id}/respond/{memberId}", this::updateForMember, StationPermission.USER);
         routes.get(prefix + "/forms/{id}/draft", this::getDraft, StationPermission.USER);
         routes.put(prefix + "/forms/{id}/draft", this::saveDraft, StationPermission.USER);
         routes.delete(prefix + "/forms/{id}/draft", this::discardDraft, StationPermission.USER);
-        routes.get(prefix + "/forms/{id}/draft/{memberId}", this::getDraftFor, StationPermission.MEMBER_GUARDIAN);
-        routes.put(prefix + "/forms/{id}/draft/{memberId}", this::saveDraftFor, StationPermission.MEMBER_GUARDIAN);
-        routes.delete(
-                prefix + "/forms/{id}/draft/{memberId}", this::discardDraftFor, StationPermission.MEMBER_GUARDIAN);
+        routes.get(prefix + "/forms/{id}/draft/{memberId}", this::getDraftFor, StationPermission.USER);
+        routes.put(prefix + "/forms/{id}/draft/{memberId}", this::saveDraftFor, StationPermission.USER);
+        routes.delete(prefix + "/forms/{id}/draft/{memberId}", this::discardDraftFor, StationPermission.USER);
 
         // Analytics
         routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, StationPermission.POLL_VIEW_RESULTS);
@@ -293,7 +290,7 @@ public class FormRoutes implements Routes {
                 .toList();
 
         // Also include forms where a managed member has access but the current member does not
-        var managed = stationMemberService.findManaged(memberId);
+        var managed = guardianPolicy.wards(session);
         var managedAccessible = managed.isEmpty()
                 ? Set.<Integer>of()
                 : managed.stream()
@@ -814,7 +811,7 @@ public class FormRoutes implements Routes {
         }
         requireOwnedForm(id, session);
         boolean selfEligible = formService.canMemberAccess(id, session.member().id());
-        var managed = stationMemberService.findManaged(session.member().id());
+        var managed = guardianPolicy.wards(session);
         var eligibleManagedIds = managed.stream()
                 .map(StationMember::id)
                 .filter(ided -> formService.canMemberAccess(id, ided))
@@ -983,21 +980,17 @@ public class FormRoutes implements Routes {
     }
 
     /**
-     * Verifies that the current user manages the specified member or has POLL_MANAGER role, and
-     * refuses when neither holds.
+     * Verifies that the current user acts for the specified member or has POLL_MANAGER role, and
+     * refuses when neither holds. Acting for a member is the guardian relation alone, which
+     * {@link GuardianPolicy} answers.
      *
      * @param session  the current user session
      * @param memberId the member ID to verify management of
      */
     private void verifyManages(UserSession session, int memberId) {
-        if (!looksAfter(session, memberId) && !session.hasPermission(StationPermission.POLL_MANAGER)) {
+        if (!guardianPolicy.mayActFor(session, memberId) && !session.hasPermission(StationPermission.POLL_MANAGER)) {
             throw Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR.raise();
         }
-    }
-
-    /** Whether the caller looks after the given member, as their guardian or managing member. */
-    private boolean looksAfter(UserSession session, int memberId) {
-        return stationMemberService.findManaged(session.member().id()).stream().anyMatch(m -> m.id() == memberId);
     }
 
     @OpenApi(
@@ -1113,7 +1106,7 @@ public class FormRoutes implements Routes {
         var session = UserSession.from(ctx);
         if (session.member() == null) throw Refusal.NOT_A_MEMBER_KEEPING_FORM_DRAFT.raise();
         int memberId = pathInt(ctx, "memberId");
-        if (!looksAfter(session, memberId)) throw Refusal.FORM_DRAFT_NOT_YOURS.raise();
+        if (!guardianPolicy.mayActFor(session, memberId)) throw Refusal.FORM_DRAFT_NOT_YOURS.raise();
         requireFormForManagedMember(session, formId, memberId);
         return memberId;
     }

@@ -34,13 +34,12 @@ import dev.chojo.ember.feature.members.entity.MemberTable;
 import dev.chojo.ember.feature.members.entity.MemberTableCellType;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
-import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
@@ -74,7 +73,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -91,7 +89,7 @@ public class EventRegistrationRoutes implements Routes {
     private final EventRegistrationService registrationService;
     private final EventRestrictionService restrictionService;
     private final MemberNameResolver memberNameResolver;
-    private final StationMemberService stationMemberService;
+    private final GuardianPolicy guardianPolicy;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final AttendanceService attendanceService;
@@ -114,7 +112,7 @@ public class EventRegistrationRoutes implements Routes {
             EventRegistrationService registrationService,
             EventRestrictionService restrictionService,
             MemberNameResolver memberNameResolver,
-            StationMemberService stationMemberService,
+            GuardianPolicy guardianPolicy,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             AttendanceService attendanceService,
@@ -133,7 +131,7 @@ public class EventRegistrationRoutes implements Routes {
         this.registrationService = registrationService;
         this.restrictionService = restrictionService;
         this.memberNameResolver = memberNameResolver;
-        this.stationMemberService = stationMemberService;
+        this.guardianPolicy = guardianPolicy;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.attendanceService = attendanceService;
@@ -250,17 +248,7 @@ public class EventRegistrationRoutes implements Routes {
     private boolean readsAnswersOf(Context ctx, EventRegistration registration) {
         var session = UserSession.from(ctx);
         if (session.hasPermission(StationPermission.EVENT_EDIT)) return true;
-        if (session.member() == null) return false;
-        if (session.member().id() == registration.memberId()) return true;
-        return managedBy(session).contains(registration.memberId());
-    }
-
-    /** Whom the caller answers for, read once per request rather than once per registration. */
-    private Set<Integer> managedBy(UserSession session) {
-        if (session.member() == null) return Set.of();
-        return stationMemberService.findManaged(session.member().id()).stream()
-                .map(StationMember::id)
-                .collect(Collectors.toSet());
+        return guardianPolicy.mayActFor(session, registration.memberId());
     }
 
     private RegistrationResponse toRegistrationResponse(
@@ -310,14 +298,12 @@ public class EventRegistrationRoutes implements Routes {
                 registrations.stream().map(EventRegistration::id).toList());
         var session = UserSession.from(ctx);
         boolean runsTheEvents = session.hasPermission(StationPermission.EVENT_EDIT);
-        var household = runsTheEvents ? Set.<Integer>of() : managedBy(session);
+        var household = runsTheEvents ? Set.<Integer>of() : Set.copyOf(guardianPolicy.household(session));
         var hiddenByEvent = new HashMap<Integer, Set<Integer>>();
         var requiredByEvent = new HashMap<Integer, Set<Integer>>();
         return registrations.stream()
                 .map(r -> {
-                    boolean reads = runsTheEvents
-                            || (session.member() != null && session.member().id() == r.memberId())
-                            || household.contains(r.memberId());
+                    boolean reads = runsTheEvents || household.contains(r.memberId());
                     var hidden = reads
                             ? Set.<Integer>of()
                             : hiddenByEvent.computeIfAbsent(
@@ -341,20 +327,10 @@ public class EventRegistrationRoutes implements Routes {
      */
     private int resolveTargetMemberId(UserSession session, RegisterRequest req) {
         if (session.member() == null) throw Refusal.NOT_A_MEMBER_ON_REGISTRATION.raise();
-        int memberId;
-        if (req.memberId() != null) {
-            memberId = req.memberId();
-            if (memberId != session.member().id()) {
-                boolean manages = stationMemberService
-                        .findManaged(session.member().id())
-                        .stream()
-                        .anyMatch(m -> m.id() == memberId);
-                if (!manages && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
-                    throw Refusal.MEMBER_NOT_YOURS_TO_REGISTER.raise();
-                }
-            }
-        } else {
-            memberId = session.member().id();
+        if (req.memberId() == null) return session.member().id();
+        int memberId = req.memberId();
+        if (!guardianPolicy.mayActFor(session, memberId) && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
+            throw Refusal.MEMBER_NOT_YOURS_TO_REGISTER.raise();
         }
         return memberId;
     }
@@ -381,13 +357,7 @@ public class EventRegistrationRoutes implements Routes {
             return;
         }
 
-        var household = new ArrayList<Integer>();
-        household.add(session.member().id());
-        if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
-            for (var managed : stationMemberService.findManaged(session.member().id())) {
-                household.add(managed.id());
-            }
-        }
+        var household = guardianPolicy.household(session);
 
         var byEvent = new LinkedHashMap<Integer, AwaitingAnswer>();
         for (var row : registrationService.findAwaitingAnswer(household)) {
@@ -426,12 +396,9 @@ public class EventRegistrationRoutes implements Routes {
             ctx.json(Collections.emptyList());
             return;
         }
-        var registrations = new ArrayList<>(
-                registrationService.findByMember(session.member().id()));
-        if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
-            for (var managed : stationMemberService.findManaged(session.member().id())) {
-                registrations.addAll(registrationService.findByMember(managed.id()));
-            }
+        var registrations = new ArrayList<EventRegistration>();
+        for (int memberId : guardianPolicy.household(session)) {
+            registrations.addAll(registrationService.findByMember(memberId));
         }
         ctx.json(toRegistrationResponses(ctx, registrations));
     }
@@ -589,12 +556,11 @@ public class EventRegistrationRoutes implements Routes {
      */
     private void requireAnswerAuthor(UserSession session, EventRegistration registration) {
         if (session.member() == null) throw Refusal.NOT_A_MEMBER_ON_ANSWER_CHANGE.raise();
-        if (registration.memberId() == session.member().id()) return;
         if (session.hasPermission(StationPermission.EVENT_EDIT)) return;
         if (session.hasPermission(StationPermission.EVENT_REGISTRATION)) return;
-        boolean manages = stationMemberService.findManaged(session.member().id()).stream()
-                .anyMatch(m -> m.id() == registration.memberId());
-        if (!manages) throw Refusal.REGISTRATION_ANSWERS_NOT_YOURS.raise();
+        if (!guardianPolicy.mayActFor(session, registration.memberId())) {
+            throw Refusal.REGISTRATION_ANSWERS_NOT_YOURS.raise();
+        }
     }
 
     /**
@@ -870,7 +836,7 @@ public class EventRegistrationRoutes implements Routes {
                 registrationService.findById(id).orElseThrow(Refusal.EVENT_REGISTRATION_NOT_HERE_ON_ANSWER::raise);
         var event = requireOwnedEvent(crudService, registration.eventId(), session);
 
-        boolean manages = answersFor(session, registration.memberId());
+        boolean manages = guardianPolicy.mayActFor(session, registration.memberId());
         boolean runsTheEvent = session.hasPermission(StationPermission.EVENT_MANAGER)
                 || session.hasPermission(StationPermission.EVENT_REGISTRATION);
         if (!manages && !runsTheEvent) {
@@ -892,15 +858,6 @@ public class EventRegistrationRoutes implements Routes {
             throw Refusal.EVENT_REGISTRATION_NOT_CONFIRMED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    /** Whether this session answers for that member: their own answer, or one they look after. */
-    private boolean answersFor(UserSession session, int memberId) {
-        if (session.member() == null) return false;
-        if (session.member().id() == memberId) return true;
-        return session.hasPermission(StationPermission.MEMBER_GUARDIAN)
-                && stationMemberService.findManaged(session.member().id()).stream()
-                        .anyMatch(m -> m.id() == memberId);
     }
 
     /** Whether somebody is coming. */
@@ -943,13 +900,7 @@ public class EventRegistrationRoutes implements Routes {
      * anybody where they keep the list.
      */
     private void requireMayAnswerFor(UserSession session, int memberId) {
-        boolean isOwn = session.member() != null && session.member().id() == memberId;
-        boolean manages = session.member() != null
-                && session.hasPermission(StationPermission.MEMBER_GUARDIAN)
-                && stationMemberService.findManaged(session.member().id()).stream()
-                        .anyMatch(m -> m.id() == memberId);
-        if (!isOwn
-                && !manages
+        if (!guardianPolicy.mayActFor(session, memberId)
                 && !session.hasPermission(StationPermission.EVENT_MANAGER)
                 && !session.hasPermission(StationPermission.EVENT_REGISTRATION)) {
             throw Refusal.WITHDRAWAL_NOT_YOURS_TO_ANSWER.raise();

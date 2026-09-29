@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormResponseExportService;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
@@ -71,7 +72,7 @@ class FormCompletionRouteTest extends RepositoryTestBase {
         member = stationMemberRepo.create(station.id(), account.id());
         routes = new FormRoutes(
                 formService,
-                mock(StationMemberService.class),
+                mock(GuardianPolicy.class),
                 mock(FormAnalyticsAssembler.class),
                 mock(FormResponseExportService.class),
                 mock(StationRepository.class),

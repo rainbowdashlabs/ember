@@ -15,7 +15,7 @@ import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.Context;
@@ -55,7 +55,7 @@ public class EventAttachmentRoutes implements Routes {
     private final EventCrudService crudService;
     private final EventRestrictionService restrictionService;
     private final MediaLibraryService media;
-    private final StationMemberService stationMemberService;
+    private final GuardianPolicy guardianPolicy;
 
     @Inject
     public EventAttachmentRoutes(
@@ -63,12 +63,12 @@ public class EventAttachmentRoutes implements Routes {
             EventCrudService crudService,
             EventRestrictionService restrictionService,
             MediaLibraryService media,
-            StationMemberService stationMemberService) {
+            GuardianPolicy guardianPolicy) {
         this.attachmentService = attachmentService;
         this.crudService = crudService;
         this.restrictionService = restrictionService;
         this.media = media;
-        this.stationMemberService = stationMemberService;
+        this.guardianPolicy = guardianPolicy;
     }
 
     @Override
@@ -281,7 +281,7 @@ public class EventAttachmentRoutes implements Routes {
         var session = UserSession.from(ctx);
         requireOwnedEvent(crudService, eventId, session);
         if (session.permissions().contains(StationPermission.EVENT_EDIT)) return;
-        var spokenFor = stationMemberService.findSpokenForIds(session);
+        var spokenFor = guardianPolicy.household(session);
         if (!restrictionService.canViewAny(eventId, spokenFor, session.permissions())) {
             throw Refusal.EVENT_NOT_YOURS_TO_SEE.raise();
         }

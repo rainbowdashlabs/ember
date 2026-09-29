@@ -33,7 +33,7 @@ import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import io.javalin.http.Context;
@@ -79,7 +79,7 @@ public class EventRoutes implements Routes {
     private final EventRestrictionService restrictionService;
     private final EventReminderService reminderService;
     private final BatchEventService batchEventService;
-    private final StationMemberService stationMemberService;
+    private final GuardianPolicy guardianPolicy;
     private final EventExportService eventExportService;
     private final EventRegistrationFieldService registrationFieldService;
     private final EventFieldRegistrationService fieldRegistrationService;
@@ -92,7 +92,7 @@ public class EventRoutes implements Routes {
             EventRestrictionService restrictionService,
             EventReminderService reminderService,
             BatchEventService batchEventService,
-            StationMemberService stationMemberService,
+            GuardianPolicy guardianPolicy,
             EventExportService eventExportService,
             EventRegistrationFieldService registrationFieldService,
             EventFieldRegistrationService fieldRegistrationService,
@@ -104,7 +104,7 @@ public class EventRoutes implements Routes {
         this.restrictionService = restrictionService;
         this.reminderService = reminderService;
         this.batchEventService = batchEventService;
-        this.stationMemberService = stationMemberService;
+        this.guardianPolicy = guardianPolicy;
         this.eventExportService = eventExportService;
         this.registrationFieldService = registrationFieldService;
     }
@@ -524,7 +524,7 @@ public class EventRoutes implements Routes {
         if (session.member() == null) {
             return List.of(-1);
         }
-        return stationMemberService.findSpokenForIds(session);
+        return guardianPolicy.household(session);
     }
 
     /**
@@ -576,7 +576,7 @@ public class EventRoutes implements Routes {
         }
         ctx.json(restrictionService.registrationOpenings(
                 crudService.findByStation(session.stationId()),
-                stationMemberService.findSpokenForIds(session),
+                guardianPolicy.household(session),
                 session.permissions()));
     }
 

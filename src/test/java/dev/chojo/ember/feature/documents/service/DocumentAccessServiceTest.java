@@ -1,0 +1,208 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.documents.service;
+
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+/** Who may list, read, add, change and remove the documents a station keeps. */
+class DocumentAccessServiceTest {
+
+    private static final int STATION_ID = 1;
+    private static final int GUARDIAN = 10;
+    private static final int WARD = 11;
+    private static final int STRANGER = 12;
+    private static final int DOCUMENT = 100;
+
+    private DocumentRepository documentRepository;
+    private DocumentService documentService;
+    private GuardianPolicy guardianPolicy;
+    private DocumentAccessService access;
+
+    @BeforeEach
+    void setup() {
+        documentRepository = mock(DocumentRepository.class);
+        documentService = mock(DocumentService.class);
+        guardianPolicy = mock(GuardianPolicy.class);
+        when(guardianPolicy.mayActFor(any(), anyInt())).thenAnswer(invocation -> {
+            UserSession session = invocation.getArgument(0);
+            int memberId = invocation.getArgument(1);
+            return session.member() != null && household(session).contains(memberId);
+        });
+        when(guardianPolicy.household(any())).thenAnswer(invocation -> household(invocation.getArgument(0)));
+        when(documentService.mayRead(anyInt(), anyBoolean(), anyBoolean())).thenReturn(false);
+        access = new DocumentAccessService(documentRepository, documentService, guardianPolicy);
+    }
+
+    private static List<Integer> household(UserSession session) {
+        if (session.member() == null) return List.of();
+        int id = session.member().id();
+        return id == GUARDIAN ? List.of(GUARDIAN, WARD) : List.of(id);
+    }
+
+    private static UserSession sessionOf(Integer memberId, StationPermission... permissions) {
+        var member = memberId == null
+                ? null
+                : new StationMember(
+                        memberId,
+                        STATION_ID,
+                        UUID.randomUUID(),
+                        memberId,
+                        false,
+                        null,
+                        "M",
+                        StationUserType.MEMBER,
+                        null);
+        return new UserSession(
+                new Account(1, null, "wer@test.com", null, "Wer", "Da", true, null, "Wer Da", null, null),
+                1,
+                STATION_ID,
+                null,
+                member,
+                Set.of(permissions),
+                Set.of(),
+                null);
+    }
+
+    private static Document document(boolean hidden, Integer uploadedBy) {
+        return new Document(
+                DOCUMENT,
+                STATION_ID,
+                "Einverständnis",
+                "e.pdf",
+                "application/pdf",
+                10,
+                hidden,
+                false,
+                false,
+                uploadedBy,
+                Instant.now());
+    }
+
+    private static void assertRefused(Refusal refusal, Executable call) {
+        assertEquals(refusal, assertThrows(RefusalResponse.class, call).refusal());
+    }
+
+    @Test
+    void aMemberAndTheirGuardianMayListTheirDocuments() {
+        assertDoesNotThrow(() -> access.requireMayList(sessionOf(WARD), WARD));
+        assertDoesNotThrow(() -> access.requireMayList(sessionOf(GUARDIAN), WARD));
+        assertRefused(Refusal.DOCUMENT_LIST_NOT_YOURS, () -> access.requireMayList(sessionOf(STRANGER), WARD));
+        assertRefused(Refusal.DOCUMENT_LIST_NOT_YOURS, () -> access.requireMayList(sessionOf(null), WARD));
+    }
+
+    @Test
+    void readingEveryMembersDocumentsListsAnybody() {
+        var reader = sessionOf(STRANGER, StationPermission.DOCUMENT_READ_MEMBER);
+
+        assertTrue(access.readsEveryMember(reader));
+        assertFalse(access.readsEveryMember(sessionOf(GUARDIAN)));
+        assertDoesNotThrow(() -> access.requireMayList(reader, WARD));
+    }
+
+    /** A guardian reads the paperwork of the child in their care, and a stranger does not. */
+    @Test
+    void aGuardianReadsTheDocumentsOfTheirWard() {
+        when(documentRepository.isBoundTo(DOCUMENT, WARD)).thenReturn(true);
+        var onTheWard = document(false, null);
+
+        assertDoesNotThrow(() -> access.requireReadable(sessionOf(WARD), onTheWard));
+        assertDoesNotThrow(() -> access.requireReadable(sessionOf(GUARDIAN), onTheWard));
+        assertRefused(Refusal.DOCUMENT_NOT_YOURS_TO_READ, () -> access.requireReadable(sessionOf(STRANGER), onTheWard));
+    }
+
+    /** Hiding a document hides it from the member it names, and so from their guardian. */
+    @Test
+    void aHiddenDocumentIsHiddenFromTheHousehold() {
+        when(documentRepository.isBoundTo(DOCUMENT, WARD)).thenReturn(true);
+        var hidden = document(true, null);
+
+        assertRefused(Refusal.DOCUMENT_HIDDEN_FROM_YOU, () -> access.requireReadable(sessionOf(GUARDIAN), hidden));
+        assertRefused(Refusal.DOCUMENT_HIDDEN_FROM_YOU, () -> access.requireReadable(sessionOf(WARD), hidden));
+    }
+
+    @Test
+    void thePermissionsOfTheStoreReadWhatTheyCover() {
+        when(documentService.mayRead(DOCUMENT, true, false)).thenReturn(true);
+
+        assertDoesNotThrow(() -> access.requireReadable(
+                sessionOf(STRANGER, StationPermission.DOCUMENT_READ_MEMBER), document(true, null)));
+    }
+
+    @Test
+    void changingFollowsTheDocument() {
+        when(documentRepository.hasNoMembers(DOCUMENT)).thenReturn(true);
+        assertDoesNotThrow(() -> access.requireMayEdit(sessionOf(STRANGER, StationPermission.DOCUMENT_EDIT), DOCUMENT));
+        assertRefused(
+                Refusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
+                () -> access.requireMayEdit(sessionOf(STRANGER, StationPermission.DOCUMENT_EDIT_MEMBER), DOCUMENT));
+
+        when(documentRepository.hasNoMembers(DOCUMENT)).thenReturn(false);
+        assertDoesNotThrow(
+                () -> access.requireMayEdit(sessionOf(STRANGER, StationPermission.DOCUMENT_EDIT_MEMBER), DOCUMENT));
+        assertRefused(
+                Refusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
+                () -> access.requireMayEdit(sessionOf(GUARDIAN, StationPermission.DOCUMENT_EDIT), DOCUMENT));
+    }
+
+    @Test
+    void whoeverPutADocumentInMayTakeItOut() {
+        assertDoesNotThrow(() -> access.requireMayDelete(sessionOf(GUARDIAN), document(false, GUARDIAN)));
+        assertRefused(
+                Refusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
+                () -> access.requireMayDelete(sessionOf(GUARDIAN), document(false, STRANGER)));
+        assertRefused(
+                Refusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
+                () -> access.requireMayDelete(sessionOf(null), document(false, null)));
+    }
+
+    @Test
+    void aMemberUploadsOntoThemselvesOnlyWhereTheyMay() {
+        assertDoesNotThrow(() -> access.requireMayUpload(sessionOf(WARD, StationPermission.MEMBER_SELF_UPLOAD), WARD));
+        assertDoesNotThrow(
+                () -> access.requireMayUpload(sessionOf(STRANGER, StationPermission.DOCUMENT_EDIT_MEMBER), WARD));
+        assertRefused(Refusal.DOCUMENT_NOT_YOURS_TO_ADD, () -> access.requireMayUpload(sessionOf(WARD), WARD));
+        assertRefused(
+                Refusal.DOCUMENT_NOT_YOURS_TO_ADD,
+                () -> access.requireMayUpload(sessionOf(GUARDIAN, StationPermission.MEMBER_SELF_UPLOAD), WARD));
+        assertRefused(Refusal.DOCUMENT_NOT_YOURS_TO_ADD, () -> access.requireMayUpload(sessionOf(null), WARD));
+    }
+
+    @Test
+    void onlyWhoeverReadsMemberDocumentsMayHideOne() {
+        assertDoesNotThrow(() -> access.requireMayHide(sessionOf(WARD), false));
+        assertDoesNotThrow(
+                () -> access.requireMayHide(sessionOf(STRANGER, StationPermission.DOCUMENT_EDIT_MEMBER), true));
+        assertRefused(Refusal.DOCUMENT_HIDING_NOT_ALLOWED, () -> access.requireMayHide(sessionOf(WARD), true));
+    }
+}

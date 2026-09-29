@@ -1,0 +1,138 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.documents.service;
+
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+
+/**
+ * Who may list, read, add and change the documents a station keeps.
+ *
+ * <p>Two things decide. The permissions of the store say what somebody may do with the documents of
+ * everybody. Beside them, a member's own paperwork is their business, and the business of whoever
+ * looks after them: a guardian is handed the forms of the child in their care, the medical note, the
+ * consent, the certificate the station holds. That relation is {@link GuardianPolicy}'s to answer, so
+ * documents read it the same way registrations and forms do.
+ *
+ * <p>A hidden document is hidden from the member it names and so from their guardian too; only the
+ * permission to read member documents reaches it.
+ */
+@Singleton
+public class DocumentAccessService {
+    private final DocumentRepository documentRepository;
+    private final DocumentService documentService;
+    private final GuardianPolicy guardianPolicy;
+
+    @Inject
+    public DocumentAccessService(
+            DocumentRepository documentRepository, DocumentService documentService, GuardianPolicy guardianPolicy) {
+        this.documentRepository = documentRepository;
+        this.documentService = documentService;
+        this.guardianPolicy = guardianPolicy;
+    }
+
+    /**
+     * Whether the reader sees the documents of every member, hidden ones included, rather than only
+     * the ones of their own household.
+     */
+    public boolean readsEveryMember(UserSession session) {
+        return session.hasPermission(StationPermission.DOCUMENT_READ_MEMBER);
+    }
+
+    /**
+     * Refuses the list of a member's documents to a reader who is neither allowed to read every
+     * member's nor that member or their guardian.
+     *
+     * @param session  the reader
+     * @param memberId the member whose documents are listed
+     */
+    public void requireMayList(UserSession session, int memberId) {
+        if (readsEveryMember(session)) return;
+        if (!guardianPolicy.mayActFor(session, memberId)) throw Refusal.DOCUMENT_LIST_NOT_YOURS.raise();
+    }
+
+    /**
+     * Refuses a document the reader may not see.
+     *
+     * <p>The permissions of the store come first, and which one counts follows the document: see
+     * {@link DocumentService#mayRead(int, boolean, boolean)}. Without them, a document is readable
+     * where it names the reader or somebody in their care and is not hidden.
+     *
+     * @param session  the reader
+     * @param document the document being read
+     */
+    public void requireReadable(UserSession session, Document document) {
+        boolean byPermission = documentService.mayRead(
+                document.id(), readsEveryMember(session), session.hasPermission(StationPermission.DOCUMENT_READ));
+        if (byPermission) return;
+        if (document.hidden()) throw Refusal.DOCUMENT_HIDDEN_FROM_YOU.raise();
+        boolean aboutTheHousehold = guardianPolicy.household(session).stream()
+                .anyMatch(member -> documentRepository.isBoundTo(document.id(), member));
+        if (!aboutTheHousehold) throw Refusal.DOCUMENT_NOT_YOURS_TO_READ.raise();
+    }
+
+    /**
+     * Refuses a change to a document the reader may not make. The station's own paperwork needs the
+     * permission to edit the store, and a document that names a member needs the permission for
+     * member documents.
+     *
+     * @param session    the reader
+     * @param documentId the document being changed
+     */
+    public void requireMayEdit(UserSession session, int documentId) {
+        var needed = documentRepository.hasNoMembers(documentId)
+                ? StationPermission.DOCUMENT_EDIT
+                : StationPermission.DOCUMENT_EDIT_MEMBER;
+        if (!session.hasPermission(needed)) throw Refusal.DOCUMENT_NOT_YOURS_TO_CHANGE.raise();
+    }
+
+    /**
+     * Refuses removing a document the reader may not remove. Whoever put a document in may take it
+     * out again; anybody else needs the permission to change it.
+     *
+     * @param session  the reader
+     * @param document the document being removed
+     */
+    public void requireMayDelete(UserSession session, Document document) {
+        boolean ownUpload = session.member() != null
+                && document.uploadedBy() != null
+                && document.uploadedBy() == session.member().id();
+        if (!ownUpload) requireMayEdit(session, document.id());
+    }
+
+    /**
+     * Refuses putting a document on a member to a reader who may not. The permission for member
+     * documents allows it for everybody; a member allowed to upload their own may put one on
+     * themselves.
+     *
+     * @param session  the reader
+     * @param memberId the member the document is put on
+     */
+    public void requireMayUpload(UserSession session, int memberId) {
+        if (session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) return;
+        boolean self = session.member() != null && session.member().id() == memberId;
+        if (self && session.hasPermission(StationPermission.MEMBER_SELF_UPLOAD)) return;
+        throw Refusal.DOCUMENT_NOT_YOURS_TO_ADD.raise();
+    }
+
+    /**
+     * Refuses marking a document as hidden to a reader who could then not see it themselves.
+     *
+     * @param session the reader
+     * @param hidden  whether the document is to be hidden
+     */
+    public void requireMayHide(UserSession session, boolean hidden) {
+        if (hidden && !session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
+            throw Refusal.DOCUMENT_HIDING_NOT_ALLOWED.raise();
+        }
+    }
+}

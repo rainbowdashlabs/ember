@@ -14,6 +14,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.entity.DocumentTag;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -37,16 +38,14 @@ import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * The document store of a member.
  *
- * <p>Who may see what is decided here rather than at the route, because it follows from the
- * document rather than from the reader alone: a member's own documents are theirs to read, and
- * everything else needs the right to read the documents that name a member.
+ * <p>Who may see and change what follows from the document rather than from the reader alone, and
+ * is {@link DocumentAccessService}'s to decide: a member's own documents are theirs and their
+ * guardian's to read, and everything else needs the right to read the documents that name a member.
  */
 @Singleton
 public class DocumentRoutes implements Routes {
@@ -61,13 +60,16 @@ public class DocumentRoutes implements Routes {
     private final DocumentRepository documentRepository;
     private final StationMemberRepository memberRepository;
     private final StationService stationService;
+    private final DocumentAccessService documentAccess;
 
     @Inject
     public DocumentRoutes(
             DocumentService documentService,
             DocumentRepository documentRepository,
             StationMemberRepository memberRepository,
-            StationService stationService) {
+            StationService stationService,
+            DocumentAccessService documentAccess) {
+        this.documentAccess = documentAccess;
         this.documentService = documentService;
         this.documentRepository = documentRepository;
         this.memberRepository = memberRepository;
@@ -147,9 +149,8 @@ public class DocumentRoutes implements Routes {
         int memberId = pathInt(ctx, "memberId");
         var session = UserSession.from(ctx);
         int stationId = requireMemberStation(ctx, memberId);
-        boolean readsOthers = session.hasPermission(StationPermission.DOCUMENT_READ_MEMBER);
-        if (!readsOthers && !ownAndManaged(session).contains(memberId)) throw Refusal.DOCUMENT_LIST_NOT_YOURS.raise();
-        ctx.json(documentRepository.findByMember(stationId, memberId, readsOthers).stream()
+        documentAccess.requireMayList(session, memberId);
+        ctx.json(documentRepository.findByMember(stationId, memberId, documentAccess.readsEveryMember(session)).stream()
                 .map(this::toResponse)
                 .toList());
     }
@@ -168,7 +169,7 @@ public class DocumentRoutes implements Routes {
         int memberId = pathInt(ctx, "memberId");
         var session = UserSession.from(ctx);
         var member = requireMemberStation(ctx, memberId);
-        requireMayUpload(session, memberId);
+        documentAccess.requireMayUpload(session, memberId);
 
         ctx.status(HttpStatus.CREATED).json(toResponse(take(ctx, member, List.of(memberId), session)));
     }
@@ -187,9 +188,7 @@ public class DocumentRoutes implements Routes {
         if (title == null || title.isBlank()) title = file.filename();
         boolean hidden = Boolean.parseBoolean(ctx.formParam("hidden"));
         boolean keepOnArchive = Boolean.parseBoolean(ctx.formParam("keepOnArchive"));
-        if (hidden && !session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
-            throw Refusal.DOCUMENT_HIDING_NOT_ALLOWED.raise();
-        }
+        documentAccess.requireMayHide(session, hidden);
 
         byte[] data;
         try (var in = file.content()) {
@@ -354,7 +353,7 @@ public class DocumentRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var document = requireOwnedDocument(ctx, id);
-        requireMayEdit(session, id);
+        documentAccess.requireMayEdit(session, id);
         var request = ctx.bodyAsClass(TagsRequest.class);
         documentRepository.setTags(id, document.stationId(), request.tags() != null ? request.tags() : List.of());
         ctx.json(toResponse(document));
@@ -424,93 +423,16 @@ public class DocumentRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var document = requireOwnedDocument(ctx, id);
-        boolean ownUpload = session.member() != null
-                && document.uploadedBy() != null
-                && document.uploadedBy() == session.member().id();
-        if (!ownUpload) requireMayEdit(session, id);
+        documentAccess.requireMayDelete(session, document);
         documentService.delete(document);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    /**
-     * The document behind the path, when the reader may see it at all. A document of one's own is
-     * readable without any permission; a hidden one never is, because hiding it means hiding it
-     * from the member it belongs to.
-     *
-     * <p>A guardian reads what the member they answer for reads, which is what the forms a station
-     * holds for a child are for. They see no more of it than that member would: a hidden document is
-     * refused above this, so it is hidden from them for the same reason it is hidden from the child.
-     */
+    /** The document behind the path, when it belongs to the reader's station and they may see it. */
     private Document requireReadable(Context ctx) {
-        int id = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
-        var document = requireOwnedDocument(ctx, id);
-        if (mayRead(session, id)) return document;
-        if (document.hidden()) throw Refusal.DOCUMENT_HIDDEN_FROM_YOU.raise();
-        if (ownAndManaged(session).stream().noneMatch(member -> documentRepository.isBoundTo(id, member))) {
-            throw Refusal.DOCUMENT_NOT_YOURS_TO_READ.raise();
-        }
+        var document = requireOwnedDocument(ctx, pathInt(ctx, "id"));
+        documentAccess.requireReadable(UserSession.from(ctx), document);
         return document;
-    }
-
-    /**
-     * Whether this reader may see a document, which follows the document rather than the store. The
-     * rule itself, and why it is that way round, is
-     * {@link DocumentService#mayRead(int, boolean, boolean)}.
-     *
-     * @param session the reader
-     * @param id      the document being read
-     * @return whether the reader may see it
-     */
-    private boolean mayRead(UserSession session, int id) {
-        return documentService.mayRead(
-                id,
-                session.hasPermission(StationPermission.DOCUMENT_READ_MEMBER),
-                session.hasPermission(StationPermission.DOCUMENT_READ));
-    }
-
-    /**
-     * Refuses a change to a document the reader may not make, which follows the document the same
-     * way reading it does: the station's own paperwork needs the permission to edit the store, and a
-     * document that names a member needs the permission for member documents.
-     *
-     * @param session the reader
-     * @param id      the document being changed
-     */
-    private void requireMayEdit(UserSession session, int id) {
-        var needed = documentRepository.hasNoMembers(id)
-                ? StationPermission.DOCUMENT_EDIT
-                : StationPermission.DOCUMENT_EDIT_MEMBER;
-        if (!session.hasPermission(needed)) throw Refusal.DOCUMENT_NOT_YOURS_TO_CHANGE.raise();
-    }
-
-    private void requireMayUpload(UserSession session, int memberId) {
-        if (session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) return;
-        if (isSelf(session, memberId) && session.hasPermission(StationPermission.MEMBER_SELF_UPLOAD)) return;
-        throw Refusal.DOCUMENT_NOT_YOURS_TO_ADD.raise();
-    }
-
-    private static boolean isSelf(UserSession session, int memberId) {
-        return session.member() != null && session.member().id() == memberId;
-    }
-
-    /**
-     * The members whose paperwork is the reader's business as well as their own.
-     *
-     * <p>A guardian is handed the forms of the child they answer for: the medical note, the consent,
-     * the certificate the station holds. Reading those was refused, which is the one reader for whom
-     * a member's documents are obviously not somebody else's business, and the product already knows
-     * the relation, so documents were the feature not asking about it.
-     *
-     * @return the reader's own member and everybody they look after, empty for a reader who is no
-     *     member of the station at all
-     */
-    private Set<Integer> ownAndManaged(UserSession session) {
-        if (session.member() == null) return Set.of();
-        var own = new HashSet<Integer>();
-        own.add(session.member().id());
-        memberRepository.findManaged(session.member().id()).forEach(managed -> own.add(managed.id()));
-        return own;
     }
 
     /** The station of the member named in the path, which has to be the reader's own. */

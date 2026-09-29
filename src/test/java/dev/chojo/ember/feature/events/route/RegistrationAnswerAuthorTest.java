@@ -23,11 +23,11 @@ import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
-import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,7 +60,7 @@ class RegistrationAnswerAuthorTest {
     private static final int OWNER_MEMBER_ID = 11;
     private static final int OTHER_MEMBER_ID = 12;
 
-    private StationMemberService memberService;
+    private StationMemberRepository memberRepository;
     private EventRegistrationRoutes routes;
 
     private static StationMember member(int id) {
@@ -87,14 +87,14 @@ class RegistrationAnswerAuthorTest {
 
     @BeforeEach
     void setup() {
-        memberService = mock(StationMemberService.class);
-        when(memberService.findManaged(anyInt())).thenReturn(List.of());
+        memberRepository = mock(StationMemberRepository.class);
+        when(memberRepository.findManaged(anyInt())).thenReturn(List.of());
         routes = new EventRegistrationRoutes(
                 mock(EventCrudService.class),
                 mock(EventRegistrationService.class),
                 mock(EventRestrictionService.class),
                 mock(MemberNameResolver.class),
-                memberService,
+                new GuardianPolicy(memberRepository),
                 mock(StationMemberRepository.class),
                 mock(AccountRepository.class),
                 mock(AttendanceService.class),
@@ -145,7 +145,7 @@ class RegistrationAnswerAuthorTest {
 
     @Test
     void aGuardianMayChangeTheAnswerOfSomebodyTheyAnswerFor() {
-        when(memberService.findManaged(OTHER_MEMBER_ID)).thenReturn(List.of(member(OWNER_MEMBER_ID)));
+        when(memberRepository.findManaged(OTHER_MEMBER_ID)).thenReturn(List.of(member(OWNER_MEMBER_ID)));
         var session = sessionOf(OTHER_MEMBER_ID);
 
         assertDoesNotThrow(() -> check(session, registrationOf(OWNER_MEMBER_ID)));
