@@ -15,9 +15,11 @@ jobs:
   wait:
     runs-on: ubuntu-latest
     name: Wait for verification
+    permissions:
+      checks: read
     steps:
       - name: Wait for checks to succeed
-        uses: lewagon/wait-on-check-action@master
+        uses: lewagon/wait-on-check-action@369769072fe522a3a8a85c03c96af1e5242a1994
         with:
           ref: ${{ github.ref }}
           check-regexp: "Verify.*"
