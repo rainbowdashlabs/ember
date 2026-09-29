@@ -6,16 +6,18 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ApiServer;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 
 import java.lang.reflect.InvocationTargetException;
@@ -117,12 +119,12 @@ class EventEmbedRoutesTest {
         when(crudService.findByPublicUid(STATION_ID, EVENT_UID)).thenReturn(Optional.of(event));
         when(visibility.canSee(session, event)).thenReturn(false);
 
-        assertThrows(NotFoundResponse.class, () -> ask(asking(EVENT_UID.toString())));
+        assertRefused(Refusal.EVENT_BLOCK_APPOINTMENT_NOT_HERE, () -> ask(asking(EVENT_UID.toString())));
     }
 
     @Test
     void anUnknownEventIsNotFound() {
-        assertThrows(NotFoundResponse.class, () -> ask(asking(EVENT_UID.toString())));
+        assertRefused(Refusal.EVENT_BLOCK_APPOINTMENT_NOT_HERE, () -> ask(asking(EVENT_UID.toString())));
     }
 
     @SuppressWarnings("unchecked")
@@ -163,11 +165,15 @@ class EventEmbedRoutesTest {
         when(visibility.requireVisibleEvent(session, 42)).thenReturn(event);
         when(crudService.findPublicUidsByIds(STATION_ID, List.of(42))).thenReturn(Map.of());
 
-        assertThrows(NotFoundResponse.class, () -> askForTheReference(askingForTheReferenceOf(42)));
+        assertRefused(Refusal.EVENT_BLOCK_REFERENCE_NOT_HERE, () -> askForTheReference(askingForTheReferenceOf(42)));
     }
 
     @Test
     void aMalformedIdIsNotFound() {
-        assertThrows(NotFoundResponse.class, () -> ask(asking("not-a-uuid")));
+        assertRefused(Refusal.EVENT_BLOCK_APPOINTMENT_NOT_HERE, () -> ask(asking("not-a-uuid")));
+    }
+
+    private static void assertRefused(Refusal expected, Executable call) {
+        assertEquals(expected, assertThrows(RefusalResponse.class, call).refusal());
     }
 }

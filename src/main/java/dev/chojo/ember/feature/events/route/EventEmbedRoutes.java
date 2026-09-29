@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -14,7 +15,6 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -84,7 +84,7 @@ public class EventEmbedRoutes implements Routes {
         var uid = crudService
                 .findPublicUidsByIds(event.stationId(), List.of(event.id()))
                 .get(event.id());
-        if (uid == null) throw new NotFoundResponse();
+        if (uid == null) throw Refusal.EVENT_BLOCK_REFERENCE_NOT_HERE.raise();
         ctx.json(new EmbedReference(uid));
     }
 
@@ -104,7 +104,7 @@ public class EventEmbedRoutes implements Routes {
         var event = crudService
                 .findByPublicUid(session.stationId(), uid)
                 .filter(found -> visibility.canSee(session, found))
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(Refusal.EVENT_BLOCK_APPOINTMENT_NOT_HERE::raise);
         ctx.json(EmbeddedEvent.of(event, categoryName(event)));
     }
 
@@ -112,7 +112,7 @@ public class EventEmbedRoutes implements Routes {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw new NotFoundResponse();
+            throw Refusal.EVENT_BLOCK_APPOINTMENT_NOT_HERE.raise();
         }
     }
 

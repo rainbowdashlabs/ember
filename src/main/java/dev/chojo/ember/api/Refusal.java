@@ -2084,6 +2084,15 @@ public enum Refusal {
             Area.EVENTS, 90, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
 
     /**
+     * An event block naming an appointment that is gone, belongs to another station or is hidden
+     * from the reader. All three answer alike, so a block cannot tell a hidden one from a missing one.
+     */
+    EVENT_BLOCK_APPOINTMENT_NOT_HERE(Area.EVENTS, 92, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
+
+    /** An appointment an event block could not name, because it has no public id to be named by. */
+    EVENT_BLOCK_REFERENCE_NOT_HERE(Area.EVENTS, 93, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
+
+    /**
      * The station the caller is signed in at, taken from their session and not there, while a
      * registration across stations is being worked out.
      */

@@ -125,7 +125,8 @@ class RouteSourceConventionsTest {
      * scopes a {@code /remote} lookup.
      */
     private static final Pattern STATION_EVIDENCE = Pattern.compile(
-            "stationId|requireOwned|requireSameStation|requireShared|guards\\.|requirePartner|ForPartner|isShared"
+            "stationId|requireOwned|requireVisibleEvent|requireSameStation|requireShared|guards\\.|requirePartner"
+                    + "|ForPartner|isShared"
                     + "|resolveStation|\\.account\\(\\)|\\.member\\(\\)|accountId|requireManaged");
 
     private static final Pattern ROUTE_BINDING =
@@ -179,7 +180,8 @@ class RouteSourceConventionsTest {
      * missing control repeated nine times rather than nine mistakes.
      *
      * <p>Saying it can be done in any of the ways the codebase already uses: reading
-     * {@code session.stationId()}, calling a {@code RouteSupport.requireOwned*} helper, going
+     * {@code session.stationId()}, calling a {@code RouteSupport.requireOwned*} helper or
+     * {@code EventVisibility.requireVisibleEvent}, which checks the station before the audience, going
      * through a {@code *Guards} class, or resolving the federation partner whose station scopes a
      * {@code /remote} lookup. A handler that does none of them, directly or through a private
      * helper beside it, is either a hole or an endpoint that genuinely belongs to no station, and
