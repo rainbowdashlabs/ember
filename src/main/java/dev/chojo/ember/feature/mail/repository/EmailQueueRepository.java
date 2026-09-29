@@ -45,7 +45,8 @@ public class EmailQueueRepository {
             row.getString("body"),
             row.getObject("station_id", Integer.class),
             row.getInt("attempts"),
-            row.getInt("provider_position"));
+            row.getInt("provider_position"),
+            row.get("created_at", INSTANT_TIMESTAMP));
 
     /**
      * Enqueues an email without a station association (global/system email).
@@ -99,7 +100,7 @@ public class EmailQueueRepository {
                     LIMIT :limit
                     FOR UPDATE SKIP LOCKED
                 )
-                RETURNING id, recipient, subject, body, station_id, attempts, provider_position;""")
+                RETURNING id, recipient, subject, body, station_id, attempts, provider_position, created_at;""")
                 .single(call().bind("limit", limit).bind("include_global", includeGlobal))
                 .map(QUEUED_EMAIL)
                 .all();
@@ -137,7 +138,7 @@ public class EmailQueueRepository {
      */
     public Optional<QueuedEmail> findById(int id) {
         return query(
-                        "SELECT id, recipient, subject, body, station_id, attempts, provider_position FROM email_queue WHERE id = :id;")
+                        "SELECT id, recipient, subject, body, station_id, attempts, provider_position, created_at FROM email_queue WHERE id = :id;")
                 .single(call().bind("id", id))
                 .map(QUEUED_EMAIL)
                 .first();
@@ -160,7 +161,7 @@ public class EmailQueueRepository {
                 .add("AND subject = :subject", "subject", subject)
                 .add("AND station_id = :station_id", "station_id", stationId);
         return query("""
-                SELECT id, recipient, subject, body, station_id, attempts, provider_position
+                SELECT id, recipient, subject, body, station_id, attempts, provider_position, created_at
                 FROM email_queue
                 WHERE recipient = :recipient
                   %s
@@ -354,6 +355,7 @@ public class EmailQueueRepository {
     /**
      * @param attempts         how many times the provider currently in turn has tried this mail
      * @param providerPosition which provider of the chain is in turn, counted from zero
+     * @param createdAt        when the mail was queued, which is where its retry window starts
      */
     public record QueuedEmail(
             int id,
@@ -362,7 +364,8 @@ public class EmailQueueRepository {
             String body,
             Integer stationId,
             int attempts,
-            int providerPosition) {}
+            int providerPosition,
+            Instant createdAt) {}
 
     /**
      * How the post stands, in one row.

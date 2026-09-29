@@ -13,25 +13,40 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class MailRetryPolicyTest {
 
+    private static final Duration JUST_QUEUED = Duration.ofSeconds(5);
+    private static final Duration PAST_THE_WINDOW = MailRetryPolicy.MIN_RETRY_WINDOW.plusMinutes(1);
+
     @Test
     void aProviderWithAttemptsLeftTriesAgain() {
-        assertEquals(MailRetryPolicy.Step.RETRY_SAME_PROVIDER, MailRetryPolicy.after(1, 2, 0, 1));
+        assertEquals(MailRetryPolicy.Step.RETRY_SAME_PROVIDER, MailRetryPolicy.after(1, 2, 0, 1, JUST_QUEUED));
     }
 
     @Test
     void aProviderOutOfAttemptsHandsOverToTheNext() {
-        assertEquals(MailRetryPolicy.Step.NEXT_PROVIDER, MailRetryPolicy.after(2, 2, 0, 2));
+        assertEquals(MailRetryPolicy.Step.NEXT_PROVIDER, MailRetryPolicy.after(2, 2, 0, 2, JUST_QUEUED));
+        assertEquals(MailRetryPolicy.Step.NEXT_PROVIDER, MailRetryPolicy.after(2, 2, 0, 2, PAST_THE_WINDOW));
     }
 
     @Test
-    void theLastProviderOutOfAttemptsGivesUp() {
-        assertEquals(MailRetryPolicy.Step.GIVE_UP, MailRetryPolicy.after(2, 2, 1, 2));
-        assertEquals(MailRetryPolicy.Step.GIVE_UP, MailRetryPolicy.after(1, 1, 0, 1));
+    void theLastProviderKeepsTryingWithinTheWindow() {
+        assertEquals(
+                MailRetryPolicy.Step.RETRY_SAME_PROVIDER,
+                MailRetryPolicy.after(2, 2, 0, 1, Duration.ofMinutes(10)),
+                "one provider with two attempts, failing for ten minutes, is still pending");
+        assertEquals(
+                MailRetryPolicy.Step.RETRY_SAME_PROVIDER, MailRetryPolicy.after(6, 2, 1, 2, Duration.ofMinutes(59)));
     }
 
     @Test
-    void anEmptyChainGivesUp() {
-        assertEquals(MailRetryPolicy.Step.GIVE_UP, MailRetryPolicy.after(1, 1, 0, 0));
+    void theLastProviderGivesUpOnceTheWindowHasPassed() {
+        assertEquals(MailRetryPolicy.Step.GIVE_UP, MailRetryPolicy.after(2, 2, 0, 1, PAST_THE_WINDOW));
+        assertEquals(MailRetryPolicy.Step.GIVE_UP, MailRetryPolicy.after(1, 1, 1, 2, PAST_THE_WINDOW));
+        assertEquals(MailRetryPolicy.Step.GIVE_UP, MailRetryPolicy.after(1, 1, 0, 1, MailRetryPolicy.MIN_RETRY_WINDOW));
+    }
+
+    @Test
+    void anEmptyChainGivesUpOnceTheWindowHasPassed() {
+        assertEquals(MailRetryPolicy.Step.GIVE_UP, MailRetryPolicy.after(1, 1, 0, 0, PAST_THE_WINDOW));
     }
 
     @Test

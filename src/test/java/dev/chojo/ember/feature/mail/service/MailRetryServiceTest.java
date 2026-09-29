@@ -112,9 +112,30 @@ class MailRetryServiceTest extends RepositoryTestBase {
         assertEquals(0, retried.providerPosition(), "the same provider tries again");
     }
 
+    private static void queuedAgo(String recipient, String age) {
+        query("UPDATE email_queue SET created_at = now() - CAST(:age AS interval) WHERE recipient = :recipient;")
+                .single(call().bind("recipient", recipient).bind("age", age))
+                .update();
+    }
+
     @Test
-    void theLastProviderUsingItsAttemptsMarksTheMailFailed() {
+    void theLastProviderKeepsRetryingWithinTheWindow() {
+        queue.enqueue("outage@retry.test", "Outage", "<p>body</p>", single.id());
+        queuedAgo("outage@retry.test", "10 minutes");
+        service.afterTransientFailure(claim("outage@retry.test"));
+        makeDue("outage@retry.test");
+
+        var step = service.afterTransientFailure(claim("outage@retry.test"));
+
+        assertEquals(MailRetryPolicy.Step.RETRY_SAME_PROVIDER, step);
+        assertEquals("PENDING", statusOf("outage@retry.test"), "a short outage does not lose the mail");
+        assertFalse(claimable("outage@retry.test"), "and the next try still waits out its delay");
+    }
+
+    @Test
+    void theLastProviderMarksTheMailFailedOnceTheWindowHasPassed() {
         queue.enqueue("exhausted@retry.test", "Exhausted", "<p>body</p>", single.id());
+        queuedAgo("exhausted@retry.test", "2 hours");
         service.afterTransientFailure(claim("exhausted@retry.test"));
         makeDue("exhausted@retry.test");
 
@@ -129,6 +150,7 @@ class MailRetryServiceTest extends RepositoryTestBase {
     @Test
     void aProviderOutOfAttemptsHandsTheMailToTheNextAtOnce() {
         queue.enqueue("next@retry.test", "Next", "<p>body</p>", chained.id());
+        queuedAgo("next@retry.test", "2 hours");
 
         var step = service.afterTransientFailure(claim("next@retry.test"));
 

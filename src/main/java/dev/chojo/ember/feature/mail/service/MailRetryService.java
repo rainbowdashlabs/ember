@@ -13,11 +13,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.time.Instant;
 
 /**
  * Settles where a mail goes after a provider failed on it for the moment, as {@link MailRetryPolicy}
  * decides: back to the same provider after a growing delay, on to the next provider of the chain,
- * or, once the chain is used up, to failed.
+ * or, once the chain is used up and the retry window has passed, to failed.
  *
  * <p>This is what makes a relay that has stopped working survivable: the mail does not sit in the
  * queue being refused by the same route forever, it moves on to another, and it ends where an
@@ -50,7 +51,8 @@ public class MailRetryService {
                 .orElse(1);
         int attemptsUsed = email.attempts() + 1;
         queueRepository.countAttempt(email.id());
-        var step = MailRetryPolicy.after(attemptsUsed, allowed, email.providerPosition(), chain.size());
+        var queuedFor = Duration.between(email.createdAt(), Instant.now());
+        var step = MailRetryPolicy.after(attemptsUsed, allowed, email.providerPosition(), chain.size(), queuedFor);
         switch (step) {
             case RETRY_SAME_PROVIDER -> retrySameProvider(email, attemptsUsed, allowed);
             case NEXT_PROVIDER -> moveToNextProvider(email);
@@ -63,12 +65,13 @@ public class MailRetryService {
         var delay = MailRetryPolicy.delayAfter(attemptsUsed);
         queueRepository.retryAfter(email.id(), delay);
         log.warn(
-                "Email {} to {} failed on provider {}; retrying in {}s, {} attempt(s) left before the next one",
+                "Email {} to {} failed on provider {}; retrying in {}s, attempt {} of {}",
                 email.id(),
                 email.recipient(),
                 email.providerPosition(),
                 delay.toSeconds(),
-                allowed - attemptsUsed);
+                attemptsUsed,
+                allowed);
     }
 
     private void moveToNextProvider(EmailQueueRepository.QueuedEmail email) {
