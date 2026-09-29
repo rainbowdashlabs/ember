@@ -551,12 +551,13 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Order(150)
     void notifyBoardUnshared() {
         reset(webhookService);
-        notificationService.notifyBoardUnshared(boardId);
-        var unshared = new FederatedBoardNotificationService.BoardUnsharedPayload(boardUid);
+        notificationService.notifyBoardUnshared(partnerId, boardId);
         verify(webhookService)
-                .notifyPartner(eq(partnerId), eq(RemoteBoardWebhookRoutes.BOARD_UNSHARED.at()), eq(unshared));
-        verify(webhookService)
-                .notifyPartner(eq(partner2Id), eq(RemoteBoardWebhookRoutes.BOARD_UNSHARED.at()), eq(unshared));
+                .notifyPartner(
+                        eq(partnerId),
+                        eq(RemoteBoardWebhookRoutes.BOARD_UNSHARED.at()),
+                        eq(new FederatedBoardNotificationService.BoardUnsharedPayload(boardUid)));
+        verifyNoMoreInteractions(webhookService);
     }
 
     @Test
@@ -579,14 +580,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         service.unshareBoard(boardId);
         reset(webhookService);
         notificationService.notifyBoardRenamed(boardId, "Nobody cares", "NC");
-        verifyNoInteractions(webhookService);
-    }
-
-    @Test
-    @Order(171)
-    void notifyBoardUnsharedNoTargets() {
-        reset(webhookService);
-        notificationService.notifyBoardUnshared(boardId);
         verifyNoInteractions(webhookService);
     }
 }

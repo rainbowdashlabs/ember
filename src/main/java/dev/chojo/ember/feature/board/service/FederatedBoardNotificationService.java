@@ -106,17 +106,18 @@ public class FederatedBoardNotificationService {
         log.info("Notified {} partner(s) of rename on board {}", targets.size(), boardId);
     }
 
-    public void notifyBoardUnshared(int boardId) {
-        var targets = federatedBoardService.findShareTargets(boardId);
-        boardUid(boardId).ifPresent(boardUid -> {
-            for (var target : targets) {
-                webhookService.notifyPartner(
-                        target.partnerId(),
-                        RemoteBoardWebhookRoutes.BOARD_UNSHARED.at(),
-                        new BoardUnsharedPayload(boardUid));
-            }
-        });
-        log.info("Notified {} partner(s) of unshare on board {}", targets.size(), boardId);
+    /**
+     * Tells one partner that a board is no longer shared with it. Called once the share target is
+     * gone, so the partner is named explicitly rather than read from the board's share targets.
+     *
+     * @param partnerId the partner the board was shared with
+     * @param boardId   the board that stopped being shared
+     */
+    public void notifyBoardUnshared(int partnerId, int boardId) {
+        boardUid(boardId)
+                .ifPresent(boardUid -> webhookService.notifyPartner(
+                        partnerId, RemoteBoardWebhookRoutes.BOARD_UNSHARED.at(), new BoardUnsharedPayload(boardUid)));
+        log.info("Notified partner {} of unshare on board {}", partnerId, boardId);
     }
 
     public void notifyShareModeChanged(int partnerId, int boardId, BoardShareMode newMode) {

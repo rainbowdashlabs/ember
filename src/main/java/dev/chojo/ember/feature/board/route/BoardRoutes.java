@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.board.entity.LaneData;
 import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
+import dev.chojo.ember.feature.board.service.SharedBoardChangeService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.Context;
@@ -51,6 +52,7 @@ public class BoardRoutes implements Routes {
 
     private final BoardService boardService;
     private final FederatedBoardService federatedBoardService;
+    private final SharedBoardChangeService sharedBoardChanges;
     private final StationMemberService memberService;
     private final MemberIdentityFactory memberIdentityFactory;
     private final BoardRouteGuards guards;
@@ -59,11 +61,13 @@ public class BoardRoutes implements Routes {
     public BoardRoutes(
             BoardService boardService,
             FederatedBoardService federatedBoardService,
+            SharedBoardChangeService sharedBoardChanges,
             StationMemberService memberService,
             MemberIdentityFactory memberIdentityFactory,
             BoardRouteGuards guards) {
         this.boardService = boardService;
         this.federatedBoardService = federatedBoardService;
+        this.sharedBoardChanges = sharedBoardChanges;
         this.memberService = memberService;
         this.memberIdentityFactory = memberIdentityFactory;
         this.guards = guards;
@@ -215,7 +219,7 @@ public class BoardRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var board = resolveBoard(ctx, session.stationId());
         var req = ctx.bodyAsClass(UpdateBoardRequest.class);
-        boardService.update(board.id(), req.name(), req.description(), req.hideDoneAfterDays());
+        sharedBoardChanges.updateBoard(board.id(), req.name(), req.description(), req.hideDoneAfterDays());
         boardService.findById(board.id()).ifPresentOrElse(ctx::json, () -> {
             throw Refusal.BOARD_NOT_HERE_AFTER_CHANGE.raise();
         });
@@ -580,13 +584,7 @@ public class BoardRoutes implements Routes {
                                 t.shareMode(),
                                 t.requiredUserType() != null ? t.requiredUserType() : StationUserType.MEMBER))
                         .toList();
-        if (configs.isEmpty()) {
-            federatedBoardService.unshareBoard(id);
-        } else {
-            federatedBoardService.shareBoard(id, configs);
-        }
-        federatedBoardService.setFederatedEditUserTypes(
-                id, req.editUserTypes() != null ? req.editUserTypes() : List.of());
+        sharedBoardChanges.configureSharing(id, configs, req.editUserTypes() != null ? req.editUserTypes() : List.of());
         ctx.status(HttpStatus.OK).json(new OkResponse(true));
     }
 
