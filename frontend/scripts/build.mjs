@@ -29,7 +29,6 @@ const lintScripts = [
   'lint-comments.mjs',
   'lint-markdown-render.mjs',
   'lint-stacked-text.mjs',
-  'lint-standalone.mjs',
   'lint-button-rows.mjs',
   'lint-page-links.mjs',
   'lint-generic-errors.mjs',

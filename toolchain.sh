@@ -176,9 +176,8 @@ Backend
                         is exactly what be-data-tracking would write
 
 Docker
-  docker-frontend       Build the frontend image, as CI's docker job does. Worth running when a
-                        linter learns to read something outside frontend/ - the image copies
-                        only that directory, so the repository root is not there
+  docker-frontend       Build the frontend image, as CI's docker job does. It runs the production
+                        build only; the linters and the type-check run in fe-build and CI
   docker-backend        Build the backend image
   docker-storage        Start the dev storage stack detached: database on 5432, object storage,
                         SFTP and SMB. Add `down` arguments through docker-storage-down

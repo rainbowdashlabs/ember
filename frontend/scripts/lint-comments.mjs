@@ -15,12 +15,9 @@
  * knowingly missing. Those are better said than left silent.
  *
  * The rule was written down long before this check existed, and it was broken
- * again in every sitting, which is what a rule nobody checks is worth. Frontend
- * sources are always scanned; the Java sources above are scanned too when the
- * repository root is there, since the rule is the project's and not the
- * frontend's. The frontend image is built from `frontend/` alone, so their
- * absence is a warning rather than an error, the same way the em dash check
- * stands down.
+ * again in every sitting, which is what a rule nobody checks is worth. The Java
+ * sources are scanned alongside the frontend sources, since the rule is the
+ * project's and not the frontend's.
  *
  * Exit code 1 if a comment is found that is neither a doc comment nor a TODO.
  */
@@ -55,22 +52,6 @@ const ROOT_TARGETS = [
 ]
 
 const REPO_ROOT = new URL('../..', import.meta.url).pathname
-const FRONTEND_ROOT = new URL('..', import.meta.url).pathname
-
-/**
- * What a file is called in the baseline, which has to be the one name in both layouts it is read
- * in.
- *
- * <p>The frontend image is built from `frontend/` alone, so there the frontend is the root and
- * naming a file relative to the repository above it names something else entirely. Every lookup
- * then missed, every file counted as one that may carry nothing, and the image failed on six
- * hundred comments the checkout was perfectly happy with. A frontend file is therefore named from
- * the frontend down, with the prefix written rather than derived.
- */
-function baselineKey(file) {
-    if (file.startsWith(FRONTEND_ROOT)) return join('frontend', relative(FRONTEND_ROOT, file))
-    return relative(REPO_ROOT, file)
-}
 
 /**
  * A line that opens a block comment which is a doc comment, and so may stand.
@@ -113,7 +94,7 @@ function commentStart(line) {
 
 function check(file) {
     const lines = readFileSync(file, 'utf-8').split('\n')
-    const key = baselineKey(file)
+    const key = relative(REPO_ROOT, file)
     const allowed = baseline[key] ?? 0
     const found = []
     let inBlock = false
@@ -178,26 +159,13 @@ for (const extension of FRONTEND_EXTENSIONS) {
 scanned.forEach(check)
 
 let rootFiles = 0
-const missing = []
 for (const target of ROOT_TARGETS) {
     const absolute = join(REPO_ROOT, target.path)
-    if (!existsSync(absolute)) {
-        missing.push(target.path)
-        continue
-    }
     const files = statSync(absolute).isDirectory()
         ? target.extensions.flatMap(extension => walk(absolute, extension))
         : [absolute]
     files.forEach(check)
     rootFiles += files.length
-}
-
-if (missing.length === ROOT_TARGETS.length) {
-    reporter.warn(
-        '',
-        0,
-        'Only the frontend was checked: the repository root is not present, which is expected inside the frontend image.',
-    )
 }
 
 if (UPDATING) {

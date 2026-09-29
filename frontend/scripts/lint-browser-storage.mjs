@@ -9,12 +9,9 @@
  *
  * Keys are collected from `localStorage.getItem/setItem/removeItem` and from the wrapper in
  * `api/storage`, which is the only other way the application reaches local storage.
- *
- * The catalog lives above `frontend/`. The Docker image builds from this directory alone, so when the
- * backend sources are absent the linter stands down with a warning instead of failing.
  */
 
-import {existsSync, readFileSync} from 'fs'
+import {readFileSync} from 'fs'
 import {join} from 'path'
 import {SRC, createReporter, rel, walk} from './lint-utils.mjs'
 
@@ -90,18 +87,6 @@ function keysIn(file, content) {
     }
 
     return {keys, dynamic}
-}
-
-if (!existsSync(CATALOG_FILE)) {
-    warn(
-        CATALOG_LABEL,
-        0,
-        'backend sources are not in this checkout - the browser storage disclosure cannot be cross-checked '
-        + 'against the code, so this check stands down',
-        CAT_UNDECLARED,
-    )
-    reporter.print()
-    process.exit(reporter.errors.length > 0 ? 1 : 0)
 }
 
 const catalog = JSON.parse(readFileSync(CATALOG_FILE, 'utf-8'))

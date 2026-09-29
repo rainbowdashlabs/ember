@@ -5,7 +5,7 @@ WORKDIR /build
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ .
-RUN NODE_OPTIONS='--max-old-space-size=8192' npm run build
+RUN NODE_OPTIONS='--max-old-space-size=8192' npx nuxi build
 
 FROM node:24-alpine
 
