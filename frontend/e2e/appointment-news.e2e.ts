@@ -51,6 +51,7 @@ test.describe('An appointment announced as a news entry', () => {
 
         expect(page.url()).toContain('event=')
         await expect(page.getByTestId('announcement-notice')).toBeVisible()
+        await expect(page.getByTestId('announcement-embedded')).toBeVisible()
         await expect(page.getByPlaceholder('Titel der Neuigkeit')).toHaveValue(name)
     })
 

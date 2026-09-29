@@ -12,11 +12,12 @@ import type {AnnouncementDraft} from './announcementPrefill'
 /**
  * What an entry written from an appointment says about itself.
  *
- * <p>Two things the author cannot see from the text alone. Which occurrence is being announced, because
- * a weekly appointment has no single date and the draft was written about exactly one of them. And,
- * the moment the entry is widened to partner stations or to the public page, what it is about to
- * take with it: an overview field is carried whether or not the appointment shows it publicly, so
- * the widening is the point at which a field marked not public would leave the station.
+ * <p>Three things the author cannot see from the text alone. Which occurrence is being announced,
+ * because a weekly appointment has no single date and the draft was written about exactly one of
+ * them. That the event block shows the appointment only to readers allowed to see it. And, the
+ * moment the entry is widened to partner stations or to the public page, what it is about to take
+ * with it: an overview field is carried whether or not the appointment shows it publicly, so the
+ * widening is the point at which a field marked not public would leave the station.
  */
 const props = defineProps<{
   draft: AnnouncementDraft
@@ -44,8 +45,8 @@ const carried = computed(() => props.draft.fields.map(field => field.name))
     <p v-if="draft.dateLabel">{{ t('news.announcement.occurrence', {date: draft.dateLabel}) }}</p>
     <p v-else>{{ t('news.announcement.noOccurrence') }}</p>
     <p>{{ t('news.announcement.snapshot') }}</p>
-    <p v-if="draft.linked">{{ t('news.announcement.linkInternal') }}</p>
-    <p v-else>{{ t('news.announcement.noLink') }}</p>
+    <p v-if="draft.embedded" data-testid="announcement-embedded">{{ t('news.announcement.embedded') }}</p>
+    <p v-else>{{ t('news.announcement.notEmbedded') }}</p>
     <p v-if="draft.restricted && restricted" data-testid="announcement-restricted">
       {{ t('news.announcement.restricted') }}
     </p>

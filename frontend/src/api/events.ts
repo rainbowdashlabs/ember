@@ -1127,6 +1127,12 @@ export async function getEmbeddedEvent(eventUid: string): Promise<EmbeddedEvent>
     return res.data
 }
 
+/** The public id an event block names this event by. NEWS_EDIT or PAGE_EDIT gated. */
+export async function getEmbedReference(eventId: number): Promise<string> {
+    const res = await client.get<{eventUid: string}>(`/events/${eventId}/embed-reference`)
+    return res.data.eventUid
+}
+
 /**
  * A file an event hands over.
  *

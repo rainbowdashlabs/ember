@@ -16,7 +16,6 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
 import type { PartnerResponse } from '@/api/federation'
 import { news, memberGroups, userTags, federation, events, stationMembers } from '@/api'
-import { useEventRoutes } from '@/composables/useEventRoutes'
 import { buildAnnouncementDraft, type AnnouncementDraft } from './editview/announcementPrefill'
 import AnnouncementNotice from './editview/AnnouncementNotice.vue'
 import ContentPanel from './editview/ContentPanel.vue'
@@ -39,7 +38,6 @@ const canFederateNews = () => hasPermission(StationPermission.NEWS_FEDERATE)
 
 const isEdit = computed(() => !!route.params.id)
 const newsId = computed(() => isEdit.value ? Number(route.params.id) : null)
-const eventRoutes = useEventRoutes()
 
 /**
  * The appointment a new entry announces, and the one occurrence it is about.
@@ -181,7 +179,9 @@ const stillRestricted = computed(() =>
 
 
 /**
- * Reads the appointment the address names and writes the first draft from it.
+ * Reads the appointment the address names and writes the first draft from it, as blocks.
+ *
+ * <p>The entry opens in the block editor, since its first block shows the appointment itself.
  *
  * <p>The audience comes from the appointment's own view restriction rather than from anything the
  * previous screen said, so an appointment only some members may know about produces an entry only
@@ -189,10 +189,11 @@ const stillRestricted = computed(() =>
  * stays restricted, which is what makes announcing a restricted appointment safe to offer at all.
  */
 async function loadAnnouncement(eventId: number) {
-  const [event, fields, restrictions] = await Promise.all([
+  const [event, fields, restrictions, eventUid] = await Promise.all([
     events.getEvent(eventId),
     events.getEventFields(eventId).catch(() => []),
     events.getRestrictions(eventId).catch(() => null),
+    events.getEmbedReference(eventId).catch(() => null),
   ])
   const view = restrictions?.view
   const audience = {
@@ -203,27 +204,21 @@ async function loadAnnouncement(eventId: number) {
     mode: 'AND' as const,
   }
   const names = new Map(members.value.map(m => [m.id, m.name ?? m.email ?? `#${m.id}`]))
-  const link = announcedDate.value
-      ? router.resolve({name: eventRoutes.detailOnDate, params: {id: eventId, date: announcedDate.value}}).href
-      : router.resolve({name: eventRoutes.detail, params: {id: eventId}}).href
   const draft = buildAnnouncementDraft(
-      event,
-      announcedDate.value,
-      fields,
+      {event, eventUid, date: announcedDate.value, fields},
       audience,
       names,
       {
-        when: t('news.announcement.when'),
         until: t('news.announcement.until'),
-        linkLabel: t('news.announcement.linkLabel'),
         yes: t('common.yes'),
         no: t('common.no'),
+        say: (sentence, values) => t(`news.announcement.sentences.${sentence}`, values ?? {}),
       },
-      link,
   )
   announcement.value = draft
   title.value = draft.title
-  contentMarkdown.value = draft.markdown
+  contentMode.value = ContentMode.RICH
+  rows.value = draft.rows
   selectedUserTypes.value = [...draft.audience.userTypes]
   selectedGroupIds.value = [...draft.audience.groupIds]
   selectedTagIds.value = [...draft.audience.tagIds]

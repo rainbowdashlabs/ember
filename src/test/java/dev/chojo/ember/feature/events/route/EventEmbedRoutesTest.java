@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
+import io.javalin.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -20,6 +21,8 @@ import org.mockito.ArgumentCaptor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -120,6 +123,47 @@ class EventEmbedRoutesTest {
     @Test
     void anUnknownEventIsNotFound() {
         assertThrows(NotFoundResponse.class, () -> ask(asking(EVENT_UID.toString())));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Context askingForTheReferenceOf(int eventId) {
+        Context ctx = mock(Context.class);
+        when(ctx.attribute(ApiServer.ATTR_SESSION)).thenReturn(session);
+        Validator<Integer> id = mock(Validator.class);
+        when(id.get()).thenReturn(eventId);
+        when(ctx.pathParamAsClass("id", Integer.class)).thenReturn(id);
+        return ctx;
+    }
+
+    private void askForTheReference(Context ctx) throws Exception {
+        Method handler = EventEmbedRoutes.class.getDeclaredMethod("reference", Context.class);
+        handler.setAccessible(true);
+        try {
+            handler.invoke(routes, ctx);
+        } catch (InvocationTargetException e) {
+            throw (Exception) e.getCause();
+        }
+    }
+
+    @Test
+    void anAuthorIsHandedThePublicIdOfAnEventTheySee() throws Exception {
+        when(event.stationId()).thenReturn(STATION_ID);
+        when(visibility.requireVisibleEvent(session, 42)).thenReturn(event);
+        when(crudService.findPublicUidsByIds(STATION_ID, List.of(42))).thenReturn(Map.of(42, EVENT_UID));
+        var ctx = askingForTheReferenceOf(42);
+
+        askForTheReference(ctx);
+
+        verify(ctx).json(new EventEmbedRoutes.EmbedReference(EVENT_UID));
+    }
+
+    @Test
+    void anEventWithoutPublicIdHasNoReference() {
+        when(event.stationId()).thenReturn(STATION_ID);
+        when(visibility.requireVisibleEvent(session, 42)).thenReturn(event);
+        when(crudService.findPublicUidsByIds(STATION_ID, List.of(42))).thenReturn(Map.of());
+
+        assertThrows(NotFoundResponse.class, () -> askForTheReference(askingForTheReferenceOf(42)));
     }
 
     @Test

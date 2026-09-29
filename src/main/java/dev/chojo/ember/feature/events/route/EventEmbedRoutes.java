@@ -25,7 +25,10 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
+
+import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
  * An event as a content block shows it to a member of its own station.
@@ -54,6 +57,35 @@ public class EventEmbedRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/events/embed/{uid}", this::get, StationPermission.USER);
+        routes.get(
+                prefix + "/events/{id}/embed-reference",
+                this::reference,
+                StationPermission.NEWS_EDIT,
+                StationPermission.PAGE_EDIT);
+    }
+
+    /**
+     * The public id a block names an event by, for an author placing a block about an event they are
+     * looking at. Only for an event the author may see.
+     */
+    @OpenApi(
+            path = "/api/v1/events/{id}/embed-reference",
+            methods = HttpMethod.GET,
+            summary = "The public id an event block names this event by",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EmbedReference.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void reference(Context ctx) {
+        var session = UserSession.from(ctx);
+        var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
+        var uid = crudService
+                .findPublicUidsByIds(event.stationId(), List.of(event.id()))
+                .get(event.id());
+        if (uid == null) throw new NotFoundResponse();
+        ctx.json(new EmbedReference(uid));
     }
 
     @OpenApi(
@@ -91,6 +123,13 @@ public class EventEmbedRoutes implements Routes {
                 .map(EventCategory::name)
                 .orElse(null);
     }
+
+    /**
+     * How an event block names an event.
+     *
+     * @param eventUid the event's public id
+     */
+    public record EmbedReference(UUID eventUid) {}
 
     /**
      * What an event block shows of an event.
