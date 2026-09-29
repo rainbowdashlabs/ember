@@ -12,29 +12,14 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import StationModuleToggle from '@/components/modules/StationModuleToggle.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
 import {clusterGovernance, clusterStationGroups} from '@/api'
 import type {StationGroup} from '@/api/clusterStationGroups'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
-
-/** Every module a station can have, in the order and with the labels the station's own screen uses. */
-const MODULES = [
-  {key: 'INVENTORY', label: 'moduleInventory'},
-  {key: 'NEWS', label: 'moduleNews'},
-  {key: 'EVENTS', label: 'moduleEvents'},
-  {key: 'ATTENDANCE', label: 'moduleAttendance'},
-  {key: 'FORMS', label: 'moduleForms'},
-  {key: 'LOST_AND_FOUND', label: 'moduleLostAndFound'},
-  {key: 'WAITING_LIST', label: 'moduleWaitingList'},
-  {key: 'QUIZ', label: 'moduleQuiz'},
-  {key: 'TEST_PROTOCOL', label: 'moduleTestProtocol'},
-  {key: 'KNOWLEDGE_BASE', label: 'moduleKnowledgeBase'},
-  {key: 'BOARDS', label: 'moduleBoards'},
-  {key: 'PROCEDURES', label: 'moduleProcedures'},
-]
 
 const busy = ref(false)
 const saved = ref(false)
@@ -107,10 +92,13 @@ async function save() {
         </p>
 
         <NeutralContainer class="space-y-3" data-testid="cluster-module-switches">
-          <div v-for="mod in MODULES" :key="mod.key" class="flex items-center justify-between gap-4">
-            <span class="text-sm font-medium">{{ t(`stationManage.${mod.label}`) }}</span>
-            <ToggleInput :model-value="allowed(mod.key)" @update:model-value="v => toggle(mod.key, v)"/>
-          </div>
+          <StationModuleToggle
+              v-for="mod in STATION_MODULE_OPTIONS"
+              :key="mod.value"
+              :module="mod"
+              :model-value="allowed(mod.value)"
+              @update:model-value="v => toggle(mod.value, v)"
+          />
         </NeutralContainer>
 
         <PrimaryButton :disabled="busy" @click="save">{{ t('common.save') }}</PrimaryButton>

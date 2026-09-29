@@ -7,23 +7,23 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import DummyModuleToggleRow from '@/views/helpcenter/stationview/manage/moduleshelp/DummyModuleToggleRow.vue'
+import StationModuleToggle from '@/components/modules/StationModuleToggle.vue'
+import {StationModules, type StationModuleName} from '@/api/types'
+import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
 
 const {t} = useI18n()
 
-const modules = [
-  {key: 'moduleInventory', enabled: true},
-  {key: 'moduleNews', enabled: true},
-  {key: 'moduleEvents', enabled: true},
-  {key: 'moduleAttendance', enabled: true},
-  {key: 'moduleForms', enabled: true},
-  {key: 'moduleLostAndFound', enabled: false},
-  {key: 'moduleWaitingList', enabled: false},
-  {key: 'moduleQuiz', enabled: true},
-  {key: 'moduleTestProtocol', enabled: false},
-  {key: 'moduleKnowledgeBase', enabled: true},
-  {key: 'moduleBoards', enabled: false},
-]
+/** The modules the example station has switched on. */
+const ENABLED = new Set<StationModuleName>([
+  StationModules.INVENTORY,
+  StationModules.NEWS,
+  StationModules.EVENTS,
+  StationModules.ATTENDANCE,
+  StationModules.FORMS,
+  StationModules.QUIZ,
+  StationModules.KNOWLEDGE_BASE,
+  StationModules.DOCUMENTS,
+])
 </script>
 
 <template>
@@ -31,11 +31,12 @@ const modules = [
     <SectionHeader>{{ t('stationManage.modulesTitle') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('stationManage.modulesHint') }}</p>
     <div class="space-y-3">
-      <DummyModuleToggleRow
-        v-for="m in modules"
-        :key="m.key"
-        :label="t(`stationManage.${m.key}`)"
-        :enabled="m.enabled"
+      <StationModuleToggle
+        v-for="mod in STATION_MODULE_OPTIONS"
+        :key="mod.value"
+        :module="mod"
+        :model-value="ENABLED.has(mod.value)"
+        disabled
       />
     </div>
   </NeutralContainer>

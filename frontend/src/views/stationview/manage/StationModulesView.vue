@@ -11,8 +11,9 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import StationModuleToggle from '@/components/modules/StationModuleToggle.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
 import {stationManage} from '@/api'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
@@ -33,22 +34,6 @@ const loading = ref(true)
 const disabledModules = ref<Set<string>>(new Set())
 const clusterDenied = ref<Set<string>>(new Set())
 const clusterName = ref<string | null>(null)
-
-const allModules = [
-  {key: 'INVENTORY', label: 'moduleInventory'},
-  {key: 'NEWS', label: 'moduleNews'},
-  {key: 'EVENTS', label: 'moduleEvents'},
-  {key: 'ATTENDANCE', label: 'moduleAttendance'},
-  {key: 'FORMS', label: 'moduleForms'},
-  {key: 'LOST_AND_FOUND', label: 'moduleLostAndFound'},
-  {key: 'WAITING_LIST', label: 'moduleWaitingList'},
-  {key: 'QUIZ', label: 'moduleQuiz'},
-  {key: 'TEST_PROTOCOL', label: 'moduleTestProtocol'},
-  {key: 'KNOWLEDGE_BASE', label: 'moduleKnowledgeBase'},
-  {key: 'BOARDS', label: 'moduleBoards'},
-  {key: 'PROCEDURES', label: 'moduleProcedures'},
-  {key: 'DOCUMENTS', label: 'moduleDocuments'},
-]
 
 function isModuleEnabled(key: string): boolean {
   return !disabledModules.value.has(key) && !clusterDenied.value.has(key)
@@ -100,17 +85,19 @@ onMounted(async () => {
         <SectionHeader>{{ t('stationManage.modulesTitle') }}</SectionHeader>
         <p class="text-sm text-(--text-muted)">{{ t('stationManage.modulesHint') }}</p>
         <div class="space-y-3">
-          <div v-for="mod in allModules" :key="mod.key" data-testid="module-toggle" :data-module="mod.key"
-               class="flex items-center gap-3">
-            <ToggleInput :model-value="isModuleEnabled(mod.key)"
-                         :disabled="modulesSaving || isLockedByCluster(mod.key)"
-                         @update:model-value="toggleModule(mod.key)"/>
-            <span class="text-sm font-medium">{{ t(`stationManage.${mod.label}`) }}</span>
-            <span v-if="isLockedByCluster(mod.key)" class="text-xs text-(--text-muted)">
+          <StationModuleToggle
+              v-for="mod in STATION_MODULE_OPTIONS"
+              :key="mod.value"
+              :module="mod"
+              :model-value="isModuleEnabled(mod.value)"
+              :disabled="modulesSaving || isLockedByCluster(mod.value)"
+              @update:model-value="toggleModule(mod.value)"
+          >
+            <span v-if="isLockedByCluster(mod.value)" class="ml-2 text-xs text-(--text-muted)">
               <font-awesome-icon :icon="['fas', 'lock']" class="mr-1 h-3 w-3"/>
               {{ t('stationManage.moduleClusterLocked', {cluster: clusterName ?? ''}) }}
             </span>
-          </div>
+          </StationModuleToggle>
         </div>
       </NeutralContainer>
     </div>
