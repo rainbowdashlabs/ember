@@ -172,6 +172,14 @@ class FormDraftRouteTest extends RepositoryTestBase {
         assertEquals(Refusal.FORM_DRAFT_NOT_YOURS, refusal);
     }
 
+    /** Running polls reads their results; it does not open a member's own answer to whoever runs them. */
+    @Test
+    void aPollManagerCannotReadTheAnswerOfAMemberTheyDoNotLookAfter() {
+        var refusal = refusalOf("getMemberResponse", request(manager, Set.of(StationPermission.POLL_MANAGER), ""));
+
+        assertEquals(Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR, refusal);
+    }
+
     @Test
     void aPollManagerCannotKeepOrEndTheDraftOfAMemberTheyDoNotLookAfter() throws Exception {
         invoke("saveDraft", request(child, Set.of(), "privat"));

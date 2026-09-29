@@ -980,15 +980,16 @@ public class FormRoutes implements Routes {
     }
 
     /**
-     * Verifies that the current user acts for the specified member or has POLL_MANAGER role, and
-     * refuses when neither holds. Acting for a member is the guardian relation alone, which
-     * {@link GuardianPolicy} answers.
+     * Verifies that the current user acts for the specified member, and refuses otherwise. Acting
+     * for a member is the guardian relation alone, which {@link GuardianPolicy} answers. Managing
+     * polls does not reach into a member's own answers: whoever runs a form reads its results, and
+     * only somebody who looks after the member answers or drafts on their behalf.
      *
      * @param session  the current user session
      * @param memberId the member ID to verify management of
      */
     private void verifyManages(UserSession session, int memberId) {
-        if (!guardianPolicy.mayActFor(session, memberId) && !session.hasPermission(StationPermission.POLL_MANAGER)) {
+        if (!guardianPolicy.mayActFor(session, memberId)) {
             throw Refusal.MEMBER_NOT_YOURS_TO_ANSWER_FOR.raise();
         }
     }
