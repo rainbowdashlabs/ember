@@ -35,7 +35,8 @@ class SftpStorageBackendTest {
     private static final String USER = "tester";
     private static final String PASSWORD = "testpass";
 
-    static final GenericContainer<?> SFTP = new GenericContainer<>("atmoz/sftp:alpine")
+    static final GenericContainer<?> SFTP = new GenericContainer<>(
+                    "atmoz/sftp:alpine@sha256:a81ea210713555be76075b4b2788a4addfaa54d137cd881f3a99ac539f0be2c5")
             .withExposedPorts(22)
             .withCommand(USER + ":" + PASSWORD + ":1001:1001:share")
             .waitingFor(Wait.forListeningPort())

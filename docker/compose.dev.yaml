@@ -20,7 +20,7 @@ networks:
 # per checkout and reaches them over the compose network alone. What the two copies share is written
 # once here, and each of them adds only what separates it.
 x-rustfs: &rustfs
-  image: rustfs/rustfs:latest
+  image: rustfs/rustfs:1.0.0
   environment:
     RUSTFS_ACCESS_KEY: emberadmin
     RUSTFS_SECRET_KEY: emberadmin
@@ -28,7 +28,7 @@ x-rustfs: &rustfs
     RUSTFS_CONSOLE_ADDRESS: ":9001"
 
 x-rustfs-init: &rustfs-init
-  image: amazon/aws-cli:latest
+  image: amazon/aws-cli:2.37.6
   entrypoint: ["/bin/sh", "-c"]
   # Credentials go in the command, not in `environment`: both services using this anchor bring an
   # `environment` of their own, and a YAML merge replaces that key whole rather than adding to it.
@@ -46,11 +46,11 @@ x-rustfs-init: &rustfs-init
       echo "rustfs ready: bucket 'ember' available on $$RUSTFS_HOST"
 
 x-sftp: &sftp
-  image: atmoz/sftp:latest
+  image: atmoz/sftp:latest@sha256:0960390462a4441dbb63698d7c185b76a41ffcee7b78ff4adf275f3e66f9c475
   command: "ember:ember:1001::upload"
 
 x-smb: &smb
-  image: dperson/samba:latest
+  image: dperson/samba:latest@sha256:66088b78a19810dd1457a8f39340e95e663c728083efa5fe7dc0d40b2478e869
   environment:
     USERID: "1000"
     GROUPID: "1000"

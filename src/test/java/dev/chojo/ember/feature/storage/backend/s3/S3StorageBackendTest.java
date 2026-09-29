@@ -44,7 +44,7 @@ class S3StorageBackendTest {
     private static final String BUCKET = "ember-test";
     private static final String REGION = "us-east-1";
 
-    static final GenericContainer<?> RUSTFS = new GenericContainer<>("rustfs/rustfs:latest")
+    static final GenericContainer<?> RUSTFS = new GenericContainer<>("rustfs/rustfs:1.0.0")
             .withExposedPorts(9000)
             .withEnv("RUSTFS_ACCESS_KEY", ACCESS_KEY)
             .withEnv("RUSTFS_SECRET_KEY", SECRET_KEY)

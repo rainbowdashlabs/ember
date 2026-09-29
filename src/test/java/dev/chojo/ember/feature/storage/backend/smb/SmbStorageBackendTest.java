@@ -36,7 +36,8 @@ class SmbStorageBackendTest {
     private static final String USER = "tester";
     private static final String PASSWORD = "testpass";
 
-    static final GenericContainer<?> SAMBA = new GenericContainer<>("dperson/samba")
+    static final GenericContainer<?> SAMBA = new GenericContainer<>(
+                    "dperson/samba:latest@sha256:66088b78a19810dd1457a8f39340e95e663c728083efa5fe7dc0d40b2478e869")
             .withExposedPorts(445)
             .withCommand("-p", "-w", "WORKGROUP", "-u", USER + ";" + PASSWORD, "-s", SHARE + ";/tmp;yes;no;no;" + USER)
             .waitingFor(Wait.forListeningPort())

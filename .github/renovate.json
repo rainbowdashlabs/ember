@@ -2,7 +2,6 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    "schedule:weekly",
     ":dependencyDashboard"
   ],
   "timezone": "Europe/Berlin",
@@ -56,6 +55,24 @@
       "matchStrings": ["postgres:(?<currentValue>\\d[^\\s\"'`]*)"],
       "depNameTemplate": "postgres",
       "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Images the storage backend tests start as containers",
+      "managerFilePatterns": ["/^src/test/java/.+/storage/backend/.+Test\\.java$/"],
+      "matchStrings": [
+        "GenericContainer<>\\(\\s*\"(?<depName>[^\":@\\s]+):(?<currentValue>[^\"@\\s]+)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?\""
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "The Typst version CI downloads",
+      "managerFilePatterns": ["/^\\.github/workflows/verify\\.yml$/"],
+      "matchStrings": ["TYPST_VERSION: (?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "typst/typst",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$"
     }
   ],
   "vulnerabilityAlerts": {
