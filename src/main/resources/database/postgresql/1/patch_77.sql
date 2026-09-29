@@ -45,3 +45,18 @@ $$;
 
 COMMENT ON FUNCTION ember_schema.check_restriction(TEXT, TEXT, TEXT, TEXT, TEXT, INT, INT) IS
     'Whether the restriction rows of one entity take in a member, reading the member''s user type, groups and tags and the entity''s combination mode itself. Managers are not let through here: whether somebody manages the entity type is decided by the application and combined with this result by the caller.';
+
+ALTER TABLE ember_schema.email_queue
+    ADD COLUMN next_attempt_at TIMESTAMP NOT NULL DEFAULT now(),
+    ADD COLUMN claimed_at      TIMESTAMP;
+
+UPDATE ember_schema.email_queue
+SET claimed_at = created_at
+WHERE status = 'SENDING';
+
+COMMENT ON COLUMN ember_schema.email_queue.next_attempt_at
+    IS 'Earliest time the worker may take this mail again. Pushed back after every transient failure, doubling each time.';
+COMMENT ON COLUMN ember_schema.email_queue.claimed_at
+    IS 'When the worker last took this mail in hand for sending. A mail in sending for long past this was left behind by a worker that died.';
+
+CREATE INDEX idx_email_queue_pending_due ON ember_schema.email_queue (next_attempt_at) WHERE status = 'PENDING';

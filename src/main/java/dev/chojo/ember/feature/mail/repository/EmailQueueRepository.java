@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -30,8 +31,10 @@ import static dev.chojo.ember.util.sql.SqlSupport.count;
 public class EmailQueueRepository {
 
     /**
-     * How long a mail may sit in sending before the worker that took it counts as dead. Every send
-     * finishes or gives up well inside this, so anything older was left behind rather than delayed.
+     * How long a mail may sit in sending, counted from when the worker last took it in hand, before
+     * that worker counts as dead. Every send finishes or gives up well inside this, so anything older
+     * was left behind rather than delayed. Counting from when the mail was written instead would
+     * call every old mail on a retry stuck.
      */
     private static final int STUCK_MINUTES = 10;
 
@@ -74,9 +77,11 @@ public class EmailQueueRepository {
     }
 
     /**
-     * Atomically fetches pending emails and marks them as SENDING to prevent double-processing.
-     * Global emails (no station) can be excluded while the instance-wide mail provider is not
-     * configured, so they stay queued untouched until an operator sets one up.
+     * Atomically fetches pending emails that are due and marks them as SENDING to prevent
+     * double-processing. A mail whose next attempt lies in the future is left alone until then.
+     * Rows another claim holds locked are skipped rather than waited for, so two workers never take
+     * the same mail. Global emails (no station) can be excluded while the instance-wide mail
+     * provider is not configured, so they stay queued untouched until an operator sets one up.
      *
      * @param limit         the maximum number of emails to fetch
      * @param includeGlobal whether emails without a station association are fetched
@@ -84,11 +89,15 @@ public class EmailQueueRepository {
      */
     public List<QueuedEmail> fetchPending(int limit, boolean includeGlobal) {
         return query("""
-                UPDATE email_queue SET status = 'SENDING'
+                UPDATE email_queue SET status = 'SENDING', claimed_at = now()
                 WHERE id IN (
                     SELECT id FROM email_queue
-                    WHERE status = 'PENDING' AND (:include_global OR station_id IS NOT NULL)
-                    ORDER BY created_at LIMIT :limit
+                    WHERE status = 'PENDING'
+                      AND next_attempt_at <= now()
+                      AND (:include_global OR station_id IS NOT NULL)
+                    ORDER BY created_at
+                    LIMIT :limit
+                    FOR UPDATE SKIP LOCKED
                 )
                 RETURNING id, recipient, subject, body, station_id, attempts, provider_position;""")
                 .single(call().bind("limit", limit).bind("include_global", includeGlobal))
@@ -260,6 +269,35 @@ public class EmailQueueRepository {
     }
 
     /**
+     * Puts an email back in the queue, not to be taken again before the delay has passed.
+     *
+     * @param id    the queued email ID
+     * @param delay how long the queue holds it back
+     */
+    public void retryAfter(int id, Duration delay) {
+        query("""
+                UPDATE email_queue
+                SET
+                    status          = 'PENDING',
+                    next_attempt_at = now() + make_interval(secs => :seconds)
+                WHERE id = :id;""")
+                .single(call().bind("id", id).bind("seconds", (int) delay.toSeconds()))
+                .update();
+    }
+
+    /**
+     * Renews the claim on an email the worker is about to send, so the time it waited behind the
+     * rest of its batch is not mistaken for a worker that died holding it.
+     *
+     * @param id the queued email ID
+     */
+    public void renewClaim(int id) {
+        query("UPDATE email_queue SET claimed_at = now() WHERE id = :id;")
+                .single(call().bind("id", id))
+                .update();
+    }
+
+    /**
      * Returns the number of emails currently pending in the queue.
      *
      * @return the pending email count
@@ -382,7 +420,7 @@ public class EmailQueueRepository {
                             count(*) FILTER (WHERE status = 'SENT')                     AS sent,
                             count(*) FILTER (WHERE status = 'FAILED')                   AS failed,
                             count(*) FILTER (WHERE status = 'SENDING'
-                                             AND created_at < now() - make_interval(mins => %d)) AS stuck,
+                                             AND claimed_at < now() - make_interval(mins => %d)) AS stuck,
                             min(created_at) FILTER (WHERE status = 'PENDING')           AS oldest
                         FROM
                             email_queue
@@ -452,10 +490,10 @@ public class EmailQueueRepository {
                             email_queue
                         WHERE
                             status = 'SENDING'
-                            AND created_at < now() - make_interval(mins => %d)
+                            AND claimed_at < now() - make_interval(mins => %d)
                             %s
                         ORDER BY
-                            created_at
+                            claimed_at
                         LIMIT :limit;""", STUCK_MINUTES, scope)
                 .single((stationId == null ? call() : where.apply(call())).bind("limit", limit))
                 .map(QUEUE_ENTRY)
@@ -467,6 +505,8 @@ public class EmailQueueRepository {
      *
      * <p>Scoped to the owner and to the stuck ones on purpose: a mail the worker is holding right
      * now must not be pulled out from under it, and one owner must not reach into another's post.
+     * A mail put back is due at once, whatever backoff it was under, and keeps the attempts it has
+     * already used: the send it was left behind in was never counted.
      *
      * @param stationId the station whose post is meant, or null for the instance's
      * @param id        the one mail meant, or null for every stuck one
@@ -479,10 +519,13 @@ public class EmailQueueRepository {
         String owner = stationId == null ? "AND station_id IS NULL" : "";
         return query("""
                         UPDATE email_queue
-                        SET status = 'PENDING'
+                        SET
+                            status          = 'PENDING',
+                            claimed_at      = NULL,
+                            next_attempt_at = now()
                         WHERE
                             status = 'SENDING'
-                            AND created_at < now() - make_interval(mins => %d)
+                            AND claimed_at < now() - make_interval(mins => %d)
                             %s
                             %s;""", STUCK_MINUTES, owner, where.fragment())
                 .single(where.apply(call()))

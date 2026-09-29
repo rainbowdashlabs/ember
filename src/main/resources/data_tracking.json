@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:66cdac1bd8068223f955ece77f24deff5f5575aed54529ab09f241612d3a1ca9",
-  "generatedAt": "2026-09-28T14:11:43Z",
+  "schemaHash": "sha256:2ae942580546c72fecf710ae22fea1dd167940928085a7124e779347ed1084cb",
+  "generatedAt": "2026-09-29T23:07:58Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6027,7 +6027,7 @@
     "email_queue": {
       "feature": "mail",
       "scope": "INSTANCE",
-      "tableHash": "sha256:b6bb127b153e521c1c60b5d89a9e323cd4188fff77fcf326ed09e2d128b55407",
+      "tableHash": "sha256:d793ff57260df3195c3d474878dad012428f8100b5219cfb850ec232fac39da2",
       "columns": [
         {
           "name": "id",
@@ -6126,6 +6126,20 @@
           "nullable": true,
           "verified": true,
           "description": "When the mail was handed to a provider, which is what the per-provider daily count reads."
+        },
+        {
+          "name": "next_attempt_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "Earliest time the worker may take this mail again. Pushed back after every transient failure, doubling each time."
+        },
+        {
+          "name": "claimed_at",
+          "type": "timestamp",
+          "nullable": true,
+          "verified": true,
+          "description": "When the worker last took this mail in hand for sending. A mail in sending for long past this was left behind by a worker that died."
         }
       ],
       "foreignKeys": [

@@ -71,6 +71,7 @@ public class EmailService {
     private final StationReadOnlyGuard readOnlyGuard;
     private final MailChainService chainService;
     private final MailProviderBlockRepository blockRepository;
+    private final MailRetryService retryService;
 
     @Inject
     public EmailService(
@@ -81,9 +82,11 @@ public class EmailService {
             MailTemplateRenderer templateRenderer,
             StationReadOnlyGuard readOnlyGuard,
             MailChainService chainService,
-            MailProviderBlockRepository blockRepository) {
+            MailProviderBlockRepository blockRepository,
+            MailRetryService retryService) {
         this.chainService = chainService;
         this.blockRepository = blockRepository;
+        this.retryService = retryService;
         this.mailing = mailing;
         this.api = api;
         this.demoConfig = demoConfig;
@@ -976,42 +979,6 @@ public class EmailService {
         return false;
     }
 
-    /**
-     * Counts a used-up attempt and, when the provider in turn has had all of its, hands the mail to
-     * the next one.
-     *
-     * <p>This is what makes a relay that has stopped working survivable: the mail does not sit in
-     * the queue being refused by the same route forever, it moves on to another.
-     */
-    private void countAttemptAndMaybeAdvance(EmailQueueRepository.QueuedEmail email) {
-        var chain = email.stationId() == null ? chainService.forInstance() : chainService.forStation(email.stationId());
-        int allowed = chainService
-                .at(chain, email.providerPosition())
-                .map(MailChainEntry::attempts)
-                .orElse(1);
-        queueRepository.countAttempt(email.id());
-        if (email.attempts() + 1 < allowed) {
-            log.warn(
-                    "Email {} to {} failed on provider {}; {} attempt(s) left before the next one",
-                    email.id(),
-                    email.recipient(),
-                    email.providerPosition(),
-                    allowed - email.attempts() - 1);
-            return;
-        }
-        if (email.providerPosition() + 1 >= chain.size()) {
-            log.warn("Email {} to {} has exhausted every provider", email.id(), email.recipient());
-            return;
-        }
-        queueRepository.advanceProvider(email.id());
-        log.warn(
-                "Email {} to {} moves from provider {} to {}",
-                email.id(),
-                email.recipient(),
-                email.providerPosition(),
-                email.providerPosition() + 1);
-    }
-
     private void processQueue() {
         try {
             boolean globalConfigured = currentGlobalProvider() != null;
@@ -1066,6 +1033,7 @@ public class EmailService {
                     provider = current;
                 }
 
+                queueRepository.renewClaim(email.id());
                 var result =
                         provider.send(email.recipient(), email.subject(), email.body(), String.valueOf(email.id()));
                 switch (result) {
@@ -1075,9 +1043,11 @@ public class EmailService {
                         sent++;
                     }
                     case TRANSIENT_FAILURE -> {
-                        countAttemptAndMaybeAdvance(email);
-                        queueRepository.requeue(email.id());
-                        requeued++;
+                        if (retryService.afterTransientFailure(email) == MailRetryPolicy.Step.GIVE_UP) {
+                            failed++;
+                        } else {
+                            requeued++;
+                        }
                     }
                     case PERMANENT_FAILURE -> {
                         log.warn(
