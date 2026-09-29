@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
@@ -59,7 +60,7 @@ class MailRetryServiceTest extends RepositoryTestBase {
                 MailProviderType.SMTP,
                 "smtp.retry.test",
                 587,
-                false,
+                SmtpEncryption.STARTTLS,
                 "user",
                 "secret",
                 "",

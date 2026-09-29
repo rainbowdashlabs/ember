@@ -27,6 +27,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.adminMailing.fieldsTitle')">
       <p>{{ t('helpCenter.adminMailing.fieldsText') }}</p>
+      <p>{{ t('helpCenter.mailConfig.smtpEncryption') }}</p>
       <p>{{ t('helpCenter.mailConfig.providerKeysNote') }}</p>
       <p class="flex flex-wrap gap-x-4">
         <router-link

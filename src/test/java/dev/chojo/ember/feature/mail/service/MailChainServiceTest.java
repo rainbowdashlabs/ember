@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.mail.service;
 import dev.chojo.ember.conf.file.elements.MailProviderEntry;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
@@ -52,7 +53,7 @@ class MailChainServiceTest extends RepositoryTestBase {
                 provider,
                 "smtp.example",
                 587,
-                false,
+                SmtpEncryption.STARTTLS,
                 "user",
                 "secret",
                 "key",
@@ -132,7 +133,7 @@ class MailChainServiceTest extends RepositoryTestBase {
                         MailProviderType.BREVO,
                         "",
                         587,
-                        false,
+                        SmtpEncryption.STARTTLS,
                         "user",
                         "secret",
                         "key",

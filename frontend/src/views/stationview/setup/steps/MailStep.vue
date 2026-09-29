@@ -12,9 +12,9 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import MailProviderCredentialFields from '@/components/mail/MailProviderCredentialFields.vue'
+import SmtpEncryptionField from '@/components/mail/SmtpEncryptionField.vue'
 import {emptyMailProvider, getStationProviders, updateStationProviders, type MailProvider} from '@/api/mailProviders'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -91,10 +91,7 @@ const {running: saving, failure, run: save} = useAsyncAction(async () => {
           {{ t('setup.steps.mail.smtpPort') }}
           <NumberInput v-model="cfg.smtpPort"/>
         </label>
-        <label class="flex items-center gap-2 text-sm">
-          <ToggleInput v-model="cfg.smtpSsl"/>
-          {{ t('setup.steps.mail.smtpSsl') }}
-        </label>
+        <SmtpEncryptionField v-model="cfg.smtpEncryption"/>
         <label class="block text-sm">
           {{ t('setup.steps.mail.smtpUser') }}
           <TextInput v-model="cfg.smtpUser"/>

@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
@@ -566,7 +567,7 @@ public class StationManageRoutes implements Routes {
                                 entry.provider(),
                                 entry.smtpHost(),
                                 entry.smtpPort(),
-                                entry.smtpSsl(),
+                                entry.smtpEncryption(),
                                 entry.smtpUser(),
                                 entry.smtpPassword(),
                                 entry.apiKey(),
@@ -606,7 +607,7 @@ public class StationManageRoutes implements Routes {
                     entry.provider(),
                     entry.smtpHost(),
                     entry.smtpPort(),
-                    entry.smtpSsl(),
+                    entry.smtpEncryption(),
                     entry.smtpUser(),
                     MailFallbackPayload.keepOrReplace(
                             entry.smtpPassword(), previous == null ? "" : previous.smtpPassword()),
@@ -963,7 +964,7 @@ public class StationManageRoutes implements Routes {
             String provider,
             String smtpHost,
             int smtpPort,
-            boolean smtpSsl,
+            SmtpEncryption smtpEncryption,
             String smtpUser,
             String senderAddress,
             String senderName,
@@ -982,7 +983,7 @@ public class StationManageRoutes implements Routes {
             String provider,
             String smtpHost,
             Integer smtpPort,
-            Boolean smtpSsl,
+            SmtpEncryption smtpEncryption,
             String smtpUser,
             String smtpPassword,
             String senderAddress,

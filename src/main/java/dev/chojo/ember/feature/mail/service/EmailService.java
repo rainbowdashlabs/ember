@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
@@ -146,7 +147,7 @@ public class EmailService {
                 entry.provider(),
                 entry.smtpHost(),
                 entry.smtpPort(),
-                entry.smtpSsl(),
+                entry.smtpEncryption(),
                 entry.smtpUser(),
                 entry.smtpPassword(),
                 entry.apiKey(),
@@ -156,27 +157,31 @@ public class EmailService {
 
     /**
      * Builds a {@link MailProvider} from raw config values without persisting anything. Returns
-     * {@code null} when the provider is {@link MailProviderType#NONE}.
+     * {@code null} when the provider is {@link MailProviderType#NONE}. The relays with a fixed
+     * address all require STARTTLS; only a plain server and Sweego, whose address is configured, take
+     * the encryption from the configuration.
      */
     private static MailProvider buildProvider(
             MailProviderType provider,
             String smtpHost,
             int smtpPort,
-            boolean smtpSsl,
+            SmtpEncryption smtpEncryption,
             String user,
             String password,
             String apiKey,
             String senderAddress,
             String senderName) {
         return switch (provider) {
-            case SMTP -> new SmtpMailProvider(smtpHost, smtpPort, smtpSsl, user, password, senderAddress, senderName);
+            case SMTP ->
+                new SmtpMailProvider(smtpHost, smtpPort, smtpEncryption, user, password, senderAddress, senderName);
             case RAPIDMAIL ->
-                new SmtpMailProvider("smtp.rapidmail.de", 587, false, user, apiKey, senderAddress, senderName);
+                new SmtpMailProvider(
+                        "smtp.rapidmail.de", 587, SmtpEncryption.STARTTLS, user, apiKey, senderAddress, senderName);
             case TWILIO ->
                 new SmtpMailProvider(
                         "smtp.sendgrid.net",
                         587,
-                        false,
+                        SmtpEncryption.STARTTLS,
                         "apikey",
                         apiKey,
                         senderAddress,
@@ -189,7 +194,7 @@ public class EmailService {
                 new SmtpMailProvider(
                         smtpHost,
                         smtpPort,
-                        smtpSsl,
+                        smtpEncryption,
                         user,
                         apiKey,
                         senderAddress,
@@ -202,7 +207,7 @@ public class EmailService {
                 new SmtpMailProvider(
                         "smtp-relay.brevo.com",
                         587,
-                        false,
+                        SmtpEncryption.STARTTLS,
                         user,
                         apiKey,
                         senderAddress,
@@ -222,14 +227,14 @@ public class EmailService {
             MailProviderType provider,
             String smtpHost,
             int smtpPort,
-            boolean smtpSsl,
+            SmtpEncryption smtpEncryption,
             String user,
             String password,
             String apiKey,
             String senderAddress,
             String senderName) {
-        MailProvider mailProvider =
-                buildProvider(provider, smtpHost, smtpPort, smtpSsl, user, password, apiKey, senderAddress, senderName);
+        MailProvider mailProvider = buildProvider(
+                provider, smtpHost, smtpPort, smtpEncryption, user, password, apiKey, senderAddress, senderName);
         if (mailProvider == null) return "No mail provider configured";
         var result = mailProvider.testConnection();
         if (result.success()) return null;
@@ -293,7 +298,7 @@ public class EmailService {
                 config.provider(),
                 config.smtpHost(),
                 config.smtpPort(),
-                config.smtpSsl(),
+                config.smtpEncryption(),
                 config.smtpUser(),
                 config.smtpPassword(),
                 config.apiKey(),
@@ -916,7 +921,7 @@ public class EmailService {
                         entry.provider(),
                         entry.smtpHost(),
                         entry.smtpPort(),
-                        entry.smtpSsl(),
+                        entry.smtpEncryption(),
                         entry.smtpUser(),
                         entry.smtpPassword(),
                         entry.apiKey(),

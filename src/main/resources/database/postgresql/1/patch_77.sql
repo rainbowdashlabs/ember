@@ -60,3 +60,17 @@ COMMENT ON COLUMN ember_schema.email_queue.claimed_at
     IS 'When the worker last took this mail in hand for sending. A mail in sending for long past this was left behind by a worker that died.';
 
 CREATE INDEX idx_email_queue_pending_due ON ember_schema.email_queue (next_attempt_at) WHERE status = 'PENDING';
+
+ALTER TABLE ember_schema.station_mail_provider
+    ADD COLUMN smtp_encryption TEXT NOT NULL DEFAULT 'STARTTLS'
+        CHECK (smtp_encryption IN ('IMPLICIT_TLS', 'STARTTLS', 'NONE'));
+
+UPDATE ember_schema.station_mail_provider
+SET smtp_encryption = 'IMPLICIT_TLS'
+WHERE smtp_ssl;
+
+ALTER TABLE ember_schema.station_mail_provider
+    DROP COLUMN smtp_ssl;
+
+COMMENT ON COLUMN ember_schema.station_mail_provider.smtp_encryption
+    IS 'How the connection to the relay is secured: IMPLICIT_TLS from the first byte, STARTTLS required before login, or NONE for an unencrypted relay chosen on purpose.';

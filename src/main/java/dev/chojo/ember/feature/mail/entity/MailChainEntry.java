@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.station.entity.MailProviderType;
  * and when it has used them the next one takes over.
  *
  * @param position       where in the order this provider sits, counted from zero
+ * @param smtpEncryption how the connection to the relay is secured
  * @param attempts       how many attempts it gets before the next one takes over
  * @param dailySendLimit how many mails it may send in a day, or zero for no limit. Free tiers are
  *                       sold by the day, so a chain that ignores the allowance keeps pushing at a
@@ -29,7 +30,7 @@ public record MailChainEntry(
         MailProviderType provider,
         String smtpHost,
         int smtpPort,
-        boolean smtpSsl,
+        SmtpEncryption smtpEncryption,
         String smtpUser,
         String smtpPassword,
         String apiKey,
@@ -62,7 +63,7 @@ public record MailChainEntry(
                 row.getEnum("provider", MailProviderType.class),
                 row.getString("smtp_host"),
                 row.getInt("smtp_port"),
-                row.getBoolean("smtp_ssl"),
+                row.getEnum("smtp_encryption", SmtpEncryption.class),
                 row.getString("smtp_user"),
                 row.getString("smtp_password"),
                 row.getString("api_key"),

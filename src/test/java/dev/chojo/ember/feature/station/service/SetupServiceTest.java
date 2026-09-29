@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
@@ -141,7 +142,7 @@ class SetupServiceTest extends RepositoryTestBase {
                         MailProviderType.SMTP,
                         "smtp.example.com",
                         587,
-                        false,
+                        SmtpEncryption.STARTTLS,
                         "user",
                         "pw",
                         "",

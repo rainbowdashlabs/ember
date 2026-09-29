@@ -783,7 +783,7 @@ volumes:
                     mailingDigestInterval: 'Mindestabstand in Minuten zwischen zwei Sammelmails an dieselbe Wache. 0 schaltet die Sammelmail ab. Wird nur beim Start gelesen. Standard ist 60 Minuten.',
                     mailingSmtpHost: 'Hostname des SMTP-Servers (z.B. smtp.gmail.com).',
                     mailingSmtpPort: 'Port des SMTP-Servers. Typisch sind 587 (STARTTLS), 465 (SMTPS) oder 25 (Klartext).',
-                    mailingSmtpSsl: 'Ob die SMTP-Verbindung verschlüsselt (TLS/SSL) aufgebaut wird. Bei Port 465 in der Regel true, bei 587 hängt es vom Anbieter ab.',
+                    mailingSmtpSsl: 'Nur für die alte Form der Mail-Einstellungen. true verschlüsselt ab Verbindungsaufbau (Port 465), false verlangt STARTTLS, das der Server anbieten muss. Für einen Server ohne Verschlüsselung in der Verwaltung beim Anbieter „Unverschlüsselt" wählen.',
                     mailingProperties: 'Zusätzliche freie SMTP-Properties als Schlüssel-Wert-Paare (z.B. starttls-Schalter, Authentifizierungs-Mechanismen). Wird selten gebraucht - nur bei Sonderanforderungen des Mailservers nötig.',
                     hibpEnabled: 'Ob neue Passwörter beim Setzen und nach jedem erfolgreichen Login asynchron gegen haveibeenpwned.com geprüft werden. Standardmäßig aktiv.',
                     hibpStaleAfterDays: 'Wie viele Tage zwischen zwei Hintergrund-Prüfungen für dasselbe Passwort mindestens vergehen müssen. Verhindert, dass jeder Login einen externen API-Call auslöst.',
@@ -1319,7 +1319,7 @@ volumes:
             smtpPort: 'SMTP-Port - Meistens 587 (mit STARTTLS) oder 465 (mit SSL).',
             smtpUser: 'SMTP-Benutzer - Dein Benutzername beim Mailserver.',
             smtpPassword: 'SMTP-Passwort - Das Passwort für deinen Mailserver.',
-            smtpSsl: 'SSL - Aktiviere SSL, wenn dein Server Port 465 verwendet.',
+            smtpEncryption: 'Verschlüsselung - Bei Port 587 meist STARTTLS, bei Port 465 SSL/TLS. Bei STARTTLS muss der Server die Verschlüsselung anbieten, sonst verschickt Ember nichts. „Unverschlüsselt" nur für einen Mailserver im eigenen, geschützten Netz wählen, der keine Verschlüsselung kann: Dann gehen Passwort und Mails lesbar über das Netz.',
             smtpProviderInfo: 'Bei einem eigenen SMTP-Server gibst du außerdem einen Anbieter-Namen und eine Datenschutz-URL an. Diese Informationen werden in E-Mails angezeigt.',
             limitsTitle: 'Sendelimits',
             limitsText: 'Du kannst ein tägliches und ein monatliches Sendelimit festlegen, um Kosten zu kontrollieren:',
@@ -4247,7 +4247,7 @@ volumes:
             whatTitle: 'Was ist die E-Mail-Konfiguration?',
             whatText: 'Hier legst du fest, über welche Anbieter Ember Mails verschickt: einen eigenen Server oder Dienste wie RapidMail, Twilio, Sweego und Brevo. Du kannst mehrere Anbieter untereinander eintragen und per Ziehen oder Pfeil sortieren. Fällt einer aus, übernimmt der nächste. Ohne Eintrag bleibt jede Mail liegen.',
             fieldsTitle: 'Welche Felder gibt es?',
-            fieldsText: 'Jeder Anbieter hat eigene Angaben: Absender-Adresse, Absender-Name, Versuche und Tageslimit (0 heißt ohne Limit). Beim eigenen Server und bei Sweego trägst du zusätzlich Server und Port ein. Mit „Testmail senden" prüfst du einen Anbieter an eine Adresse deiner Wahl. Das Benachrichtigungsintervall gilt für die ganze Instanz und steht in einem eigenen Kasten.',
+            fieldsText: 'Jeder Anbieter hat eigene Angaben: Absender-Adresse, Absender-Name, Versuche und Tageslimit (0 heißt ohne Limit). Beim eigenen Server und bei Sweego trägst du zusätzlich Server, Port und Verschlüsselung ein. Mit „Testmail senden" prüfst du einen Anbieter an eine Adresse deiner Wahl. Das Benachrichtigungsintervall gilt für die ganze Instanz und steht in einem eigenen Kasten.',
             webhookTitle: 'Rückmeldungen zur Zustellung',
             webhookText: 'Ein Anbieter bestätigt beim Versand nur, dass er die Mail übernommen hat. '
                 + 'Ob sie ankommt, entscheidet sich danach zwischen ihm und dem Empfängerserver - '

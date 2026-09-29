@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.mail.route;
 
+import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 
 /**
@@ -17,13 +18,15 @@ import dev.chojo.ember.feature.station.entity.MailProviderType;
  * "leave it as it was", which is how an administrator can reorder a chain without being shown, or
  * having to retype, every password in it.
  *
- * @param attempts how many attempts this provider gets before the next one takes over
+ * @param smtpEncryption how the connection to the relay is secured. A client that names none gets
+ *                       required STARTTLS, never an unencrypted connection it did not ask for.
+ * @param attempts       how many attempts this provider gets before the next one takes over
  */
 public record MailFallbackPayload(
         MailProviderType provider,
         String smtpHost,
         int smtpPort,
-        boolean smtpSsl,
+        SmtpEncryption smtpEncryption,
         String smtpUser,
         String smtpPassword,
         String apiKey,
@@ -34,6 +37,10 @@ public record MailFallbackPayload(
         String providerName,
         String providerUrl,
         String deliveryWebhookUrl) {
+
+    public MailFallbackPayload {
+        if (smtpEncryption == null) smtpEncryption = SmtpEncryption.STARTTLS;
+    }
 
     /**
      * What a stored secret looks like on its way out.
@@ -64,7 +71,7 @@ public record MailFallbackPayload(
                 provider,
                 smtpHost,
                 smtpPort,
-                smtpSsl,
+                smtpEncryption,
                 smtpUser,
                 smtpPassword == null || smtpPassword.isEmpty() ? "" : MASK,
                 apiKey == null || apiKey.isEmpty() ? "" : MASK,
@@ -89,7 +96,7 @@ public record MailFallbackPayload(
                 provider,
                 smtpHost,
                 smtpPort,
-                smtpSsl,
+                smtpEncryption,
                 smtpUser,
                 smtpPassword,
                 apiKey,

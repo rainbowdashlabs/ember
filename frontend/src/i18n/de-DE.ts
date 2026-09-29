@@ -5284,7 +5284,16 @@ export default {
         dailyLimitHint: 'So viele Mails darf dieser Anbieter am Tag versenden. 0 bedeutet kein Limit.',
         host: 'Server',
         port: 'Port',
-        ssl: 'SSL statt STARTTLS',
+        encryption: {
+            label: 'Verschlüsselung',
+            hint: 'Port 587 nutzt meist STARTTLS, Port 465 SSL/TLS. Bei STARTTLS muss der Server die '
+                + 'Verschlüsselung anbieten, sonst wird nichts gesendet.',
+            STARTTLS: 'STARTTLS (Pflicht)',
+            IMPLICIT_TLS: 'SSL/TLS ab Verbindungsaufbau',
+            NONE: 'Unverschlüsselt',
+            noneWarning: 'Ohne Verschlüsselung gehen Passwort und jede Mail lesbar über das Netz. Wähle '
+                + 'das nur für einen Mailserver im eigenen, geschützten Netz, der keine Verschlüsselung kann.',
+        },
         user: 'Benutzername',
         password: 'Passwort',
         apiKey: 'API-Schlüssel',
@@ -10512,7 +10521,6 @@ export default {
                 senderName: 'Absendername',
                 smtpHost: 'SMTP-Server',
                 smtpPort: 'Port',
-                smtpSsl: 'SSL verwenden',
                 smtpUser: 'Benutzer',
                 smtpPassword: 'Passwort',
                 apiKey: 'API-Schlüssel',

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:2ae942580546c72fecf710ae22fea1dd167940928085a7124e779347ed1084cb",
-  "generatedAt": "2026-09-29T23:07:58Z",
+  "schemaHash": "sha256:cbfe926a6eee2427d2f856e36ad63f956bec1702d62cd9a816d37bf00296e751",
+  "generatedAt": "2026-09-29T23:27:26Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -21709,7 +21709,7 @@
     "station_mail_provider": {
       "feature": "mail",
       "scope": "STATION",
-      "tableHash": "sha256:729e176316845f8092d3efe23e90f0804da498c94964f649fc2684d41e8a05d3",
+      "tableHash": "sha256:ce240ada9d21c3aa16be360caf854367dd0c6b7520f8715d024a49af65234e8a",
       "columns": [
         {
           "name": "id",
@@ -21752,13 +21752,6 @@
           "nullable": false,
           "verified": true,
           "description": "Server port for a plain SMTP provider."
-        },
-        {
-          "name": "smtp_ssl",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Whether the connection uses direct SSL rather than STARTTLS."
         },
         {
           "name": "smtp_user",
@@ -21829,6 +21822,13 @@
           "nullable": false,
           "verified": true,
           "description": "The provider website shown to members of the station."
+        },
+        {
+          "name": "smtp_encryption",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the connection to the relay is secured: IMPLICIT_TLS from the first byte, STARTTLS required before login, or NONE for an unencrypted relay chosen on purpose."
         }
       ],
       "foreignKeys": [

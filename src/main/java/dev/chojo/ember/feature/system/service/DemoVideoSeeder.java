@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -481,7 +482,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
                         MailProviderType.SMTP,
                         "localhost",
                         1025,
-                        false,
+                        SmtpEncryption.NONE,
                         "demo",
                         "demo",
                         "",

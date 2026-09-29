@@ -15,7 +15,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import SmtpEncryptionField from '@/components/mail/SmtpEncryptionField.vue'
+import {SmtpEncryption} from '@/api/mailProviders'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
@@ -129,7 +130,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.mailConfig.smtpPort') }}</p>
       <p>{{ t('helpCenter.mailConfig.smtpUser') }}</p>
       <p>{{ t('helpCenter.mailConfig.smtpPassword') }}</p>
-      <p>{{ t('helpCenter.mailConfig.smtpSsl') }}</p>
+      <p>{{ t('helpCenter.mailConfig.smtpEncryption') }}</p>
       <p>{{ t('helpCenter.mailConfig.smtpProviderInfo') }}</p>
     </HelpSection>
 
@@ -162,10 +163,7 @@ const {t} = useI18n()
           <TextInput model-value="" :placeholder="t('stationManage.mailPasswordPlaceholder')" type="password" disabled/>
         </div>
       </div>
-      <div class="flex items-center justify-between">
-        <label class="text-sm font-medium">SSL</label>
-        <ToggleInput :model-value="true" disabled/>
-      </div>
+      <SmtpEncryptionField :model-value="SmtpEncryption.STARTTLS"/>
     </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.mailConfig.limitsTitle')">

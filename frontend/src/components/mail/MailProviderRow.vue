@@ -10,12 +10,12 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MailProviderCredentialFields from '@/components/mail/MailProviderCredentialFields.vue'
+import SmtpEncryptionField from '@/components/mail/SmtpEncryptionField.vue'
 import {needsServerAddress, RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
 import type {MailProvider} from '@/api/mailProviders'
 
@@ -117,10 +117,7 @@ const user = computed({
         <FieldLabel>{{ t('mailChain.port') }}</FieldLabel>
         <NumberInput v-model="entry.smtpPort" :min="1" :max="65535" :aria-label="t('mailChain.port')"/>
       </div>
-      <div class="flex items-center justify-between gap-3">
-        <FieldLabel>{{ t('mailChain.ssl') }}</FieldLabel>
-        <ToggleInput v-model="entry.smtpSsl" :aria-label="t('mailChain.ssl')"/>
-      </div>
+      <SmtpEncryptionField v-model="entry.smtpEncryption"/>
       <template v-if="isSmtp">
         <div class="space-y-1">
           <FieldLabel>{{ t('mailChain.user') }}</FieldLabel>

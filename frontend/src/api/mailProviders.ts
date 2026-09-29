@@ -6,6 +6,18 @@
 import client from './client'
 
 /**
+ * How the connection to a relay is secured. STARTTLS is required, not merely attempted; NONE sends
+ * the login and every mail readable and is only ever used when chosen on purpose.
+ */
+export const SmtpEncryption = {
+    IMPLICIT_TLS: 'IMPLICIT_TLS',
+    STARTTLS: 'STARTTLS',
+    NONE: 'NONE',
+} as const
+
+export type SmtpEncryptionName = (typeof SmtpEncryption)[keyof typeof SmtpEncryption]
+
+/**
  * One provider in the order mail is tried through.
  *
  * The first is simply the first, not a provider of a different kind: the list is worked from the
@@ -18,7 +30,7 @@ export interface MailProvider {
     provider: string
     smtpHost: string
     smtpPort: number
-    smtpSsl: boolean
+    smtpEncryption: SmtpEncryptionName
     smtpUser: string
     smtpPassword: string
     apiKey: string
@@ -52,7 +64,7 @@ export function emptyMailProvider(): MailProvider {
         provider: 'SMTP',
         smtpHost: '',
         smtpPort: 587,
-        smtpSsl: false,
+        smtpEncryption: SmtpEncryption.STARTTLS,
         smtpUser: '',
         smtpPassword: '',
         apiKey: '',

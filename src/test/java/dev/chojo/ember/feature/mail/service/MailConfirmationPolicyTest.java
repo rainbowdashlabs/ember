@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +26,7 @@ class MailConfirmationPolicyTest {
             MailProviderType.SMTP,
             "mail.test",
             25,
-            false,
+            SmtpEncryption.STARTTLS,
             "user",
             "pass",
             "",

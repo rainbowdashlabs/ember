@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.conf.file.elements;
 
+import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ocular.override.Env;
 import dev.chojo.ocular.override.Overwrite;
@@ -147,7 +148,7 @@ public class Mailing {
                 provider,
                 smtp.host(),
                 smtp.port(),
-                smtp.ssl(),
+                SmtpEncryption.fromLegacySsl(smtp.ssl()),
                 user,
                 password,
                 apiKey,

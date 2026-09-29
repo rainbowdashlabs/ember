@@ -12,7 +12,8 @@ import InfoContainer from '@/components/container/InfoContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import SmtpEncryptionField from '@/components/mail/SmtpEncryptionField.vue'
+import {SmtpEncryption} from '@/api/mailProviders'
 import WizardFrame from './setuphelp/WizardFrame.vue'
 
 const {t} = useI18n()
@@ -61,10 +62,7 @@ const {t} = useI18n()
             {{ t('setup.steps.mail.smtpPort') }}
             <NumberInput :model-value="587"/>
           </label>
-          <label class="flex items-center gap-2 text-sm">
-            <ToggleInput :model-value="true"/>
-            {{ t('setup.steps.mail.smtpSsl') }}
-          </label>
+          <SmtpEncryptionField :model-value="SmtpEncryption.STARTTLS"/>
           <label class="block text-sm">
             {{ t('setup.steps.mail.smtpUser') }}
             <TextInput model-value="wache@example.org"/>

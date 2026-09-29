@@ -1006,7 +1006,7 @@ public class AdminSettingsRoutes implements Routes {
                                         fallback.provider(),
                                         fallback.host(),
                                         fallback.port(),
-                                        fallback.ssl(),
+                                        fallback.encryption(),
                                         fallback.user(),
                                         fallback.password(),
                                         fallback.apiKey(),
@@ -1045,7 +1045,7 @@ public class AdminSettingsRoutes implements Routes {
                     entry.provider(),
                     entry.smtpHost(),
                     entry.smtpPort(),
-                    entry.smtpSsl(),
+                    entry.smtpEncryption(),
                     entry.smtpUser(),
                     MailFallbackPayload.keepOrReplace(
                             entry.smtpPassword(), previous == null ? "" : previous.password()),
