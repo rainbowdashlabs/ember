@@ -53,14 +53,14 @@ export default defineConfig({
      * entirely; until the suite does that, the first visit to a page must not read as a failure.
      */
     expect: {timeout: 15_000},
-    retries: process.env.CI ? 2 : 0,
+    retries: process.env.CI ? 1 : 0,
     /**
      * Four against the built server it normally uses, two against a dev server, which compiles
      * each route on demand from a single process and falls behind under more.
      */
     workers: process.env.E2E_DEV_SERVER ? 2 : 4,
     fullyParallel: true,
-    reporter: process.env.CI ? [['html', {outputFolder: 'e2e/report'}], ['list']] : 'list',
+    reporter: process.env.CI ? [['html', {outputFolder: 'e2e/report'}], ['list'], ['github']] : 'list',
 
     use: {
         baseURL: baseUrl,

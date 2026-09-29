@@ -59,12 +59,8 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
       - name: Run repository tests
-        uses: nick-fields/retry@v4
-        with:
-          timeout_minutes: 15
-          max_attempts: 2
-          retry_wait_seconds: 60
-          command: ./gradlew --build-cache testRepositories
+        timeout-minutes: 15
+        run: ./gradlew --build-cache testRepositories
       - name: Upload coverage data
         uses: actions/upload-artifact@v7
         with:
@@ -137,12 +133,8 @@ jobs:
           fi
           sudo install -m 0755 ~/tool-cache/typst/typst /usr/local/bin/typst
       - name: Run service tests
-        uses: nick-fields/retry@v4
-        with:
-          timeout_minutes: 15
-          max_attempts: 2
-          retry_wait_seconds: 60
-          command: ./gradlew --build-cache testServices
+        timeout-minutes: 15
+        run: ./gradlew --build-cache testServices
       - name: Upload coverage data
         uses: actions/upload-artifact@v7
         with:
@@ -167,12 +159,8 @@ jobs:
       # no UNVERIFIED statuses remain, RETAIN strategies carry a legal basis, etc. They use a
       # testcontainer to spin up PostgreSQL.
       - name: Run data tracking tests
-        uses: nick-fields/retry@v4
-        with:
-          timeout_minutes: 15
-          max_attempts: 2
-          retry_wait_seconds: 60
-          command: ./gradlew --build-cache testTracking
+        timeout-minutes: 15
+        run: ./gradlew --build-cache testTracking
       - name: Upload coverage data
         if: always()
         uses: actions/upload-artifact@v7
@@ -194,12 +182,8 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
       - name: Run other tests
-        uses: nick-fields/retry@v4
-        with:
-          timeout_minutes: 15
-          max_attempts: 2
-          retry_wait_seconds: 60
-          command: ./gradlew --build-cache testOther
+        timeout-minutes: 15
+        run: ./gradlew --build-cache testOther
       - name: Upload coverage data
         if: always()
         uses: actions/upload-artifact@v7
