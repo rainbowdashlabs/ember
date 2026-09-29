@@ -41,6 +41,12 @@
       "matchDepNames": ["postgres"],
       "groupName": "postgres",
       "groupSlug": "postgres"
+    },
+    {
+      "description": "The release workflow's wait action is pinned to a reviewed release commit. A digest update would follow the action's default branch instead, so it is moved only by hand after reviewing the new release",
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["lewagon/wait-on-check-action"],
+      "enabled": false
     }
   ],
   "customManagers": [
