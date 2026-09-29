@@ -9,8 +9,16 @@ import {sessionInfo} from '@/util/sessionState'
 
 /** Where an event block found its event, which decides where its link goes. */
 export type EmbeddedEventSource =
-    | {kind: 'PUBLIC', stationUid: string, publicUid: string}
+    | {kind: 'PUBLIC', stationUid: string}
     | {kind: 'MEMBER', eventId: number}
+
+/**
+ * Where a reader outside the station goes to see a public event. There is no public page for a
+ * single event, so every event block sends them to the station's public calendar.
+ */
+export function publicEventsAddress(stationUid: string): string {
+    return `/public/station/${stationUid}/calendar`
+}
 
 /** An event as an event block shows it, whichever way it was found. */
 export interface FoundEvent {
@@ -26,18 +34,21 @@ export interface FoundEvent {
 /**
  * Finds the event a block names by its public id.
  *
- * <p>The public list comes first, because it is what every reader can ask: the public blog, a
- * partner station and a signed-in member alike. Only a member signed in to the station that owns
- * the event is asked about the rest, and the server answers that only for an event they may see.
- * Everybody else gets nothing, and the block says the event is not available here.
+ * <p>A member signed in to the station that owns the event asks the station itself, which answers
+ * for public and internal events alike as long as they may see it, and links them to the event's
+ * own page on the day the block names. Every other reader, the public blog and partner stations
+ * included, can only ask the public list. Where neither answers, the block says the event is not
+ * available here.
  *
  * @param stationUid the station the block belongs to
  * @param eventUid   the public id the block names
  */
 export async function findEmbeddedEvent(stationUid: string, eventUid: string): Promise<FoundEvent | null> {
-    const listed = await findPublicEvent(stationUid, eventUid)
-    if (listed) return listed
-    if (sessionInfo.value?.stationId !== stationUid) return null
+    if (sessionInfo.value?.stationId !== stationUid) return findPublicEvent(stationUid, eventUid)
+    return (await findMemberEvent(eventUid)) ?? findPublicEvent(stationUid, eventUid)
+}
+
+async function findMemberEvent(eventUid: string): Promise<FoundEvent | null> {
     try {
         const event = await getEmbeddedEvent(eventUid)
         return {
@@ -65,7 +76,7 @@ async function findPublicEvent(stationUid: string, eventUid: string): Promise<Fo
             endTime: match.endTime ?? null,
             categoryName: match.categoryName ?? null,
             cancelled: false,
-            source: {kind: 'PUBLIC', stationUid, publicUid: match.publicUid},
+            source: {kind: 'PUBLIC', stationUid},
         }
     } catch {
         return null

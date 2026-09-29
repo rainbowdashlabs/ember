@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -101,6 +102,30 @@ class EventVisibilityTest {
     void aMissingEventIsNotFound() {
         var session = sessionWith(Set.of(StationPermission.USER), STATION_ID);
 
-        assertThrows(Exception.class, () -> visibility.requireVisibleEvent(session, EVENT_ID + 1));
+        assertThrows(NotFoundResponse.class, () -> visibility.requireVisibleEvent(session, EVENT_ID + 1));
+    }
+
+    private record Row(int eventId) {}
+
+    @Test
+    void aListingKeepsOnlyTheRowsOfEventsTheMemberSees() {
+        var session = sessionWith(Set.of(StationPermission.USER), STATION_ID);
+        var other = mock(StationEvent.class);
+        when(other.id()).thenReturn(EVENT_ID + 1);
+        when(crudService.findFilteredForMembers(STATION_ID, List.of(MEMBER_ID, WARD_ID), null, null))
+                .thenReturn(List.of(event));
+
+        var kept = visibility.keepVisible(session, List.of(new Row(EVENT_ID), new Row(EVENT_ID + 1)), Row::eventId);
+
+        assertEquals(List.of(new Row(EVENT_ID)), kept);
+    }
+
+    @Test
+    void anEventManagerKeepsEveryRow() {
+        var session = sessionWith(Set.of(StationPermission.USER, StationPermission.EVENT_MANAGER), STATION_ID);
+        var rows = List.of(new Row(EVENT_ID), new Row(EVENT_ID + 1));
+
+        assertSame(rows, visibility.keepVisible(session, rows, Row::eventId));
+        verifyNoInteractions(restrictionService);
     }
 }

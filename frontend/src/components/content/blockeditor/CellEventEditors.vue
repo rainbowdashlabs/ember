@@ -72,7 +72,6 @@ async function onFeaturedEventPick(eventUid: string) {
 </script>
 
 <template>
-    <!-- FEATURED_EVENT - pick one event, optionally one day of it; title/time/link all come live from it. -->
     <template v-if="kind === 'FEATURED_EVENT'">
         <FieldLabel hint class="mb-1">{{ TS('chooseFeaturedEvent') }}</FieldLabel>
         <EventSearchPicker

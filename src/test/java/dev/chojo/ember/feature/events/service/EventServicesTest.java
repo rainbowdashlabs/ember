@@ -2769,6 +2769,10 @@ class EventServicesTest extends RepositoryTestBase {
 
         assertTrue(results.stream().anyMatch(e -> "ScopeInternal".equals(e.name())));
         assertTrue(results.stream().noneMatch(e -> "ScopeHidden".equals(e.name())));
+
+        var forAnEditor =
+                crudService.searchStationEventPicker(station.id(), "scope", EventRepository.PickerMode.FUTURE, 10);
+        assertTrue(forAnEditor.stream().anyMatch(e -> "ScopeHidden".equals(e.name())));
     }
 
     @Test

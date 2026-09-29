@@ -120,12 +120,22 @@ public class EventRepository {
 
     /**
      * The picker for an author writing inside the station, where a block may also name an event
-     * the station keeps to itself. Offers every event the member may see, public or not.
+     * the station keeps to itself. Offers every event the member may see themselves, public or not;
+     * an event they only see through somebody they look after is not offered, since the block is
+     * theirs and not their ward's.
      */
     public List<PickerEvent> searchVisibleForPicker(
             int stationId, int memberId, String search, PickerMode mode, int limit) {
         var audience = WhereBuilder.create().add(EVENT_MEMBER_PREDICATE, "member_id", memberId);
         return searchForPicker(stationId, audience, search, mode, limit);
+    }
+
+    /**
+     * The picker for an author who edits the station's events, and so may open every one of them
+     * whatever its audience. Offers all of them.
+     */
+    public List<PickerEvent> searchStationForPicker(int stationId, String search, PickerMode mode, int limit) {
+        return searchForPicker(stationId, WhereBuilder.create(), search, mode, limit);
     }
 
     private List<PickerEvent> searchForPicker(

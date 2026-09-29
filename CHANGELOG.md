@@ -19,7 +19,7 @@
 ### Security
 
 - **Entries meant for named people only were visible to the whole station.** A form, appointment, blog entry or quiz restricted to a list of named members was shown to every member of the station. It is now shown only to the people named, and to those who manage it.
-- **Hidden appointments could be read by their address.** A member could open the details, fields and registrations of an appointment hidden from them by asking for it directly by its number. Such requests are now refused unless the member may see the appointment or edit appointments.
+- **Hidden appointments could be read by their address.** A member could open the details, fields, registrations, comments and equipment of an appointment hidden from them by asking for it directly by its number, and the registration counts included hidden appointments. Such requests are now answered as though the appointment did not exist, unless the member may see it or edit appointments.
 - **Notices about restricted entries reached people who could not open them.** In some cases the notice about a new form, appointment or blog entry went to members outside its audience and showed its title. It now reaches only the members who may open the entry.
 
 ### Changes
@@ -38,6 +38,7 @@
 - **Members who withdrew could not be added again.** After somebody withdrew or declined, the list for adding members to an appointment no longer offered them, so not even its managers could put them back on. They are offered again.
 - **Members who withdrew could not sign up again everywhere.** In some cases a member who had given their place back was still shown as withdrawn in the list of upcoming appointments and on the appointment's page, with no way to sign up again there. They can now sign up again from both.
 - **Registrations of a repeating appointment mixed up its dates.** On an appointment that repeats, the registrations tab could show a member's answer, the waiting and confirmed lists and their counts from another date than the one open, and signing off could give up the place on that other date. The tab now shows and acts on the date that is open.
+- **Event links on pages led nowhere.** The button of a featured event, upcoming events or recap block on a station page led to a page that does not exist. It now opens the station's public calendar.
 - **Event blocks on pages forgot their appointment.** Saving a station page could drop the appointment chosen in a featured event, upcoming events or recap block, which then showed as no longer available. The blocks now keep what was chosen.
 - **The profile field list was cramped on medium screens.** On screens between phone and wide desktop, the list of profile fields in the member settings squeezed its names until the rows overlapped. It now switches to tiles as soon as the table no longer fits.
 

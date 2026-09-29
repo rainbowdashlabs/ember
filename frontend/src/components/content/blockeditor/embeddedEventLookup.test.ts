@@ -36,14 +36,26 @@ describe('findEmbeddedEvent', () => {
         sessionInfo.value = null
     })
 
-    it('finds a public event for any reader and links to its public page', async () => {
+    it('finds a public event for a reader outside the station through the public list', async () => {
         listPublicEvents.mockResolvedValue([{id: 1, publicUid: EVENT_UID, name: 'Sommerfest', categoryName: 'Feste'}])
 
         const found = await findEmbeddedEvent(STATION, EVENT_UID)
 
         expect(found?.name).toBe('Sommerfest')
-        expect(found?.source).toEqual({kind: 'PUBLIC', stationUid: STATION, publicUid: EVENT_UID})
+        expect(found?.source).toEqual({kind: 'PUBLIC', stationUid: STATION})
         expect(getEmbeddedEvent).not.toHaveBeenCalled()
+    })
+
+    it('asks the station itself for a member of it, even about a public event', async () => {
+        signedInTo(STATION)
+        listPublicEvents.mockResolvedValue([{id: 1, publicUid: EVENT_UID, name: 'Sommerfest'}])
+        getEmbeddedEvent.mockResolvedValue({
+            id: 9, name: 'Sommerfest', description: null, startTime: null, endTime: null,
+            cancelled: false, categoryName: null,
+        })
+
+        expect((await findEmbeddedEvent(STATION, EVENT_UID))?.source).toEqual({kind: 'MEMBER', eventId: 9})
+        expect(listPublicEvents).not.toHaveBeenCalled()
     })
 
     it('asks a member of the owning station about an internal event', async () => {
@@ -74,14 +86,9 @@ describe('findEmbeddedEvent', () => {
         expect(await findEmbeddedEvent(STATION, EVENT_UID)).toBeNull()
     })
 
-    it('falls through to the member lookup when the public list cannot be read', async () => {
-        signedInTo(STATION)
+    it('finds nothing for an outside reader when the public list cannot be read', async () => {
         listPublicEvents.mockRejectedValue(new Error('offline'))
-        getEmbeddedEvent.mockResolvedValue({
-            id: 5, name: 'Übung', description: 'Kurz', startTime: null, endTime: null,
-            cancelled: false, categoryName: null,
-        })
 
-        expect((await findEmbeddedEvent(STATION, EVENT_UID))?.description).toBe('Kurz')
+        expect(await findEmbeddedEvent(STATION, EVENT_UID)).toBeNull()
     })
 })

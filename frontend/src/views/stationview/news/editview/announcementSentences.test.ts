@@ -17,18 +17,19 @@ describe('announcementSentences', () => {
         expect(announcementSentences({...EVENT, requiresRegistration: false, registrationLimit: 5}, null, say)).toEqual([])
     })
 
-    it('names each registration setting that is set', () => {
+    it('names each registration setting that is set, on the station\'s clock', () => {
         const sentences = announcementSentences(
             {
                 ...EVENT,
-                registrationDeadline: '2026-07-01T10:00:00',
+                registrationDeadline: '2026-07-01T08:00:00Z',
                 registrationLimit: 30,
                 requiresConfirmation: true,
                 minRegistrations: 8,
-                thresholdDate: '2026-06-20T00:00:00',
+                thresholdDate: '2026-06-20T10:00:00Z',
             },
             '2026-07-20',
             say,
+            'Europe/Berlin',
         )
 
         expect(sentences).toEqual([
@@ -39,18 +40,22 @@ describe('announcementSentences', () => {
         ])
     })
 
-    it('counts a deadline in days back from the occurrence being announced', () => {
-        expect(announcementSentences({...EVENT, registrationCloseDays: 3}, '2026-07-20', say))
-            .toEqual(['registrationClosesOn {"date":"Freitag, 17.07.2026"}'])
+    it('says when unconfirmed sign-ups lapse, counted back from the occurrence', () => {
+        expect(announcementSentences({...EVENT, requiresConfirmation: true, registrationCloseDays: 3}, '2026-07-20', say))
+            .toEqual([
+                'registrationRequired',
+                'registrationConfirmation',
+                'unconfirmedLapseOn {"date":"Freitag, 17.07.2026"}',
+            ])
     })
 
-    it('keeps the deadline in days where there is no occurrence to count from', () => {
-        expect(announcementSentences({...EVENT, registrationCloseDays: 3}, null, say))
-            .toEqual(['registrationClosesDaysBefore {"days":3}'])
+    it('keeps the lapse in days where there is no occurrence to count from', () => {
+        expect(announcementSentences({...EVENT, requiresConfirmation: true, registrationCloseDays: 3}, null, say))
+            .toContain('unconfirmedLapseDaysBefore {"days":3}')
     })
 
-    it('says only that registration is needed where no deadline is set', () => {
-        expect(announcementSentences({...EVENT, minRegistrations: 4}, null, say))
+    it('leaves the days-before setting out where nothing waits for confirmation', () => {
+        expect(announcementSentences({...EVENT, registrationCloseDays: 3, minRegistrations: 4}, '2026-07-20', say))
             .toEqual(['registrationRequired', 'minimumRegistrations {"count":4}'])
     })
 

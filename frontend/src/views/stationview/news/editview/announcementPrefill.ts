@@ -52,6 +52,8 @@ export interface AnnouncedEvent {
     date: string | null
     /** The appointment's custom fields, of which the overview ones are carried. */
     fields: EventField[]
+    /** The station's clock, which the moments in the text are written on. */
+    timezone?: string | null
 }
 
 /**
@@ -78,7 +80,7 @@ export function buildAnnouncementDraft(
     names: Map<number, string>,
     words: DraftWords,
 ): AnnouncementDraft {
-    const {event, eventUid, date} = announced
+    const {event, eventUid, date, timezone} = announced
     const restricted =
         audience.userTypes.length > 0
         || audience.groupIds.length > 0
@@ -95,12 +97,12 @@ export function buildAnnouncementDraft(
         .filter(field => field.text !== '')
 
     const details = [
-        announcementSentences(event, date, words.say).join(' '),
+        announcementSentences(event, date, words.say, timezone).join(' '),
         ...carried.map(field => `**${field.name}:** ${field.text}`),
     ].filter(Boolean).join('\n\n')
 
     const blocks = [
-        eventUid ? block(CellContentType.FEATURED_EVENT, '', {eventUid, date}) : null,
+        eventUid ? block(CellContentType.FEATURED_EVENT, '', {eventUid, date: repeats(event) ? date : null}) : null,
         event.description?.trim() ? block(CellContentType.MARKDOWN, event.description.trim()) : null,
         details ? block(CellContentType.MARKDOWN, details) : null,
     ].filter(cell => cell !== null)
@@ -114,6 +116,15 @@ export function buildAnnouncementDraft(
         dateLabel: date ? occurrenceLabel(date, event.startTime, event.endTime, words.until) : '',
         embedded: !!eventUid,
     }
+}
+
+/**
+ * Whether the appointment happens on more than one day of its own. Only then does the event block
+ * need to be told which one; a one-off appointment, even one running over several days, is shown
+ * with its own start.
+ */
+function repeats(event: StationEvent): boolean {
+    return !!event.eventType && event.eventType !== 'ONE_TIME'
 }
 
 function block(contentType: CellContentTypeName, content: string, config: Record<string, unknown> = {}) {

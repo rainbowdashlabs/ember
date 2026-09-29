@@ -13,8 +13,11 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -196,6 +199,10 @@ public sealed interface CellConfig {
      * <p>The editor names a live event by {@code eventUid}, whose name, time and link are read when
      * the block is shown, and may narrow it to one occurrence by {@code date} ({@code YYYY-MM-DD}).
      * The remaining text fields are the older hand-written card, still read where no event is named.
+     *
+     * <p>An author writes this record as they like, so what names an event is kept only when it is
+     * well formed: an id that is not a UUID names nothing, and next to a named event a date that is
+     * not a calendar day is dropped rather than carried to every reader.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record FeaturedEventConfig(
@@ -207,7 +214,31 @@ public sealed interface CellConfig {
             String ctaUrl,
             String eventUid,
             String descriptionOverride)
-            implements CellConfig {}
+            implements CellConfig {
+
+        public FeaturedEventConfig {
+            eventUid = wellFormedUid(eventUid);
+            if (eventUid != null) date = wellFormedDay(date);
+        }
+
+        private static String wellFormedUid(String raw) {
+            if (raw == null) return null;
+            try {
+                return UUID.fromString(raw).toString();
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
+        }
+
+        private static String wellFormedDay(String raw) {
+            if (raw == null) return null;
+            try {
+                return LocalDate.parse(raw).toString();
+            } catch (DateTimeParseException e) {
+                return null;
+            }
+        }
+    }
 
     /**
      * List of upcoming events, read live from the station's public events and filtered by

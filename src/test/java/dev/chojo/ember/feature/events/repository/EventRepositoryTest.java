@@ -281,6 +281,10 @@ class EventRepositoryTest extends RepositoryTestBase {
                     station.id(), member.id(), "internal-picker", EventRepository.PickerMode.FUTURE, 20);
             assertTrue(visible.stream().anyMatch(e -> "Internal-Picker-Event".equals(e.name())));
 
+            var everything = eventRepo.searchStationForPicker(
+                    station.id(), "internal-picker", EventRepository.PickerMode.FUTURE, 20);
+            assertTrue(everything.stream().anyMatch(e -> "Internal-Picker-Event".equals(e.name())));
+
             var publicOnly =
                     eventRepo.searchForPicker(station.id(), "internal-picker", EventRepository.PickerMode.FUTURE, 20);
             assertTrue(publicOnly.isEmpty());

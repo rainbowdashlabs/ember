@@ -776,7 +776,7 @@ export default {
     'E-079': 'Sag, welche Datei der Mediathek angehängt werden soll',
     'E-080': FILE_NOT_HERE,
     'E-081': FILE_NOT_HERE,
-    'E-082': 'Diesen Termin darfst du nicht sehen',
+    'E-082': APPOINTMENT_NOT_HERE,
     'E-083': FILE_NOT_HERE,
     'E-084': STATION_NOT_HERE,
     'E-085': 'Diese Wache veröffentlicht ihre Termine nicht',

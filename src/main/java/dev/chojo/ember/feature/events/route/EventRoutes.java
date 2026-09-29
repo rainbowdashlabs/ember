@@ -120,7 +120,8 @@ public class EventRoutes implements Routes {
                 prefix + "/events/search",
                 this::searchPicker,
                 StationPermission.PAGE_EDIT,
-                StationPermission.NEWS_EDIT);
+                StationPermission.NEWS_EDIT,
+                StationPermission.KNOWLEDGE_EDIT);
         routes.get(prefix + "/events/upcoming", this::listUpcoming, StationPermission.USER);
         routes.get(prefix + "/events/past", this::listPast, StationPermission.USER);
         routes.get(prefix + "/events/paged", this::listPaged, StationPermission.USER);
@@ -187,8 +188,9 @@ public class EventRoutes implements Routes {
      *
      * <p>A station page is read by anybody, so its blocks are offered public events only. A news
      * entry is written inside the station and may announce an event the station keeps to itself,
-     * so a news author asking for {@code scope=VISIBLE} is offered every event they may see. The
-     * scope is only honoured for that right: a page editor asking for it still gets public events.
+     * so a news author asking for {@code scope=VISIBLE} is offered every event they may see, which
+     * for somebody who edits events is every event of the station. The scope is only honoured for
+     * that right: a page or knowledge-base editor asking for it still gets public events.
      */
     private void searchPicker(Context ctx) {
         UserSession session = UserSession.from(ctx);
@@ -199,11 +201,15 @@ public class EventRoutes implements Routes {
         boolean visibleScope = "VISIBLE".equalsIgnoreCase(ctx.queryParam("scope"))
                 && session.hasPermission(StationPermission.NEWS_EDIT)
                 && session.member() != null;
-        ctx.json(
-                visibleScope
-                        ? crudService.searchVisibleEventPicker(
-                                session.stationId(), session.member().id(), q, mode, limit)
-                        : crudService.searchEventPicker(session.stationId(), q, mode, limit));
+        if (!visibleScope) {
+            ctx.json(crudService.searchEventPicker(session.stationId(), q, mode, limit));
+        } else if (session.hasPermission(StationPermission.EVENT_EDIT)
+                || session.hasPermission(StationPermission.EVENT_MANAGER)) {
+            ctx.json(crudService.searchStationEventPicker(session.stationId(), q, mode, limit));
+        } else {
+            ctx.json(crudService.searchVisibleEventPicker(
+                    session.stationId(), session.member().id(), q, mode, limit));
+        }
     }
 
     /**

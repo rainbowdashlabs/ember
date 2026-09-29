@@ -11,10 +11,11 @@ export type AnnouncementSentence =
     | 'cancelled'
     | 'cancelledBecause'
     | 'registrationClosesOn'
-    | 'registrationClosesDaysBefore'
     | 'registrationRequired'
     | 'registrationLimit'
     | 'registrationConfirmation'
+    | 'unconfirmedLapseOn'
+    | 'unconfirmedLapseDaysBefore'
     | 'minimumRegistrations'
     | 'minimumRegistrationsBy'
 
@@ -29,37 +30,47 @@ export type Say = (sentence: AnnouncementSentence, values?: Record<string, strin
  * <p>A called-off event says so first, with its reason where one was given, and nothing about
  * signing up for something that no longer takes place.
  *
- * @param event the event being announced
- * @param date  the occurrence being announced, which a deadline counted in days is measured from
- * @param say   writes one sentence
+ * <p>The days-before setting does not close registration. On that day the station declines every
+ * sign-up still waiting for confirmation, so it is only mentioned where sign-ups are confirmed, and
+ * said as what it does.
+ *
+ * @param event    the event being announced
+ * @param date     the occurrence being announced, which the days-before setting is counted back from
+ * @param say      writes one sentence
+ * @param timezone the station's clock, which the moments are written on
  */
-export function announcementSentences(event: StationEvent, date: string | null, say: Say): string[] {
+export function announcementSentences(
+    event: StationEvent,
+    date: string | null,
+    say: Say,
+    timezone?: string | null,
+): string[] {
     if (event.cancelled) {
         return [event.cancelReason?.trim() ? say('cancelledBecause', {reason: event.cancelReason.trim()}) : say('cancelled')]
     }
     if (!event.requiresRegistration) return []
     return [
-        closing(event, date, say),
+        event.registrationDeadline
+            ? say('registrationClosesOn', {date: formatDateTime(event.registrationDeadline, timezone)})
+            : say('registrationRequired'),
         event.registrationLimit ? say('registrationLimit', {count: event.registrationLimit}) : '',
         event.requiresConfirmation ? say('registrationConfirmation') : '',
-        minimum(event, say),
+        event.requiresConfirmation ? lapse(event, date, say) : '',
+        minimum(event, say, timezone),
     ].filter(sentence => sentence !== '')
 }
 
-function closing(event: StationEvent, date: string | null, say: Say): string {
-    if (event.registrationDeadline) {
-        return say('registrationClosesOn', {date: formatDateTime(event.registrationDeadline)})
-    }
+function lapse(event: StationEvent, date: string | null, say: Say): string {
     const days = event.registrationCloseDays
-    if (!days) return say('registrationRequired')
-    if (!date) return say('registrationClosesDaysBefore', {days})
-    return say('registrationClosesOn', {date: formatWeekdayDate(daysBefore(date, days))})
+    if (!days) return ''
+    if (!date) return say('unconfirmedLapseDaysBefore', {days})
+    return say('unconfirmedLapseOn', {date: formatWeekdayDate(daysBefore(date, days))})
 }
 
-function minimum(event: StationEvent, say: Say): string {
+function minimum(event: StationEvent, say: Say, timezone?: string | null): string {
     if (!event.minRegistrations) return ''
     return event.thresholdDate
-        ? say('minimumRegistrationsBy', {count: event.minRegistrations, date: formatDate(event.thresholdDate)})
+        ? say('minimumRegistrationsBy', {count: event.minRegistrations, date: formatDate(event.thresholdDate, timezone)})
         : say('minimumRegistrations', {count: event.minRegistrations})
 }
 

@@ -13,14 +13,15 @@ const findEmbeddedEvent = vi.fn()
 
 vi.mock('../embeddedEventLookup', () => ({
     findEmbeddedEvent: (stationUid: string, eventUid: string) => findEmbeddedEvent(stationUid, eventUid),
+    publicEventsAddress: (stationUid: string) => `/public/station/${stationUid}/calendar`,
 }))
 
 function event(over: Partial<FoundEvent> = {}): FoundEvent {
     return {
         name: 'Dienstabend',
         description: 'Knoten und Stiche',
-        startTime: '18:00',
-        endTime: '20:00',
+        startTime: '2026-09-01T16:00:00Z',
+        endTime: '2026-09-01T18:00:00Z',
         categoryName: null,
         cancelled: false,
         source: {kind: 'MEMBER', eventId: 42},
@@ -40,7 +41,7 @@ function eventPages() {
 
 async function shown(config: Record<string, unknown>) {
     const view = mount(FeaturedEventCell, {
-        props: {config: {eventUid: 'e-1', ...config}, stationUid: 'station-a'},
+        props: {config: {eventUid: 'e-1', ...config}, stationUid: 'station-a', timezone: 'Europe/Berlin'},
         global: {plugins: [eventPages()]},
     })
     await flushPromises()
@@ -66,12 +67,12 @@ describe('FeaturedEventCell', () => {
         expect(view.find('a').attributes('href')).toBe('/station/events/42/2026-10-13')
     })
 
-    it('links a public event to its public page and prefers the block\'s own text', async () => {
-        findEmbeddedEvent.mockResolvedValue(event({source: {kind: 'PUBLIC', stationUid: 'station-a', publicUid: 'e-1'}}))
+    it('links an outside reader to the public calendar and prefers the block\'s own text', async () => {
+        findEmbeddedEvent.mockResolvedValue(event({source: {kind: 'PUBLIC', stationUid: 'station-a'}}))
 
         const view = await shown({descriptionOverride: 'Kommt alle'})
 
-        expect(view.find('a').attributes('href')).toBe('/public/station/station-a/events/e-1')
+        expect(view.find('a').attributes('href')).toBe('/public/station/station-a/calendar')
         expect(view.text()).toContain('Kommt alle')
         expect(view.text()).not.toContain('Knoten und Stiche')
     })

@@ -20,6 +20,7 @@ const EVENT: StationEvent = {
     id: 7,
     stationId: 'abc',
     name: 'Übungsdienst',
+    eventType: 'RECURRING',
     description: 'Wir üben Knoten.',
     startTime: '2026-09-01T19:00:00',
     endTime: '2026-09-01T21:00:00',
@@ -67,6 +68,14 @@ describe('buildAnnouncementDraft', () => {
         expect(draft.embedded).toBe(true)
         expect(draft.dateLabel).toContain('08.09.2026')
         expect(draft.dateLabel).toContain('19:00 bis 21:00')
+    })
+
+    it('leaves a one-off appointment on its own start rather than one of its days', () => {
+        const draft = buildAnnouncementDraft(
+            announced({event: {...EVENT, eventType: 'ONE_TIME'}}), audience(), new Map(), WORDS)
+
+        expect(draft.rows[0]?.cells[0]?.config).toEqual({eventUid: 'uid-7', date: null})
+        expect(draft.dateLabel).toContain('08.09.2026')
     })
 
     it('writes a stored value the way a reader reads it', () => {

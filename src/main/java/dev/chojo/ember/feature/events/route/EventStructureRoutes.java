@@ -409,7 +409,7 @@ public class EventStructureRoutes implements Routes {
         var session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         int fieldId = pathInt(ctx, "fieldId");
-        requireOwnedEvent(crudService, eventId, session);
+        visibility.requireVisibleEvent(session, eventId);
         ctx.json(eventFieldService.toggleSelfRegistration(
                 eventId,
                 fieldId,

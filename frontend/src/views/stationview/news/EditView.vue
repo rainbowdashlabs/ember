@@ -205,7 +205,7 @@ async function loadAnnouncement(eventId: number) {
   }
   const names = new Map(members.value.map(m => [m.id, m.name ?? m.email ?? `#${m.id}`]))
   const draft = buildAnnouncementDraft(
-      {event, eventUid, date: announcedDate.value, fields},
+      {event, eventUid, date: announcedDate.value, fields, timezone: sessionInfo.value?.stationTimezone},
       audience,
       names,
       {

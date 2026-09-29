@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import * as publicEvents from '@/api/publicEvents'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import FeaturedEventCell from './cells/FeaturedEventCell.vue'
+import {publicEventsAddress} from './embeddedEventLookup'
 import type {
     FeaturedEventConfig,
     LayoutKindName,
@@ -58,7 +59,7 @@ async function resolvePastEvent() {
             pastEventResolved.value = {
                 name: match.name,
                 startTime: match.startTime ?? null,
-                href: `/public/station/${props.stationUid}/events/${match.publicUid}`,
+                href: publicEventsAddress(props.stationUid),
             }
         }
     } catch {
@@ -70,6 +71,7 @@ async function resolveUpcomingEvents() {
     if (!props.stationUid) return
     try {
         const events = await publicEvents.listPublicEvents(props.stationUid)
+        const address = publicEventsAddress(props.stationUid)
         const limit = Math.max(1, Math.min(20, upcomingEvents.value.limit ?? 5))
         const now = Date.now()
         const cats = upcomingEvents.value.categoryIds ?? null
@@ -81,7 +83,7 @@ async function resolveUpcomingEvents() {
                 name: e.name,
                 startTime: e.startTime ?? null,
                 categoryName: e.categoryName ?? null,
-                href: `/public/station/${props.stationUid}/events/${e.publicUid}`,
+                href: address,
             }))
     } catch {
         return

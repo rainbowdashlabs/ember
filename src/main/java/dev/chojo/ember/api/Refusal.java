@@ -2047,8 +2047,11 @@ public enum Refusal {
     /** A file that was already off the appointment when its removal was asked for. */
     EVENT_FILE_NOT_REMOVED(Area.EVENTS, 81, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),
 
-    /** An appointment this reader is not among the people it was meant for. */
-    EVENT_NOT_YOURS_TO_SEE(Area.EVENTS, 82, HttpStatus.FORBIDDEN, "This appointment is not yours to see"),
+    /**
+     * An appointment this reader is not among the people it was meant for. Answered exactly like one
+     * that does not exist, so its id cannot be used to learn that a hidden appointment is there.
+     */
+    EVENT_NOT_YOURS_TO_SEE(Area.EVENTS, 82, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
 
     /** A file being written or taken off that is gone, or hangs on another appointment. */
     EVENT_FILE_NOT_HERE_ON_WRITE(Area.EVENTS, 83, HttpStatus.NOT_FOUND, Sentences.FILE_NOT_HERE),

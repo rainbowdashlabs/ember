@@ -13,7 +13,7 @@ import type {FeaturedEventConfig} from '@/api/pageManage'
 import {useEventRoutes} from '@/composables/useEventRoutes'
 import {formatDateTimeLong} from '@/util/format'
 import {occurrenceLabel} from '@/util/occurrenceLabel'
-import {findEmbeddedEvent, type FoundEvent} from '../embeddedEventLookup'
+import {findEmbeddedEvent, publicEventsAddress, type FoundEvent} from '../embeddedEventLookup'
 
 /**
  * One event, shown live from the event itself.
@@ -63,7 +63,7 @@ const description = computed(() => props.config.descriptionOverride || found.val
 const href = computed(() => {
     const source = found.value?.source
     if (!source) return ''
-    if (source.kind === 'PUBLIC') return `/public/station/${source.stationUid}/events/${source.publicUid}`
+    if (source.kind === 'PUBLIC') return publicEventsAddress(source.stationUid)
     return props.config.date
         ? router.resolve({name: eventRoutes.detailOnDate, params: {id: source.eventId, date: props.config.date}}).href
         : router.resolve({name: eventRoutes.detail, params: {id: source.eventId}}).href

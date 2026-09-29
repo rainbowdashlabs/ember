@@ -1078,8 +1078,6 @@ export async function setPartnerPlaces(eventId: number, partnerId: number, slotB
     await client.put(`/events/${eventId}/partner-places/${partnerId}`, {slotBudget, partnerConfirms})
 }
 
-// -- Content-block picker. PAGE_EDIT or NEWS_EDIT gated. --
-
 export type EventPickerMode = 'FUTURE' | 'PAST' | 'ALL'
 
 /**

@@ -15,6 +15,11 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.List;
+import java.util.Set;
+import java.util.function.ToIntFunction;
+import java.util.stream.Collectors;
+
 import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEvent;
 
 /**
@@ -63,8 +68,33 @@ public class EventVisibility {
      * @param event   an event of the reader's station
      */
     public boolean canSee(UserSession session, StationEvent event) {
-        if (session.permissions().contains(StationPermission.EVENT_EDIT)) return true;
+        if (seesEverything(session)) return true;
         var spokenFor = stationMemberService.findSpokenForIds(session);
         return restrictionService.canViewAny(event.id(), spokenFor, session.permissions());
+    }
+
+    /**
+     * Keeps the rows of a station-wide listing that belong to events the reader may see.
+     *
+     * @param session the reader
+     * @param rows    rows of the reader's station, each about one event
+     * @param eventId the event a row is about
+     * @return the rows about visible events, in their order
+     */
+    public <T> List<T> keepVisible(UserSession session, List<T> rows, ToIntFunction<T> eventId) {
+        if (seesEverything(session)) return rows;
+        Set<Integer> visible = crudService
+                .findFilteredForMembers(session.stationId(), stationMemberService.findSpokenForIds(session), null, null)
+                .stream()
+                .map(StationEvent::id)
+                .collect(Collectors.toSet());
+        return rows.stream()
+                .filter(row -> visible.contains(eventId.applyAsInt(row)))
+                .toList();
+    }
+
+    private static boolean seesEverything(UserSession session) {
+        return session.permissions().contains(StationPermission.EVENT_EDIT)
+                || session.permissions().contains(StationPermission.EVENT_MANAGER);
     }
 }
