@@ -4,11 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
+import {computed, onMounted, ref, useTemplateRef, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
+import type {AcceptableValue} from 'reka-ui'
 import MemberName from '@/components/avatar/MemberName.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import DropdownPanel from './dropdown/DropdownPanel.vue'
+import DropdownListbox from './dropdown/DropdownListbox.vue'
 import MemberMenuChips from './membermenu/MemberMenuChips.vue'
 import MemberMenuRow from './membermenu/MemberMenuRow.vue'
 import MemberMenuSearch from './membermenu/MemberMenuSearch.vue'
@@ -26,9 +29,13 @@ import {identityOf, type MemberOption} from './memberOption'
  * reading. There is always a search, with no threshold and no way to switch it off: a menu that looks
  * different in different places is how six of them came to exist.
  *
- * <p>The keyboard is the fast path. Down and up walk the rows, Home and End jump to the ends, Enter takes
- * the highlighted one and Escape closes without taking anything, so the common case is three letters and
- * Enter. Typing resets the highlight to the first match, which is what makes that work.
+ * <p>The keyboard is the fast path. Down and up walk the rows and come round at either end, Home and End
+ * jump to the ends, Enter takes the highlighted one and Escape closes without taking anything, so the
+ * common case is three letters and Enter. Typing resets the highlight to the first match, which is what
+ * makes that work. A closed menu opens on Enter or the down arrow.
+ *
+ * <p>On a touch screen the search is not focused as the menu opens, since that would push the on-screen
+ * keyboard over the very rows the reader came to tap.
  *
  * <p>There are two model names because the type of the answer depends on {@code multiple}: a single choice
  * is a value and a multiple one is a list of them, and one model cannot be both without every call site
@@ -75,10 +82,7 @@ const {finePointer} = useFinePointer()
 const open = ref(false)
 const search = ref('')
 const userType = ref(props.openingUserType)
-const highlighted = ref(0)
-const containerRef = ref<HTMLElement | null>(null)
-const searchRef = ref<InstanceType<typeof MemberMenuSearch> | null>(null)
-const listRef = ref<HTMLElement | null>(null)
+const list = useTemplateRef('list')
 
 const values = computed(() => (props.multiple ? selected.value : model.value ? [model.value] : []))
 const chosen = computed(() => new Set(values.value))
@@ -112,36 +116,24 @@ const triggerIdentity = computed<MemberIdentity | null>(() => {
 })
 
 /** Anything that changes what is on offer puts the highlight back on the first row. */
-watch([search, userType, matching], () => {
-  highlighted.value = 0
-})
+watch([search, userType, matching], () => list.value?.highlightFirst())
 
 watch(open, async isOpen => {
   if (!isOpen) {
     search.value = ''
     return
   }
-  highlighted.value = 0
   await refresh()
-  if (finePointer.value) await nextTick(() => searchRef.value?.focus())
 })
 
-function toggle(option: MemberOption) {
-  if (chosen.value.has(option.value)) {
-    selected.value = selected.value.filter(value => value !== option.value)
-  } else {
-    selected.value = [...selected.value, option.value]
-  }
-  emit('change')
-}
-
-function take(option: MemberOption | null) {
+/** A single menu takes the row and closes; a multiple one has already added or taken it away. */
+function take(value: AcceptableValue | AcceptableValue[] | undefined) {
   if (props.multiple) {
-    if (option) toggle(option)
-    return
+    selected.value = Array.isArray(value) ? value.map(String) : []
+  } else {
+    model.value = String(value ?? '')
+    open.value = false
   }
-  model.value = option?.value ?? ''
-  open.value = false
   emit('change')
 }
 
@@ -154,63 +146,17 @@ function removeChip(option: MemberOption) {
   emit('change')
 }
 
-function highlight(index: number) {
-  highlighted.value = index
-  void nextTick(() => {
-    listRef.value?.querySelectorAll('[data-row]')[highlighted.value]?.scrollIntoView({block: 'nearest'})
-  })
-}
-
-/** Walking past either end comes round to the other, so a long list is reached from whichever end is nearer. */
-function moveHighlight(delta: number) {
-  const total = rows.value.length
-  if (total > 0) highlight((highlighted.value + delta + total) % total)
-}
-
-function takeHighlighted() {
-  if (rows.value.length > 0) take(rows.value[highlighted.value] ?? null)
-}
-
-/** Closing gives the focus back to the trigger, so the reader is where they left off rather than nowhere. */
-function close() {
-  open.value = false
-  containerRef.value?.querySelector<HTMLElement>('[data-trigger]')?.focus()
-}
-
-/** What each key does once the menu is open. Anything else is left to the browser. */
-const KEYS: Record<string, () => void> = {
-  ArrowDown: () => moveHighlight(1),
-  ArrowUp: () => moveHighlight(-1),
-  Home: () => highlight(0),
-  End: () => highlight(Math.max(0, rows.value.length - 1)),
-  Enter: takeHighlighted,
-  Escape: close,
-}
-
-/** A closed menu answers only to the two keys that open it, which is how it is reached without a mouse. */
-const OPENING_KEYS = ['Enter', 'ArrowDown']
-
-function onKeydown(event: KeyboardEvent) {
-  const act = open.value ? KEYS[event.key] : OPENING_KEYS.includes(event.key) ? () => (open.value = true) : undefined
-  if (!act) return
-  event.preventDefault()
-  act()
-}
-
-function onClickOutside(event: MouseEvent) {
-  if (containerRef.value && !containerRef.value.contains(event.target as Node)) open.value = false
+function focusSearchOnlyWithAMouse(event: Event) {
+  if (!finePointer.value) event.preventDefault()
 }
 
 onMounted(() => {
-  document.addEventListener('click', onClickOutside)
   if (props.autoOpen) open.value = true
 })
-
-onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 </script>
 
 <template>
-  <div ref="containerRef" class="relative space-y-2" @keydown="onKeydown">
+  <div class="space-y-2">
     <MemberMenuChips
         v-if="multiple"
         :options="selectedOptions"
@@ -218,37 +164,36 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
         @remove="removeChip"
     />
 
-    <button
-        type="button"
-        data-trigger
-        data-testid="member-select-trigger"
-        :disabled="disabled"
-        :aria-expanded="open"
-        class="flex w-full items-center gap-2 rounded-theme border border-(--border) bg-(--bg) px-3 py-2
-               text-left text-sm transition-colors hover:border-primary disabled:opacity-50"
-        @click="open = !open"
+    <DropdownPanel
+        v-model:open="open"
+        match-width
+        panel-class="max-h-80"
+        test-id="member-select-panel"
+        @open-auto-focus="focusSearchOnlyWithAMouse"
     >
-      <MemberName v-if="triggerIdentity" :identity="triggerIdentity" class="min-w-0 flex-1"/>
-      <span v-else class="flex-1 truncate" :class="values.length === 0 ? 'text-(--text-muted)' : ''">
-        {{ triggerLabel }}
-      </span>
-      <font-awesome-icon :icon="['fas', 'chevron-down']" class="shrink-0 text-xs text-(--text-muted)"/>
-    </button>
+      <template #trigger>
+        <button
+            type="button"
+            data-trigger
+            data-testid="member-select-trigger"
+            :disabled="disabled"
+            aria-haspopup="listbox"
+            class="flex w-full items-center gap-2 rounded-theme border border-(--border) bg-(--bg) px-3 py-2
+                   text-left text-sm transition-colors hover:border-primary disabled:opacity-50"
+            @keydown.down.prevent="open = true"
+        >
+          <MemberName v-if="triggerIdentity" :identity="triggerIdentity" class="min-w-0 flex-1"/>
+          <span v-else class="flex-1 truncate" :class="values.length === 0 ? 'text-(--text-muted)' : ''">
+            {{ triggerLabel }}
+          </span>
+          <font-awesome-icon :icon="['fas', 'chevron-down']" class="shrink-0 text-xs text-(--text-muted)"/>
+        </button>
+      </template>
 
-    <div
-        v-if="open"
-        data-testid="member-select-panel"
-        class="absolute left-0 right-0 top-full z-20 mt-1 flex max-h-80 flex-col overflow-hidden
-               rounded-theme border border-(--border) bg-(--bg) shadow-lg"
-    >
-      <MemberMenuSearch
-          ref="searchRef"
-          v-model:search="search"
-          v-model:user-type="userType"
-          :user-types="userTypes"
-      />
-
-      <div ref="listRef" class="overflow-y-auto py-1">
+      <DropdownListbox ref="list" :model-value="multiple ? selected : model" :multiple="multiple" :label="triggerLabel" @update:model-value="take">
+        <template #head>
+          <MemberMenuSearch v-model:search="search" v-model:user-type="userType" :user-types="userTypes"/>
+        </template>
         <div v-if="fetching" class="flex justify-center py-3">
           <Spinner size="sm"/>
         </div>
@@ -256,18 +201,15 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
           {{ t('memberSelect.nobodyMatches') }}
         </MutedText>
         <MemberMenuRow
-            v-for="(row, index) in rows"
+            v-for="row in rows"
             v-else
             :key="row?.value ?? 'nobody'"
             :option="row"
-            :highlighted="index === highlighted"
             :multiple="multiple"
             :chosen="!!row && chosen.has(row.value)"
             :empty-label="emptyLabel"
-            @take="take(row)"
-            @hover="highlighted = index"
         />
-      </div>
-    </div>
+      </DropdownListbox>
+    </DropdownPanel>
   </div>
 </template>

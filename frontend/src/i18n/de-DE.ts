@@ -3702,6 +3702,15 @@ export default {
         empty: 'Nichts gefunden',
         draft: 'neu',
     },
+    dropdown: {
+        choose: 'Auswahl',
+        clear: 'Auswahl aufheben',
+        search: 'Suche…',
+        selectAll: 'Alle auswählen',
+        selectNone: 'Keine',
+        add: 'Hinzufügen',
+        noResults: 'Keine Ergebnisse',
+    },
     userTags: {
         title: 'Tags',
         create: 'Tag erstellen',

@@ -4,14 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, useTemplateRef} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {ListboxFilter} from 'reka-ui'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import {StationUserTypeLabels} from '@/api/types'
 
 /**
  * The head of a member menu: the search, and the kind of member beside it.
+ *
+ * <p>The search is the list's filter: the focus stays in it while the arrow keys walk the rows below.
  *
  * <p>The search is here unconditionally, which is the rule the whole menu exists to keep. The kind is
  * not: it earns its place only where a screen lists the whole station while somebody looks for one of
@@ -27,26 +30,23 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const searchRef = useTemplateRef('searchBox')
-
 const offered = computed(() => props.userTypes.filter(Boolean))
 
 function typeLabel(value: string): string {
   return StationUserTypeLabels[value as keyof typeof StationUserTypeLabels] ?? value
 }
-
-defineExpose({focus: () => searchRef.value?.focus()})
 </script>
 
 <template>
   <div class="flex flex-wrap items-center gap-2 border-b border-(--border) p-2">
-    <SearchInput
-        ref="searchBox"
-        v-model="search"
-        data-testid="member-select-search"
-        :placeholder="t('memberSelect.search')"
-        class="min-w-40 flex-1"
-    />
+    <ListboxFilter as-child>
+      <SearchInput
+          v-model="search"
+          data-testid="member-select-search"
+          :placeholder="t('memberSelect.search')"
+          class="min-w-40 flex-1"
+      />
+    </ListboxFilter>
     <SelectInput
         v-if="offered.length > 1"
         v-model="userType"

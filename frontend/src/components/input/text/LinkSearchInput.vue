@@ -4,11 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {
+    ComboboxAnchor,
+    ComboboxContent,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxPortal,
+    ComboboxRoot,
+    ComboboxViewport,
+    type AcceptableValue,
+} from 'reka-ui'
 import TextInput from './TextInput.vue'
-import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-import IconButton from '@/components/button/IconButton.vue'
+import LinkPickedChip from './linksearch/LinkPickedChip.vue'
 import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import {listPublicPages, type PublicPageSummary} from '@/api/publicPages'
 import {listMediaFiles, type StationFile, type StationFileListing} from '@/api/media'
@@ -37,9 +46,18 @@ const props = defineProps<{
     noFiles?: boolean
 }>()
 
+/**
+ * A link typed as an address or picked from what the station has: its public pages, its knowledge
+ * base, its calendar, and with `noFiles` unset its files as well.
+ *
+ * <p>The field is a combobox. Suggestions open as it gets the focus and narrow as the reader types;
+ * the arrow keys walk them while the focus stays in the field, and Enter takes one. An address
+ * typed out in full is taken as it is and suggests nothing. The station's files are only listed
+ * where a file may be picked, but its pages are needed either way, for the suggestions and to name
+ * a page already linked.
+ */
 const {t} = useI18n()
 const open = ref(false)
-const rootRef = ref<HTMLElement | null>(null)
 const pagesCache = ref<PublicPageSummary[] | null>(null)
 const filesCache = ref<StationFile[] | null>(null)
 const loaded = ref(false)
@@ -49,8 +67,6 @@ async function ensureLoaded() {
     try {
         const [pages, files] = await Promise.all([
             listPublicPages(props.stationUid),
-            // Skip the file-listing round-trip on URL-only fields. The page list is still needed
-            // for both the suggestion dropdown and the internal-page chip rendering.
             props.noFiles
                 ? Promise.resolve([] as StationFileListing[])
                 : listMediaFiles().catch(() => [] as StationFileListing[]),
@@ -130,31 +146,26 @@ const suggestions = computed<Suggestion[]>(() => {
         })
     }
     const q = (model.value ?? '').trim().toLowerCase()
-    // If user typed a URL-ish value, don't suggest anything.
     if (/^(https?:|\/\/|mailto:|tel:)/i.test(q)) return []
     if (!q) return result.slice(0, 8)
     return result.filter(s =>
         s.title.toLowerCase().includes(q) || s.url.toLowerCase().includes(q)).slice(0, 10)
 })
 
-function pick(s: Suggestion) {
-    model.value = s.url
+function pick(url: AcceptableValue | AcceptableValue[] | undefined) {
+    if (typeof url !== 'string') return
+    model.value = url
     open.value = false
 }
 
-async function onFocus() {
-    await ensureLoaded()
-    open.value = true
+function pickFile(picked: {file: StationFile; url: string}) {
+    model.value = picked.url
+    open.value = false
+    if (filesCache.value && !filesCache.value.some(f => f.id === picked.file.id)) filesCache.value.push(picked.file)
 }
 
-function onDocClick(e: MouseEvent) {
-    if (!rootRef.value) return
-    if (!rootRef.value.contains(e.target as Node)) open.value = false
-}
-
-if (typeof document !== 'undefined') {
-    document.addEventListener('click', onDocClick)
-    onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
+function suggestionIcon(kind: LinkKind): string[] {
+    return ['fas', kind === 'page' ? 'file-lines' : kind === 'calendar' ? 'calendar' : 'book']
 }
 
 const needsResolve = (v: string | undefined) => {
@@ -167,76 +178,64 @@ watch(() => model.value, v => { if (!loaded.value && needsResolve(v)) ensureLoad
 </script>
 
 <template>
-    <div ref="rootRef" class="relative w-full">
-        <div class="flex items-center gap-1">
-            <!-- A file was picked: replace the URL input with a chip showing the file name + meta. -->
-            <div
+    <ComboboxRoot
+        :model-value="model"
+        :open="open && suggestions.length > 0"
+        ignore-filter
+        open-on-focus
+        open-on-click
+        :reset-search-term-on-blur="false"
+        :reset-search-term-on-select="false"
+        class="w-full"
+        @update:model-value="pick"
+        @update:open="open = $event"
+    >
+        <ComboboxAnchor class="flex items-center gap-1">
+            <LinkPickedChip
                 v-if="pickedFile"
-                class="flex-1 flex items-center gap-2 px-3 py-2 rounded-theme border border-(--border) bg-bg-light dark:bg-bg-dark"
-            >
-                <font-awesome-icon :icon="['fas', 'file']" class="text-primary shrink-0"/>
-                <span class="flex flex-col min-w-0 flex-1">
-                    <span class="text-sm truncate" :title="pickedFile.fileName">{{ pickedFile.fileName }}</span>
-                    <span class="text-xs text-(--text-muted) truncate">
-                        {{ pickedFile.mimeType ?? '-' }} · {{ formatBytes(pickedFile.fileSize) }}
-                    </span>
-                </span>
-                <IconButton
-                    :icon="['fas', 'xmark']"
-                    :label="t('common.delete')"
-                    class="text-(--text-muted) hover:text-error shrink-0 !p-1"
-                    @click="model = ''"
-                />
-            </div>
-            <!-- An internal destination (page / KB / calendar) was picked: show its title. -->
-            <div
+                :icon="['fas', 'file']"
+                :title="pickedFile.fileName"
+                :hint="`${pickedFile.mimeType ?? '-'} · ${formatBytes(pickedFile.fileSize)}`"
+                @clear="model = ''"
+            />
+            <LinkPickedChip
                 v-else-if="pickedInternal"
-                class="flex-1 flex items-center gap-2 px-3 py-2 rounded-theme border border-(--border) bg-bg-light dark:bg-bg-dark"
-            >
-                <font-awesome-icon :icon="['fas', pickedInternal.icon]" class="text-primary shrink-0"/>
-                <span class="flex flex-col min-w-0 flex-1">
-                    <span class="text-sm truncate" :title="pickedInternal.title">{{ pickedInternal.title }}</span>
-                    <span class="text-xs text-(--text-muted) truncate">{{ pickedInternal.hint }}</span>
-                </span>
-                <IconButton
-                    :icon="['fas', 'xmark']"
-                    :label="t('common.delete')"
-                    class="text-(--text-muted) hover:text-error shrink-0 !p-1"
-                    @click="model = ''"
-                />
-            </div>
-            <!-- Plain URL editing: searchable text input. -->
-            <div v-else class="flex-1" @focusin="onFocus" @click="onFocus">
+                :icon="['fas', pickedInternal.icon]"
+                :title="pickedInternal.title"
+                :hint="pickedInternal.hint"
+                @clear="model = ''"
+            />
+            <ComboboxInput v-else v-model="model" as-child>
                 <TextInput
                     v-model="model"
+                    class="flex-1"
                     :placeholder="placeholder ?? t('stationPages.editor.linkSearchPlaceholder')"
+                    @focus="ensureLoaded"
                 />
-            </div>
-            <MediaBrowseButton
-                v-if="stationUid && !noFiles"
-                :station-uid="stationUid"
-                :mime-prefix="mimePrefix"
-                @pick="(p: {file: StationFile; url: string}) => {
-                    model = p.url
-                    open = false
-                    if (filesCache && !filesCache.find(f => f.id === p.file.id)) filesCache.push(p.file)
-                }"
-            />
-        </div>
-        <div
-            v-if="open && suggestions.length"
-            class="absolute left-0 right-0 top-full mt-1 z-20 max-h-64 overflow-y-auto rounded-theme border border-(--border) bg-(--bg) shadow-lg py-1"
-        >
-            <DropdownMenuItem
-                v-for="(s, i) in suggestions" :key="i"
-                :icon="['fas', s.kind === 'page' ? 'file-lines' : s.kind === 'calendar' ? 'calendar' : 'book']"
-                @click="pick(s)"
+            </ComboboxInput>
+            <MediaBrowseButton v-if="stationUid && !noFiles" :station-uid="stationUid" :mime-prefix="mimePrefix" @pick="pickFile"/>
+        </ComboboxAnchor>
+        <ComboboxPortal>
+            <ComboboxContent
+                position="popper"
+                :side-offset="4"
+                class="z-[90] w-(--reka-combobox-trigger-width) max-h-64 overflow-hidden rounded-theme border border-(--border) bg-(--bg) shadow-lg"
             >
-                <span class="flex flex-col items-start text-left">
-                    <span class="truncate">{{ s.title }}</span>
-                    <span v-if="s.hint" class="text-xs text-(--text-muted) truncate">{{ s.hint }}</span>
-                </span>
-            </DropdownMenuItem>
-        </div>
-    </div>
+                <ComboboxViewport class="py-1">
+                    <ComboboxItem
+                        v-for="s in suggestions"
+                        :key="s.url"
+                        :value="s.url"
+                        class="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-sm outline-none data-[highlighted]:bg-primary/10"
+                    >
+                        <font-awesome-icon :icon="suggestionIcon(s.kind)" class="w-4 text-primary"/>
+                        <span class="flex min-w-0 flex-col items-start">
+                            <span class="truncate">{{ s.title }}</span>
+                            <span v-if="s.hint" class="text-xs text-(--text-muted) truncate">{{ s.hint }}</span>
+                        </span>
+                    </ComboboxItem>
+                </ComboboxViewport>
+            </ComboboxContent>
+        </ComboboxPortal>
+    </ComboboxRoot>
 </template>

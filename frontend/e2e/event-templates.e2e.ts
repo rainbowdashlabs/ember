@@ -218,7 +218,7 @@ test.describe('Event templates', () => {
 
         const onTemplate = page.getByTestId('restriction-groups')
         await onTemplate.getByRole('button').first().click()
-        await onTemplate.getByRole('button', {name: 'Anfänger'}).click()
+        await page.getByRole('option', {name: 'Anfänger'}).click()
         await expect(onTemplate.getByRole('button').first()).toHaveText(/Anfänger/)
 
         const save = page.locator('.save-button').last()

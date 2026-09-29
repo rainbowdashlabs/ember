@@ -146,10 +146,10 @@ test.describe('Boards', () => {
         const assignee = page.getByTestId('ticket-assignee')
         await openMemberMenu(assignee)
 
-        const search = assignee.getByTestId('member-select-search').getByRole('searchbox')
+        const search = page.getByTestId('member-select-search').getByRole('searchbox')
         await expect(search, 'a member menu always offers a search').toBeVisible()
 
-        await expect(assignee.getByTestId('member-select-empty'),
+        await expect(page.getByTestId('member-select-empty'),
             'a ticket may be left unassigned, so this menu offers the empty answer').toBeVisible()
 
         const people = await offeredMembers(assignee)
@@ -159,14 +159,14 @@ test.describe('Boards', () => {
 
         // Escape leaves the ticket as it was, which is the half of the keyboard that must not save.
         await search.press('Escape')
-        await expect(assignee.getByTestId('member-select-panel')).toBeHidden()
+        await expect(page.getByTestId('member-select-panel')).toBeHidden()
         await expect(page.getByText('Nicht zugewiesen').first()).toBeVisible()
 
         const wanted = people[0]!
         await page.getByText('Nicht zugewiesen').first().click()
         await openMemberMenu(assignee)
         await search.fill(wanted.split(' ')[0]!)
-        await expect(assignee.getByTestId('member-select-option').first()).toContainText(wanted)
+        await expect(page.getByTestId('member-select-option').first()).toContainText(wanted)
 
         // The menu opens with the empty answer highlighted, so one press down walks onto the person
         // the search left standing and Enter takes them. Waiting for the save is what makes the

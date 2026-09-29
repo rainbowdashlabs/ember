@@ -13,15 +13,23 @@ import {expect, type Locator, type Page} from '@playwright/test'
  * open-type-press is how the selectors drifted apart the last time.
  *
  * <p>`scope` is the page where only one menu is on it, and the panel or the modal around it where
- * there is more than one. The menu draws its trigger and its rows inside one element, so scoping to
- * a container is enough to tell two of them apart.
+ * there is more than one. Scoping tells two triggers apart. The open panel is drawn at the end of
+ * the page, outside every container, so it is looked for on the whole page: only one is ever open.
  */
 function trigger(scope: Page | Locator): Locator {
     return scope.getByTestId('member-select-trigger').first()
 }
 
+function pageOf(scope: Page | Locator): Page {
+    return 'goto' in scope ? scope : scope.page()
+}
+
+function openPanel(scope: Page | Locator): Locator {
+    return pageOf(scope).getByTestId('member-select-panel')
+}
+
 function rows(scope: Page | Locator): Locator {
-    return scope.getByTestId('member-select-option')
+    return openPanel(scope).getByTestId('member-select-option')
 }
 
 /**
@@ -31,7 +39,7 @@ function rows(scope: Page | Locator): Locator {
  * its menu the moment the field is clicked, and pressing the trigger there would shut it again.
  */
 export async function openMemberMenu(scope: Page | Locator): Promise<void> {
-    const panel = scope.getByTestId('member-select-panel')
+    const panel = openPanel(scope)
     if (!(await panel.isVisible())) await trigger(scope).click()
     await expect(panel).toBeVisible()
 }
@@ -64,7 +72,7 @@ export async function offeredMembers(scope: Page | Locator): Promise<string[]> {
  */
 export async function pickMemberByName(scope: Page | Locator, name: string): Promise<void> {
     await openMemberMenu(scope)
-    await scope.getByTestId('member-select-search').getByRole('searchbox').fill(name)
+    await openPanel(scope).getByTestId('member-select-search').getByRole('searchbox').fill(name)
     const wanted = rows(scope).filter({hasText: name}).first()
     await expect(wanted).toBeVisible()
     await wanted.click()

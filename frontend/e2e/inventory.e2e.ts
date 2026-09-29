@@ -806,8 +806,8 @@ test.describe('Inventory', () => {
         const picker = page.getByTestId('item-tags')
         await expect(picker).toBeVisible()
         await picker.getByTestId('label-select').click()
-        await picker.getByPlaceholder('Suchen oder erstellen...').fill(word)
-        await picker.getByTestId('label-select-create').click()
+        await page.getByPlaceholder('Suchen oder erstellen...').fill(word)
+        await page.getByTestId('label-select-create').click()
         await page.getByTestId('modal').getByRole('button', {name: 'Speichern'}).click()
 
         await expect(async () => {

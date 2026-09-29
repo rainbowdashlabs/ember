@@ -720,13 +720,13 @@ test.describe('Attendance', () => {
 
             const userTypes = page.getByTestId('attendance-report-user-types')
             await userTypes.getByRole('button', {name: 'Typen wählen'}).click()
-            await userTypes.getByRole('button', {name: 'Mitglied', exact: true}).click()
-            await userTypes.getByRole('button', {name: 'Team', exact: true}).click()
+            await page.getByRole('option', {name: 'Mitglied', exact: true}).click()
+            await page.getByRole('option', {name: 'Team', exact: true}).click()
             await page.getByText('Filter', {exact: true}).first().click()
 
             const groups = page.getByTestId('attendance-report-groups')
             await groups.getByRole('button', {name: 'Gruppen wählen'}).click()
-            for (const name of groupNames) await groups.getByRole('button', {name, exact: true}).click()
+            for (const name of groupNames) await page.getByRole('option', {name, exact: true}).click()
             await page.getByText('Filter', {exact: true}).first().click()
 
             await page.getByRole('button', {name: 'Filter speichern'}).click()

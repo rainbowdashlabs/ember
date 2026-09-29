@@ -4,10 +4,22 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onBeforeUnmount, onMounted, ref} from 'vue'
+import {computed, ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
+import type {AcceptableValue} from 'reka-ui'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import type {SelectOption} from '@/components/input/select/MultiSelectDropdown.vue'
+import DropdownPanel from './dropdown/DropdownPanel.vue'
+import DropdownListbox from './dropdown/DropdownListbox.vue'
+import DropdownGroups from './dropdown/DropdownGroups.vue'
+import DropdownOption from './dropdown/DropdownOption.vue'
+import DropdownSearch from './dropdown/DropdownSearch.vue'
+import {filterOptions, groupOptions, type SelectOption} from './dropdown/groupOptions'
 
+/**
+ * One choice out of a list, behind a button that reads the current one. Choosing closes it; a
+ * `clearable` one also offers to take the choice back, and a `searchable` one narrows the list as
+ * the reader types.
+ */
 const modelValue = defineModel<string>({required: true})
 
 const props = defineProps<{
@@ -18,124 +30,60 @@ const props = defineProps<{
   searchable?: boolean
 }>()
 
+const {t} = useI18n()
+
 const open = ref(false)
-const containerRef = ref<HTMLElement | null>(null)
 const searchQuery = ref('')
 
-const filteredOptions = computed(() => {
-  if (!props.searchable || !searchQuery.value.trim()) return props.options
-  const q = searchQuery.value.toLowerCase()
-  return props.options.filter(o => o.label.toLowerCase().includes(q))
-})
+const groupedOptions = computed(() => groupOptions(props.searchable ? filterOptions(props.options, searchQuery.value) : props.options))
 
-const selectedLabel = computed(() => {
-  const opt = props.options.find(o => o.value === modelValue.value)
-  return opt?.label ?? props.placeholder ?? 'Auswahl'
-})
+const selectedLabel = computed(() =>
+    props.options.find(o => o.value === modelValue.value)?.label ?? props.placeholder ?? t('dropdown.choose'))
 
 const hasSelection = computed(() => modelValue.value !== '' && props.options.some(o => o.value === modelValue.value))
 
-const groupedOptions = computed(() => {
-  const opts = filteredOptions.value
-  const hasGroups = opts.some(o => o.group)
-  if (!hasGroups) return [{group: undefined as string | undefined, options: opts}]
-
-  const map = new Map<string | undefined, SelectOption[]>()
-  for (const opt of opts) {
-    const key = opt.group
-    if (!map.has(key)) map.set(key, [])
-    map.get(key)!.push(opt)
-  }
-  return Array.from(map.entries()).map(([group, options]) => ({group, options}))
+watch(open, isOpen => {
+  if (!isOpen) searchQuery.value = ''
 })
 
-function select(value: string) {
-  modelValue.value = value
+function select(value: AcceptableValue | AcceptableValue[] | undefined) {
+  modelValue.value = String(value ?? '')
   open.value = false
 }
-
-function clear() {
-  modelValue.value = ''
-  open.value = false
-}
-
-function onClickOutside(e: MouseEvent) {
-  if (containerRef.value && !containerRef.value.contains(e.target as Node)) {
-    open.value = false
-    searchQuery.value = ''
-  }
-}
-
-onMounted(() => document.addEventListener('click', onClickOutside))
-onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 </script>
 
 <template>
-  <div ref="containerRef" class="relative inline-block">
-    <SecondaryButton :disabled="disabled" @click="open = !open">
-      {{ selectedLabel }}
-      <font-awesome-icon
-        :icon="['fas', 'chevron-down']"
-        :class="['ml-1.5 h-3 w-3 transition-transform duration-150', open ? 'rotate-180' : '']"
-      />
-    </SecondaryButton>
-
-    <div
-      v-if="open"
-      class="absolute z-20 mt-1 w-64 max-h-72 rounded-theme border border-bg-light-accent bg-bg-light shadow-lg dark:border-bg-dark-accent dark:bg-bg-dark flex flex-col"
-    >
-      <!-- Clear option -->
-      <button
-        v-if="clearable && hasSelection"
-        type="button"
-        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-error hover:bg-error/5 border-b border-bg-light-accent dark:border-bg-dark-accent transition-colors cursor-pointer"
-        @click.stop="clear"
-      >
-        <font-awesome-icon :icon="['fas', 'xmark']" class="h-4 w-4" />
-        <span>Auswahl aufheben</span>
-      </button>
-
-      <!-- Search -->
-      <div v-if="searchable" class="px-2 py-1.5 border-b border-bg-light-accent dark:border-bg-dark-accent">
-        <input
-            v-model="searchQuery"
-            type="text"
-            class="w-full px-2 py-1 text-sm rounded border border-bg-light-accent dark:border-bg-dark-accent bg-transparent focus:outline-none focus:border-primary"
-            placeholder="Suche…"
-            @click.stop
-        />
-      </div>
-
-      <!-- Options -->
-      <div class="overflow-y-auto">
-        <template v-for="(section, idx) in groupedOptions" :key="idx">
-          <div
-            v-if="section.group"
-            class="px-3 py-1.5 text-xs font-semibold text-[var(--text)] opacity-60 uppercase tracking-wide"
-          >
-            {{ section.group }}
-          </div>
+  <div class="inline-block">
+    <DropdownPanel v-model:open="open">
+      <template #trigger>
+        <SecondaryButton :disabled="disabled" aria-haspopup="listbox">
+          {{ selectedLabel }}
+          <font-awesome-icon
+              :icon="['fas', 'chevron-down']"
+              :class="['ml-1.5 h-3 w-3 transition-transform duration-150', open ? 'rotate-180' : '']"
+          />
+        </SecondaryButton>
+      </template>
+      <DropdownListbox :model-value="modelValue" :label="placeholder ?? t('dropdown.choose')" @update:model-value="select">
+        <template #head>
           <button
-            v-for="opt in section.options"
-            :key="opt.value"
-            type="button"
-            :class="[
-              'w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors cursor-pointer',
-              opt.value === modelValue
-                ? 'bg-primary/10 text-primary font-medium'
-                : 'hover:bg-primary/5'
-            ]"
-            @click.stop="select(opt.value)"
+              v-if="clearable && hasSelection"
+              type="button"
+              class="flex w-full cursor-pointer items-center gap-2 border-b border-(--border) px-3 py-2 text-left text-sm text-error transition-colors hover:bg-error/5"
+              @click="select('')"
           >
-            <font-awesome-icon
-              v-if="opt.value === modelValue"
-              :icon="['fas', 'check']"
-              class="h-3 w-3 text-primary"
-            />
-            <span :class="opt.value !== modelValue ? 'ml-5' : ''">{{ opt.label }}</span>
+            <font-awesome-icon :icon="['fas', 'xmark']" class="h-4 w-4"/>
+            <span>{{ t('dropdown.clear') }}</span>
           </button>
+          <DropdownSearch v-if="searchable" v-model="searchQuery" :placeholder="t('dropdown.search')"/>
         </template>
-      </div>
-    </div>
+        <DropdownGroups v-slot="{option}" :groups="groupedOptions">
+          <DropdownOption :value="option.value" class="data-[state=checked]:font-medium data-[state=checked]:text-primary">
+            <font-awesome-icon v-if="option.value === modelValue" :icon="['fas', 'check']" class="h-3 w-3 text-primary"/>
+            <span :class="option.value !== modelValue ? 'ml-5' : ''">{{ option.label }}</span>
+          </DropdownOption>
+        </DropdownGroups>
+      </DropdownListbox>
+    </DropdownPanel>
   </div>
 </template>

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import OwnerSection from './OwnerSection.vue'
 import {StationPermission} from '@/api/types'
@@ -45,13 +46,18 @@ describe('OwnerSection', () => {
         ])
         getAllMemberRoles.mockResolvedValue({1: [ADMIN_ROLE], 2: [ADMIN_ROLE], 3: []})
 
-        const section = await mountSuspended(OwnerSection, {props: {stationId: 'uid', ownerMemberId: 1}})
+        const section = await mountSuspended(OwnerSection, {
+            props: {stationId: 'uid', ownerMemberId: 1},
+            attachTo: document.body,
+        })
         await section.get('[data-testid="member-select-trigger"]').trigger('click')
-        const offered = section.findAll('[data-testid="member-select-option"]').map(row => row.text())
+        await flushPromises()
+        const offered = [...document.querySelectorAll('[data-testid="member-select-option"]')].map(row => row.textContent)
 
         expect(offered.join(' ')).toContain('Second Manager')
         expect(offered.join(' ')).not.toContain('Owner Person')
         expect(offered.join(' ')).not.toContain('Ordinary Member')
+        section.unmount()
     })
 
     it('asks for every role in one call rather than one per member', async () => {

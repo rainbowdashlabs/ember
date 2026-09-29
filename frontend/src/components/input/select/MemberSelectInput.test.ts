@@ -3,11 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
-import {describe, expect, it, vi} from 'vitest'
-import {mount} from '@vue/test-utils'
+/** @vitest-environment happy-dom */
+import {afterEach, describe, expect, it, vi} from 'vitest'
+import {DOMWrapper, enableAutoUnmount, flushPromises, mount} from '@vue/test-utils'
 import MemberSelectInput from './MemberSelectInput.vue'
 import type {MemberOption} from './memberOption'
+
+enableAutoUnmount(afterEach)
 
 const PEOPLE: MemberOption[] = [
     {value: '3', name: 'Zoe Abel', email: 'zoe@example.org', userType: 'MEMBER'},
@@ -18,158 +20,219 @@ const PEOPLE: MemberOption[] = [
 /**
  * The one member menu, mounted the way every screen mounts it.
  *
- * <p>The avatar is stubbed because it fetches an authenticated image, which is its own concern.
+ * <p>The avatar is stubbed because it fetches an authenticated image, which is its own concern. The
+ * panel opens at the end of the page, so what is in it is looked for there.
  */
 function mountMenu(props: Record<string, unknown> = {}) {
     return mount(MemberSelectInput, {
         props: {members: PEOPLE, ...props},
         global: {stubs: {UserAvatar: true, StationBadge: true}},
+        attachTo: document.body,
     })
+}
+
+function page() {
+    return new DOMWrapper(document.body)
 }
 
 async function openMenu(props: Record<string, unknown> = {}) {
     const wrapper = mountMenu(props)
     await wrapper.get('[data-testid="member-select-trigger"]').trigger('click')
+    await flushPromises()
     return wrapper
 }
 
-function rowTexts(wrapper: ReturnType<typeof mountMenu>): string[] {
-    return wrapper.findAll('[data-testid="member-select-option"]').map(row => row.text())
+function panel() {
+    return page().find('[data-testid="member-select-panel"]')
+}
+
+function searchBox() {
+    return page().get('[data-testid="member-select-search"] input')
+}
+
+async function press(key: string) {
+    await searchBox().trigger('keydown', {key})
+    await flushPromises()
+}
+
+function rowTexts(): string[] {
+    return page().findAll('[data-testid="member-select-option"]').map(row => row.text())
 }
 
 describe('MemberSelectInput', () => {
     it('always offers a search', async () => {
-        const wrapper = await openMenu()
-        expect(wrapper.find('[data-testid="member-select-search"]').exists()).toBe(true)
+        await openMenu()
+        expect(page().find('[data-testid="member-select-search"]').exists()).toBe(true)
     })
 
     it('offers a search even for a household of two', async () => {
-        const wrapper = await openMenu({members: PEOPLE.slice(0, 2)})
-        expect(wrapper.find('[data-testid="member-select-search"]').exists()).toBe(true)
+        await openMenu({members: PEOPLE.slice(0, 2)})
+        expect(page().find('[data-testid="member-select-search"]').exists()).toBe(true)
+    })
+
+    it('is a list of options a screen reader can walk', async () => {
+        await openMenu()
+        expect(panel().find('[role="listbox"]').exists()).toBe(true)
+        expect(page().findAll('[role="option"]')).toHaveLength(PEOPLE.length)
     })
 
     it('orders the rows by first name', async () => {
-        const wrapper = await openMenu()
-        expect(rowTexts(wrapper).map(text => text.split(' ')[0])).toEqual(['Anna', 'Ben', 'Zoe'])
+        await openMenu()
+        expect(rowTexts().map(text => text.split(' ')[0])).toEqual(['Anna', 'Ben', 'Zoe'])
     })
 
     it('narrows the rows to what was typed', async () => {
-        const wrapper = await openMenu()
-        await wrapper.get('[data-testid="member-select-search"] input').setValue('müller')
-        expect(rowTexts(wrapper)).toHaveLength(1)
-        expect(rowTexts(wrapper)[0]).toContain('Ben Müller')
+        await openMenu()
+        await searchBox().setValue('müller')
+        expect(rowTexts()).toHaveLength(1)
+        expect(rowTexts()[0]).toContain('Ben Müller')
     })
 
     it('searches the address as well as the name', async () => {
-        const wrapper = await openMenu()
-        await wrapper.get('[data-testid="member-select-search"] input').setValue('zoe@example')
-        expect(rowTexts(wrapper)).toHaveLength(1)
+        await openMenu()
+        await searchBox().setValue('zoe@example')
+        expect(rowTexts()).toHaveLength(1)
     })
 
     it('says so when nobody matches', async () => {
-        const wrapper = await openMenu()
-        await wrapper.get('[data-testid="member-select-search"] input').setValue('niemand')
-        expect(rowTexts(wrapper)).toHaveLength(0)
-        expect(wrapper.text()).toContain('Niemand passt dazu')
+        await openMenu()
+        await searchBox().setValue('niemand')
+        expect(rowTexts()).toHaveLength(0)
+        expect(panel().text()).toContain('Niemand passt dazu')
+    })
+
+    /** The search keeps the focus and points at the highlighted row, which is how the row is announced. */
+    it('points the search at the highlighted row', async () => {
+        await openMenu()
+        const highlighted = page().get('[role="option"][data-highlighted]')
+        expect(searchBox().attributes('aria-activedescendant')).toBe(highlighted.attributes('id'))
     })
 
     it('takes the highlighted row on Enter', async () => {
         const wrapper = await openMenu()
-        await wrapper.get('[data-testid="member-select-panel"]').trigger('keydown', {key: 'Enter'})
+        await press('Enter')
         expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual(['1'])
+        expect(panel().exists()).toBe(false)
     })
 
     it('walks down with the arrow keys before taking', async () => {
         const wrapper = await openMenu()
-        const panel = wrapper.get('[data-testid="member-select-panel"]')
-        await panel.trigger('keydown', {key: 'ArrowDown'})
-        await panel.trigger('keydown', {key: 'Enter'})
+        await press('ArrowDown')
+        await press('Enter')
         expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual(['2'])
     })
 
     it('walks up and wraps to the last row', async () => {
         const wrapper = await openMenu()
-        const panel = wrapper.get('[data-testid="member-select-panel"]')
-        await panel.trigger('keydown', {key: 'ArrowUp'})
-        await panel.trigger('keydown', {key: 'Enter'})
+        await press('ArrowUp')
+        await press('Enter')
         expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual(['3'])
+    })
+
+    it('walks down past the last row back to the first', async () => {
+        const wrapper = await openMenu()
+        await press('End')
+        await press('ArrowDown')
+        await press('Enter')
+        expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual(['1'])
     })
 
     it('jumps to the ends with Home and End', async () => {
         const wrapper = await openMenu()
-        const panel = wrapper.get('[data-testid="member-select-panel"]')
-        await panel.trigger('keydown', {key: 'End'})
-        await panel.trigger('keydown', {key: 'Enter'})
+        await press('End')
+        await press('Enter')
         expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual(['3'])
     })
 
     it('resets the highlight to the first match as the reader types', async () => {
         const wrapper = await openMenu()
-        const panel = wrapper.get('[data-testid="member-select-panel"]')
-        await panel.trigger('keydown', {key: 'End'})
-        await wrapper.get('[data-testid="member-select-search"] input').setValue('ben')
-        await panel.trigger('keydown', {key: 'Enter'})
+        await press('End')
+        await searchBox().setValue('ben')
+        await flushPromises()
+        await press('Enter')
         expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual(['2'])
     })
 
     it('closes on Escape without taking anybody', async () => {
         const wrapper = await openMenu()
-        await wrapper.get('[data-testid="member-select-panel"]').trigger('keydown', {key: 'Escape'})
-        expect(wrapper.find('[data-testid="member-select-panel"]').exists()).toBe(false)
+        await press('Escape')
+        expect(panel().exists()).toBe(false)
         expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    })
+
+    it('closes on a press outside it', async () => {
+        await openMenu()
+        document.body.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true}))
+        await flushPromises()
+        expect(panel().exists()).toBe(false)
     })
 
     it('opens from the closed trigger on ArrowDown', async () => {
         const wrapper = mountMenu()
         await wrapper.get('[data-testid="member-select-trigger"]').trigger('keydown', {key: 'ArrowDown'})
-        expect(wrapper.find('[data-testid="member-select-panel"]').exists()).toBe(true)
+        await flushPromises()
+        expect(panel().exists()).toBe(true)
     })
 
     it('offers no empty row unless the call site asks for one', async () => {
-        const wrapper = await openMenu()
-        expect(wrapper.text()).not.toContain('Nicht zugewiesen')
+        await openMenu()
+        expect(panel().text()).not.toContain('Nicht zugewiesen')
     })
 
     it('offers the empty row where the choice may be emptied', async () => {
-        const wrapper = await openMenu({clearable: true})
-        expect(wrapper.text()).toContain('Nicht zugewiesen')
+        await openMenu({clearable: true})
+        expect(panel().text()).toContain('Nicht zugewiesen')
+    })
+
+    it('empties the choice through the empty row', async () => {
+        const wrapper = await openMenu({clearable: true, modelValue: '2'})
+        await page().get('[data-testid="member-select-empty"]').trigger('click')
+        expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([''])
     })
 
     it('keeps the empty answer apart from the people, so a story can tell them apart', async () => {
-        const wrapper = await openMenu({clearable: true})
-        expect(wrapper.findAll('[data-testid="member-select-empty"]')).toHaveLength(1)
-        expect(rowTexts(wrapper)).toHaveLength(PEOPLE.length)
+        await openMenu({clearable: true})
+        expect(page().findAll('[data-testid="member-select-empty"]')).toHaveLength(1)
+        expect(rowTexts()).toHaveLength(PEOPLE.length)
     })
 
     it('names the empty answer where nobody is not what it means', async () => {
-        const wrapper = await openMenu({clearable: true, emptyLabel: 'Für mich selbst'})
-        expect(wrapper.text()).toContain('Für mich selbst')
-        expect(wrapper.text()).not.toContain('Nicht zugewiesen')
+        await openMenu({clearable: true, emptyLabel: 'Für mich selbst'})
+        expect(panel().text()).toContain('Für mich selbst')
+        expect(panel().text()).not.toContain('Nicht zugewiesen')
     })
 
     it('offers the kind filter only once more than one kind is on offer', async () => {
         const single = await openMenu({userTypes: ['MEMBER']})
-        expect(single.find('[data-testid="member-select-user-type"]').exists()).toBe(false)
-        const both = await openMenu({userTypes: ['MEMBER', 'GUARDIAN']})
-        expect(both.find('[data-testid="member-select-user-type"]').exists()).toBe(true)
+        expect(page().find('[data-testid="member-select-user-type"]').exists()).toBe(false)
+        single.unmount()
+        await openMenu({userTypes: ['MEMBER', 'GUARDIAN']})
+        expect(page().find('[data-testid="member-select-user-type"]').exists()).toBe(true)
     })
 
     it('opens on the kind the screen is really asking for', async () => {
-        const wrapper = await openMenu({userTypes: ['MEMBER', 'GUARDIAN'], openingUserType: 'GUARDIAN'})
-        expect(rowTexts(wrapper)).toHaveLength(1)
-        expect(rowTexts(wrapper)[0]).toContain('Anna Zimmer')
+        await openMenu({userTypes: ['MEMBER', 'GUARDIAN'], openingUserType: 'GUARDIAN'})
+        expect(rowTexts()).toHaveLength(1)
+        expect(rowTexts()[0]).toContain('Anna Zimmer')
     })
 
     it('adds rather than replaces when it takes several', async () => {
         const wrapper = await openMenu({multiple: true, selected: ['1']})
-        await wrapper.findAll('[data-testid="member-select-option"]')[1]!.trigger('click')
+        await page().findAll('[data-testid="member-select-option"]')[1]!.trigger('click')
         expect(wrapper.emitted('update:selected')?.at(-1)).toEqual([['1', '2']])
+        expect(panel().exists(), 'a menu that takes several stays open').toBe(true)
     })
 
     it('takes somebody back off the list when they are clicked again', async () => {
         const wrapper = await openMenu({multiple: true, selected: ['1', '2']})
-        await wrapper.findAll('[data-testid="member-select-option"]')[0]!.trigger('click')
+        await page().findAll('[data-testid="member-select-option"]')[0]!.trigger('click')
         expect(wrapper.emitted('update:selected')?.at(-1)).toEqual([['2']])
+    })
+
+    it('marks who is chosen for a screen reader', async () => {
+        await openMenu({multiple: true, selected: ['2']})
+        const chosen = page().findAll('[role="option"][aria-selected="true"]')
+        expect(chosen.map(row => row.text())).toEqual([expect.stringContaining('Ben Müller')])
     })
 
     it('shows what is chosen as chips', () => {
@@ -187,10 +250,11 @@ describe('MemberSelectInput', () => {
 
     it('asks the server where a call site searches rather than holds', async () => {
         const searchFn = vi.fn().mockResolvedValue(PEOPLE)
-        const wrapper = await openMenu({members: [], searchFn})
+        await openMenu({members: [], searchFn})
         await new Promise(resolve => setTimeout(resolve, 0))
+        await flushPromises()
         expect(searchFn).toHaveBeenCalledWith('')
-        expect(rowTexts(wrapper)).toHaveLength(3)
+        expect(rowTexts()).toHaveLength(3)
     })
 
     it('puts a name to a choice made before it was drawn', async () => {
