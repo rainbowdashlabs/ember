@@ -6,12 +6,10 @@
 package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.legal.entity.DocumentVersions;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
-import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
@@ -37,7 +35,6 @@ public class ConsentService {
     private static final Logger log = LoggerFactory.getLogger(ConsentService.class);
 
     private final AccountRepository accountRepository;
-    private final Network network;
     private final LegalDocumentService documentService;
     private final Path privacyPolicyDir;
     private final Path consentDir;
@@ -45,9 +42,8 @@ public class ConsentService {
     private final Path imprintDir;
 
     @Inject
-    public ConsentService(AccountRepository accountRepository, Api apiConfig, Network network) {
+    public ConsentService(AccountRepository accountRepository, Api apiConfig) {
         this.accountRepository = accountRepository;
-        this.network = network;
         this.documentService = new LegalDocumentService(apiConfig.placeholderFile());
         this.privacyPolicyDir = Path.of(apiConfig.privacyPolicyDir());
         this.consentDir = Path.of(apiConfig.consentDir());
@@ -277,7 +273,7 @@ public class ConsentService {
                     "Legal documents have changed since the form was loaded. Please reload and accept again.");
         }
 
-        String ipAddress = anonymizeIp(ClientIp.resolve(ctx, network));
+        String ipAddress = anonymizeIp(InetAddress.ofLiteral(ctx.ip()));
         String country = ctx.header("CF-IPCountry");
         String userAgent = ctx.userAgent();
         return new ConsentProof(

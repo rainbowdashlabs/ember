@@ -11,7 +11,6 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.legal.service.ConsentService;
@@ -31,7 +30,6 @@ import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListRateLimiter;
 import dev.chojo.ember.feature.waitinglist.service.ScoreEvaluator;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import dev.chojo.ember.feature.waitinglist.service.WaitlistInvitationMessage;
-import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -74,7 +72,6 @@ public class WaitingListRoutes implements Routes {
     private final EventCrudService eventCrudService;
     private final EventRestrictionService eventRestrictionService;
     private final WaitlistInvitationMessage invitationMessage;
-    private final Network network;
 
     @Inject
     public WaitingListRoutes(
@@ -84,8 +81,7 @@ public class WaitingListRoutes implements Routes {
             PublicWaitingListRateLimiter rateLimiter,
             EventCrudService eventCrudService,
             EventRestrictionService eventRestrictionService,
-            WaitlistInvitationMessage invitationMessage,
-            Network network) {
+            WaitlistInvitationMessage invitationMessage) {
         this.service = service;
         this.stationRepository = stationRepository;
         this.consentService = consentService;
@@ -93,7 +89,6 @@ public class WaitingListRoutes implements Routes {
         this.eventCrudService = eventCrudService;
         this.eventRestrictionService = eventRestrictionService;
         this.invitationMessage = invitationMessage;
-        this.network = network;
     }
 
     private static String toJson(List<Integer> fieldIds) {
@@ -271,8 +266,7 @@ public class WaitingListRoutes implements Routes {
         if (request.inviteCode() == null || request.firstname() == null) {
             throw Refusal.WAITING_LIST_REGISTRATION_INCOMPLETE.raise();
         }
-        if (answerWhenLimited(
-                ctx, rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), request.inviteCode()))) {
+        if (answerWhenLimited(ctx, rateLimiter.tryAcquire(ctx.ip(), request.inviteCode()))) {
             return;
         }
         var consent = consentService.requireAcceptance(
@@ -405,8 +399,7 @@ public class WaitingListRoutes implements Routes {
      * @return whether the request has been answered and the handler should stop
      */
     private boolean rateLimited(Context ctx, String token) {
-        return answerWhenLimited(
-                ctx, rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), "entry:" + token));
+        return answerWhenLimited(ctx, rateLimiter.tryAcquire(ctx.ip(), "entry:" + token));
     }
 
     /**
@@ -420,8 +413,7 @@ public class WaitingListRoutes implements Routes {
      * @return whether the request has been answered and the handler should stop
      */
     private boolean readRateLimited(Context ctx) {
-        return answerWhenLimited(
-                ctx, rateLimiter.tryAcquireRead(ClientIp.resolve(ctx, network).getHostAddress()));
+        return answerWhenLimited(ctx, rateLimiter.tryAcquireRead(ctx.ip()));
     }
 
     /**
@@ -925,8 +917,7 @@ public class WaitingListRoutes implements Routes {
         if (list.sendsMail() && (request.email() == null || request.email().isBlank())) {
             throw Refusal.PUBLIC_REGISTRATION_NEEDS_AN_ADDRESS.raise();
         }
-        if (answerWhenLimited(
-                ctx, rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), "list:" + wid))) {
+        if (answerWhenLimited(ctx, rateLimiter.tryAcquire(ctx.ip(), "list:" + wid))) {
             return;
         }
         service.requireOldEnoughToRegister(list, request.values() != null ? request.values() : Map.of());

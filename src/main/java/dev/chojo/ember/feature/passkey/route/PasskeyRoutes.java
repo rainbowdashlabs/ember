@@ -13,7 +13,6 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
@@ -33,7 +32,6 @@ import dev.chojo.ember.feature.passkey.service.PasskeyService;
 import dev.chojo.ember.feature.twofactor.service.RelyingParties;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
-import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -77,7 +75,6 @@ public class PasskeyRoutes implements Routes {
     private final TwoFactorService twoFactorService;
     private final ManagedAccessService managedAccessService;
     private final Api api;
-    private final Network network;
 
     @Inject
     public PasskeyRoutes(
@@ -94,8 +91,7 @@ public class PasskeyRoutes implements Routes {
             StepUpGuard stepUpGuard,
             TwoFactorService twoFactorService,
             ManagedAccessService managedAccessService,
-            Api api,
-            Network network) {
+            Api api) {
         this.passkeyService = passkeyService;
         this.accountService = accountService;
         this.modeService = modeService;
@@ -110,7 +106,6 @@ public class PasskeyRoutes implements Routes {
         this.twoFactorService = twoFactorService;
         this.managedAccessService = managedAccessService;
         this.api = api;
-        this.network = network;
     }
 
     @Override
@@ -189,7 +184,7 @@ public class PasskeyRoutes implements Routes {
     private void createDeviceRequest(Context ctx) {
         requirePasskeysOn();
         var identifier = ctx.bodyAsClass(DeviceIdentifierRequest.class);
-        RateLimits.enforce(rateLimiter.tryDeviceRequest(clientIp(ctx), identifier.identifier()));
+        RateLimits.enforce(rateLimiter.tryDeviceRequest(ctx.ip(), identifier.identifier()));
         var request = deviceService.createRequest(
                 DeviceRequestPurpose.ENROL_PASSKEY,
                 identifier.identifier(),
@@ -219,7 +214,7 @@ public class PasskeyRoutes implements Routes {
      */
     private void createSignInRequest(Context ctx) {
         var identifier = ctx.bodyAsClass(DeviceIdentifierRequest.class);
-        RateLimits.enforce(rateLimiter.tryDeviceRequest(clientIp(ctx), identifier.identifier()));
+        RateLimits.enforce(rateLimiter.tryDeviceRequest(ctx.ip(), identifier.identifier()));
         var request = deviceService.createRequest(
                 DeviceRequestPurpose.SIGN_IN, identifier.identifier(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         ctx.json(deviceRequestResponse(request));
@@ -231,7 +226,7 @@ public class PasskeyRoutes implements Routes {
      * password does.
      */
     private void claimSignIn(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryDeviceClaim(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryDeviceClaim(ctx.ip()));
         var request = ctx.bodyAsClass(SignInClaimRequest.class);
         if (isBlank(request.claimToken())) {
             throw Refusal.DEVICE_SIGN_IN_CLAIM_MISSING.raise();
@@ -254,7 +249,7 @@ public class PasskeyRoutes implements Routes {
         if (isBlank(request.pollSecret())) {
             throw Refusal.DEVICE_POLL_SECRET_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryDevicePoll(clientIp(ctx), request.pollSecret()));
+        RateLimits.enforce(rateLimiter.tryDevicePoll(ctx.ip(), request.pollSecret()));
         var result = deviceService.poll(
                 request.pollSecret(), Set.of(DeviceRequestPurpose.ENROL_PASSKEY, DeviceRequestPurpose.SIGN_IN));
         ctx.json(new DevicePollResponse(
@@ -265,7 +260,7 @@ public class PasskeyRoutes implements Routes {
 
     private void beginDeviceEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(DeviceEnrollBeginRequest.class);
         if (isBlank(request.enrollToken())) {
             throw Refusal.DEVICE_ENROLMENT_TOKEN_MISSING.raise();
@@ -278,7 +273,7 @@ public class PasskeyRoutes implements Routes {
 
     private void finishDeviceEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(DeviceEnrollFinishRequest.class);
         if (isBlank(request.enrollToken()) || isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
             throw Refusal.DEVICE_ENROLMENT_DETAILS_MISSING.raise();
@@ -295,7 +290,7 @@ public class PasskeyRoutes implements Routes {
 
     private void lookupTokenEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(TokenEnrollRequest.class);
         if (isBlank(request.token())) {
             throw Refusal.ENROLMENT_LINK_TOKEN_MISSING.raise();
@@ -306,7 +301,7 @@ public class PasskeyRoutes implements Routes {
 
     private void beginTokenEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(TokenEnrollRequest.class);
         if (isBlank(request.token())) {
             throw Refusal.ENROLMENT_LINK_TOKEN_MISSING_ON_BEGIN.raise();
@@ -317,7 +312,7 @@ public class PasskeyRoutes implements Routes {
 
     private void finishTokenEnrollment(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryDeviceEnroll(ctx.ip()));
         var request = ctx.bodyAsClass(TokenEnrollFinishRequest.class);
         if (isBlank(request.token()) || isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
             throw Refusal.ENROLMENT_LINK_DETAILS_MISSING.raise();
@@ -479,10 +474,6 @@ public class PasskeyRoutes implements Routes {
         ctx.json(Map.of("message", "Device approved"));
     }
 
-    private String clientIp(Context ctx) {
-        return ClientIp.resolve(ctx, network).getHostAddress();
-    }
-
     private void requirePasskeysOn() {
         if (modeService.effectiveMode() == PasskeySettings.Mode.OFF) {
             throw Refusal.PASSKEYS_SWITCHED_OFF.raise();
@@ -509,7 +500,7 @@ public class PasskeyRoutes implements Routes {
             })
     private void beginSignIn(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryPasskeySignIn(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryPasskeySignIn(ctx.ip()));
         var start = passkeyService.startSignIn();
         ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
     }
@@ -530,7 +521,7 @@ public class PasskeyRoutes implements Routes {
             })
     private void finishSignIn(Context ctx) {
         requirePasskeysOn();
-        RateLimits.enforce(rateLimiter.tryPasskeySignIn(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryPasskeySignIn(ctx.ip()));
         var request = ctx.bodyAsClass(SignInFinishRequest.class);
         if (isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
             throw Refusal.PASSKEY_SIGN_IN_DETAILS_MISSING.raise();

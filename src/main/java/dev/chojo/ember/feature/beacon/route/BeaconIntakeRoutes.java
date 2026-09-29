@@ -8,13 +8,11 @@ package dev.chojo.ember.feature.beacon.route;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.beacon.service.BeaconIntakeService;
 import dev.chojo.ember.feature.beacon.service.BeaconSettings;
 import dev.chojo.ember.feature.discovery.service.DiscoverySigningService;
 import dev.chojo.ember.feature.system.service.ProblemReportScreenshotService;
-import dev.chojo.ember.util.ClientIp;
 import dev.chojo.ember.util.LeakyBucket;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -62,7 +60,6 @@ public class BeaconIntakeRoutes implements Routes {
 
     private final BeaconSettings config;
     private final Api api;
-    private final Network network;
     private final BeaconIntakeService intake;
     private final DiscoverySigningService signing;
     private final ProblemReportScreenshotService pictures;
@@ -72,13 +69,11 @@ public class BeaconIntakeRoutes implements Routes {
     public BeaconIntakeRoutes(
             BeaconSettings config,
             Api api,
-            Network network,
             BeaconIntakeService intake,
             DiscoverySigningService signing,
             ProblemReportScreenshotService pictures) {
         this.config = config;
         this.api = api;
-        this.network = network;
         this.intake = intake;
         this.signing = signing;
         this.pictures = pictures;
@@ -108,8 +103,7 @@ public class BeaconIntakeRoutes implements Routes {
 
     private String guardedBody(Context ctx, int maxBytes) {
         requireBeacon();
-        String address = ClientIp.resolve(ctx, network).getHostAddress();
-        if (limiter.tryAcquire(address).isPresent()) {
+        if (limiter.tryAcquire(ctx.ip()).isPresent()) {
             throw Refusal.BEACON_INTAKE_TOO_MANY.raise();
         }
         String body = ctx.body();

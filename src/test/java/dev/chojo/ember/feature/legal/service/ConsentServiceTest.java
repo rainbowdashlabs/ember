@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -63,7 +62,7 @@ class ConsentServiceTest extends RepositoryTestBase {
         when(apiConfig.placeholderFile())
                 .thenReturn(tempDir.resolve("placeholders.json").toString());
 
-        service = new ConsentService(accountRepo, apiConfig, new Network());
+        service = new ConsentService(accountRepo, apiConfig);
         service.initialize();
 
         account = accountRepo.create("consent-svc@test.com", "Consent", "SvcTester");
@@ -256,7 +255,7 @@ class ConsentServiceTest extends RepositoryTestBase {
         when(apiConfig2.consentDir()).thenReturn(freshConsent.toString());
         when(apiConfig2.imprintDir()).thenReturn(freshImprint.toString());
 
-        var service2 = new ConsentService(accountRepo, apiConfig2, new Network());
+        var service2 = new ConsentService(accountRepo, apiConfig2);
         // First init - all documents are new, so changed=true
         assertDoesNotThrow(service2::initialize);
         // Second init - same content, so changed=false (exercises the else branch)
@@ -356,7 +355,7 @@ class ConsentServiceTest extends RepositoryTestBase {
         when(apiConfig.imprintDir()).thenReturn(empty.toString());
         when(apiConfig.placeholderFile())
                 .thenReturn(tempDir.resolve("placeholders.json").toString());
-        var bare = new ConsentService(accountRepo, apiConfig, new Network());
+        var bare = new ConsentService(accountRepo, apiConfig);
 
         assertFalse(bare.hasOwnLegalTexts(), "the bundled template standing in is not the operator's own text");
     }

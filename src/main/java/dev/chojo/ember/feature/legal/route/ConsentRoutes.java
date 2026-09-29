@@ -10,9 +10,7 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.legal.service.ConsentService;
-import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -34,12 +32,10 @@ import java.time.Instant;
 @Singleton
 public class ConsentRoutes implements Routes {
     private final ConsentService consentService;
-    private final Network network;
 
     @Inject
-    public ConsentRoutes(ConsentService consentService, Network network) {
+    public ConsentRoutes(ConsentService consentService) {
         this.consentService = consentService;
-        this.network = network;
     }
 
     @Override
@@ -140,7 +136,7 @@ public class ConsentRoutes implements Routes {
             throw Refusal.CONSENT_VERSION_MISSING.raise();
         }
 
-        String ipAddress = ClientIp.resolve(ctx, network).getHostAddress();
+        String ipAddress = ctx.ip();
         String country = ctx.header("CF-IPCountry");
         String userAgent = ctx.userAgent();
 

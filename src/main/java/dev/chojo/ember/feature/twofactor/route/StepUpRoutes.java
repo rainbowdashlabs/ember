@@ -11,7 +11,6 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose;
@@ -22,7 +21,6 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
-import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -45,7 +43,6 @@ public class StepUpRoutes implements Routes {
     private final TwoFactorAuditService auditService;
     private final AuthRateLimiter rateLimiter;
     private final DeviceRequestService deviceRequestService;
-    private final Network network;
 
     @Inject
     public StepUpRoutes(
@@ -54,15 +51,13 @@ public class StepUpRoutes implements Routes {
             AuthService authService,
             TwoFactorAuditService auditService,
             AuthRateLimiter rateLimiter,
-            DeviceRequestService deviceRequestService,
-            Network network) {
+            DeviceRequestService deviceRequestService) {
         this.twoFactorService = twoFactorService;
         this.passkeyService = passkeyService;
         this.authService = authService;
         this.auditService = auditService;
         this.rateLimiter = rateLimiter;
         this.deviceRequestService = deviceRequestService;
-        this.network = network;
     }
 
     @Override
@@ -84,7 +79,7 @@ public class StepUpRoutes implements Routes {
      */
     private void beginDeviceStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        RateLimits.enforce(rateLimiter.tryStepUpDeviceRequest(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(rateLimiter.tryStepUpDeviceRequest(ctx.ip(), session.accountId()));
         if (!twoFactorService
                 .availableProofs(session.accountId(), session.sessionId())
                 .contains(StepUpProof.ANOTHER_DEVICE)) {
@@ -111,7 +106,7 @@ public class StepUpRoutes implements Routes {
         if (request.pollSecret() == null || request.pollSecret().isBlank()) {
             throw Refusal.DEVICE_STEP_UP_POLL_SECRET_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryDevicePoll(clientIp(ctx), request.pollSecret()));
+        RateLimits.enforce(rateLimiter.tryDevicePoll(ctx.ip(), request.pollSecret()));
         var result = deviceRequestService.poll(request.pollSecret(), Set.of(DeviceRequestPurpose.STEP_UP));
         if (result.claimToken() != null && deviceRequestService.claimStepUp(result.claimToken())) {
             auditService.record(
@@ -143,10 +138,6 @@ public class StepUpRoutes implements Routes {
         }
     }
 
-    private String clientIp(Context ctx) {
-        return ClientIp.resolve(ctx, network).getHostAddress();
-    }
-
     /**
      * The password proof. A password oracle reachable with any live session, so it is throttled
      * per account and per client address before anything else happens, and every failure is
@@ -155,7 +146,7 @@ public class StepUpRoutes implements Routes {
      */
     private void passwordStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        RateLimits.enforce(rateLimiter.tryPasswordStepUp(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(rateLimiter.tryPasswordStepUp(ctx.ip(), session.accountId()));
 
         var request = ctx.bodyAsClass(PasswordStepUpRequest.class);
         if (request.password() == null || request.password().isBlank()) {
@@ -204,7 +195,7 @@ public class StepUpRoutes implements Routes {
         if (request.challengeToken() == null || request.credentialJson() == null) {
             throw Refusal.PASSKEY_STEP_UP_DETAILS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
         if (!passkeyService.finishStepUp(session.accountId(), request.challengeToken(), request.credentialJson())) {
             auditService.record(
                     session.accountId(),

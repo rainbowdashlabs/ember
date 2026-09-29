@@ -9,9 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.system.service.InstallPresetService;
-import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -34,12 +32,10 @@ import java.util.Map;
 public class InstallRoutes implements Routes {
 
     private final InstallPresetService presets;
-    private final Network network;
 
     @Inject
-    public InstallRoutes(InstallPresetService presets, Network network) {
+    public InstallRoutes(InstallPresetService presets) {
         this.presets = presets;
-        this.network = network;
     }
 
     @Override
@@ -78,7 +74,7 @@ public class InstallRoutes implements Routes {
             responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
     @StationFree("the installer runs before any station exists; the code is the whole of the authorisation")
     private void readPreset(Context ctx) {
-        var retryAfter = presets.tryLookup(ClientIp.resolve(ctx, network).getHostAddress());
+        var retryAfter = presets.tryLookup(ctx.ip());
         if (retryAfter.isPresent()) {
             ctx.status(Refusal.SETUP_TOO_OFTEN.status())
                     .header("Retry-After", String.valueOf(retryAfter.get()))

@@ -14,7 +14,6 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Demo;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.LoginResult;
 import dev.chojo.ember.feature.account.entity.TokenType;
@@ -30,7 +29,6 @@ import dev.chojo.ember.feature.twofactor.service.TwoFactorAttemptTracker;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnService;
-import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -56,7 +54,6 @@ public class TwoFactorRoutes implements Routes {
     private final TrustedDeviceService trustedDeviceService;
     private final AuthRateLimiter rateLimiter;
     private final TwoFactorAttemptTracker attemptTracker;
-    private final Network network;
 
     @Inject
     public TwoFactorRoutes(
@@ -69,8 +66,7 @@ public class TwoFactorRoutes implements Routes {
             Demo demoConfig,
             TrustedDeviceService trustedDeviceService,
             AuthRateLimiter rateLimiter,
-            TwoFactorAttemptTracker attemptTracker,
-            Network network) {
+            TwoFactorAttemptTracker attemptTracker) {
         this.twoFactorService = twoFactorService;
         this.auditService = auditService;
         this.accountRepository = accountRepository;
@@ -81,11 +77,6 @@ public class TwoFactorRoutes implements Routes {
         this.trustedDeviceService = trustedDeviceService;
         this.rateLimiter = rateLimiter;
         this.attemptTracker = attemptTracker;
-        this.network = network;
-    }
-
-    private String clientIp(Context ctx) {
-        return ClientIp.resolve(ctx, network).getHostAddress();
     }
 
     /**
@@ -257,7 +248,7 @@ public class TwoFactorRoutes implements Routes {
         }
 
         int accountId = preAuth.accountId();
-        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), accountId));
+        RateLimits.enforce(rateLimiter.tryTwoFactor(ctx.ip(), accountId));
         String attemptKey = tokenHasher.hash(request.preAuthToken());
         boolean verified;
 
@@ -353,7 +344,7 @@ public class TwoFactorRoutes implements Routes {
         if (!twoFactorService.isEnrolled(session.accountId())) {
             throw Refusal.NOT_ENROLLED_ON_STEP_UP.raise();
         }
-        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
 
         boolean verified;
         TwoFactorKind kind;
@@ -452,7 +443,7 @@ public class TwoFactorRoutes implements Routes {
             throw Refusal.SECURITY_KEY_SIGN_IN_DETAILS_MISSING.raise();
         }
         int accountId = consumeReadOnlyPreAuth(request.preAuthToken());
-        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), accountId));
+        RateLimits.enforce(rateLimiter.tryTwoFactor(ctx.ip(), accountId));
         if (!webAuthnService.finishAssertion(accountId, request.challengeToken(), request.credentialJson())) {
             throw Refusal.SECURITY_KEY_SIGN_IN_REFUSED.raise();
         }
@@ -512,7 +503,7 @@ public class TwoFactorRoutes implements Routes {
         if (request.challengeToken() == null || request.credentialJson() == null) {
             throw Refusal.SECURITY_KEY_STEP_UP_DETAILS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
         if (!webAuthnService.finishAssertion(session.accountId(), request.challengeToken(), request.credentialJson())) {
             throw Refusal.SECURITY_KEY_STEP_UP_REFUSED.raise();
         }

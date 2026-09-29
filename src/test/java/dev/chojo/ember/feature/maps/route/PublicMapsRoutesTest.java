@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.maps.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService.CacheStatus;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService.TileResponse;
@@ -50,8 +49,7 @@ class PublicMapsRoutesTest {
         routes = new PublicMapsRoutes(
                 mock(MapsConfigService.class),
                 cache,
-                new MapTileRateLimiter(Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC)),
-                new Network());
+                new MapTileRateLimiter(Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC)));
         getTile = PublicMapsRoutes.class.getDeclaredMethod("getTile", Context.class);
         getTile.setAccessible(true);
     }

@@ -15,13 +15,11 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Demo;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.account.entity.LoginResult;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
-import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -43,20 +41,14 @@ import java.time.Instant;
 public class AuthRoutes implements Routes {
     private final AuthService authService;
     private final AuthRateLimiter rateLimiter;
-    private final Network network;
     private final Demo demo;
     private final PasskeyModeService passkeyModeService;
 
     @Inject
     public AuthRoutes(
-            AuthService authService,
-            AuthRateLimiter rateLimiter,
-            Network network,
-            Demo demo,
-            PasskeyModeService passkeyModeService) {
+            AuthService authService, AuthRateLimiter rateLimiter, Demo demo, PasskeyModeService passkeyModeService) {
         this.authService = authService;
         this.rateLimiter = rateLimiter;
-        this.network = network;
         this.demo = demo;
         this.passkeyModeService = passkeyModeService;
     }
@@ -98,10 +90,6 @@ public class AuthRoutes implements Routes {
         routes.post(prefix + "/auth/confirm-email-change", this::confirmEmailChange);
     }
 
-    private String clientIp(Context ctx) {
-        return ClientIp.resolve(ctx, network).getHostAddress();
-    }
-
     @OpenApi(
             path = "/api/v1/auth/register",
             methods = HttpMethod.POST,
@@ -116,7 +104,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void register(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryRegister(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryRegister(ctx.ip()));
         var request = ctx.bodyAsClass(RegisterRequest.class);
         // On a passwordless instance no password is asked for: the account is created without
         // one, and the verification mail's link is where the passkey is made.
@@ -159,7 +147,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void verifyEmail(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryVerifyEmail(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryVerifyEmail(ctx.ip()));
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) {
             throw Refusal.EMAIL_VERIFICATION_TOKEN_MISSING.raise();
@@ -188,7 +176,7 @@ public class AuthRoutes implements Routes {
         if (isBlank(request.email())) {
             throw Refusal.RESEND_VERIFICATION_ADDRESS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryResendVerification(clientIp(ctx), request.email()));
+        RateLimits.enforce(rateLimiter.tryResendVerification(ctx.ip(), request.email()));
 
         authService.resendVerification(request.email());
         ctx.status(HttpStatus.OK)
@@ -209,7 +197,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setPassword(Context ctx) {
-        RateLimits.enforce(rateLimiter.trySetPassword(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.trySetPassword(ctx.ip()));
         var request = ctx.bodyAsClass(SetPasswordRequest.class);
         if (isBlank(request.token()) || isBlank(request.password())) {
             throw Refusal.PASSWORD_SETUP_DETAILS_MISSING.raise();
@@ -243,7 +231,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setAddress(Context ctx) {
-        RateLimits.enforce(rateLimiter.trySetPassword(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.trySetPassword(ctx.ip()));
         var request = ctx.bodyAsClass(SetAddressRequest.class);
         if (isBlank(request.token()) || isBlank(request.email())) {
             throw Refusal.ADDRESS_SETUP_DETAILS_MISSING.raise();
@@ -272,7 +260,7 @@ public class AuthRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = AuthService.TokenStatus.class)))
     private void passwordLinkStatus(Context ctx) {
-        RateLimits.enforce(rateLimiter.trySetPassword(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.trySetPassword(ctx.ip()));
         var request = ctx.bodyAsClass(TokenRequest.class);
         ctx.json(authService.checkPasswordToken(request.token()));
     }
@@ -294,7 +282,7 @@ public class AuthRoutes implements Routes {
         if (isBlank(request.email())) {
             throw Refusal.FORGOTTEN_PASSWORD_ADDRESS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryForgotPassword(clientIp(ctx), request.email()));
+        RateLimits.enforce(rateLimiter.tryForgotPassword(ctx.ip(), request.email()));
 
         authService.requestPasswordReset(request.email());
         ctx.status(HttpStatus.OK).json(new MessageResponse("If the email exists, a password reset link has been sent"));
@@ -317,7 +305,7 @@ public class AuthRoutes implements Routes {
         if (isBlank(request.identifier()) || isBlank(request.password())) {
             throw Refusal.SIGN_IN_DETAILS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryLogin(clientIp(ctx), request.identifier()));
+        RateLimits.enforce(rateLimiter.tryLogin(ctx.ip(), request.identifier()));
 
         var result = authService.login(
                 request.identifier(),
@@ -369,7 +357,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "401", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void refresh(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryRefresh(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryRefresh(ctx.ip()));
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) {
             throw Refusal.SESSION_RENEWAL_TOKEN_MISSING.raise();
@@ -434,7 +422,7 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400")
             })
     private void confirmEmailChange(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryConfirmEmailChange(clientIp(ctx)));
+        RateLimits.enforce(rateLimiter.tryConfirmEmailChange(ctx.ip()));
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) throw Refusal.EMAIL_CHANGE_TOKEN_MISSING.raise();
         var result = authService.confirmEmailChange(request.token());

@@ -343,6 +343,8 @@ public class ApiServer {
             config.http.defaultContentType = "application/json";
             config.jsonMapper(jacksonMapper());
             configureCompression(config);
+            ClientIp.installOn(config.contextResolver, network);
+            config.contextResolver.scheme = ApiServer::forwardedScheme;
 
             config.jetty.multipartConfig.maxFileSize(apiConfig.maxUploadSizeBytes(), SizeUnit.BYTES);
             config.jetty.multipartConfig.maxInMemoryFileSize(1, SizeUnit.MB);
@@ -1135,15 +1137,8 @@ public class ApiServer {
         if (demoConfig.dev()) return;
         if (ctx.path().startsWith(API_PREFIX + "/remote/")) return;
 
-        String clientIp;
-        try {
-            clientIp = ClientIp.resolve(ctx, network).getHostAddress();
-        } catch (Exception e) {
-            clientIp = ctx.ip();
-        }
-
         boolean expensivePath = ctx.path().contains("/ai/");
-        RateLimits.enforce(globalRateLimiter.check(clientIp, expensivePath));
+        RateLimits.enforce(globalRateLimiter.check(ctx.ip(), expensivePath));
     }
 
     /**
@@ -1183,17 +1178,22 @@ public class ApiServer {
         if (ctx.res().getHeader("Referrer-Policy") == null) {
             ctx.header("Referrer-Policy", "strict-origin-when-cross-origin");
         }
-        if (!demoConfig.dev() && isHttps(ctx)) {
+        if (!demoConfig.dev() && "https".equalsIgnoreCase(ctx.scheme())) {
             ctx.header("Strict-Transport-Security", "max-age=31536000");
         }
     }
 
-    private static boolean isHttps(@NotNull Context ctx) {
+    /**
+     * The scheme the visitor used: the first entry of {@code X-Forwarded-Proto} when a proxy set
+     * one, the scheme of the socket request otherwise. Installed as the context resolver so
+     * {@link Context#scheme()} answers it everywhere.
+     */
+    private static String forwardedScheme(@NotNull Context ctx) {
         String forwarded = ctx.header("X-Forwarded-Proto");
         if (forwarded != null && !forwarded.isBlank()) {
-            return "https".equalsIgnoreCase(forwarded.split(",")[0].trim());
+            return forwarded.split(",")[0].trim();
         }
-        return "https".equalsIgnoreCase(ctx.scheme());
+        return ctx.req().getScheme();
     }
 
     private static void applyCacheHeaders(@NotNull Context ctx) {

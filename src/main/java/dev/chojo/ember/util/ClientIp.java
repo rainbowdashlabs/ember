@@ -6,6 +6,7 @@
 package dev.chojo.ember.util;
 
 import dev.chojo.ember.conf.file.elements.Network;
+import io.javalin.config.ContextResolverConfig;
 import io.javalin.http.Context;
 
 import java.io.IOException;
@@ -39,11 +40,16 @@ import java.util.Optional;
  * client that can reach the app socket can claim any value in a header - the
  * trust gate is the immediate hop, not the header itself.
  *
+ * <p>{@link #installOn(ContextResolverConfig, Network)} makes this resolution what
+ * {@link Context#ip()} answers for every request, so request code reads {@code ctx.ip()}
+ * and never sees the proxy's address. The immediate hop is therefore always read from
+ * the socket peer ({@code ctx.req().getRemoteAddr()}), never from {@link Context#ip()}.
+ *
  * <p>Resolution order:
  * <ol>
  *   <li>{@code CF-Connecting-IP} - only if {@link Network#cloudflare()} is
- *       {@code true} AND {@link Context#ip()} is a Cloudflare edge address.</li>
- *   <li>{@code X-Forwarded-For} - only if {@link Context#ip()} is a trusted
+ *       {@code true} AND the socket peer is a Cloudflare edge address.</li>
+ *   <li>{@code X-Forwarded-For} - only if the socket peer is a trusted
  *       hop (one of {@link Network#trustedProxies()}, or a Cloudflare edge
  *       when {@link Network#cloudflare()} is {@code true}). The chain is
  *       walked right to left and the first address that is not itself a
@@ -51,11 +57,11 @@ import java.util.Optional;
  *       client-supplied and forgeable (Cloudflare appends to whatever
  *       {@code X-Forwarded-For} the visitor sends), so they are never
  *       consulted. An unparseable entry aborts the walk and falls back to
- *       {@link Context#ip()}; a chain consisting solely of trusted hops
+ *       the socket peer; a chain consisting solely of trusted hops
  *       resolves to its leftmost entry.</li>
  *   <li>{@code X-Real-IP} - same trust check as step 2, only consulted when
  *       {@code X-Forwarded-For} is absent.</li>
- *   <li>{@link Context#ip()} as a final fallback. This is the correct value
+ *   <li>The socket peer as a final fallback. This is the correct value
  *       for a no-proxy deployment.</li>
  * </ol>
  *
@@ -76,16 +82,27 @@ public final class ClientIp {
     private ClientIp() {}
 
     /**
+     * Makes {@link Context#ip()} answer the resolved visitor address for every request of the
+     * application the resolver belongs to.
+     *
+     * @param resolver the Javalin context resolver configuration
+     * @param network  the network / proxy configuration
+     */
+    public static void installOn(ContextResolverConfig resolver, Network network) {
+        resolver.ip = ctx -> resolve(ctx, network).getHostAddress();
+    }
+
+    /**
      * Resolves the real visitor IP for the given request.
      *
      * @param ctx     the Javalin context
      * @param network the network / proxy configuration
      * @return the visitor's {@link InetAddress}; never {@code null}
-     * @throws IllegalStateException if {@code ctx.ip()} cannot be parsed as an
+     * @throws IllegalStateException if the socket peer address cannot be parsed as an
      *                               IP address - should never happen with Javalin
      */
     public static InetAddress resolve(Context ctx, Network network) {
-        InetAddress immediateHop = parseOrThrow(ctx.ip());
+        InetAddress immediateHop = parseOrThrow(ctx.req().getRemoteAddr());
 
         if (network.cloudflare() && isCloudflareEdge(immediateHop)) {
             Optional<InetAddress> cf = parseHeader(ctx.header(HEADER_CF_CONNECTING_IP));
@@ -169,7 +186,7 @@ public final class ClientIp {
         try {
             return InetAddress.ofLiteral(ip);
         } catch (IllegalArgumentException e) {
-            throw new IllegalStateException("ctx.ip() returned an unparseable value: " + ip, e);
+            throw new IllegalStateException("The socket peer address is unparseable: " + ip, e);
         }
     }
 
