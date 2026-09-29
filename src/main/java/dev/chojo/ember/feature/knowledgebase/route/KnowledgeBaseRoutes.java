@@ -59,7 +59,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -957,13 +956,7 @@ public class KnowledgeBaseRoutes implements Routes {
         }
 
         var access = KbRouteAccess.accessOf(ctx, accessService);
-        var localFuture =
-                CompletableFuture.supplyAsync(() -> searchService.searchWithSnippets(session.stationId(), query));
-        var federatedFuture = federated
-                ? CompletableFuture.supplyAsync(() -> searchFederated(session.stationId(), query))
-                : CompletableFuture.completedFuture(List.<SearchResultResponse>of());
-
-        var hits = localFuture.join();
+        var hits = searchService.searchWithSnippets(session.stationId(), query);
         var readable = accessService.readableFiles(
                 access,
                 hits.stream().map(r -> KbAccessService.FileNode.of(r.file())).toList());
@@ -983,7 +976,9 @@ public class KnowledgeBaseRoutes implements Routes {
                 .toList();
 
         var all = new ArrayList<>(localResults);
-        all.addAll(federatedFuture.join());
+        if (federated) {
+            all.addAll(searchFederated(session.stationId(), query));
+        }
         ctx.json(all);
     }
 

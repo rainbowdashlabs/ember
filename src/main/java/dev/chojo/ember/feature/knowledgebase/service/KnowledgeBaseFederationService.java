@@ -245,9 +245,10 @@ public class KnowledgeBaseFederationService {
      */
     public SharedKbLevel browseSharedKb(int stationId) {
         var levels = fanout.fanOut(
-                sharedKbPartners(stationId),
-                partner -> List.of(browseSharedKbDirect(partnerStationId(partner), partner)),
-                partner -> List.of(browseSharedKbViaHttp(stationId, partner, partnerStationId(partner))));
+                        sharedKbPartners(stationId),
+                        partner -> List.of(browseSharedKbDirect(partnerStationId(partner), partner)),
+                        partner -> List.of(browseSharedKbViaHttp(stationId, partner, partnerStationId(partner))))
+                .items();
         return new SharedKbLevel(
                 levels.stream().flatMap(level -> level.folders().stream()).toList(),
                 levels.stream().flatMap(level -> level.files().stream()).toList());
@@ -262,9 +263,10 @@ public class KnowledgeBaseFederationService {
      */
     public List<FederatedSearchResult> searchFederatedKb(int stationId, String query) {
         return fanout.fanOut(
-                sharedKbPartners(stationId),
-                partner -> searchKbDirect(partner, query),
-                partner -> searchKbViaHttp(stationId, partner, query));
+                        sharedKbPartners(stationId),
+                        partner -> searchKbDirect(partner, query),
+                        partner -> searchKbViaHttp(stationId, partner, query))
+                .items();
     }
 
     /**

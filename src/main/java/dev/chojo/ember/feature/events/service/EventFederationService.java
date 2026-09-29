@@ -536,7 +536,8 @@ public class EventFederationService {
         var partners = federationService.findPartners(stationId).stream()
                 .filter(p -> p.status() == FederationStatus.ACTIVE)
                 .toList();
-        return fanout.fanOut(partners, this::browseEventsDirect, partner -> browseEventsViaHttp(station, partner));
+        return fanout.fanOut(partners, this::browseEventsDirect, partner -> browseEventsViaHttp(station, partner))
+                .items();
     }
 
     /**

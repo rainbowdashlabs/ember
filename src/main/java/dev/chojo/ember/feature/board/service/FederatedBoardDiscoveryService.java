@@ -81,7 +81,8 @@ public class FederatedBoardDiscoveryService {
                 .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
                 .filter(p -> federationService.hasCapability(p, CapabilityType.BOARD_SHARE, Direction.IMPORT))
                 .toList();
-        return fanout.fanOut(partners, this::discoverBoardsDirect, this::discoverBoardsViaHttp);
+        return fanout.fanOut(partners, this::discoverBoardsDirect, this::discoverBoardsViaHttp)
+                .items();
     }
 
     /**

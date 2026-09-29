@@ -45,6 +45,9 @@ import java.util.UUID;
  * nonce is sent in the {@code X-Federation-Nonce} header so the receiver can
  * reject replays via {@link FederationReplayCache}.
  * <p>
+ * Every signed request gives the partner ten seconds to answer. A partner that accepts the
+ * connection and then stalls counts as a failed call instead of holding the caller forever.
+ * <p>
  * All public methods accept and return typed objects. JSON serialization/deserialization
  * is handled internally - callers never deal with raw JSON strings.
  * <p>
@@ -59,6 +62,7 @@ import java.util.UUID;
 public class FederationHttpClient {
     private static final Logger log = LoggerFactory.getLogger(FederationHttpClient.class);
     private static final Duration HANDSHAKE_TIMEOUT = Duration.ofSeconds(15);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
     private final HttpClient httpsClient;
     private final HttpClient httpClient1;
@@ -67,6 +71,7 @@ public class FederationHttpClient {
     private final RemoteUrlValidator urlValidator;
     private final Provider<FederationContractRefreshService> refreshService;
     private final JsonMapper mapper;
+    private final Duration requestTimeout;
 
     @Inject
     public FederationHttpClient(
@@ -74,10 +79,24 @@ public class FederationHttpClient {
             StationRepository stationRepository,
             RemoteUrlValidator urlValidator,
             Provider<FederationContractRefreshService> refreshService) {
+        this(signingService, stationRepository, urlValidator, refreshService, REQUEST_TIMEOUT);
+    }
+
+    /**
+     * Builds the client with its own limit on how long a signed request may wait for the partner's
+     * answer, so a test can stand in a stalled partner without waiting out the production limit.
+     */
+    FederationHttpClient(
+            FederationSigningService signingService,
+            StationRepository stationRepository,
+            RemoteUrlValidator urlValidator,
+            Provider<FederationContractRefreshService> refreshService,
+            Duration requestTimeout) {
         this.signingService = signingService;
         this.stationRepository = stationRepository;
         this.urlValidator = urlValidator;
         this.refreshService = refreshService;
+        this.requestTimeout = requestTimeout;
         this.httpsClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_2)
                 .connectTimeout(Duration.ofSeconds(10))
@@ -434,6 +453,7 @@ public class FederationHttpClient {
         var local = FederationContractVersions.current();
         var builder = HttpRequest.newBuilder()
                 .uri(uri)
+                .timeout(requestTimeout)
                 .header(FederationHeaders.HEADER_STATION_ID, stationUid)
                 .header(FederationHeaders.HEADER_STATION_NAME, resolveStationName(localStationId))
                 .header("X-Federation-Target-Station-Id", partnerStationUid.toString())

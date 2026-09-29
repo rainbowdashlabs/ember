@@ -79,6 +79,7 @@ import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
@@ -766,6 +767,7 @@ public abstract class RepositoryTestBase {
                 new LendingRepository(),
                 httpClient,
                 new FederationService(new FederationRepository(), stationRepo, new Api()),
+                new FederationFanout(),
                 stationRepo,
                 inventoryRepo,
                 clusterRepo,

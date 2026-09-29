@@ -79,9 +79,10 @@ public class QuizFederationService {
                 .filter(p -> federationService.hasCapability(p, CapabilityType.QUIZ_SHARE, Direction.IMPORT))
                 .toList();
         return fanout.fanOut(
-                partners,
-                partner -> browseSharedQuizDirect(resolvePartnerStationId(partner), partner),
-                partner -> browseSharedQuizViaHttp(stationId, partner, resolvePartnerStationId(partner)));
+                        partners,
+                        partner -> browseSharedQuizDirect(resolvePartnerStationId(partner), partner),
+                        partner -> browseSharedQuizViaHttp(stationId, partner, resolvePartnerStationId(partner)))
+                .items();
     }
 
     /**

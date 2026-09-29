@@ -358,6 +358,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 lendingRepo,
                 federationHttpClient,
                 federationService,
+                federationFanout,
                 stationRepo,
                 inventoryRepo,
                 clusterRepo,

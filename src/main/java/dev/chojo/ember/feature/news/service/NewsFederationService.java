@@ -197,7 +197,8 @@ public class NewsFederationService {
         var partners = federationService.findPartners(stationId).stream()
                 .filter(p -> p.status() == FederationStatus.ACTIVE)
                 .toList();
-        return fanout.fanOut(partners, this::browseNewsDirect, partner -> browseNewsViaHttp(station, partner));
+        return fanout.fanOut(partners, this::browseNewsDirect, partner -> browseNewsViaHttp(station, partner))
+                .items();
     }
 
     /**

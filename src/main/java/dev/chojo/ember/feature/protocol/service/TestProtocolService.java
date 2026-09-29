@@ -375,9 +375,10 @@ public class TestProtocolService {
                 .filter(p -> federationService.hasCapability(p, CapabilityType.PROTOCOL_SHARE, Direction.IMPORT))
                 .toList();
         return fanout.fanOut(
-                partners,
-                partner -> browseSharedProtocolsDirect(resolvePartnerStationId(partner), partner),
-                partner -> browseSharedProtocolsViaHttp(stationId, partner, resolvePartnerStationId(partner)));
+                        partners,
+                        partner -> browseSharedProtocolsDirect(resolvePartnerStationId(partner), partner),
+                        partner -> browseSharedProtocolsViaHttp(stationId, partner, resolvePartnerStationId(partner)))
+                .items();
     }
 
     /**

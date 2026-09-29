@@ -53,7 +53,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Business logic for cross-station inventory lending. Internally peer references travel as
@@ -68,6 +67,7 @@ public class LendingService {
     private final LendingRepository repository;
     private final FederationHttpClient httpClient;
     private final FederationService federationService;
+    private final FederationFanout fanout;
     private final StationRepository stationRepository;
     private final InventoryRepository inventoryRepository;
     private final ClusterRepository clusterRepository;
@@ -84,6 +84,7 @@ public class LendingService {
             LendingRepository repository,
             FederationHttpClient httpClient,
             FederationService federationService,
+            FederationFanout fanout,
             StationRepository stationRepository,
             InventoryRepository inventoryRepository,
             ClusterRepository clusterRepository,
@@ -94,6 +95,7 @@ public class LendingService {
             LineTargetService lineTargets,
             EquipmentAvailabilityService availability,
             DomainEventBus eventBus) {
+        this.fanout = fanout;
         this.artRepository = artRepository;
         this.lineTargets = lineTargets;
         this.availability = availability;
@@ -592,28 +594,16 @@ public class LendingService {
                 .toList();
         UUID askingStationUid = stationRepository.resolveUid(stationId);
 
-        var futures = new ArrayList<CompletableFuture<PartnerAvailability>>();
-        for (var partner : partners) {
-            futures.add(CompletableFuture.supplyAsync(
-                    () -> findAvailableForPartner(partner, askingStationUid, query, dateFrom, dateTo)));
-        }
+        var answers = fanout.fanOut(
+                        partners,
+                        partner -> List.of(findAvailableForPartner(partner, askingStationUid, query, dateFrom, dateTo)))
+                .items();
 
         var results = new ArrayList<AvailableInventoryEntry>();
         boolean anyOffer = false;
-        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
-        try {
-            allFuture.join();
-        } catch (Exception e) {
-            log.error("Error during parallel available inventory fetch", e);
-        }
-        for (var future : futures) {
-            try {
-                var availability = future.get();
-                results.addAll(availability.entries());
-                anyOffer |= availability.offersAnything();
-            } catch (Exception e) {
-                log.error("Error collecting available inventory results", e);
-            }
+        for (var availability : answers) {
+            results.addAll(availability.entries());
+            anyOffer |= availability.offersAnything();
         }
         var entries = enrichWithDistance(stationId, results);
         if (!entries.isEmpty()) return new AvailableInventoryResult(entries, null);

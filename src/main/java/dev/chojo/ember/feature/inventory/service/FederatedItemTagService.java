@@ -82,9 +82,10 @@ public class FederatedItemTagService {
                 .filter(this::lendsWith)
                 .toList();
         found.addAll(fanout.fanOut(
-                partners,
-                partner -> fromLocalPartner(partner, name),
-                partner -> fromRemotePartner(partner, stationId, name)));
+                        partners,
+                        partner -> fromLocalPartner(partner, name),
+                        partner -> fromRemotePartner(partner, stationId, name))
+                .items());
         return found;
     }
 
