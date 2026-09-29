@@ -538,13 +538,13 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Order(140)
     void notifyBoardRenamed() {
         reset(webhookService);
-        notificationService.notifyBoardRenamed(boardId, "New Name", "NN");
-        // Should be called for both share targets
-        var renamed = new FederatedBoardNotificationService.BoardRenamedPayload(boardUid, "New Name", "NN");
+        notificationService.notifyBoardRenamed(partnerId, boardId, "New Name", "NN");
         verify(webhookService)
-                .notifyPartner(eq(partnerId), eq(RemoteBoardWebhookRoutes.BOARD_RENAMED.at()), eq(renamed));
-        verify(webhookService)
-                .notifyPartner(eq(partner2Id), eq(RemoteBoardWebhookRoutes.BOARD_RENAMED.at()), eq(renamed));
+                .notifyPartner(
+                        eq(partnerId),
+                        eq(RemoteBoardWebhookRoutes.BOARD_RENAMED.at()),
+                        eq(new FederatedBoardNotificationService.BoardRenamedPayload(boardUid, "New Name", "NN")));
+        verifyNoMoreInteractions(webhookService);
     }
 
     @Test
@@ -571,15 +571,5 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                         eq(RemoteBoardWebhookRoutes.SHARE_MODE_CHANGED.at()),
                         eq(new FederatedBoardNotificationService.ShareModeChangedPayload(
                                 boardUid, BoardShareMode.READ_ONLY)));
-    }
-
-    @Test
-    @Order(170)
-    void notifyBoardRenamedNoTargets() {
-        // Unshare and verify no notifications sent
-        service.unshareBoard(boardId);
-        reset(webhookService);
-        notificationService.notifyBoardRenamed(boardId, "Nobody cares", "NC");
-        verifyNoInteractions(webhookService);
     }
 }

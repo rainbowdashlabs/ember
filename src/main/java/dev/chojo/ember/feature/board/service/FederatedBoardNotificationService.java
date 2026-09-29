@@ -93,17 +93,13 @@ public class FederatedBoardNotificationService {
         log.info("Notified partner {} of unassignment on ticket {} ({})", partnerId, ticketId, ticketKey);
     }
 
-    public void notifyBoardRenamed(int boardId, String newName, String newShortKey) {
-        var targets = federatedBoardService.findShareTargets(boardId);
-        boardUid(boardId).ifPresent(boardUid -> {
-            for (var target : targets) {
-                webhookService.notifyPartner(
-                        target.partnerId(),
+    public void notifyBoardRenamed(int partnerId, int boardId, String newName, String newShortKey) {
+        boardUid(boardId)
+                .ifPresent(boardUid -> webhookService.notifyPartner(
+                        partnerId,
                         RemoteBoardWebhookRoutes.BOARD_RENAMED.at(),
-                        new BoardRenamedPayload(boardUid, newName, newShortKey));
-            }
-        });
-        log.info("Notified {} partner(s) of rename on board {}", targets.size(), boardId);
+                        new BoardRenamedPayload(boardUid, newName, newShortKey)));
+        log.info("Notified partner {} of rename on board {}", partnerId, boardId);
     }
 
     /**
