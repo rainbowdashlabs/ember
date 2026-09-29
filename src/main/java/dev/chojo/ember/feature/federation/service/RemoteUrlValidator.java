@@ -35,7 +35,7 @@ import java.util.Optional;
  *
  * <p>The validator is consulted twice per remote URL: once at write time, so an
  * admin gets an immediate 400, and once at send time inside
- * {@code FederationHttpClient} / {@code FederationWebhookService} as a soft
+ * {@code FederationHttpClient} as a soft
  * check that protects against DNS rebinding and against rows that predate the
  * validator. A clustered deployment would still want IP pinning on the TCP
  * socket to close the resolve-vs-connect race.

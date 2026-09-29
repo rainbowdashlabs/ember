@@ -28,10 +28,9 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * <ul>
  *   <li>The partner moved with this station (a multi-station transfer to the same destination)
  *       or already lived on the destination - the partnership becomes intra-instance, so
- *       {@code remote_host} and {@code webhook_url} are cleared.</li>
+ *       {@code remote_host} is cleared.</li>
  *   <li>The partner stayed on the source instance - the partnership becomes cross-instance
- *       pointing back at the source, so {@code remote_host} / {@code webhook_url} are set to
- *       the source instance URL.</li>
+ *       pointing back at the source, so {@code remote_host} is set to the source instance URL.</li>
  *   <li>The partner was already remote on the source (third instance) - the existing
  *       {@code remote_host} is left untouched and round-trips verbatim.</li>
  * </ul>
@@ -81,7 +80,7 @@ public class FederationPartnerTransferFixupService {
         int cleared =
                 query("""
                         UPDATE federation_partner
-                        SET remote_host = NULL, webhook_url = NULL
+                        SET remote_host = NULL
                         WHERE station_id = :station_id
                           AND NOT cluster_managed
                           AND EXISTS (
@@ -94,7 +93,7 @@ public class FederationPartnerTransferFixupService {
         if (url != null && !url.isEmpty()) {
             retargeted = query("""
                             UPDATE federation_partner
-                            SET remote_host = :url, webhook_url = :url
+                            SET remote_host = :url
                             WHERE station_id = :station_id
                               AND NOT cluster_managed
                               AND remote_host IS NULL
@@ -192,7 +191,7 @@ public class FederationPartnerTransferFixupService {
         }
         int flipped = query("""
                         UPDATE federation_partner
-                        SET remote_host = :url, webhook_url = :url
+                        SET remote_host = :url
                         WHERE partner_station_id = :partner_uid::UUID
                           AND remote_host IS NULL;
                         """)
