@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -447,8 +449,9 @@ class NotificationServiceTest extends RepositoryTestBase {
     /**
      * An installation that has switched the digest off writes to nobody and says so.
      *
-     * <p>Zero has always meant off. It now also means the sweep never runs at all, so a station's
-     * own times are never reached either, which is the answer an operator who turned it off expects.
+     * <p>Zero has always meant off. It also means the sweep never looks for mail to send, so a
+     * station's own times are never reached either, which is the answer an operator who turned it off
+     * expects.
      */
     @Test
     @Order(47)
@@ -471,6 +474,44 @@ class NotificationServiceTest extends RepositoryTestBase {
                 silent);
 
         assertNotNull(svc, "the service still starts, it simply never writes to anybody");
+    }
+
+    /**
+     * Read notifications are pruned from the sweep once a day, however often the sweep comes round,
+     * and a failed attempt is tried again on the next one.
+     */
+    @Test
+    @Order(47)
+    void theSweepPrunesReadNotificationsAtMostOnceADay() {
+        var repository = mock(NotificationRepository.class);
+        var svc = new NotificationService(
+                repository,
+                stationMemberRepo,
+                userSettingsRepo,
+                notificationSettingsRepo,
+                accountRepo,
+                stationRepo,
+                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
+                mock(EmailService.class),
+                new MailRecipientService(accountRepo, stationMemberRepo),
+                new NotificationScheduleRepository(),
+                clusterRepo,
+                mock(Mailing.class));
+        var start = Instant.parse("2026-09-30T03:00:00Z");
+
+        svc.pruneAcknowledgedIfDue(start);
+        svc.pruneAcknowledgedIfDue(start.plus(Duration.ofMinutes(15)));
+        svc.pruneAcknowledgedIfDue(start.plus(Duration.ofHours(23)));
+        verify(repository, times(1)).deleteOldAcknowledged();
+
+        svc.pruneAcknowledgedIfDue(start.plus(Duration.ofDays(1)));
+        verify(repository, times(2)).deleteOldAcknowledged();
+
+        doThrow(new IllegalStateException("database away")).when(repository).deleteOldAcknowledged();
+        assertDoesNotThrow(() -> svc.pruneAcknowledgedIfDue(start.plus(Duration.ofDays(2))));
+        doNothing().when(repository).deleteOldAcknowledged();
+        svc.pruneAcknowledgedIfDue(start.plus(Duration.ofDays(2)).plus(Duration.ofMinutes(15)));
+        verify(repository, times(4)).deleteOldAcknowledged();
     }
 
     /**

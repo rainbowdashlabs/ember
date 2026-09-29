@@ -79,6 +79,9 @@ public class NotificationService {
      */
     private static final long TICK_MINUTES = 15;
 
+    /** How long read notifications are left alone between two prunings. */
+    private static final Duration PRUNE_INTERVAL = Duration.ofDays(1);
+
     private static final Localizer LOCALIZER = new Localizer();
     private static final Map<String, String> ROUTE_PATHS = Map.ofEntries(
             Map.entry("news-list", "/station/news"),
@@ -127,6 +130,12 @@ public class NotificationService {
     /** The shortest gap the operator allows between two mails to the same station. */
     private final Duration digestFloor;
 
+    /** Whether the sweep writes mail at all; pruning goes on either way. */
+    private final boolean digestEnabled;
+
+    /** When read notifications were last pruned, {@code null} before the first time since start. */
+    private Instant lastPrunedAt;
+
     @Inject
     public NotificationService(
             NotificationRepository notificationRepository,
@@ -155,14 +164,15 @@ public class NotificationService {
 
         int intervalMinutes = mailing.notificationDigestIntervalMinutes();
         this.digestFloor = Duration.ofMinutes(Math.max(intervalMinutes, 0));
-        if (intervalMinutes > 0) {
-            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-                var t = new Thread(r, "notification-digest");
-                t.setDaemon(true);
-                return t;
-            });
-            long tick = Math.min(intervalMinutes, TICK_MINUTES);
-            scheduler.scheduleWithFixedDelay(this::sweep, tick, tick, TimeUnit.MINUTES);
+        this.digestEnabled = intervalMinutes > 0;
+        long tick = digestEnabled ? Math.min(intervalMinutes, TICK_MINUTES) : TICK_MINUTES;
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            var t = new Thread(r, "notification-sweep");
+            t.setDaemon(true);
+            return t;
+        });
+        scheduler.scheduleWithFixedDelay(this::sweep, tick, tick, TimeUnit.MINUTES);
+        if (digestEnabled) {
             log.info(
                     "Notification digest looks in every {} minutes, no station written to more often than every {}",
                     tick,
@@ -942,10 +952,35 @@ public class NotificationService {
      *
      * <p>Stations and clusters keep their own times and are decided apart, but neither is allowed to
      * stop the other: a cluster whose mail fails is not a reason for a station to go unwritten to.
+     * Read notifications are pruned from here too, also where the digest is switched off, since the
+     * table otherwise only ever grows.
      */
     private void sweep() {
-        processDigest();
-        processClusterDigest();
+        if (digestEnabled) {
+            processDigest();
+            processClusterDigest();
+        }
+        pruneAcknowledgedIfDue(Instant.now());
+    }
+
+    /**
+     * Prunes old read notifications unless that already happened within the last day.
+     *
+     * <p>The sweep comes round every few minutes and pruning needs doing once a day, so the time of
+     * the last successful run is kept and the work skipped until a day has passed. A failure is
+     * logged and not remembered, so the next sweep tries again; it must not escape either, because
+     * an exception ends the scheduled sweep for good.
+     *
+     * @param now the moment of this sweep
+     */
+    void pruneAcknowledgedIfDue(Instant now) {
+        if (lastPrunedAt != null && now.isBefore(lastPrunedAt.plus(PRUNE_INTERVAL))) return;
+        try {
+            cleanupOld();
+            lastPrunedAt = now;
+        } catch (RuntimeException e) {
+            log.warn("Pruning read notifications failed, trying again on the next sweep", e);
+        }
     }
 
     /**
