@@ -116,7 +116,11 @@ public class EventRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/events", this::list, StationPermission.USER);
-        routes.get(prefix + "/events/search", this::searchPicker, StationPermission.PAGE_EDIT);
+        routes.get(
+                prefix + "/events/search",
+                this::searchPicker,
+                StationPermission.PAGE_EDIT,
+                StationPermission.NEWS_EDIT);
         routes.get(prefix + "/events/upcoming", this::listUpcoming, StationPermission.USER);
         routes.get(prefix + "/events/past", this::listPast, StationPermission.USER);
         routes.get(prefix + "/events/paged", this::listPaged, StationPermission.USER);
@@ -178,13 +182,28 @@ public class EventRoutes implements Routes {
         return new CategoryFilter(categoryId, requiresRegistration);
     }
 
+    /**
+     * The event picker of the content blocks.
+     *
+     * <p>A station page is read by anybody, so its blocks are offered public events only. A news
+     * entry is written inside the station and may announce an event the station keeps to itself,
+     * so a news author asking for {@code scope=VISIBLE} is offered every event they may see. The
+     * scope is only honoured for that right: a page editor asking for it still gets public events.
+     */
     private void searchPicker(Context ctx) {
         UserSession session = UserSession.from(ctx);
         String q = ctx.queryParam("q");
         var mode = parsePickerMode(ctx.queryParam("mode"));
         int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
         int limit = Math.clamp(requested, 1, 20);
-        ctx.json(crudService.searchEventPicker(session.stationId(), q, mode, limit));
+        boolean visibleScope = "VISIBLE".equalsIgnoreCase(ctx.queryParam("scope"))
+                && session.hasPermission(StationPermission.NEWS_EDIT)
+                && session.member() != null;
+        ctx.json(
+                visibleScope
+                        ? crudService.searchVisibleEventPicker(
+                                session.stationId(), session.member().id(), q, mode, limit)
+                        : crudService.searchEventPicker(session.stationId(), q, mode, limit));
     }
 
     /**
