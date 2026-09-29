@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.util.OversizedPictures;
 import dev.chojo.ember.util.WebpEncoder;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -147,6 +148,17 @@ class MediaVariantServiceTest {
         storage.store(STATION_ID, svgHash, svg, "image/svg+xml");
         variants.generateVariants(STATION_ID, svgHash, svg, "image/svg+xml");
         assertFalse(Files.exists(storage.hashDir(STATION_ID, svgHash).resolve("w128.webp")));
+    }
+
+    @Test
+    void anImageWithTooManyPixelsGetsNoVariantsAndIsNeverDecoded() throws IOException {
+        byte[] bomb = OversizedPictures.pngClaiming(30_000, 30_000);
+        String hash = MediaStorageService.hash(bomb);
+        storage.store(STATION_ID, hash, bomb, "image/png");
+
+        assertDoesNotThrow(() -> variants.generateVariants(STATION_ID, hash, bomb, "image/png"));
+
+        assertFalse(Files.exists(storage.hashDir(STATION_ID, hash).resolve("w128.webp")));
     }
 
     @Test

@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.util.PixelBudget;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -18,14 +19,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-
-import javax.imageio.ImageIO;
 
 /**
  * Handles the multi-size variant set for an image keyed by {@code (scope, category, key)}.
@@ -161,6 +159,8 @@ public class ImageVariantService {
      *
      * @param maxBytes upper bound on the raw upload size; {@code 0} disables the check.
      * @throws BadRequestResponse on oversize uploads, MIME-mismatch, or unreadable images.
+     * @throws dev.chojo.ember.api.RefusalResponse when the image declares more pixels than
+     *                            {@link PixelBudget#MAX_PIXELS}, before any of it is decoded.
      * @throws IOException        on a disk write failure during variant generation.
      */
     public void store(
@@ -174,10 +174,7 @@ public class ImageVariantService {
             throw new BadRequestResponse("Unsupported image format");
         }
 
-        BufferedImage original;
-        try (var in = new ByteArrayInputStream(data)) {
-            original = ImageIO.read(in);
-        }
+        BufferedImage original = PixelBudget.read(data);
         if (original == null) {
             throw new BadRequestResponse("Unsupported image format");
         }

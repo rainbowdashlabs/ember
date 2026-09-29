@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.media.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -17,6 +19,7 @@ import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.OversizedPictures;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -80,6 +83,19 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
         } finally {
             media.deleteFile(file.id());
         }
+    }
+
+    @Test
+    void anImageWithTooManyPixelsIsRefusedBeforeAnythingIsStored() {
+        byte[] bomb = OversizedPictures.pngClaiming(30_000, 30_000);
+        int before = media.listLibrary(station.id(), true).size();
+
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> media.upload(station.id(), pageId, member.id(), "bomb.png", "image/png", bomb));
+
+        assertEquals(Refusal.PICTURE_TOO_MANY_PIXELS, refusal.refusal());
+        assertEquals(before, media.listLibrary(station.id(), true).size());
     }
 
     @Test

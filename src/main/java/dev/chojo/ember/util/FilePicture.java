@@ -58,12 +58,20 @@ public final class FilePicture {
     /**
      * The first page of a PDF, drawn.
      *
-     * @return the page, or {@code null} for a document with no pages
+     * <p>A page can declare any size it likes, and drawing it allocates that many pixels. The scale
+     * is lowered for a page that would come out above {@link PixelBudget#MAX_PIXELS}, and a page
+     * whose shape keeps it above the budget at any scale is not drawn at all.
+     *
+     * @return the page, or {@code null} for a document with no pages or a page that cannot be drawn
+     *     inside the budget
      */
     public static BufferedImage firstPage(byte[] pdf, int dpi) throws IOException {
         try (var document = Loader.loadPDF(pdf)) {
             if (document.getNumberOfPages() == 0) return null;
-            return new PDFRenderer(document).renderImageWithDPI(0, dpi);
+            var cropBox = document.getPage(0).getCropBox();
+            float scale = PixelBudget.pageScale(cropBox, dpi);
+            if (!PixelBudget.pageSize(cropBox, scale).fits()) return null;
+            return new PDFRenderer(document).renderImage(0, scale);
         }
     }
 }

@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.media.repository.MediaFileRepository;
 import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
+import dev.chojo.ember.util.PixelBudget;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -83,6 +84,9 @@ public class MediaLibraryService {
      * identical. Either way {@code memberId} is recorded as an uploader, so a dedup hit still
      * puts the file into that member's own list.
      *
+     * <p>An image declaring more pixels than {@link PixelBudget#MAX_PIXELS} is refused before
+     * anything is stored, since making its variants would have to unpack every one of them.
+     *
      * @param stationId the station whose library takes it, or {@code null} for the instance's own.
      *                  An instance file counts against no station's quota, because there is no
      *                  station to count it against
@@ -94,6 +98,7 @@ public class MediaLibraryService {
             Integer stationId, Integer pageId, Integer memberId, String fileName, String mimeType, byte[] data)
             throws IOException {
         boolean isImage = mimeType != null && mimeType.startsWith("image/");
+        if (isImage) PixelBudget.requireWithin(data);
         if (stationId != null) {
             if (isImage) {
                 quotaService.checkImageSize(stationId, data.length);

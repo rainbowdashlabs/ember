@@ -914,6 +914,8 @@ export default {
     'G-009': 'Diese Adresse führt zu nichts',
     'G-010': NOT_HERE_OR_NOT_YOURS,
     'G-011': NOT_HERE_OR_NOT_YOURS,
+    'G-012': 'Dieses Bild hat zu viele Pixel, um verarbeitet zu werden, es wurde nichts gespeichert. '
+        + 'Eine kleinere Fassung davon klappt',
 
     'CU-001': 'Eine Reihenfolge gehört zu genau einer Zielgruppe, es wurde nichts gespeichert',
     'CU-002': CHOOSE_A_CLUSTER,

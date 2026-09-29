@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.media.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.util.FilePicture;
+import dev.chojo.ember.util.PixelBudget;
 import dev.chojo.ember.util.WebpEncoder;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -15,12 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Optional;
-
-import javax.imageio.ImageIO;
 
 /**
  * Generates and resolves width-keyed image variants. At upload time the service is invoked
@@ -149,17 +147,18 @@ public class MediaVariantService {
     private BufferedImage sourceImageOf(String mimeType, byte[] bytes, Integer stationId, String contentHash) {
         try {
             if (worthResizing(mimeType)) {
-                try (var in = new ByteArrayInputStream(bytes)) {
-                    BufferedImage read = ImageIO.read(in);
-                    if (read == null) {
-                        log.debug(
-                                "ImageIO returned null for station={} hash={} type={}",
-                                stationId,
-                                contentHash,
-                                mimeType);
-                    }
-                    return read;
+                if (!PixelBudget.fits(bytes)) {
+                    log.warn(
+                            "Skipped variants of an image above the pixel budget station={} hash={}",
+                            stationId,
+                            contentHash);
+                    return null;
                 }
+                BufferedImage read = PixelBudget.read(bytes);
+                if (read == null) {
+                    log.debug("No image reader for station={} hash={} type={}", stationId, contentHash, mimeType);
+                }
+                return read;
             }
             if (rendersToPicture(mimeType)) return FilePicture.firstPage(bytes, PDF_RENDER_DPI);
             return null;

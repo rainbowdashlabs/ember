@@ -2623,6 +2623,18 @@ public enum Refusal {
      */
     NOT_HERE_OR_NOT_YOURS(Area.GENERAL, 11, HttpStatus.NOT_FOUND, Sentences.NOT_HERE_OR_NOT_YOURS),
 
+    /**
+     * A picture whose header declares more pixels than may be unpacked, wherever it was uploaded.
+     * One code for every upload, because the one place that measures pictures is the one that
+     * refuses them.
+     */
+    PICTURE_TOO_MANY_PIXELS(
+            Area.GENERAL,
+            12,
+            HttpStatus.CONTENT_TOO_LARGE,
+            "That picture has too many pixels to be worked with, so nothing was saved. "
+                    + "A smaller version of it will work"),
+
     /** An order for a cluster's questions, sent without saying which audience the order is for. */
     CLUSTER_FIELD_ORDER_NEEDS_AN_AUDIENCE(
             Area.CLUSTERS,
