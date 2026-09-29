@@ -11,6 +11,7 @@ import {useSession} from '~/composables/useSession'
 import {useCluster} from '~/composables/useCluster'
 import {useStations} from '~/composables/useStations'
 import {forgetLandingMemory, rememberVisitedArea} from '~/util/landingMemoryState'
+import {isPublicRoute} from '~/util/publicRoute'
 
 /**
  * How long a session may sit untouched before the requirements of the active station are
@@ -94,16 +95,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
         return navigateTo({path: to.path, query, hash: to.hash, replace: true})
     }
 
-    if (to.meta.public === true) return
-    if (to.path === '/' || to.path === '/login' || to.path === '/2fa-verify') return
-    if (to.path.startsWith('/helpcenter')) return
-
-    const publicPaths = [
-        '/forgot-password', '/set-password', '/set-address', '/reset-password', '/confirm-email-change', '/install',
-        '/apply', '/waitlist', '/style', '/privacy', '/terms', '/imprint', '/patch-notes',
-        '/discovery', '/public', '/waiting-list', '/unlock-device', '/enroll',
-    ]
-    if (publicPaths.some(p => to.path.startsWith(p))) return
+    if (isPublicRoute(to.path, to.meta)) return
 
     const token = getItem('session_token')
     if (!token) {

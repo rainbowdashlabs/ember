@@ -14,7 +14,7 @@
  *
  * Which pages those are is worked out rather than listed, from the two files that already decide
  * it. `nuxt.config.ts` names the route prefixes this project deliberately renders on the server,
- * and `src/middleware/auth.global.ts` names the paths that are let through without a session. A
+ * and `src/util/publicRoute.ts` names the paths that are let through without a session. A
  * page under both is one a stranger can open and a crawler can read, and it has to describe itself.
  *
  * What it must carry is a title, a description, an OpenGraph title and description, and a Twitter
@@ -55,7 +55,7 @@ const REF_WRITE = /\b([A-Za-z_$][\w$]*)\.value\s*=[^=]/g
 const CALLED = /\b([A-Za-z_$][\w$]*)\s*\(/g
 
 const NUXT_CONFIG = join(SRC, '..', 'nuxt.config.ts')
-const AUTH_MIDDLEWARE = join(SRC, 'middleware', 'auth.global.ts')
+const PUBLIC_ROUTES = join(SRC, 'util', 'publicRoute.ts')
 
 const BUILDER = /\bsocialMeta\s*\(/
 const DESCRIPTION = /name:\s*'description'/
@@ -108,24 +108,24 @@ export function serverRenderedRoutes(nuxtConfig) {
 /**
  * The paths a reader with no session is let through to.
  *
- * <p>Two shapes, both taken from the one middleware that decides it. The list it tests with
- * `startsWith` gives the prefixes; an early `return` on a path of its own gives the exact ones. A
- * gate that compares a path and then does something other than return is not a way through, which
- * is what tells the administration and station gates further down apart from these.
+ * <p>Read from the one module the route guard and the request client both ask: its list of exact
+ * paths and its list of prefixes, each reaching whole segments below it.
  *
- * @param middleware the contents of the global auth middleware
+ * @param publicRoutes the contents of `src/util/publicRoute.ts`
  */
-export function signInFreeRoutes(middleware) {
-    const list = delimited(middleware, middleware.indexOf('publicPaths'), '[', ']')
-    const prefixes = [...list.matchAll(/'([^']+)'/g)].map(entry => entry[1])
-    const exact = []
-    for (const line of middleware.split('\n')) {
-        const guard = line.match(/^\s*if \((.*)\) return\s*$/)
-        if (!guard) continue
-        for (const [, path] of guard[1].matchAll(/to\.path\s*===\s*'([^']+)'/g)) exact.push(path)
-        for (const [, path] of guard[1].matchAll(/to\.path\.startsWith\('([^']+)'\)/g)) prefixes.push(path)
+export function signInFreeRoutes(publicRoutes) {
+    return {
+        prefixes: quotedEntries(publicRoutes, 'PUBLIC_PATH_PREFIXES'),
+        exact: quotedEntries(publicRoutes, 'PUBLIC_EXACT_PATHS'),
     }
-    return {prefixes, exact}
+}
+
+/** The quoted strings of the array literal a constant is assigned. */
+function quotedEntries(source, name) {
+    const declared = source.indexOf(`${name}:`)
+    if (declared === -1) return []
+    const list = delimited(source, source.indexOf('=', declared), '[', ']')
+    return [...list.matchAll(/'([^']+)'/g)].map(entry => entry[1])
 }
 
 /** Whether a route is covered by one rule of the configuration, whose `**` reaches everything below it. */
@@ -313,7 +313,7 @@ export function lateHeadSources(source) {
 
 function run() {
     const serverRendered = serverRenderedRoutes(readFileSync(NUXT_CONFIG, 'utf-8'))
-    const signInFree = signInFreeRoutes(readFileSync(AUTH_MIDDLEWARE, 'utf-8'))
+    const signInFree = signInFreeRoutes(readFileSync(PUBLIC_ROUTES, 'utf-8'))
 
     let checked = 0
     for (const file of walk(PAGES_DIR, '.vue')) {

@@ -3,6 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {readFileSync} from 'fs'
+import {join} from 'path'
 import {describe, expect, it} from 'vitest'
 import {
     lateHeadSources,
@@ -247,22 +249,26 @@ describe('the pages the rule reaches', () => {
         expect(routes).toEqual(['/', '/discovery', '/public/**', '/f/**'])
     })
 
-    it('takes the paths let through without a session, and not the gates that only look like them', () => {
+    it('takes the paths let through without a session from the shared public route lists', () => {
         const {prefixes, exact} = signInFreeRoutes(`
-    if (to.path === '/' || to.path === '/login') return
-    if (to.path.startsWith('/helpcenter')) return
+/** Addresses a reader without a session may open, matched as a whole path. */
+export const PUBLIC_EXACT_PATHS: readonly string[] = ['/', '/login']
 
-    const publicPaths = [
-        '/discovery', '/public', '/waiting-list',
-    ]
-    if (publicPaths.some(p => to.path.startsWith(p))) return
-
-    if (to.path === '/admin' || to.path.startsWith('/admin/')) {
-        return navigateTo('/station/dashboard/overview')
-    }
+/** Areas a reader without a session may open, like \`/s\` and not '/station'. */
+export const PUBLIC_PATH_PREFIXES: readonly string[] = [
+    '/helpcenter', '/discovery', '/public', '/waiting-list',
+]
 `)
 
         expect(exact).toEqual(['/', '/login'])
-        expect(prefixes).toEqual(['/discovery', '/public', '/waiting-list', '/helpcenter'])
+        expect(prefixes).toEqual(['/helpcenter', '/discovery', '/public', '/waiting-list'])
+    })
+
+    it('reads the real public route module', () => {
+        const {prefixes, exact} = signInFreeRoutes(readFileSync(join(process.cwd(), 'src', 'util', 'publicRoute.ts'), 'utf-8'))
+
+        expect(exact).toContain('/login')
+        expect(prefixes).toContain('/public')
+        expect(prefixes).toContain('/f')
     })
 })

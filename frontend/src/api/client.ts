@@ -17,6 +17,7 @@ import {reportApiError} from '@/util/devErrorReporter'
 import {requestStepUp, StepUpCancelledError, StepUpProof, type StepUpCategory, type StepUpProofName} from '@/util/stepUp'
 import type {ApiErrorBody} from '@/util/apiError'
 import {getActingStation} from '@/util/actingStationState'
+import {isPublicRoute} from '@/util/publicRoute'
 import i18n from '@/i18n'
 
 /**
@@ -202,11 +203,7 @@ client.interceptors.response.use(
                 removeItem('station_id')
                 removeItem('cluster_id')
                 const currentPath = window.location.pathname
-                const isPublicPath = currentPath === '/'
-                    || currentPath === '/login'
-                    || currentPath === '/2fa-verify'
-                    || currentPath.startsWith('/helpcenter')
-                if (!isPublicPath) {
+                if (!isPublicRoute(currentPath)) {
                     const fullPath = currentPath + window.location.search
                     window.location.href = '/login?redirect=' + encodeURIComponent(fullPath)
                 }
