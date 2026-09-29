@@ -319,7 +319,7 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(62)
     void findByStationForMember() {
-        var forms = formRepo.findByStationForMember(station.id(), member.id());
+        var forms = formRepo.findByStationForMember(station.id(), member.id(), false);
         assertNotNull(forms);
     }
 

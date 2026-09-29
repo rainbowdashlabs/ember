@@ -52,7 +52,7 @@ public class FormRepository {
             "%s, (SELECT count(*) FROM form_response fr WHERE fr.form_id = f.id)::INT AS response_count, GREATEST(f.updated_at, (SELECT MAX(fr2.updated_at) FROM form_response fr2 WHERE fr2.form_id = f.id)) AS last_activity_at"
                     .formatted(RestrictionSql.restrictedFlag(RestrictionType.FORM, "f.id"));
     private static final String FORM_VISIBLE_FOR_MEMBER =
-            RestrictionSql.visibleFor(RestrictionType.FORM, "f.id", ":member_id");
+            RestrictionSql.visibleFor(RestrictionType.FORM, "f.id", ":member_id", ":is_manager");
     private static final String QUESTION_COLUMNS =
             "q.id, q.form_id, q.position, p.page_key, q.question_type, q.title, q.description, q.required, q.shuffle, q.config, q.branch";
     private static final String PAGE_COLUMNS =
@@ -146,21 +146,24 @@ public class FormRepository {
     }
 
     /**
-     * Retrieves forms for a station that the given member is allowed to see.
-     * Uses the DB restriction check function which resolves role inheritance, mode, and manager bypass.
+     * Retrieves forms for a station that the given member is allowed to see: all of them for a form
+     * manager, otherwise those whose restrictions take the member in.
      *
      * @param stationId the station ID
      * @param memberId  the requesting member ID
+     * @param manager   whether the member manages forms, taken from their resolved permissions
      * @return the filtered list of forms
      */
-    public List<Form> findByStationForMember(int stationId, int memberId) {
+    public List<Form> findByStationForMember(int stationId, int memberId, boolean manager) {
         return query("""
                 SELECT %s, %s
                 FROM form f
                 WHERE f.station_id = :station_id
                   AND %s
                 ORDER BY f.created_at DESC;""", FORM_COLUMNS, FORM_COMPUTED, FORM_VISIBLE_FOR_MEMBER)
-                .single(call().bind("station_id", stationId).bind("member_id", memberId))
+                .single(call().bind("station_id", stationId)
+                        .bind("member_id", memberId)
+                        .bind("is_manager", manager))
                 .map(Form.map())
                 .all();
     }

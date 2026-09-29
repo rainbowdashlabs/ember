@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.quiz.service.QuizTestAccessService;
 import dev.chojo.ember.feature.quiz.service.QuizTestService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -132,7 +133,9 @@ public class QuizTestRoutes implements Routes {
         List<QuizTest> tests;
         if (session.member() != null && !session.permissions().contains(StationPermission.TEST_CONFIGURE)) {
             tests = testService.findTestsForMember(
-                    session.stationId(), session.member().id());
+                    session.stationId(),
+                    session.member().id(),
+                    session.hasPermission(RestrictionType.QUIZ_TEST.managerPermission()));
         } else {
             tests = testService.findTests(session.stationId());
         }
@@ -144,7 +147,7 @@ public class QuizTestRoutes implements Routes {
 
     /**
      * Lists the active tests the calling member may take, each with the state of their own
-     * attempt. Restriction filtering and the manager bypass are resolved in the database.
+     * attempt. A test manager sees every test; everyone else the tests their restrictions admit.
      */
     private void listAvailableTests(Context ctx) {
         var session = UserSession.from(ctx);
@@ -153,7 +156,8 @@ public class QuizTestRoutes implements Routes {
             return;
         }
         int memberId = session.member().id();
-        var tests = testService.findTestsForMember(session.stationId(), memberId).stream()
+        boolean manager = session.hasPermission(RestrictionType.QUIZ_TEST.managerPermission());
+        var tests = testService.findTestsForMember(session.stationId(), memberId, manager).stream()
                 .filter(t -> t.status() == TestStatus.ACTIVE)
                 .toList();
         var result = tests.stream()

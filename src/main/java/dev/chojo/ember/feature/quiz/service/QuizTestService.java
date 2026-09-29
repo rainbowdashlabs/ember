@@ -55,8 +55,13 @@ public class QuizTestService {
         return testRepository.findByStation(stationId);
     }
 
-    public List<QuizTest> findTestsForMember(int stationId, int memberId) {
-        return testRepository.findByStationForMember(stationId, memberId);
+    /**
+     * The station's tests a member may see.
+     *
+     * @param manager whether the member manages tests, taken from their resolved permissions
+     */
+    public List<QuizTest> findTestsForMember(int stationId, int memberId, boolean manager) {
+        return testRepository.findByStationForMember(stationId, memberId, manager);
     }
 
     public Optional<QuizTest> findTest(int id) {

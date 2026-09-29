@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.content.service.ContentProjection;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.news.entity.News;
@@ -223,10 +224,11 @@ public class NewsService {
      *
      * @param newsId   the news article ID
      * @param memberId the member reading it
+     * @param manager  whether that member manages news, taken from their resolved permissions
      * @return {@code true} if the entry is visible to that member
      */
-    public boolean isVisibleForMember(int newsId, int memberId) {
-        return newsRepository.isVisibleForMember(newsId, memberId);
+    public boolean isVisibleForMember(int newsId, int memberId, boolean manager) {
+        return newsRepository.isVisibleForMember(newsId, memberId, manager);
     }
 
     /**
@@ -268,12 +270,13 @@ public class NewsService {
      *
      * @param stationId the station ID
      * @param memberId  the member ID
+     * @param manager   whether that member manages news, taken from their resolved permissions
      * @param offset    pagination offset
      * @param limit     maximum number of results
      * @return list of visible news articles
      */
-    public List<News> findVisibleForMember(int stationId, int memberId, int offset, int limit) {
-        return newsRepository.findVisibleForMember(stationId, memberId, offset, limit);
+    public List<News> findVisibleForMember(int stationId, int memberId, boolean manager, int offset, int limit) {
+        return newsRepository.findVisibleForMember(stationId, memberId, manager, offset, limit);
     }
 
     /**
@@ -461,8 +464,15 @@ public class NewsService {
      * has not yet been observed viewing it.
      */
     public ViewerSummary findViewerSummary(int newsId, int stationId) {
+        var managerIds =
+                stationMemberRepository
+                        .findMembersWithPermission(stationId, RestrictionType.NEWS.managerPermission())
+                        .stream()
+                        .map(StationMember::id)
+                        .toList();
         return new ViewerSummary(
-                newsRepository.findSeenViewers(newsId), newsRepository.findUnseenViewers(newsId, stationId));
+                newsRepository.findSeenViewers(newsId),
+                newsRepository.findUnseenViewers(newsId, stationId, managerIds));
     }
 
     /**

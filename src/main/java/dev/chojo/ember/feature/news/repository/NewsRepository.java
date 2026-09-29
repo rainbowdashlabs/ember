@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.news.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.news.entity.News;
@@ -17,6 +18,7 @@ import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,9 +39,9 @@ public class NewsRepository {
     private static final String NEWS_RESTRICTED = RestrictionSql.restrictedFlag(RestrictionType.NEWS, "n.id");
     private static final String NEWS_UNRESTRICTED = RestrictionSql.unrestricted(RestrictionType.NEWS, "n.id");
     private static final String NEWS_VISIBLE_FOR_MEMBER =
-            RestrictionSql.visibleFor(RestrictionType.NEWS, "n.id", ":member_id");
+            RestrictionSql.visibleFor(RestrictionType.NEWS, "n.id", ":member_id", ":is_manager");
     private static final String NEWS_VISIBLE_FOR_STATION_MEMBER =
-            RestrictionSql.visibleFor(RestrictionType.NEWS, ":news_id", "sm.id");
+            RestrictionSql.visibleFor(RestrictionType.NEWS, ":news_id", "sm.id", "sm.id = ANY(:manager_ids)");
     private static final String NEWS_COMMENT_COLUMNS =
             "id, news_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at";
 
@@ -103,16 +105,21 @@ public class NewsRepository {
      *
      * @param newsId   the news article ID
      * @param memberId the member reading it
+     * @param manager  whether that member manages news, which lets them past every restriction
      * @return {@code true} if the entry is visible to that member
      */
-    public boolean isVisibleForMember(int newsId, int memberId) {
+    public boolean isVisibleForMember(int newsId, int memberId, boolean manager) {
         return SqlSupport.count(
                         """
                         SELECT count(*) AS cnt FROM news n
                         JOIN station_member sm ON sm.id = :member_id
                         WHERE n.id = :news_id
                           AND (n.station_id IS NULL OR n.station_id = sm.station_id)
-                          AND %s;""", call().bind("news_id", newsId).bind("member_id", memberId), NEWS_VISIBLE_FOR_MEMBER)
+                          AND %s;""",
+                        call().bind("news_id", newsId)
+                                .bind("member_id", memberId)
+                                .bind("is_manager", manager),
+                        NEWS_VISIBLE_FOR_MEMBER)
                 > 0;
     }
 
@@ -187,16 +194,17 @@ public class NewsRepository {
     }
 
     /**
-     * Retrieves published news visible to a specific member, using the DB restriction check function.
-     * The function resolves role inheritance, restriction mode, and manager bypass.
+     * Retrieves published news visible to a specific member: all of it for a news manager, otherwise
+     * what the restrictions take them in for.
      *
      * @param stationId the station ID
      * @param memberId  the member ID
+     * @param manager   whether that member manages news
      * @param offset    pagination offset
      * @param limit     maximum number of results
      * @return list of visible news articles
      */
-    public List<News> findVisibleForMember(int stationId, int memberId, int offset, int limit) {
+    public List<News> findVisibleForMember(int stationId, int memberId, boolean manager, int offset, int limit) {
         return query("""
                 SELECT %s, %s
                 FROM news n
@@ -207,6 +215,7 @@ public class NewsRepository {
                 LIMIT :limit OFFSET :offset;""", NEWS_ALIASED, NEWS_RESTRICTED, NEWS_VISIBLE_FOR_MEMBER)
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
+                        .bind("is_manager", manager)
                         .bind("limit", limit)
                         .bind("offset", offset))
                 .map(News.map())
@@ -495,16 +504,19 @@ public class NewsRepository {
      *
      * @param stationId the station ID
      * @param memberId  the member ID
+     * @param manager   whether that member manages news
      * @return number of unacknowledged news articles
      */
-    public int countUnacknowledged(int stationId, int memberId) {
+    public int countUnacknowledged(int stationId, int memberId, boolean manager) {
         return SqlSupport.count(
                 """
                 SELECT count(*) AS cnt FROM news n
                 WHERE (n.station_id = :station_id OR n.station_id IS NULL)
                   AND n.published_at IS NOT NULL
                   AND NOT exists (SELECT 1 FROM news_acknowledgement na WHERE na.news_id = n.id AND na.member_id = :member_id)
-                  AND %s;""", call().bind("station_id", stationId).bind("member_id", memberId), NEWS_VISIBLE_FOR_MEMBER);
+                  AND %s;""",
+                call().bind("station_id", stationId).bind("member_id", memberId).bind("is_manager", manager),
+                NEWS_VISIBLE_FOR_MEMBER);
     }
 
     /**
@@ -562,8 +574,10 @@ public class NewsRepository {
      * Returns every active station member who is allowed to see the news (per restrictions)
      * but has not yet been observed viewing it. {@code seenAt} on the returned rows is always
      * {@code null}.
+     *
+     * @param managerIds the members of the station who manage news and so see every entry
      */
-    public List<NewsViewer> findUnseenViewers(int newsId, int stationId) {
+    public List<NewsViewer> findUnseenViewers(int newsId, int stationId, Collection<Integer> managerIds) {
         return query("""
                 SELECT st.uid AS station_uid, sm.uid AS member_uid, NULL::TIMESTAMPTZ AS seen_at
                 FROM station_member sm
@@ -575,7 +589,9 @@ public class NewsRepository {
                       SELECT 1 FROM news_view nv
                       WHERE nv.news_id = :news_id AND nv.member_id = sm.id)
                 ORDER BY sm.id;""", NEWS_VISIBLE_FOR_STATION_MEMBER)
-                .single(call().bind("news_id", newsId).bind("station_id", stationId))
+                .single(call().bind("news_id", newsId)
+                        .bind("station_id", stationId)
+                        .bind("manager_ids", managerIds, PostgreSqlTypes.INTEGER))
                 .map(NewsViewer.map())
                 .all();
     }

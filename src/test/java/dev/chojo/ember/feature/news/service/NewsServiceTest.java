@@ -144,7 +144,7 @@ class NewsServiceTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void findVisibleForMember() {
-        var list = service.findVisibleForMember(station.id(), member.id(), 0, 100);
+        var list = service.findVisibleForMember(station.id(), member.id(), false, 0, 100);
         assertTrue(list.stream().anyMatch(n -> n.id() == newsId));
     }
 
@@ -306,9 +306,9 @@ class NewsServiceTest extends RepositoryTestBase {
         try {
             assertTrue(entry.systemEntry());
             assertNull(entry.author());
-            assertTrue(service.isVisibleForMember(entry.id(), member.id()));
+            assertTrue(service.isVisibleForMember(entry.id(), member.id(), false));
             assertTrue(
-                    service.findVisibleForMember(station.id(), member.id(), 0, 50).stream()
+                    service.findVisibleForMember(station.id(), member.id(), false, 0, 50).stream()
                             .anyMatch(n -> n.id() == entry.id()),
                     "the station reads it alongside its own");
             assertTrue(
@@ -330,7 +330,7 @@ class NewsServiceTest extends RepositoryTestBase {
                 service.createSystem("Nur Betreuer", "Für die Leitung.", List.of(StationUserType.MANAGER), true, false);
         try {
             assertFalse(
-                    service.isVisibleForMember(entry.id(), member.id()),
+                    service.isVisibleForMember(entry.id(), member.id(), false),
                     "a member who is not of that type does not read it");
         } finally {
             service.delete(entry.id());

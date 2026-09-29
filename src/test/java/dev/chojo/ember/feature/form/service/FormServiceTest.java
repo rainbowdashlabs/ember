@@ -118,7 +118,7 @@ class FormServiceTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void findByStationForMember() {
-        var forms = service.findByStationForMember(station.id(), member.id());
+        var forms = service.findByStationForMember(station.id(), member.id(), false);
         assertNotNull(forms);
     }
 

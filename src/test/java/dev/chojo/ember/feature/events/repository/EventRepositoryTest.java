@@ -263,7 +263,7 @@ class EventRepositoryTest extends RepositoryTestBase {
         var event =
                 oneTime("Member Visible", Instant.parse("2027-02-15T09:00:00Z"), Instant.parse("2027-02-15T12:00:00Z"));
         try {
-            var events = eventRepo.findByStationForMember(station.id(), member.id());
+            var events = eventRepo.findByStationForMember(station.id(), member.id(), false);
             assertTrue(events.stream().anyMatch(e -> e.id() == event.id()));
         } finally {
             eventRepo.delete(event.id());

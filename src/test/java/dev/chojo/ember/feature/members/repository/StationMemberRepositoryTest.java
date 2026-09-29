@@ -238,6 +238,47 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
                         .anyMatch(m -> m.id() == memberId1));
     }
 
+    /**
+     * A station manager holds every management right through their user type alone, and a
+     * feature looking for the people who look after it finds them without any grant written down.
+     */
+    @Test
+    @Order(34)
+    void findMembersWithPermissionFindsAManagerByUserType() {
+        stationMemberRepo.setUserType(memberId1, StationUserType.MANAGER);
+        try {
+            assertTrue(
+                    stationMemberRepo.findMembersWithPermission(station.id(), StationPermission.EVENT_MANAGER).stream()
+                            .anyMatch(m -> m.id() == memberId1));
+        } finally {
+            stationMemberRepo.setUserType(memberId1, StationUserType.MEMBER);
+        }
+        assertFalse(stationMemberRepo.findMembersWithPermission(station.id(), StationPermission.EVENT_MANAGER).stream()
+                .anyMatch(m -> m.id() == memberId1));
+    }
+
+    /**
+     * A right the station hands to everybody of a user type counts for each member of that type.
+     */
+    @Test
+    @Order(34)
+    void findMembersWithPermissionFindsAStationGrantForTheUserType() {
+        int eventManager = stationMemberRepo
+                .findPermissionByName(StationPermission.EVENT_MANAGER)
+                .orElseThrow()
+                .id();
+        stationMemberRepo.setUserType(memberId1, StationUserType.TEAM);
+        stationMemberRepo.setUserTypePermissions(station.id(), StationUserType.TEAM, List.of(eventManager));
+        try {
+            assertTrue(
+                    stationMemberRepo.findMembersWithPermission(station.id(), StationPermission.EVENT_MANAGER).stream()
+                            .anyMatch(m -> m.id() == memberId1));
+        } finally {
+            stationMemberRepo.setUserTypePermissions(station.id(), StationUserType.TEAM, List.of());
+            stationMemberRepo.setUserType(memberId1, StationUserType.MEMBER);
+        }
+    }
+
     @Test
     @Order(35)
     void findByStationAndUserType() {

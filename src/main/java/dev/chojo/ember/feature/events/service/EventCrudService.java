@@ -13,6 +13,8 @@ import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -41,13 +43,18 @@ public class EventCrudService {
     private final EventRepository eventRepository;
     private final DomainEventBus eventBus;
     private final EquipmentReleaseService equipmentRelease;
+    private final RestrictionService restrictionService;
 
     @Inject
     public EventCrudService(
-            EventRepository eventRepository, DomainEventBus eventBus, EquipmentReleaseService equipmentRelease) {
+            EventRepository eventRepository,
+            DomainEventBus eventBus,
+            EquipmentReleaseService equipmentRelease,
+            RestrictionService restrictionService) {
         this.eventRepository = eventRepository;
         this.eventBus = eventBus;
         this.equipmentRelease = equipmentRelease;
+        this.restrictionService = restrictionService;
     }
 
     /**
@@ -86,27 +93,30 @@ public class EventCrudService {
     }
 
     /**
-     * Retrieves events for a station that the given member is allowed to see.
+     * Retrieves events for a station that the given member is allowed to see, all of them where
+     * the member manages events.
      *
      * @param stationId the station ID
-     * @param memberId  the requesting member ID
+     * @param memberId  the member ID
      * @return the filtered list of station events
      */
     public List<StationEvent> findByStationForMember(int stationId, int memberId) {
-        return eventRepository.findByStationForMember(stationId, memberId);
+        return eventRepository.findByStationForMember(stationId, memberId, managesEvents(memberId));
     }
 
     /**
-     * Applies the optional category and registration filters for a single member perspective.
+     * Applies the optional category and registration filters for a single member perspective. A
+     * member who manages events sees them all, as does a {@code null} member.
      */
     public List<StationEvent> findFiltered(
             int stationId, Integer memberId, Integer categoryId, Boolean requiresRegistration) {
-        return eventRepository.findFiltered(stationId, memberId, categoryId, requiresRegistration);
+        return eventRepository.findFiltered(stationId, restrictedTo(memberId), categoryId, requiresRegistration);
     }
 
     /**
      * Unions the filtered events visible to any of the given members, keeping the first occurrence
-     * of every event. A null member list falls back to the unrestricted station view.
+     * of every event. A null member list falls back to the unrestricted station view, and so does
+     * any listed member who manages events.
      */
     public List<StationEvent> findFilteredForMembers(
             int stationId, List<Integer> memberIds, Integer categoryId, Boolean requiresRegistration) {
@@ -115,11 +125,24 @@ public class EventCrudService {
         }
         var eventMap = new LinkedHashMap<Integer, StationEvent>();
         for (int mid : memberIds) {
-            for (var ev : eventRepository.findFiltered(stationId, mid, categoryId, requiresRegistration)) {
+            for (var ev :
+                    eventRepository.findFiltered(stationId, restrictedTo(mid), categoryId, requiresRegistration)) {
                 eventMap.putIfAbsent(ev.id(), ev);
             }
         }
         return new ArrayList<>(eventMap.values());
+    }
+
+    /**
+     * The member whose view restrictions narrow a listing, or {@code null} where nothing narrows
+     * it: no member was named, or the member manages events and sees all of them.
+     */
+    private Integer restrictedTo(Integer memberId) {
+        return memberId == null || managesEvents(memberId) ? null : memberId;
+    }
+
+    private boolean managesEvents(int memberId) {
+        return restrictionService.manages(RestrictionType.EVENT_VIEW, memberId);
     }
 
     /**

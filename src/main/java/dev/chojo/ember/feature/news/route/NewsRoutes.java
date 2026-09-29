@@ -162,7 +162,7 @@ public class NewsRoutes implements Routes {
             newsList = newsService.findByStation(session.stationId(), offset, limit);
         } else {
             newsList = newsService.findVisibleForMember(
-                    session.stationId(), session.member().id(), offset, limit);
+                    session.stationId(), session.member().id(), false, offset, limit);
         }
         int memberId = session.member().id();
         ctx.json(newsList.stream()
@@ -204,7 +204,8 @@ public class NewsRoutes implements Routes {
     private News requireReadable(Context ctx, int id) {
         UserSession session = UserSession.from(ctx);
         var news = newsService.findById(id).orElseThrow(Refusal.NEWS_NOT_HERE_OR_NOT_YOURS::raise);
-        if (!newsService.isVisibleForMember(id, session.member().id())) {
+        if (!newsService.isVisibleForMember(
+                id, session.member().id(), session.hasPermission(StationPermission.NEWS_MANAGER))) {
             throw Refusal.NEWS_NOT_HERE_OR_NOT_YOURS.raise();
         }
         return news;

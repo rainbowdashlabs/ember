@@ -40,7 +40,7 @@ public class QuizTestRepository {
     private static final String TEST_COLUMNS_BARE =
             "id, station_id, title, description, status, time_limit, shuffle, forced, start_at, end_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM quiz_test_restriction r WHERE r.test_id = id) AS restricted";
     private static final String TEST_VISIBLE_FOR_MEMBER =
-            RestrictionSql.visibleFor(RestrictionType.QUIZ_TEST, "t.id", ":member_id");
+            RestrictionSql.visibleFor(RestrictionType.QUIZ_TEST, "t.id", ":member_id", ":is_manager");
     private static final String QUIZ_TEST_SECTION_COLUMNS = "id, test_id, title, description, position";
     private static final String QUIZ_TEST_SECTION_SOURCE_COLUMNS =
             "id, section_id, catalog_id, category_id, question_count";
@@ -65,14 +65,22 @@ public class QuizTestRepository {
                 .all();
     }
 
-    public List<QuizTest> findByStationForMember(int stationId, int memberId) {
+    /**
+     * The station's tests a member may see: all of them for a test manager, otherwise those whose
+     * restrictions take the member in.
+     *
+     * @param manager whether the member manages tests, taken from their resolved permissions
+     */
+    public List<QuizTest> findByStationForMember(int stationId, int memberId, boolean manager) {
         return query("""
                 SELECT %s
                 FROM quiz_test t
                 WHERE t.station_id = :station_id
                   AND %s
                 ORDER BY t.created_at DESC;""", TEST_COLUMNS, TEST_VISIBLE_FOR_MEMBER)
-                .single(call().bind("station_id", stationId).bind("member_id", memberId))
+                .single(call().bind("station_id", stationId)
+                        .bind("member_id", memberId)
+                        .bind("is_manager", manager))
                 .map(QuizTest.map())
                 .all();
     }

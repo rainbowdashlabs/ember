@@ -565,7 +565,8 @@ public abstract class RepositoryTestBase {
                 stationMemberRepo,
                 memberGroupRepo,
                 userTagRepo,
-                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo));
+                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
+                memberPermissionResolver);
         applicationSettingRepo = new ApplicationSettingRepository();
         problemReportRepo = new ProblemReportRepository();
         boardRepo = new BoardRepository();
@@ -724,8 +725,8 @@ public abstract class RepositoryTestBase {
         var availability =
                 new EquipmentAvailabilityService(equipmentAvailabilityRepo, equipmentNeedRepo, eventRepo, breakService);
         var lending = newLendingService(eventBus, availability);
-        var crudService =
-                new EventCrudService(eventRepo, eventBus, new EquipmentReleaseService(equipmentNeedRepo, lending));
+        var crudService = new EventCrudService(
+                eventRepo, eventBus, new EquipmentReleaseService(equipmentNeedRepo, lending), restrictionService);
         return new EventServices(
                 crudService,
                 new EventOccurrenceService(crudService, breakService, stationRepo),

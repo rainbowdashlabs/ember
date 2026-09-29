@@ -78,7 +78,7 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Order(5)
     void findVisibleForMember() {
         // No group restrictions, should be visible
-        var visible = newsRepo.findVisibleForMember(station.id(), member.id(), 0, 10);
+        var visible = newsRepo.findVisibleForMember(station.id(), member.id(), false, 0, 10);
         assertEquals(1, visible.size());
     }
 
@@ -181,7 +181,7 @@ class NewsRepositoryTest extends RepositoryTestBase {
         // Create a second account/member that has not acknowledged
         var account2 = accountRepo.create("news2@test.com", "News2", "User2");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
-        int unacked = newsRepo.countUnacknowledged(station.id(), member2.id());
+        int unacked = newsRepo.countUnacknowledged(station.id(), member2.id(), false);
         // There is one published news article that member2 has not acknowledged
         assertEquals(1, unacked);
         accountRepo.delete(account2.id());
@@ -191,7 +191,7 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Order(33)
     void countUnacknowledgedWhenAcknowledged() {
         // member already acknowledged the article in Order(30)
-        int unacked = newsRepo.countUnacknowledged(station.id(), member.id());
+        int unacked = newsRepo.countUnacknowledged(station.id(), member.id(), false);
         assertEquals(0, unacked);
     }
 
@@ -270,7 +270,7 @@ class NewsRepositoryTest extends RepositoryTestBase {
         assertEquals(member.uid(), seen.getFirst().member().memberUid());
         assertNotNull(seen.getFirst().seenAt());
 
-        var unseen = newsRepo.findUnseenViewers(newsId, station.id());
+        var unseen = newsRepo.findUnseenViewers(newsId, station.id(), List.of());
         assertTrue(unseen.stream().anyMatch(v -> v.member().memberUid().equals(member2.uid())));
         assertTrue(unseen.stream().allMatch(v -> v.seenAt() == null));
 
@@ -298,9 +298,9 @@ class NewsRepositoryTest extends RepositoryTestBase {
         var otherAccount = accountRepo.create("other-news@test.com", "Other", "Reader");
         var otherMember = stationMemberRepo.create(otherStation.id(), otherAccount.id());
         try {
-            assertTrue(newsRepo.isVisibleForMember(newsId, member.id()), "the station's own member reads it");
+            assertTrue(newsRepo.isVisibleForMember(newsId, member.id(), false), "the station's own member reads it");
             assertFalse(
-                    newsRepo.isVisibleForMember(newsId, otherMember.id()),
+                    newsRepo.isVisibleForMember(newsId, otherMember.id(), false),
                     "a member of another station does not read it");
         } finally {
             stationRepo.delete(otherStation.id());
@@ -318,9 +318,9 @@ class NewsRepositoryTest extends RepositoryTestBase {
                 newsRepo.createSystem("Wartung", "Kurz nicht erreichbar.", "<p>Kurz nicht erreichbar.</p>", true);
         try {
             assertTrue(systemNews.systemEntry(), "it belongs to no station");
-            assertTrue(newsRepo.isVisibleForMember(systemNews.id(), member.id()));
+            assertTrue(newsRepo.isVisibleForMember(systemNews.id(), member.id(), false));
             assertTrue(
-                    newsRepo.findVisibleForMember(station.id(), member.id(), 0, 50).stream()
+                    newsRepo.findVisibleForMember(station.id(), member.id(), false, 0, 50).stream()
                             .anyMatch(n -> n.id() == systemNews.id()),
                     "a station's news list holds it alongside its own");
         } finally {

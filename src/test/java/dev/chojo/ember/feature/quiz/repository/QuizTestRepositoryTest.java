@@ -285,7 +285,7 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void findByStationForMember() {
-        var tests = quizTestRepo.findByStationForMember(station.id(), member.id());
+        var tests = quizTestRepo.findByStationForMember(station.id(), member.id(), false);
         // Member is station member, manager bypass applies - expect the test to be visible
         assertNotNull(tests);
     }

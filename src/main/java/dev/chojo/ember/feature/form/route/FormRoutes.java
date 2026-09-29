@@ -41,6 +41,7 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.CsvWriter;
 import io.javalin.http.Context;
@@ -285,8 +286,8 @@ public class FormRoutes implements Routes {
         }
         int memberId = session.member().id();
 
-        // findByStationForMember uses DB restriction check (manager bypass + role inheritance)
-        var accessibleForms = formService.findByStationForMember(session.stationId(), memberId).stream()
+        boolean manager = session.hasPermission(RestrictionType.FORM.managerPermission());
+        var accessibleForms = formService.findByStationForMember(session.stationId(), memberId, manager).stream()
                 .filter(f -> f.status() == Form.FormStatus.OPEN)
                 .filter(formService::isAcceptingResponses)
                 .toList();
@@ -296,7 +297,7 @@ public class FormRoutes implements Routes {
         var managedAccessible = managed.isEmpty()
                 ? Set.<Integer>of()
                 : managed.stream()
-                        .flatMap(m -> formService.findByStationForMember(session.stationId(), m.id()).stream())
+                        .flatMap(m -> formService.findByStationOnBehalfOf(session.stationId(), m.id()).stream())
                         .filter(f -> f.status() == Form.FormStatus.OPEN)
                         .filter(formService::isAcceptingResponses)
                         .map(Form::id)

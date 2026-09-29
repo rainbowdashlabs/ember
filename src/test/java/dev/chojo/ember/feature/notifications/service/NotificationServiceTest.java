@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.notifications.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
@@ -251,6 +252,33 @@ class NotificationServiceTest extends RepositoryTestBase {
         // member2 should be excluded
         assertFalse(
                 service.findUnacknowledged(member2.id()).stream().anyMatch(n -> n.type() == NotificationType.NEW_NEWS));
+    }
+
+    /**
+     * A station manager is told about the work of every manager role, although none of those
+     * rights was ever granted to them by name.
+     */
+    @Test
+    @Order(32)
+    void notifyMembersWithRoleReachesAManagerByUserType() {
+        var managerAccount = accountRepo.create("notif-type-manager@test.com", "Notif", "Manager");
+        try {
+            var manager = stationMemberRepo.create(station.id(), managerAccount.id());
+            stationMemberRepo.setUserType(manager.id(), StationUserType.MANAGER);
+            service.acknowledgeAll(member2.id());
+
+            var data = NotificationData.of(
+                    new NotificationParams.NewNews("Managers only", "Author", "Preview"),
+                    new NotificationData.NotificationLink("dashboard-overview"));
+            service.notifyMembersWithRole(station.id(), "EVENT_MANAGER", NotificationType.NEW_NEWS, data);
+
+            assertTrue(service.findUnacknowledged(manager.id()).stream()
+                    .anyMatch(n -> n.type() == NotificationType.NEW_NEWS));
+            assertFalse(service.findUnacknowledged(member2.id()).stream()
+                    .anyMatch(n -> n.type() == NotificationType.NEW_NEWS));
+        } finally {
+            accountRepo.delete(managerAccount.id());
+        }
     }
 
     @Test

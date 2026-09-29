@@ -167,10 +167,25 @@ public class FormService {
      *
      * @param stationId the station ID
      * @param memberId  the requesting member ID
+     * @param manager   whether the member manages forms, taken from their session
      * @return the filtered list of forms
      */
-    public List<Form> findByStationForMember(int stationId, int memberId) {
-        return repository.findByStationForMember(stationId, memberId);
+    public List<Form> findByStationForMember(int stationId, int memberId, boolean manager) {
+        return repository.findByStationForMember(stationId, memberId, manager);
+    }
+
+    /**
+     * Retrieves forms for a station that a member other than the caller is allowed to see, such as
+     * somebody a guardian answers for. Whether that member manages forms is resolved here, since
+     * no session carries it.
+     *
+     * @param stationId the station ID
+     * @param memberId  the member whose forms are listed
+     * @return the filtered list of forms
+     */
+    public List<Form> findByStationOnBehalfOf(int stationId, int memberId) {
+        return repository.findByStationForMember(
+                stationId, memberId, restrictionService.manages(RestrictionType.FORM, memberId));
     }
 
     /**

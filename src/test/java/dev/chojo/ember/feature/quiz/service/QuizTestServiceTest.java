@@ -112,7 +112,7 @@ class QuizTestServiceTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void findTestsForMember() {
-        assertNotNull(service.findTestsForMember(station.id(), member.id()));
+        assertNotNull(service.findTestsForMember(station.id(), member.id(), false));
     }
 
     @Test

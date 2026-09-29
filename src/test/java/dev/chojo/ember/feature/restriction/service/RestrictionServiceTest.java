@@ -435,7 +435,10 @@ class RestrictionServiceTest extends RepositoryTestBase {
     }
 
     private static boolean listsForm(int formId, StationMember member) {
-        return formRepo.findByStationForMember(station.id(), member.id()).stream()
+        return formRepo
+                .findByStationForMember(
+                        station.id(), member.id(), restrictionService.manages(RestrictionType.FORM, member.id()))
+                .stream()
                 .anyMatch(form -> form.id() == formId);
     }
 

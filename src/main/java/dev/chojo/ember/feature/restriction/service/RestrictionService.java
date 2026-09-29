@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
 import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -44,6 +45,7 @@ public class RestrictionService {
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
     private final KbAccessService kbAccessService;
+    private final MemberPermissionResolver permissionResolver;
 
     @Inject
     public RestrictionService(
@@ -51,12 +53,29 @@ public class RestrictionService {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
-            KbAccessService kbAccessService) {
+            KbAccessService kbAccessService,
+            MemberPermissionResolver permissionResolver) {
         this.restrictionRepository = restrictionRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
         this.kbAccessService = kbAccessService;
+        this.permissionResolver = permissionResolver;
+    }
+
+    /**
+     * Whether a member manages the given entity type and so passes every restriction on it, decided
+     * from the permissions they hold through every source.
+     *
+     * <p>For members who are not the one making the request, such as the people a guardian speaks
+     * for. The requesting member's answer is already in their session.
+     *
+     * @param type     the restricted entity type
+     * @param memberId the member
+     * @return {@code true} where the member holds the type's manager permission
+     */
+    public boolean manages(RestrictionType type, int memberId) {
+        return permissionResolver.resolve(memberId).contains(type.managerPermission());
     }
 
     /**

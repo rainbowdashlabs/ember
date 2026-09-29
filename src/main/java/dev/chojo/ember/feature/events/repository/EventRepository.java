@@ -49,8 +49,9 @@ public class EventRepository {
     private static final String EVENT_RESTRICTED_COLUMN_BARE =
             RestrictionSql.restrictedFlag(RestrictionType.EVENT_VIEW, "id");
     private static final String EVENT_VISIBLE_FOR_MEMBER =
-            RestrictionSql.visibleFor(RestrictionType.EVENT_VIEW, "e.id", ":member_id");
-    private static final String EVENT_MEMBER_PREDICATE = "AND " + EVENT_VISIBLE_FOR_MEMBER;
+            RestrictionSql.visibleFor(RestrictionType.EVENT_VIEW, "e.id", ":member_id", ":is_manager");
+    private static final String EVENT_ADMITS_MEMBER_PREDICATE =
+            "AND " + RestrictionSql.admits(RestrictionType.EVENT_VIEW, "e.id", ":member_id");
 
     /**
      * Retrieves all events for a station, ordered by event type and name.
@@ -143,21 +144,24 @@ public class EventRepository {
     }
 
     /**
-     * Retrieves events for a station that the given member is allowed to see.
-     * Uses the DB restriction check function which resolves role inheritance, mode, and manager bypass.
+     * Retrieves events for a station that the given member is allowed to see: all of them for an
+     * event manager, otherwise those whose view restrictions take the member in.
      *
      * @param stationId the station ID
      * @param memberId  the requesting member ID
+     * @param manager   whether the member manages events, taken from their resolved permissions
      * @return the filtered list of station events
      */
-    public List<StationEvent> findByStationForMember(int stationId, int memberId) {
+    public List<StationEvent> findByStationForMember(int stationId, int memberId, boolean manager) {
         return query("""
                 SELECT %s, %s
                 FROM station_event e
                 WHERE e.station_id = :station_id
                   AND %s
                 ORDER BY e.event_type, e.name;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN, EVENT_VISIBLE_FOR_MEMBER)
-                .single(call().bind("station_id", stationId).bind("member_id", memberId))
+                .single(call().bind("station_id", stationId)
+                        .bind("member_id", memberId)
+                        .bind("is_manager", manager))
                 .map(StationEvent.map())
                 .all();
     }
@@ -165,11 +169,14 @@ public class EventRepository {
     /**
      * Retrieves a station's events narrowed by any combination of member visibility, category and
      * registration requirement. Absent filters widen the result rather than restricting it.
+     *
+     * @param restrictedTo the member whose view restrictions narrow the list, or {@code null} for
+     *                     the whole station, which is also what an event manager sees
      */
     public List<StationEvent> findFiltered(
-            int stationId, Integer memberId, Integer categoryId, Boolean requiresRegistration) {
+            int stationId, Integer restrictedTo, Integer categoryId, Boolean requiresRegistration) {
         var where = WhereBuilder.create()
-                .add("AND " + EVENT_VISIBLE_FOR_MEMBER, "member_id", memberId)
+                .add(EVENT_ADMITS_MEMBER_PREDICATE, "member_id", restrictedTo)
                 .add("AND e.category_id = :category_id", "category_id", categoryId)
                 .add(
                         "AND e.requires_registration = :requires_registration",

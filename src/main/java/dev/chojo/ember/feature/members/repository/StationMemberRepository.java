@@ -22,6 +22,7 @@ import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -674,19 +675,39 @@ public class StationMemberRepository {
     }
 
     /**
-     * Find all active members of a station who have the given permission (directly or via group).
+     * Find all active members of a station who hold the given permission, by the same rule the
+     * member permission resolver applies to one member: what their user type carries everywhere,
+     * what the station grants their user type, what was granted to them directly or through a
+     * group, and the guardian right that follows from looking after somebody.
      *
      * <p>A wider right that carries the asked-for one counts. Somebody holding only the station
      * administrator right may do everything a manager may do, and a search by the manager's name
      * alone passed them over: the screens let them in and the notifications about that work never
-     * reached them.
+     * reached them. The same holds for a station manager whose right comes from their user type
+     * and was never written down as a grant.
+     *
+     * <p>Which user types and grant names count is worked out from the permission hierarchy here,
+     * so the statement only matches stored rows against lists the enums produced.
      */
     public List<StationMember> findMembersWithPermission(int stationId, StationPermission permission) {
+        var defaultTypes = Arrays.stream(StationUserType.values())
+                .filter(type -> type.grantsByDefault(permission))
+                .map(StationUserType::name)
+                .toList();
+        boolean guardianGrants = permission.grantedBy().contains(StationPermission.MEMBER_GUARDIAN.name());
         return query("""
-                SELECT DISTINCT %s FROM station_member sm
+                SELECT %s FROM station_member sm
                 WHERE sm.station_id = :station_id AND sm.former = FALSE
                   AND (
-                    exists (
+                    sm.user_type = ANY(:default_user_types)
+                    OR exists (
+                        SELECT 1 FROM station_user_type_permission sutp
+                        JOIN station_permission sp ON sp.id = sutp.permission_id
+                        WHERE sutp.station_id = sm.station_id
+                          AND sutp.user_type = sm.user_type
+                          AND sp.name = ANY(:permission_names)
+                    )
+                    OR exists (
                         SELECT 1 FROM station_member_permission smp
                         JOIN station_permission sp ON sp.id = smp.permission_id
                         WHERE smp.member_id = sm.id AND sp.name = ANY(:permission_names)
@@ -697,9 +718,16 @@ public class StationMemberRepository {
                         JOIN station_permission sp ON sp.id = mgp.permission_id
                         WHERE mge.member_id = sm.id AND sp.name = ANY(:permission_names)
                     )
+                    OR (:guardian_grants AND exists (
+                        SELECT 1 FROM member_manager mm
+                        JOIN station_member managed ON managed.id = mm.managed_id
+                        WHERE mm.manager_id = sm.id AND managed.former = FALSE
+                    ))
                   );""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
                 .single(call().bind("station_id", stationId)
-                        .bind("permission_names", permission.grantedBy(), PostgreSqlTypes.VARCHAR))
+                        .bind("default_user_types", defaultTypes, PostgreSqlTypes.VARCHAR)
+                        .bind("permission_names", permission.grantedBy(), PostgreSqlTypes.VARCHAR)
+                        .bind("guardian_grants", guardianGrants))
                 .map(StationMember.map())
                 .all();
     }
