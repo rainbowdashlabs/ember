@@ -475,7 +475,9 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
                         "Gerätehaus Musterstadt",
                         "Wir laden alle ein, hinter die Kulissen zu schauen.",
                         "Jetzt anmelden",
-                        "#")));
+                        "#",
+                        null,
+                        null)));
         rows.add(row(
                 sort++,
                 CellContentType.UPCOMING_EVENTS,
@@ -485,7 +487,10 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
                         List.of(
                                 new CellConfig.EventItem("Übung", "Fr, 17:30", "Gerätehaus", "#"),
                                 new CellConfig.EventItem("Wettbewerb", "Sa, 09:00", "Kreisstadt", "#"),
-                                new CellConfig.EventItem("Zeltlager", "20.–27. Juli", "Waldsee", "#")))));
+                                new CellConfig.EventItem("Zeltlager", "20.–27. Juli", "Waldsee", "#")),
+                        null,
+                        null,
+                        null)));
         rows.add(row(
                 sort++,
                 CellContentType.PAST_EVENT_RECAP,
@@ -494,7 +499,9 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
                         "Sommerfest 2025",
                         "2025-08-10",
                         null,
-                        "Über 200 Gäste, Stockbrot am Lagerfeuer, Wasserspiele und ein toller Tag.")));
+                        "Über 200 Gäste, Stockbrot am Lagerfeuer, Wasserspiele und ein toller Tag.",
+                        null,
+                        null)));
 
         rows.add(row(sort++, CellContentType.MARKDOWN, "## Inhalte verlinken", CellConfig.EMPTY));
         rows.add(row(

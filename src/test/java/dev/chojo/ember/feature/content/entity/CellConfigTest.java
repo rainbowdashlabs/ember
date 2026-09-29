@@ -46,6 +46,36 @@ class CellConfigTest {
                 CellConfig.parse(CellContentType.VIDEO, node("{\"autoplay\":\"not a flag\"}")));
     }
 
+    /** The event blocks keep what their editor writes, so a saved block still names its event. */
+    @Test
+    void theEventBlocksKeepTheEventTheyName() {
+        var featured = assertInstanceOf(
+                CellConfig.FeaturedEventConfig.class,
+                CellConfig.parse(
+                        CellContentType.FEATURED_EVENT,
+                        node(
+                                "{\"eventUid\":\"e-1\",\"date\":\"2027-07-01\",\"descriptionOverride\":\"Komm vorbei\"}")));
+        assertEquals("e-1", featured.eventUid());
+        assertEquals("Komm vorbei", featured.descriptionOverride());
+
+        var upcoming = assertInstanceOf(
+                CellConfig.UpcomingEventsConfig.class,
+                CellConfig.parse(
+                        CellContentType.UPCOMING_EVENTS,
+                        node("{\"categoryIds\":[3,4],\"limit\":8,\"includeFederated\":false}")));
+        assertEquals(java.util.List.of(3, 4), upcoming.categoryIds());
+        assertEquals(8, upcoming.limit());
+        assertEquals(false, upcoming.includeFederated());
+
+        var recap = assertInstanceOf(
+                CellConfig.PastEventRecapConfig.class,
+                CellConfig.parse(
+                        CellContentType.PAST_EVENT_RECAP,
+                        node("{\"eventUid\":\"e-2\",\"recapDescription\":\"Schön war's\"}")));
+        assertEquals("e-2", recap.eventUid());
+        assertEquals("Schön war's", recap.recapDescription());
+    }
+
     /** Reading a cell back out of the database still starts from the text the column holds. */
     @Test
     void stillReadsTheTextTheColumnHolds() {
