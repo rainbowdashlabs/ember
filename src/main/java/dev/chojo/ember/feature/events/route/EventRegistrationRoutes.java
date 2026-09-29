@@ -105,6 +105,7 @@ public class EventRegistrationRoutes implements Routes {
     private final MemberTableService memberTableService;
     private final MemberTableRenderer memberTableRenderer;
     private final StationRepository stationRepository;
+    private final EventVisibility visibility;
 
     @Inject
     public EventRegistrationRoutes(
@@ -123,8 +124,10 @@ public class EventRegistrationRoutes implements Routes {
             EventMemberTableService eventMemberTableService,
             MemberTableService memberTableService,
             MemberTableRenderer memberTableRenderer,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            EventVisibility visibility) {
         this.crudService = crudService;
+        this.visibility = visibility;
         this.stationRepository = stationRepository;
         this.registrationService = registrationService;
         this.restrictionService = restrictionService;
@@ -515,7 +518,7 @@ public class EventRegistrationRoutes implements Routes {
     private void listRegistrationFields(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
-        requireOwnedEvent(crudService, eventId, session);
+        visibility.requireVisibleEvent(session, eventId);
         ctx.json(registrationFieldService.findByEvent(eventId).stream()
                 .map(f -> new RegistrationFieldResponse(f.id(), f.name(), f.fieldType(), f.config(), f.overview()))
                 .toList());
@@ -697,7 +700,7 @@ public class EventRegistrationRoutes implements Routes {
     private void listRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
-        requireOwnedEvent(crudService, eventId, session);
+        visibility.requireVisibleEvent(session, eventId);
         String dateStr = ctx.queryParam("date");
         var regs = dateStr != null
                 ? registrationService.findByEventAndDate(eventId, LocalDate.parse(dateStr))

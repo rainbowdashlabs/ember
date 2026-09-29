@@ -85,6 +85,7 @@ public class EventRoutes implements Routes {
     private final EventRegistrationFieldService registrationFieldService;
     private final EventFieldRegistrationService fieldRegistrationService;
     private final EventDateResolver dateResolver;
+    private final EventVisibility visibility;
 
     @Inject
     public EventRoutes(
@@ -97,8 +98,10 @@ public class EventRoutes implements Routes {
             EventExportService eventExportService,
             EventRegistrationFieldService registrationFieldService,
             EventFieldRegistrationService fieldRegistrationService,
-            EventDateResolver dateResolver) {
+            EventDateResolver dateResolver,
+            EventVisibility visibility) {
         this.dateResolver = dateResolver;
+        this.visibility = visibility;
         this.crudService = crudService;
         this.fieldRegistrationService = fieldRegistrationService;
         this.occurrenceService = occurrenceService;
@@ -407,7 +410,7 @@ public class EventRoutes implements Routes {
     private void get(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        ctx.json(requireOwnedEvent(crudService, id, session));
+        ctx.json(visibility.requireVisibleEvent(session, id));
     }
 
     /**
@@ -432,7 +435,7 @@ public class EventRoutes implements Routes {
     private void getNextDate(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var event = requireOwnedEvent(crudService, id, session);
+        var event = visibility.requireVisibleEvent(session, id);
         ctx.json(new NextDate(dateResolver.nextDate(event).orElse(null)));
     }
 
@@ -602,7 +605,7 @@ public class EventRoutes implements Routes {
     private void getRestrictions(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(crudService, id, session);
+        visibility.requireVisibleEvent(session, id);
         ctx.json(audiencesOf(id));
     }
 
@@ -667,7 +670,7 @@ public class EventRoutes implements Routes {
     private void getReminders(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(crudService, id, session);
+        visibility.requireVisibleEvent(session, id);
         ctx.json(reminderService.findDays(id));
     }
 

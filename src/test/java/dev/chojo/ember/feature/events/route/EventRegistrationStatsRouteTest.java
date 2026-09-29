@@ -125,7 +125,8 @@ class EventRegistrationStatsRouteTest {
                 mock(EventMemberTableService.class),
                 mock(MemberTableService.class),
                 mock(MemberTableRenderer.class),
-                mock(StationRepository.class));
+                mock(StationRepository.class),
+                mock(EventVisibility.class));
     }
 
     @SuppressWarnings("unchecked")
