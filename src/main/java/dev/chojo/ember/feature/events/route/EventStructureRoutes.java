@@ -22,9 +22,9 @@ import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -63,7 +63,7 @@ public class EventStructureRoutes implements Routes {
     private final EventBreakService breakService;
     private final EventFieldDefaultService fieldDefaultService;
     private final EventFieldService eventFieldService;
-    private final EventDateResolver dateResolver;
+    private final OccurrenceCalendar occurrenceCalendar;
 
     @Inject
     public EventStructureRoutes(
@@ -72,13 +72,13 @@ public class EventStructureRoutes implements Routes {
             EventBreakService breakService,
             EventFieldDefaultService fieldDefaultService,
             EventFieldService eventFieldService,
-            EventDateResolver dateResolver) {
+            OccurrenceCalendar occurrenceCalendar) {
         this.crudService = crudService;
         this.categoryService = categoryService;
         this.breakService = breakService;
         this.fieldDefaultService = fieldDefaultService;
         this.eventFieldService = eventFieldService;
-        this.dateResolver = dateResolver;
+        this.occurrenceCalendar = occurrenceCalendar;
     }
 
     @Override
@@ -422,7 +422,7 @@ public class EventStructureRoutes implements Routes {
     private void getOverviewFields(Context ctx) {
         var session = UserSession.from(ctx);
         var events = crudService.findByStation(session.stationId());
-        var nextDates = dateResolver.nextDates(events);
+        var nextDates = occurrenceCalendar.datesInView(events);
         ctx.json(eventFieldService.findOverviewFieldsByEvents(
                 events.stream().map(StationEvent::id).toList(), nextDates));
     }

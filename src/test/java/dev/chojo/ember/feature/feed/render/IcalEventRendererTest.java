@@ -6,13 +6,14 @@
 package dev.chojo.ember.feature.feed.render;
 
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
@@ -27,6 +28,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +41,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class IcalEventRendererTest {
+
+    private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
 
     private EventFieldService eventFieldService;
     private IcalEventRenderer renderer;
@@ -69,7 +74,7 @@ class IcalEventRendererTest {
                     }
                     return sb.toString();
                 });
-        renderer = new IcalEventRenderer(eventFieldService, mock(EventDateResolver.class), notificationService);
+        renderer = new IcalEventRenderer(eventFieldService, notificationService);
         station = new Station(
                 1,
                 null,
@@ -236,7 +241,7 @@ class IcalEventRendererTest {
         when(eventFieldService.findByEvent(eq(10), any())).thenReturn(List.of(loc, other));
         var ctx = ctx(Map.of(), Map.of());
 
-        var ve = renderer.render(event, ctx);
+        var ve = renderer.render(event, ctx).orElseThrow();
         var location = ve.getProperty("LOCATION").map(Location.class::cast).orElseThrow();
         assertEquals("Marktplatz 1", location.getValue());
         var url = ve.getProperty("URL").map(Url.class::cast).orElseThrow();
@@ -254,7 +259,7 @@ class IcalEventRendererTest {
         when(eventFieldService.findByEvent(eq(11), any())).thenReturn(List.of());
         var ctx = ctx(Map.of(), Map.of());
 
-        var ve = renderer.render(event, ctx);
+        var ve = renderer.render(event, ctx).orElseThrow();
         assertTrue(ve.getProperty("SUMMARY").orElseThrow().getValue().startsWith("summary.cancelledPrefix"));
         assertTrue(ve.getProperty("STATUS").isPresent());
         assertEquals(ImmutableStatus.VEVENT_CANCELLED, ve.getProperty("STATUS").orElseThrow());
@@ -272,9 +277,10 @@ class IcalEventRendererTest {
                 false, // verbose=false
                 Map.of(),
                 Map.of(),
-                Map.of());
+                Map.of(),
+                calendar(List.of()));
 
-        var ve = renderer.render(event, ctx);
+        var ve = renderer.render(event, ctx).orElseThrow();
         String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
         assertTrue(description.contains("/station/events/12"));
         assertFalse(description.contains("label.eventType"));
@@ -291,7 +297,7 @@ class IcalEventRendererTest {
                         new IcalEventRenderer.ManagedRegistration("Bob", RegistrationStatus.DECLINED)));
         var ctx = ctx(Map.of(13, RegistrationStatus.ACCEPTED), managed);
 
-        var ve = renderer.render(event, ctx);
+        var ve = renderer.render(event, ctx).orElseThrow();
         String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
         assertTrue(description.contains("Alice"));
         assertTrue(description.contains("Bob"));
@@ -299,6 +305,62 @@ class IcalEventRendererTest {
         // Only one of the two managed members is ACCEPTED (Alice); owner accepts are not counted
         // in this aggregate.
         assertTrue(description.contains("1 / "));
+    }
+
+    /**
+     * A series starts on its first date rather than on the day it was configured, and every date a
+     * break takes out reaches the calendar as an exception, so a subscribed calendar shows the dates
+     * the application shows.
+     */
+    @Test
+    void aSeriesStartsOnItsFirstDateAndNamesItsBreaksAsExceptions() {
+        Instant mondayEvening = Instant.parse("2026-08-31T16:00:00Z");
+        var weekly = series(20, StationEvent.EventType.RECURRING, 3, mondayEvening, null);
+        var holiday = new EventBreak(1, 1, "Ferien", LocalDate.parse("2026-09-09"), LocalDate.parse("2026-09-15"));
+
+        var ve = renderer.render(weekly, ctxWithBreaks(List.of(holiday))).orElseThrow();
+
+        assertEquals("20260902T160000Z", ve.getProperty("DTSTART").orElseThrow().getValue());
+        assertEquals(
+                "FREQ=WEEKLY;BYDAY=WE", ve.getProperty("RRULE").orElseThrow().getValue());
+        assertEquals("20260909T160000Z", ve.getProperty("EXDATE").orElseThrow().getValue());
+    }
+
+    /** A quarterly series counts its quarters from its own first date, as the calendar reading it does. */
+    @Test
+    void aQuarterlySeriesCountsFromItsFirstDate() {
+        var quarterly = series(21, StationEvent.EventType.QUARTERLY, 1, Instant.parse("2026-02-02T17:00:00Z"), null);
+
+        var ve = renderer.render(quarterly, ctx(Map.of(), Map.of())).orElseThrow();
+
+        assertEquals("20260202T170000Z", ve.getProperty("DTSTART").orElseThrow().getValue());
+        assertEquals(
+                "FREQ=MONTHLY;INTERVAL=3;BYDAY=1MO",
+                ve.getProperty("RRULE").orElseThrow().getValue());
+        assertTrue(ve.getProperty("EXDATE").isEmpty(), "no break, no exception");
+    }
+
+    /** A yearly series names no weekday and still repeats. */
+    @Test
+    void aYearlySeriesWithoutAWeekdayRepeats() {
+        var yearly = series(22, StationEvent.EventType.YEARLY, null, Instant.parse("2026-05-01T08:00:00Z"), null);
+
+        var ve = renderer.render(yearly, ctx(Map.of(), Map.of())).orElseThrow();
+
+        assertEquals("FREQ=YEARLY", ve.getProperty("RRULE").orElseThrow().getValue());
+    }
+
+    /** A series whose end comes before its first date takes place on no day, and has no entry. */
+    @Test
+    void aSeriesThatNeverTakesPlaceHasNoEntry() {
+        var never = series(
+                23,
+                StationEvent.EventType.RECURRING,
+                3,
+                Instant.parse("2026-09-02T16:00:00Z"),
+                LocalDate.parse("2026-09-01"));
+
+        assertTrue(renderer.render(never, ctx(Map.of(), Map.of())).isEmpty());
     }
 
     // -- helpers --
@@ -313,7 +375,49 @@ class IcalEventRendererTest {
                 true,
                 new HashMap<>(Map.of(1, new EventCategory(1, 1, "Cat", 1, null, false, null))),
                 new HashMap<>(ownerStatus),
-                new HashMap<>(managed));
+                new HashMap<>(managed),
+                calendar(List.of()));
+    }
+
+    private IcalEventRenderer.Context ctxWithBreaks(List<EventBreak> breaks) {
+        return new IcalEventRenderer.Context(
+                station, "de", "https://ember.example.com", true, Map.of(), Map.of(), Map.of(), calendar(breaks));
+    }
+
+    private static StationCalendar calendar(List<EventBreak> breaks) {
+        return new StationCalendar(BERLIN, breaks);
+    }
+
+    private StationEvent series(
+            int id, StationEvent.EventType type, Integer dayOfWeek, Instant start, LocalDate repeatUntil) {
+        return new StationEvent(
+                id,
+                1,
+                "Dienst",
+                null,
+                type,
+                dayOfWeek,
+                start,
+                start.plusSeconds(7200),
+                null,
+                false,
+                null,
+                false,
+                null,
+                RestrictionMode.AND,
+                RestrictionMode.AND,
+                false,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false,
+                null,
+                repeatUntil,
+                null);
     }
 
     private StationEvent simpleEvent(int id) {

@@ -10,8 +10,8 @@ import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRecurrence;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -22,7 +22,6 @@ import net.fortuna.ical4j.model.component.VEvent;
 import net.fortuna.ical4j.model.property.Categories;
 import net.fortuna.ical4j.model.property.Description;
 import net.fortuna.ical4j.model.property.Location;
-import net.fortuna.ical4j.model.property.RRule;
 import net.fortuna.ical4j.model.property.Uid;
 import net.fortuna.ical4j.model.property.Url;
 import net.fortuna.ical4j.model.property.immutable.ImmutableStatus;
@@ -35,6 +34,7 @@ import java.time.format.FormatStyle;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Builds RFC-5545 {@link VEvent}s for the personal iCal feed.
@@ -50,16 +50,11 @@ import java.util.Map;
 @Singleton
 public class IcalEventRenderer {
     private final EventFieldService eventFieldService;
-    private final EventDateResolver dateResolver;
     private final NotificationService notificationService;
 
     @Inject
-    public IcalEventRenderer(
-            EventFieldService eventFieldService,
-            EventDateResolver dateResolver,
-            NotificationService notificationService) {
+    public IcalEventRenderer(EventFieldService eventFieldService, NotificationService notificationService) {
         this.eventFieldService = eventFieldService;
-        this.dateResolver = dateResolver;
         this.notificationService = notificationService;
     }
 
@@ -135,13 +130,14 @@ public class IcalEventRenderer {
     /**
      * Builds the {@link VEvent} for the given event, applying registration metadata, location,
      * and the localised description body. Honours the verbose/images flags from the context.
+     *
+     * @return the entry, empty for a series that falls on no date at all
      */
-    public VEvent render(StationEvent event, Context ctx) {
-        var start = event.startTime() != null ? event.startTime() : Instant.now();
-        var end = event.endTime() != null ? event.endTime() : start;
-
+    public Optional<VEvent> render(StationEvent event, Context ctx) {
         String summary = event.cancelled() ? cancelledPrefix(ctx.locale()) + event.name() : event.name();
-        var vevent = new VEvent(start, end, summary);
+        var entry = EventRecurrence.entryOf(event, summary, ctx.calendar());
+        if (entry.isEmpty()) return Optional.empty();
+        var vevent = entry.get();
         vevent.add(new Uid("event-" + event.id() + "@ember"));
 
         if (event.categoryId() != null) {
@@ -155,7 +151,7 @@ public class IcalEventRenderer {
 
         // Load the event's custom fields once and split into a location candidate + the rest.
         var fields = eventFieldService.findByEvent(
-                event.id(), dateResolver.nextDate(event).orElse(null));
+                event.id(), ctx.calendar().dateInView(event).orElse(null));
         var location = firstLocation(fields);
         if (location != null) {
             vevent.add(new Location(location));
@@ -175,9 +171,7 @@ public class IcalEventRenderer {
             vevent.add(new Description(description.stripTrailing()));
         }
 
-        String rrule = EventRecurrence.rule(event);
-        if (rrule != null) vevent.add(new RRule<>(rrule));
-        return vevent;
+        return Optional.of(vevent);
     }
 
     // -- helpers --
@@ -310,6 +304,8 @@ public class IcalEventRenderer {
      * @param ownerStatusByEvent    the feed owner's registration status per event id
      * @param managedStatusByEvent  list of managed-member registrations per event id (name +
      *                              status), in display-name order
+     * @param calendar              the station's calendar, which places each series and names the
+     *                              dates its breaks take out
      */
     public record Context(
             Station station,
@@ -318,7 +314,8 @@ public class IcalEventRenderer {
             boolean verbose,
             Map<Integer, EventCategory> categoryMap,
             Map<Integer, RegistrationStatus> ownerStatusByEvent,
-            Map<Integer, List<ManagedRegistration>> managedStatusByEvent) {}
+            Map<Integer, List<ManagedRegistration>> managedStatusByEvent,
+            StationCalendar calendar) {}
 
     /**
      * Registration of a managed member (e.g. a guardian's child) for the event.

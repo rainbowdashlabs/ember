@@ -266,6 +266,19 @@ export function isRecurringEvent(eventType?: string): boolean {
 }
 
 /**
+ * Whether a quarterly appointment comes round in this month: every third month counted from the
+ * month it starts in, which is how the server and a subscribed calendar count it too.
+ *
+ * @param month zero-based, as `Date` counts months
+ */
+export function isQuarterMonthOf(event: StationEvent, year: number, month: number): boolean {
+    if (!event.startTime) return false
+    const start = new Date(event.startTime)
+    const monthsSinceStart = (year - start.getFullYear()) * 12 + (month - start.getMonth())
+    return ((monthsSinceStart % 3) + 3) % 3 === 0
+}
+
+/**
  * The last day of a one-off appointment that runs past the day it starts on, or `null` where it
  * ends on that day. A series never spans days: each of its occurrences is an entry of its own.
  */

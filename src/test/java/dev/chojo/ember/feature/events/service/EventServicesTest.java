@@ -1694,9 +1694,8 @@ class EventServicesTest extends RepositoryTestBase {
                     oneTimeAt(nextStation.id(), "Steht an", today.plusDays(4).atTime(9, 0));
             var gone = oneTimeAt(nextStation.id(), "Vorbei", today.minusDays(4).atTime(9, 0));
 
-            assertEquals(
-                    today.plusDays(4), occurrenceService.findNextDate(coming).orElse(null));
-            assertTrue(occurrenceService.findNextDate(gone).isEmpty());
+            assertEquals(today.plusDays(4), occurrenceCalendar.next(coming).orElse(null));
+            assertTrue(occurrenceCalendar.next(gone).isEmpty());
         } finally {
             stationRepo.delete(nextStation.id());
         }
@@ -2334,7 +2333,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null);
 
         var todayEvents = occurrenceService.findTodayEvents(station.id());
-        boolean shouldMatch = today.getDayOfMonth() <= 7 && (today.getMonthValue() - 1) % 3 == 0;
+        boolean shouldMatch = today.getDayOfMonth() <= 7;
         if (shouldMatch) {
             assertTrue(todayEvents.stream().anyMatch(e -> e.id() == event.id()));
         } else {
@@ -2876,8 +2875,11 @@ class EventServicesTest extends RepositoryTestBase {
 
         var counted = crudService.setRepeatEnd(event.id(), null, 3).orElseThrow();
         assertEquals(3, counted.repeatCount());
-        assertEquals(LocalDate.parse("2026-09-16"), counted.lastDate().orElseThrow());
-        assertFalse(counted.occursOn(LocalDate.parse("2026-09-23")));
+        var calendar = occurrenceCalendar.forStation(station.id());
+        assertEquals(
+                LocalDate.parse("2026-09-16"),
+                calendar.ruleOf(counted).orElseThrow().last());
+        assertFalse(calendar.occursOn(counted, LocalDate.parse("2026-09-23")));
 
         var dated = crudService
                 .setRepeatEnd(event.id(), LocalDate.parse("2026-10-07"), null)
@@ -2886,7 +2888,7 @@ class EventServicesTest extends RepositoryTestBase {
         assertNull(dated.repeatCount(), "the two ways of saying it never stand together");
 
         var open = crudService.setRepeatEnd(event.id(), null, null).orElseThrow();
-        assertTrue(open.lastDate().isEmpty(), "an end can be taken off again");
+        assertNull(calendar.ruleOf(open).orElseThrow().last(), "an end can be taken off again");
     }
 
     @Test

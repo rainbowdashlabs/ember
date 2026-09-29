@@ -11,7 +11,6 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
-import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
@@ -83,7 +82,7 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
                         new EquipmentAvailabilityRepository(),
                         new EquipmentNeedRepository(),
                         eventRepo,
-                        new EventBreakService(eventBreakRepo)),
+                        occurrenceCalendar),
                 new DomainEventBus(Set.of()));
 
         owner = stationRepo.create("BorrowedGearOwner");

@@ -11,11 +11,12 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventRecurrence;
+import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
@@ -32,7 +33,6 @@ import net.fortuna.ical4j.model.component.VEvent;
 import net.fortuna.ical4j.model.property.Categories;
 import net.fortuna.ical4j.model.property.Description;
 import net.fortuna.ical4j.model.property.ProdId;
-import net.fortuna.ical4j.model.property.RRule;
 import net.fortuna.ical4j.model.property.Uid;
 import net.fortuna.ical4j.model.property.XProperty;
 import net.fortuna.ical4j.model.property.immutable.ImmutableCalScale;
@@ -42,6 +42,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -53,7 +54,7 @@ public class PublicEventRoutes implements Routes {
     private final EventCrudService crudService;
     private final EventCategoryService categoryService;
     private final EventFieldService eventFieldService;
-    private final EventDateResolver dateResolver;
+    private final OccurrenceCalendar occurrenceCalendar;
     private final StationRepository stationRepository;
 
     @Inject
@@ -61,12 +62,12 @@ public class PublicEventRoutes implements Routes {
             EventCrudService crudService,
             EventCategoryService categoryService,
             EventFieldService eventFieldService,
-            EventDateResolver dateResolver,
+            OccurrenceCalendar occurrenceCalendar,
             StationRepository stationRepository) {
         this.crudService = crudService;
         this.categoryService = categoryService;
         this.eventFieldService = eventFieldService;
-        this.dateResolver = dateResolver;
+        this.occurrenceCalendar = occurrenceCalendar;
         this.stationRepository = stationRepository;
     }
 
@@ -148,7 +149,7 @@ public class PublicEventRoutes implements Routes {
                 .toList();
 
         var overviewFields = eventFieldService.findOverviewFieldsByEvents(
-                publicEvents.stream().map(StationEvent::id).toList(), dateResolver.nextDates(publicEvents));
+                publicEvents.stream().map(StationEvent::id).toList(), occurrenceCalendar.datesInView(publicEvents));
         var publicUids = crudService.findPublicUidsByIds(
                 data.station().id(), publicEvents.stream().map(StationEvent::id).toList());
 
@@ -181,7 +182,7 @@ public class PublicEventRoutes implements Routes {
         if (!isEventPublic(event, categoryMap)) throw Refusal.PUBLIC_EVENT_NOT_HERE.raise();
 
         var fields = eventFieldService
-                .findByEvent(id, dateResolver.nextDate(event).orElse(null))
+                .findByEvent(id, occurrenceCalendar.dateInView(event).orElse(null))
                 .stream()
                 .filter(EventField::isPublic)
                 .toList();
@@ -238,9 +239,9 @@ public class PublicEventRoutes implements Routes {
         calendar.add(ImmutableCalScale.GREGORIAN);
         calendar.add(new XProperty("X-WR-CALNAME", data.station().name()));
 
+        var stationCalendar = occurrenceCalendar.forStation(data.station().id());
         for (var event : data.publicEvents()) {
-            var vevent = buildVEvent(event, data.categoryMap());
-            calendar.add(vevent);
+            buildVEvent(event, data.categoryMap(), stationCalendar).ifPresent(calendar::add);
         }
 
         ctx.contentType("text/calendar; charset=utf-8");
@@ -248,10 +249,11 @@ public class PublicEventRoutes implements Routes {
         ctx.result(calendar.toString());
     }
 
-    private VEvent buildVEvent(StationEvent event, Map<Integer, EventCategory> categoryMap) {
-        var start = event.startTime() != null ? event.startTime() : Instant.now();
-        var end = event.endTime() != null ? event.endTime() : start;
-        var vevent = new VEvent(start, end, event.name());
+    private Optional<VEvent> buildVEvent(
+            StationEvent event, Map<Integer, EventCategory> categoryMap, StationCalendar stationCalendar) {
+        var entry = EventRecurrence.entryOf(event, event.name(), stationCalendar);
+        if (entry.isEmpty()) return Optional.empty();
+        var vevent = entry.get();
         vevent.add(new Uid("event-" + event.id() + "@ember"));
 
         if (event.description() != null && !event.description().isBlank()) {
@@ -263,11 +265,7 @@ public class PublicEventRoutes implements Routes {
                 vevent.add(new Categories(cat.name()));
             }
         }
-        String rrule = EventRecurrence.rule(event);
-        if (rrule != null) {
-            vevent.add(new RRule<>(rrule));
-        }
-        return vevent;
+        return Optional.of(vevent);
     }
 
     private PublicEventResponse toPublicResponse(

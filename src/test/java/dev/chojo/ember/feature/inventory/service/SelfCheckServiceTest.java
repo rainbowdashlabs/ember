@@ -10,7 +10,6 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
-import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -123,10 +122,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
         var lending = newLendingService(
                 new DomainEventBus(Set.of()),
                 new EquipmentAvailabilityService(
-                        equipmentAvailabilityRepo,
-                        equipmentNeedRepo,
-                        eventRepo,
-                        new EventBreakService(eventBreakRepo)));
+                        equipmentAvailabilityRepo, equipmentNeedRepo, eventRepo, occurrenceCalendar));
         var keyPair = federationService.generateKeyPair();
         federationService.acceptInvite(
                 station.id(), otherStation.id(), federationService.encodePublicKey(keyPair), null, null);

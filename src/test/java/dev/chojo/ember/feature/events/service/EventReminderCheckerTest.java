@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -50,6 +52,7 @@ class EventReminderCheckerTest {
     private EventRestrictionService restrictionService;
     private StationReadOnlyGuard readOnlyGuard;
     private StationRepository stationRepository;
+    private EventBreakRepository breakRepository;
 
     private static final int STATION_ID = 1;
     private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
@@ -68,6 +71,7 @@ class EventReminderCheckerTest {
         readOnlyGuard = mock(StationReadOnlyGuard.class);
         when(readOnlyGuard.isWritable(anyInt())).thenReturn(true);
         stationRepository = mock(StationRepository.class);
+        breakRepository = mock(EventBreakRepository.class);
     }
 
     /**
@@ -474,8 +478,32 @@ class EventReminderCheckerTest {
         verify(notificationService, never()).notifyMembers(anyList(), any(), any());
     }
 
+    /**
+     * A day the station takes a break on is not an occurrence, so nobody is reminded of it.
+     *
+     * <p>The reminders used to read the repetition alone, and members were told to come to a drill
+     * the station had called off for the holidays.
+     */
     @Test
-    void checkHandlesNullDayOfWeekForRecurring() {
+    void nobodyIsRemindedOfADateABreakTakesOut() {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        var event = recurringEvent(50, today.getDayOfWeek().getValue());
+        when(breakRepository.findByStation(STATION_ID))
+                .thenReturn(List.of(new EventBreak(1, STATION_ID, "Ferien", today, today)));
+        when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
+        when(reminderRepository.findDays(50)).thenReturn(List.of(0));
+        when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10)));
+
+        invokeCheck();
+
+        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(reminderRepository, never()).markSent(anyInt(), any(), anyInt());
+    }
+
+    /** A weekly series that names no weekday repeats on the weekday of its start, as a calendar reads it. */
+    @Test
+    void aWeeklySeriesWithoutAWeekdayIsRemindedOnTheWeekdayOfItsStart() {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
         var event = new StationEvent(
                 42,
                 STATION_ID,
@@ -505,11 +533,13 @@ class EventReminderCheckerTest {
                 null,
                 null);
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
-        when(reminderRepository.findDays(42)).thenReturn(List.of(1));
+        when(reminderRepository.findDays(42)).thenReturn(List.of(0));
+        when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10)));
+        when(registrationRepository.findNotAttendingMemberIds(42, today)).thenReturn(List.of());
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(reminderRepository).markSent(42, today, 0);
     }
 
     @Test
@@ -550,7 +580,7 @@ class EventReminderCheckerTest {
                     memberNameResolver,
                     restrictionService,
                     readOnlyGuard,
-                    stationRepository);
+                    new OccurrenceCalendar(eventRepository, breakRepository, stationRepository));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

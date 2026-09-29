@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.feed.FeedFingerprint;
 import dev.chojo.ember.feature.feed.FeedRateLimiter;
 import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
@@ -105,6 +106,7 @@ public class UserFeedRoutes implements Routes {
     private final FeedRateLimiter rateLimiter;
     private final FeedMetricsService metricsService;
     private final MemberNameResolver memberNameResolver;
+    private final OccurrenceCalendar occurrenceCalendar;
 
     @Inject
     public UserFeedRoutes(
@@ -123,7 +125,9 @@ public class UserFeedRoutes implements Routes {
             NotificationFeedRenderer notificationRenderer,
             FeedRateLimiter rateLimiter,
             FeedMetricsService metricsService,
-            MemberNameResolver memberNameResolver) {
+            MemberNameResolver memberNameResolver,
+            OccurrenceCalendar occurrenceCalendar) {
+        this.occurrenceCalendar = occurrenceCalendar;
         this.tokenService = tokenService;
         this.crudService = crudService;
         this.categoryService = categoryService;
@@ -286,7 +290,14 @@ public class UserFeedRoutes implements Routes {
         }
 
         var renderCtx = new IcalEventRenderer.Context(
-                station, locale, emailService.getBaseUrl(), verbose, categoryMap, ownerStatusByEvent, managedByEvent);
+                station,
+                locale,
+                emailService.getBaseUrl(),
+                verbose,
+                categoryMap,
+                ownerStatusByEvent,
+                managedByEvent,
+                occurrenceCalendar.forStation(station.id()));
 
         // Body size cap: restrict events to a -7d/+365d window around now so feeds stay small
         // for stations with thousands of historical entries. Recurring events use their anchor
@@ -310,7 +321,7 @@ public class UserFeedRoutes implements Routes {
         for (var event : events) {
             // Isolate each VEVENT: a malformed event must never tank the whole calendar.
             try {
-                calendar.add(icalRenderer.render(event, renderCtx));
+                icalRenderer.render(event, renderCtx).ifPresent(calendar::add);
             } catch (Exception e) {
                 log.warn("Failed to render event {} for ical feed", event.id(), e);
             }

@@ -69,13 +69,13 @@ import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
@@ -345,7 +345,7 @@ public abstract class RepositoryTestBase {
     protected static TwoFactorRepository twoFactorRepo;
     protected static MemberIdentityFactory memberIdentityFactory;
     protected static MemberNameResolver memberNameResolver;
-    protected static EventDateResolver eventDateResolver;
+    protected static OccurrenceCalendar occurrenceCalendar;
     protected static EventFieldRegistrationService eventFieldRegistrationService;
     protected static MemberLookupService memberLookupService;
     protected static DataSource dataSource;
@@ -606,12 +606,12 @@ public abstract class RepositoryTestBase {
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, memberLookupService, memberNameResolver);
-        eventDateResolver = new EventDateResolver(eventRepo, eventBreakRepo, stationRepo);
+        occurrenceCalendar = new OccurrenceCalendar(eventRepo, eventBreakRepo, stationRepo);
         eventFieldRegistrationService = new EventFieldRegistrationService(
                 eventRepo,
                 eventFieldRepo,
                 eventRegistrationRepo,
-                eventDateResolver,
+                occurrenceCalendar,
                 new DomainEventBus(Set.of()),
                 memberNameResolver);
         // Built here rather than with the other services: it reads a holder's name, which needs the
@@ -723,14 +723,15 @@ public abstract class RepositoryTestBase {
      */
     protected static EventServices newEventServices(DomainEventBus eventBus) {
         var breakService = new EventBreakService(eventBreakRepo);
+        var calendar = new OccurrenceCalendar(eventRepo, eventBreakRepo, stationRepo);
         var availability =
-                new EquipmentAvailabilityService(equipmentAvailabilityRepo, equipmentNeedRepo, eventRepo, breakService);
+                new EquipmentAvailabilityService(equipmentAvailabilityRepo, equipmentNeedRepo, eventRepo, calendar);
         var lending = newLendingService(eventBus, availability);
         var crudService = new EventCrudService(
                 eventRepo, eventBus, new EquipmentReleaseService(equipmentNeedRepo, lending), restrictionService);
         return new EventServices(
                 crudService,
-                new EventOccurrenceService(crudService, breakService, stationRepo),
+                new EventOccurrenceService(crudService, calendar),
                 new EventCategoryService(eventCategoryRepo),
                 breakService,
                 new EventRestrictionService(eventRepo, restrictionService),

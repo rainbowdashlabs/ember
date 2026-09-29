@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.equipment.EquipmentTestSupport;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
-import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
@@ -89,7 +88,7 @@ class LendingServiceTest extends RepositoryTestBase {
                         new EquipmentAvailabilityRepository(),
                         new EquipmentNeedRepository(),
                         eventRepo,
-                        new EventBreakService(eventBreakRepo)),
+                        occurrenceCalendar),
                 httpClient);
 
         stationA = stationRepo.create("LendSvcTestStationA");

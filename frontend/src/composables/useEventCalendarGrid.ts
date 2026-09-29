@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref, type Ref } from 'vue'
-import { EventTypes, isRecurringEvent, type EventBreak, type StationEvent } from '@/api/events'
+import { EventTypes, isQuarterMonthOf, isRecurringEvent, type EventBreak, type StationEvent } from '@/api/events'
 import { toIsoDate } from '@/util/format'
 
 /**
@@ -116,7 +116,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
     const month = date.getMonth()
     if (ev.eventType === EventTypes.RECURRING) return true
     if (ev.eventType === EventTypes.MONTHLY_FIRST) return dayOfMonth <= 7
-    if (ev.eventType === EventTypes.QUARTERLY) return dayOfMonth <= 7 && month % 3 === 0
+    if (ev.eventType === EventTypes.QUARTERLY) return dayOfMonth <= 7 && isQuarterMonthOf(ev, date.getFullYear(), month)
     if (ev.eventType === EventTypes.YEARLY && ev.startTime) {
       const ref = new Date(ev.startTime)
       return ref.getMonth() === month && ref.getDate() === dayOfMonth

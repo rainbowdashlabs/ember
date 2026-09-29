@@ -786,6 +786,7 @@ export default {
     'E-089': TEMPLATE_NOT_HERE,
     'E-090': CHANGE_SAVED_BUT_NOT_READ_BACK,
     'E-091': 'Deine Anmeldung ließ sich keiner Wache zuordnen, es wurde nichts getan. Melde dich neu an',
+    'E-092': 'An diesem Tag macht die Wache Pause, der Termin findet nicht statt',
 
     'CM-001': DAY_NOT_A_DATE,
     'CM-002': COMMENT_NEEDS_TEXT,

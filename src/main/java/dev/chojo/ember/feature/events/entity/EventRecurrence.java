@@ -5,44 +5,61 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
-import org.jspecify.annotations.Nullable;
+import net.fortuna.ical4j.model.DateList;
+import net.fortuna.ical4j.model.component.VEvent;
+import net.fortuna.ical4j.model.property.ExDate;
+import net.fortuna.ical4j.model.property.RRule;
 
-import java.time.format.DateTimeFormatter;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 
 /**
- * How a repeating appointment is written down for a calendar.
+ * How an appointment is written down for a calendar.
  *
  * <p>One place rather than one per feed: the station's own calendar file and the public one said the
  * same thing twice, so an appointment that runs out said it in the one that had been remembered and
  * repeated for ever in the other.
+ *
+ * <p>A series is written from the same {@link OccurrenceRule} the application reads its dates from.
+ * It starts on its first date rather than on the day it was configured, because a calendar counts a
+ * quarter from its start and always shows the start itself, and every date a break takes out is
+ * named as an exception. A subscribed calendar therefore shows the dates the application shows.
  */
 public final class EventRecurrence {
-
-    private static final String[] DAYS = {"", "MO", "TU", "WE", "TH", "FR", "SA", "SU"};
-    private static final DateTimeFormatter UNTIL = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     private EventRecurrence() {}
 
     /**
-     * The repetition rule of an appointment, in the wording a calendar reads.
+     * The calendar entry of an appointment.
      *
-     * @param event the appointment
-     * @return the rule, or null where the appointment does not repeat on a rule a calendar can state
+     * @param event    the appointment
+     * @param summary  the headline the entry carries
+     * @param calendar the station's calendar, which says where the series starts and what its breaks take out
+     * @return the entry, empty for a series that falls on no date at all
      */
-    public static @Nullable String rule(StationEvent event) {
-        if (!event.isRecurring() || event.dayOfWeek() == null) return null;
-        String day = DAYS[event.dayOfWeek()];
-        String rule =
-                switch (event.eventType()) {
-                    case RECURRING -> "FREQ=WEEKLY;BYDAY=" + day;
-                    case MONTHLY_FIRST -> "FREQ=MONTHLY;BYDAY=1" + day;
-                    case QUARTERLY -> "FREQ=MONTHLY;INTERVAL=3;BYDAY=1" + day;
-                    case YEARLY -> "FREQ=YEARLY";
-                    default -> null;
-                };
-        if (rule == null) return null;
-        return event.lastDate()
-                .map(last -> rule + ";UNTIL=" + last.format(UNTIL) + "T235959Z")
-                .orElse(rule);
+    public static Optional<VEvent> entryOf(StationEvent event, String summary, StationCalendar calendar) {
+        if (!event.isRecurring()) {
+            var start = event.startTime() != null ? event.startTime() : Instant.now();
+            var end = event.endTime() != null ? event.endTime() : start;
+            return Optional.of(new VEvent(start, end, summary));
+        }
+        return calendar.ruleOf(event).flatMap(rule -> seriesOf(event, summary, rule, calendar));
+    }
+
+    private static Optional<VEvent> seriesOf(
+            StationEvent event, String summary, OccurrenceRule rule, StationCalendar calendar) {
+        var first = event.occurrenceOn(rule.first());
+        var calendarRule = rule.calendarRule();
+        if (first.isEmpty() || calendarRule.isEmpty()) return Optional.empty();
+
+        var vevent = new VEvent(first.get().start(), first.get().end(), summary);
+        vevent.add(new RRule<>(calendarRule.get()));
+        List<Instant> exceptions = calendar.suspendedDates(event).stream()
+                .flatMap(date -> event.occurrenceOn(date).stream())
+                .map(StationEvent.Span::start)
+                .toList();
+        if (!exceptions.isEmpty()) vevent.add(new ExDate<>(new DateList<>(exceptions)));
+        return Optional.of(vevent);
     }
 }

@@ -128,7 +128,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         eventRepo,
                         attendanceRepo,
                         eventFieldRegistrationService),
-                eventDateResolver,
+                occurrenceCalendar,
                 media,
                 new Api());
 

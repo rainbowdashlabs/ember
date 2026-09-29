@@ -2090,6 +2090,13 @@ public enum Refusal {
             HttpStatus.INTERNAL_SERVER_ERROR,
             "Your sign-in could not be matched to a station, so nothing was done. Sign in again"),
 
+    /** A registration or a decline for a day a break of the station takes out of the series. */
+    REGISTRATION_DAY_IN_A_BREAK(
+            Area.EVENTS,
+            92,
+            HttpStatus.BAD_REQUEST,
+            "The station takes a break on that day, so the appointment does not take place"),
+
     /** A list of comments asked for on a day that is not a date. */
     COMMENT_DAY_NOT_A_DATE(Area.COMMENTS, 1, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),
 

@@ -17,9 +17,9 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
@@ -152,7 +152,7 @@ public class RemoteEventRoutes implements Routes {
 
     private final EventCrudService crudService;
     private final EventFieldService eventFieldService;
-    private final EventDateResolver dateResolver;
+    private final OccurrenceCalendar occurrenceCalendar;
     private final EventFederationService eventFederationService;
     private final EventAttachmentService attachmentService;
     private final MediaLibraryService media;
@@ -162,14 +162,14 @@ public class RemoteEventRoutes implements Routes {
     public RemoteEventRoutes(
             EventCrudService crudService,
             EventFieldService eventFieldService,
-            EventDateResolver dateResolver,
+            OccurrenceCalendar occurrenceCalendar,
             EventFederationService eventFederationService,
             EventAttachmentService attachmentService,
             MediaLibraryService media,
             Api apiConfig) {
         this.crudService = crudService;
         this.eventFieldService = eventFieldService;
-        this.dateResolver = dateResolver;
+        this.occurrenceCalendar = occurrenceCalendar;
         this.eventFederationService = eventFederationService;
         this.attachmentService = attachmentService;
         this.media = media;
@@ -213,7 +213,7 @@ public class RemoteEventRoutes implements Routes {
         requireSharedEvent(partner, eventId);
         var event = crudService.findById(eventId).orElseThrow(Refusal.SHARED_EVENT_NOT_HERE::raise);
         var fields = eventFieldService
-                .findByEvent(eventId, dateResolver.nextDate(event).orElse(null))
+                .findByEvent(eventId, occurrenceCalendar.dateInView(event).orElse(null))
                 .stream()
                 .filter(EventField::isPublic)
                 .toList();

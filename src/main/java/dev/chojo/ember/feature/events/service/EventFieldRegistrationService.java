@@ -60,7 +60,7 @@ public class EventFieldRegistrationService {
     private final EventRepository eventRepository;
     private final EventFieldRepository fieldRepository;
     private final EventRegistrationRepository registrationRepository;
-    private final EventDateResolver dateResolver;
+    private final OccurrenceCalendar occurrenceCalendar;
     private final DomainEventBus eventBus;
     private final MemberNameResolver nameResolver;
 
@@ -69,13 +69,13 @@ public class EventFieldRegistrationService {
             EventRepository eventRepository,
             EventFieldRepository fieldRepository,
             EventRegistrationRepository registrationRepository,
-            EventDateResolver dateResolver,
+            OccurrenceCalendar occurrenceCalendar,
             DomainEventBus eventBus,
             MemberNameResolver nameResolver) {
         this.eventRepository = eventRepository;
         this.fieldRepository = fieldRepository;
         this.registrationRepository = registrationRepository;
-        this.dateResolver = dateResolver;
+        this.occurrenceCalendar = occurrenceCalendar;
         this.eventBus = eventBus;
         this.nameResolver = nameResolver;
     }
@@ -165,7 +165,7 @@ public class EventFieldRegistrationService {
         }
         boolean anyRepeating =
                 memberFields.stream().anyMatch(field -> !field.config().perDate());
-        if (anyRepeating) dates.addAll(dateResolver.occurrencesWithin(event, HORIZON_DAYS));
+        if (anyRepeating) dates.addAll(occurrenceCalendar.occurrencesWithin(event, HORIZON_DAYS));
         dates.addAll(registrationRepository.findFromFieldDates(event.id()));
         return dates;
     }

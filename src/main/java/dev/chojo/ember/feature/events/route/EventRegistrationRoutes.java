@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
 import dev.chojo.ember.feature.members.entity.MemberTable;
 import dev.chojo.ember.feature.members.entity.MemberTableCellType;
@@ -105,6 +106,7 @@ public class EventRegistrationRoutes implements Routes {
     private final MemberTableService memberTableService;
     private final MemberTableRenderer memberTableRenderer;
     private final StationRepository stationRepository;
+    private final OccurrenceCalendar occurrenceCalendar;
 
     @Inject
     public EventRegistrationRoutes(
@@ -123,7 +125,9 @@ public class EventRegistrationRoutes implements Routes {
             EventMemberTableService eventMemberTableService,
             MemberTableService memberTableService,
             MemberTableRenderer memberTableRenderer,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            OccurrenceCalendar occurrenceCalendar) {
+        this.occurrenceCalendar = occurrenceCalendar;
         this.crudService = crudService;
         this.stationRepository = stationRepository;
         this.registrationService = registrationService;
@@ -985,30 +989,10 @@ public class EventRegistrationRoutes implements Routes {
                 .toList());
     }
 
-    /**
-     * The day a registration is filed against, read in the clock of the station holding the event.
-     *
-     * <p>Not the server's: an appointment just after midnight in Berlin is the previous day in
-     * UTC, and the registration would be filed against a day the event is not on.
-     */
+    /** The day a registration or a decline is filed against, refused where the appointment is not on it. */
     private LocalDate resolveEventDate(RegisterRequest req, StationEvent event) {
-        if (event.eventType() == StationEvent.EventType.ONE_TIME) {
-            if (event.startTime() == null) throw Refusal.EVENT_HAS_NO_START_TIME.raise();
-            var zone = StationFormat.timezoneOf(
-                    stationRepository.findById(event.stationId()).orElse(null));
-            return event.startTime().atZone(zone).toLocalDate();
-        }
-        if (req.eventDate() == null) {
-            throw Refusal.REGISTRATION_NEEDS_A_DAY.raise();
-        }
-        LocalDate date = LocalDate.parse(req.eventDate());
-        if (event.dayOfWeek() != null) {
-            int isoDow = date.getDayOfWeek().getValue();
-            if (isoDow != event.dayOfWeek()) {
-                throw Refusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE.raise();
-            }
-        }
-        return date;
+        LocalDate requested = req.eventDate() == null ? null : LocalDate.parse(req.eventDate());
+        return occurrenceCalendar.dateToAnswerFor(event, requested);
     }
 
     public record RegistrationResponse(

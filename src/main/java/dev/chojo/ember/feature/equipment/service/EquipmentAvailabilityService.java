@@ -12,10 +12,10 @@ import dev.chojo.ember.feature.equipment.entity.EquipmentHandover;
 import dev.chojo.ember.feature.equipment.entity.EquipmentNeed;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
-import dev.chojo.ember.feature.events.entity.EventBreak;
+import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
-import dev.chojo.ember.feature.events.service.EventBreakService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.inventory.entity.ResolvedTarget;
 import jakarta.inject.Inject;
@@ -63,18 +63,18 @@ public class EquipmentAvailabilityService {
     private final EquipmentAvailabilityRepository availabilityRepository;
     private final EquipmentNeedRepository needRepository;
     private final EventRepository eventRepository;
-    private final EventBreakService breakService;
+    private final OccurrenceCalendar occurrenceCalendar;
 
     @Inject
     public EquipmentAvailabilityService(
             EquipmentAvailabilityRepository availabilityRepository,
             EquipmentNeedRepository needRepository,
             EventRepository eventRepository,
-            EventBreakService breakService) {
+            OccurrenceCalendar occurrenceCalendar) {
         this.availabilityRepository = availabilityRepository;
         this.needRepository = needRepository;
         this.eventRepository = eventRepository;
-        this.breakService = breakService;
+        this.occurrenceCalendar = occurrenceCalendar;
     }
 
     /**
@@ -228,27 +228,20 @@ public class EquipmentAvailabilityService {
      * its lines carry so that an occurrence just outside can still reach in.
      *
      * @param event  the appointment
-     * @param breaks the periods the station does not meet in
+     * @param calendar the station's calendar, breaks included
      * @param from   the first moment of the window
      * @param to     the last moment of the window
      * @param slack  the widest lead or trail to allow for
      * @return the dates, in order
      */
     public static List<LocalDate> occurrencesIn(
-            StationEvent event, List<EventBreak> breaks, Instant from, Instant to, int slack) {
-        var dates = new ArrayList<LocalDate>();
+            StationEvent event, StationCalendar calendar, Instant from, Instant to, int slack) {
         LocalDate first = from.atZone(ZoneOffset.UTC).toLocalDate().minusDays(slack + 1L);
         LocalDate last = to.atZone(ZoneOffset.UTC).toLocalDate().plusDays(slack + 1L);
-        if (!event.isRecurring()) {
-            LocalDate single = EquipmentOccurrenceWindows.singleDateOf(event);
-            if (single != null && !single.isBefore(first) && !single.isAfter(last)) dates.add(single);
-            return dates;
-        }
-        for (LocalDate date = first; !date.isAfter(last); date = date.plusDays(1)) {
-            if (EventBreak.coversAny(breaks, date)) continue;
-            if (event.occursOn(date, ZoneOffset.UTC)) dates.add(date);
-        }
-        return dates;
+        if (event.isRecurring()) return calendar.between(event, first, last);
+        LocalDate single = EquipmentOccurrenceWindows.singleDateOf(event);
+        if (single != null && !single.isBefore(first) && !single.isAfter(last)) return List.of(single);
+        return List.of();
     }
 
     /**
@@ -285,7 +278,7 @@ public class EquipmentAvailabilityService {
         }
         if (needsByEvent.isEmpty()) return List.of();
 
-        var breaks = breakService.findByStation(stationId);
+        var calendar = occurrenceCalendar.forStation(stationId);
         var firm = firmCounts(stationId, from, to);
         var claims = new ArrayList<EquipmentClaim>();
 
@@ -293,7 +286,7 @@ public class EquipmentAvailabilityService {
             var needs = needsByEvent.get(event.id());
             if (needs == null || event.cancelled()) continue;
             int slack = slackOf(needs);
-            for (LocalDate date : occurrencesIn(event, breaks, from, to, slack)) {
+            for (LocalDate date : occurrencesIn(event, calendar, from, to, slack)) {
                 for (var need : needsForDate(needs, date)) {
                     Instant start =
                             EquipmentOccurrenceWindows.startOf(event, date).minus(need.lead());

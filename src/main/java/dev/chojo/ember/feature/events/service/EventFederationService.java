@@ -71,7 +71,7 @@ public class EventFederationService {
     private final FederationEntityResolver entityResolver;
     private final EventAttachmentService attachmentService;
     private final EventFieldService fieldService;
-    private final EventDateResolver dateResolver;
+    private final OccurrenceCalendar occurrenceCalendar;
     private final MediaLibraryService media;
     private final Api apiConfig;
 
@@ -90,7 +90,7 @@ public class EventFederationService {
             FederationEntityResolver entityResolver,
             EventAttachmentService attachmentService,
             EventFieldService fieldService,
-            EventDateResolver dateResolver,
+            OccurrenceCalendar occurrenceCalendar,
             MediaLibraryService media,
             Api apiConfig) {
         this.federationRepository = federationRepository;
@@ -106,7 +106,7 @@ public class EventFederationService {
         this.entityResolver = entityResolver;
         this.attachmentService = attachmentService;
         this.fieldService = fieldService;
-        this.dateResolver = dateResolver;
+        this.occurrenceCalendar = occurrenceCalendar;
         this.media = media;
         this.apiConfig = apiConfig;
     }
@@ -569,11 +569,14 @@ public class EventFederationService {
                         throw new BadRequestResponse("Event not shared with this partner");
                     }
                     var event = crudService.findById(eventId).orElseThrow();
-                    var fields = fieldService
-                            .findByEvent(eventId, dateResolver.nextDate(event).orElse(null))
-                            .stream()
-                            .filter(EventField::isPublic)
-                            .toList();
+                    var fields =
+                            fieldService
+                                    .findByEvent(
+                                            eventId,
+                                            occurrenceCalendar.dateInView(event).orElse(null))
+                                    .stream()
+                                    .filter(EventField::isPublic)
+                                    .toList();
                     var places = partnerPlaces(eventId, hostPartnerOf(partner).id());
                     return new RemoteEventRoutes.RemoteEventDetail(
                             SharedEvent.of(event),

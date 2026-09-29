@@ -6,9 +6,8 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.feature.events.entity.EventBreak;
+import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -53,7 +52,7 @@ public class EventExportService {
 
     private final EventRepository eventRepository;
     private final EventCategoryRepository categoryRepository;
-    private final EventBreakRepository breakRepository;
+    private final OccurrenceCalendar occurrenceCalendar;
     private final EventFieldRepository eventFieldRepository;
     private final StationRepository stationRepository;
     private final Api apiConfig;
@@ -62,13 +61,13 @@ public class EventExportService {
     public EventExportService(
             EventRepository eventRepository,
             EventCategoryRepository categoryRepository,
-            EventBreakRepository breakRepository,
+            OccurrenceCalendar occurrenceCalendar,
             EventFieldRepository eventFieldRepository,
             StationRepository stationRepository,
             Api apiConfig) {
         this.eventRepository = eventRepository;
         this.categoryRepository = categoryRepository;
-        this.breakRepository = breakRepository;
+        this.occurrenceCalendar = occurrenceCalendar;
         this.eventFieldRepository = eventFieldRepository;
         this.stationRepository = stationRepository;
         this.apiConfig = apiConfig;
@@ -86,13 +85,12 @@ public class EventExportService {
 
         var allEvents = eventRepository.findByStation(stationId);
         var eventCategories = categoryRepository.findByStation(stationId);
-        var breaks = breakRepository.findByStation(stationId);
+        var calendar = occurrenceCalendar.forStation(stationId);
 
         // Build column headers in order
         var columnHeaders = columns.stream().map(ExportColumn::label).toList();
 
-        // Expand recurring events into individual occurrences
-        var expandedEvents = expandEvents(allEvents, from, to, breaks, zone);
+        var expandedEvents = expandEvents(allEvents, from, to, calendar);
 
         String language = StationFormat.languageOf(station);
         var catGroups = new ArrayList<CategoryGroup>();
@@ -139,74 +137,15 @@ public class EventExportService {
         }
     }
 
-    private List<ExpandedEvent> expandEvents(
-            List<StationEvent> events, LocalDate from, LocalDate to, List<EventBreak> breaks, ZoneId zone) {
+    /** Every date inside the period that one of these appointments takes place on, earliest first. */
+    private static List<ExpandedEvent> expandEvents(
+            List<StationEvent> events, LocalDate from, LocalDate to, StationCalendar calendar) {
         var result = new ArrayList<ExpandedEvent>();
         for (var event : events) {
-            if (event.isRecurring()) {
-                expandRecurring(event, from, to, breaks, result, zone);
-            } else {
-                if (event.startTime() == null) continue;
-                LocalDate eventDate = event.startTime().atZone(zone).toLocalDate();
-                if (!eventDate.isBefore(from) && !eventDate.isAfter(to)) {
-                    result.add(new ExpandedEvent(event, eventDate));
-                }
-            }
+            for (var date : calendar.between(event, from, to)) result.add(new ExpandedEvent(event, date));
         }
         result.sort(Comparator.comparing(ExpandedEvent::date));
         return result;
-    }
-
-    /**
-     * Whether a day is the one a yearly appointment repeats on.
-     *
-     * <p>Which day of the year that is has to be read on the station's own clock, the same clock the
-     * rest of this export reads. Read anywhere else, an appointment near midnight belongs to the day
-     * either side of the one it is actually on, and the yearly line is then listed on the wrong date.
-     *
-     * @param startTime when the appointment starts, or null where it has no start
-     * @param zone      the station's clock
-     * @param day       the day being considered
-     * @return true where the day is the appointment's own day of the year
-     */
-    static boolean fallsOnYearlyAnchor(Instant startTime, ZoneId zone, LocalDate day) {
-        if (startTime == null) return false;
-        LocalDate anchor = startTime.atZone(zone).toLocalDate();
-        return day.getMonthValue() == anchor.getMonthValue() && day.getDayOfMonth() == anchor.getDayOfMonth();
-    }
-
-    private void expandRecurring(
-            StationEvent event,
-            LocalDate from,
-            LocalDate to,
-            List<EventBreak> breaks,
-            List<ExpandedEvent> result,
-            ZoneId zone) {
-        if (event.dayOfWeek() == null && event.eventType() != StationEvent.EventType.YEARLY) return;
-        for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
-            LocalDate date = d;
-            boolean inBreak =
-                    breaks.stream().anyMatch(b -> !date.isBefore(b.startDate()) && !date.isAfter(b.endDate()));
-            if (inBreak) continue;
-
-            boolean matches =
-                    switch (event.eventType()) {
-                        case RECURRING -> d.getDayOfWeek().getValue() == event.dayOfWeek();
-                        case MONTHLY_FIRST ->
-                            d.getDayOfWeek().getValue() == event.dayOfWeek() && d.getDayOfMonth() <= 7;
-                        case QUARTERLY ->
-                            d.getDayOfWeek().getValue() == event.dayOfWeek()
-                                    && d.getDayOfMonth() <= 7
-                                    && (d.getMonthValue() - 1) % 3 == 0;
-                        // Which day of the year an appointment falls on is read in the station's
-                        // own timezone, the same way every other date in this export is. Read in
-                        // UTC, an appointment late in the evening lands on the day before and
-                        // the yearly one is then listed on the wrong date.
-                        case YEARLY -> fallsOnYearlyAnchor(event.startTime(), zone, d);
-                        default -> false;
-                    };
-            if (matches && !event.isAfterLastDate(d)) result.add(new ExpandedEvent(event, d));
-        }
     }
 
     private List<EventRow> buildEventRows(

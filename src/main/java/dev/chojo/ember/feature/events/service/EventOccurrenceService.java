@@ -6,12 +6,9 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.DatedEvent;
-import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
-import dev.chojo.ember.feature.station.entity.StationFormat;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -23,88 +20,49 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.PriorityQueue;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 /**
- * Expands the recurrence rules of events into the concrete dates they take place on, honouring the
- * break periods of the station.
+ * Lists the concrete dates events take place on, a page at a time.
+ *
+ * <p>Which dates those are is the {@link OccurrenceCalendar}'s answer, breaks included. This only
+ * filters the appointments, merges their dates into one list and cuts the page out of it.
  */
 @Singleton
 public class EventOccurrenceService {
-    /**
-     * How far the walk goes before it gives up on filling a page.
-     *
-     * <p>Only reached where an appointment repeats with no end and the page still could not be
-     * filled, which means the station has very little on. Three years is past the next date of
-     * anything that repeats at all, yearly included.
-     */
-    private static final int MAX_LOOKAHEAD_DAYS = 1100;
-
     private final EventCrudService eventCrudService;
-    private final EventBreakService breakService;
-    private final StationRepository stationRepository;
+    private final OccurrenceCalendar occurrenceCalendar;
 
     @Inject
-    public EventOccurrenceService(
-            EventCrudService eventCrudService, EventBreakService breakService, StationRepository stationRepository) {
+    public EventOccurrenceService(EventCrudService eventCrudService, OccurrenceCalendar occurrenceCalendar) {
         this.eventCrudService = eventCrudService;
-        this.breakService = breakService;
-        this.stationRepository = stationRepository;
+        this.occurrenceCalendar = occurrenceCalendar;
     }
 
     /**
-     * The clock a station keeps its days by.
-     *
-     * <p>Which day it is, and which day an appointment falls on, are both the station's to answer. A
-     * server an hour or two behind is still on yesterday late in the evening, so asking it left
-     * today's appointment off that list and put tomorrow's one day early.
-     *
-     * @param stationId the station whose day is meant
-     * @return its timezone, UTC where it keeps none
-     */
-    private ZoneId timezoneOf(int stationId) {
-        return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
-    }
-
-    /**
-     * Finds all events that occur today for a station, taking into account recurrence rules and break periods.
-     * One-time events match by their start date; recurring events match by day of week and recurrence pattern.
+     * Finds all events that take place today for a station, on the station's own clock.
      *
      * @param stationId the station ID
      * @return the list of today's events
      */
     public List<StationEvent> findTodayEvents(int stationId) {
-        var zone = timezoneOf(stationId);
-        LocalDate today = LocalDate.now(zone);
-        boolean inBreak = breakService.isDateInBreak(stationId, today);
-
+        var calendar = occurrenceCalendar.forStation(stationId);
+        LocalDate today = calendar.today();
         return eventCrudService.findByStation(stationId).stream()
-                .filter(e -> occursToday(e, today, inBreak, zone))
+                .filter(event -> calendar.occursOn(event, today))
                 .toList();
     }
 
     /**
-     * Whether this event takes place today.
+     * The next page of occurrences, earliest first.
      *
-     * <p>The recurrence itself is answered by the event, so that a series which has run its course is
-     * over everywhere at once rather than in the places that remembered to ask. A break suspends a
-     * series and leaves a one-off appointment standing, which is what a break is for.
-     */
-    private static boolean occursToday(StationEvent event, LocalDate today, boolean inBreak, ZoneId zone) {
-        if (inBreak && event.isRecurring()) return false;
-        return fallsOn(event, today, zone);
-    }
-
-    /**
-     * The next page of occurrences, worked out one day at a time until the page is full.
-     *
-     * <p>Asked day by day the way the calendar asks it, rather than by expanding a fixed stretch of
-     * time and slicing what comes out. The stretch used to be four weeks, which is generous for a
-     * weekly appointment and blind to every rarer one: an appointment that comes round once a
-     * quarter had no date inside the window and so never reached the list at all, while the calendar
-     * found it as soon as somebody paged forward to its month.
-     *
-     * <p>Walking instead of expanding also means the work follows the page rather than the calendar:
-     * a first page of ten is ten found and no more, however far ahead the tenth turns out to be.
+     * <p>The appointments' dates are merged the way the calendar would read them, one date after the
+     * other, and the walk stops as soon as the page is full. An appointment that comes round once a
+     * quarter is therefore on the list as soon as it is among the next dates, however far ahead that
+     * is, and a first page of ten is ten found and no more.
      *
      * @param stationId the station the list belongs to
      * @param memberIds the members the caller may see appointments for, null where that is everybody
@@ -116,29 +74,24 @@ public class EventOccurrenceService {
         var events = matchingEvents(stationId, memberIds, query);
         if (events.isEmpty()) return List.of();
 
-        var breaks = breakService.findByStation(stationId);
-        var zone = timezoneOf(stationId);
-        LocalDate first = notBefore(LocalDate.now(zone), query.from());
-        LocalDate last = notAfter(lastDateWorthAsking(events, zone, first), query.to());
+        var calendar = occurrenceCalendar.forStation(stationId);
+        LocalDate first = notBefore(calendar.today(), query.from());
+        LocalDate last = notAfter(first.plusDays(OccurrenceCalendar.LOOKAHEAD_DAYS), query.to());
 
-        int wanted = query.offset() + query.limit();
-        var occurrences = new ArrayList<UpcomingEventOccurrence>();
-        for (LocalDate date = first; !date.isAfter(last) && occurrences.size() < wanted; date = date.plusDays(1)) {
-            if (EventBreak.coversAny(breaks, date)) continue;
-            occurrences.addAll(onDate(events, date, zone));
-        }
-        return page(occurrences, query);
+        var walk = new Walk(
+                (event, day) -> calendar.next(event, day),
+                day -> day.plusDays(1),
+                day -> !day.isAfter(last),
+                Comparator.naturalOrder());
+        return page(walk.from(first, events, query.offset() + query.limit(), calendar.zone()), query);
     }
 
     /**
-     * The page of occurrences that have already happened, worked out one day at a time going back.
+     * The page of occurrences that have already happened, latest first.
      *
-     * <p>The same walk as {@link #findUpcomingOccurrences} with the day stepping the other way,
-     * rather than a second idea about what an occurrence is: the same recurrence rules answer the
-     * same question about a date, and a break removes a date going back exactly as it does going
-     * forward. Only the two bounds differ. Forwards the walk is bounded by how far anybody pages,
-     * because a series without an end never runs out; backwards there is a real floor and no guess is
-     * needed, since an appointment cannot have happened before it was written.
+     * <p>The same walk as {@link #findUpcomingOccurrences} with the dates taken the other way. Going
+     * back there is a real floor and no guess is needed: nothing falls before the first date of its
+     * series.
      *
      * <p>Days come newest first, and within a day the appointments read in the order they ran, which
      * is the order every other list of a day shows them in.
@@ -153,21 +106,16 @@ public class EventOccurrenceService {
         var events = matchingEvents(stationId, memberIds, query);
         if (events.isEmpty()) return List.of();
 
-        var breaks = breakService.findByStation(stationId);
-        var zone = timezoneOf(stationId);
-        Optional<LocalDate> oldestWritten = firstDateWorthAsking(events, zone);
-        if (oldestWritten.isEmpty()) return List.of();
+        var calendar = occurrenceCalendar.forStation(stationId);
+        LocalDate newest = notAfter(calendar.today().minusDays(1), query.to());
+        LocalDate oldest = query.from();
 
-        LocalDate newest = notAfter(LocalDate.now(zone).minusDays(1), query.to());
-        LocalDate oldest = notBefore(oldestWritten.get(), query.from());
-
-        int wanted = query.offset() + query.limit();
-        var occurrences = new ArrayList<UpcomingEventOccurrence>();
-        for (LocalDate date = newest; !date.isBefore(oldest) && occurrences.size() < wanted; date = date.minusDays(1)) {
-            if (EventBreak.coversAny(breaks, date)) continue;
-            occurrences.addAll(onPastDate(events, date, zone));
-        }
-        return page(occurrences, query);
+        var walk = new Walk(
+                (event, day) -> calendar.previous(event, day.plusDays(1)),
+                day -> day.minusDays(1),
+                day -> oldest == null || !day.isBefore(oldest),
+                Comparator.reverseOrder());
+        return page(walk.from(newest, events, query.offset() + query.limit(), calendar.zone()), query);
     }
 
     /**
@@ -195,16 +143,15 @@ public class EventOccurrenceService {
                 .toList();
         if (events.isEmpty()) return List.of();
 
-        var breaks = breakService.findByStation(stationId);
-        var zone = timezoneOf(stationId);
-        LocalDate today = LocalDate.now(zone);
+        var calendar = occurrenceCalendar.forStation(stationId);
+        LocalDate today = calendar.today();
         boolean past = query.state() == EventState.PAST;
 
         var placed = new ArrayList<PlacedEvent>();
         for (var event : events) {
-            Optional<LocalDate> next = nextDate(event, breaks, zone, today);
+            Optional<LocalDate> next = calendar.next(event, today);
             if (next.isPresent() == past) continue;
-            Optional<LocalDate> previous = previousDate(event, breaks, zone, today);
+            Optional<LocalDate> previous = calendar.previous(event, today);
             LocalDate on = past ? previous.orElse(null) : next.get();
             if (!withinWindow(on, filter)) continue;
             placed.add(new PlacedEvent(event, on, next.orElse(null), previous.orElse(null)));
@@ -237,153 +184,13 @@ public class EventOccurrenceService {
                 && (query.to() == null || !date.isAfter(query.to()));
     }
 
-    /**
-     * The first date from today on that an appointment falls on.
-     *
-     * <p>This is what says whether an appointment is current at all, and it is worked out by the same
-     * walk that builds a list of occurrences rather than by a second reading of the recurrence rules:
-     * a break that removes the next date moves the appointment to the one after it, here as
-     * everywhere else.
-     *
-     * @param event the appointment
-     * @return the next date it falls on, empty where it has none left
-     */
-    public Optional<LocalDate> findNextDate(StationEvent event) {
-        var zone = timezoneOf(event.stationId());
-        return nextDate(event, breakService.findByStation(event.stationId()), zone, LocalDate.now(zone));
-    }
-
-    /** The first date from today on that one appointment falls on, for a caller that holds the breaks already. */
-    private static Optional<LocalDate> nextDate(
-            StationEvent event, List<EventBreak> breaks, ZoneId zone, LocalDate today) {
-        LocalDate last = lastDateWorthAsking(List.of(event), zone, today);
-        for (LocalDate date = today; !date.isAfter(last); date = date.plusDays(1)) {
-            if (EventBreak.coversAny(breaks, date)) continue;
-            if (fallsOn(event, date, zone)) return Optional.of(date);
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * The last date before today that one appointment fell on, which is what orders the past by
-     * recency.
-     *
-     * <p>Started from the last date the appointment could possibly fall on rather than from
-     * yesterday, so that a series which ended three years ago is found in a few steps instead of a
-     * thousand.
-     */
-    private static Optional<LocalDate> previousDate(
-            StationEvent event, List<EventBreak> breaks, ZoneId zone, LocalDate today) {
-        Optional<LocalDate> written = writtenOn(event, zone);
-        if (written.isEmpty()) return Optional.empty();
-
-        LocalDate newest = notAfter(today.minusDays(1), lastPossibleDate(event, zone));
-        for (LocalDate date = newest; !date.isBefore(written.get()); date = date.minusDays(1)) {
-            if (EventBreak.coversAny(breaks, date)) continue;
-            if (fallsOn(event, date, zone)) return Optional.of(date);
-        }
-        return Optional.empty();
-    }
-
     /** Everything falling on one date, in the order the list shows a day's appointments. */
     private static List<UpcomingEventOccurrence> onDate(List<StationEvent> events, LocalDate date, ZoneId zone) {
         var onThisDate = new ArrayList<UpcomingEventOccurrence>();
-        for (var ev : events) {
-            if (fallsOn(ev, date, zone)) onThisDate.add(new UpcomingEventOccurrence(EventSummary.of(ev), date));
-        }
+        for (var ev : events) onThisDate.add(new UpcomingEventOccurrence(EventSummary.of(ev), date));
         onThisDate.sort(Comparator.comparing((UpcomingEventOccurrence o) -> timeOfDay(o, zone))
                 .thenComparing(occurrence -> occurrence.event().id()));
         return onThisDate;
-    }
-
-    /**
-     * The same for a date that has gone by, where an appointment only counts once it existed.
-     *
-     * <p>A repeating appointment answers for its weekday on every date there has ever been: the rule
-     * says which days it lands on and nothing in it says when it started. Going forward that never
-     * shows, because today is after the day it was written. Going back it would hand out a weekly
-     * drill every week since the epoch, so the day it was written is the floor.
-     */
-    private static List<UpcomingEventOccurrence> onPastDate(List<StationEvent> events, LocalDate date, ZoneId zone) {
-        return onDate(events.stream().filter(ev -> existedOn(ev, date, zone)).toList(), date, zone);
-    }
-
-    /**
-     * Whether an appointment falls on a date, by its own date where it carries one and by its
-     * recurrence rule otherwise.
-     */
-    private static boolean fallsOn(StationEvent event, LocalDate date, ZoneId zone) {
-        if (event.eventType() == StationEvent.EventType.ONE_TIME) {
-            return writtenOn(event, zone).filter(date::equals).isPresent();
-        }
-        return event.occursOn(date, zone);
-    }
-
-    /** Whether the appointment had been written down by this date, which is what bounds a walk back. */
-    private static boolean existedOn(StationEvent event, LocalDate date, ZoneId zone) {
-        return writtenOn(event, zone).filter(written -> !date.isBefore(written)).isPresent();
-    }
-
-    /**
-     * The day an appointment was written, read on the station's clock.
-     *
-     * <p>Nothing records a creation date of its own and nothing needs to: the start an appointment
-     * carries is the day somebody first configured it, and a repeating one keeps that day unchanged
-     * while its dates move on around it.
-     *
-     * @return the day it was written, empty where it carries no date at all
-     */
-    private static Optional<LocalDate> writtenOn(StationEvent event, ZoneId zone) {
-        return Optional.ofNullable(event.startTime())
-                .map(start -> start.atZone(zone).toLocalDate());
-    }
-
-    /**
-     * The last date one appointment could possibly fall on, where anything bounds it at all.
-     *
-     * @return that date, or null where the appointment repeats without an end
-     */
-    private static LocalDate lastPossibleDate(StationEvent event, ZoneId zone) {
-        if (event.eventType() == StationEvent.EventType.ONE_TIME) {
-            return writtenOn(event, zone).orElse(null);
-        }
-        return event.lastDate().orElse(null);
-    }
-
-    /**
-     * The last date the walk could still find anything on, so a page that cannot be filled ends
-     * rather than counting days for ever.
-     *
-     * <p>Where every appointment has an end, that is the latest of them. Where any repeats without
-     * one there is no such date, and {@link #MAX_LOOKAHEAD_DAYS} stands in: far enough that a yearly
-     * appointment is reached, and near enough that asking for a page nobody can fill is still cheap.
-     */
-    private static LocalDate lastDateWorthAsking(List<StationEvent> events, ZoneId zone, LocalDate from) {
-        LocalDate furthest = from;
-        for (var ev : events) {
-            if (ev.eventType() == StationEvent.EventType.ONE_TIME) {
-                Optional<LocalDate> on = writtenOn(ev, zone);
-                if (on.isPresent() && on.get().isAfter(furthest)) furthest = on.get();
-                continue;
-            }
-            Optional<LocalDate> ends = ev.lastDate();
-            if (ends.isEmpty()) return from.plusDays(MAX_LOOKAHEAD_DAYS);
-            if (ends.get().isAfter(furthest)) furthest = ends.get();
-        }
-        return furthest;
-    }
-
-    /**
-     * The earliest date the walk back could still find anything on, which is the day the oldest of
-     * these appointments was written.
-     *
-     * @return that day, empty where not one of them carries a date and so none of them has a past
-     */
-    private static Optional<LocalDate> firstDateWorthAsking(List<StationEvent> events, ZoneId zone) {
-        return events.stream()
-                .map(ev -> writtenOn(ev, zone))
-                .flatMap(Optional::stream)
-                .min(Comparator.naturalOrder());
     }
 
     /** The given date held at or after a floor, where the caller named one. */
@@ -429,6 +236,51 @@ public class EventOccurrenceService {
                 })
                 .toList();
     }
+
+    /**
+     * One direction of travel through the calendar: how each appointment finds its next date that way,
+     * how to step past a date, how far the walk may go, and which date comes first.
+     *
+     * <p>The appointments are merged one date at a time, so the walk ends as soon as the page is full
+     * and never looks further than the page needs.
+     *
+     * @param dateFrom the first date on or beyond a day, in this direction, that an appointment falls on
+     * @param beyond   the day just past a day, in this direction
+     * @param reaches  whether the walk may still take a date
+     * @param order    which of two dates comes first in this direction
+     */
+    private record Walk(
+            BiFunction<StationEvent, LocalDate, Optional<LocalDate>> dateFrom,
+            UnaryOperator<LocalDate> beyond,
+            Predicate<LocalDate> reaches,
+            Comparator<LocalDate> order) {
+
+        /** The occurrences from a day on, whole days at a time until at least this many are found. */
+        List<UpcomingEventOccurrence> from(LocalDate start, List<StationEvent> events, int wanted, ZoneId zone) {
+            var queue = new PriorityQueue<Cursor>(Comparator.comparing(Cursor::date, order));
+            for (var event : events) advance(event, start, queue);
+
+            var found = new ArrayList<UpcomingEventOccurrence>();
+            while (!queue.isEmpty() && found.size() < wanted) {
+                LocalDate day = queue.peek().date();
+                var onDay = new ArrayList<StationEvent>();
+                while (!queue.isEmpty() && queue.peek().date().equals(day)) {
+                    var cursor = queue.poll();
+                    onDay.add(cursor.event());
+                    advance(cursor.event(), beyond.apply(day), queue);
+                }
+                found.addAll(onDate(onDay, day, zone));
+            }
+            return found;
+        }
+
+        private void advance(StationEvent event, LocalDate day, PriorityQueue<Cursor> queue) {
+            dateFrom.apply(event, day).filter(reaches).ifPresent(date -> queue.add(new Cursor(event, date)));
+        }
+    }
+
+    /** Where one appointment stands in a walk: the next date it has in the walk's direction. */
+    private record Cursor(StationEvent event, LocalDate date) {}
 
     /**
      * What a listing was asked for: which appointments to consider, which stretch of days to look at

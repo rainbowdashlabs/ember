@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
@@ -17,8 +18,6 @@ import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
-import dev.chojo.ember.feature.station.entity.StationFormat;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -26,8 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -47,7 +44,7 @@ public class EventReminderChecker {
     private final MemberNameResolver memberNameResolver;
     private final EventRestrictionService restrictionService;
     private final StationReadOnlyGuard readOnlyGuard;
-    private final StationRepository stationRepository;
+    private final OccurrenceCalendar occurrenceCalendar;
 
     @Inject
     public EventReminderChecker(
@@ -59,7 +56,7 @@ public class EventReminderChecker {
             MemberNameResolver memberNameResolver,
             EventRestrictionService restrictionService,
             StationReadOnlyGuard readOnlyGuard,
-            StationRepository stationRepository) {
+            OccurrenceCalendar occurrenceCalendar) {
         this.eventRepository = eventRepository;
         this.reminderRepository = reminderRepository;
         this.registrationRepository = registrationRepository;
@@ -68,7 +65,7 @@ public class EventReminderChecker {
         this.memberNameResolver = memberNameResolver;
         this.restrictionService = restrictionService;
         this.readOnlyGuard = readOnlyGuard;
-        this.stationRepository = stationRepository;
+        this.occurrenceCalendar = occurrenceCalendar;
         var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "event-reminder-checker");
             t.setDaemon(true);
@@ -80,34 +77,25 @@ public class EventReminderChecker {
     private static final int[] CLOSING_WARNINGS = {3, 1};
 
     /**
-     * The clock a station's appointments are read by, or UTC where it has named none.
-     *
-     * <p>Looked up once per station per sweep rather than once per event, since a station with a
-     * weekly drill and a dozen appointments would otherwise ask the same question a dozen times.
-     */
-    private ZoneId zoneOf(int stationId) {
-        return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
-    }
-
-    /**
      * One sweep: what has to be warned about, and what has to be reminded of.
      *
      * <p>Which day it is, and which day an appointment falls on, are both questions about the
-     * station's clock. Asked in UTC, an appointment starting at 00:30 in Berlin belongs to the day
-     * before, and a reminder set three days ahead goes out four days ahead.
+     * station's calendar. Asked in UTC, an appointment starting at 00:30 in Berlin belongs to the day
+     * before, and a reminder set three days ahead goes out four days ahead. The calendar is read once
+     * per station per sweep rather than once per event.
      */
     private void check() {
         try {
             warnAboutClosingRegistrations();
             var events = eventRepository.findEventsWithReminders();
-            var zones = new HashMap<Integer, ZoneId>();
+            var calendars = new HashMap<Integer, StationCalendar>();
 
             for (var event : events) {
                 if (!readOnlyGuard.isWritable(event.stationId())) continue;
-                ZoneId zone = zones.computeIfAbsent(event.stationId(), this::zoneOf);
-                LocalDate today = LocalDate.now(zone);
+                var calendar = calendars.computeIfAbsent(event.stationId(), occurrenceCalendar::forStation);
+                LocalDate today = calendar.today();
                 var reminderDays = reminderRepository.findDays(event.id());
-                var occurrences = computeOccurrences(event, today, reminderDays, zone);
+                var occurrences = computeOccurrences(event, today, reminderDays, calendar);
 
                 for (var occurrence : occurrences) {
                     for (int daysBefore : reminderDays) {
@@ -141,32 +129,15 @@ public class EventReminderChecker {
     }
 
     /**
-     * The days this event falls on that are worth reminding about, read in the station's own clock.
+     * The days this event takes place on that are worth reminding about: from today up to the
+     * furthest reminder, with the dates the station's breaks take out left out.
      *
-     * @param zone the station's zone, which is what decides the day an appointment belongs to
+     * @param calendar the station's calendar, which decides the day an appointment belongs to
      */
-    private List<LocalDate> computeOccurrences(
-            StationEvent event, LocalDate today, List<Integer> reminderDays, ZoneId zone) {
+    private static List<LocalDate> computeOccurrences(
+            StationEvent event, LocalDate today, List<Integer> reminderDays, StationCalendar calendar) {
         int maxDays = reminderDays.stream().mapToInt(Integer::intValue).max().orElse(0);
-        var result = new ArrayList<LocalDate>();
-
-        if (event.eventType() == StationEvent.EventType.ONE_TIME) {
-            if (event.startTime() != null) {
-                LocalDate eventDate = event.startTime().atZone(zone).toLocalDate();
-                if (!eventDate.isBefore(today)) {
-                    result.add(eventDate);
-                }
-            }
-            return result;
-        }
-
-        if (event.dayOfWeek() == null) return result;
-
-        for (int d = 0; d <= maxDays; d++) {
-            LocalDate date = today.plusDays(d);
-            if (event.occursOn(date, zone)) result.add(date);
-        }
-        return result;
+        return calendar.between(event, today, today.plusDays(maxDays));
     }
 
     /**

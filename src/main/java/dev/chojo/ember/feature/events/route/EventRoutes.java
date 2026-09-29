@@ -25,13 +25,13 @@ import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -83,7 +83,7 @@ public class EventRoutes implements Routes {
     private final EventExportService eventExportService;
     private final EventRegistrationFieldService registrationFieldService;
     private final EventFieldRegistrationService fieldRegistrationService;
-    private final EventDateResolver dateResolver;
+    private final OccurrenceCalendar occurrenceCalendar;
 
     @Inject
     public EventRoutes(
@@ -96,8 +96,8 @@ public class EventRoutes implements Routes {
             EventExportService eventExportService,
             EventRegistrationFieldService registrationFieldService,
             EventFieldRegistrationService fieldRegistrationService,
-            EventDateResolver dateResolver) {
-        this.dateResolver = dateResolver;
+            OccurrenceCalendar occurrenceCalendar) {
+        this.occurrenceCalendar = occurrenceCalendar;
         this.crudService = crudService;
         this.fieldRegistrationService = fieldRegistrationService;
         this.occurrenceService = occurrenceService;
@@ -432,7 +432,7 @@ public class EventRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         var event = requireOwnedEvent(crudService, id, session);
-        ctx.json(new NextDate(dateResolver.nextDate(event).orElse(null)));
+        ctx.json(new NextDate(occurrenceCalendar.dateInView(event).orElse(null)));
     }
 
     @OpenApi(

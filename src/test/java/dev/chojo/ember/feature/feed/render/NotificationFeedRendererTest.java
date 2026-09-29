@@ -18,8 +18,8 @@ import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.service.LendingService;
@@ -135,7 +135,7 @@ class NotificationFeedRendererTest {
                 notificationService,
                 crudService,
                 eventFieldService,
-                mock(EventDateResolver.class),
+                mock(OccurrenceCalendar.class),
                 lostAndFoundService,
                 lendingService,
                 storageQuotaService,

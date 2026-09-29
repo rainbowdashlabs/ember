@@ -16,6 +16,7 @@ import EventAnswerDialog from '@/views/stationview/events/eventshared/EventAnswe
 import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 import {
   EventTypes,
+  isQuarterMonthOf,
   isRecurringEvent,
   type EventBreak,
   type EventCategory,
@@ -116,7 +117,7 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
       } else if (ev.eventType === EventTypes.MONTHLY_FIRST) {
         if (dayOfMonth <= 7) upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
       } else if (ev.eventType === EventTypes.QUARTERLY) {
-        if (dayOfMonth <= 7 && (month % 3 === 0)) upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
+        if (dayOfMonth <= 7 && isQuarterMonthOf(ev, date.getUTCFullYear(), month)) upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
       } else if (ev.eventType === EventTypes.YEARLY && ev.startTime) {
         const refDate = new Date(ev.startTime)
         if (refDate.getMonth() === month && refDate.getDate() === dayOfMonth) {

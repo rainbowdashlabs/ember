@@ -11,7 +11,6 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Optional;
 
@@ -138,102 +137,6 @@ public record StationEvent(
      * @param end   when it ends, which may be on a later day
      */
     public record Span(Instant start, Instant end) {}
-
-    /**
-     * Returns whether this recurring event falls on the given date, matching the configured
-     * weekday and recurrence schedule. One-time events never match.
-     *
-     * <p>The zone is asked for rather than assumed because a yearly appointment is the day and month
-     * its first one fell on, and which day that was depends on where the station is. Read in UTC, an
-     * appointment that starts at midnight in Berlin belongs to the day before, so its anniversary
-     * was quietly the wrong one for every station east of Greenwich.
-     *
-     * @param date the calendar date to test, worked out on the station's own clock
-     * @param zone the station's clock, which is the one the date came from
-     * @return true if the event recurs on that date
-     */
-    /**
-     * The same question asked in UTC, for the callers that already work in it.
-     *
-     * <p>Only the anniversary of a yearly appointment reads the clock at all, so everything built
-     * from weekdays gets the same answer whichever zone it names. A caller that knows the station's
-     * clock should say so and use the other one.
-     *
-     * @param date the calendar date to test
-     * @return true if the event recurs on that date
-     */
-    public boolean occursOn(LocalDate date) {
-        return occursOn(date, ZoneOffset.UTC);
-    }
-
-    public boolean occursOn(LocalDate date, ZoneId zone) {
-        boolean matchesPattern =
-                switch (eventType) {
-                    case RECURRING -> onTheWeekday(date);
-                    case MONTHLY_FIRST -> onTheWeekday(date) && date.getDayOfMonth() <= 7;
-                    case QUARTERLY ->
-                        onTheWeekday(date) && date.getDayOfMonth() <= 7 && (date.getMonthValue() - 1) % 3 == 0;
-                    case YEARLY ->
-                        startTime != null
-                                && startTime.atZone(zone).getMonthValue() == date.getMonthValue()
-                                && startTime.atZone(zone).getDayOfMonth() == date.getDayOfMonth();
-                    default -> false;
-                };
-        return matchesPattern && !isAfterLastDate(date);
-    }
-
-    /** A yearly event falls on a date rather than on a weekday, which is why it does not ask this. */
-    private boolean onTheWeekday(LocalDate date) {
-        return dayOfWeek != null && dayOfWeek == date.getDayOfWeek().getValue();
-    }
-
-    /** Whether this date lies past the end of the repetition, where an end was given at all. */
-    public boolean isAfterLastDate(LocalDate date) {
-        return lastDate().map(date::isAfter).orElse(false);
-    }
-
-    /**
-     * The last day this event may fall on, where it has an end at all.
-     *
-     * <p>Said as a day or as a number of times, and the number is worked out here rather than written
-     * down as a date: a series moved to another weekday still runs the number of times it was given,
-     * which is what somebody who wrote "eight times" meant.
-     *
-     * @return the last day, or empty where the event is one-off or repeats without an end
-     */
-    public Optional<LocalDate> lastDate() {
-        if (!isRecurring()) return Optional.empty();
-        if (repeatUntil != null) return Optional.of(repeatUntil);
-        if (repeatCount == null || startTime == null) return Optional.empty();
-
-        LocalDate first = firstDate();
-        long steps = repeatCount - 1L;
-        return Optional.of(
-                switch (eventType) {
-                    case RECURRING -> first.plusWeeks(steps);
-                    case MONTHLY_FIRST -> weekdayInFirstWeekOf(first.plusMonths(steps));
-                    case QUARTERLY -> weekdayInFirstWeekOf(first.plusMonths(steps * 3));
-                    case YEARLY -> first.plusYears(steps);
-                    default -> first;
-                });
-    }
-
-    /**
-     * The first day this event falls on, which is the start date or the first matching weekday after
-     * it. The two differ where the weekday was changed without moving the start.
-     */
-    private LocalDate firstDate() {
-        LocalDate start = startTime.atZone(ZoneOffset.UTC).toLocalDate();
-        if (eventType == EventType.YEARLY || dayOfWeek == null) return start;
-        return start.plusDays(Math.floorMod(dayOfWeek - start.getDayOfWeek().getValue(), 7));
-    }
-
-    /** The configured weekday within the first seven days of that month, which is what these patterns mean. */
-    private LocalDate weekdayInFirstWeekOf(LocalDate month) {
-        LocalDate first = month.withDayOfMonth(1);
-        if (dayOfWeek == null) return first;
-        return first.plusDays(Math.floorMod(dayOfWeek - first.getDayOfWeek().getValue(), 7));
-    }
 
     /**
      * The recurrence schedule types for events.

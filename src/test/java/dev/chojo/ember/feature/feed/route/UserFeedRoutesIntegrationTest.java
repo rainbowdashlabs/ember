@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.feed.FeedRateLimiter;
 import dev.chojo.ember.feature.feed.entity.FeedToken;
 import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
@@ -106,7 +107,8 @@ class UserFeedRoutesIntegrationTest {
                 notificationRenderer,
                 rateLimiter,
                 metricsService,
-                memberNameResolver);
+                memberNameResolver,
+                mock(OccurrenceCalendar.class));
 
         // Minimal fixture: real token, member, station for the rss/atom handlers to resolve.
         FeedToken token = new FeedToken(MEMBER_ID, TOKEN_VALUE, Instant.EPOCH, null, null);
