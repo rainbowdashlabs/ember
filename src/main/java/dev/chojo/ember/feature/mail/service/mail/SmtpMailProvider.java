@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.time.Duration;
 import java.util.Date;
 import java.util.Properties;
 
@@ -30,6 +31,12 @@ import java.util.Properties;
  */
 public class SmtpMailProvider implements MailProvider {
     private static final Logger log = LoggerFactory.getLogger(SmtpMailProvider.class);
+
+    /** How long to wait for the relay to accept the connection. */
+    static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(30);
+
+    /** How long to wait on the relay for any one read or write once connected. */
+    static final Duration IO_TIMEOUT = Duration.ofSeconds(60);
 
     private final String host;
     private final int port;
@@ -138,17 +145,39 @@ public class SmtpMailProvider implements MailProvider {
         return senderName;
     }
 
-    private Session createSession() {
+    /**
+     * The session settings for one relay.
+     *
+     * <p>The timeouts are load bearing rather than housekeeping. Jakarta Mail waits forever by
+     * default, and one worker thread sends every queued mail in turn, so a relay that accepts the
+     * connection and then goes quiet would hold all outgoing mail for as long as the process runs.
+     *
+     * <p>STARTTLS is required, not merely offered to use: without that, anyone between us and the
+     * relay can strip the relay's offer of encryption and read the login in the clear.
+     *
+     * @param host the SMTP server hostname
+     * @param port the SMTP server port
+     * @param ssl  true for direct SSL, false for STARTTLS
+     */
+    static Properties sessionProperties(String host, int port, boolean ssl) {
         Properties props = new Properties();
         props.put("mail.smtp.host", host);
         props.put("mail.smtp.port", String.valueOf(port));
         props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.connectiontimeout", String.valueOf(CONNECT_TIMEOUT.toMillis()));
+        props.put("mail.smtp.timeout", String.valueOf(IO_TIMEOUT.toMillis()));
+        props.put("mail.smtp.writetimeout", String.valueOf(IO_TIMEOUT.toMillis()));
         if (ssl) {
             props.put("mail.smtp.ssl.enable", "true");
         } else {
             props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.starttls.required", "true");
         }
-        return Session.getInstance(props, new Authenticator() {
+        return props;
+    }
+
+    private Session createSession() {
+        return Session.getInstance(sessionProperties(host, port, ssl), new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
                 return new PasswordAuthentication(user, password);
