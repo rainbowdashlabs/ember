@@ -6,6 +6,8 @@
 package dev.chojo.ember.api.auth;
 
 import dev.chojo.ember.api.Jackson3Mapper;
+import dev.chojo.ember.auth.TokenHasher;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.entity.LoginResult;
 import dev.chojo.ember.feature.account.route.AuthRoutes;
@@ -39,8 +41,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * Serves real requests to prove that a sign-in puts its session into the cookie and never into the
- * body, that a step still owed puts nothing there, and that signing out ends the session the cookie
- * names and clears the cookie.
+ * body, beside the readable cookie with the token a change has to send back, that a step still owed
+ * puts nothing there, and that signing out ends the session the cookie names and clears both.
  */
 class SessionCookieRoutesTest {
     private final AuthService authService = mock(AuthService.class);
@@ -55,7 +57,7 @@ class SessionCookieRoutesTest {
                 mock(AuthRateLimiter.class),
                 demo,
                 mock(PasskeyModeService.class),
-                new SessionCookies(demo));
+                new SessionCookies(demo, csrfGuard(demo)));
         app = Javalin.create(config -> {
             config.jsonMapper(new Jackson3Mapper(JsonMapper.builder().build()));
             routes.register(config.routes, "/api/v1");
@@ -84,6 +86,10 @@ class SessionCookieRoutesTest {
         assertFalse(cookie.contains("Secure"), "a dev instance is reached over plain HTTP");
         assertFalse(response.body().contains("session-token"), response.body());
         assertTrue(response.body().contains("\"token\":null"), response.body());
+
+        String csrf = cookie(response, SessionCookies.CSRF_COOKIE);
+        assertTrue(csrf.startsWith("ember_csrf=" + csrfGuard(null).tokenFor("session-token") + ";"), csrf);
+        assertFalse(csrf.contains("HttpOnly"), "the page reads this one");
     }
 
     @Test
@@ -121,6 +127,7 @@ class SessionCookieRoutesTest {
         String cookie = sessionCookie(response);
         assertTrue(cookie.startsWith("ember_session=;"), cookie);
         assertTrue(cookie.contains("Max-Age=0"), cookie);
+        assertTrue(cookie(response, SessionCookies.CSRF_COOKIE).startsWith("ember_csrf=; Path=/; Max-Age=0"));
     }
 
     @Test
@@ -139,11 +146,19 @@ class SessionCookieRoutesTest {
     }
 
     private static String sessionCookie(HttpResponse<String> response) {
+        return cookie(response, SessionCookies.SESSION_COOKIE);
+    }
+
+    private static String cookie(HttpResponse<String> response, String name) {
         List<String> cookies = response.headers().allValues("Set-Cookie");
         return cookies.stream()
-                .filter(c -> c.startsWith(SessionCookies.SESSION_COOKIE + "="))
+                .filter(c -> c.startsWith(name + "="))
                 .findFirst()
-                .orElseThrow(() -> new AssertionError("no session cookie in " + cookies));
+                .orElseThrow(() -> new AssertionError("no " + name + " cookie in " + cookies));
+    }
+
+    private static CsrfGuard csrfGuard(Demo demo) {
+        return new CsrfGuard(TokenHasher.forTesting("route-test-pepper"), mock(Api.class), demo);
     }
 
     private HttpResponse<String> post(String path, String body, String cookie) throws Exception {

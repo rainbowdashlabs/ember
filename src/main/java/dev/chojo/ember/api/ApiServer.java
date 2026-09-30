@@ -738,9 +738,9 @@ public class ApiServer {
      * Resolves the session from the session cookie, stores it as a context attribute,
      * and checks that the user has at least one of the required route roles.
      *
-     * <p>A session that has used up half of its lifetime is renewed here and its cookie written
-     * again, so a session in use never runs out and the browser never has to ask for a new token.
-     * A cookie naming no live session is cleared on the way to the 401.
+     * <p>{@link SessionGate} does the session's part: it refuses a change that does not carry the
+     * token proving it came from this site's pages, renews a session that has used up half of its
+     * lifetime, and clears a cookie naming no live session on the way to the 401.
      *
      * <p>A station or cluster header naming something this instance cannot find is answered as a
      * bad request, not as an unauthorized one. Only the session says whether the sign-in still

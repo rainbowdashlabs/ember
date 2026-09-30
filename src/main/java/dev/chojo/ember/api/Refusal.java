@@ -3796,6 +3796,20 @@ public enum Refusal {
      */
     EXPIRY_SETTINGS_OUT_OF_RANGE(Area.MEMBERS, 120, HttpStatus.BAD_REQUEST, Sentences.EXPIRY_OUT_OF_RANGE),
 
+    /**
+     * A change sent with the session cookie but without the token that proves this application sent
+     * it. Another site can make a browser send the cookie; it cannot read the token.
+     */
+    REQUEST_NOT_FROM_THIS_PAGE(
+            Area.MEMBERS,
+            121,
+            HttpStatus.FORBIDDEN,
+            "This change did not come from an open page of this site, so nothing was done. Reload the page and try again"),
+
+    /** A sign-in started on another site, which must not be able to sign a browser in here. */
+    SIGN_IN_FROM_ANOTHER_SITE(
+            Area.MEMBERS, 122, HttpStatus.FORBIDDEN, "Signing in only works from this site's own sign-in page"),
+
     /** Asking to set an instance up far more often than a person could. */
     SETUP_TOO_OFTEN(Area.INSTALLATION, 1, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
 

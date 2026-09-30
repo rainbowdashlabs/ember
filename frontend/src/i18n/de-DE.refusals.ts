@@ -1210,6 +1210,9 @@ export default {
     'M-118': 'Diese Instanz meldet ohne Passwort an, deshalb wurde für dieses Mitglied keines gespeichert',
     'M-119': 'Dieses Mitglied hat eine eigene Adresse und vergibt sein Passwort selbst',
     'M-120': EXPIRY_OUT_OF_RANGE,
+    'M-121': 'Diese Änderung kam nicht von einer geöffneten Seite dieser Website, es wurde nichts getan. '
+        + 'Lade die Seite neu und versuche es erneut',
+    'M-122': 'Die Anmeldung funktioniert nur über die Anmeldeseite dieser Website',
 
     'N-001': TOO_MANY_ATTEMPTS,
 

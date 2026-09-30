@@ -7,6 +7,8 @@ package dev.chojo.ember.api.auth;
 
 import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.ApiServer;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -19,11 +21,13 @@ import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -37,6 +41,7 @@ class SessionGateTest {
     private final AccessManager accessManager = mock(AccessManager.class);
     private final AccountRepository accounts = mock(AccountRepository.class);
     private final SessionCookies cookies = mock(SessionCookies.class);
+    private final CsrfGuard csrfGuard = mock(CsrfGuard.class);
     private final Context ctx = mock(Context.class);
     private SessionGate gate;
 
@@ -47,7 +52,27 @@ class SessionGateTest {
         when(auth.sessionMinutes(true)).thenReturn(43200);
         when(ctx.userAgent()).thenReturn("agent");
         when(ctx.header("CF-IPCountry")).thenReturn("DE");
-        gate = new SessionGate(accessManager, accounts, auth, cookies);
+        when(csrfGuard.permits(any(), anyString())).thenReturn(true);
+        gate = new SessionGate(accessManager, accounts, auth, cookies, csrfGuard);
+    }
+
+    @Test
+    void aChangeWithoutTheTokenStopsBeforeTheSessionIsUsed() {
+        when(accessManager.resolveUserSession("live", null, null)).thenReturn(Optional.of(mock(UserSession.class)));
+        doThrow(Refusal.REQUEST_NOT_FROM_THIS_PAGE.raise()).when(csrfGuard).require(ctx, "live");
+
+        assertThrows(RefusalResponse.class, () -> gate.admit(ctx, "live", null, null));
+
+        verify(accounts, never()).touchSession(anyString(), any(), any());
+    }
+
+    @Test
+    void aPublicRouteGoesWithoutTheSessionWhenTheRequestMayNotUseIt() {
+        when(csrfGuard.permits(ctx, "live")).thenReturn(false);
+
+        gate.attach(ctx, "live", null);
+
+        verify(accessManager, never()).resolveUserSession("live", null);
     }
 
     @Test
