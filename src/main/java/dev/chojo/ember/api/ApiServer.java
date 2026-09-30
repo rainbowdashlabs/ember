@@ -434,7 +434,8 @@ public class ApiServer {
                 Long start = ctx.attribute("_requestStart");
                 if (start != null && ctx.path().startsWith(API_PREFIX)) {
                     long duration = System.currentTimeMillis() - start;
-                    apiRequestLogger.record(ctx.method().name(), ctx.path(), ctx.statusCode(), duration);
+                    apiRequestLogger.record(
+                            ctx.method().name(), ApiRequestLogger.routeTemplate(ctx), ctx.statusCode(), duration);
                 }
             });
 
