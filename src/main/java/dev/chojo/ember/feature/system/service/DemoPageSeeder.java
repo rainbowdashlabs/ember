@@ -515,6 +515,7 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
                         "2026-04-12",
                         "Die Freiwillige Feuerwehr Musterstadt hat eine neue 30-m-Drehleiter erhalten.",
                         "#",
+                        null,
                         null)));
         rows.add(row(sort++, CellContentType.PAGE_LINK, "", new CellConfig.PageLinkConfig(null, "Mehr über uns")));
         rows.add(row(

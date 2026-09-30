@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
@@ -31,13 +32,14 @@ import java.util.UUID;
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
- * An event as a content block shows it to a member of its own station.
+ * An event as a content block in a news or wiki article shows it to a member of its own station.
  *
  * <p>A block names its event by the public id, because the same block is read on the public blog
  * and on partner stations. Those readers resolve it through the public event list. A member of the
  * owning station resolves it here, which also reaches the events the station keeps to itself, as
- * long as the reader may see them. Anything else answers 404, so a block cannot be used to learn
- * whether a hidden event exists.
+ * long as every member may see them: the block shows the same thing to every reader of the article,
+ * so an event kept to part of the station is not shown to anybody, not even to those who may see it.
+ * Anything else answers 404, so a block cannot be used to learn whether a hidden event exists.
  */
 @Singleton
 public class EventEmbedRoutes implements Routes {
@@ -56,7 +58,7 @@ public class EventEmbedRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/events/embed/{uid}", this::get, StationPermission.USER);
+        routes.get(prefix + "/events/embed/{uid}", this::get, StationPermission.LOGIN);
         routes.get(
                 prefix + "/events/{id}/embed-reference",
                 this::reference,
@@ -66,7 +68,9 @@ public class EventEmbedRoutes implements Routes {
 
     /**
      * The public id a block names an event by, for an author placing a block about an event they are
-     * looking at. Only for an event the author may see.
+     * looking at. Only for an event the author may see and that is kept to nobody in particular: a
+     * block shows its event to every reader, so one kept to part of the station has no reference to
+     * give, and the announcement is written without an event block.
      */
     @OpenApi(
             path = "/api/v1/events/{id}/embed-reference",
@@ -81,6 +85,7 @@ public class EventEmbedRoutes implements Routes {
     private void reference(Context ctx) {
         var session = UserSession.from(ctx);
         var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
+        if (event.restricted()) throw Refusal.EVENT_BLOCK_REFERENCE_NOT_HERE.raise();
         var uid = crudService
                 .findPublicUidsByIds(event.stationId(), List.of(event.id()))
                 .get(event.id());
@@ -102,8 +107,7 @@ public class EventEmbedRoutes implements Routes {
         var session = UserSession.from(ctx);
         var uid = parseUid(ctx.pathParam("uid"));
         var event = crudService
-                .findByPublicUid(session.stationId(), uid)
-                .filter(found -> visibility.canSee(session, found))
+                .findOpenByUid(session.stationId(), BlockAudience.MEMBERS, uid)
                 .orElseThrow(Refusal.EVENT_BLOCK_APPOINTMENT_NOT_HERE::raise);
         ctx.json(EmbeddedEvent.of(event, categoryName(event)));
     }

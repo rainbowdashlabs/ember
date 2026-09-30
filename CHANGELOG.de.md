@@ -14,7 +14,7 @@
 - **Fragen und Seiten per Ziehen sortieren.** Fragen werden innerhalb einer Seite und zwischen Seiten gezogen, Seiten als Ganzes. Geänderte Fragen gehen nicht mehr verloren, wenn der Editor vor dem Speichern verlassen wird: Ember fragt vorher nach und bietet sie beim nächsten Öffnen wieder an.
 - **Fehler zeigen auf die Frage.** Lassen sich Antworten nicht absenden, öffnet das Formular die Seite mit dem Problem und markiert jede betroffene Frage.
 - **Das Ankündigen eines Termins ergibt einen fertigen Beitrag.** „Als Neuigkeit ankündigen" öffnet den Beitrag jetzt mit einem Terminblock für den gewählten Tag, der Beschreibung des Termins und einem kurzen Text zu dem, was der Block nicht zeigt, etwa die Anmeldefrist, die Zahl der Plätze und ob Anmeldungen bestätigt werden. Jeder Teil lässt sich vor dem Speichern noch ändern.
-- **Terminblöcke in Neuigkeiten.** Eine Neuigkeit kann einen Termin als Terminblock zeigen, auch Termine, die die Wache für sich behält, und bei einem wiederkehrenden Termin den Tag wählen, um den es geht. Wer den Termin nicht sehen darf, etwa Partnerwachen oder der öffentliche Blog, sieht stattdessen einen kurzen Hinweis.
+- **Terminblöcke in Neuigkeiten.** Eine Neuigkeit oder ein Wiki-Artikel kann einen Termin als Terminblock zeigen, auch interne Termine, sofern alle Mitglieder sie sehen dürfen, und bei einem wiederkehrenden Termin den Tag wählen, um den es geht. Termine nur für einen Teil der Wache lassen sich nicht wählen, und Leser außerhalb der Wache, etwa Partnerwachen oder der öffentliche Blog, sehen bei einem internen Termin stattdessen einen kurzen Hinweis.
 
 ### Sicherheit
 
@@ -44,6 +44,8 @@
 - **Die Anmeldung wurde angeboten, wo sie nicht erlaubt war.** Einem Mitglied konnte die Anmeldung zu einem Termin angeboten werden, der nur einem Teil der Wache offensteht, und erst nach dem Drücken erfuhr es, dass er ihm nicht offensteht. Die Anmeldung wird jetzt nur denen angeboten, die sich anmelden dürfen, alle anderen sehen einen kurzen Hinweis, warum.
 - **Jeder wiederkehrende Termin hieß wöchentlich.** Die Seite eines monatlichen, vierteljährlichen oder jährlichen Termins bezeichnete ihn als wöchentlich. Sie nennt jetzt, wie oft er sich wiederholt, so wie die Liste der Termine.
 - **Eine unlesbare Nachricht konnte den Import eines Postfachs stoppen.** In manchen Fällen scheiterte der Import eines Postfachs bei jedem Durchlauf an einer einzigen Nachricht, die der Mailserver nicht herausgeben konnte, etwa einer, die ein anderes Mailprogramm gerade gelöscht hatte, bis das Postfach ausgesetzt wurde. Eine solche Nachricht wird jetzt übersprungen und der Rest des Postfachs importiert.
+- **Neuigkeitenblöcke vergaßen ihre Neuigkeit.** Beim Speichern einer Seite oder eines Artikels ging die in einem Neuigkeitenblock gewählte Neuigkeit verloren, die danach als nicht mehr verfügbar erschien. Der Block behält jetzt seine Neuigkeit und zeigt sie so, wie sie gerade ist, und beim Auswählen lässt sich nach dem Titel durchsuchen, was alle Leser lesen dürfen: auf einer Seite der öffentliche Blog, in einer Neuigkeit oder einem Wiki-Artikel jede Neuigkeit, die allen Mitgliedern offensteht.
+- **Das Teilen eines Boards mit Partnern ließ sich nicht speichern.** Das Speichern, mit welchen Partnerwachen ein Board geteilt wird, schlug fehl, sodass sich kein Board teilen ließ. Jetzt wird gespeichert, und für jeden Partner lässt sich wählen, welcher Mitgliedstyp dort das Board sehen darf.
 
 ## v26.19.5
 

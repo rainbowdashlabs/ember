@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
@@ -185,11 +186,12 @@ public class EventRoutes implements Routes {
     /**
      * The event picker of the content blocks.
      *
-     * <p>A station page is read by anybody, so its blocks are offered public events only. A news
-     * entry is written inside the station and may announce an event the station keeps to itself,
-     * so a news author asking for {@code scope=VISIBLE} is offered every event they may see, which
-     * for somebody who edits events is every event of the station. The scope is only honoured for
-     * that right: a page or knowledge-base editor asking for it still gets public events.
+     * <p>A block shows the same thing to every reader of its content, so it is offered only what
+     * every one of them may see, whoever is picking. A station page ({@code scope=PUBLIC}, the
+     * default) is read by anybody and is offered the events on the public calendar. A news or wiki
+     * article ({@code scope=MEMBERS}) is read by the station's members and is offered every event
+     * kept to nobody in particular, internal ones included. Nothing here reaches beyond what every
+     * member sees, so the scope needs no right of its own.
      */
     private void searchPicker(Context ctx) {
         UserSession session = UserSession.from(ctx);
@@ -197,18 +199,8 @@ public class EventRoutes implements Routes {
         var mode = parsePickerMode(ctx.queryParam("mode"));
         int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
         int limit = Math.clamp(requested, 1, 20);
-        boolean visibleScope = "VISIBLE".equalsIgnoreCase(ctx.queryParam("scope"))
-                && session.hasPermission(StationPermission.NEWS_EDIT)
-                && session.member() != null;
-        if (!visibleScope) {
-            ctx.json(crudService.searchEventPicker(session.stationId(), q, mode, limit));
-        } else if (session.hasPermission(StationPermission.EVENT_EDIT)
-                || session.hasPermission(StationPermission.EVENT_MANAGER)) {
-            ctx.json(crudService.searchStationEventPicker(session.stationId(), q, mode, limit));
-        } else {
-            ctx.json(crudService.searchVisibleEventPicker(
-                    session.stationId(), session.member().id(), q, mode, limit));
-        }
+        var audience = BlockAudience.named(ctx.queryParam("scope"));
+        ctx.json(crudService.searchEventPicker(session.stationId(), audience, q, mode, limit));
     }
 
     /**

@@ -4,12 +4,31 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
-import {listPublicBlog} from '@/api/news'
+import {computed} from 'vue'
+import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import type {NewsTeaserConfig} from '@/api/pageManage'
+import {useBlockAudience} from '@/composables/useBlockAudience'
+import {useNewsRoutes} from '@/composables/useNewsRoutes'
+import {apiUrl} from '@/util/apiUrl'
 import {formatDate} from '@/util/format'
+import {findEmbeddedNews, type FoundNews} from '../embeddedNewsLookup'
 
+/**
+ * One news entry, shown live from the entry itself.
+ *
+ * <p>The block keeps only the entry's public id, so a changed title or text shows here as it is now.
+ * On a public page the entry is read from the station's public blog, the same for every reader, since
+ * a page is read by anybody; that read happens while the server renders the page, so the page arrives
+ * with the entry in it. In a news or wiki article a member of the station also sees internal entries,
+ * as long as every member may read them. A draft or an entry kept to part of the station is never
+ * drawn.
+ *
+ * <p>The block calls the entry unavailable only when there is none to name or the lookup says there
+ * is no such entry here. While it is being read, or when reading it failed for another reason, it
+ * shows nothing rather than claim the entry is gone.
+ */
 const props = defineProps<{
     config: NewsTeaserConfig
     stationUid?: string
@@ -17,57 +36,39 @@ const props = defineProps<{
     timezone?: string | null
 }>()
 
-interface ResolvedNews {
-    title: string
-    summary: string
-    href: string
-    publishedAt: string | null
-}
+const {t} = useI18n()
+const router = useRouter()
+const newsRoutes = useNewsRoutes()
+const audience = useBlockAudience()
 
-const resolved = ref<ResolvedNews | null>(null)
+const apiBase = apiUrl('')
 
-async function resolve() {
-    if (!props.stationUid || !props.config.newsUid) return
-    try {
-        const entries = await listPublicBlog(props.stationUid, 0, 50)
-        const match = entries.find(e => e.publicUid === props.config.newsUid)
-        if (match) {
-            resolved.value = {
-                title: match.title,
-                summary: stripHtml(match.contentHtml).slice(0, 200),
-                href: `/public/station/${props.stationUid}/blog/${match.id}`,
-                publishedAt: match.publishedAt ?? null,
-            }
-        }
-    } catch { void 0 }
-}
+const {data: entry, status} = useAsyncData(
+    () => `news-teaser-${audience}-${props.stationUid ?? ''}-${props.config.newsUid ?? ''}`,
+    (): Promise<FoundNews | null> => {
+        if (!props.stationUid || !props.config.newsUid) return Promise.resolve(null)
+        return findEmbeddedNews(apiBase, props.stationUid, props.config.newsUid, audience)
+    },
+)
 
-/**
- * Strip HTML for the news-teaser summary. Block boundaries (paragraphs, line breaks, list
- * items, headings, divs) are replaced with a single space first so words across blocks don't
- * collide into each other ({@code <p>foo</p><p>bar</p>} → {@code "foo bar"}, not {@code "foobar"}).
- */
-function stripHtml(html: string): string {
-    return html
-        .replace(/<\s*br\s*\/?\s*>/gi, ' ')
-        .replace(/<\/(p|div|li|h[1-6]|blockquote|tr)\s*>/gi, ' ')
-        .replace(/<[^>]+>/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-}
+const unavailable = computed(() => !props.config.newsUid || (status.value === 'success' && !entry.value))
 
-onMounted(resolve)
-watch(() => [props.stationUid, props.config.newsUid], resolve, {immediate: false})
+const href = computed(() => {
+    const found = entry.value
+    if (!found) return ''
+    if (found.source.kind === 'MEMBER') return router.resolve({name: newsRoutes.detail, params: {id: found.id}}).href
+    return `/public/station/${found.source.stationUid}/blog/${found.id}`
+})
 </script>
 
 <template>
-    <a v-if="resolved" :href="resolved.href"
+    <a v-if="entry" :href="href" data-testid="news-teaser"
        class="block rounded-theme border border-(--border) hover:border-primary hover:bg-primary/5 transition-colors overflow-hidden">
         <div class="p-3 space-y-1">
-            <p class="font-semibold">{{ resolved.title }}</p>
-            <p v-if="resolved.publishedAt" class="text-xs text-(--text-muted)">{{ formatDate(resolved.publishedAt, props.timezone) }}</p>
-            <p v-if="resolved.summary" class="text-sm text-(--text-muted)">{{ resolved.summary }}</p>
+            <p class="font-semibold">{{ entry.title }}</p>
+            <p v-if="entry.publishedAt" class="text-xs text-(--text-muted)">{{ formatDate(entry.publishedAt, props.timezone) }}</p>
+            <p v-if="entry.summary" class="text-sm text-(--text-muted)">{{ entry.summary }}</p>
         </div>
     </a>
-    <EmptyHint v-else>Nicht mehr verfügbar</EmptyHint>
+    <EmptyHint v-else-if="unavailable">{{ t('stationPages.cells.newsUnavailable') }}</EmptyHint>
 </template>

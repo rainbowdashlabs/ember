@@ -9,7 +9,6 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
-import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFavouriteTarget;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -56,12 +55,7 @@ class KbTrashServiceTest extends RepositoryTestBase {
         fileStorage = mock(KbFileStorageService.class);
         searchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
         contentService = new KbContentService(
-                knowledgeBaseRepo,
-                new ContentBlockService(contentContainerRepo),
-                noCellDescriptions(),
-                stationRepo,
-                fileStorage,
-                searchService);
+                knowledgeBaseRepo, contentBlocks(), noCellDescriptions(), stationRepo, fileStorage, searchService);
         accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
         service = new KbTrashService(
                 knowledgeBaseRepo,

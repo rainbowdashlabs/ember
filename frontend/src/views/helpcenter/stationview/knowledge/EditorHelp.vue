@@ -80,6 +80,14 @@ Normaler Absatztext darunter.`)
       <p>{{ t('helpCenter.kb.editor.blocksKeepsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('stationPages.editor.chooseNewsTeaser')">
+      <p>{{ t('helpCenter.pages.contentTypeNewsTeaser') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('stationPages.editor.chooseFeaturedEvent')">
+      <p>{{ t('helpCenter.pages.contentTypeFeaturedEvent') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.kb.editor.toolbarTitle')">
       <p>{{ t('helpCenter.kb.editor.toolbarText') }}</p>
       <DummyToolbar class="mt-3" />

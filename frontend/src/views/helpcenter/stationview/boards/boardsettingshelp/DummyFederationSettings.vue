@@ -10,6 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
 
 const {t} = useI18n()
 </script>
@@ -28,11 +29,9 @@ const {t} = useI18n()
                     </SelectInput>
                 </div>
                 <div class="flex items-center gap-1">
-                    <span class="text-xs text-(--text-muted) shrink-0">{{ t('boards.minViewRole') }}:</span>
-                    <SelectInput model-value="USER">
-                        <option value="USER">{{ t('boards.requiredRoleUser') }}</option>
-                        <option value="TEAM">{{ t('boards.requiredRoleTeam') }}</option>
-                        <option value="MANAGER">{{ t('boards.requiredRoleManager') }}</option>
+                    <span class="text-xs text-(--text-muted) shrink-0">{{ t('boards.viewUserType') }}:</span>
+                    <SelectInput :model-value="StationUserType.MEMBER">
+                        <option v-for="(label, userType) in StationUserTypeLabels" :key="userType" :value="userType">{{ label }}</option>
                     </SelectInput>
                 </div>
                 <DeleteButton />

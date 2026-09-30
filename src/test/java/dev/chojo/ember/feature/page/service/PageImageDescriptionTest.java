@@ -67,7 +67,7 @@ class PageImageDescriptionTest extends RepositoryTestBase {
                 new MediaVariantService(storage, storageConfig),
                 new MediaReferenceRegistry(contentContainerRepo),
                 new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())));
-        blocks = new ContentBlockService(contentContainerRepo);
+        blocks = contentBlocks();
         service = new PageService(
                 pageRepo,
                 blocks,
