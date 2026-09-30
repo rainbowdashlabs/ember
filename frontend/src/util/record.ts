@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /**
  * A copy of a record without one of its entries, leaving the record itself as it was.
  *
