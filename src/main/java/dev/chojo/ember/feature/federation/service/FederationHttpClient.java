@@ -20,11 +20,9 @@ import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublisher;
 import java.net.http.HttpRequest.BodyPublishers;
@@ -39,7 +37,8 @@ import java.util.UUID;
  * HTTP client for cross-instance federation communication.
  * Calls remote federation endpoints and signs requests as the calling station through
  * {@link StationSigner}; callers name the station and never handle its key.
- * The remote host is determined per-partner from the {@code remote_host} field.
+ * The remote host is determined per-partner from the {@code remote_host} field, and every request
+ * goes out through {@link OutboundHttp}, which connects to the address it checked.
  * <p>
  * Every signed request binds the HTTP method, request path (with sorted query
  * string), the recipient station UUID, the timestamp and the body. A per-request
@@ -65,22 +64,20 @@ public class FederationHttpClient {
     private static final Duration HANDSHAKE_TIMEOUT = Duration.ofSeconds(15);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
-    private final HttpClient httpsClient;
-    private final HttpClient httpClient1;
+    private final OutboundHttp outbound;
     private final StationSigner signer;
     private final StationRepository stationRepository;
-    private final RemoteUrlValidator urlValidator;
     private final Provider<FederationContractRefreshService> refreshService;
-    private final JsonMapper mapper;
+    private final JsonMapper mapper = OutboundHttp.lenientMapper(new ForeignStationIdModule());
     private final Duration requestTimeout;
 
     @Inject
     public FederationHttpClient(
             StationSigner signer,
             StationRepository stationRepository,
-            RemoteUrlValidator urlValidator,
+            OutboundHttp outbound,
             Provider<FederationContractRefreshService> refreshService) {
-        this(signer, stationRepository, urlValidator, refreshService, REQUEST_TIMEOUT);
+        this(signer, stationRepository, outbound, refreshService, REQUEST_TIMEOUT);
     }
 
     /**
@@ -90,37 +87,14 @@ public class FederationHttpClient {
     FederationHttpClient(
             StationSigner signer,
             StationRepository stationRepository,
-            RemoteUrlValidator urlValidator,
+            OutboundHttp outbound,
             Provider<FederationContractRefreshService> refreshService,
             Duration requestTimeout) {
         this.signer = signer;
         this.stationRepository = stationRepository;
-        this.urlValidator = urlValidator;
+        this.outbound = outbound;
         this.refreshService = refreshService;
         this.requestTimeout = requestTimeout;
-        this.httpsClient = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_2)
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
-        this.httpClient1 = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
-        this.mapper = JsonMapper.builder()
-                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-                .addModule(new ForeignStationIdModule())
-                .build();
-    }
-
-    /**
-     * Picks the HTTP client to use for a given remote URL. HTTPS gets the HTTP/2-capable
-     * client; plain HTTP gets the HTTP/1.1 client so that Node-based dev fronts (e.g. a
-     * Nuxt dev server proxying the backend) don't hang on the JDK client's {@code Upgrade: h2c}
-     * preamble.
-     */
-    private HttpClient clientFor(String url) {
-        return url != null && url.startsWith("https://") ? httpsClient : httpClient1;
     }
 
     /**
@@ -141,10 +115,6 @@ public class FederationHttpClient {
      */
     public HandshakeAttempt handshake(String remoteBaseUrl, RemoteFederationRoutes.HandshakeRequest body) {
         String url = apiUrl(remoteBaseUrl) + RemoteFederationRoutes.HANDSHAKE.path();
-        if (!urlValidator.isAllowed(url)) {
-            log.warn("Federation handshake URL rejected by the URL validator: {}", url);
-            return new HandshakeAttempt(HandshakeStatus.HOST_REFUSED, null);
-        }
         try {
             var request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
@@ -152,8 +122,7 @@ public class FederationHttpClient {
                     .header("Content-Type", "application/json")
                     .POST(BodyPublishers.ofString(mapper.writeValueAsString(body)))
                     .build();
-            //noinspection resource
-            var response = clientFor(url).send(request, HttpResponse.BodyHandlers.ofString());
+            var response = outbound.send(request, HttpResponse.BodyHandlers.ofString());
             var status = handshakeStatus(response.statusCode());
             if (status != HandshakeStatus.ESTABLISHED) {
                 log.warn("Federation handshake with {} answered HTTP {}", remoteBaseUrl, response.statusCode());
@@ -161,6 +130,9 @@ public class FederationHttpClient {
             }
             return new HandshakeAttempt(
                     status, mapper.readValue(response.body(), RemoteFederationRoutes.HandshakeResponse.class));
+        } catch (RefusedDestinationException e) {
+            log.warn("Federation handshake URL {} refused: {}", url, e.getMessage());
+            return new HandshakeAttempt(HandshakeStatus.HOST_REFUSED, null);
         } catch (HttpTimeoutException e) {
             log.warn("Federation handshake with {} timed out", remoteBaseUrl, e);
             return new HandshakeAttempt(HandshakeStatus.TIMEOUT, null);
@@ -407,8 +379,7 @@ public class FederationHttpClient {
      * Converts a base URL like {@code https://ember.example.com} to the API prefix.
      */
     private String apiUrl(String remoteHost) {
-        String host = remoteHost.endsWith("/") ? remoteHost.substring(0, remoteHost.length() - 1) : remoteHost;
-        return host + "/api/v1";
+        return OutboundHttp.join(remoteHost, "/api/v1");
     }
 
     /**
@@ -425,9 +396,6 @@ public class FederationHttpClient {
             int localStationId)
             throws Exception {
         String url = apiUrl(remoteHost) + request.path();
-        if (!urlValidator.isAllowed(url)) {
-            throw new IllegalStateException("Federation URL rejected by RemoteUrlValidator: " + url);
-        }
         String timestampStr = Instant.now().toString();
         var uri = URI.create(url);
         String pathWithQuery = FederationSigningService.canonicalPathWithQuery(uri);
@@ -459,8 +427,7 @@ public class FederationHttpClient {
         }
         builder.method(method, publisher);
 
-        //noinspection resource
-        var response = clientFor(url).send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        var response = outbound.send(builder.build(), HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == HttpStatus.CONFLICT.getCode()) {
             handleContractMismatch(response.body(), localStationId, partnerStationUid);
         }

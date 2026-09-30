@@ -128,6 +128,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 new FederationPartnerTransferFixupService(new FederationRepository(), null),
                 TestStationKeys.transfer(),
                 TestRemoteUrlValidator.permissive(),
+                TestRemoteUrlValidator.permissiveOutbound(),
                 stationImporter,
                 Set.of(
                         stationImporter,

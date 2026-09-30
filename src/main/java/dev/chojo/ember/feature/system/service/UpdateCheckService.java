@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.conf.file.elements.Updates;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -42,10 +43,7 @@ public class UpdateCheckService {
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+    private final HttpClient httpClient = OutboundHttp.trustedClient(Duration.ofSeconds(5), HttpClient.Redirect.NORMAL);
 
     private static final String GITHUB_API = "https://api.github.com";
 

@@ -10,6 +10,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
 import jakarta.inject.Inject;
@@ -63,10 +64,7 @@ public class MapTileCacheService {
     private static final Duration UPSTREAM_TIMEOUT = Duration.ofSeconds(8);
     private static final long UNBOUNDED = Long.MAX_VALUE;
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(4))
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+    private final HttpClient httpClient = OutboundHttp.trustedClient(Duration.ofSeconds(4), HttpClient.Redirect.NORMAL);
 
     private final MapsConfigService configService;
     private final Path root;

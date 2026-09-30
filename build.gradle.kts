@@ -18,7 +18,8 @@ plugins {
 
 application {
     mainClass = "dev.chojo.ember.Bootstrapper"
-    applicationDefaultJvmArgs = listOf("-Dlogback.configurationFile=logback.xml")
+    applicationDefaultJvmArgs =
+        listOf("-Dlogback.configurationFile=logback.xml", "-Djdk.httpclient.allowRestrictedHeaders=host")
 }
 
 group = "dev.chojo"
@@ -196,6 +197,7 @@ tasks.register("resolveDependencies") {
 tasks {
     withType<Test>().configureEach {
         environment("TESTCONTAINERS_RYUK_DISABLED", "true")
+        systemProperty("jdk.httpclient.allowRestrictedHeaders", "host")
         maxHeapSize = "1g"
     }
 

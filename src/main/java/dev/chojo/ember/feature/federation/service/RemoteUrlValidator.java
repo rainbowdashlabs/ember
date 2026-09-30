@@ -12,33 +12,31 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigInteger;
-import java.net.Inet4Address;
+import java.io.IOException;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 /**
- * Validates outbound federation / webhook URLs against the public-internet allow
- * policy. Two layers of defence:
+ * Decides which outbound destinations this instance may reach: public HTTPS endpoints only, never
+ * loopback, private, link-local, carrier-grade NAT, unique-local, multicast, documentation or
+ * otherwise reserved addresses, over IPv4 and IPv6 alike.
  *
- * <ul>
- *   <li>Scheme - only {@code https} is accepted (unless
- *       {@link Federation#allowPrivateHosts()} is enabled).</li>
- *   <li>IP address - the URL host is resolved via {@link InetAddress#getAllByName}
- *       on every check, and rejected if any returned address falls inside the
- *       deny-list of loopback, link-local, private, multicast, or otherwise
- *       reserved ranges (both IPv4 and IPv6).</li>
- * </ul>
+ * <p>Most of that is what the JDK already knows about an address ({@link InetAddress#isLoopbackAddress},
+ * {@link InetAddress#isSiteLocalAddress} and its siblings); the few ranges it has no predicate for
+ * are listed in {@link #RESERVED}. An IPv4 address written as an IPv6 one is read back as IPv4 by the
+ * JDK itself, and the NAT64 and IPv4-compatible forms are judged by the IPv4 address they carry.
  *
- * <p>The validator is consulted twice per remote URL: once at write time, so an
- * admin gets an immediate 400, and once at send time inside
- * {@code FederationHttpClient} as a soft
- * check that protects against DNS rebinding and against rows that predate the
- * validator. A clustered deployment would still want IP pinning on the TCP
- * socket to close the resolve-vs-connect race.
+ * <p>Two uses. At write time, {@link #isAllowed(String)} gives an administrator an immediate answer
+ * for an address they enter. At send time, {@link OutboundHttp} asks {@link #publicAddresses} for
+ * the checked addresses of a host and connects to one of them directly, so a name cannot pass the
+ * check with one address and be connected to at another. {@link #isHostAllowed(String)} covers
+ * hosts that are not HTTP endpoints at all, such as storage and mail servers.
+ *
+ * <p>{@code federation.allowPrivateHosts}, demo and development instances switch all of it off, so
+ * local setups can federate over plain HTTP and container names.
  */
 @Singleton
 public class RemoteUrlValidator {
@@ -46,28 +44,25 @@ public class RemoteUrlValidator {
     private static final String SCHEME_HTTPS = "https";
     private static final String REJECT_REASON = "Host must be a public HTTPS endpoint";
 
-    private static final List<Cidr> DENIED_V4 = List.of(
-            Cidr.parse4("0.0.0.0/8"),
-            Cidr.parse4("10.0.0.0/8"),
-            Cidr.parse4("100.64.0.0/10"),
-            Cidr.parse4("127.0.0.0/8"),
-            Cidr.parse4("169.254.0.0/16"),
-            Cidr.parse4("172.16.0.0/12"),
-            Cidr.parse4("192.0.0.0/24"),
-            Cidr.parse4("192.0.2.0/24"),
-            Cidr.parse4("192.168.0.0/16"),
-            Cidr.parse4("198.18.0.0/15"),
-            Cidr.parse4("198.51.100.0/24"),
-            Cidr.parse4("203.0.113.0/24"),
-            Cidr.parse4("224.0.0.0/4"),
-            Cidr.parse4("240.0.0.0/4"));
+    /**
+     * The reserved ranges the JDK has no predicate for: "this network", carrier-grade NAT, the IETF
+     * protocol block, the documentation and benchmarking nets, the reserved class E block with
+     * broadcast, IPv6 unique-local addresses and the IPv6 documentation prefix.
+     */
+    private static final List<Prefix> RESERVED = List.of(
+            Prefix.of("0.0.0.0", 8),
+            Prefix.of("100.64.0.0", 10),
+            Prefix.of("192.0.0.0", 24),
+            Prefix.of("192.0.2.0", 24),
+            Prefix.of("198.18.0.0", 15),
+            Prefix.of("198.51.100.0", 24),
+            Prefix.of("203.0.113.0", 24),
+            Prefix.of("240.0.0.0", 4),
+            Prefix.of("fc00::", 7),
+            Prefix.of("2001:db8::", 32));
 
-    private static final List<Cidr> DENIED_V6 = List.of(
-            Cidr.parse6("::/128"),
-            Cidr.parse6("::1/128"),
-            Cidr.parse6("fc00::/7"),
-            Cidr.parse6("fe80::/10"),
-            Cidr.parse6("ff00::/8"));
+    /** IPv6 prefixes whose last four bytes are an IPv4 address: NAT64 and the deprecated compatible form. */
+    private static final List<Prefix> EMBEDDING_IPV4 = List.of(Prefix.of("64:ff9b::", 96), Prefix.of("::", 96));
 
     private final Federation config;
     private final Demo demo;
@@ -85,38 +80,46 @@ public class RemoteUrlValidator {
         return REJECT_REASON;
     }
 
-    private static boolean isDenied(InetAddress address) {
-        if (address instanceof Inet4Address v4) {
-            return matches(v4.getAddress(), DENIED_V4);
+    /**
+     * Whether an address is one this instance may connect to on somebody else's say-so.
+     *
+     * @param address a resolved address
+     * @return true for a public unicast address
+     */
+    public static boolean isPublic(InetAddress address) {
+        if (address.isAnyLocalAddress()
+                || address.isLoopbackAddress()
+                || address.isLinkLocalAddress()
+                || address.isSiteLocalAddress()
+                || address.isMulticastAddress()) {
+            return false;
         }
-        if (address instanceof Inet6Address v6) {
-            byte[] bytes = v6.getAddress();
-            Optional<Inet4Address> mapped = mappedIpv4(bytes);
-            return mapped.map(inet4Address -> matches(inet4Address.getAddress(), DENIED_V4))
-                    .orElseGet(() -> matches(bytes, DENIED_V6));
+        byte[] bytes = address.getAddress();
+        if (RESERVED.stream().anyMatch(prefix -> prefix.contains(bytes))) {
+            return false;
+        }
+        if (address instanceof Inet6Address && EMBEDDING_IPV4.stream().anyMatch(prefix -> prefix.contains(bytes))) {
+            return isPublic(embeddedIpv4(bytes));
         }
         return true;
     }
 
-    private static Optional<Inet4Address> mappedIpv4(byte[] v6) {
-        for (int i = 0; i < 10; i++) {
-            if (v6[i] != 0) return Optional.empty();
-        }
-        if ((v6[10] & 0xff) != 0xff || (v6[11] & 0xff) != 0xff) return Optional.empty();
+    private static InetAddress embeddedIpv4(byte[] v6) {
         try {
-            byte[] v4 = new byte[] {v6[12], v6[13], v6[14], v6[15]};
-            return Optional.of((Inet4Address) InetAddress.getByAddress(v4));
-        } catch (Exception e) {
-            return Optional.empty();
+            return InetAddress.getByAddress(Arrays.copyOfRange(v6, 12, 16));
+        } catch (IOException e) {
+            throw new IllegalStateException("Four bytes are always an IPv4 address", e);
         }
     }
 
-    private static boolean matches(byte[] addressBytes, List<Cidr> cidrs) {
-        BigInteger ip = new BigInteger(1, addressBytes);
-        for (Cidr cidr : cidrs) {
-            if (cidr.contains(ip)) return true;
-        }
-        return false;
+    /**
+     * Whether every check is switched off, because the operator allowed private hosts or the instance
+     * is a demo or development instance.
+     *
+     * @return true when private and plain-HTTP destinations are allowed
+     */
+    public boolean permitsPrivateHosts() {
+        return config.allowPrivateHosts() || demo.dev() || demo.enabled();
     }
 
     /**
@@ -130,39 +133,17 @@ public class RemoteUrlValidator {
     }
 
     /**
-     * Checks a bare host name (no scheme) against the private-range deny-list. Used
-     * for backend endpoints that are not HTTPS URLs - S3 endpoint overrides and
-     * SMB/SFTP hosts - so an operator cannot point them at loopback or internal
-     * addresses for a port scan. Honours the same {@code allowPrivateHosts} / demo
-     * escape hatches as {@link #isAllowed(String)}.
-     */
-    public boolean isHostAllowed(String host) {
-        if (host == null || host.isBlank()) return false;
-        if (config.allowPrivateHosts() || demo.dev() || demo.enabled()) return true;
-
-        InetAddress[] addresses;
-        try {
-            addresses = InetAddress.getAllByName(host.trim());
-        } catch (Exception e) {
-            log.warn("Refusing host {} - DNS resolution failed: {}", host, e.getMessage());
-            return false;
-        }
-        for (InetAddress address : addresses) {
-            if (isDenied(address)) {
-                log.warn("Refusing host {} - resolves to denied address {}", host, address);
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Boolean form of {@link #validate(String)} for the soft send-time check.
+     * Whether a URL is a public HTTPS endpoint, resolving its host to check.
+     *
+     * <p>A check only: a request sent later resolves again. Requests therefore go through
+     * {@link OutboundHttp}, which connects to the address it checked.
+     *
+     * @param url the URL
+     * @return true when it may be called
      */
     public boolean isAllowed(String url) {
         if (url == null || url.isBlank()) return false;
-        if (config.allowPrivateHosts() || demo.dev() || demo.enabled()) return true;
-
+        if (permitsPrivateHosts()) return true;
         URI uri;
         try {
             uri = URI.create(url.trim());
@@ -173,55 +154,86 @@ public class RemoteUrlValidator {
         if (scheme == null || !scheme.equalsIgnoreCase(SCHEME_HTTPS)) {
             return false;
         }
-        String host = uri.getHost();
-        if (host == null || host.isBlank()) return false;
-
-        InetAddress[] addresses;
-        try {
-            addresses = InetAddress.getAllByName(host);
-        } catch (Exception e) {
-            log.warn("Refusing federation URL {} - DNS resolution failed: {}", url, e.getMessage());
-            return false;
-        }
-        for (InetAddress address : addresses) {
-            if (isDenied(address)) {
-                log.warn("Refusing federation URL {} - host resolves to denied address {}", url, address);
-                return false;
-            }
-        }
-        return true;
+        return isHostAllowed(uri.getHost());
     }
 
-    private record Cidr(BigInteger network, BigInteger mask) {
-        static Cidr parse4(String input) {
-            return parse(input, 32);
+    /**
+     * Whether a bare host name (no scheme) resolves to public addresses only. Used on its own for
+     * backend endpoints that are not HTTPS URLs - S3 endpoint overrides and SMB, SFTP and IMAP hosts
+     * - so they cannot be pointed at loopback or internal addresses for a port scan.
+     *
+     * @param host the host name or address
+     * @return true when it may be reached
+     */
+    public boolean isHostAllowed(String host) {
+        if (host == null || host.isBlank()) return false;
+        if (permitsPrivateHosts()) return true;
+        try {
+            publicAddresses(host.trim(), InetAddress::getAllByName);
+            return true;
+        } catch (RefusedDestinationException e) {
+            log.warn("Refusing host {}: {}", host, e.getMessage());
+            return false;
         }
+    }
 
-        static Cidr parse6(String input) {
-            return parse(input, 128);
+    /**
+     * Resolves a host once and returns its addresses, provided every one of them is public.
+     *
+     * <p>All of them are checked, not just the one that will be used, so a name cannot mix a public
+     * address with a private one and hope the private one is picked.
+     *
+     * @param host     the host name or literal address
+     * @param resolver how names are resolved
+     * @return the addresses, never empty
+     * @throws RefusedDestinationException when the host does not resolve or any address is not public
+     */
+    public List<InetAddress> publicAddresses(String host, OutboundHttp.HostResolver resolver)
+            throws RefusedDestinationException {
+        InetAddress[] addresses;
+        try {
+            addresses = resolver.resolve(host);
+        } catch (IOException e) {
+            throw new RefusedDestinationException(
+                    RefusedDestinationException.Reason.UNRESOLVABLE, "The host " + host + " does not resolve");
         }
+        if (addresses == null || addresses.length == 0) {
+            throw new RefusedDestinationException(
+                    RefusedDestinationException.Reason.UNRESOLVABLE, "The host " + host + " does not resolve");
+        }
+        for (InetAddress address : addresses) {
+            if (!isPublic(address)) {
+                throw new RefusedDestinationException(
+                        RefusedDestinationException.Reason.NOT_PUBLIC,
+                        "The host " + host + " resolves to the non-public address " + address.getHostAddress());
+            }
+        }
+        return List.of(addresses);
+    }
 
-        private static Cidr parse(String input, int bits) {
-            String[] parts = input.split("/", 2);
+    /**
+     * An address prefix, compared byte by byte.
+     *
+     * @param network the network address
+     * @param bits    how many leading bits have to match
+     */
+    private record Prefix(byte[] network, int bits) {
+        static Prefix of(String network, int bits) {
             try {
-                byte[] addrBytes = InetAddress.getByName(parts[0]).getAddress();
-                int prefix = Integer.parseInt(parts[1]);
-                BigInteger ip = new BigInteger(1, addrBytes);
-                BigInteger mask = prefix == 0
-                        ? BigInteger.ZERO
-                        : BigInteger.ONE
-                                .shiftLeft(bits)
-                                .subtract(BigInteger.ONE)
-                                .shiftLeft(bits - prefix)
-                                .and(BigInteger.ONE.shiftLeft(bits).subtract(BigInteger.ONE));
-                return new Cidr(ip.and(mask), mask);
-            } catch (Exception e) {
-                throw new IllegalStateException("Invalid CIDR in deny-list: " + input, e);
+                return new Prefix(InetAddress.getByName(network).getAddress(), bits);
+            } catch (IOException e) {
+                throw new IllegalStateException("Invalid reserved network " + network, e);
             }
         }
 
-        boolean contains(BigInteger ip) {
-            return ip.and(mask).equals(network);
+        boolean contains(byte[] address) {
+            if (address.length != network.length) return false;
+            int full = bits / 8;
+            if (!Arrays.equals(address, 0, full, network, 0, full)) return false;
+            int rest = bits % 8;
+            if (rest == 0) return true;
+            int mask = 0xff << (8 - rest) & 0xff;
+            return (address[full] & mask) == (network[full] & mask);
         }
     }
 }

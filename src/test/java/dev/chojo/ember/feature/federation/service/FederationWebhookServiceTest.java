@@ -134,7 +134,7 @@ class FederationWebhookServiceTest {
             var client = new FederationHttpClient(
                     signerWith(keys.getPrivate(), signing),
                     stations(),
-                    TestRemoteUrlValidator.permissive(),
+                    TestRemoteUrlValidator.permissiveOutbound(),
                     () -> mock(FederationContractRefreshService.class));
             var boardUid = UUID.randomUUID();
 

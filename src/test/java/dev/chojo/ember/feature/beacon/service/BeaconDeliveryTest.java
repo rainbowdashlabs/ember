@@ -63,7 +63,7 @@ class BeaconDeliveryTest {
         });
         server.start();
         try {
-            var client = new DiscoveryHttpClient(signing, TestRemoteUrlValidator.permissive());
+            var client = new DiscoveryHttpClient(signing, TestRemoteUrlValidator.permissiveOutbound());
             var answered = client.beaconPost(
                     "http://127.0.0.1:" + server.getAddress().getPort(), "/api/v1/beacon/reports", payload);
             assertEquals(status, answered.orElseThrow().status(), "the beacon's answer is handed back, not a boolean");
@@ -165,7 +165,7 @@ class BeaconDeliveryTest {
     @Test
     void aBeaconThatCannotBeReachedIsSaidToBeUnreachable() {
         var signing = new DiscoverySigningService(new DiscoveryKeyService());
-        var client = new DiscoveryHttpClient(signing, TestRemoteUrlValidator.permissive());
+        var client = new DiscoveryHttpClient(signing, TestRemoteUrlValidator.permissiveOutbound());
 
         assertTrue(client.beaconPost("http://127.0.0.1:1", "/api/v1/beacon/reports", aReport())
                 .isEmpty());

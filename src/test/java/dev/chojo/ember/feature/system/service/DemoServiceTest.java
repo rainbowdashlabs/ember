@@ -51,6 +51,7 @@ import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.form.entity.Form;
@@ -181,7 +182,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var federationHttpClient = new FederationHttpClient(
                 TestStationKeys.signer(),
                 stationRepo,
-                new RemoteUrlValidator(new Federation(), new Demo()),
+                new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo())),
                 contractRefreshRef::get);
         contractRefreshRef.set(new FederationContractRefreshService(federationRepo, federationHttpClient));
         var federationFanout = new FederationFanout();
@@ -244,7 +245,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 kbContentService,
                 new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
                 new KbPresentationService(knowledgeBaseRepo, kbFileStorage, kbContentService),
-                new KbLinkMetadataService(new RemoteUrlValidator(new Federation(), new Demo())),
+                new KbLinkMetadataService(new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo()))),
                 new PresentationCompressor(kbStorageConfig),
                 new PdfCompressor(kbStorageConfig),
                 new ClusterAutoShareService(clusterRepo, new FederationRepository()));

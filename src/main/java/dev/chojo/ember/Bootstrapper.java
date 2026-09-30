@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.board.service.DueDateReminderChecker;
 import dev.chojo.ember.feature.events.service.FieldRegistrationSweeper;
 import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.StationKeyStore;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.mailimport.service.MailImportPoller;
@@ -164,6 +165,7 @@ public class Bootstrapper {
     }
 
     void main() {
+        OutboundHttp.allowHostHeader();
         var conf = new Conf();
         SecretsInitializer.ensure(conf);
         var injector = Guice.createInjector(new EmberModule(conf));

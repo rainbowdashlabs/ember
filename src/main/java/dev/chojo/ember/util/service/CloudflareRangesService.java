@@ -6,6 +6,7 @@
 package dev.chojo.ember.util.service;
 
 import dev.chojo.ember.conf.file.elements.Network;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.util.ClientIp;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -39,10 +40,7 @@ public class CloudflareRangesService {
     private static final URI IPS_V6 = URI.create("https://www.cloudflare.com/ips-v6");
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+    private final HttpClient httpClient = OutboundHttp.trustedClient(Duration.ofSeconds(5), HttpClient.Redirect.NORMAL);
 
     private final Network network;
 

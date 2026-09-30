@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.system.service;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -25,6 +26,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Locale;
 
 import javax.imageio.ImageIO;
@@ -91,7 +93,7 @@ public class DemoAvatarSeeder implements DemoSeeder {
         }
 
         int given = 0;
-        try (var httpClient = HttpClient.newHttpClient()) {
+        try (var httpClient = OutboundHttp.trustedClient(Duration.ofSeconds(10), HttpClient.Redirect.NEVER)) {
             for (var account : accountRepository.findAll()) {
                 if (account.uid() == null) continue;
                 if (avatarService.exists(account.uid())) continue;

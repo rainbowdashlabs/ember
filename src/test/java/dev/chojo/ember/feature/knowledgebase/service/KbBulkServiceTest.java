@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -81,7 +82,7 @@ class KbBulkServiceTest extends RepositoryTestBase {
                 contentService,
                 accessService,
                 new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
-                new KbLinkMetadataService(new RemoteUrlValidator(new Federation(), new Demo())),
+                new KbLinkMetadataService(new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo()))),
                 new PresentationCompressor(storageConfig),
                 new PdfCompressor(storageConfig),
                 new ClusterAutoShareService(new ClusterRepository(), new FederationRepository()));

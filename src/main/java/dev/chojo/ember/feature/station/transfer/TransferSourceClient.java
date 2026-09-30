@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.station.transfer;
 
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.transfer.TransferBackendDescriptor;
 import org.slf4j.Logger;
@@ -15,7 +16,6 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
@@ -40,7 +40,7 @@ public final class TransferSourceClient {
     private final String baseUrl;
     private final String token;
     private final String callerBaseUrl;
-    private final HttpClient httpClient;
+    private final OutboundHttp outbound;
     private final ObjectMapper mapper = JsonMapper.builder().build();
     private final Object throttleLock = new Object();
     private long lastRequestMillis;
@@ -49,29 +49,15 @@ public final class TransferSourceClient {
      * @param baseUrl       the source instance's base URL, without a trailing slash
      * @param token         the transfer token authorizing this run
      * @param callerBaseUrl this instance's public base URL, announced to the source, or {@code null}
+     * @param outbound      sends every request, checked and pinned to the address it checked; over
+     *                      plain HTTP, allowed only where private hosts are, it speaks HTTP/1.1 so a
+     *                      Node-based dev front does not hang on an {@code Upgrade: h2c} preamble
      */
-    public TransferSourceClient(String baseUrl, String token, String callerBaseUrl) {
+    public TransferSourceClient(String baseUrl, String token, String callerBaseUrl, OutboundHttp outbound) {
         this.baseUrl = baseUrl;
         this.token = token;
         this.callerBaseUrl = callerBaseUrl;
-        this.httpClient = buildHttpClient(baseUrl);
-    }
-
-    /**
-     * Builds the HTTP client for talking to the source instance. Uses HTTP/2 over HTTPS so
-     * production runs benefit from ALPN-negotiated multiplexing, but falls back to HTTP/1.1
-     * over plain HTTP because the JDK client's HTTP/2 default sends an {@code Upgrade: h2c}
-     * header that Node-based servers (e.g. a Nuxt dev server in front of the source) hold
-     * open without responding - see the dev compose transfer profile.
-     */
-    private static HttpClient buildHttpClient(String baseUrl) {
-        HttpClient.Version version = baseUrl != null && baseUrl.startsWith("https://")
-                ? HttpClient.Version.HTTP_2
-                : HttpClient.Version.HTTP_1_1;
-        return HttpClient.newBuilder()
-                .version(version)
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
+        this.outbound = outbound;
     }
 
     /**
@@ -296,7 +282,7 @@ public final class TransferSourceClient {
                 builder.header("X-Ember-Importing-From", callerBaseUrl);
             }
             throttle();
-            var response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.discarding());
+            var response = outbound.send(builder.build(), HttpResponse.BodyHandlers.discarding());
             log.info("notified source of {}: HTTP {}", label, response.statusCode());
         } catch (Exception e) {
             log.warn("could not notify source of {}: {}", label, e.getMessage());
@@ -310,7 +296,7 @@ public final class TransferSourceClient {
             builder.header("X-Ember-Importing-From", callerBaseUrl);
         }
         throttle();
-        return httpClient.send(builder.build(), handler);
+        return outbound.send(builder.build(), handler);
     }
 
     /**

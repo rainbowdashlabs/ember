@@ -7,6 +7,7 @@ package dev.chojo.ember.auth;
 
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.HibpSettings;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -52,9 +53,8 @@ public class HibpClient {
      */
     public HibpClient(HibpSettings config) {
         this.config = config;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(Math.max(1, config.timeoutSeconds())))
-                .build();
+        this.httpClient = OutboundHttp.trustedClient(
+                Duration.ofSeconds(Math.max(1, config.timeoutSeconds())), HttpClient.Redirect.NEVER);
     }
 
     private static boolean matches(String body, String suffix) {

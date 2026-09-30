@@ -56,7 +56,7 @@ class FederationHttpClientTest {
             var client = new FederationHttpClient(
                     new StationSigner(keys, new FederationSigningService()),
                     stations,
-                    TestRemoteUrlValidator.permissive(),
+                    TestRemoteUrlValidator.permissiveOutbound(),
                     () -> mock(FederationContractRefreshService.class),
                     Duration.ofMillis(300));
 
