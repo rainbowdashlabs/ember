@@ -88,12 +88,38 @@ class ImageVariantsTest {
     class SizedFamilies {
 
         @Test
-        void aPngUploadWritesItsOriginalAndEverySize() throws IOException {
+        void aPngUploadWritesWebpSizesBelowItsLongestSideOnly() throws IOException {
+            Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available");
+
             storeAvatar(png(300, 200));
 
+            assertEquals(List.of("128.webp", "256.webp", "64.webp", "original.png"), storedNames(AVATAR_DIR));
+            assertEquals("image/webp", avatar(100).orElseThrow().contentType());
+            assertEquals("image/png", avatar(512).orElseThrow().contentType());
             assertEquals(
-                    List.of("1024.png", "128.png", "256.png", "512.png", "64.png", "original.png"),
-                    storedNames(AVATAR_DIR));
+                    "image/png",
+                    avatar(100, AcceptedFormats.WITHOUT_WEBP).orElseThrow().contentType());
+        }
+
+        @Test
+        void withoutCwebpTheSizesKeepTheSourceFormat() throws IOException {
+            var withoutWebp = Mockito.spy(new ImageEncoder());
+            Mockito.doReturn(false).when(withoutWebp).writes(ImageFormat.WEBP);
+            images = new ImageVariants(storage, config, withoutWebp);
+
+            storeAvatar(jpeg(300, 200));
+            assertEquals(List.of("128.jpg", "256.jpg", "64.jpg", "original.jpg"), storedNames(AVATAR_DIR));
+
+            storeAvatar(MediaLayoutFixtures.picture("picture.webp"));
+            assertEquals(List.of("original.webp"), storedNames(AVATAR_DIR));
+        }
+
+        @Test
+        void aPictureSmallerThanEverySizeIsKeptAsItsOriginalAlone() throws IOException {
+            storeAvatar(png(48, 48));
+
+            assertEquals(List.of("original.png"), storedNames(AVATAR_DIR));
+            assertEquals("image/png", avatar(64).orElseThrow().contentType());
         }
 
         @Test
@@ -266,6 +292,20 @@ class ImageVariantsTest {
         }
 
         @Test
+        void aSizeThatCannotBeWrittenLeavesTheUploadStanding() throws IOException {
+            var failing = Mockito.spy(new ImageEncoder());
+            Mockito.doReturn(true).when(failing).writes(ImageFormat.WEBP);
+            Mockito.doThrow(new IOException("no encoder"))
+                    .when(failing)
+                    .encode(Mockito.any(), Mockito.eq(ImageFormat.WEBP));
+            images = new ImageVariants(storage, config, failing);
+
+            String hash = upload(png(800, 600), "image/png");
+
+            assertEquals(List.of("orig.png"), storedNames(LIBRARY_DIR + hash));
+        }
+
+        @Test
         void theStoredWidthLayoutIsReadByItsNames() {
             MediaLayoutFixtures.copyInto(root);
             String photo = MediaLayoutFixtures.LIBRARY_PHOTO;
@@ -355,6 +395,11 @@ class ImageVariantsTest {
 
     private Optional<MediaContent> avatar(int size) {
         return images.read(ImageProfile.ICON_SET, AVATAR_SCOPE, StorageCategory.IMAGE_AVATAR, AVATAR_KEY, size);
+    }
+
+    private Optional<MediaContent> avatar(int size, AcceptedFormats accepted) {
+        return images.read(
+                ImageProfile.ICON_SET, AVATAR_SCOPE, StorageCategory.IMAGE_AVATAR, AVATAR_KEY, size, accepted);
     }
 
     private static void assertServed(String relative, Optional<MediaContent> served) {

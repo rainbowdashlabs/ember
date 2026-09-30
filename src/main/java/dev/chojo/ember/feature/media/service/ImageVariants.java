@@ -45,10 +45,15 @@ import java.util.Optional;
  * asks {@link #addSizes} for the smaller copies and the drawn first page of a document, which are
  * derived and best effort: a copy that cannot be made is logged and the upload stands.
  *
- * <p>Format rules: a GIF is kept as it came and never resized, since a resize keeps only its first
- * frame. A WebP original is kept as it came, since only {@code cwebp} writes WebP; its sizes are made
- * by {@code cwebp}, and where the host has none only the original is kept. A drawing (SVG) is never
- * taken by a sized family and has no picture in the library.
+ * <p>Format rules: the original keeps its format, and every size is written as WebP through
+ * {@code cwebp}; a host without {@code cwebp} writes the sizes in the source's format instead, and a
+ * WebP original then gets none. A GIF is kept as it came and never resized, since a resize keeps only
+ * its first frame. A WebP original is kept as it came as well. A drawing (SVG) is never taken by a
+ * sized family and has no picture in the library.
+ *
+ * <p>No size at or above the picture's own is written: it would be a copy of the original, which is
+ * what the chooser answers with when no size is large enough. Sets stored by earlier builds keep their
+ * copies and their PNG sizes, and are read by the same names as before.
  */
 @Singleton
 public class ImageVariants {
@@ -121,18 +126,13 @@ public class ImageVariants {
 
         var encoded = new ArrayList<Encoded>();
         encoded.add(original(profile, format, image, data));
-        encoded.addAll(sizes(profile, format, image));
+        var sizeFormat = sizeFormat(format);
+        if (sizeFormat.isPresent()) {
+            encoded.addAll(sizes(profile.layout(), profile.sizes(), image, sizeFormat.get()));
+        }
 
         delete(scope, category, key);
-        for (Encoded file : encoded) {
-            storage.store(
-                    scope,
-                    category,
-                    key,
-                    new Variant(file.name()),
-                    file.data(),
-                    file.format().mimeType());
-        }
+        write(scope, category, key, encoded);
     }
 
     /**
@@ -148,16 +148,18 @@ public class ImageVariants {
         BufferedImage image = librarySource(mimeType, data, key);
         if (image == null) return;
 
-        if (isDocument(mimeType)) {
-            write(scope, category, key, layout.originalName(ImageFormat.WEBP.extension()), image);
-        }
-        for (int width : config.imageVariantsWidthList()) {
-            if (width >= layout.measure(image)) continue;
-            try {
-                write(scope, category, key, layout.sizeName(width, ImageFormat.WEBP), layout.scale(image, width));
-            } catch (IOException e) {
-                log.warn("Could not scale a library picture key={} width={}", key, width, e);
+        try {
+            var encoded = new ArrayList<Encoded>();
+            if (isDocument(mimeType)) {
+                encoded.add(new Encoded(
+                        layout.originalName(ImageFormat.WEBP.extension()),
+                        encoder.encode(image, ImageFormat.WEBP),
+                        ImageFormat.WEBP));
             }
+            encoded.addAll(sizes(layout, config.imageVariantsWidthList(), image, ImageFormat.WEBP));
+            write(scope, category, key, encoded);
+        } catch (IOException e) {
+            log.warn("Could not make the sizes of a library picture key={}", key, e);
         }
     }
 
@@ -266,14 +268,27 @@ public class ImageVariants {
         return new Encoded(name, encoder.encode(layout.scale(image, side), format), format);
     }
 
-    private List<Encoded> sizes(ImageProfile profile, ImageFormat source, BufferedImage image) throws IOException {
-        if (source == ImageFormat.GIF || !encoder.writes(source)) return List.of();
-        VariantLayout layout = profile.layout();
+    /**
+     * The format the sizes of a sized family are written in: WebP wherever {@code cwebp} is installed,
+     * else the source's own format where it can be written. A GIF has no sizes.
+     */
+    private Optional<ImageFormat> sizeFormat(ImageFormat source) {
+        if (source == ImageFormat.GIF) return Optional.empty();
+        if (encoder.writes(ImageFormat.WEBP)) return Optional.of(ImageFormat.WEBP);
+        return encoder.writes(source) ? Optional.of(source) : Optional.empty();
+    }
+
+    /**
+     * Every size below the picture's own, measured on the side the layout measures. A size at or
+     * above it would be a copy of the original, which the chooser falls back to anyway.
+     */
+    private List<Encoded> sizes(VariantLayout layout, List<Integer> sizes, BufferedImage image, ImageFormat format)
+            throws IOException {
         var encoded = new ArrayList<Encoded>();
-        for (int size : profile.sizes()) {
-            int side = Math.min(size, layout.measure(image));
+        for (int size : sizes) {
+            if (size >= layout.measure(image)) continue;
             encoded.add(new Encoded(
-                    layout.sizeName(size, source), encoder.encode(layout.scale(image, side), source), source));
+                    layout.sizeName(size, format), encoder.encode(layout.scale(image, size), format), format));
         }
         return encoded;
     }
@@ -299,12 +314,15 @@ public class ImageVariants {
         }
     }
 
-    private void write(StorageScope scope, StorageCategory category, String key, String name, BufferedImage image) {
-        try {
-            byte[] webp = encoder.encode(image, ImageFormat.WEBP);
-            storage.store(scope, category, key, new Variant(name), webp, ImageFormat.WEBP.mimeType());
-        } catch (IOException e) {
-            log.warn("Could not write a library picture key={} name={}", key, name, e);
+    private void write(StorageScope scope, StorageCategory category, String key, List<Encoded> files) {
+        for (Encoded file : files) {
+            storage.store(
+                    scope,
+                    category,
+                    key,
+                    new Variant(file.name()),
+                    file.data(),
+                    file.format().mimeType());
         }
     }
 

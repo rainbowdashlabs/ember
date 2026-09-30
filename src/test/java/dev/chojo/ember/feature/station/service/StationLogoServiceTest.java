@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.util.WebpEncoder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -66,9 +67,11 @@ class StationLogoServiceTest {
 
         var small = logoService.read(STATION_ID, 64);
         assertTrue(small.isPresent());
-        assertEquals("image/png", small.orElseThrow().contentType());
+        assertEquals(
+                WebpEncoder.isAvailable() ? "image/webp" : "image/png",
+                small.orElseThrow().contentType());
 
-        assertTrue(logoService.original(STATION_ID).isPresent());
+        assertEquals("image/png", logoService.original(STATION_ID).orElseThrow().contentType());
 
         logoService.delete(STATION_ID);
         assertFalse(logoService.exists(STATION_ID));
