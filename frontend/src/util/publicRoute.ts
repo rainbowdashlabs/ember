@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /** Addresses a reader without a session may open, matched as a whole path. */
 export const PUBLIC_EXACT_PATHS: readonly string[] = ['/', '/login', '/2fa-verify', '/pitch']
 
