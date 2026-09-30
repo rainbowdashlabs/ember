@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, nextTick, onMounted, ref, useAttrs} from 'vue'
+import {computed, ref, useAttrs} from 'vue'
 
 /**
  * Layout and identity belong to the box, behaviour belongs to the field.
@@ -18,12 +18,11 @@ defineOptions({inheritAttrs: false})
 
 const model = defineModel<string>()
 
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
   placeholder?: string
   disabled?: boolean
-  autofocus?: boolean
 }>(), {
-  autofocus: false,
+  placeholder: undefined,
 })
 
 const attrs = useAttrs()
@@ -55,10 +54,6 @@ function clear() {
   model.value = ''
 }
 
-onMounted(() => {
-  if (props.autofocus) nextTick(focus)
-})
-
 defineExpose({focus})
 </script>
 
@@ -70,6 +65,7 @@ defineExpose({focus})
     <input
         ref="inputEl"
         v-model="model"
+        :aria-label="placeholder"
         v-bind="fieldAttrs"
         :disabled="disabled"
         :placeholder="placeholder"

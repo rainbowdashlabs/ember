@@ -32,6 +32,9 @@ const props = withDefaults(defineProps<{
 }>(), {
   groups: () => [],
   specialMentions: () => [],
+  parentId: null,
+  depth: 0,
+  highlightId: null,
 })
 
 const emit = defineEmits<{
@@ -71,8 +74,8 @@ function onNewCommentBlur() {
 }
 
 const rootComments = computed(() => {
-  const filtered = props.comments.filter(c => (c.parentId ?? null) === (props.parentId ?? null))
-  const isRoot = (props.depth ?? 0) === 0
+  const filtered = props.comments.filter(c => (c.parentId ?? null) === props.parentId)
+  const isRoot = props.depth === 0
   return filtered.sort((a, b) =>
       isRoot && sortDesc.value
           ? b.createdAt.localeCompare(a.createdAt)
@@ -85,7 +88,7 @@ const rootComments = computed(() => {
  * for a highlight that never appears.
  */
 const highlightIsMissing = computed(() =>
-    (props.depth ?? 0) === 0
+    props.depth === 0
     && props.highlightId != null
     && !props.comments.some(c => c.id === props.highlightId))
 
@@ -166,7 +169,7 @@ function submitEdit() {
 
 function postTopLevel() {
   if (!newComment.value.trim()) return
-  emit('create', props.parentId ?? null, newComment.value.trim())
+  emit('create', props.parentId, newComment.value.trim())
   newComment.value = ''
   newCommentExpanded.value = false
 }
@@ -175,9 +178,9 @@ const maxDepth = 6
 </script>
 
 <template>
-  <div :class="(depth ?? 0) > 0 ? 'ml-4 pl-3 border-l-2 border-(--border)' : ''">
+  <div :class="depth > 0 ? 'ml-4 pl-3 border-l-2 border-(--border)' : ''">
     <!-- Top-level new comment input (only at root depth, when not readonly) -->
-    <div v-if="(depth ?? 0) === 0 && !readonly" class="space-y-2 mb-4" @focusin="onNewCommentFocus" @focusout="onNewCommentBlur" @click="onNewCommentFocus">
+    <div v-if="depth === 0 && !readonly" role="presentation" class="space-y-2 mb-4" @focusin="onNewCommentFocus" @focusout="onNewCommentBlur" @click="onNewCommentFocus">
       <MentionInput v-model="newComment" :members="members" :groups="groups" :special-mentions="specialMentions" :placeholder="t('comments.placeholder')" :expanded="newCommentExpanded"/>
       <MutedText v-if="newCommentExpanded" size="xs">{{ t('comments.mentionHint') }}</MutedText>
       <div v-if="newCommentExpanded" class="flex gap-2">
@@ -185,7 +188,7 @@ const maxDepth = 6
       </div>
     </div>
     <MutedText v-if="highlightIsMissing" size="xs" class="block mb-2">{{ t('comments.highlightMissing') }}</MutedText>
-    <div v-if="(depth ?? 0) === 0 && rootComments.length > 1" class="flex justify-end mb-2">
+    <div v-if="depth === 0 && rootComments.length > 1" class="flex justify-end mb-2">
       <SecondaryButton compact @click="sortDesc = !sortDesc">
         <font-awesome-icon :icon="['fas', sortDesc ? 'arrow-down-wide-short' : 'arrow-up-wide-short']" class="mr-1" />
         {{ sortDesc ? t('comments.newest') : t('comments.oldest') }}
@@ -211,7 +214,7 @@ const maxDepth = 6
         </div>
         <p class="text-sm whitespace-pre-wrap"><template v-for="(part, i) in resolveMentions(comment.content)" :key="i"><span v-if="part.type === 'mention'" class="font-semibold" :class="part.bulk ? 'text-secondary' : 'text-primary'">@{{ part.name }}</span><template v-else>{{ part.value }}</template></template></p>
         <div class="flex items-center gap-1">
-          <SecondaryButton v-if="(depth ?? 0) < maxDepth" compact @click="startReply(comment.id)">
+          <SecondaryButton v-if="depth < maxDepth" compact @click="startReply(comment.id)">
             {{ t('comments.reply') }}
           </SecondaryButton>
           <IconButton
@@ -257,7 +260,7 @@ const maxDepth = 6
         :groups="groups"
         :special-mentions="specialMentions"
         :parent-id="comment.id"
-        :depth="(depth ?? 0) + 1"
+        :depth="depth + 1"
         :highlight-id="highlightId"
         :federated="federated"
         :readonly="readonly"

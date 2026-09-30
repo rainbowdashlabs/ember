@@ -50,6 +50,8 @@ const props = withDefaults(defineProps<{
   createRouteName?: string
   editRouteName?: string
 }>(), {
+  purpose: undefined,
+  titleKey: undefined,
   analyticsRouteName: 'forms-analytics',
   createRouteName: 'forms-create',
   editRouteName: 'forms-edit',

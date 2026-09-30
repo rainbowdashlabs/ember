@@ -16,6 +16,7 @@ withDefaults(defineProps<{
   disabled?: boolean
 }>(), {
   mode: 'one-shot',
+  formats: undefined,
 })
 
 const emit = defineEmits<{

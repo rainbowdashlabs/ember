@@ -13,7 +13,9 @@ const props = withDefaults(defineProps<{
   size?: 'sm' | 'md' | 'lg'
   name?: string
 }>(), {
+  identity: null,
   size: 'md',
+  name: undefined,
 })
 
 const sizeClasses = computed(() => {

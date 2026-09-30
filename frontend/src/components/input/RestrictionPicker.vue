@@ -26,6 +26,9 @@ const props = withDefaults(defineProps<{
   showMembers?: boolean
   showMode?: boolean
 }>(), {
+  groups: () => [],
+  tags: () => [],
+  members: () => [],
   showUserTypes: true,
   showGroups: true,
   showTags: true,
@@ -49,15 +52,15 @@ const userTypeOptions = computed(() =>
 )
 
 const groupOptions = computed(() =>
-    (props.groups ?? []).map(g => ({value: String(g.id), label: g.name ?? ''}))
+    props.groups.map(g => ({value: String(g.id), label: g.name ?? ''}))
 )
 
 const tagOptions = computed(() =>
-    (props.tags ?? []).map(t => ({value: String(t.id), label: t.name}))
+    props.tags.map(t => ({value: String(t.id), label: t.name}))
 )
 
 const memberOptions = computed(() =>
-    (props.members ?? []).map(fromMember)
+    props.members.map(fromMember)
 )
 
 const selectedGroupValues = computed(() => model.value.groupIds.map(String))

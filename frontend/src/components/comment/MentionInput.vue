@@ -23,6 +23,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   groups: () => [],
   specialMentions: () => [],
+  placeholder: undefined,
   expanded: true,
 })
 
@@ -86,6 +87,10 @@ function onPaste(e: ClipboardEvent) {
     <div
         ref="editorRef"
         contenteditable="true"
+        role="textbox"
+        tabindex="0"
+        aria-multiline="true"
+        :aria-placeholder="placeholder"
         :data-placeholder="placeholder"
         :class="['mention-editor w-full px-3 py-2 rounded-theme border border-bg-light-accent bg-bg-light text-[var(--text)] placeholder-[var(--text-muted)] transition-colors duration-150 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-bg-dark-accent dark:bg-bg-dark', expanded ? 'mention-editor--expanded' : 'mention-editor--collapsed']"
         @input="onInput"
@@ -99,7 +104,7 @@ function onPaste(e: ClipboardEvent) {
         :top="dropdownTop"
         :left="dropdownLeft"
         @select="selectSuggestion"
-        @hover="selectedIndex = $event"
+        @highlight="selectedIndex = $event"
     />
   </div>
 </template>

@@ -66,10 +66,14 @@ const props = withDefaults(defineProps<{
   autoOpen?: boolean
 }>(), {
   members: () => [],
+  searchFn: undefined,
+  resolveFn: undefined,
   multiple: false,
   clearable: false,
+  emptyLabel: undefined,
   userTypes: () => [],
   openingUserType: '',
+  placeholder: undefined,
 })
 
 const emit = defineEmits<{

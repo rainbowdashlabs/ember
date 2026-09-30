@@ -17,8 +17,11 @@ const props = withDefaults(defineProps<{
   hint?: string
   multiple?: boolean
 }>(), {
+  accept: undefined,
   disabled: false,
   error: null,
+  label: undefined,
+  hint: undefined,
   multiple: false,
 })
 

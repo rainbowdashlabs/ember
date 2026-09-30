@@ -23,6 +23,9 @@ const props = withDefaults(defineProps<{
     disabled?: boolean
 }>(), {
     mode: 'FUTURE',
+    stationUid: undefined,
+    selectedDisplay: undefined,
+    placeholder: undefined,
 })
 
 const emit = defineEmits<{

@@ -18,6 +18,7 @@ const props = withDefaults(defineProps<{
   formats?: BarcodeFormat[]
 }>(), {
   mode: 'one-shot',
+  formats: undefined,
 })
 
 const emit = defineEmits<{
