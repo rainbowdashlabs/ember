@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /** One entry of a dropdown: what it stands for, what it reads, and the heading it sits under. */
 export interface SelectOption {
     value: string
