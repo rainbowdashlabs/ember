@@ -29,11 +29,8 @@ void props
       v-if="results.length > 0"
       class="absolute z-20 mt-1 w-[28rem] right-0 rounded-theme border border-(--border) bg-(--bg) shadow-lg overflow-hidden"
   >
-    <RowLink v-for="result in results" :key="result.id" :to="ticketPage(result)">
-      <div
-          class="px-3 py-2 text-sm cursor-pointer hover:bg-primary/5 flex items-center gap-2"
-          @click="$emit('pick')"
-      >
+    <RowLink v-for="result in results" :key="result.id" :to="ticketPage(result)" @click="$emit('pick')">
+      <div class="px-3 py-2 text-sm cursor-pointer hover:bg-primary/5 flex items-center gap-2">
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-1.5">
             <span class="font-mono text-xs text-(--text-muted) shrink-0">{{ shortKey }}-{{ result.ticketNumber }}</span>

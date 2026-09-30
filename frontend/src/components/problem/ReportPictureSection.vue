@@ -137,6 +137,6 @@ function coverPersonalData() {
       </SecondaryButton>
     </ButtonRow>
 
-    <input ref="fileInput" accept="image/*" class="hidden" type="file" @change="attachFile"/>
+    <input ref="fileInput" accept="image/*" class="hidden" type="file" aria-hidden="true" @change="attachFile"/>
   </div>
 </template>

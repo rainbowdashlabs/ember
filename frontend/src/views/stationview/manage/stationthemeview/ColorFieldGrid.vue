@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup generic="K extends string">
+import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
@@ -18,6 +19,7 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const idPrefix = useId()
 
 function onInput(key: K, event: Event) {
   emit('change', key, (event.target as HTMLInputElement).value)
@@ -27,9 +29,10 @@ function onInput(key: K, event: Event) {
 <template>
   <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
     <div v-for="field in fields" :key="keyPrefix + '-' + field.key" class="space-y-1">
-      <FieldLabel class="text-xs">{{ t(`theme.${field.label}`) }}</FieldLabel>
+      <FieldLabel :for="`${idPrefix}-${field.key}`" class="text-xs">{{ t(`theme.${field.label}`) }}</FieldLabel>
       <div class="flex items-center gap-2">
         <input
+            :id="`${idPrefix}-${field.key}`"
             :value="values[field.key]"
             type="color"
             class="h-9 w-12 rounded-theme border border-(--border) cursor-pointer bg-transparent"

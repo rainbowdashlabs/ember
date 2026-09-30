@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import LabeledNumberInput from './LabeledNumberInput.vue'
@@ -18,6 +19,7 @@ defineEmits<{
 }>()
 
 const {t} = useI18n()
+const borderColorId = useId()
 </script>
 
 <template>
@@ -39,8 +41,9 @@ const {t} = useI18n()
                 @update:model-value="$emit('update', {borderWidthPx: $event})"
             />
             <div>
-                <FieldLabel hint class="mb-1">{{ t('stationPages.editor.borderColor') }}</FieldLabel>
+                <FieldLabel :for="borderColorId" hint class="mb-1">{{ t('stationPages.editor.borderColor') }}</FieldLabel>
                 <input
+                    :id="borderColorId"
                     type="color"
                     :value="config.borderColor ?? '#000000'"
                     class="h-10 w-full rounded-theme border border-(--border) bg-(--bg) cursor-pointer"

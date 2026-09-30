@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useId } from 'vue'
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import AuthImage from '@/components/display/AuthImage.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -18,6 +18,8 @@ const imgStyle = computed(() => {
   if (props.node.attrs.width) return `width: ${props.node.attrs.width}px`
   return ''
 })
+
+const widthId = useId()
 
 const srcStr = computed(() => (props.node.attrs.src as string) ?? '')
 const isAuthSrc = computed(() => isKbImageSrc(srcStr.value))
@@ -48,8 +50,9 @@ function onWidthChange(e: Event) {
       draggable="false"
     />
     <div class="image-controls" @mousedown.stop>
-      <span class="text-xs text-[var(--text-muted)] mr-1">Breite:</span>
+      <label :for="widthId" class="text-xs text-[var(--text-muted)] mr-1">Breite:</label>
       <input
+        :id="widthId"
         type="number"
         :value="imgWidth"
         placeholder="auto"

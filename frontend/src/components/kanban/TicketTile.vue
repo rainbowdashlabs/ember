@@ -15,6 +15,9 @@ import { formatDayMonth, todayIsoDate } from '@/util/format'
 /**
  * One ticket as a card on the kanban board. The `actions` slot sits beside the title, for what can be
  * done to the card without opening it.
+ *
+ * <p>The card opens wherever it is pressed, which is a pointer's convenience; the title is the control
+ * a keyboard and a screen reader reach, and its press travels up to the card.
  */
 const props = defineProps<{
     ticket: BoardTicket
@@ -74,10 +77,17 @@ const isOverdue = computed(() => {
 <template>
     <div
         class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 cursor-pointer hover:border-[var(--accent)] transition-colors shadow-sm"
+        role="presentation"
         @click="emit('click', ticket)"
     >
         <div class="flex items-start gap-1 mb-1">
-            <p class="flex-1 min-w-0 text-sm font-medium leading-tight line-clamp-2">{{ ticket.title }}</p>
+            <p
+                class="flex-1 min-w-0 text-sm font-medium leading-tight line-clamp-2"
+                role="button"
+                tabindex="0"
+                @keydown.enter.prevent="emit('click', ticket)"
+                @keydown.space.prevent="emit('click', ticket)"
+            >{{ ticket.title }}</p>
             <slot name="actions" />
         </div>
 

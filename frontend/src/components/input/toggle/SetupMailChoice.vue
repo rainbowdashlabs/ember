@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ToggleInput from './ToggleInput.vue'
 import {sessionInfo} from '@/util/sessionState'
@@ -31,17 +31,19 @@ const props = withDefaults(defineProps<{
  */
 const canSendMail = computed(() => sessionInfo.value?.canSendMail !== false)
 const offered = computed(() => canSendMail.value && props.hasAddress)
+
+const labelId = useId()
 </script>
 
 <template>
   <div v-if="offered" class="flex items-center justify-between gap-4" data-testid="setup-mail-choice">
     <div>
-      <label class="text-sm font-medium">{{ t('setupMailChoice.label') }}</label>
+      <span :id="labelId" class="text-sm font-medium">{{ t('setupMailChoice.label') }}</span>
       <p class="text-xs text-(--text-muted)">
         {{ sendNow ? t('setupMailChoice.hintNow') : t('setupMailChoice.hintLater') }}
       </p>
     </div>
-    <ToggleInput v-model="sendNow"/>
+    <ToggleInput v-model="sendNow" :aria-labelledby="labelId"/>
   </div>
   <p
       v-else-if="!canSendMail && hasAddress"

@@ -12,6 +12,10 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import type { QuizQuestion } from '@/api/quiz'
 
+/**
+ * A question of the catalogue, folded, on a phone. Its text opens the editor when pressed, which is
+ * a pointer's shortcut to the edit button under it.
+ */
 defineProps<{
   question: QuizQuestion
   selected: boolean
@@ -31,7 +35,7 @@ const { t } = useI18n()
   <div class="space-y-2">
     <div class="flex items-center gap-2 cursor-pointer" @click.stop>
       <CheckboxInput :model-value="selected" @update:model-value="emit('toggleSelect')"/>
-      <div class="flex-1" @click="emit('edit')">
+      <div class="flex-1" role="presentation" @click="emit('edit')">
         <div class="flex items-center gap-1.5 flex-wrap mb-0.5">
           <InfoBadge>{{ t(`quiz.questionTypes.${question.quizQuestionType}`) }}</InfoBadge>
           <SecondaryBadge>{{ categoryName }}</SecondaryBadge>

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useId} from 'vue'
 import {BORDERED_INPUT_CLASSES} from '../inputClasses'
 
 /**
@@ -22,11 +23,16 @@ const model = defineModel<string | number | null>()
 
 defineProps<{
   disabled?: boolean
+  /** What a label's `for` names. Every field carries one, generated where the caller gives none. */
+  id?: string
 }>()
+
+const generatedId = useId()
 </script>
 
 <template>
   <select
+      :id="id ?? generatedId"
       v-model="model"
       :disabled="disabled"
       :class="[BORDERED_INPUT_CLASSES, 'min-w-0']"

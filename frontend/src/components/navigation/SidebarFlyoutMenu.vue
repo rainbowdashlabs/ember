@@ -135,6 +135,7 @@ function onHeaderClick() {
         data-sidebar-flyout
         :style="{left: `${left}px`, top: `${top}px`}"
         class="fixed z-50 px-2"
+        role="presentation"
         @mouseenter="emit('enter')"
         @mouseleave="emit('leave')"
         @focusin="emit('enter')"

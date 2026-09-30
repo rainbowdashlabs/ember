@@ -40,7 +40,10 @@ function suggestionKey(s: Suggestion): string {
         class="w-full px-3 py-1.5 text-left text-sm transition-colors flex items-center gap-2"
         :class="i === selectedIndex ? 'bg-primary/15 text-primary' : 'hover:bg-primary/10'"
         @mousedown.prevent="emit('select', s)"
+        @keydown.enter.prevent="emit('select', s)"
+        @keydown.space.prevent="emit('select', s)"
         @mouseenter="emit('hover', i)"
+        @focus="emit('hover', i)"
     >
       <MentionMemberOption v-if="s.kind === 'member'" :data="s.data" />
       <MentionGroupOption v-else-if="s.kind === 'group'" :data="s.data" />

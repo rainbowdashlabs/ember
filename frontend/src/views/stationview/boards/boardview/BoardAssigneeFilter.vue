@@ -25,12 +25,36 @@ function toggle(memberUid: string) {
 
 <template>
     <div v-if="assignees.length > 0" class="flex items-center">
-        <div class="cursor-pointer rounded-full transition-all" :class="selected.size === 0 ? 'ring-2 ring-primary' : 'opacity-60 hover:opacity-100'" :title="t('boards.allMembers')" @click="selected = new Set()">
+        <div
+            class="cursor-pointer rounded-full transition-all"
+            :class="selected.size === 0 ? 'ring-2 ring-primary' : 'opacity-60 hover:opacity-100'"
+            :title="t('boards.allMembers')"
+            role="button"
+            tabindex="0"
+            :aria-label="t('boards.allMembers')"
+            :aria-pressed="selected.size === 0"
+            @click="selected = new Set()"
+            @keydown.enter.prevent="selected = new Set()"
+            @keydown.space.prevent="selected = new Set()"
+        >
             <div class="h-8 w-8 rounded-full bg-primary/15 text-primary font-bold flex items-center justify-center text-xs">
                 <font-awesome-icon :icon="['fas', 'users']" />
             </div>
         </div>
-        <div v-for="member in assignees" :key="member.id" class="cursor-pointer rounded-full transition-all -ml-1.5" :class="selected.has(member.memberUid) ? 'ring-2 ring-primary z-10' : 'opacity-70 hover:opacity-100'" :title="member.name" @click="toggle(member.memberUid)">
+        <div
+            v-for="member in assignees"
+            :key="member.id"
+            class="cursor-pointer rounded-full transition-all -ml-1.5"
+            :class="selected.has(member.memberUid) ? 'ring-2 ring-primary z-10' : 'opacity-70 hover:opacity-100'"
+            :title="member.name"
+            role="button"
+            tabindex="0"
+            :aria-label="member.name"
+            :aria-pressed="selected.has(member.memberUid)"
+            @click="toggle(member.memberUid)"
+            @keydown.enter.prevent="toggle(member.memberUid)"
+            @keydown.space.prevent="toggle(member.memberUid)"
+        >
             <UserAvatar :identity="member" :name="member.name" size="md" />
         </div>
     </div>

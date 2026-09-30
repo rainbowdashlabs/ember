@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import {StationUserTypeLabels, type MemberGroup} from '@/api/types'
 import type {ReportPreset} from '@/api/attendance'
@@ -17,6 +18,8 @@ const emit = defineEmits<{
   apply: [preset: ReportPreset]
   remove: [id: number]
 }>()
+
+const {t} = useI18n()
 
 /** The preset's name, followed by every user type and every group it selects that still exists. */
 function presetLabel(preset: ReportPreset): string {
@@ -39,7 +42,14 @@ function presetLabel(preset: ReportPreset): string {
         @toggle="emit('apply', preset)"
     >
       {{ presetLabel(preset) }}
-      <span class="text-(--text-muted) hover:text-error cursor-pointer" @click.stop="emit('remove', preset.id)">
+      <span
+          role="button"
+          tabindex="0"
+          :aria-label="t('common.remove')"
+          class="text-(--text-muted) hover:text-error cursor-pointer"
+          @click.stop="emit('remove', preset.id)"
+          @keydown.enter.space.stop.prevent="emit('remove', preset.id)"
+      >
         <font-awesome-icon :icon="['fas', 'xmark']" class="h-3 w-3"/>
       </span>
     </SelectionToggleButton>

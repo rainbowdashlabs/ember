@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -16,6 +17,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
+const canLoginLabelId = useId()
 
 const firstName = defineModel<string>('firstName', {required: true})
 const lastName = defineModel<string>('lastName', {required: true})
@@ -48,10 +50,10 @@ const emit = defineEmits<{
 
     <div class="flex items-center justify-between">
       <div>
-        <label class="text-sm font-medium">{{ t('membersCreate.canLogin') }}</label>
+        <span :id="canLoginLabelId" class="text-sm font-medium">{{ t('membersCreate.canLogin') }}</span>
         <p class="text-xs text-(--text-muted)">{{ t('membersCreate.canLoginHint') }}</p>
       </div>
-      <ToggleInput v-model="canLogin"/>
+      <ToggleInput v-model="canLogin" :aria-labelledby="canLoginLabelId"/>
     </div>
 
     <div v-if="canLogin" class="space-y-1">

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useId } from 'vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -23,6 +23,8 @@ defineEmits<{
 
 const imageUrl = ref('')
 const imageAlt = ref('')
+const altId = useId()
+const urlId = useId()
 </script>
 
 <template>
@@ -39,13 +41,13 @@ const imageAlt = ref('')
     </div>
 
     <div>
-      <label class="block text-xs text-[var(--text-muted)] mb-0.5">Alternativtext</label>
-      <TextInput v-model="imageAlt" placeholder="Bildbeschreibung" class="!text-sm" />
+      <label :for="altId" class="block text-xs text-[var(--text-muted)] mb-0.5">Alternativtext</label>
+      <TextInput :id="altId" v-model="imageAlt" placeholder="Bildbeschreibung" class="!text-sm" />
     </div>
 
     <div>
-      <label class="block text-xs text-[var(--text-muted)] mb-0.5">Bild-URL</label>
-      <TextInput v-model="imageUrl" placeholder="https://..." class="!text-sm" />
+      <label :for="urlId" class="block text-xs text-[var(--text-muted)] mb-0.5">Bild-URL</label>
+      <TextInput :id="urlId" v-model="imageUrl" placeholder="https://..." class="!text-sm" />
     </div>
 
     <ButtonRow>

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -29,6 +30,8 @@ const emit = defineEmits<{
   updateContent: [value: string]
 }>()
 
+const nameId = useId()
+
 function onInput(event: Event) {
   emit('updateContent', (event.target as HTMLTextAreaElement).value)
 }
@@ -38,7 +41,7 @@ function onInput(event: Event) {
   <NeutralContainer class="space-y-2" :class="{ 'opacity-50': !file.enabled }">
     <div class="flex items-center gap-2">
       <ToggleInput :model-value="file.enabled" @update:model-value="emit('toggle')"/>
-      <SubHeader class="flex-1 min-w-0">
+      <SubHeader :id="nameId" class="flex-1 min-w-0">
         {{ file.generated ? t('adminSettings.legal.generatedName') : (file.displayName || file.filename) }}
       </SubHeader>
       <IconButton :icon="['fas', 'chevron-up']" :label="t('adminSettings.legal.moveUp')"
@@ -51,6 +54,7 @@ function onInput(event: Event) {
     <textarea
         v-if="!file.generated"
         :value="file.content"
+        :aria-labelledby="nameId"
         class="w-full rounded-lg border border-(--border) bg-(--bg) text-(--text) p-3 min-h-[200px] font-mono text-sm outline-none resize-y focus:ring-2 focus:ring-primary/50"
         :placeholder="t('adminSettings.legal.contentPlaceholder')"
         @input="onInput"

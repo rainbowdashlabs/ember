@@ -217,7 +217,7 @@ const createFailure = computed(() => shown(rawCreateFailure.value))
         </div>
       </AsyncSection>
 
-      <input ref="imageInputRef" type="file" accept="image/*" class="hidden" @change="imagePicked"/>
+      <input ref="imageInputRef" type="file" accept="image/*" class="hidden" aria-hidden="true" @change="imagePicked"/>
 
       <LostItemClaimModal v-model="showClaim" :managed="managed" :loading="claiming"
                           @confirm="confirmClaim"/>

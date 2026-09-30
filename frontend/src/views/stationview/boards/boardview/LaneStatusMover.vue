@@ -32,12 +32,34 @@ defineExpose({ close: () => { editing.value = false } })
 
 <template>
     <div class="relative">
-        <div class="px-3 py-2 rounded-theme text-sm font-medium text-center" :class="canEdit ? 'cursor-pointer' : ''" :style="{ backgroundColor: currentLane?.color ?? 'var(--primary)', color: contrastTextColor(currentLane?.color ?? '#fd4f00') }" @click.stop="toggle">
+        <div
+            class="px-3 py-2 rounded-theme text-sm font-medium text-center"
+            :class="canEdit ? 'cursor-pointer' : ''"
+            :style="{ backgroundColor: currentLane?.color ?? 'var(--primary)', color: contrastTextColor(currentLane?.color ?? '#fd4f00') }"
+            role="button"
+            tabindex="0"
+            aria-haspopup="true"
+            :aria-expanded="editing && canEdit"
+            :aria-disabled="!canEdit"
+            @click.stop="toggle"
+            @keydown.enter.stop.prevent="toggle"
+            @keydown.space.stop.prevent="toggle"
+        >
             <span>{{ currentLane?.name }}</span>
             <font-awesome-icon v-if="canEdit" :icon="['fas', editing ? 'chevron-up' : 'chevron-down']" class="ms-2 text-xs opacity-80"/>
         </div>
         <div v-if="editing && canEdit" class="absolute z-20 mt-1 w-full rounded-theme border border-[var(--border)] bg-[var(--bg)] shadow-lg overflow-hidden">
-            <div v-for="lane in choices" :key="lane.id" class="px-3 py-2 text-sm font-medium text-center cursor-pointer hover:opacity-90 flex items-center justify-center gap-2" :style="{ backgroundColor: lane.color ?? 'var(--primary)', color: contrastTextColor(lane.color ?? '#fd4f00') }" @click="pick(lane.id)">
+            <div
+                v-for="lane in choices"
+                :key="lane.id"
+                class="px-3 py-2 text-sm font-medium text-center cursor-pointer hover:opacity-90 flex items-center justify-center gap-2"
+                :style="{ backgroundColor: lane.color ?? 'var(--primary)', color: contrastTextColor(lane.color ?? '#fd4f00') }"
+                role="button"
+                tabindex="0"
+                @click="pick(lane.id)"
+                @keydown.enter.prevent="pick(lane.id)"
+                @keydown.space.prevent="pick(lane.id)"
+            >
                 <font-awesome-icon :icon="['fas', isNext(lane.id) ? 'arrow-right' : 'arrow-left']" class="text-xs opacity-80"/>
                 <span>{{ lane.name }}</span>
             </div>

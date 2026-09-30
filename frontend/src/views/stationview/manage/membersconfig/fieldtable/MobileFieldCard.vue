@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -17,6 +18,7 @@ import {holdsAnswer, isSection, widthOf} from '@/components/profilefields/fieldL
 import {widthLabel} from '../fieldTypes'
 
 const {t} = useI18n()
+const writabilityId = useId()
 
 defineProps<{
   field: ProfileField
@@ -72,9 +74,9 @@ const capabilities = useFieldsCapabilities()
                        @update:model-value="v => emit('toggleRequired', field, v)"/>
         {{ t('membersConfig.fieldRequired') }}
       </label>
-      <label v-if="capabilities.writability" class="flex items-center gap-1">
+      <label v-if="capabilities.writability" :for="writabilityId" class="flex items-center gap-1">
         <span>{{ t('membersConfig.writability.column') }}</span>
-        <WritabilitySelect :field="field" @set="(f, level) => emit('setWritability', f, level)"/>
+        <WritabilitySelect :id="writabilityId" :field="field" @set="(f, level) => emit('setWritability', f, level)"/>
       </label>
       <label v-else class="flex items-center gap-1">
         <CompactToggle :model-value="!!field.readonly"

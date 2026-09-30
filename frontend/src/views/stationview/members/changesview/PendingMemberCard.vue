@@ -17,6 +17,10 @@ import PendingChangeRow from './PendingChangeRow.vue'
 
 const {t} = useI18n()
 
+/**
+ * One member's pending changes, folded. The header opens them wherever it is pressed, which is a
+ * pointer's convenience; the member's name is the control a keyboard and a screen reader reach.
+ */
 const acknowledgeComment = defineModel<string>('acknowledgeComment', {required: true})
 
 defineProps<{
@@ -43,9 +47,17 @@ const emit = defineEmits<{
   <NeutralContainer>
     <div
         class="flex items-center justify-between flex-wrap gap-2 cursor-pointer"
+        role="presentation"
         @click="emit('toggle')"
     >
-      <div class="flex items-center gap-2">
+      <div
+          class="flex items-center gap-2"
+          role="button"
+          tabindex="0"
+          :aria-expanded="expanded"
+          @keydown.enter.prevent="emit('toggle')"
+          @keydown.space.prevent="emit('toggle')"
+      >
         <font-awesome-icon
             :icon="['fas', expanded ? 'chevron-down' : 'chevron-right']"
             class="h-3 w-3 text-(--text-muted)"

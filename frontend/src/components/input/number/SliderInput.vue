@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, useId} from 'vue'
 
 const model = defineModel<number>({default: 0})
 
@@ -14,12 +14,21 @@ const props = withDefaults(defineProps<{
   step?: number
   disabled?: boolean
   showInput?: boolean
+  /**
+   * What a label's `for` names, generated where the caller gives none. The number field beside
+   * the slider carries it with `-value` appended.
+   */
+  id?: string
 }>(), {
   min: 0,
   max: 100,
   step: 1,
   showInput: false,
+  id: undefined,
 })
+
+const generatedId = useId()
+const sliderId = computed(() => props.id ?? generatedId)
 
 const percentage = computed(() =>
     ((model.value - props.min) / (props.max - props.min)) * 100
@@ -29,6 +38,7 @@ const percentage = computed(() =>
 <template>
   <div class="flex items-center gap-3">
     <input
+        :id="sliderId"
         v-model.number="model"
         :disabled="disabled"
         :max="max"
@@ -44,6 +54,7 @@ const percentage = computed(() =>
     />
     <input
         v-if="showInput"
+        :id="`${sliderId}-value`"
         v-model.number="model"
         :disabled="disabled"
         :max="max"

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, useId } from 'vue'
 
 interface FieldInfo {
   name: string
@@ -16,7 +16,11 @@ const modelValue = defineModel<string>({required: true})
 const props = defineProps<{
   placeholder?: string
   fields: FieldInfo[]
+  /** What a label's `for` names, generated where the caller gives none. */
+  id?: string
 }>()
+
+const generatedId = useId()
 
 const inputRef = ref<HTMLInputElement | null>(null)
 const showSuggestions = ref(false)
@@ -138,6 +142,7 @@ function onBlur() {
 <template>
   <div class="relative">
     <input
+      :id="id ?? generatedId"
       ref="inputRef"
       :value="modelValue"
       :placeholder="placeholder"

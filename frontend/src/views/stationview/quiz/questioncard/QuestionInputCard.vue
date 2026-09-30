@@ -82,6 +82,7 @@ const { t } = useI18n()
     <template v-else-if="question.quizQuestionType === QuizQuestionTypes.FREE_ANSWER || question.quizQuestionType === QuizQuestionTypes.ENUMERATION || question.quizQuestionType === QuizQuestionTypes.IMAGE_TEXT">
       <textarea
         :value="freeAnswer"
+        :aria-label="question.title"
         rows="4"
         :disabled="disabled"
         class="w-full px-3 py-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-transparent focus:outline-none focus:border-primary text-sm resize-none disabled:opacity-60"

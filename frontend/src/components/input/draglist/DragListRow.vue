@@ -82,6 +82,7 @@ onBeforeUnmount(() => {
       <span
           v-if="finePointer"
           class="cursor-grab px-1 text-(--text-muted) active:cursor-grabbing"
+          aria-hidden="true"
           data-testid="drag-handle"
           draggable="true"
           @dragstart="emit('grab', props.index, $event)"

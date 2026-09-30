@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useId} from 'vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -36,13 +37,15 @@ const defaultValue = defineModel<string>('defaultValue', {required: true})
 const defaultBool = defineModel<boolean>('defaultBool', {required: true})
 const defaultToday = defineModel<boolean>('defaultToday', {required: true})
 const defaultNumber = defineModel<number>('defaultNumber', {required: true})
+
+const toggleLabelId = useId()
 </script>
 
 <template>
   <div class="space-y-2">
     <div class="flex items-center justify-between">
-      <label class="text-sm font-medium">{{ toggleLabel }}</label>
-      <ToggleInput v-model="hasDefault"/>
+      <span :id="toggleLabelId" class="text-sm font-medium">{{ toggleLabel }}</span>
+      <ToggleInput v-model="hasDefault" :aria-labelledby="toggleLabelId"/>
     </div>
     <template v-if="hasDefault">
       <template v-if="fieldType === 'BOOLEAN'">

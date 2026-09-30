@@ -81,6 +81,7 @@ watch(show, open => {
       <MutedText size="sm">{{ t('adminSettings.legal.importHint') }}</MutedText>
 
       <input type="file" accept=".md,.txt,.docx,.odt,.rtf,.html,.htm,.epub"
+             :aria-label="t('adminSettings.legal.importTitle')"
              class="block w-full text-sm" @change="onFile"/>
 
       <TextAreaInput v-model="markdown" :rows="6"

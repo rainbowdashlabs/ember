@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useId} from 'vue'
 import {BORDERED_INPUT_CLASSES, BORDERLESS_INPUT_CLASSES} from './inputClasses'
 
 const model = defineModel<string | number>()
@@ -20,7 +21,11 @@ const props = defineProps<{
    * than by heuristics, so the fields that mean something carry them explicitly.
    */
   autocomplete?: string
+  /** What a label's `for` names. Every field carries one, generated where the caller gives none. */
+  id?: string
 }>()
+
+const generatedId = useId()
 
 /** The types whose value is picked from a calendar or a clock rather than typed. */
 const PICKER_TYPES = ['date', 'time', 'datetime-local']
@@ -61,6 +66,7 @@ function openPicker(event: Event) {
 
 <template>
   <input
+      :id="id ?? generatedId"
       v-model="model"
       :disabled="disabled"
       :placeholder="placeholder"

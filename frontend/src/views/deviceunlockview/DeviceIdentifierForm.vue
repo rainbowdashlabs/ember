@@ -45,7 +45,6 @@ function submit() {
           id="device-identifier"
           v-model="identifier"
           autocomplete="username"
-          autofocus
           data-testid="device-identifier"
           :placeholder="t('passkeys.device.identifierPlaceholder')"
       />

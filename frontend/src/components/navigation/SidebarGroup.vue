@@ -248,7 +248,7 @@ watch(() => collapsed.value, (value) => {
         @close="flyoutForce(false)"
         @header-click="onHeaderClick"
     >
-      <div @click="onChildNavigate">
+      <div role="presentation" @click="onChildNavigate">
         <slot/>
       </div>
     </SidebarFlyoutMenu>

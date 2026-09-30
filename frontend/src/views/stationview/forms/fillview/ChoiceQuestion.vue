@@ -81,16 +81,21 @@ function selectedIcon(selected: boolean): string {
         <option v-for="opt in options" :key="opt.key" :value="opt.key">{{ opt.label }}</option>
       </SelectInput>
     </template>
-    <template v-else>
+    <div v-else role="listbox" :aria-multiselectable="isMulti" class="space-y-1">
       <div
           v-for="opt in options"
           :key="opt.key"
+          role="option"
+          tabindex="0"
+          :aria-selected="!!answer.selected?.includes(opt.key)"
           data-testid="choice-option"
           class="flex items-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all cursor-pointer"
           :class="answer.selected?.includes(opt.key)
             ? 'border-primary bg-primary/10 text-primary'
             : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text) hover:border-primary/50'"
           @click="toggle(opt.key)"
+          @keydown.enter.prevent="toggle(opt.key)"
+          @keydown.space.prevent="toggle(opt.key)"
       >
         <font-awesome-icon
             :icon="['fas', selectedIcon(answer.selected?.includes(opt.key))]"
@@ -99,7 +104,7 @@ function selectedIcon(selected: boolean): string {
         />
         <span>{{ opt.label }}</span>
       </div>
-    </template>
+    </div>
     <div v-if="allowOther"
          class="w-full flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all"
          :class="answer.other

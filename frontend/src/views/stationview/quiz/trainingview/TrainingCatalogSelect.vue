@@ -35,7 +35,12 @@ const { t } = useI18n()
       :key="catalog.id"
       class="rounded-lg border-2 p-4 cursor-pointer transition-all"
       :class="selectedCatalogIds.has(catalog.id) ? 'border-success bg-success/10' : 'border-bg-light-accent dark:border-bg-dark-accent hover:border-primary'"
+      role="checkbox"
+      tabindex="0"
+      :aria-checked="selectedCatalogIds.has(catalog.id)"
       @click="$emit('toggle', catalog.id)"
+      @keydown.enter.prevent="$emit('toggle', catalog.id)"
+      @keydown.space.prevent="$emit('toggle', catalog.id)"
     >
       <div class="flex items-center gap-2">
         <font-awesome-icon

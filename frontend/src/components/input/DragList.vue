@@ -15,6 +15,10 @@ import {useFinePointer} from '@/composables/useFinePointer'
  * Where there is a mouse, the grip between them picks the row up as well, which is faster over a long
  * list. Dragging hangs off the grip rather than the row itself, so a row holding a text field can still
  * be typed in and its text selected.
+ *
+ * <p>Dragging is the mouse's shortcut and nothing more, so the grip and the drop area carry no
+ * meaning for a screen reader or a keyboard: the arrows are the control, and the grip is hidden
+ * from assistive technology while the drop area is marked as presentation.
  */
 const props = defineProps<{
   items: T[]
@@ -99,7 +103,7 @@ function onContainerDragOver(event: DragEvent) {
 </script>
 
 <template>
-  <div @dragover="onContainerDragOver" @drop="onDrop">
+  <div role="presentation" @dragover="onContainerDragOver" @drop="onDrop">
     <template v-for="(item, index) in items" :key="keyFn(item, index)">
       <div
           v-if="dropIndicator === index && dragIndex !== index && dragIndex !== index - 1"

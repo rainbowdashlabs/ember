@@ -85,6 +85,12 @@ function stopDrag() {
   dragging.value = false
 }
 
+/** The keyboard's way to pick: one size per key press, with no drag carrying on from it. */
+function pressByKey(label: string) {
+  press(label)
+  stopDrag()
+}
+
 window.addEventListener('mouseup', stopDrag)
 onBeforeUnmount(() => window.removeEventListener('mouseup', stopDrag))
 
@@ -111,9 +117,13 @@ function confirm() {
           :class="picked.has(label)
               ? 'border-primary bg-primary text-white'
               : 'border-(--border) hover:bg-(--bg-accent)'"
+          :aria-pressed="picked.has(label)"
           :data-testid="`size-box-${label}`"
           @mousedown.prevent="press(label)"
           @mouseenter="touch(label)"
+          @focus="touch(label)"
+          @keydown.enter.prevent="pressByKey(label)"
+          @keydown.space.prevent="pressByKey(label)"
       >
         {{ label }}
       </button>

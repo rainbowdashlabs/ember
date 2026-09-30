@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, ref, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -30,6 +30,7 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const csvFileId = useId()
 
 const mode = ref<'schedule' | 'csv'>('schedule')
 
@@ -232,8 +233,8 @@ function applyCsvToRows() {
     <!-- CSV mode -->
     <template v-if="mode === 'csv'">
       <div class="space-y-2">
-        <FieldLabel>{{ t('batchCreate.uploadCsv') }}</FieldLabel>
-        <input type="file" accept=".csv,.txt" class="text-sm" @change="handleCsvUpload"/>
+        <FieldLabel :for="csvFileId">{{ t('batchCreate.uploadCsv') }}</FieldLabel>
+        <input :id="csvFileId" type="file" accept=".csv,.txt" class="text-sm" @change="handleCsvUpload"/>
       </div>
 
       <template v-if="csvColumns.length > 0">

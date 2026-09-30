@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, nextTick, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -148,7 +148,13 @@ function onClose() {
   emit('close')
 }
 
-onMounted(loadItems)
+const searchField = ref<InstanceType<typeof SearchInput> | null>(null)
+
+/** The dialog opens with the one thing a reader does first, searching, already in hand. */
+onMounted(() => {
+  nextTick(() => searchField.value?.focus())
+  loadItems()
+})
 </script>
 
 <template>
@@ -160,7 +166,7 @@ onMounted(loadItems)
     <FailureAlert :message="scanNote" expected class="mb-3"/>
 
     <div class="flex items-center gap-2 mb-2">
-      <SearchInput v-model="search" :placeholder="t('inventory.storage.addItems.searchPlaceholder')" class="flex-1" autofocus />
+      <SearchInput ref="searchField" v-model="search" :placeholder="t('inventory.storage.addItems.searchPlaceholder')" class="flex-1" />
       <ScanButton mode="continuous" :disabled="submitting" @decoded="onScan" />
     </div>
 
@@ -181,8 +187,13 @@ onMounted(loadItems)
             'py-2 px-2 flex items-center gap-3 text-sm cursor-pointer rounded-theme',
             selectedIds.has(i.id) ? 'bg-primary/10' : 'hover:bg-(--bg-accent)',
           ]"
+          role="checkbox"
+          :aria-checked="selectedIds.has(i.id)"
+          tabindex="0"
           data-testid="container-add-item"
           @click="toggle(i)"
+          @keydown.space.prevent="toggle(i)"
+          @keydown.enter.prevent="toggle(i)"
       >
         <font-awesome-icon
             :icon="['fas', selectedIds.has(i.id) ? 'square-check' : 'square']"

@@ -19,6 +19,9 @@ import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFiel
 /**
  * @param audiences how many audiences are asked this question, which a row of none says out loud
  * @param selected  whether the panel beside this one is showing this question's audiences
+ *
+ * <p>The row selects its question wherever it is pressed, which is a pointer's convenience; the
+ * question's name is the control a keyboard and a screen reader reach.
  */
 defineProps<{
   field: ProfileField
@@ -51,6 +54,7 @@ const gridClass = computed(() => fieldGrid(capabilities.writability))
       :class="[gridClass, selected ? 'bg-primary/10' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40']"
       :data-testid="`field-row-${field.name}`"
       class="gap-0 items-center border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 text-sm px-1 py-2 cursor-pointer"
+      role="presentation"
       @click="emit('select', field)">
     <div class="font-medium px-2 truncate flex items-center gap-2">
       <input
@@ -60,7 +64,13 @@ const gridClass = computed(() => fieldGrid(capabilities.writability))
           :aria-label="t('membersConfig.batch.toggleRow')"
           :data-testid="`field-check-${field.name}`"
           @click.stop="emit('toggleChecked', field)"/>
-      {{ field.name }}
+      <span
+          role="button"
+          tabindex="0"
+          :aria-pressed="selected"
+          @keydown.enter.prevent="emit('select', field)"
+          @keydown.space.prevent="emit('select', field)"
+      >{{ field.name }}</span>
       <AudienceCount :count="audiences"/>
     </div>
     <div class="text-(--text-muted) px-2 truncate text-xs">{{ typeLabel }}</div>

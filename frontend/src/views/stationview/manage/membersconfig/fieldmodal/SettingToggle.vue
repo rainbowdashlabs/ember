@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useId} from 'vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 
 /**
@@ -15,13 +16,15 @@ defineProps<{
   label: string
   hint: string
 }>()
+
+const labelId = useId()
 </script>
 
 <template>
   <div class="space-y-1">
     <div class="flex items-center justify-between">
-      <label class="text-sm font-medium">{{ label }}</label>
-      <ToggleInput v-model="on"/>
+      <span :id="labelId" class="text-sm font-medium">{{ label }}</span>
+      <ToggleInput v-model="on" :aria-labelledby="labelId"/>
     </div>
     <p class="text-xs text-(--text-muted)">{{ hint }}</p>
   </div>

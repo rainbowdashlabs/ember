@@ -12,7 +12,9 @@ import {dismissToast, holdToast, releaseToast, type Toast, type ToastAction} fro
  * One toast: its message, the action it may offer and the button that closes it.
  *
  * <p>Its clock stops while the pointer rests on it or the focus is inside it, so it cannot vanish
- * under a reader who is still reading it or about to press its action.
+ * under a reader who is still reading it or about to press its action. Holding it is all its
+ * pointer and focus listeners do, so the box itself is presentation: the live region around it
+ * announces the message, and its buttons are the controls.
  */
 const props = defineProps<{
     toast: Toast
@@ -52,6 +54,7 @@ function onFocusOut(event: FocusEvent) {
         }"
         class="pointer-events-auto flex items-start gap-3 rounded-theme border p-3 shadow-lg"
         data-testid="toast"
+        role="presentation"
         style="backdrop-filter: blur(8px)"
         @focusin="holdToast(toast.id, 'focus')"
         @focusout="onFocusOut"

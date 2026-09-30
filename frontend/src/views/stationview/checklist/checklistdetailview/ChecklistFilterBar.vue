@@ -21,7 +21,7 @@ const {t} = useI18n()
 <template>
   <div class="flex flex-wrap items-center gap-3 mb-3">
     <div class="flex-1 min-w-[200px] max-w-md">
-      <SearchInput v-model="search" :placeholder="t('checklist.searchPlaceholder')" autofocus/>
+      <SearchInput v-model="search" :placeholder="t('checklist.searchPlaceholder')"/>
     </div>
     <label v-if="removedCount > 0" class="flex items-center gap-2 text-sm">
       <ToggleInput v-model="showRemoved"/>

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, watch} from 'vue'
+import {ref, useId, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -21,6 +21,7 @@ import {describeFailure, type Failure} from '@/util/failure'
 import SwitchRefusalAlert from './SwitchRefusalAlert.vue'
 
 const {t} = useI18n()
+const hasSizesLabelId = useId()
 
 const props = defineProps<{
   detail: InventoryDetail
@@ -105,10 +106,10 @@ async function saveSettings() {
 
     <div v-if="editHomogeneous" class="flex items-center justify-between gap-4">
       <div>
-        <label class="text-sm font-medium">{{ t('inventory.manage.hasSizes') }}</label>
+        <span :id="hasSizesLabelId" class="text-sm font-medium">{{ t('inventory.manage.hasSizes') }}</span>
         <p class="text-xs text-(--text-muted)">{{ t('inventory.manage.hasSizesHint') }}</p>
       </div>
-      <ToggleInput v-model="editHasSizes" data-testid="inventory-has-sizes"/>
+      <ToggleInput v-model="editHasSizes" :aria-labelledby="hasSizesLabelId" data-testid="inventory-has-sizes"/>
     </div>
 
     <SwitchRefusalAlert :message="refusalMessage" :blockers="blockers"/>

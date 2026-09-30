@@ -204,7 +204,7 @@ defineExpose({highlightedItem: highlighted})
         </div>
 
         <!-- No reference set: search input + dropdown of typeahead results. -->
-        <div v-else @focusin="onFocus" @click="onFocus">
+        <div v-else role="presentation" @focusin="onFocus" @click="onFocus">
             <SearchInput
                 v-model="query"
                 :placeholder="placeholder"

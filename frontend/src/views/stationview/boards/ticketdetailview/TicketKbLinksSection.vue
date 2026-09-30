@@ -46,7 +46,16 @@ const { t } = useI18n()
         <div v-if="showSearch" class="space-y-1">
             <TextInput v-model="searchQuery" :placeholder="t('boards.searchKb')" class="text-sm" @update:model-value="emit('search')" />
             <div v-if="searchResults.length > 0" class="border border-(--border) rounded-theme divide-y divide-(--border)">
-                <div v-for="r in searchResults" :key="r.id" class="px-3 py-1.5 text-sm cursor-pointer hover:bg-primary/5 flex items-center gap-2" @click="emit('add', r.id)">
+                <div
+                    v-for="r in searchResults"
+                    :key="r.id"
+                    class="px-3 py-1.5 text-sm cursor-pointer hover:bg-primary/5 flex items-center gap-2"
+                    role="button"
+                    tabindex="0"
+                    @click="emit('add', r.id)"
+                    @keydown.enter.prevent="emit('add', r.id)"
+                    @keydown.space.prevent="emit('add', r.id)"
+                >
                     <MutedIcon :icon="['fas', 'book']" size="inline" class="shrink-0"/>
                     <div class="truncate"><span v-if="r.path && r.path !== '/'" class="text-(--text-muted) text-xs">{{ r.path }} /&nbsp;</span>{{ r.title }}</div>
                 </div>

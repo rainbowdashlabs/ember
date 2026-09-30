@@ -142,7 +142,7 @@ function onChildNavigate() {
         @leave="onPanelLeave"
         @close="flyoutForce(false)"
     >
-      <div @click="onChildNavigate">
+      <div role="presentation" @click="onChildNavigate">
         <slot/>
       </div>
     </SidebarFlyoutMenu>

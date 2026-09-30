@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -36,6 +36,7 @@ const emit = defineEmits<{
 }>()
 
 const restriction = ref<RestrictionSelection>(emptyRestriction())
+const showEmptyLabelId = useId()
 
 function emitFilter() {
   emit('filter', {
@@ -56,8 +57,8 @@ function emitFilter() {
         @update:model-value="emitFilter"
     />
     <div class="flex items-center gap-2">
-      <label class="text-sm font-medium">{{ t('inventoryMembers.showEmpty') }}</label>
-      <ToggleInput v-model="showEmpty" />
+      <span :id="showEmptyLabelId" class="text-sm font-medium">{{ t('inventoryMembers.showEmpty') }}</span>
+      <ToggleInput v-model="showEmpty" :aria-labelledby="showEmptyLabelId" />
     </div>
     <TableColumnPicker :table="table"/>
   </NeutralContainer>

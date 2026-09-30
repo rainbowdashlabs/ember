@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -24,6 +25,7 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
+const questionCountId = useId()
 
 function onCatalogChange(value: string | number | null | undefined) {
   catalogId.value = value ? Number(value) : null
@@ -64,8 +66,8 @@ function onQuestionCountChange(value: number | undefined) {
     </SelectInput>
 
     <div class="flex items-center gap-2">
-      <label class="text-xs text-(--text-muted) whitespace-nowrap">{{ t('quiz.sections.questionCount') }}</label>
-      <NumberInput :model-value="questionCount" class="w-20" @update:model-value="onQuestionCountChange" />
+      <label :for="questionCountId" class="text-xs text-(--text-muted) whitespace-nowrap">{{ t('quiz.sections.questionCount') }}</label>
+      <NumberInput :id="questionCountId" :model-value="questionCount" class="w-20" @update:model-value="onQuestionCountChange" />
     </div>
 
     <DeleteButton @click="$emit('remove')" />

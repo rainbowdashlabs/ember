@@ -108,10 +108,11 @@ function onPanelClick() {
           :style="style"
           class="max-h-[60vh] overflow-y-auto rounded-theme border border-(--border) bg-(--bg) shadow-lg z-50 text-left"
           tabindex="-1"
-          @click="onPanelClick"
           @focusout="onFocusOut"
       >
-        <slot/>
+        <div role="presentation" @click="onPanelClick">
+          <slot/>
+        </div>
       </div>
     </Teleport>
   </div>

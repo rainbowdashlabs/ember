@@ -42,7 +42,13 @@ const mcDisplayItems = computed<{ text: string; correct?: boolean; originalIndex
         mcSelections.has(item.originalIndex) ? 'border-primary bg-primary/10' : 'border-bg-light-accent dark:border-bg-dark-accent hover:border-primary/50',
         disabled ? 'pointer-events-none opacity-60' : ''
       ]"
+      role="checkbox"
+      tabindex="0"
+      :aria-checked="mcSelections.has(item.originalIndex)"
+      :aria-disabled="disabled"
       @click="!disabled && emit('toggleMcOption', item.originalIndex)"
+      @keydown.enter.prevent="!disabled && emit('toggleMcOption', item.originalIndex)"
+      @keydown.space.prevent="!disabled && emit('toggleMcOption', item.originalIndex)"
     >
       <font-awesome-icon
         :icon="['fas', mcSelections.has(item.originalIndex) ? 'square-check' : 'square']"

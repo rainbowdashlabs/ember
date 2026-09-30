@@ -79,7 +79,14 @@ function openResendSetup(member: StationMember) {
 
     <Alert v-if="resendSuccess" variant="success" class="mt-4">
       {{ resendSuccess }}
-      <a class="ml-2 underline cursor-pointer" @click="resendSuccess = ''">{{ t('common.close') }}</a>
+      <a
+          class="ml-2 underline cursor-pointer"
+          role="button"
+          tabindex="0"
+          @click="resendSuccess = ''"
+          @keydown.enter.prevent="resendSuccess = ''"
+          @keydown.space.prevent="resendSuccess = ''"
+      >{{ t('common.close') }}</a>
     </Alert>
   </ViewContent>
 </template>

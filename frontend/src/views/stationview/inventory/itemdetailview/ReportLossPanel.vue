@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, onMounted, ref, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -37,6 +37,7 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const documentId = useId()
 
 const terms = ref<LossReportTerms | null>(null)
 const asking = ref(false)
@@ -92,8 +93,8 @@ const {running, failure, run: send} = useAsyncAction(async () => {
         </div>
 
         <div v-if="documentRequired" class="space-y-1">
-          <FieldLabel>{{ t('itemDetail.reportLossDocument') }}</FieldLabel>
-          <input type="file" data-testid="report-loss-document" class="text-sm" @change="pick"/>
+          <FieldLabel :for="documentId">{{ t('itemDetail.reportLossDocument') }}</FieldLabel>
+          <input :id="documentId" type="file" data-testid="report-loss-document" class="text-sm" @change="pick"/>
         </div>
 
         <ButtonRow pair align="end">

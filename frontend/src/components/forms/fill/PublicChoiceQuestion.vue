@@ -48,15 +48,20 @@ function onOptionClick(optionKey: string) {
         </option>
       </SelectInput>
     </template>
-    <template v-else>
+    <div v-else role="listbox" :aria-multiselectable="!!question.config.multiSelect" class="space-y-1">
       <div v-for="opt in options()"
            :key="opt.key"
+           role="option"
+           tabindex="0"
+           :aria-selected="isSelected(opt.key)"
            data-testid="choice-option"
            class="flex cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all"
            :class="isSelected(opt.key)
              ? 'border-primary bg-primary/10 text-primary'
              : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text) hover:border-primary/50'"
-           @click="onOptionClick(opt.key)">
+           @click="onOptionClick(opt.key)"
+           @keydown.enter.prevent="onOptionClick(opt.key)"
+           @keydown.space.prevent="onOptionClick(opt.key)">
         <font-awesome-icon
             :icon="['fas', isSelected(opt.key)
               ? (question.config.multiSelect ? 'square-check' : 'circle-dot')
@@ -65,6 +70,6 @@ function onOptionClick(optionKey: string) {
             class="shrink-0"/>
         <span>{{ opt.label }}</span>
       </div>
-    </template>
+    </div>
   </div>
 </template>

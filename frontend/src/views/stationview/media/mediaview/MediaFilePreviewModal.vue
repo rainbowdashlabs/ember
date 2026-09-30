@@ -45,7 +45,7 @@ const previewKind = computed(() => fileKindOf(props.file?.mimeType, props.file?.
                        controls class="max-w-full max-h-[70vh]"/>
                 <audio v-else-if="previewKind === 'audio'" :src="previewUrl"
                        controls class="w-full"/>
-                <iframe v-else-if="previewKind === 'pdf'" :src="previewUrl"
+                <iframe v-else-if="previewKind === 'pdf'" :src="previewUrl" :title="file.fileName"
                         class="w-full h-[70vh]"/>
                 <div v-else class="flex flex-col items-center gap-2 p-8 text-(--text-muted)">
                     <font-awesome-icon :icon="['fas', 'file']" class="text-5xl"/>

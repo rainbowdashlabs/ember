@@ -37,7 +37,14 @@ function selectStep(index: number, disabled?: boolean) {
                   ? 'bg-(--bg-accent) text-(--text-muted) cursor-not-allowed opacity-50'
                   : 'bg-(--bg-accent) text-(--text) hover:bg-(--bg-accent)/80',
           ]"
+          role="button"
+          tabindex="0"
+          :aria-label="step.label"
+          :aria-current="index === currentStep ? 'step' : undefined"
+          :aria-disabled="step.disabled"
           @click="selectStep(index, step.disabled)"
+          @keydown.enter.prevent="selectStep(index, step.disabled)"
+          @keydown.space.prevent="selectStep(index, step.disabled)"
       >
         <span
             class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0"

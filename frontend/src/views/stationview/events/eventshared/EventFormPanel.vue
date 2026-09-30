@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -74,6 +74,8 @@ const endsBeforeItStarts = computed(() =>
     !!startTime.value && !!endTime.value && new Date(endTime.value) < new Date(startTime.value))
 
 const {t} = useI18n()
+
+const labelId = useId()
 </script>
 
 <template>
@@ -171,20 +173,20 @@ const {t} = useI18n()
       <SubHeader>{{ t('events.registration') }}</SubHeader>
 
       <div class="flex items-center justify-between">
-        <label class="text-sm font-medium">{{ t('events.requiresRegistration') }}</label>
-        <ToggleInput v-model="requiresRegistration"/>
+        <span :id="`${labelId}-registration`" class="text-sm font-medium">{{ t('events.requiresRegistration') }}</span>
+        <ToggleInput v-model="requiresRegistration" :aria-labelledby="`${labelId}-registration`"/>
       </div>
 
       <template v-if="requiresRegistration">
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('events.requiresConfirmation') }}</label>
-          <ToggleInput v-model="requiresConfirmation"/>
+          <span :id="`${labelId}-confirmation`" class="text-sm font-medium">{{ t('events.requiresConfirmation') }}</span>
+          <ToggleInput v-model="requiresConfirmation" :aria-labelledby="`${labelId}-confirmation`"/>
         </div>
         <p class="text-xs text-(--text-muted)">{{ t('events.requiresConfirmationHint') }}</p>
 
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('events.hasDeadline') }}</label>
-          <ToggleInput v-model="hasDeadline"/>
+          <span :id="`${labelId}-deadline`" class="text-sm font-medium">{{ t('events.hasDeadline') }}</span>
+          <ToggleInput v-model="hasDeadline" :aria-labelledby="`${labelId}-deadline`"/>
         </div>
 
         <div v-if="hasDeadline" class="space-y-1">
@@ -205,8 +207,8 @@ const {t} = useI18n()
 
         <template v-if="minRegistrations && minRegistrations > 0">
           <div class="flex items-center justify-between">
-            <label class="text-sm font-medium">{{ t('events.thresholdDate') }}</label>
-            <ToggleInput v-model="hasThreshold"/>
+            <span :id="`${labelId}-threshold`" class="text-sm font-medium">{{ t('events.thresholdDate') }}</span>
+            <ToggleInput v-model="hasThreshold" :aria-labelledby="`${labelId}-threshold`"/>
           </div>
           <div v-if="hasThreshold" class="space-y-1">
             <FieldLabel>{{ t('events.thresholdDate') }}</FieldLabel>

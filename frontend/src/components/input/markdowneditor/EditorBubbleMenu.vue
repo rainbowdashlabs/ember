@@ -82,7 +82,7 @@ const buttons: ToolbarButton[] = [
     <template v-else-if="isOnLink">
       <font-awesome-icon :icon="['fas', 'link']" class="w-3 h-3 text-[var(--text-muted)] flex-shrink-0" />
       <span class="truncate text-[var(--text-muted)] text-xs max-w-[200px] mx-1" :title="currentLinkUrl">{{ currentLinkUrl }}</span>
-      <a :href="currentLinkUrl" target="_blank" rel="noopener noreferrer" class="p-1 rounded hover:bg-[var(--bg-accent)] text-[var(--primary)] transition-colors flex-shrink-0" title="Link öffnen" @mousedown.prevent>
+      <a :href="currentLinkUrl" target="_blank" rel="noopener noreferrer" class="p-1 rounded hover:bg-[var(--bg-accent)] text-[var(--primary)] transition-colors flex-shrink-0" title="Link öffnen" aria-label="Link öffnen" @mousedown.prevent>
         <font-awesome-icon :icon="['fas', 'arrow-right']" class="w-3 h-3" />
       </a>
       <button type="button" title="Link bearbeiten" class="p-1 rounded hover:bg-[var(--bg-accent)] text-[var(--text)] transition-colors flex-shrink-0" @mousedown.prevent @click="$emit('openLink')">

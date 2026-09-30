@@ -24,7 +24,6 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useDataTable } from '@/composables/useDataTable'
 import { useInventoryMemberExport } from './memberlistview/useInventoryMemberExport'
 import { inventoryIdOfColumn, inventoryMemberColumns, NAME_KEY } from './memberlistview/inventoryMemberColumns'
-import { memberDisplayName } from '@/views/stationview/members/listview/useMemberData'
 import { itemLabel, type ItemLabelParts } from './memberlistview/itemLabel'
 import { getItem, setItem } from '@/api/storage'
 
@@ -108,8 +107,6 @@ const visibleInventoryIds = computed(() => new Set(table.visibleColumns
   .map(column => inventoryIdOfColumn(column.key))
   .filter((id): id is number => id !== null)))
 
-const displayedInventories = computed(() => inventories.value.filter(inv => visibleInventoryIds.value.has(inv.id)))
-
 const {loading, failure} = useAsyncLoader(async () => {
   const [mems, invs, grps, tgs] = await Promise.all([
     stationMembers.listMembers(),
@@ -185,12 +182,8 @@ const {
   runExport,
 } = useInventoryMemberExport(
   () => table.rows,
-  displayedInventories,
   visibleInventoryIds,
   {showName, showInternalId, showSize},
-  memberDisplayName,
-  memberInventoryItems,
-  formatItemLabel,
 )
 
 const showExportFormat = ref(false)
@@ -225,7 +218,7 @@ function goToMember(memberId: number) {
       <FailureAlert :failure="failure ?? exportFailure"/>
 
       <AsyncSection :loading="loading">
-        <SearchInput v-model="table.search" :placeholder="t('membersList.filter')" autofocus />
+        <SearchInput v-model="table.search" :placeholder="t('membersList.filter')" />
 
         <MemberListFilters
           v-model:show-empty="showEmpty"
