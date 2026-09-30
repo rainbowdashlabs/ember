@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import i18n from '@/i18n'
 import {activeLocale} from '@/util/locale'
+import {translator} from '@/util/translatorState'
 
 function pad2(n: number): string {
     return String(n).padStart(2, '0')
@@ -212,7 +212,7 @@ export function formatDateTimeLong(value?: string | null, timezone?: string | nu
  */
 export function formatRelative(iso?: string | null): string {
     if (!iso) return ''
-    const {t} = i18n.global
+    const {t} = translator
     const diffMs = Date.now() - new Date(iso).getTime()
     const diffMin = Math.floor(diffMs / 60000)
     if (diffMin < 1) return t('relativeTime.justNow')

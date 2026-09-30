@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import i18n from '@/i18n'
+import {translator} from '@/util/translatorState'
 
 /**
  * The language the interface is shown in, as a BCP 47 tag every `Intl` API and `toLocaleString`
@@ -14,7 +14,7 @@ import i18n from '@/i18n'
  * Code outside a component reads it here; a component may equally take `locale` from `useI18n()`.
  */
 export function activeLocale(): string {
-    return i18n.global.locale.value
+    return translator.locale()
 }
 
 const collators = new Map<string, Intl.Collator>()

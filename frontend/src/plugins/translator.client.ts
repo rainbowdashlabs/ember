@@ -11,6 +11,6 @@ export default defineNuxtPlugin({
     dependsOn: ['i18n:plugin'],
     setup(nuxtApp) {
         const i18n = nuxtApp.$i18n
-        setTranslator(key => i18n.t(key))
+        setTranslator((key, params) => (params ? i18n.t(key, params) : i18n.t(key)), () => i18n.locale.value)
     },
 })

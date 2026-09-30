@@ -8,12 +8,12 @@ import { computed, useId } from 'vue'
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import AuthImage from '@/components/display/AuthImage.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import { useI18n } from 'vue-i18n'
 import { isKbImageSrc } from '@/util/normalizeAuthSrc'
-import i18n from '@/i18n'
 
 const props = defineProps(nodeViewProps)
 
-const { t } = i18n.global
+const { t } = useI18n()
 
 const imgWidth = computed(() => props.node.attrs.width ? String(props.node.attrs.width) : '')
 
