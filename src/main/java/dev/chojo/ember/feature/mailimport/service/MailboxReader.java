@@ -6,22 +6,31 @@
 package dev.chojo.ember.feature.mailimport.service;
 
 import dev.chojo.ember.feature.mailimport.entity.MailSecurity;
+import jakarta.mail.FetchProfile;
 import jakarta.mail.Flags;
 import jakarta.mail.Folder;
+import jakarta.mail.FolderClosedException;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
 import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
+import jakarta.mail.StoreClosedException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.search.ComparisonTerm;
 import jakarta.mail.search.ReceivedDateTerm;
+import org.eclipse.angus.mail.iap.ConnectionException;
+import org.eclipse.angus.mail.imap.IMAPFolder;
 import org.eclipse.angus.mail.util.ReadableMime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -76,7 +85,22 @@ public class MailboxReader implements AutoCloseable {
             String authResult,
             List<Attachment> attachments) {}
 
+    private static final Logger log = LoggerFactory.getLogger(MailboxReader.class);
     private static final String AUTHENTICATION_RESULTS = "Authentication-Results";
+    private static final FetchProfile ENVELOPE_AND_ARRIVAL = envelopeAndArrival();
+    private static final List<Class<? extends Throwable>> CONNECTION_LOSSES = List.of(
+            FolderClosedException.class,
+            StoreClosedException.class,
+            ConnectionException.class,
+            SocketException.class,
+            SocketTimeoutException.class);
+
+    private static FetchProfile envelopeAndArrival() {
+        FetchProfile profile = new FetchProfile();
+        profile.add(FetchProfile.Item.ENVELOPE);
+        profile.add(IMAPFolder.FetchProfileItem.INTERNALDATE);
+        return profile;
+    }
 
     private final Store store;
     private Folder folder;
@@ -157,19 +181,72 @@ public class MailboxReader implements AutoCloseable {
      * decade and one that reads a week. Where a server answers the search badly the date is checked again
      * here, since a mailbox importing ten years of attachments is not a failure anybody wants twice.
      *
+     * <p>The envelopes of everything found are asked for in one round trip rather than one per message.
+     *
      * @param since the moment the mailbox starts from
      * @param limit how many messages to look at this cycle
+     * @throws MessagingException where the search fails or the connection is lost
      */
     public List<Message> since(Instant since, int limit) throws MessagingException {
         Message[] found = folder.search(new ReceivedDateTerm(ComparisonTerm.GE, Date.from(since)));
+        folder.fetch(found, ENVELOPE_AND_ARRIVAL);
+        return arrivedSince(found, since, limit);
+    }
+
+    /**
+     * The messages among those found that arrived on or after a moment, at most as many as asked for.
+     *
+     * <p><b>A message whose envelope the server will not hand over is skipped, not thrown.</b> Another
+     * client can expunge a message between the search and the fetch, and some servers cannot build an
+     * envelope for a damaged message at all; either way the server answers without one. Throwing there
+     * would fail the whole cycle, and since the mailbox starts from the same moment next time, the same
+     * message would fail every cycle until the mailbox is suspended. A lost connection is still thrown,
+     * because nothing after it can be read either.
+     *
+     * @param found the messages the search returned, their envelopes fetched where the server had them
+     * @param since the moment the mailbox starts from
+     * @param limit how many messages to keep
+     * @throws MessagingException where the connection is lost
+     */
+    static List<Message> arrivedSince(Message[] found, Instant since, int limit) throws MessagingException {
         List<Message> kept = new ArrayList<>();
         for (Message message : found) {
             if (kept.size() >= limit) break;
-            Date received = message.getReceivedDate();
-            if (received != null && received.toInstant().isBefore(since)) continue;
-            kept.add(message);
+            if (arrivedAtOrAfter(message, since)) kept.add(message);
         }
         return kept;
+    }
+
+    private static boolean arrivedAtOrAfter(Message message, Instant since) throws MessagingException {
+        try {
+            Date received = message.getReceivedDate();
+            return received == null || !received.toInstant().isBefore(since);
+        } catch (MessagingException e) {
+            if (lostTheConnection(e)) throw e;
+            log.warn(
+                    "Skipping message {}, the mail server did not hand over its envelope: {}",
+                    message.getMessageNumber(),
+                    e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Whether a failure means the connection to the mail server is gone, rather than that one message
+     * could not be read.
+     *
+     * <p>The difference decides whether a cycle skips a message or ends: every message after a lost
+     * connection fails the same way, so skipping them would only record a success that imported nothing.
+     *
+     * @param failure what went wrong
+     * @return whether it, or anything that caused it, is a closed folder, a closed store or a broken socket
+     */
+    static boolean lostTheConnection(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            Throwable candidate = cause;
+            if (CONNECTION_LOSSES.stream().anyMatch(kind -> kind.isInstance(candidate))) return true;
+        }
+        return false;
     }
 
     /**

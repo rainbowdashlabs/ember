@@ -43,6 +43,7 @@
 - **The profile field list was cramped on medium screens.** On screens between phone and wide desktop, the list of profile fields in the member settings squeezed its names until the rows overlapped. It now switches to tiles as soon as the table no longer fits.
 - **Signing up was offered where it was not allowed.** A member could be offered to sign up for an appointment open only to part of the station, and was only told it was not open to them after pressing it. The sign-up is now offered only to those who may register, and everybody else sees a short note saying why.
 - **Every repeating appointment was called weekly.** The page of a monthly, quarterly or yearly appointment labelled it as weekly. It now names how often it repeats, the same way the list of appointments does.
+- **One unreadable message could stop a mailbox import.** In some cases a mailbox failed to import on every visit because of a single message the mail server could not hand over, such as one another mail program had just deleted, until the mailbox was suspended. Such a message is now skipped and the rest of the mailbox is imported.
 
 ## v26.19.5
 
