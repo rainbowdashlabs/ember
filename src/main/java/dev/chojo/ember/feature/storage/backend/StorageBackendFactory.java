@@ -32,6 +32,9 @@ import java.util.Optional;
  * default is built lazily on first call and reused for the lifetime of the process - the same
  * {@link StorageBackend} instance carries its own connection pool / SSH session / SDK client
  * so re-creating it would discard those.
+ *
+ * <p>Every SFTP and SMB backend it builds opens its sessions on the {@link StorageClients} of the
+ * process rather than on clients of its own.
  */
 @Singleton
 public class StorageBackendFactory {
@@ -40,15 +43,33 @@ public class StorageBackendFactory {
     private final Storage storageConfig;
     private final LocalStorageBackend localBackend;
     private final CredentialCipher credentialCipher;
+    private final StorageClients clients;
 
     private StorageBackend instanceDefault;
 
     @Inject
     public StorageBackendFactory(
-            Storage storageConfig, LocalStorageBackend localBackend, CredentialCipher credentialCipher) {
+            Storage storageConfig,
+            LocalStorageBackend localBackend,
+            CredentialCipher credentialCipher,
+            StorageClients clients) {
         this.storageConfig = storageConfig;
         this.localBackend = localBackend;
         this.credentialCipher = credentialCipher;
+        this.clients = clients;
+    }
+
+    /**
+     * A factory with clients of its own, for callers that build it by hand.
+     */
+    public StorageBackendFactory(
+            Storage storageConfig, LocalStorageBackend localBackend, CredentialCipher credentialCipher) {
+        this(storageConfig, localBackend, credentialCipher, new StorageClients());
+    }
+
+    /** The protocol clients the backends of this factory share. */
+    public StorageClients clients() {
+        return clients;
     }
 
     private SmbBackendConfig toSmbConfig(StorageBackendSettings.SmbSettings smb) {
@@ -168,8 +189,8 @@ public class StorageBackendFactory {
     public StorageBackend buildForStation(StationStorageBackendConfig config) {
         return switch (config) {
             case StationStorageBackendConfig.S3Variant v -> new S3StorageBackend(toS3Config(v));
-            case StationStorageBackendConfig.SmbVariant v -> new SmbStorageBackend(toSmbConfig(v));
-            case StationStorageBackendConfig.SftpVariant v -> new SftpStorageBackend(toSftpConfig(v));
+            case StationStorageBackendConfig.SmbVariant v -> smb(toSmbConfig(v));
+            case StationStorageBackendConfig.SftpVariant v -> sftp(toSftpConfig(v));
         };
     }
 
@@ -177,10 +198,18 @@ public class StorageBackendFactory {
         StorageBackendType type = settings.type();
         return switch (type) {
             case LOCAL -> buildLocal(settings.local());
-            case SMB -> new SmbStorageBackend(toSmbConfig(settings.smb()));
-            case SFTP -> new SftpStorageBackend(toSftpConfig(settings.sftp()));
+            case SMB -> smb(toSmbConfig(settings.smb()));
+            case SFTP -> sftp(toSftpConfig(settings.sftp()));
             case S3 -> new S3StorageBackend(toS3Config(settings.s3()));
         };
+    }
+
+    private StorageBackend smb(SmbBackendConfig config) {
+        return new SmbStorageBackend(config, clients.smb(config.seal(), config.dfs()));
+    }
+
+    private StorageBackend sftp(SftpBackendConfig config) {
+        return new SftpStorageBackend(config, clients.ssh());
     }
 
     private LocalStorageBackend buildLocal(StorageBackendSettings.LocalSettings local) {

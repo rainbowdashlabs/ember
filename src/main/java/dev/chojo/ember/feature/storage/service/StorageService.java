@@ -254,6 +254,14 @@ public class StorageService {
     }
 
     /**
+     * Whether an object exists under a category-relative key, the form {@link #listKeys} returns.
+     */
+    public boolean existsRelative(StorageScope scope, StorageCategory category, String relativeKey) {
+        StorageBackend backend = resolver.forScope(scope, category);
+        return backend.exists(scope.prefix() + "/" + category.prefix() + "/" + relativeKey);
+    }
+
+    /**
      * Lists keys under a producer-chosen prefix; returns producer-relative keys.
      */
     public List<String> listKeys(StorageScope scope, StorageCategory category, String keyPrefix) {

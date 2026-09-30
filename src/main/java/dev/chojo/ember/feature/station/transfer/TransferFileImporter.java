@@ -101,7 +101,7 @@ public class TransferFileImporter {
                 progress.setSubTotal(progress.subTotal() + page.keys().size());
             }
             for (String key : page.keys()) {
-                if (storageService.readRelative(scope, category, key).isPresent()) {
+                if (storageService.existsRelative(scope, category, key)) {
                     skipped++;
                 } else if (streamFile(client, scope, category, key)) {
                     copied++;

@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -35,6 +36,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -55,8 +57,17 @@ import java.util.UUID;
  * <p>The probe writes a small marker under {@code _probe/<uuid>} and removes it afterwards;
  * if the bucket itself is unreachable the SDK surfaces the underlying failure and the probe
  * returns unhealthy.
+ *
+ * <p>One attempt of a call waits at most {@link #ATTEMPT_TIMEOUT} and the whole call, retries
+ * included, at most {@link #CALL_TIMEOUT}, set here rather than left to the SDK's defaults.
  */
 public class S3StorageBackend implements StorageBackend, AutoCloseable {
+    /** How long one attempt of a call may take. */
+    public static final Duration ATTEMPT_TIMEOUT = Duration.ofSeconds(30);
+
+    /** How long a call may take with its retries. */
+    public static final Duration CALL_TIMEOUT = Duration.ofMinutes(2);
+
     private static final Logger log = LoggerFactory.getLogger(S3StorageBackend.class);
     private static final String PROBE_PREFIX = "_probe";
     private static final String META_SHA256 = "sha256";
@@ -88,6 +99,10 @@ public class S3StorageBackend implements StorageBackend, AutoCloseable {
                         AwsBasicCredentials.create(config.accessKey(), config.secretKey())))
                 .serviceConfiguration(S3Configuration.builder()
                         .pathStyleAccessEnabled(config.pathStyle())
+                        .build())
+                .overrideConfiguration(ClientOverrideConfiguration.builder()
+                        .apiCallAttemptTimeout(ATTEMPT_TIMEOUT)
+                        .apiCallTimeout(CALL_TIMEOUT)
                         .build())
                 .build();
     }

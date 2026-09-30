@@ -219,6 +219,11 @@ final class SmbFileTree implements FileTree {
         } catch (IOException | SMBRuntimeException e) {
             log.debug("Closing an SMB session failed", e);
         }
+        try {
+            session.getConnection().close();
+        } catch (IOException | SMBRuntimeException e) {
+            log.debug("Releasing an SMB connection failed", e);
+        }
     }
 
     private File openForRead(String path) {

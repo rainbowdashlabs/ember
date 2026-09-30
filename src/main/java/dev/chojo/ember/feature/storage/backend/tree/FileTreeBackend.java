@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
 
 import java.io.ByteArrayInputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -141,20 +142,40 @@ public class FileTreeBackend implements StorageBackend {
         });
     }
 
+    /**
+     * Opens a key for reading. The tree stays lent to the returned stream until the stream is
+     * closed, so a slow download holds one connection and never more; a caller that does not close
+     * what it read keeps it, which the pool reports.
+     */
     @Override
     public Optional<StoredStream> read(String fullKey) {
         String target = path(fullKey);
-        return call(tree -> {
+        Lease<? extends FileTree> lease = trees.acquire();
+        try {
+            FileTree tree = lease.tree();
             var opened = tree.open(target);
-            if (opened.isEmpty()) return Optional.empty();
+            if (opened.isEmpty()) {
+                lease.close();
+                return Optional.empty();
+            }
+            ObjectMetadata metadata;
             try {
-                return Optional.of(
-                        new StoredStream(opened.get().body(), opened.get().size(), readSidecar(tree, target)));
+                metadata = readSidecar(tree, target);
             } catch (RuntimeException e) {
                 opened.get().body().close();
                 throw e;
             }
-        });
+            return Optional.of(new StoredStream(
+                    new LeasedStream(opened.get().body(), lease), opened.get().size(), metadata));
+        } catch (IOException e) {
+            if (!lease.tree().isUsable()) lease.discard();
+            lease.close();
+            throw new StorageException(type + " storage call failed: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            if (!lease.tree().isUsable()) lease.discard();
+            lease.close();
+            throw e;
+        }
     }
 
     @Override
@@ -392,5 +413,48 @@ public class FileTreeBackend implements StorageBackend {
     @FunctionalInterface
     private interface KeyVisitor {
         void visit(String key, long size);
+    }
+
+    /** The body of a read, handing its tree back when it is closed. */
+    private static final class LeasedStream extends FilterInputStream {
+        private final Lease<? extends FileTree> lease;
+
+        private LeasedStream(InputStream body, Lease<? extends FileTree> lease) {
+            super(body);
+            this.lease = lease;
+        }
+
+        @Override
+        public int read() throws IOException {
+            try {
+                return super.read();
+            } catch (IOException e) {
+                discardIfBroken();
+                throw e;
+            }
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            try {
+                return super.read(b, off, len);
+            } catch (IOException e) {
+                discardIfBroken();
+                throw e;
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            try {
+                super.close();
+            } finally {
+                lease.close();
+            }
+        }
+
+        private void discardIfBroken() {
+            if (!lease.tree().isUsable()) lease.discard();
+        }
     }
 }

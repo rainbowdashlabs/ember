@@ -7,9 +7,12 @@ package dev.chojo.ember.feature.storage.backend.sftp;
 
 import dev.chojo.ember.feature.storage.backend.StorageException;
 import org.apache.sshd.client.SshClient;
+import org.apache.sshd.client.config.hosts.HostConfigEntryResolver;
 import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.common.AttributeRepository;
 import org.apache.sshd.common.config.keys.KeyUtils;
 import org.apache.sshd.common.util.security.SecurityUtils;
+import org.apache.sshd.core.CoreModuleProperties;
 import org.apache.sshd.sftp.client.SftpClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,12 +29,25 @@ import java.time.Duration;
  *
  * <p>The session is opened on first use and opened again when the server or the network dropped it;
  * every tree is one SFTP channel on it, so the pool of a backend multiplexes its channels over one
- * connection. The server's host key is checked against the configured fingerprint on every connect.
+ * connection. The client underneath is shared by every backend of the process, so the host key a
+ * session expects travels with its connection rather than being fixed on the client.
  */
-final class SftpSessions implements AutoCloseable {
+public final class SftpSessions implements AutoCloseable {
+    /** How long connecting and signing in may each take. */
+    public static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(15);
+
+    /** How long a request waits for its answer; SSHD takes it from the session's idle timeout. */
+    public static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
+
+    /**
+     * How often a quiet session proves it is alive. Shorter than {@link #REQUEST_TIMEOUT}, which SSHD
+     * also applies to a session with no traffic at all.
+     */
+    public static final Duration HEARTBEAT = Duration.ofSeconds(10);
+
     private static final Logger log = LoggerFactory.getLogger(SftpSessions.class);
-    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(15);
-    private static final Duration AUTH_TIMEOUT = Duration.ofSeconds(15);
+    private static final AttributeRepository.AttributeKey<SftpBackendConfig> CONFIG =
+            new AttributeRepository.AttributeKey<>();
 
     private final SftpBackendConfig config;
     private final SshClient client;
@@ -45,22 +61,28 @@ final class SftpSessions implements AutoCloseable {
     }
 
     /**
-     * An SSH client that checks host keys against the configured fingerprint, started.
+     * An SSH client for storage, started: host keys checked against the fingerprint of the backend a
+     * session belongs to, no {@code ~/.ssh/config} of the machine consulted, and the timeouts and
+     * heartbeat above.
      *
-     * @param config the backend's settings
      * @return the client
      */
-    static SshClient clientFor(SftpBackendConfig config) {
+    public static SshClient newClient() {
         SshClient client = SshClient.setUpDefaultClient();
+        client.setHostConfigEntryResolver(HostConfigEntryResolver.EMPTY);
         client.setServerKeyVerifier((clientSession, remote, serverKey) -> {
-            if (config.trustsAnyHost()) return true;
+            SftpBackendConfig expected = clientSession.getConnectionContext().getAttribute(CONFIG);
+            if (expected == null) return false;
+            if (expected.trustsAnyHost()) return true;
             try {
-                return config.knownHostsFingerprint().equalsIgnoreCase(KeyUtils.getFingerPrint(serverKey));
+                return expected.knownHostsFingerprint().equalsIgnoreCase(KeyUtils.getFingerPrint(serverKey));
             } catch (RuntimeException e) {
                 log.warn("Failed to verify SFTP host key", e);
                 return false;
             }
         });
+        CoreModuleProperties.IDLE_TIMEOUT.set(client, REQUEST_TIMEOUT);
+        CoreModuleProperties.HEARTBEAT_INTERVAL.set(client, HEARTBEAT);
         client.start();
         return client;
     }
@@ -78,7 +100,11 @@ final class SftpSessions implements AutoCloseable {
     private synchronized ClientSession session() throws IOException {
         if (session != null && session.isOpen()) return session;
         if (session != null) session.close(true);
-        ClientSession opened = client.connect(config.username(), config.host(), config.port())
+        ClientSession opened = client.connect(
+                        config.username(),
+                        config.host(),
+                        config.port(),
+                        AttributeRepository.ofKeyValuePair(CONFIG, config))
                 .verify(CONNECT_TIMEOUT.toMillis())
                 .getSession();
         try {
@@ -87,7 +113,7 @@ final class SftpSessions implements AutoCloseable {
             } else {
                 opened.addPublicKeyIdentity(parsePrivateKey(config.privateKey().orElseThrow()));
             }
-            opened.auth().verify(AUTH_TIMEOUT.toMillis());
+            opened.auth().verify(CONNECT_TIMEOUT.toMillis());
         } catch (IOException | RuntimeException e) {
             opened.close(true);
             throw e;
