@@ -119,11 +119,14 @@ command. `./toolchain.sh docker` lists what is in a group.
 Frontend
   fe-build              Full verification: formatting, unit tests, all linters, vue-tsc, build
   fe-format             Apply license headers and whitespace rules to Vue/TypeScript/locales
-  fe-typecheck          vue-tsc only (silent on success)
+  fe-typecheck          vue-tsc for the application and tsc for the stories (silent on success)
+  fe-bundle             Type-check and production build, without the formatting, the tests and the
+                        linters; CI's build job runs it after fe-lint
   fe-audit              All linters of the registry, non-gating; prints everything they find
   fe-help-index         Rewrite the help centre's search index from the pages that exist
-  fe-lint <name> [args] One linter of the registry in scripts/linters.mjs: eslint, duplication,
-                        icons, helpcenter, help-index, browser-storage, em-dash, comments,
+  fe-lint [name] [args] Every linter of the registry in scripts/linters.mjs, failing when one does, as
+                        the build runs them. With a name only that one: eslint, duplication, icons,
+                        helpcenter, help-index, browser-storage, em-dash, comments,
                         changelog-languages. Trailing arguments reach it, e.g. `fe-lint eslint --fix`
   fe-eslint [args]      ESLint over the frontend; arguments reach it, e.g. `fe-eslint --fix` or
                         `fe-eslint src/views`. `fe-lint eslint` runs it the way the build does
@@ -132,6 +135,8 @@ Frontend
                         a checkout where npm did not run the postinstall hook
   fe-install            npm install - reconciles node_modules and the lock file with package.json,
                         which is how a conflict in the generated lock file is resolved
+  fe-install-clean      npm ci - installs exactly what the lock file names and changes nothing, as CI
+                        does
   fe-preview [port]     Serve the last build (default port 3000), the steady target for the stories
 
 Frontend tests
@@ -142,7 +147,9 @@ Frontend tests
   fe-e2e [project]      End-to-end tests, default project chromium. Starts the e2e stack (its own
                         database and backend) and serves the last build in front of it; set
                         E2E_NO_SERVER=1 when they already run. Every port is derived from this
-                        checkout's path, so a run here takes nothing away from another checkout
+                        checkout's path, so a run here takes nothing away from another checkout.
+                        With E2E_PREBUILT=1 the backend runs from build/install, rebuilt first
+                        unless E2E_PREBUILT_READY=1 says it is already there
   fe-e2e1 <file> [args] One end-to-end spec, e.g. `fe-e2e1 account`
   fe-e2e-group <name>   One of the groups CI runs as a job of its own, e.g. `fe-e2e-group inventory`
   fe-e2e-groups         Check that every story is in exactly one group
@@ -154,11 +161,15 @@ Frontend tests
                         still runs the sources it started with
   fe-e2e-list           List every end-to-end story without running anything or starting a server
   fe-e2e-report         Open the last end-to-end report
-  fe-e2e-install        Download the Playwright browser binaries (once per machine)
+  fe-e2e-install [args] Download the Playwright chromium binary (once per machine); in the nix shell
+                        it only says where the shell's browsers are. Add --with-deps on a machine
+                        that lacks the system libraries
 
 Backend
-  be-verify             spotlessApply, all four test suites, and the coverage gate
-  be-test               All four test suites, no filter
+  be-verify             Java formatting, every test suite, the coverage gates, and the javadoc
+  be-test               Every test suite, no filter
+  be-suite <suite>      One test suite in full, e.g. `be-suite testServices`
+  be-dist               Build the runnable distribution into build/install/ember, no tests
   be-test1 <pattern> [suite]
                         One test class, e.g. be-test1 '*PageServiceTest*'. Defaults to the
                         testServices suite. A --tests filter must target a single suite: Gradle
@@ -188,7 +199,8 @@ Docker
                         build only; the linters and the type-check run in fe-build and CI
   docker-backend        Build the backend image
   docker-storage        Start the dev storage stack detached: database on 5432, object storage,
-                        SFTP and SMB. Add `down` arguments through docker-storage-down
+                        SFTP and SMB
+  docker-storage-down   Stop it again; arguments reach `compose down`, e.g. -v
   docker-app            Start the whole application from the dev images, detached: the storage
                         stack, the backend on 8888 and the frontend on 3000, both built and run
                         inside their containers from this checkout. The images are rebuilt first,
@@ -205,23 +217,28 @@ Docker
                         run the stories at once without meeting. The suite starts it itself when it
                         is down, so this is for having it up in advance
   docker-e2e-down       Stop it again. Add -v to throw this checkout's e2e volumes away with it
+  docker-e2e-reset      Stop it and throw only its database away, for a database another branch has
+                        already migrated further
   docker-e2e-prune      Take down the e2e stacks of checkouts that no longer exist, volumes and all.
                         A deleted worktree leaves gigabytes of gradle cache and database behind
   docker-e2e-restart    Build and start it again, which is how a backend change reaches the stories:
                         a stack that is already up keeps running the sources it started with
   docker-e2e-logs       Follow what the two instances print, which is where a story that cannot
                         reach the second one is read: name one to watch only it, e.g.
-                        `docker-e2e-logs ember-e2e-peer`
+                        `docker-e2e-logs ember-e2e-peer`. Into a file it prints what is there and
+                        stops, which is how CI keeps them
   docker-app-logs       Follow what the containers print, which is where the first start is
                         watched: `up -d` returns long before the backend has finished building
 
 Combined
   verify                be-verify then fe-build
+  format-check          Every Spotless format checked, nothing changed: Java, the frontend sources,
+                        the locales and the data tracking file
 
 Parallel checkouts
-  The end-to-end and docker commands bind fixed ports and drive one shared stack, so they take a
-  machine-wide lock and wait for each other. Everything else runs in parallel across worktrees.
-  EMBER_TOOLCHAIN_NO_LOCK=1 bypasses it.
+  docker-app* and docker-storage* drive the one development stack with its fixed names and ports,
+  so they take a machine-wide lock and wait for each other. Everything else, the end-to-end stacks
+  included, runs in parallel across worktrees. EMBER_TOOLCHAIN_NO_LOCK=1 bypasses the lock.
 EOF
 }
 
@@ -233,7 +250,7 @@ fe() { cd "$FRONTEND"; }
 # failed was read as the suite's doing rather than as yesterday's backend. Gradle does nothing when
 # nothing changed, so the guard costs a second and removes the question.
 e2e_distribution() {
-    [ -n "${E2E_PREBUILT:-}" ] || return 0
+    [ -n "${E2E_PREBUILT:-}" ] && [ -z "${E2E_PREBUILT_READY:-}" ] || return 0
     (cd "$ROOT" && run ./gradlew installDist -x test -q)
 }
 
@@ -333,10 +350,8 @@ case "$cmd" in
     fe-help-index)
         fe; run node scripts/generate-help-index.mjs
         ;;
-    fe-lint)
-        [ $# -ge 1 ] || { echo "fe-lint needs a linter name, e.g. eslint" >&2; exit 2; }
-        fe; NODE_OPTIONS="$NODE_HEAP" run node scripts/lint.mjs "$@"
-        ;;
+    fe-lint)       fe; NODE_OPTIONS="$NODE_HEAP" run node scripts/lint.mjs "$@" ;;
+    fe-bundle)     fe; NODE_OPTIONS="$NODE_HEAP" run npm run build -- --skip-lint "$@" ;;
     fe-eslint)     fe; NODE_OPTIONS="$NODE_HEAP" run npx eslint "$@" ;;
     fe-dev)        fe; run npm run dev -- "$@" ;;
     fe-install)
@@ -345,6 +360,7 @@ case "$cmd" in
         # writing it again rather than by editing the two sides together.
         fe; NODE_OPTIONS="$NODE_HEAP" run npm install "$@"
         ;;
+    fe-install-clean) fe; NODE_OPTIONS="$NODE_HEAP" run npm ci "$@" ;;
     fe-prepare)
         # Writes .nuxt, which holds the tsconfig the tests and the type-check resolve against.
         # npm does it on install through the postinstall hook, so this is for the checkout where
@@ -426,14 +442,15 @@ case "$cmd" in
     fe-e2e-report)   fe; run npx playwright show-report e2e/report "$@" ;;
     fe-e2e-install)
         # The nix shell provides the browsers already, so this only has to report where they are.
-        # It stays a command because CI runs on a Debian image, where the download is the right
-        # answer and PLAYWRIGHT_BROWSERS_PATH is unset.
+        # It stays a command because CI runs on an Ubuntu image, where the download is the right
+        # answer and PLAYWRIGHT_BROWSERS_PATH is unset. Asked inside the project environment, since
+        # that is where the nix shell sets it.
         fe
-        if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ] || [ -f "$ROOT/shell.nix" ]; then
-            run sh -c 'echo "Browsers come from the nix shell at $PLAYWRIGHT_BROWSERS_PATH"'
+        run sh -c 'if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]; then
+            echo "Browsers come from the nix shell at $PLAYWRIGHT_BROWSERS_PATH"
         else
-            run npx playwright install --with-deps chromium "$@"
-        fi
+            exec npx playwright install chromium "$@"
+        fi' sh "$@"
         ;;
 
     be-verify)
@@ -444,6 +461,11 @@ case "$cmd" in
         cd "$ROOT"
         run ./gradlew testAll "$@"
         ;;
+    be-suite)
+        [ $# -ge 1 ] || { echo "be-suite needs a suite, e.g. testServices" >&2; exit 2; }
+        cd "$ROOT"; run ./gradlew "$@"
+        ;;
+    be-dist)       cd "$ROOT"; run ./gradlew installDist "$@" ;;
     be-test1)
         [ $# -ge 1 ] || { echo "be-test1 needs a test pattern, e.g. '*PageServiceTest*'" >&2; exit 2; }
         pattern="$1"; shift
@@ -554,7 +576,9 @@ case "$cmd" in
         done
         ;;
     docker-e2e-logs)
-        cd "$ROOT/docker"; run docker compose $(e2e_compose_files) --profile e2e logs -f "$@"
+        follow=""
+        [ -t 1 ] && follow="-f"
+        cd "$ROOT/docker"; run docker compose $(e2e_compose_files) --profile e2e logs $follow "$@"
         ;;
     docker-app-logs)
         cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile full logs -f "$@"
@@ -564,6 +588,7 @@ case "$cmd" in
         "$ROOT/toolchain.sh" be-verify
         "$ROOT/toolchain.sh" fe-build
         ;;
+    format-check)  cd "$ROOT"; run ./gradlew spotlessCheck "$@" ;;
 
     help|-h|--help) usage ;;
     *) echo "Unknown command: $cmd" >&2; echo >&2; usage >&2; exit 2 ;;

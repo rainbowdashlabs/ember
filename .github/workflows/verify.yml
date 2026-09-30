@@ -32,11 +32,9 @@ jobs:
       # keys an entry per job, and validates the wrapper on its own.
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
-      - name: Build with Gradle
-        run: ./gradlew --build-cache build -x test -x spotlessCheck -x javadoc
       # Built once here rather than inside each e2e container, twice a group and five groups over.
       - name: Build the runnable distribution
-        run: ./gradlew --build-cache installDist -x test
+        run: ./toolchain.sh be-dist --build-cache
       - name: Pack the distribution
         run: tar czf backend-dist.tar.gz -C build/install ember
       - name: Upload the distribution
@@ -60,7 +58,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
       - name: Run repository tests
         timeout-minutes: 15
-        run: ./gradlew --build-cache testRepositories
+        run: ./toolchain.sh be-suite testRepositories --build-cache
       - name: Upload coverage data
         uses: actions/upload-artifact@v7
         with:
@@ -134,7 +132,7 @@ jobs:
           sudo install -m 0755 ~/tool-cache/typst/typst /usr/local/bin/typst
       - name: Run service tests
         timeout-minutes: 15
-        run: ./gradlew --build-cache testServices
+        run: ./toolchain.sh be-suite testServices --build-cache
       - name: Upload coverage data
         uses: actions/upload-artifact@v7
         with:
@@ -160,7 +158,7 @@ jobs:
       # testcontainer to spin up PostgreSQL.
       - name: Run data tracking tests
         timeout-minutes: 15
-        run: ./gradlew --build-cache testTracking
+        run: ./toolchain.sh be-suite testTracking --build-cache
       - name: Upload coverage data
         if: always()
         uses: actions/upload-artifact@v7
@@ -183,7 +181,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
       - name: Run other tests
         timeout-minutes: 15
-        run: ./gradlew --build-cache testOther
+        run: ./toolchain.sh be-suite testOther --build-cache
       - name: Upload coverage data
         if: always()
         uses: actions/upload-artifact@v7
@@ -215,7 +213,7 @@ jobs:
       - name: Build the coverage report and check the gates
         env:
           COVERAGE_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || 'origin/main' }}
-        run: ./gradlew --build-cache jacocoFullReport jacocoCoverageCheck patchCoverageCheck
+        run: ./toolchain.sh be-coverage --build-cache
       - name: Upload the coverage report
         uses: actions/upload-artifact@v7
         if: always()
@@ -236,7 +234,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
       - name: Generate Javadoc
-        run: ./gradlew javadoc
+        run: ./toolchain.sh be-javadoc
 
   verify-build-frontend:
     runs-on: ubuntu-latest
@@ -250,14 +248,11 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
+        run: ./toolchain.sh fe-install-clean
       - name: Lint frontend
-        working-directory: frontend
-        run: NODE_OPTIONS="--max-old-space-size=8192" npm run lint
+        run: ./toolchain.sh fe-lint
       - name: Build frontend
-        working-directory: frontend
-        run: NODE_OPTIONS="--max-old-space-size=8192" npm run build -- --skip-lint
+        run: ./toolchain.sh fe-bundle
       - name: Pack the build
         working-directory: frontend
         run: tar czf frontend-build.tar.gz .output
@@ -280,11 +275,9 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
+        run: ./toolchain.sh fe-install-clean
       - name: Run unit and component tests
-        working-directory: frontend
-        run: NODE_OPTIONS="--max-old-space-size=8192" npx vitest run --coverage
+        run: ./toolchain.sh fe-coverage
       - name: Upload coverage
         uses: actions/upload-artifact@v7
         if: always()
@@ -300,6 +293,7 @@ jobs:
     timeout-minutes: 20
     env:
       E2E_PREBUILT: "1"
+      E2E_PREBUILT_READY: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -313,12 +307,10 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
+        run: ./toolchain.sh fe-install-clean
       - name: Install Playwright browsers
-        working-directory: frontend
         timeout-minutes: 5
-        run: npx playwright install chromium
+        run: ./toolchain.sh fe-e2e-install
       - name: Download the build
         uses: actions/download-artifact@v8
         with:
@@ -333,18 +325,13 @@ jobs:
           name: backend-dist
       - name: Unpack the backend distribution
         run: mkdir -p build/install && tar xzf backend-dist.tar.gz -C build/install
+      - name: Check every story is in a group
+        run: ./toolchain.sh fe-e2e-groups
       # The suite brings up its own stack - a database and a backend of its own, and the built server
       # in front of them - because that is what it is configured against. Starting another backend
       # here would only occupy a port nothing asks for.
-      - name: Check every story is in a group
-        working-directory: frontend
-        run: node scripts/e2e-groups.mjs check
       - name: Run the end-to-end stories
-        working-directory: frontend
-        # The patterns come first: --project takes every argument that follows it.
-        run: >-
-          npx playwright test $(node scripts/e2e-groups.mjs patterns ${{ matrix.group }})
-          --project chromium --project ssr-no-js
+        run: ./toolchain.sh fe-e2e-group ${{ matrix.group }}
       - name: Upload the report
         uses: actions/upload-artifact@v7
         if: always()
@@ -356,7 +343,7 @@ jobs:
       # is wrong, and the report alone cannot tell them apart.
       - name: Capture the stack logs
         if: failure()
-        run: docker compose -f docker/compose.dev.yaml --profile e2e logs --no-color --timestamps > stack-logs.txt
+        run: ./toolchain.sh docker-e2e-logs --no-color --timestamps > stack-logs.txt
       - name: Upload the stack logs
         uses: actions/upload-artifact@v7
         if: failure()
@@ -365,7 +352,7 @@ jobs:
           path: stack-logs.txt
       - name: Stop the stack
         if: always()
-        run: docker compose -f docker/compose.dev.yaml --profile e2e down -v
+        run: ./toolchain.sh docker-e2e-down -v
 
   # One name for however many runs there turn out to be, so splitting them again leaves branch
   # protection alone. `always()`, or a skipped job would never report and the check could never pass.
@@ -487,8 +474,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Check that both changelogs carry the same releases
-        working-directory: frontend
-        run: node scripts/lint-changelog-languages.mjs
+        run: ./toolchain.sh fe-lint changelog-languages
 
   # A patch that has not reached main has not reached any database either, so several of them on one
   # branch carry no history worth keeping apart and are free to become one file.
