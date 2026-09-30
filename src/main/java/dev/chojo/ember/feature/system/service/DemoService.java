@@ -15,6 +15,9 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -32,9 +35,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
@@ -69,7 +69,7 @@ public class DemoService {
     private final StationRepository stationRepository;
     private final ClusterRepository clusterRepository;
     private final StorageBackendResolver backendResolver;
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final TaskScheduler taskScheduler;
     private volatile Instant lastActivity = Instant.now();
     private volatile boolean needsReset = false;
 
@@ -82,7 +82,9 @@ public class DemoService {
             Set<DemoSeeder> seeders,
             StationRepository stationRepository,
             ClusterRepository clusterRepository,
-            StorageBackendResolver backendResolver) {
+            StorageBackendResolver backendResolver,
+            TaskScheduler taskScheduler) {
+        this.taskScheduler = taskScheduler;
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
         this.dataSource = dataSource;
@@ -123,7 +125,6 @@ public class DemoService {
         if (!demoConfig.enabled()) return;
         log.info("Demo mode enabled. Idle reset after {} minutes of inactivity", demoConfig.idleResetMinutes());
         seedQuietly();
-        scheduler.scheduleAtFixedRate(this::checkIdleReset, 1, 1, TimeUnit.MINUTES);
     }
 
     /**
@@ -186,7 +187,7 @@ public class DemoService {
     }
 
     private void checkIdleReset() {
-        if (!needsReset) return;
+        if (!demoConfig.enabled() || !needsReset) return;
         var idleMinutes = Duration.between(lastActivity, Instant.now()).toMinutes();
         if (idleMinutes >= demoConfig.idleResetMinutes()) {
             log.info("Demo: {} minutes idle, resetting data...", idleMinutes);
@@ -273,15 +274,25 @@ public class DemoService {
     private void seedData() {
         var run = new DemoRunContext(passwordHasher.hash(DemoSeeder.PASSWORD));
         var bands = new TreeMap<>(seeders.stream().collect(Collectors.groupingBy(DemoSeeder::order)));
-        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            for (var band : bands.entrySet()) {
-                List<CompletableFuture<Void>> tasks = band.getValue().stream()
-                        .map(seeder -> CompletableFuture.runAsync(() -> seeder.seed(run), executor))
-                        .toList();
-                CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new)).join();
-            }
+        for (var band : bands.entrySet()) {
+            List<CompletableFuture<Void>> tasks = band.getValue().stream()
+                    .map(seeder -> CompletableFuture.runAsync(() -> seeder.seed(run), taskScheduler.executor()))
+                    .toList();
+            CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new)).join();
         }
         log.info("Demo: Created all user accounts (password: '{}')", DemoSeeder.PASSWORD);
         log.info("Demo: Admin login: admin@ember.local / {}", DemoSeeder.PASSWORD);
+    }
+
+    /** Throws the demo data away and seeds it again once nobody has used it for the configured time. */
+    @Singleton
+    public static final class IdleResetTask extends DelegatingTask {
+        @Inject
+        IdleResetTask(DemoService demoService) {
+            super(
+                    "demo-idle-reset",
+                    Schedule.fixedRate(Duration.ofMinutes(1), Duration.ofMinutes(1)),
+                    demoService::checkIdleReset);
+        }
     }
 }

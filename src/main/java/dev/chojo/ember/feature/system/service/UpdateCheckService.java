@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.conf.file.elements.Updates;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -21,9 +23,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -70,22 +69,6 @@ public class UpdateCheckService {
         this.config = config;
         this.apiBase = apiBase;
         this.currentVersion = readCurrentVersion();
-    }
-
-    /**
-     * Starts the periodic check, unless the operator switched it off.
-     *
-     * <p>The first run is delayed by a minute so that starting up is never held behind an outbound
-     * call, and so that an instance restarted in a loop does not hammer the API.
-     */
-    public void start() {
-        if (!config.enabled()) {
-            log.debug("Update check disabled");
-            return;
-        }
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
-                runnable -> Thread.ofVirtual().name("update-check").unstarted(runnable));
-        scheduler.scheduleAtFixedRate(this::check, 1, config.checkIntervalHours() * 60L, TimeUnit.MINUTES);
     }
 
     /**
@@ -214,4 +197,23 @@ public class UpdateCheckService {
      * @param updateAvailable whether the newest release is ahead of the running one
      */
     public record UpdateStatus(String currentVersion, String latestVersion, boolean updateAvailable) {}
+
+    /**
+     * Checks at {@code updates.checkIntervalHours}, unless the operator switched it off.
+     *
+     * <p>The first run is delayed by a minute so that starting up is never held behind an outbound
+     * call, and so that an instance restarted in a loop does not hammer the API.
+     */
+    @Singleton
+    public static final class Task extends DelegatingTask {
+        @Inject
+        Task(UpdateCheckService service, Updates config) {
+            super(
+                    "update-check",
+                    Schedule.fixedRate(Duration.ofMinutes(1), Duration.ofHours(config.checkIntervalHours())),
+                    () -> {
+                        if (config.enabled()) service.check();
+                    });
+        }
+    }
 }

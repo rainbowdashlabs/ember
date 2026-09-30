@@ -186,8 +186,10 @@ import dev.chojo.ember.feature.legal.route.ConsentRoutes;
 import dev.chojo.ember.feature.lostandfound.route.LostAndFoundRoutes;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundFeedDetails;
 import dev.chojo.ember.feature.mail.route.MailWebhookRoutes;
+import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mailimport.route.MailImportRoutes;
 import dev.chojo.ember.feature.mailimport.service.MailFilingService;
+import dev.chojo.ember.feature.mailimport.service.MailImportPoller;
 import dev.chojo.ember.feature.mailimport.service.StationMemberNaming;
 import dev.chojo.ember.feature.maps.route.AdminMapsRoutes;
 import dev.chojo.ember.feature.maps.route.PublicMapsRoutes;
@@ -216,6 +218,7 @@ import dev.chojo.ember.feature.news.route.NewsRoutes;
 import dev.chojo.ember.feature.news.route.RemoteNewsRoutes;
 import dev.chojo.ember.feature.news.service.NewsFeedDetails;
 import dev.chojo.ember.feature.notifications.route.NotificationRoutes;
+import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.onboarding.route.OnboardingRoutes;
 import dev.chojo.ember.feature.page.route.PageRoutes;
 import dev.chojo.ember.feature.page.route.PublicPageRoutes;
@@ -293,6 +296,7 @@ import dev.chojo.ember.feature.system.service.DemoProtocolSeeder;
 import dev.chojo.ember.feature.system.service.DemoQuizSeeder;
 import dev.chojo.ember.feature.system.service.DemoSeeder;
 import dev.chojo.ember.feature.system.service.DemoSelfCheckSeeder;
+import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.system.service.DemoSessionSeeder;
 import dev.chojo.ember.feature.system.service.DemoSettingsSeeder;
 import dev.chojo.ember.feature.system.service.DemoSetupSeeder;
@@ -301,6 +305,7 @@ import dev.chojo.ember.feature.system.service.DemoTwoFactorSeeder;
 import dev.chojo.ember.feature.system.service.DemoVideoSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
 import dev.chojo.ember.feature.system.service.ProblemReportSweeper;
+import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
 import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
@@ -616,8 +621,6 @@ public class EmberModule extends AbstractModule {
 
         // Eager singletons - started on boot
         bind(StorageReconciliationService.class).asEagerSingleton();
-        bind(AuthCleanupSweeper.class).asEagerSingleton();
-        bind(ProblemReportSweeper.class).asEagerSingleton();
         bind(KbTrashPurger.class).asEagerSingleton();
         bind(FederationVersionBroadcaster.class).asEagerSingleton();
         bind(FeedMetricsService.class).asEagerSingleton();
@@ -649,6 +652,15 @@ public class EmberModule extends AbstractModule {
         tasks.addBinding().to(ExpiryReminderChecker.class);
         tasks.addBinding().to(ManagedLoginNoticeSweeper.Task.class);
         tasks.addBinding().to(WaitingListService.ConfirmationTask.class);
+        tasks.addBinding().to(EmailService.QueueTask.class);
+        tasks.addBinding().to(EmailService.CleanupTask.class);
+        tasks.addBinding().to(NotificationService.SweepTask.class);
+        tasks.addBinding().to(MailImportPoller.TickTask.class);
+        tasks.addBinding().to(MailImportPoller.PruneTask.class);
+        tasks.addBinding().to(AuthCleanupSweeper.Task.class);
+        tasks.addBinding().to(ProblemReportSweeper.Task.class);
+        tasks.addBinding().to(UpdateCheckService.Task.class);
+        tasks.addBinding().to(DemoService.IdleResetTask.class);
     }
 
     /**

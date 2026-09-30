@@ -40,7 +40,6 @@ public class ArchitectureTest {
     private static final Set<String> THREAD_OWNERS_TO_MIGRATE = Set.of(
             "dev.chojo.ember.Bootstrapper",
             "dev.chojo.ember.auth.BreachCheckWorker",
-            "dev.chojo.ember.feature.account.service.AuthCleanupSweeper",
             "dev.chojo.ember.feature.beacon.service.BeaconMetricsService",
             "dev.chojo.ember.feature.beacon.service.BeaconReportService",
             "dev.chojo.ember.feature.discovery.route.PublicDiscoveryRoutes",
@@ -56,17 +55,11 @@ public class ArchitectureTest {
             "dev.chojo.ember.feature.feed.service.FeedMetricsService",
             "dev.chojo.ember.feature.knowledgebase.service.KbPresentationService",
             "dev.chojo.ember.feature.knowledgebase.service.KbTrashPurger",
-            "dev.chojo.ember.feature.mail.service.EmailService",
-            "dev.chojo.ember.feature.mailimport.service.MailImportPoller",
-            "dev.chojo.ember.feature.notifications.service.NotificationService",
             "dev.chojo.ember.feature.quiz.route.AiRoutes",
             "dev.chojo.ember.feature.station.service.StationImportService",
             "dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog",
             "dev.chojo.ember.feature.storage.route.StorageRoutes",
             "dev.chojo.ember.feature.storage.service.StorageReconciliationService",
-            "dev.chojo.ember.feature.system.service.DemoService",
-            "dev.chojo.ember.feature.system.service.ProblemReportSweeper",
-            "dev.chojo.ember.feature.system.service.UpdateCheckService",
             "dev.chojo.ember.util.service.CloudflareRangesService");
 
     @ArchTest

@@ -17,20 +17,20 @@ import dev.chojo.ember.feature.mail.service.mail.MailProvider;
 import dev.chojo.ember.feature.mail.service.mail.SmtpMailProvider;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Central email service handling both global system emails and per-station notification emails.
@@ -107,13 +107,6 @@ public class EmailService {
                     first.senderAddress(),
                     first.dailySendLimit());
         }
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "email-worker");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.scheduleWithFixedDelay(this::processQueue, 10, 10, TimeUnit.SECONDS);
-        scheduler.scheduleAtFixedRate(this::runCleanup, 1, 24, TimeUnit.HOURS);
     }
 
     private void runCleanup() {
@@ -1039,5 +1032,29 @@ public class EmailService {
     private static Map<String, String> waitlistPlaceholders(String stationName) {
         String suffix = stationName != null && !stationName.isEmpty() ? " - " + stationName : "";
         return Map.of("stationName", stationName != null ? stationName : "", "stationSuffix", suffix);
+    }
+
+    /** Sends what is waiting in the queue, ten seconds after the previous run. */
+    @Singleton
+    public static final class QueueTask extends DelegatingTask {
+        @Inject
+        QueueTask(EmailService emailService) {
+            super(
+                    "email-queue",
+                    Schedule.fixedDelay(Duration.ofSeconds(10), Duration.ofSeconds(10)),
+                    emailService::processQueue);
+        }
+    }
+
+    /** Removes queue entries older than thirty days, once a day. */
+    @Singleton
+    public static final class CleanupTask extends DelegatingTask {
+        @Inject
+        CleanupTask(EmailService emailService) {
+            super(
+                    "email-queue-cleanup",
+                    Schedule.fixedRate(Duration.ofHours(1), Duration.ofHours(24)),
+                    emailService::runCleanup);
+        }
     }
 }

@@ -115,6 +115,7 @@ import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.ShareTokens;
 import dev.chojo.ember.util.TestStationKeys;
@@ -605,7 +606,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         videoSeeder),
                 stationRepo,
                 clusterRepo,
-                new StorageBackendResolver(new LocalStorageBackend()));
+                new StorageBackendResolver(new LocalStorageBackend()),
+                new TaskScheduler());
     }
 
     @Test

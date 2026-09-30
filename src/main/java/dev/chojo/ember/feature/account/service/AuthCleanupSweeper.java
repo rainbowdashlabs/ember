@@ -8,13 +8,14 @@ package dev.chojo.ember.feature.account.service;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.devicerequest.repository.DeviceRequestRepository;
 import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 /**
  * Removes expired sign-in state on a schedule: account tokens, sessions and WebAuthn challenges.
@@ -27,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 @Singleton
 public class AuthCleanupSweeper {
     private static final Logger log = LoggerFactory.getLogger(AuthCleanupSweeper.class);
-    private static final int SCAN_INTERVAL_MINUTES = 15;
+    private static final Duration SCAN_INTERVAL = Duration.ofMinutes(15);
 
     private final AccountRepository accountRepository;
     private final WebAuthnChallengeRepository challengeRepository;
@@ -41,12 +42,6 @@ public class AuthCleanupSweeper {
         this.accountRepository = accountRepository;
         this.challengeRepository = challengeRepository;
         this.deviceRequestRepository = deviceRequestRepository;
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var thread = new Thread(r, "auth-cleanup-sweeper");
-            thread.setDaemon(true);
-            return thread;
-        });
-        scheduler.scheduleWithFixedDelay(this::sweep, SCAN_INTERVAL_MINUTES, SCAN_INTERVAL_MINUTES, TimeUnit.MINUTES);
     }
 
     /**
@@ -67,6 +62,15 @@ public class AuthCleanupSweeper {
             }
         } catch (Exception e) {
             log.warn("Sweeping expired sign-in state failed", e);
+        }
+    }
+
+    /** Removes expired sign-in state every fifteen minutes. */
+    @Singleton
+    public static final class Task extends DelegatingTask {
+        @Inject
+        Task(AuthCleanupSweeper sweeper) {
+            super("auth-cleanup-sweep", Schedule.fixedDelay(SCAN_INTERVAL, SCAN_INTERVAL), sweeper::sweep);
         }
     }
 }

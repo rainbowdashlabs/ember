@@ -18,12 +18,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -157,19 +159,31 @@ class MailImportPollerTest extends RepositoryTestBase {
             }
         };
 
-        poller(importService, off).start();
+        enabledMailbox("Aus");
+        var poller = poller(importService, off);
+
+        new MailImportPoller.TickTask(poller, off).run();
+        new MailImportPoller.PruneTask(poller, off).run();
 
         verify(importService, never()).run(any(), any());
     }
 
     @Test
-    void startingTheWalkSchedulesItWithoutVisitingAnythingYet() {
+    void theTasksWalkEveryMinuteAndPruneOnceADay() {
         var importService = mock(MailImportService.class);
         when(importService.run(any(), any())).thenReturn(new MailImportService.Cycle(0, 0, 0));
+        var settings = new MailImport();
+        var poller = poller(importService, settings);
 
-        poller(importService, new MailImport()).start();
+        var tick = new MailImportPoller.TickTask(poller, settings);
+        var prune = new MailImportPoller.PruneTask(poller, settings);
+        enabledMailbox("Takt");
+        tick.run();
+        prune.run();
 
-        verify(importService, never()).run(any(), any());
+        verify(importService, atLeastOnce()).run(any(), any());
+        assertEquals(Duration.ofMinutes(1), tick.schedule().period());
+        assertEquals(Duration.ofDays(1), prune.schedule().period());
     }
 
     @Test

@@ -7,17 +7,22 @@ package dev.chojo.ember.feature.system.service;
 
 import com.sun.net.httpserver.HttpServer;
 import dev.chojo.ember.conf.file.elements.Updates;
+import dev.chojo.ember.lifecycle.Schedule;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 class UpdateCheckServiceTest {
 
@@ -97,28 +102,36 @@ class UpdateCheckServiceTest {
     }
 
     /**
-     * Switched off, starting the service does no work and schedules nothing.
+     * Switched off, a run of the task asks nothing.
      */
     @Test
-    void aDisabledCheckStartsNothing() {
+    void aDisabledCheckAsksNothing() {
         var disabled = new Updates() {
             @Override
             public boolean enabled() {
                 return false;
             }
         };
-        new UpdateCheckService(disabled).start();
+        var service = mock(UpdateCheckService.class);
+
+        new UpdateCheckService.Task(service, disabled).run();
+
+        verify(service, never()).check();
     }
 
     /**
-     * Switched on, starting schedules the poll and returns at once. Nothing is asked while this
-     * runs: the first check is a minute out, which is the point of the delay.
+     * Switched on, the task checks at the configured interval, the first time a minute after the
+     * start, which is the point of the delay.
      */
     @Test
-    void anEnabledCheckSchedulesWithoutAskingAnything() {
-        var service = new UpdateCheckService(new Updates(), "http://127.0.0.1:1");
-        service.start();
-        assertNull(service.status().latestVersion());
+    void anEnabledCheckRunsAtTheConfiguredInterval() {
+        var service = mock(UpdateCheckService.class);
+        var task = new UpdateCheckService.Task(service, new Updates());
+
+        task.run();
+
+        verify(service).check();
+        assertEquals(Schedule.fixedRate(Duration.ofMinutes(1), Duration.ofHours(1)), task.schedule());
     }
 
     /**

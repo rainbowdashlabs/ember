@@ -26,6 +26,8 @@ import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepo
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.i18n.Localizer;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -48,9 +50,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Service for creating, querying, and managing notifications.
@@ -165,17 +164,10 @@ public class NotificationService {
         int intervalMinutes = mailing.notificationDigestIntervalMinutes();
         this.digestFloor = Duration.ofMinutes(Math.max(intervalMinutes, 0));
         this.digestEnabled = intervalMinutes > 0;
-        long tick = digestEnabled ? Math.min(intervalMinutes, TICK_MINUTES) : TICK_MINUTES;
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "notification-sweep");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.scheduleWithFixedDelay(this::sweep, tick, tick, TimeUnit.MINUTES);
         if (digestEnabled) {
             log.info(
                     "Notification digest looks in every {} minutes, no station written to more often than every {}",
-                    tick,
+                    sweepInterval(mailing).toMinutes(),
                     intervalMinutes);
         } else {
             log.info("Notification digest disabled (interval=0)");
@@ -841,7 +833,7 @@ public class NotificationService {
      * Read notifications are pruned from here too, also where the digest is switched off, since the
      * table otherwise only ever grows.
      */
-    private void sweep() {
+    void sweep() {
         if (digestEnabled) {
             processDigest();
             processClusterDigest();
@@ -1230,6 +1222,28 @@ public class NotificationService {
             params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));
         } else if (orig instanceof NotificationParams.LendingStatusChange p) {
             params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));
+        }
+    }
+
+    /**
+     * How often the sweep looks in: every fifteen minutes, or as often as the digest interval when
+     * that is shorter.
+     */
+    static Duration sweepInterval(Mailing mailing) {
+        int intervalMinutes = mailing.notificationDigestIntervalMinutes();
+        long tick = intervalMinutes > 0 ? Math.min(intervalMinutes, TICK_MINUTES) : TICK_MINUTES;
+        return Duration.ofMinutes(tick);
+    }
+
+    /** Writes the digests that are due and prunes read notifications, at {@link #sweepInterval(Mailing)}. */
+    @Singleton
+    public static final class SweepTask extends DelegatingTask {
+        @Inject
+        SweepTask(NotificationService notificationService, Mailing mailing) {
+            super(
+                    "notification-sweep",
+                    Schedule.fixedDelay(sweepInterval(mailing), sweepInterval(mailing)),
+                    notificationService::sweep);
         }
     }
 }

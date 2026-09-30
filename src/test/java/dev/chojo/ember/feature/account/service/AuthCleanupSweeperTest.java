@@ -12,13 +12,29 @@ import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 class AuthCleanupSweeperTest extends RepositoryTestBase {
+
+    @Test
+    void theTaskSweepsEveryFifteenMinutes() {
+        var sweeper = mock(AuthCleanupSweeper.class);
+        var task = new AuthCleanupSweeper.Task(sweeper);
+
+        task.run();
+
+        verify(sweeper).sweep();
+        assertEquals("auth-cleanup-sweep", task.name());
+        assertEquals(Duration.ofMinutes(15), task.schedule().period());
+    }
 
     @Test
     void sweepRemovesExpiredTokensSessionsAndChallenges() {

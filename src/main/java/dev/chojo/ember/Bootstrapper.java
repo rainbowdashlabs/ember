@@ -23,7 +23,6 @@ import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.StationKeyStore;
 import dev.chojo.ember.feature.legal.service.ConsentService;
-import dev.chojo.ember.feature.mailimport.service.MailImportPoller;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
@@ -205,12 +204,9 @@ public class Bootstrapper {
         injector.getInstance(CloudflareRangesService.class).refreshAsync();
 
         var updateCheck = injector.getInstance(UpdateCheckService.class);
-        updateCheck.start();
 
         injector.getInstance(BeaconMetricsService.class).start(updateCheck.currentVersion());
         injector.getInstance(BeaconReportService.class).startForwarding(updateCheck.currentVersion());
-
-        injector.getInstance(MailImportPoller.class).start();
 
         var searchIndexRebuild = injector.getInstance(SearchIndexRebuildService.class);
         Thread.ofPlatform().daemon().name("search-index-rebuild").start(searchIndexRebuild::rebuildInBackground);
