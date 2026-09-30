@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.conf.file.elements.Updates;
+import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -39,7 +40,7 @@ public class ChangelogService {
     private static final Logger log = LoggerFactory.getLogger(ChangelogService.class);
     private static final String DEFAULT_LOCALE = "de";
     private static final String FALLBACK_LOCALE = "en";
-    private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final JsonMapper JSON = Json.MAPPER;
 
     /** A version heading, as {@code ## v26.17.0}. The {@code v} is part of how they are written. */
     private static final Pattern VERSION_HEADING = Pattern.compile("^##\\s+v?(\\d+(?:\\.\\d+)*)\\s*$");

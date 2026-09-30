@@ -11,19 +11,33 @@ import org.jspecify.annotations.Nullable;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Shared default-configuration JSON mapper for internal (de)serialization - storage
- * backend metadata, entity JSONB payloads, CSV/AI processing, federation version
- * hashing. Deliberately distinct from the API-boundary mapper in the HTTP server,
- * which carries the station-id translation module and strict payload settings that
+ * The named JSON mappers for everything that is not the API boundary: storage backend metadata,
+ * entity JSONB payloads, files on disk, AI and HTTP payloads. The API boundary has a mapper of its
+ * own in the HTTP server, which carries the station-id translation and strict payload settings that
  * must not leak into internal persistence formats.
+ *
+ * <p>A mapper is expensive to build and safe to share, so a caller picks the preset that fits rather
+ * than building its own. A preset that needs one more module is derived with {@code rebuild()}.
  */
 public final class Json {
-    public static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /** Jackson's defaults: strict about unknown properties and about {@code null} for a primitive. */
+    public static final JsonMapper MAPPER = JsonMapper.builder().build();
+
+    /**
+     * Tolerant of what it reads: an unknown property is skipped and a {@code null} where a primitive
+     * is declared falls back to the default. For payloads written by an older or a newer version,
+     * stored or received, where a field the record does not know yet is not a reason to fail.
+     */
+    public static final JsonMapper LENIENT = lenientBuilder().build();
+
+    /** {@link #LENIENT}, writing indented output for files a person reads. */
+    public static final JsonMapper PRETTY =
+            lenientBuilder().enable(SerializationFeature.INDENT_OUTPUT).build();
 
     /**
      * The mapper the stored configuration records use.
@@ -34,13 +48,13 @@ public final class Json {
      * would otherwise take out the feature that reads it. Fields are read directly and getters
      * ignored so a derived accessor cannot leak into the persisted shape.
      */
-    public static final ObjectMapper CONFIG_MAPPER = configMapperBuilder().build();
+    public static final JsonMapper CONFIG_MAPPER = configMapperBuilder().build();
 
     /**
      * {@link #CONFIG_MAPPER} for records that may serialize to nothing at all - a config whose
      * every field is absent. Without this an empty payload is an error rather than {@code {}}.
      */
-    public static final ObjectMapper EMPTY_TOLERANT_CONFIG_MAPPER = configMapperBuilder()
+    public static final JsonMapper EMPTY_TOLERANT_CONFIG_MAPPER = configMapperBuilder()
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
             .build();
 
@@ -65,12 +79,15 @@ public final class Json {
         }
     }
 
-    private static JsonMapper.Builder configMapperBuilder() {
+    private static JsonMapper.Builder lenientBuilder() {
         return JsonMapper.builder()
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-                .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                        .withGetterVisibility(JsonAutoDetect.Visibility.NONE));
+                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
+    }
+
+    private static JsonMapper.Builder configMapperBuilder() {
+        return lenientBuilder().changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
+                .withGetterVisibility(JsonAutoDetect.Visibility.NONE));
     }
 
     private Json() {}

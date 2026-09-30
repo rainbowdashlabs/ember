@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.conf.file.elements.Updates;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
+import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -40,7 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Singleton
 public class UpdateCheckService {
     private static final Logger log = LoggerFactory.getLogger(UpdateCheckService.class);
-    private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final JsonMapper JSON = Json.MAPPER;
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
     private final HttpClient httpClient = OutboundHttp.trustedClient(Duration.ofSeconds(5), HttpClient.Redirect.NORMAL);

@@ -14,6 +14,7 @@ import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.engine.GenericTableExporter;
 import dev.chojo.ember.tracking.engine.TableOrder;
+import dev.chojo.ember.util.Json;
 import dev.chojo.ember.util.RandomTokens;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
@@ -21,7 +22,6 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,7 +55,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class StationExportService {
 
     private static final Logger log = LoggerFactory.getLogger(StationExportService.class);
-    private static final ObjectMapper TOKEN_MAPPER = JsonMapper.builder().build();
+    private static final ObjectMapper TOKEN_MAPPER = Json.MAPPER;
 
     private final GenericTableExporter engine;
     private final List<String> tableOrder;

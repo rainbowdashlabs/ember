@@ -15,6 +15,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BrowserStorageServiceTest {
@@ -84,6 +85,11 @@ class BrowserStorageServiceTest {
     void anUnreadableCatalogRendersNothingRatherThanBreakingTheDocument() {
         assertEquals("", new BrowserStorageService((BrowserStorageCatalog) null).toMarkdown("de"));
         assertEquals("", new BrowserStorageService(new BrowserStorageCatalog(1, null, List.of())).toMarkdown("de"));
+    }
+
+    @Test
+    void aCatalogMissingFromTheClasspathIsNoCatalog() {
+        assertNull(BrowserStorageService.load("/no/such/catalog.json"));
     }
 
     @Test

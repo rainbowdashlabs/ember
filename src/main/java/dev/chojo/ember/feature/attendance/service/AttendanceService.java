@@ -34,6 +34,7 @@ import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -42,7 +43,6 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.ObjectReader;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -63,7 +63,7 @@ import java.util.stream.Collectors;
 @Singleton
 public class AttendanceService {
     private static final Logger log = LoggerFactory.getLogger(AttendanceService.class);
-    private static final ObjectMapper JSON = JsonMapper.builder().build();
+    private static final ObjectMapper JSON = Json.MAPPER;
     /** Reads a value only when it is JSON all the way to its end, so a date is not read as a number. */
     private static final ObjectReader STRICT_JSON = JSON.reader().with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     /** How long a sheet runs where nothing and nobody says otherwise. */

@@ -7,10 +7,11 @@ package dev.chojo.ember.feature.storage.entity;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
+import dev.chojo.ember.util.Json;
 import dev.chojo.ember.util.Sha256;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.security.MessageDigest;
 import java.util.HexFormat;
@@ -37,7 +38,7 @@ public sealed interface RedactedStationConfig {
      */
     String REDACTED_MARKER = "redacted";
 
-    JsonMapper MAPPER = JsonMapper.builder().build();
+    JsonMapper MAPPER = Json.MAPPER;
 
     /**
      * Produces the redacted, audit-safe view of a station config.

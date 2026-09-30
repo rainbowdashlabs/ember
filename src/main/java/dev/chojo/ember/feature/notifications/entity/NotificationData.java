@@ -5,11 +5,10 @@
  */
 package dev.chojo.ember.feature.notifications.entity;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.util.Json;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -26,10 +25,7 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record NotificationData(NotificationParams params, NotificationLink link) {
 
-    private static final ObjectMapper MAPPER = JsonMapper.builder()
-            .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                    .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
-            .build();
+    private static final ObjectMapper MAPPER = Json.CONFIG_MAPPER;
 
     public static NotificationData of(NotificationParams params, NotificationLink link) {
         return new NotificationData(params, link);

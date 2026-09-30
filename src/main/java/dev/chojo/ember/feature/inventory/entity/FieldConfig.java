@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import dev.chojo.ember.util.Json;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
@@ -35,7 +36,7 @@ public sealed interface FieldConfig
     /**
      * Shared Jackson mapper for serialising and parsing field config variants.
      */
-    JsonMapper MAPPER = JsonMapper.builder().build();
+    JsonMapper MAPPER = Json.MAPPER;
 
     /**
      * Parses the {@code config} JSONB for the given field type. The payload is

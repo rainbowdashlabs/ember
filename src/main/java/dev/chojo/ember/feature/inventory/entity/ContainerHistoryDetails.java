@@ -7,10 +7,9 @@ package dev.chojo.ember.feature.inventory.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -29,10 +28,7 @@ public sealed interface ContainerHistoryDetails
     /**
      * Shared Jackson mapper for the history detail variants.
      */
-    ObjectMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-            .build();
+    ObjectMapper MAPPER = Json.LENIENT;
 
     /**
      * Logger for unparsable legacy payloads.

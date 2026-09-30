@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
+import dev.chojo.ember.util.Json;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Optional;
@@ -28,7 +29,7 @@ import java.util.Optional;
     @JsonSubTypes.Type(value = StationStorageBackendConfig.SftpVariant.class, name = "SFTP")
 })
 public sealed interface StationStorageBackendConfig {
-    JsonMapper MAPPER = JsonMapper.builder().build();
+    JsonMapper MAPPER = Json.MAPPER;
 
     /**
      * Deserializes a {@code StationStorageBackendConfig} from its JSONB representation.

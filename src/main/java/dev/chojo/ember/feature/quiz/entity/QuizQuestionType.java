@@ -5,11 +5,10 @@
  */
 package dev.chojo.ember.feature.quiz.entity;
 
+import dev.chojo.ember.util.Json;
 import io.javalin.openapi.OpenApiName;
 import org.slf4j.Logger;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Optional;
 
@@ -27,10 +26,7 @@ public enum QuizQuestionType {
     ENUMERATION("enumeration", QuestionConfig.Enumeration.class, QuizAnswerValue.Enumeration.class);
 
     private static final Logger log = getLogger(QuizQuestionType.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-            .build();
+    private static final ObjectMapper MAPPER = Json.LENIENT;
 
     private final String promptFile;
     private final Class<? extends QuestionConfig> configClass;

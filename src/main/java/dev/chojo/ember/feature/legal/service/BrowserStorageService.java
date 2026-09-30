@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.feature.legal.entity.BrowserStorageCatalog;
 import dev.chojo.ember.feature.legal.entity.BrowserStorageEntry;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.InputStream;
@@ -37,14 +37,12 @@ public class BrowserStorageService {
      */
     public static final String SECTION_NAME = "browser-storage";
 
-    private static final JsonMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .build();
+    private static final JsonMapper MAPPER = Json.LENIENT;
 
     private final BrowserStorageCatalog catalog;
 
     public BrowserStorageService() {
-        this(load());
+        this(load(BrowserStorageCatalog.RESOURCE_PATH));
     }
 
     BrowserStorageService(BrowserStorageCatalog catalog) {
@@ -119,10 +117,17 @@ public class BrowserStorageService {
         return groups;
     }
 
-    private static BrowserStorageCatalog load() {
-        try (InputStream in = BrowserStorageService.class.getResourceAsStream(BrowserStorageCatalog.RESOURCE_PATH)) {
+    /**
+     * Reads the catalog from the classpath, or {@code null} when it is missing or unreadable, which
+     * leaves the generated section empty rather than failing the legal documents.
+     *
+     * @param resourcePath where the catalog lies on the classpath
+     * @return the catalog, or {@code null}
+     */
+    static BrowserStorageCatalog load(String resourcePath) {
+        try (InputStream in = BrowserStorageService.class.getResourceAsStream(resourcePath)) {
             if (in == null) {
-                log.error("Browser storage catalog not found on classpath: {}", BrowserStorageCatalog.RESOURCE_PATH);
+                log.error("Browser storage catalog not found on classpath: {}", resourcePath);
                 return null;
             }
             return MAPPER.readValue(in, BrowserStorageCatalog.class);

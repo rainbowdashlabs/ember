@@ -6,11 +6,10 @@
 package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.feature.legal.entity.DocumentPlaceholder;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -49,10 +48,7 @@ public class PlaceholderService {
      */
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{\\s*([A-Za-z0-9_.\\-]+)\\s*}}");
 
-    private static final JsonMapper MAPPER = JsonMapper.builder()
-            .enable(SerializationFeature.INDENT_OUTPUT)
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .build();
+    private static final JsonMapper MAPPER = Json.PRETTY;
 
     private final Path valueFile;
 

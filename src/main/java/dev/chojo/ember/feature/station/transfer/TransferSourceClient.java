@@ -8,10 +8,10 @@ package dev.chojo.ember.feature.station.transfer;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.transfer.TransferBackendDescriptor;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.net.URI;
@@ -41,7 +41,7 @@ public final class TransferSourceClient {
     private final String token;
     private final String callerBaseUrl;
     private final OutboundHttp outbound;
-    private final ObjectMapper mapper = JsonMapper.builder().build();
+    private final ObjectMapper mapper = Json.MAPPER;
     private final Object throttleLock = new Object();
     private long lastRequestMillis;
 

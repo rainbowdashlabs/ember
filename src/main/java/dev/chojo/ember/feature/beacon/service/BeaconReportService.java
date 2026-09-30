@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.discovery.service.DiscoveryHttpClient;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
+import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -44,7 +45,7 @@ public class BeaconReportService {
     public static final String OWN_LOGGER = BeaconReportService.class.getName();
 
     /** Reads what a beacon answers a picture with, which is the number the report then names. */
-    private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final JsonMapper JSON = Json.MAPPER;
 
     private static final Logger log = LoggerFactory.getLogger(BeaconReportService.class);
     private static final int QUEUE_CAPACITY = 200;

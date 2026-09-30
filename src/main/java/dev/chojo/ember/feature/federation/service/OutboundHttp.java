@@ -8,9 +8,9 @@ package dev.chojo.ember.feature.federation.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
+import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JacksonModule;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -160,9 +160,7 @@ public class OutboundHttp {
      * @return a lenient mapper
      */
     public static JsonMapper lenientMapper(JacksonModule... modules) {
-        var builder = JsonMapper.builder()
-                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
+        var builder = Json.LENIENT.rebuild();
         for (var module : modules) {
             builder.addModule(module);
         }
