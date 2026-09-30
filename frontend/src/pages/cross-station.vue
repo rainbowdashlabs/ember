@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import CrossStationDashboardView from '~/views/CrossStationDashboardView.vue'
 
 definePageMeta({
@@ -11,8 +12,10 @@ definePageMeta({
   name: 'cross-station-dashboard',
 })
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Übersicht',
+  title: t('pageHead.crossStation'),
 })
 </script>
 

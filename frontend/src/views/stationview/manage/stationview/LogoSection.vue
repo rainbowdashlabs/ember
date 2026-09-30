@@ -34,7 +34,7 @@ const {t} = useI18n()
       <img
           v-if="props.logoObjectUrl"
           :src="props.logoObjectUrl"
-          alt="Station Logo"
+          :alt="t('stationManage.logoAlt')"
           class="max-h-32 max-w-64 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent object-contain"
       />
       <div class="flex items-start gap-2">

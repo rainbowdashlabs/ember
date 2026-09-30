@@ -40,7 +40,7 @@ const { t } = useI18n()
                 <router-link :to="`/station/knowledge/${kl.kbFileId}`" class="text-primary hover:underline truncate flex-1">
                     <span v-if="kl.folderPath && kl.folderPath !== '/'" class="text-(--text-muted) text-xs">{{ kl.folderPath }} /&nbsp;</span>{{ kl.title }}
                 </router-link>
-                <IconButton v-if="!readonly" :icon="['fas', 'xmark']" label="Remove" class="sm:opacity-0 sm:group-hover:opacity-100 text-xs" @click="emit('remove', kl.id)" />
+                <IconButton v-if="!readonly" :icon="['fas', 'xmark']" :label="t('common.remove')" class="sm:opacity-0 sm:group-hover:opacity-100 text-xs" @click="emit('remove', kl.id)" />
             </div>
         </div>
         <div v-if="showSearch" class="space-y-1">

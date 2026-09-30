@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import PublicDiscoveryView from '~/views/public/PublicDiscoveryView.vue'
 import {useCanonical} from '~/composables/useCanonical'
 
@@ -14,16 +15,18 @@ definePageMeta({
 
 useCanonical('/discovery')
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Stationen entdecken',
+  title: t('pageHead.discovery.title'),
   meta: [
-    {name: 'description', content: 'Finde Jugendfeuerwehren in deiner Nähe und entdecke ihre öffentlichen Stationen.'},
-    {property: 'og:title', content: 'Stationen entdecken - Ember'},
-    {property: 'og:description', content: 'Finde Jugendfeuerwehren in deiner Nähe und entdecke ihre öffentlichen Stationen.'},
+    {name: 'description', content: t('pageHead.discovery.description')},
+    {property: 'og:title', content: t('pageHead.discovery.socialTitle')},
+    {property: 'og:description', content: t('pageHead.discovery.description')},
     {property: 'og:type', content: 'website'},
     {name: 'twitter:card', content: 'summary'},
-    {name: 'twitter:title', content: 'Stationen entdecken - Ember'},
-    {name: 'twitter:description', content: 'Finde Jugendfeuerwehren in deiner Nähe und entdecke ihre öffentlichen Stationen.'},
+    {name: 'twitter:title', content: t('pageHead.discovery.socialTitle')},
+    {name: 'twitter:description', content: t('pageHead.discovery.description')},
   ],
   script: [
     {

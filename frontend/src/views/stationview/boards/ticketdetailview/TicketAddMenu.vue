@@ -38,7 +38,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
 
 <template>
     <div ref="menuRef" class="relative inline-block">
-        <IconButton :icon="['fas', 'plus']" label="Add" class="text-(--text-muted)" @click.stop="showMenu = !showMenu" />
+        <IconButton :icon="['fas', 'plus']" :label="t('boards.addToTicket')" class="text-(--text-muted)" @click.stop="showMenu = !showMenu" />
         <div v-if="showMenu" class="absolute left-0 mt-1 w-48 rounded-theme border border-[var(--border)] bg-[var(--bg)] shadow-lg z-20">
             <DropdownMenuItem v-if="canAddChecklist" :icon="['fas', 'list-check']" icon-class="text-(--text-muted)" @click="emit('addChecklist'); showMenu = false">
                 {{ t('boards.checklist') }}

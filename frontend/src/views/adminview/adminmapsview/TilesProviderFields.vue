@@ -34,7 +34,7 @@ const showApiKey = ref(false)
         <option value="MAPBOX">Mapbox</option>
         <option value="MAPTILER">MapTiler</option>
         <option value="THUNDERFOREST">Thunderforest</option>
-        <option value="CUSTOM">{{ t('adminMaps.urlTemplate') }} (Custom)</option>
+        <option value="CUSTOM">{{ t('adminMaps.urlTemplate') }}</option>
       </SelectInput>
     </div>
 

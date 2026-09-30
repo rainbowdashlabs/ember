@@ -4,7 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useI18n} from 'vue-i18n'
 import IconButton from './IconButton.vue'
+
+const {t} = useI18n()
 
 defineProps<{
   disabled?: boolean
@@ -20,7 +23,7 @@ defineEmits<{
       :disabled="disabled"
       :icon="['fas', 'upload']"
       class="text-primary hover:bg-primary/15"
-      label="Upload"
+      :label="t('common.upload')"
       @click="$emit('click', $event)"
   />
 </template>

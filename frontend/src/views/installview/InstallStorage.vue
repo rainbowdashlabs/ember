@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -18,34 +19,30 @@ defineProps<{
   /** The database keeps its own files only when it is the one brought along. */
   bundledDatabase: boolean
 }>()
+
+const {t} = useI18n()
 </script>
 
 <template>
   <NeutralContainer class="space-y-3">
-    <SectionHeader>Ablage</SectionHeader>
-    <MutedText size="sm" tag="p">
-      Konfiguration und hochgeladene Dateien liegen als Verzeichnisse neben der Compose-Datei, damit
-      eine Sicherung sie mitnimmt, ohne dafür in Docker greifen zu müssen.
-    </MutedText>
+    <SectionHeader>{{ t('install.storage.title') }}</SectionHeader>
+    <MutedText size="sm" tag="p">{{ t('install.storage.intro') }}</MutedText>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div class="space-y-1">
-        <FieldLabel>Konfiguration</FieldLabel>
+        <FieldLabel>{{ t('install.storage.config') }}</FieldLabel>
         <TextInput v-model="configDir" placeholder="./config"/>
       </div>
       <div class="space-y-1">
-        <FieldLabel>Dateien und Bilder</FieldLabel>
+        <FieldLabel>{{ t('install.storage.data') }}</FieldLabel>
         <TextInput v-model="dataDir" placeholder="./data"/>
       </div>
     </div>
 
     <div v-if="bundledDatabase" class="space-y-1">
-      <FieldLabel>Ablage der Datenbank</FieldLabel>
+      <FieldLabel>{{ t('install.storage.database') }}</FieldLabel>
       <TextInput v-model="dbVolume" placeholder="ember-data"/>
-      <MutedText size="sm" tag="p">
-        Ein Name wird als benanntes Volume angelegt. Etwas, das mit . oder / beginnt, wird
-        stattdessen als Verzeichnis eingebunden.
-      </MutedText>
+      <MutedText size="sm" tag="p">{{ t('install.storage.databaseHint') }}</MutedText>
     </div>
   </NeutralContainer>
 </template>

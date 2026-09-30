@@ -142,7 +142,7 @@ async function handleRegenerate() {
         <NeutralContainer class="space-y-4">
           <SubHeader>{{ t('twoFactor.setup.scanQr') }}</SubHeader>
           <div class="flex justify-center">
-            <img :src="'data:image/png;base64,' + setupData.qrPng" alt="QR Code" class="w-48 h-48"/>
+            <img :src="'data:image/png;base64,' + setupData.qrPng" :alt="t('twoFactor.setup.qrAlt')" class="w-48 h-48"/>
           </div>
           <MutedText tag="p" size="sm" class="text-center break-all">{{ setupData.secret }}</MutedText>
 

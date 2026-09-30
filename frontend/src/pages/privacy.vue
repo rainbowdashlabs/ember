@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import PrivacyPolicyView from '~/views/PrivacyPolicyView.vue'
 import {useCanonical} from '~/composables/useCanonical'
 
@@ -14,11 +15,13 @@ definePageMeta({
 
 useCanonical('/privacy')
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Datenschutz',
+  title: t('pageHead.privacy.title'),
   meta: [
-    {name: 'description', content: 'Datenschutzerklärung für die Nutzung von Ember.'},
-    {property: 'og:title', content: 'Datenschutz - Ember'},
+    {name: 'description', content: t('pageHead.privacy.description')},
+    {property: 'og:title', content: t('pageHead.privacy.socialTitle')},
     {property: 'og:type', content: 'website'},
   ],
 })

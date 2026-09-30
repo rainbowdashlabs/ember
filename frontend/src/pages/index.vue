@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import HomeView from '~/views/HomeView.vue'
 import {useCanonical} from '~/composables/useCanonical'
 import {useReturnToLastArea} from '~/composables/useReturnToLastArea'
@@ -11,16 +12,18 @@ import {useReturnToLastArea} from '~/composables/useReturnToLastArea'
 useCanonical('/')
 useReturnToLastArea()
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Digitale Verwaltung für Jugendfeuerwehren',
+  title: t('pageHead.home.title'),
   meta: [
-    {name: 'description', content: 'Ember ist die kostenlose Open-Source-Plattform für Jugendfeuerwehren - Termine, Anwesenheit, Inventar, Wiki und mehr.'},
-    {property: 'og:title', content: 'Ember - Digitale Verwaltung für Jugendfeuerwehren'},
-    {property: 'og:description', content: 'Kostenlose Open-Source-Verwaltungsplattform für Jugendfeuerwehren.'},
+    {name: 'description', content: t('pageHead.home.description')},
+    {property: 'og:title', content: t('pageHead.home.socialTitle')},
+    {property: 'og:description', content: t('pageHead.home.socialDescription')},
     {property: 'og:type', content: 'website'},
     {name: 'twitter:card', content: 'summary'},
-    {name: 'twitter:title', content: 'Ember - Digitale Verwaltung für Jugendfeuerwehren'},
-    {name: 'twitter:description', content: 'Kostenlose Open-Source-Verwaltungsplattform für Jugendfeuerwehren.'},
+    {name: 'twitter:title', content: t('pageHead.home.socialTitle')},
+    {name: 'twitter:description', content: t('pageHead.home.socialDescription')},
   ],
   script: [
     {
@@ -31,7 +34,7 @@ useHead({
         name: 'Ember',
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web',
-        description: 'Digitale Verwaltung für Jugendfeuerwehren',
+        description: t('pageHead.home.title'),
         offers: {'@type': 'Offer', price: '0', priceCurrency: 'EUR'},
         author: {'@type': 'Organization', name: 'RainbowDashLabs'},
       }),

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -18,61 +19,53 @@ const bind = defineModel<string>('bind', {required: true})
 const traefikNetwork = defineModel<string>('traefikNetwork', {required: true})
 const traefikEntrypoint = defineModel<string>('traefikEntrypoint', {required: true})
 const traefikResolver = defineModel<string>('traefikResolver', {required: true})
+
+const {t} = useI18n()
 </script>
 
 <template>
   <NeutralContainer class="space-y-3">
-    <SectionHeader>Erreichbarkeit</SectionHeader>
-    <MutedText size="sm" tag="p">
-      Der Browser ruft Oberfläche und Schnittstelle unter derselben Adresse auf. Der Frontend-Server
-      reicht /api dafür selbst ans Backend weiter, ein Port auf dem Rechner genügt also.
-    </MutedText>
+    <SectionHeader>{{ t('install.reachability.title') }}</SectionHeader>
+    <MutedText size="sm" tag="p">{{ t('install.reachability.intro') }}</MutedText>
 
     <div class="space-y-1">
-      <FieldLabel>Wie ist Ember erreichbar?</FieldLabel>
+      <FieldLabel>{{ t('install.reachability.mode') }}</FieldLabel>
       <SelectInput v-model="mode">
-        <option value="port">Über einen Port auf dem Rechner</option>
-        <option value="traefik">Über ein vorhandenes Traefik</option>
+        <option value="port">{{ t('install.reachability.modePort') }}</option>
+        <option value="traefik">{{ t('install.reachability.modeTraefik') }}</option>
       </SelectInput>
       <MutedText size="sm" tag="p">
-        {{
-          mode === 'port'
-              ? 'Nichts weiter davor nötig: der Frontend-Server reicht /api selbst ans Backend weiter.'
-              : 'Traefik kümmert sich um Name und Zertifikat, so wie es ember-panel.de tut.'
-        }}
+        {{ t(mode === 'port' ? 'install.reachability.portHint' : 'install.reachability.traefikHint') }}
       </MutedText>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div class="space-y-1">
-        <FieldLabel>{{ mode === 'traefik' ? 'Hostname' : 'Adresse der Instanz' }}</FieldLabel>
+        <FieldLabel>{{ t(mode === 'traefik' ? 'install.reachability.hostname' : 'install.reachability.address') }}</FieldLabel>
         <TextInput v-model="host" placeholder="ember.example.org"/>
       </div>
       <div v-if="mode === 'port'" class="space-y-1">
-        <FieldLabel>Port</FieldLabel>
+        <FieldLabel>{{ t('install.reachability.port') }}</FieldLabel>
         <TextInput v-model="port" placeholder="8080"/>
       </div>
       <div v-if="mode === 'port'" class="space-y-1">
-        <FieldLabel>Adresse, auf der der Port geöffnet wird</FieldLabel>
-        <TextInput v-model="bind" placeholder="leer: alle Schnittstellen"/>
-        <MutedText size="sm" tag="p">
-          Leer öffnet den Port auf allen Schnittstellen. 127.0.0.1 hält ihn auf dem Rechner, die
-          Adresse eines VPN-Interface hält ihn in diesem Netz.
-        </MutedText>
+        <FieldLabel>{{ t('install.reachability.bind') }}</FieldLabel>
+        <TextInput v-model="bind" :placeholder="t('install.reachability.bindPlaceholder')"/>
+        <MutedText size="sm" tag="p">{{ t('install.reachability.bindHint') }}</MutedText>
       </div>
     </div>
 
     <div v-if="mode === 'traefik'" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <div class="space-y-1">
-        <FieldLabel>Netzwerk</FieldLabel>
+        <FieldLabel>{{ t('install.reachability.network') }}</FieldLabel>
         <TextInput v-model="traefikNetwork"/>
       </div>
       <div class="space-y-1">
-        <FieldLabel>Entrypoint</FieldLabel>
+        <FieldLabel>{{ t('install.reachability.entrypoint') }}</FieldLabel>
         <TextInput v-model="traefikEntrypoint"/>
       </div>
       <div class="space-y-1">
-        <FieldLabel>Zertifikatsresolver</FieldLabel>
+        <FieldLabel>{{ t('install.reachability.resolver') }}</FieldLabel>
         <TextInput v-model="traefikResolver"/>
       </div>
     </div>

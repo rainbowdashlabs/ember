@@ -94,7 +94,7 @@ const table = useTicketTable({
         <FailureAlert v-else-if="failure" :failure="failure"/>
         <template v-else-if="board">
             <div class="flex items-center gap-3 mb-4">
-                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.shortKey}`)" />
+                <IconButton :icon="['fas', 'chevron-left']" :label="t('common.back')" @click="router.push(`/station/boards/${board.shortKey}`)" />
                 <SectionHeader>{{ board.name }} - {{ t('boards.archived') }}</SectionHeader>
             </div>
 

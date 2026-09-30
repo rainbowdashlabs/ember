@@ -61,7 +61,7 @@ const pieceCount = computed(() => props.assignedItems.length + props.emptySlotCo
           {{ t('inventory.check.inExchange', {count: req.inExchangeQuantity}) }}
         </span>
         <span v-if="req.assignedQuantity < req.requiredQuantity" class="text-error">
-          ({{ req.requiredQuantity - req.assignedQuantity }} fehlt)
+          {{ t('memberDetail.missingCount', {count: req.requiredQuantity - req.assignedQuantity}) }}
         </span>
       </MutedText>
     </div>

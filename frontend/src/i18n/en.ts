@@ -31,6 +31,9 @@ export default {
         next: 'Next',
         download: 'Download',
         preview: 'Preview',
+        upload: 'Upload',
+        menu: 'Menu',
+        insert: 'Insert',
     },
     exportFormat: {
         title: 'Export',

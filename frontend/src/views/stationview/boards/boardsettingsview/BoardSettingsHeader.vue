@@ -25,7 +25,7 @@ const { t } = useI18n()
 <template>
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
-            <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="emit('back')" />
+            <IconButton :icon="['fas', 'chevron-left']" :label="t('common.back')" @click="emit('back')" />
             <SectionHeader>{{ t('boards.settings') }}</SectionHeader>
             <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ shortKey }}</span>
         </div>

@@ -9,8 +9,11 @@ import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import AuthImage from '@/components/display/AuthImage.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import { isKbImageSrc } from '@/util/normalizeAuthSrc'
+import i18n from '@/i18n'
 
 const props = defineProps(nodeViewProps)
+
+const { t } = i18n.global
 
 const imgWidth = computed(() => props.node.attrs.width ? String(props.node.attrs.width) : '')
 
@@ -50,12 +53,12 @@ function onWidthChange(e: Event) {
       draggable="false"
     />
     <div class="image-controls" @mousedown.stop>
-      <label :for="widthId" class="text-xs text-[var(--text-muted)] mr-1">Breite:</label>
+      <label :for="widthId" class="text-xs text-[var(--text-muted)] mr-1">{{ t('markdownEditor.imageWidth') }}</label>
       <input
         :id="widthId"
         type="number"
         :value="imgWidth"
-        placeholder="auto"
+        :placeholder="t('markdownEditor.imageWidthAuto')"
         class="w-16 px-1 py-0.5 text-xs rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)] text-center"
         min="50"
         step="10"
@@ -65,7 +68,7 @@ function onWidthChange(e: Event) {
       <div class="w-px h-4 bg-[var(--border)] mx-1.5" />
       <IconButton
         :icon="['fas', 'trash']"
-        label="Bild entfernen"
+        :label="t('markdownEditor.removeImage')"
         class="hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 cursor-pointer"
         @click="deleteNode"
       >

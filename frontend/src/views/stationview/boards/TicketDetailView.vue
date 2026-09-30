@@ -350,7 +350,7 @@ watch(ticketNumber, reload)
             />
             <Modal v-model="showDeleteModal">
                 <SubHeader class="mb-4">{{ t('common.delete') }}</SubHeader>
-                <p class="mb-4">Soll dieses Ticket wirklich gelöscht werden?</p>
+                <p class="mb-4">{{ t('boards.deleteTicketConfirm') }}</p>
                 <div class="flex justify-end gap-2">
                     <DeleteButton @click="confirmDeleteTicket">{{ t('common.delete') }}</DeleteButton>
                 </div>

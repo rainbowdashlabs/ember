@@ -195,11 +195,11 @@ test.describe('Boards', () => {
         const key = await createBoard(page)
         await createTicket(page, key)
 
-        await page.getByRole('button', {name: 'Add', exact: true}).first().click()
+        await page.getByRole('button', {name: 'Zum Ticket hinzufügen', exact: true}).click()
         await page.getByText('Checkliste').last().click()
 
         await page.getByPlaceholder('Punkt hinzufügen').fill(item)
-        await page.getByRole('button', {name: 'Hinzufügen'}).first().click()
+        await page.getByRole('button', {name: 'Hinzufügen', exact: true}).first().click()
         await expect(page.getByText(item)).toBeVisible()
 
         await page.getByRole('checkbox').first().click()

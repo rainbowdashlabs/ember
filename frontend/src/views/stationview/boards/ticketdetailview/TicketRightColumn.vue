@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import LaneStatusMover from '../boardview/LaneStatusMover.vue'
 import TicketLabelsField from './TicketLabelsField.vue'
@@ -35,6 +36,8 @@ defineProps<{
     /** What the last action or load ran into, described, or nothing where nothing has. */
     failure: Failure | null
 }>()
+
+const { t } = useI18n()
 
 const priority = defineModel<TicketPriorityName>('priority')
 const assignedMemberId = defineModel<string>('assignedMemberId', { default: '' })
@@ -109,8 +112,8 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
             @save="(id, type, value) => emit('saveField', id, type, value)"
         />
         <div class="text-xs text-[var(--text-muted)] space-y-1 pt-4 border-t border-[var(--border)]">
-            <p v-if="ticket.createdAt">Erstellt: {{ formatDateTime(ticket.createdAt) }}</p>
-            <p v-if="ticket.updatedAt">Geändert: {{ formatDateTime(ticket.updatedAt) }}</p>
+            <p v-if="ticket.createdAt">{{ t('boards.createdAtLine', {when: formatDateTime(ticket.createdAt)}) }}</p>
+            <p v-if="ticket.updatedAt">{{ t('boards.updatedAtLine', {when: formatDateTime(ticket.updatedAt)}) }}</p>
         </div>
         <FailureAlert :failure="failure"/>
     </div>

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import TwoFactorVerifyView from '~/views/TwoFactorVerifyView.vue'
 
 definePageMeta({
@@ -11,8 +12,10 @@ definePageMeta({
   name: '2fa-verify',
 })
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Zwei-Faktor-Authentifizierung',
+  title: t('pageHead.twoFactorVerify'),
 })
 </script>
 

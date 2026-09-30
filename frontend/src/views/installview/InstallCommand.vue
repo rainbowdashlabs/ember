@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import {computed, ref} from 'vue'
+import {useI18n} from 'vue-i18n'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -23,6 +24,7 @@ const props = defineProps<{
   options: Record<string, string>
 }>()
 
+const {t} = useI18n()
 const copied = ref(false)
 
 const origin = computed(() => (import.meta.client ? window.location.origin : 'https://ember-panel.de'))
@@ -40,22 +42,22 @@ async function copy() {
 
 <template>
   <SuccessContainer class="space-y-3">
-    <SectionHeader>Auf dem Server ausführen</SectionHeader>
+    <SectionHeader>{{ t('install.command.title') }}</SectionHeader>
 
     <div class="flex items-center gap-3 flex-wrap">
-      <span class="text-sm text-(--text-muted)">Code</span>
+      <span class="text-sm text-(--text-muted)">{{ t('install.command.code') }}</span>
       <span class="rounded bg-(--bg-accent) px-3 py-1 text-2xl font-mono font-bold tracking-widest">{{ code }}</span>
-      <MutedText size="sm" tag="span">gültig für {{ validForHours }} Stunden</MutedText>
+      <MutedText size="sm" tag="span">{{ t('install.command.validFor', {hours: validForHours}) }}</MutedText>
     </div>
 
     <pre class="overflow-x-auto rounded bg-(--bg-accent) p-3 text-sm font-mono">{{ command }}</pre>
 
     <SecondaryButton :icon="['fas', copied ? 'check' : 'copy']" @click="copy">
-      {{ copied ? 'Kopiert' : 'Befehl kopieren' }}
+      {{ t(copied ? 'install.command.copied' : 'install.command.copy') }}
     </SecondaryButton>
 
     <details class="text-sm">
-      <summary class="cursor-pointer text-(--text-muted)">Was hinter dem Code steht</summary>
+      <summary class="cursor-pointer text-(--text-muted)">{{ t('install.command.behindTheCode') }}</summary>
       <dl class="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-xs">
         <template v-for="[key, value] in shown" :key="key">
           <dt class="text-(--text-muted)">{{ key }}</dt>

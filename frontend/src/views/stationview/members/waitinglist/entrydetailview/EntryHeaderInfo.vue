@@ -48,8 +48,8 @@ const { t } = useI18n()
       {{ t('waitingList.createdAt') }}:
       <template v-if="editingCreatedAt">
         <DateTimeInput v-model="editCreatedAtValue" />
-        <IconButton :icon="['fas', 'check']" label="Speichern" @click="emit('save-created-at')" />
-        <IconButton :icon="['fas', 'xmark']" label="Abbrechen" @click="editingCreatedAt = false" />
+        <IconButton :icon="['fas', 'check']" :label="t('common.save')" @click="emit('save-created-at')" />
+        <IconButton :icon="['fas', 'xmark']" :label="t('common.cancel')" @click="editingCreatedAt = false" />
       </template>
       <template v-else>
         {{ formatDateTime(entry.entry.createdAt) }}

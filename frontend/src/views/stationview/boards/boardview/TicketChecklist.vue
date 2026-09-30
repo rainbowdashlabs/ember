@@ -55,7 +55,7 @@ const total = computed(() => props.checklist.length)
                     <div class="flex items-center gap-2 group py-0.5">
                         <CheckboxInput :model-value="item.checked" @update:model-value="emit('toggle', item)" />
                         <span :class="{ 'line-through text-[var(--text-muted)]': item.checked }" class="flex-1 text-sm">{{ item.title }}</span>
-                        <IconButton :icon="['fas', 'xmark']" label="Remove" class="sm:opacity-0 sm:group-hover:opacity-100 text-xs" @click="emit('remove', item.id)" />
+                        <IconButton :icon="['fas', 'xmark']" :label="t('common.remove')" class="sm:opacity-0 sm:group-hover:opacity-100 text-xs" @click="emit('remove', item.id)" />
                     </div>
                 </template>
             </DragList>

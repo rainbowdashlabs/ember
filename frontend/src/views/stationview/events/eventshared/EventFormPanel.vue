@@ -23,6 +23,7 @@ import RepeatEndField from './RepeatEndField.vue'
 import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
 import {EventTypes, isRecurringEvent, needsDayOfWeek, type EventCategory, type EventFieldEntry} from '@/api/events'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import {weekdayName} from '@/util/format'
 
 defineProps<{
   categories: EventCategory[]
@@ -134,13 +135,7 @@ const labelId = useId()
       <div v-if="needsDayOfWeek(eventType)" class="space-y-1">
         <FieldLabel>{{ t('events.dayOfWeek') }}</FieldLabel>
         <SelectInput v-model="dayOfWeek" class="w-full">
-          <option value="1">Montag</option>
-          <option value="2">Dienstag</option>
-          <option value="3">Mittwoch</option>
-          <option value="4">Donnerstag</option>
-          <option value="5">Freitag</option>
-          <option value="6">Samstag</option>
-          <option value="7">Sonntag</option>
+          <option v-for="day in 7" :key="day" :value="String(day)">{{ weekdayName(day) }}</option>
         </SelectInput>
       </div>
 

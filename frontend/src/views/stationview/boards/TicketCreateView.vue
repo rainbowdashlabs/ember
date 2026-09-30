@@ -265,7 +265,7 @@ const pageSubtitle = computed(() => board.value?.name || t('pages.ticket-create.
         <FailureAlert v-else-if="loadFailure && !board" :failure="loadFailure"/>
         <template v-else-if="board">
             <div class="flex items-center gap-3 mb-6">
-                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="goBack" />
+                <IconButton :icon="['fas', 'chevron-left']" :label="t('common.back')" @click="goBack" />
                 <SectionHeader>{{ t('boards.createTicket') }}</SectionHeader>
                 <span class="text-xs font-mono text-(--text-muted) bg-(--bg-accent) px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
             </div>

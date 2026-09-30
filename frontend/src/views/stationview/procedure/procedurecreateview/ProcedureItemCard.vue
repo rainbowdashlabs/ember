@@ -66,7 +66,7 @@ function removeDependency(depId: number) {
         <span v-for="depId in item.dependsOn" :key="depId"
               class="inline-flex items-center gap-1 bg-(--bg-light-accent) dark:bg-(--bg-dark-accent) rounded px-2 py-0.5 text-xs">
           {{ allItems.find(i => i.tempId === depId)?.title || '?' }}
-          <IconButton :icon="['fas', 'xmark']" label="Remove" class="!p-0" @click="removeDependency(depId)"/>
+          <IconButton :icon="['fas', 'xmark']" :label="t('common.remove')" class="!p-0" @click="removeDependency(depId)"/>
         </span>
       </div>
       <SelectInput v-if="availableDeps().length > 0" model-value="" class="w-full text-xs"

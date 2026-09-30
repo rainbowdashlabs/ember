@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import StationSelectView from '~/views/StationSelectView.vue'
 
 definePageMeta({
@@ -11,8 +12,10 @@ definePageMeta({
   name: 'station-select',
 })
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Station wählen',
+  title: t('pageHead.stationSelect'),
 })
 </script>
 

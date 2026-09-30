@@ -116,7 +116,7 @@ function handleCreate() {
                             </div>
                         </div>
                         <div class="mt-3 text-xs text-[var(--text-muted)]">
-                            {{ board.ticketCounter }} {{ board.ticketCounter === 1 ? 'Ticket' : 'Tickets' }}
+                            {{ t(board.ticketCounter === 1 ? 'boards.ticketCountOne' : 'boards.ticketCountMany', {count: board.ticketCounter}) }}
                         </div>
                     </NeutralContainer>
                 </RowLink>

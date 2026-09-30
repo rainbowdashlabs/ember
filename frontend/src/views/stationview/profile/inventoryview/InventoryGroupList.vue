@@ -41,7 +41,7 @@ const {t} = useI18n()
         <span v-if="group.requiredQuantity > 0" class="text-sm text-(--text-muted)">
           {{ group.items.length }} / {{ group.requiredQuantity }}
           <span v-if="group.items.length < group.requiredQuantity" class="text-error">
-            ({{ group.requiredQuantity - group.items.length }} fehlt)
+            {{ t('memberDetail.missingCount', {count: group.requiredQuantity - group.items.length}) }}
           </span>
         </span>
       </div>

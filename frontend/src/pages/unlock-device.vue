@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import DeviceUnlockView from '~/views/DeviceUnlockView.vue'
 
 definePageMeta({
@@ -11,8 +12,10 @@ definePageMeta({
   name: 'unlock-device',
 })
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Dieses Gerät freischalten',
+  title: t('pageHead.unlockDevice'),
 })
 </script>
 

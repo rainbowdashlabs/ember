@@ -60,7 +60,7 @@ const emit = defineEmits<{
               <IconButton
                 v-if="canManage"
                 :icon="['fas', 'xmark']"
-                label="Remove"
+                :label="t('common.remove')"
                 class="!p-0 !w-3 !h-3 text-[var(--text-muted)]"
                 @click="emit('removeDep', depId, item.id)"
               />

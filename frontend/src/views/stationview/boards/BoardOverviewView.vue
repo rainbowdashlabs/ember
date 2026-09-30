@@ -46,7 +46,7 @@ function boardPage(board: Board): string {
                         </div>
                         <p v-if="board.description" class="text-sm text-[var(--text-muted)] line-clamp-2">{{ board.description }}</p>
                         <div class="mt-3 text-xs text-[var(--text-muted)]">
-                            {{ board.ticketCounter }} {{ board.ticketCounter === 1 ? 'Ticket' : 'Tickets' }}
+                            {{ t(board.ticketCounter === 1 ? 'boards.ticketCountOne' : 'boards.ticketCountMany', {count: board.ticketCounter}) }}
                         </div>
                     </NeutralContainer>
                 </RowLink>

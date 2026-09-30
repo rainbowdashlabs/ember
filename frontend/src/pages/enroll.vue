@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import PasskeyEnrollView from '~/views/PasskeyEnrollView.vue'
 
 definePageMeta({
@@ -11,8 +12,10 @@ definePageMeta({
   name: 'enroll',
 })
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Passkey einrichten',
+  title: t('pageHead.passkey'),
 })
 </script>
 

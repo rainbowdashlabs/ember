@@ -35,7 +35,7 @@ const { t } = useI18n()
         <div v-for="wl in weblinks" :key="wl.key" class="flex items-center gap-2 py-0.5 group">
             <MutedIcon :icon="['fas', 'globe']" size="inline" class="shrink-0"/>
             <span class="text-sm truncate flex-1">{{ wl.title || wl.url }}</span>
-            <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-xs sm:opacity-0 sm:group-hover:opacity-100" @click="emit('remove', wl.key)" />
+            <IconButton :icon="['fas', 'xmark']" :label="t('common.remove')" class="text-xs sm:opacity-0 sm:group-hover:opacity-100" @click="emit('remove', wl.key)" />
         </div>
         <div class="flex gap-2 mt-2 items-center">
             <TextInput :model-value="newUrl" placeholder="https://..." class="flex-1 text-sm" @update:model-value="v => emit('update:newUrl', String(v))" />

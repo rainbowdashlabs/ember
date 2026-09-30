@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import { ref, useId } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {search as kbSearch, type SearchResult} from '@/api/knowledgeBase'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -25,6 +26,7 @@ defineEmits<{
   cancel: []
 }>()
 
+const { t } = useI18n()
 const fieldId = useId()
 const linkText = ref(props.initialText)
 const linkUrl = ref(props.initialUrl)
@@ -67,19 +69,19 @@ function selectResult(result: SearchResult) {
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <font-awesome-icon :icon="['fas', 'link']" class="text-[var(--primary)] w-3.5 h-3.5" />
-        <span class="text-sm font-medium">Link</span>
+        <span class="text-sm font-medium">{{ t('markdownEditor.link') }}</span>
       </div>
-      <MutedIconButton :icon="['fas', 'xmark']" label="Schließen" hover="text" @click="$emit('cancel')"/>
+      <MutedIconButton :icon="['fas', 'xmark']" :label="t('common.close')" hover="text" @click="$emit('cancel')"/>
     </div>
 
     <div>
-      <label :for="`${fieldId}-text`" class="block text-xs text-[var(--text-muted)] mb-0.5">Anzeigetext</label>
-      <TextInput :id="`${fieldId}-text`" v-model="linkText" placeholder="Text des Links" class="!text-sm" />
+      <label :for="`${fieldId}-text`" class="block text-xs text-[var(--text-muted)] mb-0.5">{{ t('markdownEditor.linkText') }}</label>
+      <TextInput :id="`${fieldId}-text`" v-model="linkText" :placeholder="t('markdownEditor.linkTextPlaceholder')" class="!text-sm" />
     </div>
 
     <div>
-      <label :for="`${fieldId}-target`" class="block text-xs text-[var(--text-muted)] mb-0.5">URL oder Datei suchen</label>
-      <TextInput :id="`${fieldId}-target`" v-model="linkSearchQuery" placeholder="https://... oder Suchbegriff" class="!text-sm" @input="onSearchInput" />
+      <label :for="`${fieldId}-target`" class="block text-xs text-[var(--text-muted)] mb-0.5">{{ t('markdownEditor.linkTarget') }}</label>
+      <TextInput :id="`${fieldId}-target`" v-model="linkSearchQuery" :placeholder="t('markdownEditor.linkTargetPlaceholder')" class="!text-sm" @input="onSearchInput" />
     </div>
 
     <div v-if="linkSearchResults.length > 0" class="max-h-32 overflow-y-auto rounded border border-[var(--border)] divide-y divide-[var(--border)]">
@@ -92,16 +94,16 @@ function selectResult(result: SearchResult) {
       </button>
     </div>
     <div v-else-if="linkSearching" class="text-xs text-[var(--text-muted)]">
-      <font-awesome-icon :icon="['fas', 'spinner']" spin class="mr-1" /> Suche...
+      <font-awesome-icon :icon="['fas', 'spinner']" spin class="mr-1" /> {{ t('markdownEditor.searching') }}
     </div>
 
     <ButtonRow>
       <PrimaryButton compact :disabled="!linkUrl" @click="$emit('apply', linkUrl, linkText)">
-        <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> Einfügen
+        <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('common.insert') }}
       </PrimaryButton>
-      <SecondaryButton compact @click="$emit('cancel')">Abbrechen</SecondaryButton>
+      <SecondaryButton compact @click="$emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
       <button v-if="isEditing" type="button" class="text-xs text-red-500 hover:underline cursor-pointer sm:ml-auto" @click="$emit('remove')">
-        <font-awesome-icon :icon="['fas', 'link-slash']" class="mr-0.5" /> Entfernen
+        <font-awesome-icon :icon="['fas', 'link-slash']" class="mr-0.5" /> {{ t('common.remove') }}
       </button>
     </ButtonRow>
   </div>

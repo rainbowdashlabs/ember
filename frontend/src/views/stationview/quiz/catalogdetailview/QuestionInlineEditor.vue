@@ -40,7 +40,7 @@ const { t } = useI18n()
   <div class="space-y-4">
     <div class="flex items-center justify-between">
       <SubHeader>{{ isEditing ? t('quiz.questions.edit') : t('quiz.questions.create') }}</SubHeader>
-      <MutedIconButton :icon="['fas', 'xmark']" label="Close" hover="error" @click="emit('cancel')" />
+      <MutedIconButton :icon="['fas', 'xmark']" :label="t('common.close')" hover="error" @click="emit('cancel')" />
     </div>
     <QuestionEditor
       v-model:title="title"

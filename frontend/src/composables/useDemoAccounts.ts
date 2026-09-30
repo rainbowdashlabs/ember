@@ -140,11 +140,11 @@ export function useDemoAccounts() {
       matching.forEach(a => taken.add(a.email))
     }
 
-    addGroup('Verbandsleitung', 'CLUSTER_ADMINISTRATOR')
-    addGroup('Mitgliederverwaltung', 'CLUSTER_MEMBER_MANAGER')
-    addGroup('Materialverwaltung', 'CLUSTER_INVENTORY_MANAGER')
+    addGroup(t('demo.clusterRoles.administrator'), 'CLUSTER_ADMINISTRATOR')
+    addGroup(t('demo.clusterRoles.memberManager'), 'CLUSTER_MEMBER_MANAGER')
+    addGroup(t('demo.clusterRoles.inventoryManager'), 'CLUSTER_INVENTORY_MANAGER')
     const rest = acting.filter(a => !taken.has(a.email))
-    if (rest.length) groups.push({label: 'Verband', accounts: rest})
+    if (rest.length) groups.push({label: t('demo.clusterRoles.other'), accounts: rest})
     return groups
   })
 
