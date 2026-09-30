@@ -276,7 +276,7 @@ const groups = [
     defaultOpen: false,
     vars: [
       {name: 'NUXT_BACKEND_URL', default: 'http://localhost:8080', desc: t('helpCenter.basics.configuration.env.backendUrl')},
-      {name: 'NUXT_CSP_MODE', default: 'report', desc: t('helpCenter.basics.configuration.env.cspMode')},
+      {name: 'NUXT_CSP_MODE', default: 'enforce', desc: t('helpCenter.basics.configuration.env.cspMode')},
       {name: 'NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION', default: '-', desc: t('helpCenter.basics.configuration.env.googleVerification')},
       {name: 'NITRO_PORT', default: '3000', desc: t('helpCenter.basics.configuration.env.nitroPort')},
       {name: 'NITRO_HOST', default: '0.0.0.0', desc: t('helpCenter.basics.configuration.env.nitroHost')},

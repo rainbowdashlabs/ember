@@ -879,7 +879,7 @@ volumes:
                     themingLockFeel: 'Wenn auf true gesetzt, können Wachen das Design (rund/eckig) nicht mehr ändern - es gilt instanzweit das Standard-Design.',
                     googleVerification: 'Bestätigungscode für die Google Search Console. Damit kannst du überprüfen, wie Google deine Seite indexiert. Erhältst du nach der Registrierung bei search.google.com.',
                     backendUrl: 'Adresse, unter der der Frontend-Container das Backend erreicht. Darüber laufen /api, die Sitemaps und die auf dem Server gerenderten Seiten. Im Docker-Netzwerk ist das typischerweise http://ember:8080.',
-                    cspMode: 'Wie die Content Security Policy gesendet wird: report meldet Verstöße nur, enforce blockiert sie, off sendet keine. Standard report.',
+                    cspMode: 'Wie die Content Security Policy gesendet wird: enforce blockiert Verstöße, report meldet sie nur in der Browser-Konsole, off sendet keine. Standard enforce. Stell auf report, wenn eingebettete Inhalte blockiert werden.',
                     nitroPort: 'Der Port, auf dem der Frontend-Container Anfragen entgegennimmt. Wird im Docker-Container automatisch gesetzt.',
                     nitroHost: 'Die Netzwerkadresse, auf der der Frontend-Container lauscht. 0.0.0.0 bedeutet "alle Adressen" - das ist in Docker richtig.',
                     demoEnabled: 'Aktiviert den Demo-Modus. In diesem Modus werden bestimmte Aktionen (wie das Löschen von Wachen) blockiert und die Daten werden regelmäßig zurückgesetzt.',
