@@ -26,6 +26,7 @@ const dummySeparator = ref(';')
   <HelpArticle :title="t('helpCenter.membersImportTeam.title')" :subtitle="t('helpCenter.membersImportTeam.subtitle')">
     <HelpSection :title="t('helpCenter.membersImportTeam.whatIs')">
       <p>{{ t('helpCenter.membersImportTeam.whatIsText') }}</p>
+      <p>{{ t('helpCenter.membersImportTeam.groupsFitText') }}</p>
     </HelpSection>
 
     <!-- Dummy: Header with back button -->

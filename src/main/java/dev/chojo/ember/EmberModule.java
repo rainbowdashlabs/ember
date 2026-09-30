@@ -211,6 +211,7 @@ import dev.chojo.ember.feature.media.route.MediaRoutes;
 import dev.chojo.ember.feature.media.route.PublicMediaRoutes;
 import dev.chojo.ember.feature.members.route.ManagedMemberRoutes;
 import dev.chojo.ember.feature.members.route.MemberGroupRoutes;
+import dev.chojo.ember.feature.members.route.MemberGroupSetRoutes;
 import dev.chojo.ember.feature.members.route.MemberImportRoutes;
 import dev.chojo.ember.feature.members.route.MemberRoutes;
 import dev.chojo.ember.feature.members.route.MemberTableRoutes;
@@ -404,6 +405,7 @@ public class EmberModule extends AbstractModule {
         bind(CellDescriptions.PageAddressing.class).to(StationPageAddressing.class);
         routesBinder.addBinding().to(ProfileFieldChangeRoutes.class);
         routesBinder.addBinding().to(MemberGroupRoutes.class);
+        routesBinder.addBinding().to(MemberGroupSetRoutes.class);
         routesBinder.addBinding().to(RegistrationCodeRoutes.class);
         routesBinder.addBinding().to(StationManageRoutes.class);
         routesBinder.addBinding().to(SetupRoutes.class);

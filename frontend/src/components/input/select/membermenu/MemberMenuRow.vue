@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import MemberName from '@/components/avatar/MemberName.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import DropdownOption from '../dropdown/DropdownOption.vue'
 import {identityOf, type MemberOption} from '../memberOption'
 
@@ -44,6 +45,7 @@ const {t} = useI18n()
     <template v-if="option">
       <MemberName :identity="identityOf(option)" class="min-w-0"/>
       <MutedText v-if="option.email" class="truncate">{{ option.email }}</MutedText>
+      <InfoBadge v-if="option.note" class="shrink-0">{{ option.note }}</InfoBadge>
     </template>
     <template v-else>
       <font-awesome-icon :icon="['fas', 'user-slash']" class="h-4 w-4 shrink-0 text-(--text-muted)"/>

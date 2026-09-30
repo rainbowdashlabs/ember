@@ -486,7 +486,7 @@ class BoardServiceTest extends RepositoryTestBase {
     void canViewWithGroupRestriction() {
         boardService.setViewAccess(boardId, List.of(), List.of(42), List.of());
         when(groupService.findGroupsForMember(member.id()))
-                .thenReturn(List.of(new MemberGroup(42, station.id(), "TestGroup", null, 0)));
+                .thenReturn(List.of(new MemberGroup(42, station.id(), "TestGroup", null, 0, null, List.of())));
         assertTrue(boardService.canView(boardId, member.id()));
     }
 

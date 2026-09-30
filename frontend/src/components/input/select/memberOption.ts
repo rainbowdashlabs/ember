@@ -23,6 +23,8 @@ export interface MemberOption {
     /** What kind of member they are, for the optional kind filter. */
     userType?: string | null
     identity?: MemberIdentity | null
+    /** A remark about them the call site wants seen before they are picked, such as the group they would leave. */
+    note?: string | null
 }
 
 /** The name to show for somebody whose own name was never filled in. */

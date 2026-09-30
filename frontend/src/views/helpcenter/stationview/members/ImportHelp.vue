@@ -135,6 +135,7 @@ const dummySeparator = ref(';')
 
     <HelpSection :title="t('helpCenter.membersImport.duplicatesTitle')">
       <p>{{ t('helpCenter.membersImport.duplicatesText') }}</p>
+      <p>{{ t('helpCenter.membersImport.groupsFitText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.membersImport.step3')">

@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -20,7 +19,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -34,7 +32,7 @@ class MemberGroupServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, new DomainEventBus(Set.of()));
+        service = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo);
         station = stationRepo.create("GroupStation");
         account = accountRepo.create("group-svc@test.com", "Group", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -49,7 +47,7 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void create() {
-        var group = service.create(station.id(), "Anfänger");
+        var group = memberGroupRepo.create(station.id(), "Anfänger");
         assertNotNull(group);
         assertEquals("Anfänger", group.name());
         groupId = group.id();
@@ -70,10 +68,11 @@ class MemberGroupServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(10)
-    void addMember() {
-        service.setMembers(groupId, List.of(member.id()), null);
+    void findMembers() {
+        memberGroupRepo.addMember(groupId, member.id());
         var members = service.findMembers(groupId);
-        assertTrue(members.stream().anyMatch(m -> m.id() == member.id()));
+        assertEquals(
+                List.of(member.id()), members.stream().map(StationMember::id).toList());
     }
 
     @Test
@@ -81,14 +80,6 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     void findGroupsForMember() {
         var groups = service.findGroupsForMember(member.id());
         assertTrue(groups.stream().anyMatch(g -> g.id() == groupId));
-    }
-
-    @Test
-    @Order(12)
-    void setMembers() {
-        service.setMembers(groupId, List.of(member.id()), null);
-        var members = service.findMembers(groupId);
-        assertEquals(1, members.size());
     }
 
     @Test
@@ -105,20 +96,6 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(30)
-    void update() {
-        var result = service.update(groupId, "Fortgeschritten", null, 0);
-        assertTrue(result.isPresent());
-        assertEquals("Fortgeschritten", result.get().name());
-    }
-
-    @Test
-    @Order(31)
-    void updateMissingReturnsEmpty() {
-        assertTrue(service.update(999999, "Ghost", null, 0).isEmpty());
-    }
-
-    @Test
     @Order(40)
     void delete() {
         assertTrue(service.delete(groupId));
@@ -129,8 +106,8 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     @Order(50)
     void convertToTag() {
         // Create a fresh group with the member in it
-        var group2 = service.create(station.id(), "ToBeTag");
-        service.setMembers(group2.id(), List.of(member.id()), null);
+        var group2 = memberGroupRepo.create(station.id(), "ToBeTag");
+        memberGroupRepo.addMember(group2.id(), member.id());
 
         service.convertToTag(group2.id());
 

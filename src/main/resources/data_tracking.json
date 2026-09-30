@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:f6406be853fb5c3615e5400de86ff5c4a3da095b00f8d7fe54379efda2314773",
-  "generatedAt": "2026-09-30T22:10:34Z",
+  "schemaHash": "sha256:986f049c87be514c46ab25b77602b6da7bc7ac79d3cc5cc4150f04dc618bc5c9",
+  "generatedAt": "2026-09-30T22:11:36Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -16515,7 +16515,7 @@
     "member_group": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:dfce3f3e29f748bc23168b72a0ce30eb8953d291085aa0d568bc867cb70e7c5f",
+      "tableHash": "sha256:3ec2fb985bd6b7dfe9a774750c19e2460fc37209b9ddeb5de60a817c29a47ed8",
       "columns": [
         {
           "name": "id",
@@ -16551,9 +16551,22 @@
           "nullable": false,
           "verified": true,
           "description": "Sort order / priority. Higher position = higher priority for color resolution."
+        },
+        {
+          "name": "group_set_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The set this group belongs to, which allows a member in only one of its groups. Empty for a group in no set."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "group_set_id",
+          "refTable": "member_group_set",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "station_id",
           "refTable": "station",
@@ -16580,7 +16593,7 @@
     "member_group_entry": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:bd1050bbba466654801460a54a487327f90744b78792f079cc93453523b7e40e",
+      "tableHash": "sha256:0a57b1fe9bb27ea7081346d4739cbd3c327c177b1c7588d5d508d7c13418583b",
       "columns": [
         {
           "name": "group_id",
@@ -16595,6 +16608,13 @@
           "nullable": false,
           "verified": true,
           "description": "References the station member."
+        },
+        {
+          "name": "group_set_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "A copy of the set of the group, kept right by triggers on this table and on member_group. It exists so one unique index can allow a member in only one group of a set."
         }
       ],
       "foreignKeys": [
@@ -16612,7 +16632,10 @@
         }
       ],
       "stationTransfer": {
-        "status": "TRACKED"
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "group_set_id"
+        ]
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -16679,6 +16702,98 @@
         "status": "IGNORED",
         "reason": "Group/tag structure, not per-member entry"
       }
+    },
+    "member_group_set": {
+      "feature": "members",
+      "scope": "STATION",
+      "tableHash": "sha256:6c35399eb2b973693c735b696b4c66ad485cbe27d14a7cc98df51ec81cf21bf4",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station the set belongs to."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The name of the set, unique within the station."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "station_id"
+        ]
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Group/tag structure, not per-member entry"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Group/tag structure, not per-member entry"
+      },
+      "description": "A set of groups a member can be in only one of, such as the levels of a training. Deleting a set keeps its groups and their members."
+    },
+    "member_group_user_type": {
+      "feature": "members",
+      "scope": "STATION",
+      "tableHash": "sha256:b4a3144697f526863b0b69ea73cb1e5cd1c43be0e5868ba2d23615dcbca71466",
+      "columns": [
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The bound group. Deleted with the group."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "A user type allowed in the group (TRIAL, MEMBER, GUARDIAN, TEAM, MANAGER)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Group/tag structure, not per-member entry"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Group/tag structure, not per-member entry"
+      },
+      "description": "The user types a group is bound to: only members of these types can be in it. A group with no rows here takes every type."
     },
     "member_manager": {
       "feature": "members",

@@ -62,6 +62,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
                 accountRepo,
                 stationMemberRepo,
                 memberGroupRepo,
+                newGroupMemberships(),
                 profileFieldRepo,
                 new AccountInviteService(accountRepo, authService));
         station = stationRepo.create("ImportStation");
@@ -104,6 +105,32 @@ class MemberImportServiceTest extends RepositoryTestBase {
         int accountId = stationMemberRepo.findById(onlyMember()).orElseThrow().accountId();
         assertTrue(accountRepo.findCredential(accountId).isEmpty(), "the import must not set a password nobody knows");
         verify(authService).sendPasswordSetup(accountId);
+    }
+
+    /**
+     * A group named on a row that does not take members is left out with a warning on that row, and
+     * the member is still imported: whoever wrote the list cannot fix a group a manager set up.
+     */
+    @Test
+    void aGroupThatTakesNoMembersIsLeftOutWithAWarning() {
+        var trainers = memberGroupRepo.create(station.id(), "Ausbilder");
+        memberGroupRepo.replaceUserTypes(trainers.id(), List.of(StationUserType.TEAM));
+        String csv = "Vorname;Name;Gruppe\nMia;Klein;Ausbilder\nTom;Groß;Jugend\n";
+
+        var result = importMembers(
+                station.id(),
+                csv,
+                ";",
+                List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Gruppe", "group")),
+                List.of());
+
+        assertEquals(2, result.membersCreated());
+        assertEquals(1, result.groupsAssigned());
+        assertEquals(
+                List.of("Zeile 2: Die Gruppe Ausbilder nimmt dieses Mitglied nicht auf, nicht zugeordnet"),
+                result.warnings());
+        assertTrue(memberGroupRepo.findMembers(trainers.id()).isEmpty());
+        memberGroupRepo.findByStation(station.id()).forEach(group -> memberGroupRepo.delete(group.id()));
     }
 
     /**

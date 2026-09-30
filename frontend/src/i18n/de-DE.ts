@@ -2115,6 +2115,13 @@ export default {
         fieldFromCluster: 'Verband',
         groups: 'Gruppen',
         noGroups: 'Keine Gruppen vorhanden.',
+        groupSetNone: 'Keine',
+        groupBoundTo: 'Nur für {types}',
+        userTypeConfirmTitle: 'Mitgliedstyp ändern',
+        userTypeConfirmText: 'Als {type} kann das Mitglied nicht in diesen Gruppen bleiben und wird aus ihnen '
+            + 'entfernt:',
+        userTypeConfirm: 'Ändern und aus den Gruppen nehmen',
+        userTypeLeftGroups: 'Das Mitglied wurde aus diesen Gruppen genommen: {groups}',
         tags: 'Tags',
         noTags: 'Keine Tags vorhanden.',
     },
@@ -3191,6 +3198,38 @@ export default {
         convertToTagConfirm: 'Gruppe "{name}" in einen Tag umwandeln? Die Mitglieder bleiben erhalten, aber Rollen und Berechtigungen der Gruppe gehen verloren.',
         color: 'Farbe',
         colorHint: 'Optionale Farbe für Mitgliedernamen',
+        inGroup: 'in {name}',
+        moveTitle: 'Mitglied verschieben',
+        moveConfirm: 'Das Mitglied ist schon in „{name}", einer anderen Gruppe desselben Gruppensets. Aus „{name}" '
+            + 'hierher verschieben?',
+        move: 'Verschieben',
+        sets: {
+            title: 'Gruppensets',
+            create: 'Neues Gruppenset',
+            hint: 'Ein Mitglied ist in höchstens einer Gruppe eines Gruppensets, etwa in einer von mehreren '
+                + 'Ausbildungsstufen. Welche Gruppen dazugehören, wählst du an der Gruppe.',
+            empty: 'Noch keine Gruppensets vorhanden.',
+            createTitle: 'Gruppenset erstellen',
+            renameTitle: 'Gruppenset umbenennen',
+            namePlaceholder: 'Name des Gruppensets',
+            deleteConfirm: 'Gruppenset "{name}" wirklich löschen? Die Gruppen und ihre Mitglieder bleiben erhalten.',
+        },
+        rules: {
+            set: 'Gruppenset',
+            noSet: 'Kein Gruppenset',
+            setHint: 'Ein Mitglied ist in höchstens einer dieser Gruppen.',
+            userTypes: 'Nur für diese Mitgliedstypen',
+            userTypesHint: 'Keine Auswahl heißt: Die Gruppe nimmt jeden Mitgliedstyp auf.',
+        },
+        conflicts: {
+            bindingTitle: 'Mitglieder passen nicht',
+            bindingText: 'Diese Mitglieder haben keinen der gewählten Mitgliedstypen. Du kannst sie aus der '
+                + 'Gruppe nehmen und dann speichern.',
+            setTitle: 'Mitglieder in mehreren Gruppen',
+            setText: 'Diese Mitglieder sind in mehr als einer Gruppe des Gruppensets. Öffne sie und entscheide, '
+                + 'in welcher Gruppe sie bleiben, dann speichere erneut.',
+            removeAndSave: 'Aus der Gruppe nehmen und speichern',
+        },
     },
     clusterStationGroups: {
         selectHint: 'Wähle eine Wachgruppe aus, um ihre Wachen zu verwalten.',

@@ -52,6 +52,7 @@ public class MemberImportService {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
+    private final GroupMembershipService groupMemberships;
     private final ProfileFieldRepository profileFieldRepository;
     private final AccountInviteService accountInviteService;
 
@@ -60,11 +61,13 @@ public class MemberImportService {
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
+            GroupMembershipService groupMemberships,
             ProfileFieldRepository profileFieldRepository,
             AccountInviteService accountInviteService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
+        this.groupMemberships = groupMemberships;
         this.profileFieldRepository = profileFieldRepository;
         this.accountInviteService = accountInviteService;
     }
@@ -209,10 +212,7 @@ public class MemberImportService {
             stationMemberRepository.grantPermission(member.id(), memberRole.id());
             membersCreated++;
 
-            // Group
-            if (!mapped.group().isBlank()) {
-                var group = findOrCreateGroup(groups, stationId, mapped.group());
-                memberGroupRepository.addMember(group.id(), member.id());
+            if (assignGroup(groups, stationId, member.id(), mapped.group(), i + 2, warnings)) {
                 groupsAssigned++;
             }
 
@@ -368,10 +368,7 @@ public class MemberImportService {
             stationMemberRepository.grantPermission(member.id(), loginRole.id());
             membersCreated++;
 
-            // Group
-            if (!mapped.group().isBlank()) {
-                var group = findOrCreateGroup(groups, stationId, mapped.group());
-                memberGroupRepository.addMember(group.id(), member.id());
+            if (assignGroup(groups, stationId, member.id(), mapped.group(), i + 2, warnings)) {
                 groupsAssigned++;
             }
 
@@ -648,6 +645,23 @@ public class MemberImportService {
         if (Set.of("ja", "yes", "true", "wahr", "x", "1").contains(said)) return BooleanNode.TRUE;
         if (Set.of("nein", "no", "false", "falsch", "0", "").contains(said)) return BooleanNode.FALSE;
         return StringNode.valueOf(value);
+    }
+
+    /**
+     * Puts an imported member into the group their row names, creating the group where the station
+     * has none by that name. A group that does not take them, because of its binding or its set, is
+     * left out with a warning on the row rather than failing the import.
+     *
+     * @return {@code true} where the member is in the group afterwards
+     */
+    private boolean assignGroup(
+            List<MemberGroup> groups, int stationId, int memberId, String groupName, int line, List<String> warnings) {
+        if (groupName.isBlank()) return false;
+        var group = findOrCreateGroup(groups, stationId, groupName);
+        if (groupMemberships.joinAutomatically(group.id(), memberId)) return true;
+        warnings.add("Zeile " + line + ": Die Gruppe " + group.name()
+                + " nimmt dieses Mitglied nicht auf, nicht zugeordnet");
+        return false;
     }
 
     private MemberGroup findOrCreateGroup(List<MemberGroup> groups, int stationId, String name) {

@@ -26,9 +26,9 @@ import dev.chojo.ember.feature.mail.service.MailConfirmationPolicy;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.RegistrationCode;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.GroupMembershipService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
@@ -69,7 +69,7 @@ public class AuthService {
     private final MailRecipientService mailRecipientService;
     private final RegistrationCodeRepository registrationCodeRepository;
     private final StationMemberRepository stationMemberRepository;
-    private final MemberGroupRepository memberGroupRepository;
+    private final GroupMembershipService groupMemberships;
     private final PasswordHasher passwordHasher;
     private final EmailService emailService;
     private final Auth authConfig;
@@ -97,7 +97,7 @@ public class AuthService {
             MailRecipientService mailRecipientService,
             RegistrationCodeRepository registrationCodeRepository,
             StationMemberRepository stationMemberRepository,
-            MemberGroupRepository memberGroupRepository,
+            GroupMembershipService groupMemberships,
             PasswordHasher passwordHasher,
             EmailService emailService,
             Auth authConfig,
@@ -114,7 +114,7 @@ public class AuthService {
         this.mailRecipientService = mailRecipientService;
         this.registrationCodeRepository = registrationCodeRepository;
         this.stationMemberRepository = stationMemberRepository;
-        this.memberGroupRepository = memberGroupRepository;
+        this.groupMemberships = groupMemberships;
         this.passwordHasher = passwordHasher;
         this.emailService = emailService;
         this.authConfig = authConfig;
@@ -183,10 +183,9 @@ public class AuthService {
             var member = stationMemberRepository.create(code.stationId(), accountId);
             int memberId = member.id();
 
-            // Assign groups from registration code
             List<Integer> groupIds = registrationCodeRepository.findGroupIds(code.id());
             for (int groupId : groupIds) {
-                memberGroupRepository.addMember(groupId, memberId);
+                groupMemberships.joinAutomatically(groupId, memberId);
             }
 
             registrationCodeRepository.incrementUses(code.id());

@@ -14,10 +14,14 @@ import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.TestContainers;
+import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -129,6 +133,7 @@ import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
 import dev.chojo.ember.feature.media.repository.MediaFileRepository;
 import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
@@ -137,6 +142,7 @@ import dev.chojo.ember.feature.members.repository.SavedFilterRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.GroupMembershipService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
@@ -602,8 +608,7 @@ public abstract class RepositoryTestBase {
         var eventFedRepo = new EventFederationRepository();
         var fedRepo = new FederationRepository();
         var memberSvc = newStationMemberService(accountRepo, null);
-        var groupSvc =
-                new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, new DomainEventBus(Set.of()));
+        var groupSvc = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo);
         var tagSvc = new UserTagService(userTagRepo, memberGroupRepo);
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
@@ -792,6 +797,47 @@ public abstract class RepositoryTestBase {
                 lending,
                 cancellation,
                 calendar);
+    }
+
+    /**
+     * A signed-in session of the given member holding the given permissions, for a service that
+     * decides by who is asking.
+     */
+    protected static UserSession signedIn(StationMember member, StationPermission... permissions) {
+        return new UserSession(
+                new Account(
+                        member.accountId() != null ? member.accountId() : 0,
+                        null,
+                        "session@test.com",
+                        null,
+                        "Session",
+                        "Holder",
+                        true,
+                        null,
+                        "Session Holder",
+                        null,
+                        null),
+                1,
+                member.stationId(),
+                null,
+                member,
+                Set.of(permissions),
+                Set.of(),
+                null);
+    }
+
+    /**
+     * The group membership service over this class's repositories, for the services that put members
+     * into groups on their own. Nobody asks it for a step-up and it names nobody, because the flows
+     * that use it are automatic.
+     */
+    protected static GroupMembershipService newGroupMemberships() {
+        return new GroupMembershipService(
+                memberGroupRepo,
+                stationMemberRepo,
+                mock(StepUpGuard.class),
+                () -> mock(MemberNameResolver.class),
+                new DomainEventBus(Set.of()));
     }
 
     /**

@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
+import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -58,8 +59,9 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 profileFieldService,
                 new StationMemberInviteService(
                         stationMemberRepo,
-                        memberGroupRepo,
+                        newGroupMemberships(),
                         new AccountInviteService(accountRepo, mock(AuthService.class))),
+                new UserTypeChangeService(stationMemberRepo, newGroupMemberships()),
                 memberDocumentRepo,
                 documentService());
     }
@@ -197,6 +199,23 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         assertThrows(
                 ForbiddenResponse.class,
                 () -> service.archive(clusterId, peopled.member().id(), strangerAccountId));
+    }
+
+    /** A cluster changing somebody's type takes them out of the station's groups that do not take it. */
+    @Test
+    void aTypeChangeLeavesTheGroupsBoundToOtherTypes() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        int memberId = peopled.member().id();
+        var children = memberGroupRepo.create(peopled.member().stationId(), "Kinder");
+        memberGroupRepo.replaceUserTypes(children.id(), List.of(StationUserType.MEMBER));
+        stationMemberRepo.setUserType(memberId, StationUserType.MEMBER);
+        memberGroupRepo.addMember(children.id(), memberId);
+
+        service.setUserType(
+                clusterId, memberId, StationUserType.TEAM, freshAccount().id());
+
+        assertTrue(memberGroupRepo.findMembers(children.id()).isEmpty());
     }
 
     @Test

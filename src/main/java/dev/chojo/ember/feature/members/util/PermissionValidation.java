@@ -10,7 +10,9 @@ import dev.chojo.ember.feature.members.entity.Permission;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -19,6 +21,27 @@ import java.util.Set;
  */
 public final class PermissionValidation {
     private PermissionValidation() {}
+
+    /**
+     * The first of the permissions a grant would hand out that the caller does not hold, which is the
+     * one reason to refuse it. The same rule as for a direct grant: nobody hands out more than they have.
+     *
+     * @param granted           what the grant would hand out
+     * @param callerPermissions what the caller holds
+     * @return a permission the caller lacks, or empty where they hold them all
+     */
+    public static Optional<StationPermission> firstNotHeld(
+            Collection<Permission> granted, Set<StationPermission> callerPermissions) {
+        return granted.stream()
+                .map(Permission::permission)
+                .filter(permission -> !holds(callerPermissions, permission))
+                .findFirst();
+    }
+
+    private static boolean holds(Set<StationPermission> callerPermissions, StationPermission permission) {
+        return callerPermissions.contains(permission)
+                || callerPermissions.stream().anyMatch(held -> held.includes(permission));
+    }
 
     /**
      * Validates permission changes for both member and group permission assignments.

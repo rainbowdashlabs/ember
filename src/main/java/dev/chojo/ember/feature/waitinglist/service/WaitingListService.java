@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
+import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
@@ -16,8 +17,9 @@ import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.GroupMembershipService;
+import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
@@ -71,7 +73,8 @@ public class WaitingListService implements TaskSource {
     private final WaitingListRepository repository;
     private final StationRepository stationRepository;
     private final StationMemberRepository stationMemberRepository;
-    private final MemberGroupRepository memberGroupRepository;
+    private final GroupMembershipService groupMemberships;
+    private final UserTypeChangeService userTypeChanges;
     private final AccountRepository accountRepository;
     private final EmailService emailService;
     private final Notifier notifier;
@@ -84,7 +87,8 @@ public class WaitingListService implements TaskSource {
             WaitingListRepository repository,
             StationRepository stationRepository,
             StationMemberRepository stationMemberRepository,
-            MemberGroupRepository memberGroupRepository,
+            GroupMembershipService groupMemberships,
+            UserTypeChangeService userTypeChanges,
             AccountRepository accountRepository,
             EmailService emailService,
             Notifier notifier,
@@ -94,7 +98,8 @@ public class WaitingListService implements TaskSource {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
-        this.memberGroupRepository = memberGroupRepository;
+        this.groupMemberships = groupMemberships;
+        this.userTypeChanges = userTypeChanges;
         this.accountRepository = accountRepository;
         this.emailService = emailService;
         this.notifier = notifier;
@@ -126,6 +131,7 @@ public class WaitingListService implements TaskSource {
             boolean sendsMail,
             Integer minAgeRegister,
             Integer minAgeJoin) {
+        requireGroupsFit(stationId, testingGroupId, joinGroupId);
         var list = repository.create(
                 stationId,
                 name,
@@ -156,6 +162,7 @@ public class WaitingListService implements TaskSource {
             boolean sendsMail,
             Integer minAgeRegister,
             Integer minAgeJoin) {
+        repository.findById(id).ifPresent(list -> requireGroupsFit(list.stationId(), testingGroupId, joinGroupId));
         var updated = repository.update(
                 id,
                 name,
@@ -645,8 +652,7 @@ public class WaitingListService implements TaskSource {
      * <p>Every effect carries its own guard rather than one guard around the block. An entry invited
      * before this moved here already has a member, and skipping everything for it would leave it out
      * of a testing group the list gained after the invitation. Setting the user type and granting the
-     * permission are idempotent on their own; adding somebody to a group is not, so that one is asked
-     * about first.
+     * permission are idempotent on their own, and so is joining the testing group.
      *
      * <p>The writes run as one, so a failure halfway cannot leave a member nothing points at.
      */
@@ -660,12 +666,12 @@ public class WaitingListService implements TaskSource {
 
         int memberId = Transactions.call(() -> {
             int member = entry.memberId() != null ? entry.memberId() : createTrialMember(entry, list.stationId());
-            stationMemberRepository.setUserType(member, StationUserType.TRIAL);
+            userTypeChanges.change(member, StationUserType.TRIAL);
             stationMemberRepository
                     .findPermissionByName(StationPermission.USER)
                     .ifPresent(permission -> stationMemberRepository.grantPermission(member, permission.id()));
-            if (list.testingGroupId() != null && !isInGroup(member, list.testingGroupId())) {
-                memberGroupRepository.addMember(list.testingGroupId(), member);
+            if (list.testingGroupId() != null) {
+                groupMemberships.joinAutomatically(list.testingGroupId(), member);
             }
             repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.TESTING, "testing_at");
             return member;
@@ -694,14 +700,12 @@ public class WaitingListService implements TaskSource {
         return member.id();
     }
 
-    /** Whether the member already sits in that group, which has no room for a second row. */
-    private boolean isInGroup(int memberId, int groupId) {
-        return memberGroupRepository.findGroupsForMember(memberId).stream().anyMatch(group -> group.id() == groupId);
-    }
-
     /**
-     * Move a TESTING entry to JOINED: remove testing group, assign join group, set MEMBER type,
+     * Move a TESTING entry to JOINED: remove testing group, set MEMBER type, assign join group,
      * and create guardian accounts for each guardian on the entry.
+     *
+     * <p>The type is set before the join group is added, because a group bound to members takes
+     * nobody who is still on trial.
      */
     public WaitingListEntry moveToJoined(int entryId) {
         var entry =
@@ -712,20 +716,16 @@ public class WaitingListService implements TaskSource {
         var list = repository.findById(entry.listId()).orElseThrow();
 
         if (entry.memberId() != null) {
-            // Remove testing group
             if (list.testingGroupId() != null) {
-                memberGroupRepository.removeMember(list.testingGroupId(), entry.memberId());
+                groupMemberships.leaveAutomatically(list.testingGroupId(), entry.memberId());
             }
-            // Remove TRIAL role
             stationMemberRepository
                     .findPermissionByName(StationPermission.USER)
                     .ifPresent(role -> stationMemberRepository.revokePermission(entry.memberId(), role.id()));
-            // Assign join group
+            userTypeChanges.change(entry.memberId(), StationUserType.MEMBER);
             if (list.joinGroupId() != null) {
-                memberGroupRepository.addMember(list.joinGroupId(), entry.memberId());
+                groupMemberships.joinAutomatically(list.joinGroupId(), entry.memberId());
             }
-            // Set user type to MEMBER
-            stationMemberRepository.setUserType(entry.memberId(), StationUserType.MEMBER);
 
             // Create guardian accounts and link them to the member
             createGuardianAccounts(entry, list);
@@ -1273,6 +1273,26 @@ public class WaitingListService implements TaskSource {
                     stationId,
                     entry.memberId());
         }
+    }
+
+    /**
+     * Refuses a list whose groups are not the station's, or do not take the people the list puts in
+     * them: somebody on trial joins the testing group, a member the join group. Refused where the list
+     * is saved, so the manager hears of it rather than a family on the list later.
+     */
+    private void requireGroupsFit(int stationId, Integer testingGroupId, Integer joinGroupId) {
+        groupMemberships.requireAdmits(
+                stationId,
+                testingGroupId,
+                StationUserType.TRIAL,
+                Refusal.WAITING_LIST_TESTING_GROUP_NOT_HERE,
+                Refusal.WAITING_LIST_TESTING_GROUP_WRONG_USER_TYPE);
+        groupMemberships.requireAdmits(
+                stationId,
+                joinGroupId,
+                StationUserType.MEMBER,
+                Refusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
+                Refusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE);
     }
 
     private Integer stationIdForList(int listId) {

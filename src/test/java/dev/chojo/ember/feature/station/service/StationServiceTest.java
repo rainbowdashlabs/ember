@@ -45,7 +45,7 @@ class StationServiceTest extends RepositoryTestBase {
                 mock(FederationService.class),
                 new StationMemberInviteService(
                         stationMemberRepo,
-                        memberGroupRepo,
+                        newGroupMemberships(),
                         new AccountInviteService(accountRepo, mock(AuthService.class))),
                 clusterRepo);
     }

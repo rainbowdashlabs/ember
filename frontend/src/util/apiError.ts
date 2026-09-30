@@ -37,6 +37,18 @@ export interface ApiErrorBody {
      * names its question and the page it stands on, with a code of its own.
      */
     problems?: ApiAnswerProblem[]
+    /**
+     * The members a change to groups was refused for, on a refusal that names them: those a binding
+     * would not take, or those who would be in two groups of one set.
+     */
+    conflicts?: ApiGroupConflict[]
+}
+
+/** One member a change to groups was refused for, with the groups the rule is about for them. */
+export interface ApiGroupConflict {
+    memberId: number
+    memberName: string
+    groups: string[]
 }
 
 /** One question an answer to a form was refused at. */

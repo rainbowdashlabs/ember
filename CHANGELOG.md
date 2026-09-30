@@ -9,6 +9,7 @@
 - **Continue a form later.** A form that is started and not sent is kept, and opens again on the page where it was left, for station forms on any device and for public forms on the same device. Only the person filling it in, and whoever looks after them, can see it, and it ends when the form closes.
 - **Cancel and restore single dates.** Managers can cancel just the date of an appointment they are looking at, while cancelling a whole series stays a separate, final action. A cancelled date can be restored as long as it lies ahead, and everybody still registered for it is told.
 - **Background tasks at a glance.** A new page under Monitoring lists every job the server runs on its own, such as sending mail, reminders and clean-ups, with how often it runs, when it last ran, how long that took and what its last failure said. The figures cover the time since the last restart.
+- **Group sets.** Groups can be put into a set, such as the levels of a training, and a member can be in only one group of a set. A set is created on the groups page, and choosing another group of the set moves the member.
 ### Improvements
 
 - **Preview, duplicate and a message after sending.** The form editor shows the form as it will be filled in, including the path through its pages, and forms and questions can be duplicated. A form can show its own message and a link once it is sent.
@@ -24,6 +25,8 @@
 - **Attendance templates can enter whole member types.** A template can name member types as well as groups, and everybody of a chosen type stands on its sheets beside the members of its groups. Starting a sheet from a template shows its types and groups already ticked, to keep or to change for that one sheet.
 - **The discovery page lists stations of other instances.** The public discovery page at `/discovery` also shows the public stations of the other Ember instances this one knows, each marked with the instance it belongs to and linking to its public page there. A search field finds stations of every instance by name, place, association or instance.
 - **Station setup explains the discovery listing.** The visibility step of a new station's setup explains each choice, including listing on this instance only, and shows exactly which details a public listing gives to the discovery page and to other instances. Saving it with the preset choice unchanged counts as done.
+- **Groups for chosen member types.** A group can be limited to some member types, such as team and manager, and takes nobody else. A member whose type changes leaves the groups that no longer fit, after their edit page has listed them.
+- **Groups and tags at the top of a member's permissions.** On a member's edit page, groups and tags are compact chips above the permission list, and the groups of a set are one choice. Groups bound to other member types are shown greyed out with the types they take.
 
 ### Security
 
@@ -32,6 +35,9 @@
 - **Partner stations on the same instance could open what was not shared with them.** A partner station running on the same instance could open quizzes, test protocols and wiki articles, and read and write comments on news entries, appointments and wiki articles, that were never shared with it. It now sees exactly what a partner station on another instance sees.
 - **Partner stations could change more than the board shared with them.** A partner station allowed to edit one shared board could change checklist items, move tickets and attach labels of other boards on the same instance. Its changes now stay on the board shared with it.
 - **Notices about restricted entries reached people who could not open them.** In some cases the notice about a new form, appointment or blog entry went to members outside its audience and showed its title. It now reaches only the members who may open the entry.
+- **Joining a group needs the rights it grants.** Somebody allowed to manage groups could put anybody, themselves included, into a group whose permissions they did not hold. Putting somebody into a group now needs every permission the group grants, and a fresh confirmation where it grants any.
+- **Groups could take members of another station.** A group's member list accepted people of other stations when they were sent to the server directly. Such members are now refused.
+- **Registration codes of another station could be reached.** An instance administrator working in one station could open, change the groups of and delete another station's registration codes by their number. A code is now reached only from its own station.
 
 ### Changes
 
@@ -82,6 +88,7 @@
 - **Tickets of partners on other instances could not be unwatched.** A member watching a ticket on a board shared by a partner station on another instance could not stop watching it. Unwatching now works.
 - **Station links on the network map led to a missing page.** On the map of the discovery network, the link to a station of another instance opened a page that did not exist. Once both instances run this version, it opens the station's public page.
 - **The discovery page could not be reached from the footer on phones.** On narrow screens the footer left out its link to the station directory. It now shows at every screen width.
+- **Changing groups on a member's page could fail or undo other changes.** Choosing groups on a member's edit page failed for people allowed to edit members but not to manage groups, and two people changing one group at the same time could undo each other's changes. The page now saves the groups of that one member.
 
 ## v26.19.5
 

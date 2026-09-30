@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -48,6 +49,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
     private final StationMemberRepository stationMemberRepository;
     private final MemberLookupService memberLookupService;
     private final MemberGroupRepository memberGroupRepository;
+    private final MemberGroupSetRepository memberGroupSetRepository;
     private final ProfileFieldRepository profileFieldRepository;
     private final ProfileFieldChangeRepository profileFieldChangeRepository;
     private final UserTagRepository userTagRepository;
@@ -59,6 +61,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             StationMemberRepository stationMemberRepository,
             MemberLookupService memberLookupService,
             MemberGroupRepository memberGroupRepository,
+            MemberGroupSetRepository memberGroupSetRepository,
             ProfileFieldRepository profileFieldRepository,
             ProfileFieldChangeRepository profileFieldChangeRepository,
             UserTagRepository userTagRepository,
@@ -67,6 +70,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
         this.memberGroupRepository = memberGroupRepository;
+        this.memberGroupSetRepository = memberGroupSetRepository;
         this.profileFieldRepository = profileFieldRepository;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
         this.userTagRepository = userTagRepository;
@@ -114,6 +118,11 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var groupEltern = memberGroupRepository.create(stationId, "Eltern");
         var groupAnfaenger = memberGroupRepository.create(stationId, "Anfänger");
         var groupFortgeschritten = memberGroupRepository.create(stationId, "Fortgeschritten");
+        var levels = memberGroupSetRepository.create(stationId, "Ausbildungsstufen");
+        memberGroupRepository.assignSet(groupAnfaenger.id(), levels.id());
+        memberGroupRepository.assignSet(groupFortgeschritten.id(), levels.id());
+        memberGroupRepository.replaceUserTypes(
+                groupBetreuer.id(), List.of(StationUserType.TEAM, StationUserType.MANAGER));
 
         // -- Profile fields put to the team (Betreuer) --
         var fieldJuleica = askOf(stationId, "JuLeiCa", ProfileFieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 0);

@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -28,7 +31,7 @@ class RegistrationCodeServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new RegistrationCodeService(registrationCodeRepo);
+        service = new RegistrationCodeService(registrationCodeRepo, newGroupMemberships());
         station = stationRepo.create("RegCodeSvc Station");
         group = memberGroupRepo.create(station.id(), "Newcomers");
     }
@@ -53,7 +56,7 @@ class RegistrationCodeServiceTest extends RepositoryTestBase {
     @Test
     @Order(2)
     void findById() {
-        var found = service.findById(codeId);
+        var found = service.findInStation(station.id(), codeId);
         assertTrue(found.isPresent());
         assertEquals("WELCOME2026", found.get().code());
     }
@@ -61,7 +64,27 @@ class RegistrationCodeServiceTest extends RepositoryTestBase {
     @Test
     @Order(3)
     void findByIdNotFound() {
-        assertTrue(service.findById(99999).isEmpty());
+        assertTrue(service.findInStation(station.id(), 99999).isEmpty());
+    }
+
+    @Test
+    @Order(4)
+    void aCodeOfAnotherStationIsNotReachable() {
+        int elsewhere = station.id() + 100_000;
+        assertTrue(service.findInStation(elsewhere, codeId).isEmpty());
+        assertEquals(
+                Refusal.REGISTRATION_CODE_NOT_HERE_FOR_GROUPS,
+                assertThrows(RefusalResponse.class, () -> service.findGroupIds(elsewhere, codeId))
+                        .refusal());
+        assertEquals(
+                Refusal.REGISTRATION_CODE_NOT_HERE_TO_CHANGE_GROUPS,
+                assertThrows(RefusalResponse.class, () -> service.setGroups(elsewhere, codeId, List.of()))
+                        .refusal());
+        assertEquals(
+                Refusal.REGISTRATION_CODE_NOT_DELETED,
+                assertThrows(RefusalResponse.class, () -> service.delete(elsewhere, codeId))
+                        .refusal());
+        assertTrue(service.findInStation(station.id(), codeId).isPresent());
     }
 
     @Test
@@ -75,14 +98,14 @@ class RegistrationCodeServiceTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void findGroupIdsEmpty() {
-        var groupIds = service.findGroupIds(codeId);
+        var groupIds = service.findGroupIds(station.id(), codeId);
         assertTrue(groupIds.isEmpty());
     }
 
     @Test
     @Order(11)
     void setGroupsAdds() {
-        var result = service.setGroups(codeId, List.of(group.id()));
+        var result = service.setGroups(station.id(), codeId, List.of(group.id()));
         assertEquals(1, result.size());
         assertEquals(group.id(), result.getFirst());
     }
@@ -90,14 +113,14 @@ class RegistrationCodeServiceTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void setGroupsIdempotent() {
-        var result = service.setGroups(codeId, List.of(group.id()));
+        var result = service.setGroups(station.id(), codeId, List.of(group.id()));
         assertEquals(1, result.size());
     }
 
     @Test
     @Order(13)
     void setGroupsClears() {
-        var result = service.setGroups(codeId, List.of());
+        var result = service.setGroups(station.id(), codeId, List.of());
         assertTrue(result.isEmpty());
     }
 
@@ -105,19 +128,44 @@ class RegistrationCodeServiceTest extends RepositoryTestBase {
     @Order(20)
     void setGroupsAddMultiple() {
         var group2 = memberGroupRepo.create(station.id(), "Seniors");
-        var result = service.setGroups(codeId, List.of(group.id(), group2.id()));
+        var result = service.setGroups(station.id(), codeId, List.of(group.id(), group2.id()));
         assertEquals(2, result.size());
         // Switch to just one
-        var result2 = service.setGroups(codeId, List.of(group2.id()));
+        var result2 = service.setGroups(station.id(), codeId, List.of(group2.id()));
         assertEquals(1, result2.size());
         assertEquals(group2.id(), result2.getFirst());
         memberGroupRepo.delete(group2.id());
     }
 
     @Test
+    @Order(21)
+    void setGroupsRefusesAGroupThatTakesNoMembers() {
+        var trainers = memberGroupRepo.create(station.id(), "Trainers");
+        memberGroupRepo.replaceUserTypes(trainers.id(), List.of(StationUserType.TEAM));
+        var elsewhere = stationRepo.create("Code Elsewhere");
+        var foreign = memberGroupRepo.create(elsewhere.id(), "Foreign");
+
+        assertEquals(
+                Refusal.REGISTRATION_CODE_GROUP_WRONG_USER_TYPE,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.setGroups(station.id(), codeId, List.of(trainers.id())))
+                        .refusal());
+        assertEquals(
+                Refusal.REGISTRATION_CODE_GROUP_NOT_HERE,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.setGroups(station.id(), codeId, List.of(foreign.id())))
+                        .refusal());
+
+        memberGroupRepo.delete(trainers.id());
+        stationRepo.delete(elsewhere.id());
+    }
+
+    @Test
     @Order(99)
     void delete() {
-        assertTrue(service.delete(codeId));
-        assertTrue(service.findById(codeId).isEmpty());
+        service.delete(station.id(), codeId);
+        assertTrue(service.findInStation(station.id(), codeId).isEmpty());
     }
 }

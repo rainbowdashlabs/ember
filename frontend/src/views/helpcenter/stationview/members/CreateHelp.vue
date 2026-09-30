@@ -61,6 +61,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.membersCreate.step4')">
       <p>{{ t('helpCenter.membersCreate.step4Text') }}</p>
+      <p>{{ t('helpCenter.membersCreate.step4Rules') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.membersCreate.step5')">

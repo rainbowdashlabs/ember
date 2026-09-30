@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.RichMember;
@@ -25,6 +26,7 @@ import dev.chojo.ember.feature.members.service.MemberSetupMailService;
 import dev.chojo.ember.feature.members.service.MemberViewService;
 import dev.chojo.ember.feature.members.service.NicknameService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import io.javalin.http.Context;
@@ -62,6 +64,7 @@ public class StationMemberRoutes implements Routes {
     private final MemberIdentityFactory memberIdentityFactory;
     private final RestrictionService restrictionService;
     private final NicknameService nicknameService;
+    private final UserTypeChangeService userTypeChanges;
 
     @Inject
     public StationMemberRoutes(
@@ -73,7 +76,9 @@ public class StationMemberRoutes implements Routes {
             GdprDeletionService gdprDeletionService,
             MemberIdentityFactory memberIdentityFactory,
             RestrictionService restrictionService,
-            NicknameService nicknameService) {
+            NicknameService nicknameService,
+            UserTypeChangeService userTypeChanges) {
+        this.userTypeChanges = userTypeChanges;
         this.memberService = memberService;
         this.memberViews = memberViews;
         this.pickerService = pickerService;
@@ -548,8 +553,10 @@ public class StationMemberRoutes implements Routes {
             summary = "Set the user type of a station member",
             tags = {"Station Members"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            description = "The member leaves every group bound to user types that do not take the new one.",
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetUserTypeRequest.class)),
-            responses = @OpenApiResponse(status = "204"))
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = UserTypeChangeResponse.class)))
     private void setUserType(Context ctx) {
         int memberId = pathInt(ctx, "id");
         requireOwnedMember(ctx, memberId);
@@ -557,8 +564,7 @@ public class StationMemberRoutes implements Routes {
         if (request.userType() == null) {
             throw Refusal.MEMBER_USER_TYPE_NOT_NAMED.raise();
         }
-        memberService.setUserType(memberId, request.userType());
-        ctx.status(HttpStatus.NO_CONTENT);
+        ctx.json(new UserTypeChangeResponse(userTypeChanges.change(memberId, request.userType())));
     }
 
     // -- User Type --
@@ -639,6 +645,13 @@ public class StationMemberRoutes implements Routes {
     public record FormerCheckResponse(boolean canMarkFormer, String reason) {}
 
     public record SetUserTypeRequest(StationUserType userType) {}
+
+    /**
+     * What changing a member's type did beyond the type.
+     *
+     * @param leftGroups the groups they left because those do not take the new type
+     */
+    public record UserTypeChangeResponse(List<MemberGroup> leftGroups) {}
 
     public record SetJoinDateRequest(LocalDate joinDate) {}
 

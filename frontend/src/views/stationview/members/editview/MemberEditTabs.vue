@@ -55,6 +55,7 @@ const tabs = computed(() => [
       :member-id="memberId"
       :all-roles="data.allRoles"
       :all-groups="data.allGroups"
+      :all-sets="data.allSets"
       :all-tags="data.allTags"
       :initial-user-type="data.userType"
       :initial-role-ids="data.roleIds"

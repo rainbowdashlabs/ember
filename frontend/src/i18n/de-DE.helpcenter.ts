@@ -1515,6 +1515,8 @@ volumes:
             step3Text: 'Fülle die Profilfelder aus. Pflichtfelder sind mit einem * markiert.',
             step4: 'Schritt 4: Gruppen',
             step4Text: 'Wähle aus, zu welchen Gruppen das neue Mitglied gehören soll.',
+            step4Rules: 'Gruppen, die nur andere Mitgliedstypen aufnehmen, werden hier nicht angeboten. Aus einem '
+                + 'Gruppenset kannst du nur eine Gruppe wählen.',
             step5: 'Schritt 5: Erziehungsberechtigter (bei Mitgliedern)',
             step5Text: 'Weise dem Mitglied einen Verwalter zu - jemanden, der die Daten pflegen darf. Du kannst einen bestehenden Verwalter wählen oder einen neuen erstellen.',
             step6: 'Schritt 6: Fertig',
@@ -1563,6 +1565,27 @@ volumes:
             colorText: 'Jede Gruppe kann eine eigene Farbe haben. Die Farbe erscheint als kleiner Punkt neben dem Gruppennamen.',
             convertTitle: 'Gruppe zu Tag umwandeln',
             convertText: 'Wenn du eine Gruppe nicht mehr als Gruppe brauchst, kannst du sie in einen Tag umwandeln. Die Mitglieder bleiben erhalten, aber die Berechtigungen gehen verloren.',
+            joinRightsTitle: 'Wer Mitglieder in eine Gruppe aufnehmen darf',
+            joinRightsText: 'Wer in eine Gruppe kommt, bekommt ihre Berechtigungen. Deshalb kannst du nur in '
+                + 'Gruppen aufnehmen, deren Berechtigungen du selbst hast. Bei Gruppen mit Berechtigungen fragt Ember '
+                + 'außerdem kurz nach deinem zweiten Faktor.',
+            setsTitle: 'Gruppensets',
+            setsText: 'Ein Gruppenset fasst Gruppen zusammen, von denen ein Mitglied nur in einer sein kann, zum '
+                + 'Beispiel die Stufen einer Ausbildung. Lege das Set unter der Gruppenliste bei Gruppensets an und '
+                + 'wähle es dann beim Bearbeiten der Gruppe aus.',
+            setsDelete: 'Löschst du ein Gruppenset, bleiben seine Gruppen und ihre Mitglieder erhalten.',
+            setsExampleTitle: 'So sehen die Gruppensets aus',
+            moveTitle: 'Mitglieder verschieben',
+            moveText: 'Fügst du jemanden zu einer Gruppe hinzu, der schon in einer anderen Gruppe desselben Sets ist, '
+                + 'steht diese Gruppe neben dem Namen. Ember fragt dann, ob das Mitglied verschoben werden soll.',
+            bindingTitle: 'Gruppen für bestimmte Mitgliedstypen',
+            bindingText: 'Beim Bearbeiten einer Gruppe kannst du festlegen, welche Mitgliedstypen hinein dürfen, zum '
+                + 'Beispiel nur Team und Manager. Ist nichts ausgewählt, darf jeder Mitgliedstyp in die Gruppe.',
+            bindingExampleTitle: 'Gruppenset und Mitgliedstypen im Gruppenformular',
+            conflictTitle: 'Wenn Mitglieder nicht passen',
+            conflictText: 'Passen Mitglieder nicht zu den gewählten Mitgliedstypen, zeigt Ember sie dir und kann '
+                + 'sie aus der Gruppe nehmen. Sind Mitglieder in mehreren Gruppen eines neuen Sets, zeigt Ember sie '
+                + 'mit einem Link zu ihrem Profil. Dort entscheidest du, in welcher Gruppe sie bleiben.',
             tip: 'Gruppen werden auch für Anwesenheitsvorlagen, Sichtbarkeitseinschränkungen bei Neuigkeiten und Terminen sowie für gruppenspezifische Profilfelder verwendet.',
         },
         documents: {
@@ -2796,6 +2819,10 @@ volumes:
             noMailInvitation: 'Einladungen werden nur noch vermerkt, verschickt werden sie nicht. Du lädst persönlich, telefonisch oder auf einem anderen Weg ein.',
             noMailConfirmation: 'Erinnerungen und Warnungen entfallen, und niemand wird wegen einer fehlenden Bestätigung von der Liste genommen.',
             noMailWhere: 'Gedacht ist das für Wachen, deren Ember-Installation von außen nicht erreichbar ist: Links in einer E-Mail liessen sich dort nicht öffnen. Der Schalter steht beim Anlegen der Liste und danach jederzeit in den Einstellungen zur Verfügung.',
+            groupsTitle: 'Gruppen für Probezeit und Beitritt',
+            groupsText: 'Die Gruppe für die Probezeit muss Mitglieder auf Probe aufnehmen, die Gruppe für den Beitritt '
+                + 'Mitglieder. Passt eine Gruppe nicht, lässt sich die Liste nicht speichern. Beim Beitritt verlässt '
+                + 'das Mitglied Gruppen, die nur Mitglieder auf Probe aufnehmen.',
             tip: 'Tipp: Nutze die Bewertungsformel, um die Warteliste automatisch nach Priorität zu sortieren. Die Formel wird bei jeder Ansicht neu berechnet.',
         },
         quiz: {
@@ -4431,6 +4458,15 @@ volumes:
             permissionsTitle: 'Berechtigungen',
             permissionsText: 'Im Berechtigungen-Tab änderst du den Mitgliedstyp, individuelle Berechtigungen, Gruppen und Tags. Berechtigungen, die schon durch den Mitgliedstyp oder eine Gruppe gewährt sind, erscheinen aktiviert und gesperrt - darunter steht, woher sie kommen. Wer Stationsadministrator ist, hat automatisch alle anderen Berechtigungen.',
             permissionsExampleTitle: 'So sieht der Berechtigungen-Tab aus',
+            groupsTitle: 'Gruppen und Tags',
+            groupsText: 'Gruppen und Tags stehen oben im Tab. Ein Klick auf eine Gruppe nimmt das Mitglied auf '
+                + 'oder heraus, gespeichert wird sofort.',
+            groupSetText: 'Gruppen eines Gruppensets stehen zusammen unter dem Namen des Sets. Das Mitglied kann '
+                + 'nur in einer davon sein: Wählst du eine andere, wird es verschoben, mit „Keine" verlässt es das Set.',
+            groupBoundText: 'Eine Gruppe nur für andere Mitgliedstypen ist ausgegraut. Darunter steht, für welche '
+                + 'Mitgliedstypen sie gedacht ist.',
+            typeChangeText: 'Änderst du den Mitgliedstyp und passt das Mitglied danach nicht mehr in eine seiner '
+                + 'Gruppen, zeigt Ember dir diese Gruppen vorher. Bestätigst du, wird es aus ihnen genommen.',
             relationsTitle: 'Beziehungen',
             relationsText: 'Im Beziehungen-Tab siehst du, welche Erziehungsberechtigte dem Mitglied zugeordnet sind. Du kannst bestehende zuweisen oder neue erstellen.',
             relationsExampleTitle: 'So sieht der Beziehungen-Tab aus',
@@ -4466,6 +4502,9 @@ volumes:
             skipRowText: 'Jede Zeile der Vorschau lässt sich überspringen und wieder hereinnehmen. Das ist einfacher, als die Datei zu bearbeiten und von vorn anzufangen, wenn eine Zeile zu jemandem gehört, der nicht mehr dabei ist.',
             duplicatesTitle: 'Dieselbe Liste erneut einlesen',
             duplicatesText: 'Wer schon an der Wache ist, wird übersprungen und nicht doppelt angelegt. Erkannt wird das an der E-Mail-Adresse, und wo die Datei keine enthält, am Namen innerhalb deiner Wache. Am Ende steht, wer übersprungen wurde.',
+            groupsFitText: 'Nimmt eine Gruppe aus der Datei den Mitgliedstyp nicht auf oder ist das Mitglied schon in '
+                + 'einer anderen Gruppe ihres Gruppensets, wird es trotzdem angelegt, aber nicht zugeordnet. Die Zeile '
+                + 'steht am Ende in den Hinweisen.',
             step3: 'Schritt 4: Import abschließen',
             step3Text: 'Prüfe die Vorschau und klicke auf „Importieren". Die Mitglieder werden angelegt und erhalten Einladungen.',
             tip: 'Du kannst auch Erziehungsberechtigter (Betreuer/Eltern) direkt mit importieren und zuordnen.',
@@ -4475,6 +4514,8 @@ volumes:
             subtitle: 'Teammitglieder per CSV-Datei anlegen.',
             whatIs: 'Was ist der Team-Import?',
             whatIsText: 'Wie der normale Import, aber speziell für Teammitglieder (Betreuer, Trainer). Importierte Personen erhalten automatisch die Team-Rolle.',
+            groupsFitText: 'Nimmt eine Gruppe aus der Datei kein Team auf, wird die Person trotzdem angelegt, aber '
+                + 'nicht zugeordnet. Die Zeile steht am Ende in den Hinweisen.',
             tip: 'Der Ablauf ist identisch zum normalen Import - nur die Rolle ist anders.',
         },
         newsEdit: {
@@ -5950,6 +5991,7 @@ volumes:
                 youthGroup: 'Jugendgruppe',
                 firstAiders: 'Ersthelfer',
                 drivers: 'Fahrer',
+                levels: 'Ausbildungsstufen',
             },
             equipment: {
                 helmets: 'Helme',

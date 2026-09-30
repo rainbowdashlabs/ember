@@ -9,12 +9,23 @@ import type {
     MemberGroup,
     PermissionGrant,
     StationMember,
+    StationUserTypeName,
 } from './types'
+
+/** Which member types a group takes and which set it belongs to. */
+export interface GroupRules {
+    groupSetId: number | null
+    userTypes: StationUserTypeName[]
+}
 
 export interface GroupRequest {
     name?: string
     color?: string | null
     position?: number
+    /** The group's rules. Absent leaves them as they are. */
+    rules?: GroupRules
+    /** Whether members the new binding does not take are taken out of the group, rather than refused. */
+    removeNonMatching?: boolean
 }
 
 export interface GroupDetail {
@@ -26,6 +37,8 @@ export interface GroupDetail {
 
 export interface SetMembersRequest {
     memberIds?: number[]
+    /** Whether members in another group of the same set are moved out of it, rather than refused. */
+    move?: boolean
 }
 
 const groups = createCrudResource<MemberGroup, GroupRequest, GroupRequest, GroupDetail>('/groups')
@@ -58,6 +71,12 @@ export async function setGroupPermissions(groupId: number, data: { permissionIds
 
 export async function getMemberGroups(memberId: number): Promise<MemberGroup[]> {
     const res = await client.get<MemberGroup[]>(`/station-members/${memberId}/groups`)
+    return res.data
+}
+
+/** Replaces the groups one member is in, in one step, and answers the groups they are in afterwards. */
+export async function setMemberGroups(memberId: number, groupIds: number[]): Promise<MemberGroup[]> {
+    const res = await client.put<MemberGroup[]>(`/station-members/${memberId}/groups`, {groupIds})
     return res.data
 }
 

@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.waitinglist.service;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
+import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
@@ -17,6 +19,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
@@ -97,7 +100,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 waitingListRepo,
                 stationRepo,
                 stationMemberRepo,
-                memberGroupRepo,
+                newGroupMemberships(),
+                new UserTypeChangeService(stationMemberRepo, newGroupMemberships()),
                 accountRepo,
                 emailService,
                 notificationService,
@@ -844,13 +848,16 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     /**
      * The whole way through a list that has both a testing group and a join group. The testing
-     * group is reached when the trial period starts, not when the invitation goes out.
+     * group is reached when the trial period starts, not when the invitation goes out. Both groups
+     * are bound to the type the entry has when it reaches them, so the join group is only reached
+     * because the entry becomes a member first.
      */
     @Test
     void groupsFollowTheEntryThroughTheTrialPeriod() {
-        // Create testing group and join group
         var testingGroup = memberGroupRepo.create(station.id(), "WL Testing Group");
         var joinGroup = memberGroupRepo.create(station.id(), "WL Join Group");
+        memberGroupRepo.replaceUserTypes(testingGroup.id(), List.of(StationUserType.TRIAL));
+        memberGroupRepo.replaceUserTypes(joinGroup.id(), List.of(StationUserType.MEMBER));
         var list = service.create(
                 station.id(),
                 "GroupTest " + UUID.randomUUID(),
@@ -885,19 +892,113 @@ class WaitingListServiceTest extends RepositoryTestBase {
                         .map(StationMember::id)
                         .toList());
 
-        // Join: TESTING -> JOINED (should remove from testing group, add to join group and role)
+        var trialOnly = memberGroupRepo.create(station.id(), "WL Trial Only");
+        memberGroupRepo.replaceUserTypes(trialOnly.id(), List.of(StationUserType.TRIAL));
+        memberGroupRepo.addMember(trialOnly.id(), testing.memberId());
+
         var joined = service.moveToJoined(testing.id());
         assertEquals(WaitingListEntryStatus.JOINED, joined.status());
         assertTrue(memberGroupRepo.findMembers(testingGroup.id()).isEmpty());
+        assertTrue(memberGroupRepo.findMembers(trialOnly.id()).isEmpty());
+        memberGroupRepo.delete(trialOnly.id());
         assertEquals(
                 List.of(joined.memberId()),
                 memberGroupRepo.findMembers(joinGroup.id()).stream()
                         .map(StationMember::id)
                         .toList());
 
-        // Cleanup
         memberGroupRepo.delete(testingGroup.id());
         memberGroupRepo.delete(joinGroup.id());
+    }
+
+    /**
+     * A list whose groups would not take the people it puts in them is refused where it is saved,
+     * rather than leaving them out of the group later.
+     */
+    @Test
+    void aListIsRefusedGroupsThatDoNotTakeItsPeople() {
+        var trainers = memberGroupRepo.create(station.id(), "WL Trainers " + UUID.randomUUID());
+        memberGroupRepo.replaceUserTypes(trainers.id(), List.of(StationUserType.TEAM));
+        var elsewhere = stationRepo.create("WL Elsewhere " + UUID.randomUUID());
+        var foreign = memberGroupRepo.create(elsewhere.id(), "Fremd");
+
+        assertEquals(
+                Refusal.WAITING_LIST_TESTING_GROUP_WRONG_USER_TYPE,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.create(
+                                        station.id(),
+                                        "Refused",
+                                        "",
+                                        null,
+                                        180,
+                                        trainers.id(),
+                                        null,
+                                        5,
+                                        false,
+                                        true,
+                                        null,
+                                        null))
+                        .refusal());
+        assertEquals(
+                Refusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.create(
+                                        station.id(),
+                                        "Refused",
+                                        "",
+                                        null,
+                                        180,
+                                        null,
+                                        trainers.id(),
+                                        5,
+                                        false,
+                                        true,
+                                        null,
+                                        null))
+                        .refusal());
+        var list = service.create(
+                station.id(), "Allowed " + UUID.randomUUID(), "", null, 180, null, null, 5, false, true, null, null);
+        assertEquals(
+                Refusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.update(
+                                        list.id(),
+                                        "Refused",
+                                        "",
+                                        null,
+                                        180,
+                                        null,
+                                        foreign.id(),
+                                        5,
+                                        false,
+                                        true,
+                                        null,
+                                        null))
+                        .refusal());
+        assertEquals(
+                Refusal.WAITING_LIST_TESTING_GROUP_NOT_HERE,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.update(
+                                        list.id(),
+                                        "Refused",
+                                        "",
+                                        null,
+                                        180,
+                                        foreign.id(),
+                                        null,
+                                        5,
+                                        false,
+                                        true,
+                                        null,
+                                        null))
+                        .refusal());
+
+        memberGroupRepo.delete(trainers.id());
+        stationRepo.delete(elsewhere.id());
     }
 
     /**

@@ -185,16 +185,6 @@ class StationMemberServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(24)
-    void setUserType() {
-        assertTrue(service.setUserType(member1.id(), StationUserType.TEAM));
-        var m = service.findById(member1.id()).orElseThrow();
-        assertEquals(StationUserType.TEAM, m.userType());
-        // Reset
-        service.setUserType(member1.id(), StationUserType.MEMBER);
-    }
-
-    @Test
     @Order(25)
     void setPermissionsGrantsLoginAndTriggersOnboarding() {
         // Create a member with email for LOGIN permission testing
@@ -366,9 +356,9 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(29)
     void setManagedRejectsNonManageableUserType() {
-        service.setUserType(member2.id(), StationUserType.TEAM);
+        stationMemberRepo.setUserType(member2.id(), StationUserType.TEAM);
         assertThrows(BadRequestResponse.class, () -> service.setManaged(member1.id(), List.of(member2.id())));
-        service.setUserType(member2.id(), StationUserType.MEMBER);
+        stationMemberRepo.setUserType(member2.id(), StationUserType.MEMBER);
     }
 
     @Test

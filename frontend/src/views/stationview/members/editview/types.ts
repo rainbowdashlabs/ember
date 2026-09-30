@@ -5,6 +5,7 @@
  */
 import type {MergedProfileField} from '@/util/profileFields'
 import type {MyInventoryItem} from '@/api/inventory'
+import type {MemberGroupSet} from '@/api/groupSets'
 import type {MemberGroup, PermissionGrant, StationMember, UserTag} from '@/api/types'
 
 /**
@@ -16,6 +17,7 @@ export interface MemberEditData {
     values: Map<string, string>
     allRoles: PermissionGrant[]
     allGroups: MemberGroup[]
+    allSets: MemberGroupSet[]
     allTags: UserTag[]
     allMembers: StationMember[]
     userType: string

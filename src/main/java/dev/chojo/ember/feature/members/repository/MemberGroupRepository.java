@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -28,14 +29,17 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class MemberGroupRepository {
-    private static final String MEMBER_GROUP_COLUMNS = "id, station_id, name, color, position";
+    private static final String MEMBER_GROUP_COLUMNS = MemberGroup.COLUMNS;
     private static final String STATION_MEMBER_COLUMNS = StationMember.COLUMNS;
 
     /**
      * Finds a member group by its identifier.
      */
     public Optional<MemberGroup> findById(int id) {
-        return SqlSupport.findById("member_group", MEMBER_GROUP_COLUMNS, id, MemberGroup.map());
+        return query("SELECT %s FROM member_group mg WHERE mg.id = :id;", MEMBER_GROUP_COLUMNS)
+                .single(call().bind("id", id))
+                .map(MemberGroup.map())
+                .first();
     }
 
     /**
@@ -43,7 +47,7 @@ public class MemberGroupRepository {
      */
     public List<MemberGroup> findByStation(int stationId) {
         return query("""
-                SELECT %s FROM member_group WHERE station_id = :station_id ORDER BY position DESC, name;""", MEMBER_GROUP_COLUMNS)
+                SELECT %s FROM member_group mg WHERE mg.station_id = :station_id ORDER BY mg.position DESC, mg.name;""", MEMBER_GROUP_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(MemberGroup.map())
                 .all();
@@ -66,9 +70,118 @@ public class MemberGroupRepository {
     public MemberGroup create(int stationId, String name) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO member_group(station_id, name, position)
-                VALUES(:station_id, :name, coalesce((SELECT max(position) + 1 FROM member_group WHERE station_id = :station_id), 0))
-                RETURNING %s;""", call().bind("station_id", stationId).bind("name", name), MemberGroup.map(), MEMBER_GROUP_COLUMNS);
+                WITH mg AS (
+                    INSERT INTO member_group(station_id, name, position)
+                    VALUES(:station_id, :name, coalesce((SELECT max(position) + 1 FROM member_group WHERE station_id = :station_id), 0))
+                    RETURNING *)
+                SELECT %s FROM mg;""", call().bind("station_id", stationId).bind("name", name), MemberGroup.map(), MEMBER_GROUP_COLUMNS);
+    }
+
+    /**
+     * Puts a group into a set, or out of every set.
+     *
+     * <p>A trigger carries the set over to the group's memberships, so this fails on the unique
+     * index where a member of the group is already in another group of the set.
+     *
+     * @param groupId the group
+     * @param setId   the set, or {@code null} for none
+     */
+    public void assignSet(int groupId, Integer setId) {
+        query("UPDATE member_group SET group_set_id = :set_id WHERE id = :id;")
+                .single(call().bind("set_id", setId).bind("id", groupId))
+                .update();
+    }
+
+    /**
+     * Replaces the user types a group is bound to.
+     *
+     * @param groupId   the group
+     * @param userTypes the types that may be in it, empty for every type
+     */
+    public void replaceUserTypes(int groupId, Collection<StationUserType> userTypes) {
+        query("DELETE FROM member_group_user_type WHERE group_id = :group_id;")
+                .single(call().bind("group_id", groupId))
+                .delete();
+        if (userTypes.isEmpty()) return;
+        query("""
+                INSERT INTO member_group_user_type(group_id, user_type)
+                SELECT :group_id, unnest(:user_types);""")
+                .single(call().bind("group_id", groupId)
+                        .bind(
+                                "user_types",
+                                userTypes.stream().map(Enum::name).distinct().toList(),
+                                PostgreSqlTypes.TEXT))
+                .insert();
+    }
+
+    /**
+     * The members of a group whose user type is none of the given ones.
+     *
+     * @param groupId   the group
+     * @param userTypes the types that fit
+     * @return the members who do not fit, former members included
+     */
+    public List<StationMember> findMembersNotOfTypes(int groupId, Collection<StationUserType> userTypes) {
+        return query("""
+                SELECT %s
+                FROM station_member sm
+                JOIN member_group_entry mge ON sm.id = mge.member_id
+                WHERE mge.group_id = :group_id
+                  AND NOT sm.user_type = ANY(:user_types)
+                ORDER BY sm.id;""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
+                .single(call().bind("group_id", groupId)
+                        .bind("user_types", userTypes.stream().map(Enum::name).toList(), PostgreSqlTypes.TEXT))
+                .map(StationMember.map())
+                .all();
+    }
+
+    /**
+     * The members who are in more than one of the given groups.
+     *
+     * @param groupIds the groups
+     * @return member id to the ids of the given groups they are in, holding only members in two or more
+     */
+    public Map<Integer, Set<Integer>> findOverlaps(Collection<Integer> groupIds) {
+        if (groupIds.size() < 2) return Map.of();
+        Map<Integer, Set<Integer>> overlaps = new HashMap<>();
+        for (var entry : query("""
+                SELECT mge.member_id, mge.group_id
+                FROM member_group_entry mge
+                WHERE mge.group_id = ANY(:group_ids)
+                  AND mge.member_id IN (SELECT member_id
+                                        FROM member_group_entry
+                                        WHERE group_id = ANY(:group_ids)
+                                        GROUP BY member_id
+                                        HAVING count(*) > 1);""")
+                .single(call().bind("group_ids", List.copyOf(groupIds), PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("member_id"), row.getInt("group_id")))
+                .all()) {
+            overlaps.computeIfAbsent(entry.getKey(), _ -> new HashSet<>()).add(entry.getValue());
+        }
+        return overlaps;
+    }
+
+    /**
+     * The group of a set each of these members is in.
+     *
+     * @param setId     the set
+     * @param memberIds the members
+     * @return member id to the group of the set they are in, holding only members in one
+     */
+    public Map<Integer, Integer> findGroupInSet(int setId, Collection<Integer> memberIds) {
+        if (memberIds.isEmpty()) return Map.of();
+        Map<Integer, Integer> groups = new HashMap<>();
+        for (var entry : query("""
+                SELECT member_id, group_id
+                FROM member_group_entry
+                WHERE group_set_id = :set_id AND member_id = ANY(:member_ids);""")
+                .single(call().bind("set_id", setId)
+                        .bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("member_id"), row.getInt("group_id")))
+                .all()) {
+            groups.put(entry.getKey(), entry.getValue());
+        }
+        return groups;
     }
 
     /**
@@ -166,7 +279,7 @@ public class MemberGroupRepository {
                 FROM member_group mg
                 JOIN member_group_entry mge ON mg.id = mge.group_id
                 WHERE mge.member_id = :member_id
-                ORDER BY mg.position DESC, mg.name;""", SqlSupport.alias("mg", MEMBER_GROUP_COLUMNS))
+                ORDER BY mg.position DESC, mg.name;""", MEMBER_GROUP_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(MemberGroup.map())
                 .all();

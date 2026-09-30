@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.members.service.MemberSetupMailService;
 import dev.chojo.ember.feature.members.service.MemberViewService;
 import dev.chojo.ember.feature.members.service.NicknameService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.Response;
@@ -55,6 +56,7 @@ class StationMemberRoutesTest {
     private MemberViewService memberViews;
     private MemberPickerService pickerService;
     private MemberSetupMailService setupMail;
+    private UserTypeChangeService userTypeChanges;
     private RouteHarness harness;
 
     private static StationMember member(int stationId, boolean former) {
@@ -85,6 +87,7 @@ class StationMemberRoutesTest {
         memberViews = mock(MemberViewService.class);
         pickerService = mock(MemberPickerService.class);
         setupMail = mock(MemberSetupMailService.class);
+        userTypeChanges = mock(UserTypeChangeService.class);
         when(memberService.findById(7)).thenReturn(Optional.of(member(STATION_ID, false)));
         when(memberService.findById(8)).thenReturn(Optional.of(member(99, false)));
         when(memberViews.withCompleteness(any(StationMember.class))).thenReturn(named());
@@ -98,7 +101,8 @@ class StationMemberRoutesTest {
                 mock(GdprDeletionService.class),
                 mock(MemberIdentityFactory.class),
                 mock(RestrictionService.class),
-                mock(NicknameService.class)));
+                mock(NicknameService.class),
+                userTypeChanges));
     }
 
     private Response get(HttpClient client, String path) {
@@ -208,7 +212,7 @@ class StationMemberRoutesTest {
 
         harness.run((server, client) -> {
             assertEquals(
-                    204,
+                    200,
                     put(client, "/station-members/7/user-type", "{\"userType\": \"TEAM\"}")
                             .code());
             assertEquals(
@@ -225,7 +229,7 @@ class StationMemberRoutesTest {
                             .code());
         });
 
-        verify(memberService).setUserType(7, StationUserType.TEAM);
+        verify(userTypeChanges).change(7, StationUserType.TEAM);
         verify(memberService).setJoinDate(7, LocalDate.of(2019, 3, 4));
     }
 

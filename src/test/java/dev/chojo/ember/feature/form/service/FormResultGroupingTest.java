@@ -53,9 +53,9 @@ class FormResultGroupingTest {
         var groups = mock(MemberGroupRepository.class);
         when(groups.findByStation(STATION))
                 .thenReturn(List.of(
-                        new MemberGroup(YOUTH, STATION, "Jugend", null, 3),
-                        new MemberGroup(ACTIVE, STATION, "Aktive", null, 2),
-                        new MemberGroup(OFFICERS, STATION, "Vorstand", null, 1)));
+                        new MemberGroup(YOUTH, STATION, "Jugend", null, 3, null, List.of()),
+                        new MemberGroup(ACTIVE, STATION, "Aktive", null, 2, null, List.of()),
+                        new MemberGroup(OFFICERS, STATION, "Vorstand", null, 1, null, List.of())));
         var tags = mock(UserTagRepository.class);
         when(tags.findByStation(STATION)).thenReturn(List.of(new UserTag(DRIVER, STATION, "Fahrer", null, true, 1)));
         var fields = mock(ProfileFieldRepository.class);

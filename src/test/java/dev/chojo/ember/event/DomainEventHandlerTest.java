@@ -144,7 +144,7 @@ class DomainEventHandlerTest {
     /** A mentioned group that belongs to the station the comment was written in. */
     private void groupInStation(int groupId) {
         when(memberGroupRepository.findById(groupId))
-                .thenReturn(Optional.of(new MemberGroup(groupId, STATION_ID, "Crew", null, 0)));
+                .thenReturn(Optional.of(new MemberGroup(groupId, STATION_ID, "Crew", null, 0, null, List.of())));
     }
 
     /** A mentioned event that belongs to the station the comment was written in. */
@@ -833,7 +833,7 @@ class DomainEventHandlerTest {
     @Test
     void bulkMentionOfAnotherStationsGroupNotifiesNobody() {
         when(memberGroupRepository.findById(5))
-                .thenReturn(Optional.of(new MemberGroup(5, STATION_ID + 1, "Foreign crew", null, 0)));
+                .thenReturn(Optional.of(new MemberGroup(5, STATION_ID + 1, "Foreign crew", null, 0, null, List.of())));
 
         bulkHandler()
                 .handle(new BulkMentionedInComment(

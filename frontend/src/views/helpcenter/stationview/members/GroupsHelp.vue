@@ -11,6 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import DummyGroupsList from './groupshelp/DummyGroupsList.vue'
 import DummyGroupDetailPanel from './groupshelp/DummyGroupDetailPanel.vue'
 import DummyGroupPermissions from './groupshelp/DummyGroupPermissions.vue'
+import DummyGroupRules from './groupshelp/DummyGroupRules.vue'
 
 const {t} = useI18n()
 </script>
@@ -40,6 +41,35 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.membersGroups.permissionsExampleTitle')">
       <DummyGroupPermissions/>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersGroups.joinRightsTitle')">
+      <p>{{ t('helpCenter.membersGroups.joinRightsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersGroups.setsTitle')">
+      <p>{{ t('helpCenter.membersGroups.setsText') }}</p>
+      <p>{{ t('helpCenter.membersGroups.setsDelete') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersGroups.setsExampleTitle')">
+      <DummyGroupRules part="sets"/>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersGroups.moveTitle')">
+      <p>{{ t('helpCenter.membersGroups.moveText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersGroups.bindingTitle')">
+      <p>{{ t('helpCenter.membersGroups.bindingText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersGroups.bindingExampleTitle')">
+      <DummyGroupRules part="rules"/>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersGroups.conflictTitle')">
+      <p>{{ t('helpCenter.membersGroups.conflictText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.membersGroups.colorTitle')">

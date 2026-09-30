@@ -17,7 +17,10 @@ import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
+import MemberGroupChips from '@/views/stationview/members/editview/MemberGroupChips.vue'
+import {StationUserType, type MemberGroup} from '@/api/types'
+import type {MemberGroupSet} from '@/api/groupSets'
 
 const {t} = useI18n()
 
@@ -35,6 +38,15 @@ const dummyRoles = [
   {id: 2, permission: 'INVENTORY_READ', label: 'Inventar lesen'},
 ]
 const dummySelected = new Set([1])
+
+const dummySets = computed<MemberGroupSet[]>(() => [{id: 1, stationId: '', name: t('helpCenter.sample.groups.levels')}])
+const dummyGroups = computed<MemberGroup[]>(() => [
+  {id: 1, name: t('helpCenter.sample.groups.beginners'), groupSetId: 1},
+  {id: 2, name: t('helpCenter.sample.groups.advancedPlural'), groupSetId: 1},
+  {id: 3, name: t('helpCenter.sample.groups.competitionGroup')},
+  {id: 4, name: t('helpCenter.sample.groups.supervisors'), userTypes: [StationUserType.TEAM, StationUserType.MANAGER]},
+])
+const dummyGroupIds = new Set([1, 3])
 </script>
 
 <template>
@@ -82,16 +94,8 @@ const dummySelected = new Set([1])
         </div>
 
         <div class="space-y-2">
-          <SubHeader>{{ t('memberEdit.permissions') }}</SubHeader>
-          <PermissionPicker :model-value="dummySelected" :all-roles="dummyRoles"/>
-        </div>
-
-        <div class="space-y-2">
-          <SubHeader>{{ t('memberGroups.title') }}</SubHeader>
-          <div class="flex flex-wrap gap-2">
-            <SecondaryBadge>{{ t('helpCenter.sample.groups.beginners') }}</SecondaryBadge>
-            <SecondaryBadge class="opacity-50">{{ t('helpCenter.sample.groups.advancedPlural') }}</SecondaryBadge>
-          </div>
+          <SubHeader>{{ t('memberEdit.groups') }}</SubHeader>
+          <MemberGroupChips :groups="dummyGroups" :sets="dummySets" :selected="dummyGroupIds" :user-type="dummyUserType"/>
         </div>
 
         <div class="space-y-2">
@@ -101,7 +105,19 @@ const dummySelected = new Set([1])
             <InfoBadge class="opacity-50">{{ t('helpCenter.sample.groups.drivers') }}</InfoBadge>
           </div>
         </div>
+
+        <div class="space-y-2">
+          <SubHeader>{{ t('memberEdit.permissions') }}</SubHeader>
+          <PermissionPicker :model-value="dummySelected" :all-roles="dummyRoles"/>
+        </div>
       </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersEdit.groupsTitle')">
+      <p>{{ t('helpCenter.membersEdit.groupsText') }}</p>
+      <p>{{ t('helpCenter.membersEdit.groupSetText') }}</p>
+      <p>{{ t('helpCenter.membersEdit.groupBoundText') }}</p>
+      <p>{{ t('helpCenter.membersEdit.typeChangeText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.membersEdit.relationsTitle')">

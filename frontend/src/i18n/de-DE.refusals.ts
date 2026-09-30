@@ -158,6 +158,13 @@ const PROFILE_FIELD_AUDIENCE_AMBIGUOUS = 'Nenne entweder eine Mitgliederart oder
     + 'und nur eines von beiden'
 const GROUP_NAME_MISSING = 'Gib der Gruppe einen Namen'
 const GROUP_NOT_HERE = 'Diese Gruppe gibt es nicht mehr'
+const GROUP_NOT_HERE_NOTHING_SAVED = 'Eine dieser Gruppen gibt es hier nicht, es wurde nichts gespeichert'
+const GROUP_WRONG_USER_TYPE = 'Diese Gruppe nimmt nur bestimmte Mitgliedsarten auf, es wurde nichts gespeichert'
+const GROUP_GRANTS_MORE_THAN_YOURS = 'Diese Gruppe vergibt Berechtigungen, die du selbst nicht hast, '
+    + 'es wurde nichts gespeichert'
+const GROUP_SET_NOT_HERE = 'Dieses Gruppenset gibt es nicht mehr'
+const GROUP_SET_NAME_MISSING = 'Gib dem Gruppenset einen Namen'
+const GROUP_SET_NAME_TAKEN = 'Ein anderes Gruppenset trägt diesen Namen schon'
 const TAG_NAME_MISSING = 'Gib dem Tag einen Namen'
 const TRANSFER_TOKEN_NOT_GOOD = 'Diesen Umzug führt diese Instanz nicht mehr durch'
 const REGISTRATION_CODE_NOT_HERE = 'Diesen Registrierungscode gibt es nicht mehr'
@@ -918,6 +925,10 @@ export default {
     'W-044': 'Ein Vorname wird gebraucht, es wurde nichts gespeichert',
     'W-045': 'Eine E-Mail-Adresse wird gebraucht, es wurde nichts gespeichert',
     'W-046': 'Dieser Bestätigungslink ist nicht mehr gültig',
+    'W-047': 'Die Gruppe für die Probezeit nimmt niemanden auf Probe auf, es wurde nichts gespeichert',
+    'W-048': 'Die Gruppe für den Beitritt nimmt keine Mitglieder auf, es wurde nichts gespeichert',
+    'W-049': GROUP_NOT_HERE_NOTHING_SAVED,
+    'W-050': GROUP_NOT_HERE_NOTHING_SAVED,
 
     'G-001': UNEXPECTED_FAULT,
     'G-002': UNEXPECTED_FAULT,
@@ -1226,6 +1237,33 @@ export default {
     'M-121': 'Diese Änderung kam nicht von einer geöffneten Seite dieser Website, es wurde nichts getan. '
         + 'Lade die Seite neu und versuche es erneut',
     'M-122': 'Die Anmeldung funktioniert nur über die Anmeldeseite dieser Website',
+    'M-123': GROUP_WRONG_USER_TYPE,
+    'M-124': GROUP_WRONG_USER_TYPE,
+    'M-125': 'Ein Mitglied kann nur in einer Gruppe eines Gruppensets sein, es wurde nichts gespeichert',
+    'M-126': 'Einige dieser Mitglieder sind schon in einer anderen Gruppe desselben Gruppensets, '
+        + 'es wurde nichts gespeichert',
+    'M-127': 'Einige Mitglieder sind in mehr als einer dieser Gruppen, ein Gruppenset erlaubt aber nur eine, '
+        + 'es wurde nichts gespeichert',
+    'M-128': 'Einige Mitglieder der Gruppe haben keine der gewählten Mitgliedsarten, es wurde nichts gespeichert',
+    'M-129': 'Einige dieser Mitglieder gibt es hier nicht, es wurde nichts gespeichert',
+    'M-130': GROUP_NOT_HERE_NOTHING_SAVED,
+    'M-131': GROUP_GRANTS_MORE_THAN_YOURS,
+    'M-132': GROUP_GRANTS_MORE_THAN_YOURS,
+    'M-133': GROUP_GRANTS_MORE_THAN_YOURS,
+    'M-134': GROUP_NOT_HERE_NOTHING_SAVED,
+    'M-135': GROUP_SET_NOT_HERE,
+    'M-136': GROUP_SET_NAME_MISSING,
+    'M-137': GROUP_SET_NAME_MISSING,
+    'M-138': GROUP_SET_NAME_TAKEN,
+    'M-139': GROUP_SET_NAME_TAKEN,
+    'M-140': GROUP_SET_NOT_HERE,
+    'M-141': GROUP_SET_NOT_HERE,
+    'M-142': 'Wer sich mit einem Code registriert, wird Mitglied, und eine dieser Gruppen nimmt keine Mitglieder '
+        + 'auf, es wurde nichts gespeichert',
+    'M-143': GROUP_NOT_HERE_NOTHING_SAVED,
+    'M-144': 'Das ist kein Mitgliedstyp',
+    'M-145': REGISTRATION_CODE_NOT_HERE,
+    'M-146': REGISTRATION_CODE_NOT_HERE,
 
     'N-001': TOO_MANY_ATTEMPTS,
 

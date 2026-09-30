@@ -5,7 +5,7 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-import type {MemberIdentity, PermissionGrant, StationMember} from './types'
+import type {MemberGroup, MemberIdentity, PermissionGrant, StationMember} from './types'
 
 export interface CreateMemberRequest {
     stationId?: number
@@ -166,8 +166,20 @@ export async function reactivateMember(memberId: number): Promise<void> {
     await client.post(`/station-members/${memberId}/reactivate`)
 }
 
-export async function setUserType(memberId: number, userType: string): Promise<void> {
-    await client.put(`/station-members/${memberId}/user-type`, { userType })
+/** What changing a member's type did beyond the type: the groups they left because those do not take it. */
+export interface UserTypeChange {
+    leftGroups: MemberGroup[]
+}
+
+export async function setUserType(memberId: number, userType: string): Promise<UserTypeChange> {
+    const res = await client.put<UserTypeChange>(`/station-members/${memberId}/user-type`, { userType })
+    return res.data
+}
+
+/** The groups a member would leave on becoming the given type, asked before the change is made. */
+export async function getUserTypeConsequences(memberId: number, userType: string): Promise<MemberGroup[]> {
+    const res = await client.get<MemberGroup[]>(`/station-members/${memberId}/user-type/${userType}/consequences`)
+    return res.data
 }
 
 export async function setJoinDate(memberId: number, joinDate: string): Promise<void> {

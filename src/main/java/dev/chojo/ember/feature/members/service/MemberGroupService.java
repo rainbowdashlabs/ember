@@ -6,8 +6,6 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.MembersAddedToGroup;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -20,30 +18,30 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * A station's groups: reading them, naming and ordering them, what they grant, and turning one into
+ * a tag. Who is in a group is written through {@link GroupMembershipService}, and which types and set
+ * a group takes through {@link GroupRulesService}.
+ */
 @Singleton
 public class MemberGroupService {
     private static final Logger log = LoggerFactory.getLogger(MemberGroupService.class);
     private final MemberGroupRepository groupRepository;
     private final StationMemberRepository memberRepository;
     private final UserTagRepository tagRepository;
-    private final DomainEventBus eventBus;
 
     @Inject
     public MemberGroupService(
             MemberGroupRepository groupRepository,
             StationMemberRepository memberRepository,
-            UserTagRepository tagRepository,
-            DomainEventBus eventBus) {
+            UserTagRepository tagRepository) {
         this.groupRepository = groupRepository;
         this.memberRepository = memberRepository;
         this.tagRepository = tagRepository;
-        this.eventBus = eventBus;
     }
 
     public List<MemberGroup> findByStation(int stationId) {
@@ -52,21 +50,6 @@ public class MemberGroupService {
 
     public Optional<MemberGroup> findById(int id) {
         return groupRepository.findById(id);
-    }
-
-    public MemberGroup create(int stationId, String name) {
-        var group = groupRepository.create(stationId, name);
-        log.info("Group created: id={}, station={}, name='{}'", group.id(), stationId, name);
-        return group;
-    }
-
-    public Optional<MemberGroup> update(int id, String name, String color, int position) {
-        if (groupRepository.update(id, name, color, position)) {
-            log.info("Group updated: id={}, name='{}'", id, name);
-            return groupRepository.findById(id);
-        }
-        log.warn("Group update affected no rows: id={}", id);
-        return Optional.empty();
     }
 
     public boolean delete(int id) {
@@ -82,42 +65,6 @@ public class MemberGroupService {
 
     public List<MemberGroup> findGroupsForMember(int memberId) {
         return groupRepository.findGroupsForMember(memberId);
-    }
-
-    public List<StationMember> setMembers(int groupId, List<Integer> desiredMemberIds, Integer addedByMemberId) {
-        List<StationMember> currentMembers = groupRepository.findMembers(groupId);
-        var currentMemberIdSet =
-                new HashSet<>(currentMembers.stream().map(StationMember::id).toList());
-
-        var addedMemberIds = new ArrayList<Integer>();
-        int removedCount = 0;
-        for (int memberId : currentMemberIdSet) {
-            if (!desiredMemberIds.contains(memberId)) {
-                groupRepository.removeMember(groupId, memberId);
-                removedCount++;
-            }
-        }
-        for (int memberId : desiredMemberIds) {
-            if (!currentMemberIdSet.contains(memberId)) {
-                groupRepository.addMember(groupId, memberId);
-                addedMemberIds.add(memberId);
-            }
-        }
-
-        log.info(
-                "Group membership updated: group={}, added={}, removed={}, by={}",
-                groupId,
-                addedMemberIds.size(),
-                removedCount,
-                addedByMemberId);
-
-        if (!addedMemberIds.isEmpty()) {
-            findById(groupId)
-                    .ifPresent(g -> eventBus.publish(
-                            new MembersAddedToGroup(g.stationId(), g.name(), addedMemberIds, addedByMemberId)));
-        }
-
-        return groupRepository.findMembers(groupId);
     }
 
     // -- Group Permissions --

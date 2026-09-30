@@ -401,7 +401,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     void passesLocalViewOverrideWithMatchingGroup() {
         accessService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(), List.of(55), List.of()));
         when(groupService.findGroupsForMember(memberId))
-                .thenReturn(List.of(new MemberGroup(55, station1.id(), "TestGroup", null, 0)));
+                .thenReturn(List.of(new MemberGroup(55, station1.id(), "TestGroup", null, 0, null, List.of())));
         assertTrue(accessService.passesLocalViewOverride(partnerId, boardUid, memberId));
     }
 
@@ -640,7 +640,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     void passesLocalEditOverrideWithMatchingGroup() {
         accessService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(55), List.of()));
         when(groupService.findGroupsForMember(memberId))
-                .thenReturn(List.of(new MemberGroup(55, station1.id(), "EditGroup", null, 0)));
+                .thenReturn(List.of(new MemberGroup(55, station1.id(), "EditGroup", null, 0, null, List.of())));
         assertTrue(accessService.passesLocalEditOverride(partnerId, boardUid, memberId));
         accessService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
         reset(memberService, groupService, tagService);

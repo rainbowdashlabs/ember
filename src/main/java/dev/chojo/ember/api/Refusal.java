@@ -2671,6 +2671,28 @@ public enum Refusal {
     WAITING_LIST_CONFIRMATION_LINK_UNKNOWN(
             Area.WAITING_LISTS, 46, HttpStatus.BAD_REQUEST, "This confirmation link is no longer good"),
 
+    /** A waiting list whose testing group does not take somebody on trial. */
+    WAITING_LIST_TESTING_GROUP_WRONG_USER_TYPE(
+            Area.WAITING_LISTS,
+            47,
+            HttpStatus.BAD_REQUEST,
+            "The group for the trial period does not take people on trial, so nothing was saved"),
+
+    /** A waiting list whose join group does not take members. */
+    WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE(
+            Area.WAITING_LISTS,
+            48,
+            HttpStatus.BAD_REQUEST,
+            "The group for joining does not take members, so nothing was saved"),
+
+    /** A waiting list whose testing group belongs to another station, or is gone. */
+    WAITING_LIST_TESTING_GROUP_NOT_HERE(
+            Area.WAITING_LISTS, 49, HttpStatus.NOT_FOUND, Sentences.GROUP_NOT_HERE_NOTHING_SAVED),
+
+    /** A waiting list whose join group belongs to another station, or is gone. */
+    WAITING_LIST_JOIN_GROUP_NOT_HERE(
+            Area.WAITING_LISTS, 50, HttpStatus.NOT_FOUND, Sentences.GROUP_NOT_HERE_NOTHING_SAVED),
+
     /** Nobody expected this one, and the log is where it is explained. */
     UNEXPECTED_FAULT(Area.GENERAL, 1, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.UNEXPECTED_FAULT),
 
@@ -3768,10 +3790,16 @@ public enum Refusal {
     /** A registration code being made without the text people would type. */
     REGISTRATION_CODE_TEXT_MISSING(Area.MEMBERS, 98, HttpStatus.BAD_REQUEST, "Give the registration code its text"),
 
-    /** A registration code that went between the list being drawn and it being opened. */
+    /**
+     * A registration code that went between the list being drawn and it being opened, or one of
+     * another station. One code for both, so a number does not say that a code exists elsewhere.
+     */
     REGISTRATION_CODE_NOT_HERE(Area.MEMBERS, 99, HttpStatus.NOT_FOUND, Sentences.REGISTRATION_CODE_NOT_HERE),
 
-    /** A registration code that was already gone when its deletion was asked for. */
+    /**
+     * A registration code that was already gone when its deletion was asked for, or one of another
+     * station. One code for both, for the same reason as opening one.
+     */
     REGISTRATION_CODE_NOT_DELETED(Area.MEMBERS, 100, HttpStatus.NOT_FOUND, Sentences.REGISTRATION_CODE_NOT_HERE),
 
     /** A saved filter being kept without a name, a list or anything to filter by. */
@@ -3866,6 +3894,105 @@ public enum Refusal {
     /** A sign-in started on another site, which must not be able to sign a browser in here. */
     SIGN_IN_FROM_ANOTHER_SITE(
             Area.MEMBERS, 122, HttpStatus.FORBIDDEN, "Signing in only works from this site's own sign-in page"),
+
+    /** A member put into a group from their own page whose user type the group does not take. */
+    GROUP_WRONG_USER_TYPE_FOR_MEMBER(Area.MEMBERS, 123, HttpStatus.BAD_REQUEST, Sentences.GROUP_WRONG_USER_TYPE),
+
+    /** Members added on the group page whose user type the group does not take. */
+    GROUP_WRONG_USER_TYPE_ON_ADD(Area.MEMBERS, 124, HttpStatus.BAD_REQUEST, Sentences.GROUP_WRONG_USER_TYPE),
+
+    /** Two groups of one set chosen for a member at once. */
+    GROUP_SET_TWO_CHOSEN(
+            Area.MEMBERS,
+            125,
+            HttpStatus.BAD_REQUEST,
+            "A member can be in only one group of a set, so nothing was saved"),
+
+    /** Members added to a group while they are in another group of its set, without asking to move them. */
+    GROUP_SET_ALREADY_IN(
+            Area.MEMBERS,
+            126,
+            HttpStatus.CONFLICT,
+            "Some of these members are already in another group of the same set, so nothing was saved"),
+
+    /** Groups put into one set while some members are in more than one of them. */
+    GROUP_SET_MEMBERS_OVERLAP(
+            Area.MEMBERS,
+            127,
+            HttpStatus.CONFLICT,
+            "Some members are in more than one of these groups, and a set allows only one, so nothing was saved"),
+
+    /** A group bound to user types that some of its members are not of, without asking to take them out. */
+    GROUP_BINDING_EXCLUDES_MEMBERS(
+            Area.MEMBERS,
+            128,
+            HttpStatus.CONFLICT,
+            "Some members of the group are not of the chosen types, so nothing was saved"),
+
+    /** Member ids sent for a group that belong to another station, or to nobody. */
+    GROUP_MEMBER_NOT_HERE(
+            Area.MEMBERS, 129, HttpStatus.BAD_REQUEST, "Some of these members are not here, so nothing was saved"),
+
+    /** A group chosen for a member that belongs to another station, or is gone. */
+    GROUP_NOT_HERE_FOR_MEMBER(Area.MEMBERS, 130, HttpStatus.NOT_FOUND, Sentences.GROUP_NOT_HERE_NOTHING_SAVED),
+
+    /** A member put into a group from their own page that grants more than the caller holds. */
+    GROUP_GRANTS_MORE_THAN_YOURS_FOR_MEMBER(
+            Area.MEMBERS, 131, HttpStatus.FORBIDDEN, Sentences.GROUP_GRANTS_MORE_THAN_YOURS),
+
+    /** Members added on the group page to a group that grants more than the caller holds. */
+    GROUP_GRANTS_MORE_THAN_YOURS_ON_ADD(
+            Area.MEMBERS, 132, HttpStatus.FORBIDDEN, Sentences.GROUP_GRANTS_MORE_THAN_YOURS),
+
+    /** New members invited into a group that grants more than the caller holds. */
+    GROUP_GRANTS_MORE_THAN_YOURS_ON_INVITE(
+            Area.MEMBERS, 133, HttpStatus.FORBIDDEN, Sentences.GROUP_GRANTS_MORE_THAN_YOURS),
+
+    /** New members invited into a group of another station, or one that is gone. */
+    INVITE_GROUP_NOT_HERE(Area.MEMBERS, 134, HttpStatus.NOT_FOUND, Sentences.GROUP_NOT_HERE_NOTHING_SAVED),
+
+    /** A group put into a set of another station, or one that is gone. */
+    GROUP_SET_NOT_HERE_FOR_GROUP(Area.MEMBERS, 135, HttpStatus.NOT_FOUND, Sentences.GROUP_SET_NOT_HERE),
+
+    /** A set of groups created without a name. */
+    GROUP_SET_NAME_MISSING_ON_CREATE(Area.MEMBERS, 136, HttpStatus.BAD_REQUEST, Sentences.GROUP_SET_NAME_MISSING),
+
+    /** A set of groups renamed to nothing. */
+    GROUP_SET_NAME_MISSING_ON_CHANGE(Area.MEMBERS, 137, HttpStatus.BAD_REQUEST, Sentences.GROUP_SET_NAME_MISSING),
+
+    /** A set of groups created with a name another set of the station carries. */
+    GROUP_SET_NAME_TAKEN_ON_CREATE(Area.MEMBERS, 138, HttpStatus.CONFLICT, Sentences.GROUP_SET_NAME_TAKEN),
+
+    /** A set of groups renamed to a name another set of the station carries. */
+    GROUP_SET_NAME_TAKEN_ON_CHANGE(Area.MEMBERS, 139, HttpStatus.CONFLICT, Sentences.GROUP_SET_NAME_TAKEN),
+
+    /** A set of groups renamed that is not here, or belongs to another station. */
+    GROUP_SET_NOT_HERE_ON_CHANGE(Area.MEMBERS, 140, HttpStatus.NOT_FOUND, Sentences.GROUP_SET_NOT_HERE),
+
+    /** A set of groups deleted that is not here, or belongs to another station. */
+    GROUP_SET_NOT_HERE_ON_DELETE(Area.MEMBERS, 141, HttpStatus.NOT_FOUND, Sentences.GROUP_SET_NOT_HERE),
+
+    /** A registration code whose groups include one that does not take members. */
+    REGISTRATION_CODE_GROUP_WRONG_USER_TYPE(
+            Area.MEMBERS,
+            142,
+            HttpStatus.BAD_REQUEST,
+            "Somebody registering with a code becomes a member, and one of these groups does not take members, so nothing was saved"),
+
+    /** A registration code whose groups include one of another station, or one that is gone. */
+    REGISTRATION_CODE_GROUP_NOT_HERE(Area.MEMBERS, 143, HttpStatus.NOT_FOUND, Sentences.GROUP_NOT_HERE_NOTHING_SAVED),
+
+    /** The consequences of a type change asked for a type that does not exist. */
+    USER_TYPE_UNKNOWN_FOR_CONSEQUENCES(
+            Area.MEMBERS, 144, HttpStatus.BAD_REQUEST, "That is not a type a member can have"),
+
+    /** The groups of a registration code asked for that is gone or belongs to another station. */
+    REGISTRATION_CODE_NOT_HERE_FOR_GROUPS(
+            Area.MEMBERS, 145, HttpStatus.NOT_FOUND, Sentences.REGISTRATION_CODE_NOT_HERE),
+
+    /** The groups of a registration code changed that is gone or belongs to another station. */
+    REGISTRATION_CODE_NOT_HERE_TO_CHANGE_GROUPS(
+            Area.MEMBERS, 146, HttpStatus.NOT_FOUND, Sentences.REGISTRATION_CODE_NOT_HERE),
 
     /** Asking to set an instance up far more often than a person could. */
     SETUP_TOO_OFTEN(Area.INSTALLATION, 1, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
@@ -5803,6 +5930,15 @@ public enum Refusal {
                 "Name either a kind of member or a group, and only one of the two";
         private static final String GROUP_NAME_MISSING = "Give the group a name";
         private static final String GROUP_NOT_HERE = "That group is not here any more";
+        private static final String GROUP_NOT_HERE_NOTHING_SAVED =
+                "One of those groups is not here, so nothing was saved";
+        private static final String GROUP_WRONG_USER_TYPE =
+                "That group takes only members of certain types, so nothing was saved";
+        private static final String GROUP_GRANTS_MORE_THAN_YOURS =
+                "That group grants permissions you do not hold yourself, so nothing was saved";
+        private static final String GROUP_SET_NOT_HERE = "That set of groups is not here any more";
+        private static final String GROUP_SET_NAME_MISSING = "Give the set of groups a name";
+        private static final String GROUP_SET_NAME_TAKEN = "Another set of groups already has that name";
         private static final String TAG_NAME_MISSING = "Give the tag a name";
         private static final String MEMBER_TAG_NOT_HERE = "That tag is not here any more";
         private static final String TRANSFER_TOKEN_NOT_GOOD =

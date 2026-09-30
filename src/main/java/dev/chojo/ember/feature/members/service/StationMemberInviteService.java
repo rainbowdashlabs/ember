@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.SetupMail;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -38,16 +38,16 @@ public class StationMemberInviteService {
 
     private static final Logger log = LoggerFactory.getLogger(StationMemberInviteService.class);
     private final StationMemberRepository stationMemberRepository;
-    private final MemberGroupRepository memberGroupRepository;
+    private final GroupMembershipService groupMemberships;
     private final AccountInviteService accountInviteService;
 
     @Inject
     public StationMemberInviteService(
             StationMemberRepository stationMemberRepository,
-            MemberGroupRepository memberGroupRepository,
+            GroupMembershipService groupMemberships,
             AccountInviteService accountInviteService) {
         this.stationMemberRepository = stationMemberRepository;
-        this.memberGroupRepository = memberGroupRepository;
+        this.groupMemberships = groupMemberships;
         this.accountInviteService = accountInviteService;
     }
 
@@ -92,7 +92,7 @@ public class StationMemberInviteService {
             member = stationMemberRepository.create(stationId, account.id());
             stationMemberRepository.setUserType(member.id(), userType);
             if (groupId != null) {
-                memberGroupRepository.addMember(groupId, member.id());
+                groupMemberships.joinAutomatically(groupId, member.id());
             }
         }
 
@@ -119,8 +119,16 @@ public class StationMemberInviteService {
      * provisioned as {@link StationUserType#GUARDIAN} and linked as manager of the member they
      * belong to. Entries are processed independently - a failing entry does not affect the rest;
      * failed entries are reported in the result.
+     *
+     * <p>The groups chosen for the entries are checked before anybody is invited: each must be one of
+     * the station's and grant nothing the inviting person does not hold, because putting somebody into
+     * a group is granting them what it grants.
      */
-    public BatchResult createBatch(int stationId, List<InviteRequest> requests, SetupMail setupMail) {
+    public BatchResult createBatch(int stationId, List<InviteRequest> requests, SetupMail setupMail, UserSession by) {
+        requests.stream()
+                .map(InviteRequest::groupId)
+                .distinct()
+                .forEach(groupId -> groupMemberships.requireInvitableInto(stationId, groupId, by));
         var provisioned = new ArrayList<ProvisionedMember>();
         var failed = new ArrayList<FailedInvite>();
         for (InviteRequest req : requests) {

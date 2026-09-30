@@ -6,7 +6,6 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -14,23 +13,34 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MemberUserTypeSelect from './MemberUserTypeSelect.vue'
+import MemberGroupChips from './MemberGroupChips.vue'
+import MemberTagChips from './MemberTagChips.vue'
 import {StationUserType, type MemberGroup, type PermissionGrant, type StationMember, type UserTag} from '@/api/types'
-import {stationMembers, memberGroups, userTags} from '@/api'
+import type {MemberGroupSet} from '@/api/groupSets'
+import {stationMembers, memberGroups} from '@/api'
 import type {MyInventoryItem} from '@/api/inventory'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 
+/**
+ * What a member is at the station: their type, their groups and tags, and their own permissions.
+ *
+ * <p>Groups and tags come first as compact chips, because they are what a manager changes most and
+ * what used to go unnoticed below a long list of permissions. The groups are written for this one
+ * member in one step, so two editors cannot overwrite each other's work on a whole group.
+ */
 const props = defineProps<{
   member: StationMember
   memberId: number
   allRoles: PermissionGrant[]
   allGroups: MemberGroup[]
+  allSets: MemberGroupSet[]
   allTags: UserTag[]
   initialUserType: string
   initialRoleIds: Set<number>
@@ -49,16 +59,33 @@ const failure = ref<Failure | null>(null)
 const success = ref('')
 
 const editUserType = ref(props.initialUserType)
+const editGroupIds = ref<Set<number>>(new Set(props.initialGroupIds))
+const savingGroups = ref(false)
 
-async function onUserTypeChange(value: string) {
+function onUserTypeChanged(userType: string, leftGroups: MemberGroup[]) {
+  failure.value = null
+  editUserType.value = userType
+  emit('userTypeChanged', userType)
+  if (leftGroups.length === 0) return
+  const next = new Set(editGroupIds.value)
+  for (const group of leftGroups) next.delete(group.id)
+  editGroupIds.value = next
+  emit('groupsChanged', next)
+  success.value = t('memberEdit.userTypeLeftGroups', {groups: leftGroups.map(group => group.name).join(', ')})
+}
+
+async function onGroupsChange(groupIds: Set<number>) {
   failure.value = null
   success.value = ''
+  savingGroups.value = true
   try {
-    await stationMembers.setUserType(props.memberId, value)
-    editUserType.value = value
-    emit('userTypeChanged', value)
+    const saved = await memberGroups.setMemberGroups(props.memberId, [...groupIds])
+    editGroupIds.value = new Set(saved.map(group => group.id))
+    emit('groupsChanged', new Set(editGroupIds.value))
   } catch (e) {
     failure.value = describeFailure(e, t)
+  } finally {
+    savingGroups.value = false
   }
 }
 
@@ -77,57 +104,6 @@ async function onPermissionsChange(newIds: Set<number>) {
   try {
     await stationMembers.setPermissions(props.memberId, {permissionIds: [...newIds]})
   } catch (e) {
-    failure.value = describeFailure(e, t)
-  }
-}
-
-const editGroupIds = ref(new Set(props.initialGroupIds))
-
-async function toggleGroup(groupId: number) {
-  failure.value = null
-  const wasIn = editGroupIds.value.has(groupId)
-  if (wasIn) {
-    editGroupIds.value.delete(groupId)
-  } else {
-    editGroupIds.value.add(groupId)
-  }
-  editGroupIds.value = new Set(editGroupIds.value)
-  try {
-    const currentMembers = await memberGroups.getGroupMembers(groupId)
-    const memberIds = wasIn
-        ? currentMembers.filter(m => m.id !== props.memberId).map(m => m.id)
-        : [...currentMembers.map(m => m.id), props.memberId]
-    await memberGroups.setGroupMembers(groupId, {memberIds})
-    emit('groupsChanged', new Set(editGroupIds.value))
-  } catch (e) {
-    if (wasIn) editGroupIds.value.add(groupId)
-    else editGroupIds.value.delete(groupId)
-    editGroupIds.value = new Set(editGroupIds.value)
-    failure.value = describeFailure(e, t)
-  }
-}
-
-const editTagIds = ref(new Set(props.initialTagIds))
-
-async function toggleTag(tagId: number) {
-  failure.value = null
-  const wasIn = editTagIds.value.has(tagId)
-  if (wasIn) {
-    editTagIds.value.delete(tagId)
-  } else {
-    editTagIds.value.add(tagId)
-  }
-  editTagIds.value = new Set(editTagIds.value)
-  try {
-    const currentMembers = await userTags.getTagMembers(tagId)
-    const memberIds = wasIn
-        ? currentMembers.filter(m => m.id !== props.memberId).map(m => m.id)
-        : [...currentMembers.map(m => m.id), props.memberId]
-    await userTags.setTagMembers(tagId, memberIds)
-  } catch (e) {
-    if (wasIn) editTagIds.value.add(tagId)
-    else editTagIds.value.delete(tagId)
-    editTagIds.value = new Set(editTagIds.value)
     failure.value = describeFailure(e, t)
   }
 }
@@ -163,49 +139,25 @@ const {running: markingFormer, failure: formerFailure, run: confirmMarkFormer} =
 
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.userType') }}</SubHeader>
-      <SelectInput :model-value="editUserType" class="max-w-xs" @update:model-value="v => { if (v) onUserTypeChange(String(v)) }">
-        <option :value="StationUserType.MANAGER">{{ t('memberEdit.userTypeManager') }}</option>
-        <option :value="StationUserType.TEAM">{{ t('memberEdit.userTypeTeam') }}</option>
-        <option :value="StationUserType.GUARDIAN">{{ t('memberEdit.userTypeGuardian') }}</option>
-        <option :value="StationUserType.MEMBER">{{ t('memberEdit.userTypeMember') }}</option>
-        <option :value="StationUserType.TRIAL">{{ t('memberEdit.userTypeTrial') }}</option>
-      </SelectInput>
+      <MemberUserTypeSelect :member-id="memberId" :user-type="editUserType"
+                            @changed="onUserTypeChanged" @failed="f => failure = f"/>
+    </NeutralContainer>
+
+    <NeutralContainer class="space-y-3">
+      <SubHeader class="text-sm">{{ t('memberEdit.groups') }}</SubHeader>
+      <MemberGroupChips :groups="allGroups" :sets="allSets" :selected="editGroupIds" :user-type="editUserType"
+                        :disabled="savingGroups" @change="onGroupsChange"/>
+    </NeutralContainer>
+
+    <NeutralContainer class="space-y-3">
+      <SubHeader class="text-sm">{{ t('memberEdit.tags') }}</SubHeader>
+      <MemberTagChips :member-id="memberId" :tags="allTags" :initial-tag-ids="initialTagIds" @failed="f => failure = f"/>
     </NeutralContainer>
 
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.permissions') }}</SubHeader>
       <PermissionPicker :model-value="editRoleIds" :all-roles="allRoles" :locked-permissions="lockedPermissions"
                         @update:model-value="onPermissionsChange"/>
-    </NeutralContainer>
-
-    <NeutralContainer class="space-y-3">
-      <SubHeader class="text-sm">{{ t('memberEdit.groups') }}</SubHeader>
-      <div class="flex flex-wrap gap-2">
-        <SelectionToggleButton
-            v-for="group in allGroups"
-            :key="group.id"
-            :selected="editGroupIds.has(group.id)"
-            @toggle="toggleGroup(group.id)"
-        >
-          {{ group.name }}
-        </SelectionToggleButton>
-        <span v-if="allGroups.length === 0" class="text-xs text-(--text-muted)">{{ t('memberEdit.noGroups') }}</span>
-      </div>
-    </NeutralContainer>
-
-    <NeutralContainer class="space-y-3">
-      <SubHeader class="text-sm">{{ t('memberEdit.tags') }}</SubHeader>
-      <div class="flex flex-wrap gap-2">
-        <SelectionToggleButton
-            v-for="tag in allTags"
-            :key="tag.id"
-            :selected="editTagIds.has(tag.id)"
-            @toggle="toggleTag(tag.id)"
-        >
-          {{ tag.name }}
-        </SelectionToggleButton>
-        <span v-if="allTags.length === 0" class="text-xs text-(--text-muted)">{{ t('memberEdit.noTags') }}</span>
-      </div>
     </NeutralContainer>
 
     <div class="flex items-center justify-end">

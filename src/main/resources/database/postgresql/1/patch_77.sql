@@ -312,3 +312,96 @@ ALTER TABLE ember_schema.station
 
 COMMENT ON COLUMN ember_schema.station.discovery_reviewed_at
     IS 'When a manager last saved how the station is listed in discovery, NULL while nobody has. Once set, the station has decided knowingly and the discovery step of its setup counts as done.';
+
+CREATE TABLE ember_schema.member_group_set
+(
+    id         SERIAL PRIMARY KEY,
+    station_id INTEGER NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    name       TEXT    NOT NULL,
+    UNIQUE (station_id, name)
+);
+
+COMMENT ON TABLE ember_schema.member_group_set
+    IS 'A set of groups a member can be in only one of, such as the levels of a training. Deleting a set keeps its groups and their members.';
+COMMENT ON COLUMN ember_schema.member_group_set.id
+    IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.member_group_set.station_id
+    IS 'The station the set belongs to.';
+COMMENT ON COLUMN ember_schema.member_group_set.name
+    IS 'The name of the set, unique within the station.';
+
+ALTER TABLE ember_schema.member_group
+    ADD COLUMN group_set_id INTEGER REFERENCES ember_schema.member_group_set (id) ON DELETE SET NULL;
+
+CREATE INDEX idx_member_group_group_set ON ember_schema.member_group (group_set_id);
+
+COMMENT ON COLUMN ember_schema.member_group.group_set_id
+    IS 'The set this group belongs to, which allows a member in only one of its groups. Empty for a group in no set.';
+
+CREATE TABLE ember_schema.member_group_user_type
+(
+    group_id  INTEGER NOT NULL REFERENCES ember_schema.member_group (id) ON DELETE CASCADE,
+    user_type TEXT    NOT NULL CHECK (user_type IN ('TRIAL', 'MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER')),
+    PRIMARY KEY (group_id, user_type)
+);
+
+COMMENT ON TABLE ember_schema.member_group_user_type
+    IS 'The user types a group is bound to: only members of these types can be in it. A group with no rows here takes every type.';
+COMMENT ON COLUMN ember_schema.member_group_user_type.group_id
+    IS 'The bound group. Deleted with the group.';
+COMMENT ON COLUMN ember_schema.member_group_user_type.user_type
+    IS 'A user type allowed in the group (TRIAL, MEMBER, GUARDIAN, TEAM, MANAGER).';
+
+ALTER TABLE ember_schema.member_group_entry
+    ADD COLUMN group_set_id INTEGER;
+
+UPDATE ember_schema.member_group_entry mge
+SET group_set_id = mg.group_set_id
+FROM ember_schema.member_group mg
+WHERE mg.id = mge.group_id;
+
+COMMENT ON COLUMN ember_schema.member_group_entry.group_set_id
+    IS 'A copy of the set of the group, kept right by triggers on this table and on member_group. It exists so one unique index can allow a member in only one group of a set.';
+
+CREATE UNIQUE INDEX idx_member_group_entry_one_per_set
+    ON ember_schema.member_group_entry (member_id, group_set_id)
+    WHERE group_set_id IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION ember_schema.member_group_entry_copy_set() RETURNS TRIGGER
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    SELECT mg.group_set_id INTO NEW.group_set_id FROM ember_schema.member_group mg WHERE mg.id = NEW.group_id;
+    RETURN NEW;
+END;
+$$;
+
+COMMENT ON FUNCTION ember_schema.member_group_entry_copy_set()
+    IS 'Fills the set of a new or moved group membership from its group, whoever writes it.';
+
+CREATE TRIGGER member_group_entry_copy_set
+    BEFORE INSERT OR UPDATE OF group_id
+    ON ember_schema.member_group_entry
+    FOR EACH ROW
+EXECUTE FUNCTION ember_schema.member_group_entry_copy_set();
+
+CREATE OR REPLACE FUNCTION ember_schema.member_group_spread_set() RETURNS TRIGGER
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    UPDATE ember_schema.member_group_entry SET group_set_id = NEW.group_set_id WHERE group_id = NEW.id;
+    RETURN NULL;
+END;
+$$;
+
+COMMENT ON FUNCTION ember_schema.member_group_spread_set()
+    IS 'Carries the set of a group over to its memberships when the group changes set, so moving a group into a set whose members overlap fails on the unique index.';
+
+CREATE TRIGGER member_group_spread_set
+    AFTER UPDATE OF group_set_id
+    ON ember_schema.member_group
+    FOR EACH ROW
+    WHEN (OLD.group_set_id IS DISTINCT FROM NEW.group_set_id)
+EXECUTE FUNCTION ember_schema.member_group_spread_set();

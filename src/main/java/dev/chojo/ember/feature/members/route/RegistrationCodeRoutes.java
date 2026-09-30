@@ -98,17 +98,25 @@ public class RegistrationCodeRoutes implements Routes {
             })
     private void get(Context ctx) {
         int id = pathInt(ctx, "id");
-        codeService
-                .findById(id)
-                .ifPresentOrElse(
-                        code -> {
-                            var groupIds = codeService.findGroupIds(id);
-                            ctx.json(new CodeDetail(
-                                    code.id(), code.stationId(), code.code(), code.maxUses(), code.uses(), groupIds));
-                        },
-                        () -> {
-                            throw Refusal.REGISTRATION_CODE_NOT_HERE.raise();
-                        });
+        int stationId = stationOf(ctx, Refusal.REGISTRATION_CODE_NOT_HERE);
+        var code = codeService.findInStation(stationId, id).orElseThrow(Refusal.REGISTRATION_CODE_NOT_HERE::raise);
+        ctx.json(new CodeDetail(
+                code.id(),
+                code.stationId(),
+                code.code(),
+                code.maxUses(),
+                code.uses(),
+                codeService.findGroupIds(stationId, id)));
+    }
+
+    /**
+     * The station the caller is working in, which every code addressed by number has to belong to. An
+     * instance administrator with no station chosen is answered as if the code were not there.
+     */
+    private static int stationOf(Context ctx, Refusal notHere) {
+        Integer stationId = UserSession.from(ctx).stationId();
+        if (stationId == null) throw notHere.raise();
+        return stationId;
     }
 
     @OpenApi(
@@ -123,11 +131,8 @@ public class RegistrationCodeRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        if (codeService.delete(id)) {
-            ctx.status(HttpStatus.NO_CONTENT);
-        } else {
-            throw Refusal.REGISTRATION_CODE_NOT_DELETED.raise();
-        }
+        codeService.delete(stationOf(ctx, Refusal.REGISTRATION_CODE_NOT_DELETED), id);
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     @OpenApi(
@@ -139,7 +144,7 @@ public class RegistrationCodeRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void getGroups(Context ctx) {
         int id = pathInt(ctx, "id");
-        ctx.json(codeService.findGroupIds(id));
+        ctx.json(codeService.findGroupIds(stationOf(ctx, Refusal.REGISTRATION_CODE_NOT_HERE_FOR_GROUPS), id));
     }
 
     @OpenApi(
@@ -156,7 +161,8 @@ public class RegistrationCodeRoutes implements Routes {
         int codeId = pathInt(ctx, "id");
         var request = ctx.bodyAsClass(SetGroupsRequest.class);
         List<Integer> groupIds = request.groupIds() != null ? request.groupIds() : List.of();
-        ctx.json(codeService.setGroups(codeId, groupIds));
+        ctx.json(codeService.setGroups(
+                stationOf(ctx, Refusal.REGISTRATION_CODE_NOT_HERE_TO_CHANGE_GROUPS), codeId, groupIds));
     }
 
     // -- Request/Response records --

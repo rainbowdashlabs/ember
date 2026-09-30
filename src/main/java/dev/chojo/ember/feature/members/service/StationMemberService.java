@@ -237,13 +237,6 @@ public class StationMemberService {
         return memberRepository.findPermissions(memberId);
     }
 
-    // -- User Type --
-
-    public boolean setUserType(int memberId, StationUserType userType) {
-        log.info("User type changed for member {}: {}", memberId, userType);
-        return memberRepository.setUserType(memberId, userType);
-    }
-
     public void setJoinDate(int memberId, LocalDate joinDate) {
         memberRepository.setJoinDate(memberId, joinDate);
     }

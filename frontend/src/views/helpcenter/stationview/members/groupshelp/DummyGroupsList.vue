@@ -12,6 +12,8 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import ColorDot from '@/components/display/ColorDot.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 
 const {t} = useI18n()
 </script>
@@ -29,6 +31,8 @@ const {t} = useI18n()
         <span class="flex items-center gap-2">
           <ColorDot color="#3694FF"/>
           <span class="font-medium">{{ t('helpCenter.sample.groups.beginners') }}</span>
+          <InfoBadge>{{ t('helpCenter.sample.groups.levels') }}</InfoBadge>
+          <SecondaryBadge>{{ t('memberEdit.groupBoundTo', {types: t('helpCenter.sample.groups.member')}) }}</SecondaryBadge>
         </span>
         <div class="flex items-center gap-2">
           <MutedIconButton :icon="['fas', 'hashtag']" :label="t('memberGroups.convertToTag')"/>
@@ -40,6 +44,7 @@ const {t} = useI18n()
         <span class="flex items-center gap-2">
           <ColorDot color="#00C507"/>
           <span class="font-medium">{{ t('helpCenter.sample.groups.advancedPlural') }}</span>
+          <InfoBadge>{{ t('helpCenter.sample.groups.levels') }}</InfoBadge>
         </span>
         <div class="flex items-center gap-2">
           <MutedIconButton :icon="['fas', 'hashtag']" :label="t('memberGroups.convertToTag')"/>

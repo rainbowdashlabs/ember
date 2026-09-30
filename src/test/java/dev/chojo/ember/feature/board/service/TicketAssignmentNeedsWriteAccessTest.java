@@ -62,7 +62,7 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var memberService = newStationMemberService(null, null);
-        var groupService = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, noBus());
+        var groupService = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo);
         var tagService = new UserTagService(userTagRepo, memberGroupRepo);
         boardService = new BoardService(boardRepo, memberService, groupService, tagService);
 
@@ -97,8 +97,8 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
         boardId = board.id();
         laneId = boardService.findLanes(boardId).getFirst().id();
 
-        var crew = groupService.create(station.id(), "Assignment Crew");
-        groupService.setMembers(crew.id(), List.of(writer.id()), null);
+        var crew = memberGroupRepo.create(station.id(), "Assignment Crew");
+        memberGroupRepo.addMember(crew.id(), writer.id());
         boardService.setEditAccess(boardId, List.of(), List.of(crew.id()), List.of());
 
         ticketId = ticketService
@@ -220,10 +220,8 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
     void aBoardThatOnlyRestrictsReadingFallsBackToWhoMayRead() {
         int readOnly =
                 boardService.create(station.id(), "Reading Board", "", "RDG").id();
-        var readers = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, noBus())
-                .create(station.id(), "Reading Crew");
-        new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, noBus())
-                .setMembers(readers.id(), List.of(writer.id()), null);
+        var readers = memberGroupRepo.create(station.id(), "Reading Crew");
+        memberGroupRepo.addMember(readers.id(), writer.id());
         boardService.setViewAccess(readOnly, List.of(), List.of(readers.id()), List.of());
 
         var allowed = boardService.findMembersWhoMayEdit(readOnly, station.id());

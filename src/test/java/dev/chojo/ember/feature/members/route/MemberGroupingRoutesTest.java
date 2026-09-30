@@ -14,10 +14,13 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
+import dev.chojo.ember.feature.members.service.GroupMembershipService;
+import dev.chojo.ember.feature.members.service.GroupRulesService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberViewService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -30,6 +33,7 @@ import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -44,6 +48,7 @@ class MemberGroupingRoutesTest {
     private StationMemberService memberService;
     private MemberViewService memberViews;
     private MemberGroupService groups;
+    private GroupMembershipService memberships;
     private UserTagService tags;
     private RouteHarness harness;
 
@@ -75,13 +80,22 @@ class MemberGroupingRoutesTest {
                         null,
                         null,
                         null));
-        when(groups.findById(4)).thenReturn(Optional.of(new MemberGroup(4, STATION_ID, "Jugend", null, 0)));
+        var jugend = new MemberGroup(4, STATION_ID, "Jugend", null, 0, null, List.of());
+        when(groups.findById(4)).thenReturn(Optional.of(jugend));
         when(groups.findMembers(4)).thenReturn(List.of(member(STATION_ID)));
-        when(groups.setMembers(4, List.of(7), 11)).thenReturn(List.of(member(STATION_ID)));
+        memberships = mock(GroupMembershipService.class);
+        when(memberships.setMembers(eq(jugend), eq(List.of(7)), eq(false), any()))
+                .thenReturn(List.of(member(STATION_ID)));
         when(tags.findById(5)).thenReturn(Optional.of(new UserTag(5, STATION_ID, "Atemschutz", null, true, 0)));
         when(tags.findMembers(5)).thenReturn(List.of(member(STATION_ID)));
         harness = RouteHarness.serving(
-                new MemberGroupRoutes(groups, memberService, memberViews),
+                new MemberGroupRoutes(
+                        groups,
+                        memberships,
+                        memberService,
+                        memberViews,
+                        mock(UserTypeChangeService.class),
+                        mock(GroupRulesService.class)),
                 new UserTagRoutes(tags, memberService, memberViews));
     }
 

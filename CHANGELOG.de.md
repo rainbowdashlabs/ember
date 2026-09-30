@@ -9,6 +9,7 @@
 - **Ein Formular später fertig ausfüllen.** Ein begonnenes, nicht abgesendetes Formular bleibt erhalten und öffnet sich wieder auf der Seite, auf der es verlassen wurde, bei Formularen der Wache auf jedem Gerät, bei öffentlichen Formularen auf demselben Gerät. Sehen kann es nur, wer es ausfüllt, und wer diese Person betreut, und es endet, wenn das Formular schließt.
 - **Einzelne Termine absagen und wiederherstellen.** Verantwortliche können gezielt den Termin absagen, den sie gerade ansehen, während das Absagen einer ganzen Serie eine eigene, endgültige Aktion bleibt. Ein abgesagter Termin lässt sich wiederherstellen, solange er noch bevorsteht, und alle, die dafür angemeldet sind, erfahren davon.
 - **Hintergrundaufgaben auf einen Blick.** Eine neue Seite unter Monitoring listet jede Arbeit, die der Server von selbst erledigt, etwa Mailversand, Erinnerungen und Aufräumen, mit Rhythmus, letztem Lauf, dessen Dauer und der letzten Fehlermeldung. Die Angaben gelten seit dem letzten Neustart.
+- **Gruppensets.** Gruppen lassen sich zu einem Set zusammenfassen, etwa die Stufen einer Ausbildung, und ein Mitglied kann nur in einer Gruppe eines Sets sein. Ein Set wird auf der Gruppenseite angelegt, und wer eine andere Gruppe des Sets wählt, verschiebt das Mitglied.
 ### Verbesserungen
 
 - **Vorschau, Duplizieren und eine Nachricht nach dem Absenden.** Der Formular-Editor zeigt das Formular so, wie es ausgefüllt wird, samt Weg durch die Seiten, und Formulare und Fragen lassen sich duplizieren. Ein Formular kann nach dem Absenden eine eigene Nachricht und einen Link zeigen.
@@ -24,6 +25,8 @@
 - **Anwesenheitsvorlagen tragen ganze Mitgliedstypen ein.** Eine Vorlage kann neben Gruppen auch Mitgliedstypen nennen, und alle Mitglieder eines gewählten Typs stehen neben den Mitgliedern ihrer Gruppen auf ihren Listen. Wer eine Liste aus einer Vorlage startet, findet deren Typen und Gruppen schon angekreuzt und kann sie für diese eine Liste übernehmen oder ändern.
 - **Die Discovery-Seite zeigt Wachen anderer Instanzen.** Die öffentliche Discovery-Seite unter `/discovery` zeigt auch die öffentlichen Wachen der anderen Ember-Instanzen, die diese Instanz kennt, jeweils mit der Instanz, zu der sie gehören, und einem Link zu ihrer öffentlichen Seite dort. Ein Suchfeld findet Wachen aller Instanzen nach Name, Ort, Verband oder Instanz.
 - **Die Einrichtung erklärt die Listung im Verzeichnis.** Der Schritt zur Sichtbarkeit bei der Einrichtung einer neuen Wache erklärt jede Wahl, auch die Listung nur auf dieser Instanz, und zeigt genau, welche Angaben eine öffentliche Listung an die Discovery-Seite und an andere Instanzen weitergibt. Mit unveränderter Voreinstellung gespeichert gilt er als erledigt.
+- **Gruppen für bestimmte Mitgliedstypen.** Eine Gruppe lässt sich auf einige Mitgliedstypen beschränken, etwa Team und Manager, und nimmt dann niemanden sonst auf. Ändert sich der Mitgliedstyp eines Mitglieds, verlässt es die Gruppen, die nicht mehr passen, nachdem seine Bearbeitungsseite sie aufgelistet hat.
+- **Gruppen und Tags oben in den Berechtigungen eines Mitglieds.** Auf der Bearbeitungsseite eines Mitglieds stehen Gruppen und Tags als kompakte Chips über der Liste der Berechtigungen, und die Gruppen eines Sets sind eine einzige Auswahl. Gruppen für andere Mitgliedstypen erscheinen ausgegraut, mit den Typen, die sie aufnehmen.
 
 ### Sicherheit
 
@@ -32,6 +35,9 @@
 - **Partnerwachen auf derselben Instanz konnten öffnen, was nicht mit ihnen geteilt war.** Eine Partnerwache auf derselben Instanz konnte Quizze, Prüfprotokolle und Wiki-Artikel öffnen und Kommentare zu Neuigkeiten, Terminen und Wiki-Artikeln lesen und schreiben, die nie mit ihr geteilt wurden. Sie sieht jetzt genau das, was eine Partnerwache auf einer anderen Instanz sieht.
 - **Partnerwachen konnten mehr ändern als das mit ihnen geteilte Board.** Eine Partnerwache, die ein geteiltes Board bearbeiten durfte, konnte Checklisten ändern, Tickets verschieben und Labels anderer Boards auf derselben Instanz vergeben. Ihre Änderungen bleiben jetzt auf dem Board, das mit ihr geteilt ist.
 - **Benachrichtigungen über beschränkte Einträge erreichten Personen ohne Zugriff.** In manchen Fällen ging die Benachrichtigung über ein neues Formular, einen neuen Termin oder einen neuen Blog-Beitrag an Mitglieder außerhalb des Kreises, für den er bestimmt war, und zeigte seinen Titel. Jetzt erreicht sie nur die Mitglieder, die den Eintrag öffnen dürfen.
+- **Die Aufnahme in eine Gruppe verlangt die Rechte, die sie vergibt.** Wer Gruppen verwalten durfte, konnte jeden, auch sich selbst, in eine Gruppe aufnehmen, deren Berechtigungen er selbst nicht hatte. Die Aufnahme in eine Gruppe verlangt jetzt jede Berechtigung, die die Gruppe vergibt, und eine frische Bestätigung, wo sie welche vergibt.
+- **Gruppen nahmen Mitglieder anderer Wachen auf.** Die Mitgliederliste einer Gruppe nahm Personen anderer Wachen an, wenn sie direkt an den Server geschickt wurden. Solche Mitglieder werden jetzt abgelehnt.
+- **Registrierungscodes anderer Wachen waren erreichbar.** Eine Instanzadministration, die in einer Wache arbeitete, konnte Registrierungscodes einer anderen Wache über ihre Nummer öffnen, ihre Gruppen ändern und sie löschen. Ein Code ist jetzt nur noch aus seiner eigenen Wache erreichbar.
 
 ### Änderungen
 
@@ -82,6 +88,7 @@
 - **Tickets von Partnern auf anderen Instanzen ließen sich nicht abbestellen.** Ein Mitglied, das ein Ticket auf einem Board einer Partnerwache auf einer anderen Instanz beobachtete, konnte das Beobachten nicht beenden. Das funktioniert jetzt.
 - **Links zu Wachen auf der Netzwerkkarte führten ins Leere.** Auf der Karte des Discovery-Netzes öffnete der Link zu einer Wache einer anderen Instanz eine Seite, die es nicht gab. Sobald beide Instanzen diese Version nutzen, öffnet er die öffentliche Seite der Wache.
 - **Die Discovery-Seite war auf Telefonen nicht über die Fußzeile erreichbar.** Auf schmalen Bildschirmen fehlte in der Fußzeile der Link zum Wachen-Verzeichnis. Jetzt steht er bei jeder Bildschirmbreite da.
+- **Gruppen auf der Seite eines Mitglieds zu ändern konnte scheitern oder andere Änderungen zurücknehmen.** Die Auswahl von Gruppen auf der Bearbeitungsseite eines Mitglieds scheiterte für Personen, die Mitglieder bearbeiten, aber keine Gruppen verwalten durften, und zwei Personen, die gleichzeitig eine Gruppe änderten, konnten gegenseitig ihre Änderungen zurücknehmen. Die Seite speichert jetzt die Gruppen dieses einen Mitglieds.
 
 ## v26.19.5
 

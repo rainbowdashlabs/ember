@@ -306,6 +306,10 @@ export interface MemberGroup {
     name?: string
     color?: string | null
     position?: number
+    /** The set of groups this one belongs to, of which a member can be in only one. Absent or null for none. */
+    groupSetId?: number | null
+    /** The member types the group takes. Empty or absent where it takes every type. */
+    userTypes?: StationUserTypeName[]
 }
 
 export interface UserTag {

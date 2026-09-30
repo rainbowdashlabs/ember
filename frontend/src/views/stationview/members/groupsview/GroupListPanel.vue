@@ -12,15 +12,21 @@ import EditButton from '@/components/button/EditButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ColorDot from '@/components/display/ColorDot.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {MemberGroup} from '@/api/types'
+import type {MemberGroupSet} from '@/api/groupSets'
+import {boundTypeNames} from '@/util/groupRules'
 
 const {t} = useI18n()
 
-defineProps<{
+const props = defineProps<{
   groups: MemberGroup[]
   selectedGroup: MemberGroup | null
   canConvertToTag: boolean
+  /** The sets the groups can belong to, where the owner keeps any; a group in one shows its name. */
+  sets?: MemberGroupSet[]
 }>()
 
 const emit = defineEmits<{
@@ -30,6 +36,14 @@ const emit = defineEmits<{
   delete: [group: MemberGroup]
   convert: [group: MemberGroup]
 }>()
+
+function setName(group: MemberGroup): string | undefined {
+  return props.sets?.find(set => set.id === group.groupSetId)?.name
+}
+
+function boundTo(group: MemberGroup): string {
+  return t('memberEdit.groupBoundTo', {types: boundTypeNames(group)})
+}
 </script>
 
 <template>
@@ -51,9 +65,11 @@ const emit = defineEmits<{
           class="flex items-center justify-between gap-2 flex-wrap cursor-pointer transition-colors"
           @click="emit('select', group)"
       >
-        <span class="flex items-center gap-2">
+        <span class="flex items-center gap-2 flex-wrap">
           <ColorDot v-if="group.color" :color="group.color"/>
           <span class="font-medium">{{ group.name }}</span>
+          <InfoBadge v-if="setName(group)">{{ setName(group) }}</InfoBadge>
+          <SecondaryBadge v-if="group.userTypes?.length">{{ boundTo(group) }}</SecondaryBadge>
         </span>
         <div class="flex items-center gap-2">
           <MutedIconButton v-if="canConvertToTag" :icon="['fas', 'hashtag']" :label="t('memberGroups.convertToTag')" @click.stop="emit('convert', group)"/>

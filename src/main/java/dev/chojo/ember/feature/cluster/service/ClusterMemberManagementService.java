@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
+import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -58,6 +59,7 @@ public class ClusterMemberManagementService {
     private final StationRepository stationRepository;
     private final ProfileFieldService profileFieldService;
     private final StationMemberInviteService inviteService;
+    private final UserTypeChangeService userTypeChanges;
     private final DocumentRepository documentRepository;
     private final DocumentService documentService;
 
@@ -67,12 +69,14 @@ public class ClusterMemberManagementService {
             StationRepository stationRepository,
             ProfileFieldService profileFieldService,
             StationMemberInviteService inviteService,
+            UserTypeChangeService userTypeChanges,
             DocumentRepository documentRepository,
             DocumentService documentService) {
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.profileFieldService = profileFieldService;
         this.inviteService = inviteService;
+        this.userTypeChanges = userTypeChanges;
         this.documentRepository = documentRepository;
         this.documentService = documentService;
     }
@@ -288,7 +292,8 @@ public class ClusterMemberManagementService {
     }
 
     /**
-     * Changes what somebody is at their station.
+     * Changes what somebody is at their station. They leave the station's groups that do not take the
+     * new type, the same as when the station changes it.
      *
      * @param clusterId     the cluster acting
      * @param memberId      the member
@@ -300,7 +305,7 @@ public class ClusterMemberManagementService {
         requireNotSelf(member, actorAccountId);
         requireNotStationOwner(member);
 
-        memberRepository.setUserType(memberId, userType);
+        userTypeChanges.change(memberId, userType);
         log.info("Cluster {} set member {} to {}", clusterId, memberId, userType);
     }
 

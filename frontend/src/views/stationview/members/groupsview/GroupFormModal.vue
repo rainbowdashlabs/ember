@@ -53,6 +53,7 @@ const capabilities = useGroupsCapabilities()
           <MutedText size="sm">{{ t('memberGroups.colorHint') }}</MutedText>
         </div>
       </div>
+      <slot/>
       <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('memberGroups.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="saving || !nameModel" @click="emit('save')">

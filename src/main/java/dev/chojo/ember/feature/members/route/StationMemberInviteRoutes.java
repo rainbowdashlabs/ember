@@ -66,8 +66,8 @@ public class StationMemberInviteRoutes implements Routes {
         var serviceRequests = request.invites().stream()
                 .map(StationMemberInviteRoutes::toServiceRequest)
                 .toList();
-        BatchResult result =
-                service.createBatch(session.stationId(), serviceRequests, SetupMail.of(request.sendSetupMail()));
+        BatchResult result = service.createBatch(
+                session.stationId(), serviceRequests, SetupMail.of(request.sendSetupMail()), session);
         ctx.status(HttpStatus.CREATED)
                 .json(new CreateInvitesResponse(
                         result.provisioned().stream()

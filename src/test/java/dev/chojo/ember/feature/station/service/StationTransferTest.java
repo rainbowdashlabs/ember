@@ -18,12 +18,14 @@ import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.MemberGroupSet;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
@@ -183,6 +185,10 @@ class StationTransferTest extends RepositoryTestBase {
         memberGroupRepo.addMember(anfaenger.id(), child.id());
         memberGroupRepo.addMember(fortgeschritten.id(), trainer.id());
         memberGroupRepo.addMember(fortgeschritten.id(), manager.id());
+        var levels = new MemberGroupSetRepository().create(sourceStationId, "Stufen");
+        memberGroupRepo.assignSet(anfaenger.id(), levels.id());
+        memberGroupRepo.assignSet(fortgeschritten.id(), levels.id());
+        memberGroupRepo.replaceUserTypes(fortgeschritten.id(), List.of(StationUserType.TEAM, StationUserType.MANAGER));
 
         // --- Tags ---
         var tagSchwimmer = userTagRepo.create(sourceStationId, "Schwimmer");
@@ -468,6 +474,27 @@ class StationTransferTest extends RepositoryTestBase {
         assertEquals(2, importedGroups.size());
         var groupNames = importedGroups.stream().map(MemberGroup::name).sorted().toList();
         assertEquals(List.of("Anfänger", "Fortgeschrittene"), groupNames);
+        var importedSets = new MemberGroupSetRepository().findByStation(result.stationId());
+        assertEquals(
+                List.of("Stufen"),
+                importedSets.stream().map(MemberGroupSet::name).toList());
+        int importedSetId = importedSets.getFirst().id();
+        assertTrue(importedGroups.stream()
+                .allMatch(group -> Integer.valueOf(importedSetId).equals(group.groupSetId())));
+        assertEquals(
+                List.of(StationUserType.TEAM, StationUserType.MANAGER),
+                importedGroups.stream()
+                        .filter(group -> group.name().equals("Fortgeschrittene"))
+                        .findFirst()
+                        .orElseThrow()
+                        .userTypes());
+        var importedMemberIdList =
+                importedMembers.stream().map(StationMember::id).toList();
+        assertEquals(
+                3,
+                memberGroupRepo
+                        .findGroupInSet(importedSetId, importedMemberIdList)
+                        .size());
 
         var importedTags = userTagRepo.findByStation(result.stationId());
         assertEquals(2, importedTags.size());
