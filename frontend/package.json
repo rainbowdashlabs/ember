@@ -12,7 +12,6 @@
     "refactor:scan": "python3 scripts/refactor.py scan",
     "build": "node scripts/build.mjs",
     "preview": "nuxi preview",
-    "preview:spa": "vite preview",
     "typecheck:e2e": "tsc -p tsconfig.e2e.json"
   },
   "dependencies": {
