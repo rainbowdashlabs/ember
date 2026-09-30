@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import {createI18n} from 'vue-i18n'
@@ -14,6 +13,8 @@ import {SmtpEncryption, type SmtpEncryptionName} from '@/api/mailProviders'
 /**
  * The choice of how a mail server is reached. Unencrypted is on offer, and says what it costs the
  * moment it is chosen.
+ *
+ * @vitest-environment happy-dom
  */
 describe('SmtpEncryptionField', () => {
     const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': de}})
