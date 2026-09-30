@@ -5,14 +5,13 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Runs the expiry reminder sweep every thirty minutes, as the appointment reminders run theirs.
@@ -20,26 +19,13 @@ import java.util.concurrent.TimeUnit;
  * <p>Only the clock lives here; what a sweep does is {@link ExpiryReminderService#sweep(Instant)}.
  */
 @Singleton
-public class ExpiryReminderChecker {
-    private static final Logger log = LoggerFactory.getLogger(ExpiryReminderChecker.class);
+public class ExpiryReminderChecker extends DelegatingTask {
 
     @Inject
     public ExpiryReminderChecker(ExpiryReminderService reminderService) {
-        var scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            var thread = new Thread(runnable, "expiry-reminder-checker");
-            thread.setDaemon(true);
-            return thread;
-        });
-        scheduler.scheduleWithFixedDelay(
-                () -> {
-                    try {
-                        reminderService.sweep(Instant.now());
-                    } catch (RuntimeException e) {
-                        log.error("Error sending expiry reminders", e);
-                    }
-                },
-                5,
-                30,
-                TimeUnit.MINUTES);
+        super(
+                "expiry-reminder-check",
+                Schedule.fixedDelay(Duration.ofMinutes(5), Duration.ofMinutes(30)),
+                () -> reminderService.sweep(Instant.now()));
     }
 }

@@ -5,13 +5,14 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 /**
  * Sends the access changes a guardian made once their waiting time has passed.
@@ -22,19 +23,13 @@ import java.util.concurrent.TimeUnit;
 @Singleton
 public class ManagedLoginNoticeSweeper {
     private static final Logger log = LoggerFactory.getLogger(ManagedLoginNoticeSweeper.class);
-    private static final int SCAN_INTERVAL_SECONDS = 60;
+    private static final Duration SCAN_INTERVAL = Duration.ofSeconds(60);
 
     private final ManagedLoginNoticeService noticeService;
 
     @Inject
     public ManagedLoginNoticeSweeper(ManagedLoginNoticeService noticeService) {
         this.noticeService = noticeService;
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var thread = new Thread(r, "managed-login-notice-sweeper");
-            thread.setDaemon(true);
-            return thread;
-        });
-        scheduler.scheduleWithFixedDelay(this::sweep, SCAN_INTERVAL_SECONDS, SCAN_INTERVAL_SECONDS, TimeUnit.SECONDS);
     }
 
     /**
@@ -46,6 +41,15 @@ public class ManagedLoginNoticeSweeper {
             noticeService.dispatch();
         } catch (Exception e) {
             log.warn("Sweeping the pending access changes failed", e);
+        }
+    }
+
+    /** Sends the access changes whose waiting time has passed, every minute. */
+    @Singleton
+    public static final class Task extends DelegatingTask {
+        @Inject
+        Task(ManagedLoginNoticeSweeper sweeper) {
+            super("managed-login-notice-sweep", Schedule.fixedDelay(SCAN_INTERVAL, SCAN_INTERVAL), sweeper::sweep);
         }
     }
 }

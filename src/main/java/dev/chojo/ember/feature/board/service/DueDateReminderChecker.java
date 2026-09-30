@@ -8,15 +8,15 @@ package dev.chojo.ember.feature.board.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static de.chojo.sadu.queries.api.query.Query.query;
 
@@ -35,13 +35,6 @@ public class DueDateReminderChecker {
     public DueDateReminderChecker(DomainEventBus eventBus, StationReadOnlyGuard readOnlyGuard) {
         this.eventBus = eventBus;
         this.readOnlyGuard = readOnlyGuard;
-
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "board-due-date-checker");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.scheduleWithFixedDelay(this::check, 1, 60, TimeUnit.MINUTES);
     }
 
     private void check() {
@@ -111,4 +104,16 @@ public class DueDateReminderChecker {
             String ticketKey,
             String dueDate,
             int assignedMemberId) {}
+
+    /** Reminds the assignees of due and overdue tickets, every hour. */
+    @Singleton
+    public static final class Task extends DelegatingTask {
+        @Inject
+        Task(DueDateReminderChecker checker) {
+            super(
+                    "board-due-date-check",
+                    Schedule.fixedDelay(Duration.ofMinutes(1), Duration.ofHours(1)),
+                    checker::check);
+        }
+    }
 }

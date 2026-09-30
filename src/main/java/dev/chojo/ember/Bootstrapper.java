@@ -20,9 +20,6 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.beacon.service.BeaconMetricsService;
 import dev.chojo.ember.feature.beacon.service.BeaconReportService;
-import dev.chojo.ember.feature.board.service.DueDateReminderChecker;
-import dev.chojo.ember.feature.events.service.FieldRegistrationSweeper;
-import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.StationKeyStore;
 import dev.chojo.ember.feature.legal.service.ConsentService;
@@ -177,11 +174,6 @@ public class Bootstrapper {
         injector.getInstance(StationKeyStore.class).sealLegacyKeys();
         // Initialize domain event bus (registers all handlers)
         injector.getInstance(DomainEventBus.class);
-        // Start registration deadline checker (daemon thread)
-        injector.getInstance(RegistrationDeadlineChecker.class);
-        // Start board due date reminder checker (daemon thread)
-        injector.getInstance(DueDateReminderChecker.class);
-        injector.getInstance(FieldRegistrationSweeper.class);
         injector.getInstance(TransferTimeoutWatchdog.class);
 
         // Initialize data directory from templates if empty

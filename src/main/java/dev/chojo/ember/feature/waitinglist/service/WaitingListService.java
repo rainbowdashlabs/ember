@@ -38,6 +38,8 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.util.sql.Transactions;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
@@ -56,9 +58,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -99,12 +98,6 @@ public class WaitingListService {
         this.accountInviteService = accountInviteService;
         this.invitationMessage = invitationMessage;
         this.eventBus = eventBus;
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "waitlist-confirmation-checker");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.scheduleAtFixedRate(this::checkAllExpiredConfirmations, 1, 24, TimeUnit.HOURS);
     }
 
     // --- List CRUD (delegates) ---
@@ -1285,5 +1278,17 @@ public class WaitingListService {
 
     private String resolveStationName(int stationId) {
         return stationRepository.findById(stationId).map(Station::name).orElse("");
+    }
+
+    /** Asks the people on every list whether they are still interested, once a day. */
+    @Singleton
+    public static final class ConfirmationTask extends DelegatingTask {
+        @Inject
+        ConfirmationTask(WaitingListService service) {
+            super(
+                    "waiting-list-confirmation-check",
+                    Schedule.fixedRate(Duration.ofHours(1), Duration.ofHours(24)),
+                    service::checkAllExpiredConfirmations);
+        }
     }
 }

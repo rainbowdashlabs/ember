@@ -19,18 +19,19 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 @Singleton
 public class EventReminderChecker {
@@ -66,12 +67,6 @@ public class EventReminderChecker {
         this.restrictionService = restrictionService;
         this.readOnlyGuard = readOnlyGuard;
         this.occurrenceCalendar = occurrenceCalendar;
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "event-reminder-checker");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.scheduleWithFixedDelay(this::check, 5, 30, TimeUnit.MINUTES);
     }
 
     private static final int[] CLOSING_WARNINGS = {3, 1};
@@ -221,5 +216,17 @@ public class EventReminderChecker {
                 .filter(id -> !declinedIds.contains(id))
                 .filter(id -> restrictionService.canView(event.id(), id, Set.of()))
                 .toList();
+    }
+
+    /** Sends the due reminders and closing warnings, every thirty minutes. */
+    @Singleton
+    public static final class Task extends DelegatingTask {
+        @Inject
+        Task(EventReminderChecker checker) {
+            super(
+                    "event-reminder-check",
+                    Schedule.fixedDelay(Duration.ofMinutes(5), Duration.ofMinutes(30)),
+                    checker::check);
+        }
     }
 }

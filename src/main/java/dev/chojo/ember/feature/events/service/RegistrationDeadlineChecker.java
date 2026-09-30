@@ -12,15 +12,15 @@ import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.HashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 @Singleton
 public class RegistrationDeadlineChecker {
@@ -47,13 +47,6 @@ public class RegistrationDeadlineChecker {
         this.eventBus = eventBus;
         this.occurrenceCalendar = occurrenceCalendar;
         this.readOnlyGuard = readOnlyGuard;
-
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "registration-deadline-checker");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.scheduleWithFixedDelay(this::check, 5, 5, TimeUnit.MINUTES);
     }
 
     private void check() {
@@ -120,6 +113,18 @@ public class RegistrationDeadlineChecker {
                     event.name(),
                     event.id(),
                     nextDate);
+        }
+    }
+
+    /** Looks for registration lists that have closed, every five minutes. */
+    @Singleton
+    public static final class Task extends DelegatingTask {
+        @Inject
+        Task(RegistrationDeadlineChecker checker) {
+            super(
+                    "registration-deadline-check",
+                    Schedule.fixedDelay(Duration.ofMinutes(5), Duration.ofMinutes(5)),
+                    checker::check);
         }
     }
 }

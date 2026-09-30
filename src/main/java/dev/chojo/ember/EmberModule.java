@@ -108,6 +108,7 @@ import dev.chojo.ember.feature.board.route.RemoteBoardTicketLinkRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardWebhookRoutes;
 import dev.chojo.ember.feature.board.service.BoardFeedDetails;
+import dev.chojo.ember.feature.board.service.DueDateReminderChecker;
 import dev.chojo.ember.feature.checklist.route.ChecklistRoutes;
 import dev.chojo.ember.feature.cluster.ClusterModule;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
@@ -136,6 +137,8 @@ import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.events.service.EventFeedDetails;
 import dev.chojo.ember.feature.events.service.EventReminderChecker;
 import dev.chojo.ember.feature.events.service.EventThresholdChecker;
+import dev.chojo.ember.feature.events.service.FieldRegistrationSweeper;
+import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.events.service.SettledRefusalSweeper;
 import dev.chojo.ember.feature.federation.route.FederatedLendingRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
@@ -310,6 +313,7 @@ import dev.chojo.ember.feature.twofactor.service.WebAuthnCredentialStore;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnRelyingPartyFactory;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListFeedDetails;
+import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.ShutdownFlush;
 import dev.chojo.ember.lifecycle.TaskScheduler;
@@ -611,14 +615,9 @@ public class EmberModule extends AbstractModule {
         bindShutdownFlushes(Multibinder.newSetBinder(binder(), ShutdownFlush.class));
 
         // Eager singletons - started on boot
-        bind(EventThresholdChecker.class).asEagerSingleton();
-        bind(EventReminderChecker.class).asEagerSingleton();
-        bind(ExpiryReminderChecker.class).asEagerSingleton();
         bind(StorageReconciliationService.class).asEagerSingleton();
-        bind(ManagedLoginNoticeSweeper.class).asEagerSingleton();
         bind(AuthCleanupSweeper.class).asEagerSingleton();
         bind(ProblemReportSweeper.class).asEagerSingleton();
-        bind(SettledRefusalSweeper.class).asEagerSingleton();
         bind(KbTrashPurger.class).asEagerSingleton();
         bind(FederationVersionBroadcaster.class).asEagerSingleton();
         bind(FeedMetricsService.class).asEagerSingleton();
@@ -641,6 +640,15 @@ public class EmberModule extends AbstractModule {
         tasks.addBinding().to(ApiRequestLogger.PruneTask.class);
         tasks.addBinding().to(ApplicationLogWriter.FlushTask.class);
         tasks.addBinding().to(ApplicationLogWriter.PruneTask.class);
+        tasks.addBinding().to(RegistrationDeadlineChecker.Task.class);
+        tasks.addBinding().to(EventReminderChecker.Task.class);
+        tasks.addBinding().to(EventThresholdChecker.Task.class);
+        tasks.addBinding().to(FieldRegistrationSweeper.Task.class);
+        tasks.addBinding().to(SettledRefusalSweeper.Task.class);
+        tasks.addBinding().to(DueDateReminderChecker.Task.class);
+        tasks.addBinding().to(ExpiryReminderChecker.class);
+        tasks.addBinding().to(ManagedLoginNoticeSweeper.Task.class);
+        tasks.addBinding().to(WaitingListService.ConfirmationTask.class);
     }
 
     /**

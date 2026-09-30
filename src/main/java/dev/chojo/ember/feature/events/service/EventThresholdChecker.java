@@ -10,15 +10,16 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.HashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Calls off the dates that too few registrations were accepted for in time, one date at a time.
@@ -53,12 +54,6 @@ public class EventThresholdChecker {
         this.cancellationService = cancellationService;
         this.occurrenceCalendar = occurrenceCalendar;
         this.readOnlyGuard = readOnlyGuard;
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "event-threshold-checker");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.scheduleWithFixedDelay(this::check, 5, 30, TimeUnit.MINUTES);
     }
 
     /** One sweep over every appointment with a minimum, each station read on its own calendar. */
@@ -90,6 +85,18 @@ public class EventThresholdChecker {
                         accepted,
                         event.minRegistrations());
             }
+        }
+    }
+
+    /** Calls off the dates that missed their minimum number of registrations, every thirty minutes. */
+    @Singleton
+    public static final class Task extends DelegatingTask {
+        @Inject
+        Task(EventThresholdChecker checker) {
+            super(
+                    "event-threshold-check",
+                    Schedule.fixedDelay(Duration.ofMinutes(5), Duration.ofMinutes(30)),
+                    checker::check);
         }
     }
 }

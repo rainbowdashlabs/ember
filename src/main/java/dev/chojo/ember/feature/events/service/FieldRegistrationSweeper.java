@@ -5,14 +5,14 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 /**
  * Moves the far edge of the field registrations along as the days pass.
@@ -35,13 +35,6 @@ public class FieldRegistrationSweeper {
     @Inject
     public FieldRegistrationSweeper(EventFieldRegistrationService registrationService) {
         this.registrationService = registrationService;
-
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            var thread = new Thread(runnable, "field-registration-sweeper");
-            thread.setDaemon(true);
-            return thread;
-        });
-        scheduler.scheduleWithFixedDelay(this::sweep, 2, 60 * 12, TimeUnit.MINUTES);
     }
 
     private void sweep() {
@@ -50,6 +43,18 @@ public class FieldRegistrationSweeper {
             log.debug("Compared the questions of {} appointments against their registrations", events);
         } catch (Exception e) {
             log.error("Failed to compare questions against registrations", e);
+        }
+    }
+
+    /** Compares the questions against the registrations every twelve hours. */
+    @Singleton
+    public static final class Task extends DelegatingTask {
+        @Inject
+        Task(FieldRegistrationSweeper sweeper) {
+            super(
+                    "field-registration-sweep",
+                    Schedule.fixedDelay(Duration.ofMinutes(2), Duration.ofHours(12)),
+                    sweeper::sweep);
         }
     }
 }

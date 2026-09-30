@@ -5,13 +5,14 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.lifecycle.DelegatingTask;
+import dev.chojo.ember.lifecycle.Schedule;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 /**
  * Lets go of the answers behind refusals that can no longer be taken back.
@@ -27,19 +28,13 @@ import java.util.concurrent.TimeUnit;
 @Singleton
 public class SettledRefusalSweeper {
     private static final Logger log = LoggerFactory.getLogger(SettledRefusalSweeper.class);
-    private static final int SCAN_INTERVAL_MINUTES = 5;
+    private static final Duration SCAN_INTERVAL = Duration.ofMinutes(5);
 
     private final EventRegistrationService registrationService;
 
     @Inject
     public SettledRefusalSweeper(EventRegistrationService registrationService) {
         this.registrationService = registrationService;
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var thread = new Thread(r, "settled-refusal-sweeper");
-            thread.setDaemon(true);
-            return thread;
-        });
-        scheduler.scheduleWithFixedDelay(this::sweep, 1, SCAN_INTERVAL_MINUTES, TimeUnit.MINUTES);
     }
 
     /** Body of the sweep, reachable by tests so they need not wait for the cadence. */
@@ -48,6 +43,15 @@ public class SettledRefusalSweeper {
             registrationService.sweepAnswersOfSettledRefusals();
         } catch (Exception e) {
             log.warn("Could not clear the answers of settled refusals", e);
+        }
+    }
+
+    /** Clears the answers of settled refusals every five minutes. */
+    @Singleton
+    public static final class Task extends DelegatingTask {
+        @Inject
+        Task(SettledRefusalSweeper sweeper) {
+            super("settled-refusal-sweep", Schedule.fixedDelay(Duration.ofMinutes(1), SCAN_INTERVAL), sweeper::sweep);
         }
     }
 }
