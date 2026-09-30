@@ -6,10 +6,12 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.feature.events.entity.DateCancellations;
 import dev.chojo.ember.feature.events.entity.OccurrenceRule;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
+import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -48,21 +50,27 @@ public class OccurrenceCalendar {
 
     private final EventRepository eventRepository;
     private final EventBreakRepository breakRepository;
+    private final EventDateCancellationRepository cancellationRepository;
     private final StationRepository stationRepository;
 
     @Inject
     public OccurrenceCalendar(
             EventRepository eventRepository,
             EventBreakRepository breakRepository,
+            EventDateCancellationRepository cancellationRepository,
             StationRepository stationRepository) {
         this.eventRepository = eventRepository;
         this.breakRepository = breakRepository;
+        this.cancellationRepository = cancellationRepository;
         this.stationRepository = stationRepository;
     }
 
-    /** The calendar of one station: its clock and its breaks, read now. */
+    /** The calendar of one station: its clock, its breaks and the dates called off, read now. */
     public StationCalendar forStation(int stationId) {
-        return new StationCalendar(zoneOf(stationId), breakRepository.findByStation(stationId));
+        return new StationCalendar(
+                zoneOf(stationId),
+                breakRepository.findByStation(stationId),
+                DateCancellations.of(cancellationRepository.findActiveByStation(stationId)));
     }
 
     /** The clock the station keeps its days by, which is the one its appointments are read on. */
@@ -77,7 +85,8 @@ public class OccurrenceCalendar {
      * <p>A one-off appointment has its own day and the one asked for does not matter. A series needs
      * the day named, and that day has to be one the series really falls on: the right weekday is not
      * enough for a series on the first of a month, and neither is a day past the end of the series or
-     * inside a break of the station.
+     * inside a break of the station. Either way the day must not have been called off, which a whole
+     * series called off counts as.
      *
      * @param event     the appointment
      * @param requested the day asked for, on the station's clock, or null where none was named
@@ -85,17 +94,22 @@ public class OccurrenceCalendar {
      */
     public LocalDate dateToAnswerFor(StationEvent event, @Nullable LocalDate requested) {
         var calendar = forStation(event.stationId());
-        if (!event.isRecurring()) {
-            return calendar.ruleOf(event)
-                    .map(OccurrenceRule::first)
-                    .orElseThrow(Refusal.EVENT_HAS_NO_START_TIME::raise);
-        }
-        if (requested == null) throw Refusal.REGISTRATION_NEEDS_A_DAY.raise();
-        return switch (calendar.check(event, requested)) {
-            case OCCURRENCE -> requested;
+        LocalDate date = event.isRecurring() ? requireNamed(requested) : firstDateOf(event, calendar);
+        return switch (calendar.check(event, date)) {
+            case OCCURRENCE -> date;
             case NOT_AN_OCCURRENCE -> throw Refusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE.raise();
             case IN_A_BREAK -> throw Refusal.REGISTRATION_DAY_IN_A_BREAK.raise();
+            case CANCELLED -> throw Refusal.REGISTRATION_DAY_CANCELLED.raise();
         };
+    }
+
+    private static LocalDate requireNamed(@Nullable LocalDate requested) {
+        if (requested == null) throw Refusal.REGISTRATION_NEEDS_A_DAY.raise();
+        return requested;
+    }
+
+    private static LocalDate firstDateOf(StationEvent event, StationCalendar calendar) {
+        return calendar.ruleOf(event).map(OccurrenceRule::first).orElseThrow(Refusal.EVENT_HAS_NO_START_TIME::raise);
     }
 
     /**

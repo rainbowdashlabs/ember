@@ -59,6 +59,7 @@ import dev.chojo.ember.feature.equipment.service.EquipmentNeedService;
 import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
+import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
@@ -271,6 +272,7 @@ public abstract class RepositoryTestBase {
     protected static RegistrationCodeRepository registrationCodeRepo;
     protected static EventRepository eventRepo;
     protected static EventBreakRepository eventBreakRepo;
+    protected static EventDateCancellationRepository eventDateCancellationRepo;
     protected static EventCategoryRepository eventCategoryRepo;
     protected static EventFieldDefaultRepository eventFieldDefaultRepo;
     protected static EventRegistrationRepository eventRegistrationRepo;
@@ -451,6 +453,7 @@ public abstract class RepositoryTestBase {
         registrationCodeRepo = new RegistrationCodeRepository();
         eventRepo = new EventRepository();
         eventBreakRepo = new EventBreakRepository();
+        eventDateCancellationRepo = new EventDateCancellationRepository();
         eventCategoryRepo = new EventCategoryRepository();
         eventFieldDefaultRepo = new EventFieldDefaultRepository();
         eventRegistrationRepo = new EventRegistrationRepository();
@@ -607,7 +610,7 @@ public abstract class RepositoryTestBase {
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, memberLookupService, memberNameResolver);
-        occurrenceCalendar = new OccurrenceCalendar(eventRepo, eventBreakRepo, stationRepo);
+        occurrenceCalendar = new OccurrenceCalendar(eventRepo, eventBreakRepo, eventDateCancellationRepo, stationRepo);
         eventFieldRegistrationService = new EventFieldRegistrationService(
                 eventRepo,
                 eventFieldRepo,
@@ -724,7 +727,7 @@ public abstract class RepositoryTestBase {
      */
     protected static EventServices newEventServices(DomainEventBus eventBus) {
         var breakService = new EventBreakService(eventBreakRepo);
-        var calendar = new OccurrenceCalendar(eventRepo, eventBreakRepo, stationRepo);
+        var calendar = new OccurrenceCalendar(eventRepo, eventBreakRepo, eventDateCancellationRepo, stationRepo);
         var availability =
                 new EquipmentAvailabilityService(equipmentAvailabilityRepo, equipmentNeedRepo, eventRepo, calendar);
         var lending = newLendingService(eventBus, availability);

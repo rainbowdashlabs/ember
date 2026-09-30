@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
+import dev.chojo.ember.feature.events.entity.StationCalendar.DateCheck;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -186,6 +188,61 @@ class OccurrenceCalendarTest extends RepositoryTestBase {
         assertRefused(
                 Refusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE,
                 () -> occurrenceCalendar.dateToAnswerFor(counted, first.plusWeeks(2)));
+    }
+
+    /**
+     * A date that was called off stays a date of the series, so lists keep showing it, and takes no
+     * answer; the dates beside it are untouched, and a restored date takes answers again.
+     */
+    @Test
+    void aCancelledDateStaysADateAndTakesNoAnswer() {
+        LocalDate first = LocalDate.now(zone()).plusDays(2);
+        var weekly = event(
+                StationEvent.EventType.RECURRING,
+                first.getDayOfWeek().getValue(),
+                first.atTime(18, 0).atZone(zone()).toInstant());
+        eventDateCancellationRepo.cancel(weekly.id(), first, CancellationCause.MANUAL, "Sturm", null);
+
+        var calendar = occurrenceCalendar.forStation(station.id());
+        assertEquals(DateCheck.CANCELLED, calendar.check(weekly, first));
+        assertTrue(calendar.occursOn(weekly, first));
+        assertFalse(calendar.takesPlaceOn(weekly, first));
+        assertTrue(calendar.takesPlaceOn(weekly, first.plusWeeks(1)));
+        assertEquals(
+                "Sturm", calendar.cancellationOn(weekly, first).orElseThrow().reason());
+        assertEquals(
+                List.of(first),
+                calendar.cancelledDates(weekly).stream().map(c -> c.eventDate()).toList());
+        assertFalse(calendar.cancelledAltogether(weekly));
+        assertEquals(first, occurrenceCalendar.next(weekly).orElseThrow(), "a cancelled date is still listed");
+        assertRefused(Refusal.REGISTRATION_DAY_CANCELLED, () -> occurrenceCalendar.dateToAnswerFor(weekly, first));
+        assertEquals(first.plusWeeks(1), occurrenceCalendar.dateToAnswerFor(weekly, first.plusWeeks(1)));
+
+        eventDateCancellationRepo.restore(weekly.id(), first);
+        assertEquals(first, occurrenceCalendar.dateToAnswerFor(weekly, first));
+    }
+
+    /** A one-time appointment whose one date is off is off altogether, and so is a cancelled series. */
+    @Test
+    void aOneOffWithItsDateCancelledIsCancelledAltogether() {
+        Instant start = Instant.now().plus(5, ChronoUnit.DAYS);
+        var one = event(StationEvent.EventType.ONE_TIME, null, start);
+        LocalDate day = start.atZone(zone()).toLocalDate();
+        eventDateCancellationRepo.cancel(one.id(), day, CancellationCause.THRESHOLD, null, null);
+        var weekly = event(StationEvent.EventType.RECURRING, DayOfWeek.FRIDAY.getValue(), start);
+        eventRepo.cancelEvent(weekly.id(), "Aufgelöst");
+        var cancelledSeries = eventRepo.findById(weekly.id()).orElseThrow();
+
+        var calendar = occurrenceCalendar.forStation(station.id());
+        assertTrue(calendar.cancelledAltogether(one));
+        assertTrue(calendar.cancelledDates(one).isEmpty(), "a one-off is called off as a whole, not by date");
+        assertRefused(Refusal.REGISTRATION_DAY_CANCELLED, () -> occurrenceCalendar.dateToAnswerFor(one, null));
+        assertTrue(calendar.cancelledAltogether(cancelledSeries));
+        LocalDate nextFriday = occurrenceCalendar.next(cancelledSeries).orElseThrow();
+        assertTrue(calendar.isCancelled(cancelledSeries, nextFriday));
+        assertRefused(
+                Refusal.REGISTRATION_DAY_CANCELLED,
+                () -> occurrenceCalendar.dateToAnswerFor(cancelledSeries, nextFriday));
     }
 
     private static void assertRefused(Refusal refusal, Runnable call) {

@@ -474,34 +474,43 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * Counts accepted registrations for an event.
+     * Counts the accepted registrations on one date of an event, the members of partner stations
+     * included, since a visitor with a confirmed place is coming as much as anybody.
      *
-     * @param eventId the event ID
-     * @return the count of accepted registrations
+     * @param eventId   the event ID
+     * @param eventDate the date
+     * @return the count of accepted registrations on that date
      */
-    public int countAccepted(int eventId) {
+    public int countAccepted(int eventId, LocalDate eventDate) {
         return SqlSupport.count("""
                 SELECT
-                    count(*) AS cnt
-                FROM
-                    event_registration
-                WHERE event_id = :id
-                  AND status = 'ACCEPTED';""", call().bind("id", eventId));
+                    (SELECT count(*)
+                     FROM event_registration
+                     WHERE event_id = :id
+                       AND event_date = :event_date
+                       AND status = 'ACCEPTED')
+                    + (SELECT count(*)
+                       FROM event_federation_registration
+                       WHERE event_id = :id
+                         AND event_date = :event_date
+                         AND status = 'ACCEPTED') AS cnt;""", call().bind("id", eventId).bind("event_date", eventDate));
     }
 
     /**
-     * Finds member IDs with pending or accepted registrations for an event.
+     * Finds the members holding a place, pending or accepted, on any date of an event from one day on.
      *
      * @param eventId the event ID
-     * @return the list of member IDs
+     * @param from    the first date that counts
+     * @return the member IDs, each once
      */
-    public List<Integer> findRegisteredMemberIds(int eventId) {
+    public List<Integer> findRegisteredMemberIdsFrom(int eventId, LocalDate from) {
         return query("""
-                SELECT member_id
+                SELECT DISTINCT member_id
                 FROM event_registration
                 WHERE event_id = :id
+                  AND event_date >= :from
                   AND status IN ('PENDING', 'ACCEPTED');""")
-                .single(call().bind("id", eventId))
+                .single(call().bind("id", eventId).bind("from", from))
                 .map(row -> row.getInt("member_id"))
                 .all();
     }

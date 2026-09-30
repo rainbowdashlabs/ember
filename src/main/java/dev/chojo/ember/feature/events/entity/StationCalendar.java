@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.entity;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,10 +23,21 @@ import java.util.Optional;
  * <p>A break suspends a series and leaves a one-off appointment standing: somebody who put a single
  * date into the holidays meant that date.
  *
- * @param zone   the station's clock
- * @param breaks the periods the station does not meet in
+ * <p>A date that was called off is different from a date a break takes out. It stays a date of the
+ * appointment, which {@link #between}, {@link #next} and {@link #previous} keep naming, because a list,
+ * a calendar and the page about the appointment show it as called off rather than let it vanish.
+ * Whatever must not happen on such a date asks {@link #isCancelled} or {@link #takesPlaceOn}.
+ *
+ * @param zone          the station's clock
+ * @param breaks        the periods the station does not meet in
+ * @param cancellations the dates of the station's appointments that were called off
  */
-public record StationCalendar(ZoneId zone, List<EventBreak> breaks) {
+public record StationCalendar(ZoneId zone, List<EventBreak> breaks, DateCancellations cancellations) {
+
+    /** A calendar in which no date was called off. */
+    public StationCalendar(ZoneId zone, List<EventBreak> breaks) {
+        this(zone, breaks, DateCancellations.NONE);
+    }
 
     /** Today on the station's clock. */
     public LocalDate today() {
@@ -37,8 +49,19 @@ public record StationCalendar(ZoneId zone, List<EventBreak> breaks) {
         return OccurrenceRule.of(event, zone);
     }
 
-    /** Whether an appointment takes place on this date. */
+    /**
+     * Whether this is a date of the appointment, called off or not.
+     *
+     * <p>A date that was called off is still one of the appointment's dates: what is filed against it
+     * stays, and it can be brought back.
+     */
     public boolean occursOn(StationEvent event, LocalDate date) {
+        var check = check(event, date);
+        return check == DateCheck.OCCURRENCE || check == DateCheck.CANCELLED;
+    }
+
+    /** Whether the appointment really takes place on this date: a date of it that was not called off. */
+    public boolean takesPlaceOn(StationEvent event, LocalDate date) {
         return check(event, date) == DateCheck.OCCURRENCE;
     }
 
@@ -52,7 +75,48 @@ public record StationCalendar(ZoneId zone, List<EventBreak> breaks) {
     public DateCheck check(StationEvent event, LocalDate date) {
         boolean fits = ruleOf(event).map(rule -> rule.matches(date)).orElse(false);
         if (!fits) return DateCheck.NOT_AN_OCCURRENCE;
-        return suspends(event, date) ? DateCheck.IN_A_BREAK : DateCheck.OCCURRENCE;
+        if (suspends(event, date)) return DateCheck.IN_A_BREAK;
+        return isCancelled(event, date) ? DateCheck.CANCELLED : DateCheck.OCCURRENCE;
+    }
+
+    /**
+     * Whether this date of an appointment is off, because the whole series was called off or this one
+     * date was.
+     */
+    public boolean isCancelled(StationEvent event, LocalDate date) {
+        return event.cancelled() || cancellations.on(event.id(), date).isPresent();
+    }
+
+    /** The cancellation of this one date, empty where the date itself was not called off. */
+    public Optional<EventDateCancellation> cancellationOn(StationEvent event, LocalDate date) {
+        return cancellations.on(event.id(), date);
+    }
+
+    /**
+     * Whether the appointment as a whole is off: a series that was called off, or a one-time
+     * appointment whose one date was.
+     */
+    public boolean cancelledAltogether(StationEvent event) {
+        if (event.cancelled()) return true;
+        if (event.isRecurring()) return false;
+        return ruleOf(event)
+                .map(rule -> cancellations.on(event.id(), rule.first()).isPresent())
+                .orElse(false);
+    }
+
+    /**
+     * The dates of a series that were called off one by one, which a calendar is told as dates of the
+     * series that do not take place.
+     *
+     * @param event the appointment
+     * @return those dates in order, none for a one-time appointment or a series called off as a whole
+     */
+    public List<EventDateCancellation> cancelledDates(StationEvent event) {
+        if (!event.isRecurring() || event.cancelled()) return List.of();
+        return cancellations.forEvent(event.id()).stream()
+                .filter(cancellation -> check(event, cancellation.eventDate()) == DateCheck.CANCELLED)
+                .sorted(Comparator.comparing(EventDateCancellation::eventDate))
+                .toList();
     }
 
     /** The first date on or after this one that the appointment takes place on, where one is left. */
@@ -134,6 +198,8 @@ public record StationCalendar(ZoneId zone, List<EventBreak> breaks) {
         /** The repetition does not name it, or it lies outside the series. */
         NOT_AN_OCCURRENCE,
         /** The repetition names it, and a break of the station takes it out. */
-        IN_A_BREAK
+        IN_A_BREAK,
+        /** It is a date of the appointment, and it was called off, on its own or with the whole series. */
+        CANCELLED
     }
 }

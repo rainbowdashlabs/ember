@@ -193,9 +193,14 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
                             .findById(registration.id())
                             .orElseThrow()
                             .status());
-            assertEquals(1, eventRegistrationRepo.countAccepted(created.id()));
+            assertEquals(1, eventRegistrationRepo.countAccepted(created.id(), date));
+            assertEquals(0, eventRegistrationRepo.countAccepted(created.id(), date.plusWeeks(1)));
+            assertEquals(List.of(member.id()), eventRegistrationRepo.findRegisteredMemberIdsFrom(created.id(), date));
             assertTrue(
-                    eventRegistrationRepo.findRegisteredMemberIds(created.id()).contains(member.id()));
+                    eventRegistrationRepo
+                            .findRegisteredMemberIdsFrom(created.id(), date.plusDays(1))
+                            .isEmpty(),
+                    "a place on a date already behind is no news");
             assertEquals(List.of(member.id()), eventRegistrationRepo.findRegisteredMemberIds(created.id(), date));
             assertTrue(
                     eventRegistrationRepo
@@ -359,8 +364,10 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
         assertTrue(eventRegistrationRepo
                 .findNotAttendingMemberIds(99999, LocalDate.now())
                 .isEmpty());
-        assertTrue(eventRegistrationRepo.findRegisteredMemberIds(99999).isEmpty());
-        assertEquals(0, eventRegistrationRepo.countAccepted(99999));
+        assertTrue(eventRegistrationRepo
+                .findRegisteredMemberIdsFrom(99999, LocalDate.now())
+                .isEmpty());
+        assertEquals(0, eventRegistrationRepo.countAccepted(99999, LocalDate.now()));
     }
 
     /**

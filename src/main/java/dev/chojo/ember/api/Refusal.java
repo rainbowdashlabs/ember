@@ -2104,6 +2104,13 @@ public enum Refusal {
             HttpStatus.BAD_REQUEST,
             "The station takes a break on that day, so the appointment does not take place"),
 
+    /**
+     * A registration or a decline, local or from a partner station, for a date that was called off,
+     * on its own or with the whole series.
+     */
+    REGISTRATION_DAY_CANCELLED(
+            Area.EVENTS, 93, HttpStatus.BAD_REQUEST, "That date was cancelled, so it takes no registrations"),
+
     /** A list of comments asked for on a day that is not a date. */
     COMMENT_DAY_NOT_A_DATE(Area.COMMENTS, 1, HttpStatus.BAD_REQUEST, Sentences.DAY_NOT_A_DATE),
 

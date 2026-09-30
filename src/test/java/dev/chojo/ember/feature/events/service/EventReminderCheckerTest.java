@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
+import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -53,6 +54,7 @@ class EventReminderCheckerTest {
     private StationReadOnlyGuard readOnlyGuard;
     private StationRepository stationRepository;
     private EventBreakRepository breakRepository;
+    private EventDateCancellationRepository cancellationRepository;
 
     private static final int STATION_ID = 1;
     private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
@@ -72,6 +74,7 @@ class EventReminderCheckerTest {
         when(readOnlyGuard.isWritable(anyInt())).thenReturn(true);
         stationRepository = mock(StationRepository.class);
         breakRepository = mock(EventBreakRepository.class);
+        cancellationRepository = mock(EventDateCancellationRepository.class);
     }
 
     /**
@@ -574,7 +577,8 @@ class EventReminderCheckerTest {
                     memberNameResolver,
                     restrictionService,
                     readOnlyGuard,
-                    new OccurrenceCalendar(eventRepository, breakRepository, stationRepository));
+                    new OccurrenceCalendar(
+                            eventRepository, breakRepository, cancellationRepository, stationRepository));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
