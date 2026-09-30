@@ -211,8 +211,8 @@ test.describe('A page reached by its link', () => {
         const {path, title, pdfUrl} = await sharedPageWithPdf(managerPage)
         await page.goto(path)
 
-        await expect(page.getByText(title).first()).toBeVisible()
-        await expect(page.locator(`iframe[src="${pdfUrl}"]`)).toBeAttached()
+        await expect(page).toHaveTitle(new RegExp(title))
+        await expect(page.locator(`main iframe[src="${pdfUrl}"]`)).toBeVisible()
         const pdf = await page.request.get(pdfUrl)
         expect(pdf.status()).toBe(200)
         expect(pdf.headers()['content-type']).toContain('application/pdf')
