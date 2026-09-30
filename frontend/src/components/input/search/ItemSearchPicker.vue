@@ -15,6 +15,7 @@ import type {InventoryItem, InventoryTypeName, ItemOwnerName} from '@/api/invent
 import {passesItemFilters} from './itemsearch/itemFilters'
 import {ITEM_SEARCH_LIMIT, queryTokens, scoreItemText} from './itemsearch/itemRanking'
 import {useItemCatalog} from './itemsearch/useItemCatalog'
+import {activeLocale} from '@/util/locale'
 
 /**
  * Picking one piece of gear, by searching for it or by scanning its code.
@@ -79,7 +80,7 @@ function byWantedSize(a: InventoryItem, b: InventoryItem): number {
 }
 
 function byName(a: InventoryItem, b: InventoryItem): number {
-  return displayName(a).localeCompare(displayName(b), 'de')
+  return displayName(a).localeCompare(displayName(b), activeLocale())
 }
 
 async function searchFn(query: string): Promise<InventoryItem[]> {

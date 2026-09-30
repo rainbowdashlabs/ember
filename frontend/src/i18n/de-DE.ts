@@ -5064,6 +5064,7 @@ export default {
         denyReasonPlaceholder: 'Grund für die Ablehnung...',
     },
     theme: {
+        toggle: 'Farbmodus wechseln',
         custom: 'Eigenes Design',
         title: 'Erscheinungsbild',
         selectTheme: 'Farbschema',
@@ -9582,6 +9583,7 @@ export default {
         copyStacktrace: 'Stacktrace kopieren',
     },
     adminDataTracking: {
+        batchFailed: 'Aktualisierungen fehlgeschlagen: {count}',
         devOnlyNotice: 'Nur im Dev-Modus verfügbar',
         devOnlyDisabled: 'Diese Ansicht steht nur zur Verfügung, wenn der Server im Dev-Modus läuft.',
         totalTables: 'Tabellen gesamt',
@@ -10182,6 +10184,19 @@ export default {
             warning: 'Warnung',
             success: 'Erfolg',
             tip: 'Tipp',
+        },
+        cellHints: {
+            noMemberChosen: 'Kein Mitglied ausgewählt',
+            memberGone: 'Mitglied nicht mehr verfügbar',
+            noMembersChosen: 'Keine Mitglieder ausgewählt',
+            coordinatesMissing: 'Koordinaten fehlen',
+            fileUrlMissing: 'Datei-URL fehlt',
+            pdfUrlMissing: 'PDF-URL fehlt',
+            audioUrlMissing: 'Audio-URL fehlt',
+            gone: 'Nicht mehr verfügbar',
+            learnMore: 'Mehr erfahren',
+            noUpcomingEvents: 'Keine bevorstehenden Termine.',
+            subscribeBlog: 'Blog abonnieren',
         },
         editor: {
             newPage: 'Neue Seite',

@@ -146,7 +146,7 @@ const {running: batchSaving, run: applyBatch} = useAsyncAction(async () => {
   }
 
   if (failures.length > 0) {
-    batchError.value = `${failures.length} update(s) failed:\n${failures.join('\n')}`
+    batchError.value = `${t('adminDataTracking.batchFailed', {count: failures.length})}\n${failures.join('\n')}`
   } else {
     clearBatchSelection()
   }

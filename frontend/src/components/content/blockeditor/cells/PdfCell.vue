@@ -19,5 +19,5 @@ const {t} = useI18n()
     <div v-if="config.url" class="rounded-theme overflow-hidden border border-(--border)">
         <iframe :src="config.url" :title="t('stationPages.contentType.pdf')" :style="{height: `${config.heightPx ?? 600}px`}" class="w-full block" loading="lazy"/>
     </div>
-    <EmptyHint v-else>PDF-URL fehlt</EmptyHint>
+    <EmptyHint v-else>{{ t('stationPages.cellHints.pdfUrlMissing') }}</EmptyHint>
 </template>

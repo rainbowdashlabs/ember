@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed, onMounted, ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import UserTagBadge from '@/components/badge/UserTagBadge.vue'
@@ -23,6 +24,8 @@ const props = defineProps<{
     kind: LayoutKindName
     config: Record<string, unknown>
 }>()
+
+const {t} = useI18n()
 
 function asCfg<T>(): T { return props.config as T }
 const memberSpotlight = computed(() => asCfg<MemberSpotlightConfig>())
@@ -70,7 +73,7 @@ watch(() => memberList.value.resolvedMembers, resolveMemberList, {immediate: fal
 </script>
 
 <template>
-    <EmptyHint v-if="kind === 'MEMBER_SPOTLIGHT' && !memberSpotlight.memberUid">Kein Mitglied ausgewählt</EmptyHint>
+    <EmptyHint v-if="kind === 'MEMBER_SPOTLIGHT' && !memberSpotlight.memberUid">{{ t('stationPages.cellHints.noMemberChosen') }}</EmptyHint>
     <div v-else-if="kind === 'MEMBER_SPOTLIGHT' && memberResolved"
          class="flex gap-3 items-start rounded-theme border border-(--border) p-4">
         <img v-if="memberResolved.avatarUrl" :src="memberResolved.avatarUrl" :alt="memberResolved.displayName"
@@ -90,7 +93,7 @@ watch(() => memberList.value.resolvedMembers, resolveMemberList, {immediate: fal
             <MutedText v-if="memberSpotlight.blurb" tag="p" size="sm" class="mt-1">{{ memberSpotlight.blurb }}</MutedText>
         </div>
     </div>
-    <EmptyHint v-else-if="kind === 'MEMBER_SPOTLIGHT'">Mitglied nicht mehr verfügbar</EmptyHint>
+    <EmptyHint v-else-if="kind === 'MEMBER_SPOTLIGHT'">{{ t('stationPages.cellHints.memberGone') }}</EmptyHint>
 
     <div v-else-if="kind === 'MEMBER_LIST_SPOTLIGHT'" class="space-y-3">
         <p v-if="memberList.title" class="font-semibold">{{ memberList.title }}</p>
@@ -117,6 +120,6 @@ watch(() => memberList.value.resolvedMembers, resolveMemberList, {immediate: fal
                 </div>
             </li>
         </ul>
-        <EmptyHint v-else>Keine Mitglieder ausgewählt</EmptyHint>
+        <EmptyHint v-else>{{ t('stationPages.cellHints.noMembersChosen') }}</EmptyHint>
     </div>
 </template>

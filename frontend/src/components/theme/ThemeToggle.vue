@@ -5,10 +5,12 @@
  */
 <script lang="ts" setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { DarkMode } from '@/theme/themes'
 import { useTheme } from '@/composables/useTheme'
 import IconButton from '@/components/button/IconButton.vue'
 
+const { t } = useI18n()
 const { darkMode, setDarkMode } = useTheme()
 
 const icon = computed(() => {
@@ -42,7 +44,7 @@ function cycle() {
 <template>
     <IconButton
         :icon="['fas', icon]"
-        label="Toggle theme"
+        :label="t('theme.toggle')"
         class="text-[var(--text)] hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
         @click="cycle"
     >

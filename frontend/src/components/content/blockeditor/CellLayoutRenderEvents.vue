@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed, onMounted, ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
 import * as publicEvents from '@/api/publicEvents'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import type {
@@ -22,6 +23,8 @@ const props = defineProps<{
     /** The clock an appointment is written on, the reader's own where none is named. */
     timezone?: string | null
 }>()
+
+const {t} = useI18n()
 
 function asCfg<T>(): T { return props.config as T }
 
@@ -139,9 +142,9 @@ watch(
         </div>
         <p v-if="featuredEvent.descriptionOverride" class="text-sm whitespace-pre-line">{{ featuredEvent.descriptionOverride }}</p>
         <p v-else-if="featuredResolved.description" class="text-sm whitespace-pre-line">{{ featuredResolved.description }}</p>
-        <a :href="featuredResolved.href" class="inline-block px-3 py-1.5 rounded-theme bg-primary !text-primary-text text-sm font-medium hover:bg-primary-accent">Mehr erfahren</a>
+        <a :href="featuredResolved.href" class="inline-block px-3 py-1.5 rounded-theme bg-primary !text-primary-text text-sm font-medium hover:bg-primary-accent">{{ t('stationPages.cellHints.learnMore') }}</a>
     </div>
-    <EmptyHint v-else-if="kind === 'FEATURED_EVENT'">Nicht mehr verfügbar</EmptyHint>
+    <EmptyHint v-else-if="kind === 'FEATURED_EVENT'">{{ t('stationPages.cellHints.gone') }}</EmptyHint>
 
     <div v-else-if="kind === 'UPCOMING_EVENTS'" class="space-y-2">
         <p v-if="upcomingEvents.title" class="font-semibold">{{ upcomingEvents.title }}</p>
@@ -153,7 +156,7 @@ watch(
                     <p class="text-xs text-(--text-muted)">{{ [item.startTime ? formatDateTime(item.startTime, timezone) : '', item.categoryName].filter(Boolean).join(' · ') }}</p>
                 </div>
             </li>
-            <li v-if="upcomingResolved.length === 0" class="text-xs text-(--text-muted) italic">Keine bevorstehenden Termine.</li>
+            <li v-if="upcomingResolved.length === 0" class="text-xs text-(--text-muted) italic">{{ t('stationPages.cellHints.noUpcomingEvents') }}</li>
         </ul>
     </div>
 
@@ -166,5 +169,5 @@ watch(
             <p v-if="pastEvent.recapDescription" class="text-sm whitespace-pre-line">{{ pastEvent.recapDescription }}</p>
         </div>
     </div>
-    <EmptyHint v-else-if="kind === 'PAST_EVENT_RECAP'">Nicht mehr verfügbar</EmptyHint>
+    <EmptyHint v-else-if="kind === 'PAST_EVENT_RECAP'">{{ t('stationPages.cellHints.gone') }}</EmptyHint>
 </template>

@@ -55,7 +55,7 @@ async function darkModeClass(page: Page): Promise<'dark' | 'light'> {
  * way to know where the circle stands.
  */
 async function switchThemeTo(page: Page, mode: 'dark' | 'light'): Promise<void> {
-    const toggle = page.getByRole('button', {name: 'Toggle theme'})
+    const toggle = page.getByRole('button', {name: 'Farbmodus wechseln'})
     for (let press = 0; press < 4; press++) {
         if (await darkModeClass(page) === mode) return
         await toggle.click()

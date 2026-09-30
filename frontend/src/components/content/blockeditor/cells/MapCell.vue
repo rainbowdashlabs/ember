@@ -29,5 +29,5 @@ const mapUrl = computed(() => {
         <iframe :src="mapUrl" :title="config.label || t('stationPages.contentType.map')" :style="{height: `${config.heightPx ?? 320}px`}" class="w-full block" loading="lazy"/>
         <p v-if="config.label" class="text-center text-xs text-(--text-muted) py-1">{{ config.label }}</p>
     </div>
-    <EmptyHint v-else>Koordinaten fehlen</EmptyHint>
+    <EmptyHint v-else>{{ t('stationPages.cellHints.coordinatesMissing') }}</EmptyHint>
 </template>

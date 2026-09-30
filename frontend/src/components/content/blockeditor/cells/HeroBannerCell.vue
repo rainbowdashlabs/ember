@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useI18n} from 'vue-i18n'
 import type {HeroBannerConfig} from '@/api/pageManage'
 import {mediaImageSrcset, mediaImageUrlAt} from '@/api/media'
 import {PAGE_WIDTH} from '@/util/contentContext'
@@ -12,6 +13,8 @@ defineProps<{
     config: HeroBannerConfig
     stationUid?: string
 }>()
+
+const {t} = useI18n()
 </script>
 
 <template>
@@ -29,7 +32,7 @@ defineProps<{
             <p v-if="config.subtitle" class="mt-2 text-lg">{{ config.subtitle }}</p>
             <a v-if="config.ctaUrl" :href="config.ctaUrl"
                class="mt-4 inline-block px-4 py-2 rounded-theme bg-primary text-primary-text! font-medium hover:bg-primary-accent">
-                {{ config.ctaText || 'Mehr erfahren' }}
+                {{ config.ctaText || t('stationPages.cellHints.learnMore') }}
             </a>
         </div>
     </div>

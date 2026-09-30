@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {onMounted, ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {listPublicBlog} from '@/api/news'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import type {NewsTeaserConfig} from '@/api/pageManage'
@@ -16,6 +17,8 @@ const props = defineProps<{
     /** The clock the publication date is written on, the reader's own where none is named. */
     timezone?: string | null
 }>()
+
+const {t} = useI18n()
 
 interface ResolvedNews {
     title: string
@@ -69,5 +72,5 @@ watch(() => [props.stationUid, props.config.newsUid], resolve, {immediate: false
             <p v-if="resolved.summary" class="text-sm text-(--text-muted)">{{ resolved.summary }}</p>
         </div>
     </a>
-    <EmptyHint v-else>Nicht mehr verfügbar</EmptyHint>
+    <EmptyHint v-else>{{ t('stationPages.cellHints.gone') }}</EmptyHint>
 </template>
