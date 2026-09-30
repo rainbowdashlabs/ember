@@ -92,8 +92,7 @@ public final class SmbStorageBackend extends FileTreeBackend {
     }
 
     @Override
-    public void close() {
-        super.close();
+    protected void released() {
         if (ownsClient) client.close();
     }
 }

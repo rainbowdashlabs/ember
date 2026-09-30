@@ -9,6 +9,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
@@ -18,7 +19,10 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Returns the {@link StorageBackend} that owns bytes for a {@code (scope, category)} pair.
@@ -34,19 +38,27 @@ import java.util.Optional;
  *   <li>Instance default from {@code conf.yml}, built by {@link StorageBackendFactory}.</li>
  * </ol>
  *
- * <p>Station overrides are cached per {@code stationId} so the resolver does not hit the
- * database on every byte-level call; {@link #invalidateStation(int)} drops a single entry,
- * {@link #invalidateAll()} flushes the cache after schema-wide changes.
+ * <p>Backends are cached by the configuration they were built from: a station's own override row, or
+ * the version of cluster storage it stands on. Every station on one version therefore shares one
+ * backend and its one pool of sessions. Each station is mapped to its key in a cache of its own, so
+ * the database is read once per station and not on every byte-level call.
+ *
+ * <p>A backend that leaves the cache, invalidated or evicted, is closed once the calls still using it
+ * are done, at the latest after the pool's drain limit. On shutdown every cached backend, the instance
+ * default and the shared protocol clients are closed.
  */
 @Singleton
-public class StorageBackendResolver {
+public class StorageBackendResolver implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(StorageBackendResolver.class);
-    private static final long MAX_CACHED_OVERRIDES = 256;
+    private static final long MAX_CACHED = 256;
 
     private final StorageBackendFactory factory;
     private final StationStorageConfigRepository overrideRepository;
     private final ClusterStationStorageRepository placementRepository;
-    private final Cache<Integer, Optional<StorageBackend>> overrideCache;
+    private final Cache<Integer, Optional<BackendKey>> stationKeys;
+    private final Set<StorageBackend> handedOver =
+            Collections.synchronizedSet(Collections.newSetFromMap(new IdentityHashMap<>()));
+    private final Cache<BackendKey, StorageBackend> backends;
 
     @Inject
     public StorageBackendResolver(
@@ -56,21 +68,11 @@ public class StorageBackendResolver {
         this.placementRepository = placementRepository;
         this.factory = factory;
         this.overrideRepository = overrideRepository;
-        this.overrideCache = overrideCache();
-    }
-
-    /**
-     * The cache of station backends. A backend that leaves it, invalidated or evicted, is closed on
-     * the way out: nothing can reach it any more, and left open it would keep its session, its client
-     * threads or its connection pool until the process ends.
-     */
-    private static Cache<Integer, Optional<StorageBackend>> overrideCache() {
-        return Caffeine.newBuilder()
-                .maximumSize(MAX_CACHED_OVERRIDES)
-                .executor(Runnable::run)
-                .<Integer, Optional<StorageBackend>>removalListener((stationId, backend, cause) ->
-                        Optional.ofNullable(backend).flatMap(held -> held).ifPresent(StorageBackend::close))
-                .build();
+        this.stationKeys = Caffeine.newBuilder().maximumSize(MAX_CACHED).build();
+        this.backends = backendCache();
+        // TODO: close from the storage stage of the application lifecycle once it exists, not from a JVM hook
+        Runtime.getRuntime()
+                .addShutdownHook(Thread.ofPlatform().name("storage-shutdown").unstarted(this::close));
     }
 
     /**
@@ -82,7 +84,18 @@ public class StorageBackendResolver {
         this.factory = new StorageBackendFactory(new Storage(), localBackend, null);
         this.overrideRepository = null;
         this.placementRepository = null;
-        this.overrideCache = overrideCache();
+        this.stationKeys = Caffeine.newBuilder().maximumSize(MAX_CACHED).build();
+        this.backends = backendCache();
+    }
+
+    private Cache<BackendKey, StorageBackend> backendCache() {
+        return Caffeine.newBuilder()
+                .maximumSize(MAX_CACHED)
+                .executor(Runnable::run)
+                .<BackendKey, StorageBackend>removalListener((key, backend, cause) -> {
+                    if (backend != null && !handedOver.remove(backend)) backend.close();
+                })
+                .build();
     }
 
     /**
@@ -100,7 +113,7 @@ public class StorageBackendResolver {
             return factory.localBackend();
         }
         if (scope instanceof StorageScope.Station station && overrideRepository != null) {
-            Optional<StorageBackend> override = stationOverride(station.stationId());
+            Optional<StorageBackend> override = stationBackend(station.stationId());
             if (override.isPresent()) return override.get();
         }
         return factory.instanceDefault();
@@ -114,51 +127,75 @@ public class StorageBackendResolver {
     }
 
     /**
-     * Drops the cached override for one station.
+     * Forgets where one station's bytes go. A backend of the station's own is closed with it; a
+     * version of cluster storage stays, since other stations stand on it.
      */
     public void invalidateStation(int stationId) {
-        overrideCache.invalidate(stationId);
+        var key = stationKeys.getIfPresent(stationId);
+        stationKeys.invalidate(stationId);
+        if (key != null) key.filter(BackendKey.Own.class::isInstance).ifPresent(backends::invalidate);
     }
 
     /**
-     * Drops the cached override for several stations at once, which is what a change at their cluster needs.
+     * Forgets where one station's bytes go, like {@link #invalidateStation}, but hands a backend of
+     * the station's own to the caller instead of closing it. A move still has to delete the station's
+     * bytes from where they were after it pointed the station elsewhere, and closes that backend itself
+     * once it is done with it.
+     *
+     * @param stationId the station that moved
+     * @return the station's own backend as it was cached, now the caller's to close
+     */
+    public Optional<StorageBackend> detachStation(int stationId) {
+        var key = stationKeys.getIfPresent(stationId);
+        stationKeys.invalidate(stationId);
+        if (key == null || key.filter(BackendKey.Own.class::isInstance).isEmpty()) return Optional.empty();
+        var backend = backends.getIfPresent(key.get());
+        if (backend == null) return Optional.empty();
+        handedOver.add(backend);
+        backends.invalidate(key.get());
+        return Optional.of(backend);
+    }
+
+    /**
+     * Forgets where several stations' bytes go, which is what a change at their cluster needs, and
+     * closes the backends they stood on: the change may have been to the credentials of that version.
      *
      * @param stationIds the stations whose resolved backend may have moved
      */
     public void invalidateStations(Iterable<Integer> stationIds) {
         for (int stationId : stationIds) {
-            overrideCache.invalidate(stationId);
+            var key = stationKeys.getIfPresent(stationId);
+            stationKeys.invalidate(stationId);
+            if (key != null) key.ifPresent(backends::invalidate);
         }
     }
 
     /**
-     * Flushes the entire station-override cache.
+     * Flushes every mapping and closes every cached backend.
      */
     public void invalidateAll() {
-        overrideCache.invalidateAll();
+        stationKeys.invalidateAll();
+        backends.invalidateAll();
     }
 
     /**
-     * Closes every backend this resolver holds open: the cached station overrides and the instance
-     * default. Called once by the shutdown, after the last write; a backend that fails to close is
-     * logged and the others are closed regardless.
+     * Closes every cached backend, the instance default and the shared protocol clients.
      */
-    public void closeAll() {
-        overrideCache.asMap().values().forEach(backend -> backend.ifPresent(StorageBackendResolver::closeQuietly));
-        overrideCache.invalidateAll();
+    @Override
+    public void close() {
+        invalidateAll();
         try {
             factory.closeInstanceDefault();
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.warn("Could not close the instance storage backend", e);
         }
     }
 
-    private static void closeQuietly(StorageBackend backend) {
-        try {
-            backend.close();
-        } catch (Exception e) {
-            log.warn("Could not close a station storage backend of type {}", backend.type(), e);
-        }
+    /**
+     * Closes every backend this resolver holds open. Called once by the shutdown, after the last write.
+     */
+    public void closeAll() {
+        close();
     }
 
     /**
@@ -168,17 +205,34 @@ public class StorageBackendResolver {
      * <p>Read from where the bytes are and never from what a cluster decided. A decision takes effect the
      * moment it is written and a copy does not, so resolving from policy points a station at storage its
      * files are not on, which is the whole reason placement exists.
-     *
-     * <p>Cached under the station's id, so editing the credentials of a version several stations stand on has
-     * to invalidate every one of them: that is what {@code invalidateStations} is for.
      */
-    private Optional<StorageBackend> stationOverride(int stationId) {
-        return overrideCache.get(stationId, id -> {
-            Optional<StorageBackend> own =
-                    overrideRepository.findOne(id).map(row -> factory.buildForStation(row.config()));
-            if (own.isPresent()) return own;
-            if (placementRepository == null) return Optional.empty();
-            return placementRepository.findConfigForStation(id).map(factory::buildForStation);
-        });
+    private Optional<StorageBackend> stationBackend(int stationId) {
+        Optional<BackendKey> key = stationKeys.get(stationId, this::keyOf);
+        return key.map(found -> backends.get(found, unused -> factory.buildForStation(configOf(stationId))));
+    }
+
+    private Optional<BackendKey> keyOf(int stationId) {
+        if (overrideRepository.findOne(stationId).isPresent()) return Optional.of(new BackendKey.Own(stationId));
+        if (placementRepository == null) return Optional.empty();
+        return placementRepository
+                .findByStation(stationId)
+                .map(placement -> new BackendKey.Cluster(placement.configId()));
+    }
+
+    private StationStorageBackendConfig configOf(int stationId) {
+        return overrideRepository
+                .findOne(stationId)
+                .map(StationStorageConfigRepository.Row::config)
+                .or(() -> placementRepository.findConfigForStation(stationId))
+                .orElseThrow(() -> new StorageException("Station " + stationId + " stands on no storage any more"));
+    }
+
+    /** The configuration a backend was built from. */
+    private sealed interface BackendKey {
+        /** A station's own override row. */
+        record Own(int stationId) implements BackendKey {}
+
+        /** A version of a cluster's storage, which every station carried to it shares. */
+        record Cluster(int configId) implements BackendKey {}
     }
 }

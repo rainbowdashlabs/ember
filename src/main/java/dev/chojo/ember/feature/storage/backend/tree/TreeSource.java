@@ -33,4 +33,15 @@ public interface TreeSource<T extends FileTree> extends AutoCloseable {
     /** Releases every tree the source holds. */
     @Override
     void close();
+
+    /**
+     * Releases every tree and runs {@code afterwards} once the last lent one is back, so whatever the
+     * trees share is released after them and not underneath them.
+     *
+     * @param afterwards what to release once no tree is out any more
+     */
+    default void close(Runnable afterwards) {
+        close();
+        afterwards.run();
+    }
 }

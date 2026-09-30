@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.storage.backend;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
+import dev.chojo.ember.feature.storage.entity.ClusterStationStorage;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -20,19 +21,26 @@ import org.mockito.Mockito;
 
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StorageBackendResolverTest {
-    private static final StorageScope.Station STATION_ONE = new StorageScope.Station(1, UUID.randomUUID());
-    private static final StorageScope.Station STATION_TWO = new StorageScope.Station(2, UUID.randomUUID());
+    private static final int OWN_ONE = 1;
+    private static final int OWN_TWO = 2;
+    private static final int CLUSTER_ONE = 11;
+    private static final int CLUSTER_TWO = 12;
+    private static final int ON_DEFAULT = 21;
+    private static final int CONFIG_ID = 7;
 
     @TempDir
     Path root;
@@ -43,41 +51,100 @@ class StorageBackendResolverTest {
     @BeforeEach
     void setUp() {
         var overrides = Mockito.mock(StationStorageConfigRepository.class);
-        Mockito.when(overrides.findOne(Mockito.anyInt()))
-                .thenAnswer(call -> Optional.of(new StationStorageConfigRepository.Row(call.getArgument(0), config())));
+        Mockito.when(overrides.findOne(Mockito.anyInt())).thenAnswer(call -> {
+            int id = call.getArgument(0);
+            return id < 10 ? Optional.of(new StationStorageConfigRepository.Row(id, config())) : Optional.empty();
+        });
+        var placements = Mockito.mock(ClusterStationStorageRepository.class);
+        Mockito.when(placements.findByStation(Mockito.anyInt())).thenAnswer(call -> {
+            int id = call.getArgument(0);
+            return id > 10 && id < 20
+                    ? Optional.of(new ClusterStationStorage(id, 3, CONFIG_ID, Instant.EPOCH))
+                    : Optional.empty();
+        });
+        Mockito.when(placements.findConfigForStation(Mockito.anyInt())).thenReturn(Optional.of(config()));
         factory = new RecordingFactory(new LocalStorageBackend(root));
-        resolver = new StorageBackendResolver(factory, overrides, Mockito.mock(ClusterStationStorageRepository.class));
+        resolver = new StorageBackendResolver(factory, overrides, placements);
     }
 
     @Test
     void aStationKeepsItsBackendUntilItIsInvalidated() {
-        var first = resolver.forScope(STATION_ONE, StorageCategory.MEDIA_FILES);
+        var first = backendOf(OWN_ONE);
 
-        assertSame(first, resolver.forScope(STATION_ONE, StorageCategory.KB_FILES));
+        assertSame(first, resolver.forScope(station(OWN_ONE), StorageCategory.KB_FILES));
         assertSame(factory.localBackend(), resolver.forScope(new StorageScope.Instance(), StorageCategory.DOCUMENT));
+        assertSame(factory.instanceDefault(), backendOf(ON_DEFAULT));
     }
 
     @Test
-    void anInvalidatedBackendIsClosed() {
-        var replaced = (RecordingBackend) resolver.forScope(STATION_ONE, StorageCategory.MEDIA_FILES);
-        var kept = (RecordingBackend) resolver.forScope(STATION_TWO, StorageCategory.MEDIA_FILES);
+    void stationsOnOneClusterStorageShareOneBackend() {
+        assertSame(backendOf(CLUSTER_ONE), backendOf(CLUSTER_TWO));
+        assertNotSame(backendOf(OWN_ONE), backendOf(OWN_TWO));
+        assertEquals(3, factory.built.size());
+    }
 
-        resolver.invalidateStation(STATION_ONE.stationId());
+    @Test
+    void anInvalidatedOwnBackendIsClosedAndAClusterOneStays() {
+        var own = (RecordingBackend) backendOf(OWN_ONE);
+        var kept = (RecordingBackend) backendOf(OWN_TWO);
+        var cluster = (RecordingBackend) backendOf(CLUSTER_ONE);
 
-        assertTrue(replaced.closed, "a backend nobody can reach any more must release its connections");
+        resolver.invalidateStation(OWN_ONE);
+        resolver.invalidateStation(CLUSTER_ONE);
+        resolver.invalidateStation(ON_DEFAULT);
+
+        assertTrue(own.closed, "a backend nobody can reach any more must release its connections");
         assertFalse(kept.closed);
-        assertNotSame(replaced, resolver.forScope(STATION_ONE, StorageCategory.MEDIA_FILES));
+        assertFalse(cluster.closed, "the other stations on the cluster storage still use it");
+        assertNotSame(own, backendOf(OWN_ONE));
+        assertSame(cluster, backendOf(CLUSTER_TWO));
     }
 
     @Test
-    void invalidatingEverythingClosesEveryCachedBackend() {
-        resolver.forScope(STATION_ONE, StorageCategory.MEDIA_FILES);
-        resolver.forScope(STATION_TWO, StorageCategory.MEDIA_FILES);
+    void aChangeAtTheClusterClosesTheBackendItsStationsStoodOn() {
+        var cluster = (RecordingBackend) backendOf(CLUSTER_ONE);
+        backendOf(CLUSTER_TWO);
 
-        resolver.invalidateStations(List.of(STATION_ONE.stationId()));
+        resolver.invalidateStations(List.of(CLUSTER_ONE, CLUSTER_TWO, ON_DEFAULT));
+
+        assertTrue(cluster.closed);
+        assertNotSame(cluster, backendOf(CLUSTER_TWO));
+    }
+
+    @Test
+    void aMoveTakesTheOwnBackendOverAndClosesItItself() {
+        var own = (RecordingBackend) backendOf(OWN_ONE);
+        backendOf(CLUSTER_ONE);
+
+        var detached = resolver.detachStation(OWN_ONE);
+
+        assertSame(own, detached.orElseThrow());
+        assertFalse(own.closed, "whoever took the backend over closes it");
+        assertTrue(resolver.detachStation(CLUSTER_ONE).isEmpty());
+        assertTrue(resolver.detachStation(ON_DEFAULT).isEmpty());
+        assertTrue(resolver.detachStation(OWN_TWO).isEmpty());
         resolver.invalidateAll();
+        assertFalse(own.closed);
+    }
 
-        assertTrue(factory.built.stream().allMatch(backend -> backend.closed));
+    @Test
+    void closingClosesEveryBackendAndTheSharedClients() {
+        var own = (RecordingBackend) backendOf(OWN_ONE);
+        var cluster = (RecordingBackend) backendOf(CLUSTER_ONE);
+
+        resolver.close();
+
+        assertTrue(own.closed);
+        assertTrue(cluster.closed);
+        assertThrows(StorageUnavailableException.class, () -> factory.clients().ssh());
+    }
+
+    private StorageBackend backendOf(int stationId) {
+        return resolver.forScope(station(stationId), StorageCategory.MEDIA_FILES);
+    }
+
+    private static StorageScope.Station station(int stationId) {
+        return new StorageScope.Station(stationId, new UUID(0, stationId));
     }
 
     private static StationStorageBackendConfig config() {

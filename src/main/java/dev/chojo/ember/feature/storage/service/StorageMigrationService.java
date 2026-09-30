@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -226,24 +227,26 @@ public class StorageMigrationService {
         }
 
         record(scope.stationId(), destination);
-        resolver.invalidateStation(scope.stationId());
+        Optional<StorageBackend> formerOwn = resolver.detachStation(scope.stationId());
+        try {
+            int sampleSize = Math.max(1, allCopiedKeys.size() / SAMPLE_DENOMINATOR);
+            sampleVerify(target, allCopiedKeys, sampleSize);
 
-        int sampleSize = Math.max(1, allCopiedKeys.size() / SAMPLE_DENOMINATOR);
-        sampleVerify(target, allCopiedKeys, sampleSize);
-
-        int deletedCount = 0;
-        for (CategoryKeys cat : perCategoryKeys) {
-            for (String key : cat.keys()) {
-                try {
-                    cat.source().delete(key);
-                    deletedCount++;
-                } catch (Exception e) {
-                    log.warn("Failed to delete migrated source key {}", key, e);
+            int deletedCount = 0;
+            for (CategoryKeys cat : perCategoryKeys) {
+                for (String key : cat.keys()) {
+                    try {
+                        cat.source().delete(key);
+                        deletedCount++;
+                    } catch (Exception e) {
+                        log.warn("Failed to delete migrated source key {}", key, e);
+                    }
                 }
             }
+            return new MigrationResult(totalKeys, copiedCount, skippedCount, deletedCount, copiedBytes);
+        } finally {
+            formerOwn.ifPresent(StorageBackend::close);
         }
-
-        return new MigrationResult(totalKeys, copiedCount, skippedCount, deletedCount, copiedBytes);
     }
 
     private long copyOne(StorageBackend source, StorageBackend target, String key) {

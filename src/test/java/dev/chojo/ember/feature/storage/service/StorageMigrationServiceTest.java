@@ -452,6 +452,28 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * The station's own backend is taken out of the resolver when the station moves away from it, but
+     * the move still deletes the station's bytes from it afterwards; it is closed only once that is
+     * done, rather than under the move by the resolver.
+     */
+    @Test
+    void theBackendAStationLeavesIsClosedOnlyAfterItsBytesAreDeleted() {
+        var own = Mockito.spy(targetBackend);
+        factory.stationTarget = own;
+        Station station = newStation("Station Migration Closes After Delete");
+        String fullKey = storeOnSource(station, "doc.txt", "leaving".getBytes(StandardCharsets.UTF_8));
+        migrationService.migrate(station.id(), targetConfig());
+        Mockito.clearInvocations(own);
+
+        var result = migrationService.migrateToInstanceDefault(station.id());
+
+        assertEquals(1, result.deleted());
+        var order = Mockito.inOrder(own);
+        order.verify(own).delete(fullKey);
+        order.verify(own).close();
+    }
+
+    /**
      * Re-running the way home skips keys the instance default already holds with the same bytes.
      */
     @Test

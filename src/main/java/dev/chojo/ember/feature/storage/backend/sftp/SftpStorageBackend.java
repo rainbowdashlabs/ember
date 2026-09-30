@@ -61,8 +61,7 @@ public final class SftpStorageBackend extends FileTreeBackend {
     }
 
     @Override
-    public void close() {
-        super.close();
+    protected void released() {
         sessions.close();
     }
 }

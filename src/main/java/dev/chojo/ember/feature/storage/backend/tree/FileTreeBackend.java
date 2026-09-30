@@ -276,8 +276,14 @@ public class FileTreeBackend implements StorageBackend {
 
     @Override
     public void close() {
-        trees.close();
+        trees.close(this::released);
     }
+
+    /**
+     * Releases what the trees of this backend share, a session or a client, once the last tree is
+     * closed. Nothing by default.
+     */
+    protected void released() {}
 
     /**
      * Runs one call on a lent tree.

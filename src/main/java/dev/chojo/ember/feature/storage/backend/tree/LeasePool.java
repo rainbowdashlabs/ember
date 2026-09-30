@@ -143,6 +143,15 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
 
     @Override
     public void close() {
+        close(() -> {});
+    }
+
+    /**
+     * Closes the pool, and runs {@code afterwards} at once when no tree is lent, else once the last one
+     * is back or {@link #DRAIN_LIMIT} has passed, from a thread of its own.
+     */
+    @Override
+    public void close(Runnable afterwards) {
         List<T> toClose = new ArrayList<>();
         boolean drain;
         lock.lock();
@@ -158,7 +167,14 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
             lock.unlock();
         }
         toClose.forEach(FileTree::close);
-        if (drain) Thread.ofVirtual().name("storage-drain").start(this::closeStragglers);
+        if (!drain) {
+            afterwards.run();
+            return;
+        }
+        Thread.ofVirtual().name("storage-drain").start(() -> {
+            closeStragglers();
+            afterwards.run();
+        });
     }
 
     /**
@@ -180,7 +196,7 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
                 }
                 if (!probe && refusedUntil != null && clock.instant().isBefore(refusedUntil)) {
                     throw new StorageUnavailableException(name + " failed to connect " + FAILURES_BEFORE_REFUSING
-                            + " times in a row and is not" + " tried again before " + refusedUntil);
+                            + " times in a row and is not tried again before " + refusedUntil);
                 }
                 if (open < limit) {
                     open++;
