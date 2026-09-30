@@ -60,7 +60,6 @@ import io.javalin.http.HandlerType;
 import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
-import io.javalin.json.JavalinJackson3;
 import io.javalin.openapi.plugin.OpenApiPlugin;
 import io.javalin.openapi.plugin.OpenApiPluginConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerConfiguration;
@@ -77,15 +76,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.exc.StreamReadException;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.exc.MismatchedInputException;
 import tools.jackson.databind.exc.UnrecognizedPropertyException;
 import tools.jackson.databind.exc.ValueInstantiationException;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -448,7 +444,7 @@ public class ApiServer {
                 server.setStopTimeout(STOP_TIMEOUT.toMillis());
                 server.insertHandler(new GracefulHandler());
             });
-            config.jsonMapper(jacksonMapper(stationRepository, clusterRepository));
+            config.jsonMapper(ApiJsonMapper.forApi(stationRepository, clusterRepository));
             configureCompression(config);
             ClientIp.installOn(config.contextResolver, network);
             config.contextResolver.scheme = ApiServer::forwardedScheme;
@@ -915,30 +911,6 @@ public class ApiServer {
                 throw new StationReadOnlyForTransferException(stationId);
             }
         }
-    }
-
-    /**
-     * Javalin's own Jackson 3 mapper, given the API boundary's configuration: ISO date formatting
-     * and the translation of internal station and cluster ids to their public UUIDs.
-     *
-     * <p>{@code FAIL_ON_UNKNOWN_PROPERTIES} is Jackson's default but pinned explicitly, so an inbound
-     * payload with extra fields is rejected with 400 rather than silently dropped, even if somebody
-     * copies this configuration from a lenient mapper such as the federation client's. Route tests
-     * build their server with the same mapper, so a request shape the API refuses is refused there too.
-     *
-     * @param stationRepository resolves the station ids written as addresses
-     * @param clusterRepository resolves the cluster ids written as addresses
-     * @return the mapper
-     */
-    public static JavalinJackson3 jacksonMapper(
-            StationRepository stationRepository, ClusterRepository clusterRepository) {
-        JsonMapper mapper = JsonMapper.builder()
-                .addModule(PublicIdModule.forApi(stationRepository, clusterRepository))
-                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-                .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))
-                .build();
-        return new JavalinJackson3(mapper, false);
     }
 
     private void configureOpenApi(OpenApiPluginConfiguration config) {

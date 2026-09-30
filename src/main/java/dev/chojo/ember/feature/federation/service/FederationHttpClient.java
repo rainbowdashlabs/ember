@@ -54,7 +54,7 @@ import java.util.UUID;
  * The embedded {@link JsonMapper} intentionally disables
  * {@code FAIL_ON_UNKNOWN_PROPERTIES} so a federation peer running a newer protocol
  * version can add fields to a response without breaking older peers. The main API
- * mapper in {@code ApiServer.jacksonMapper()} keeps the strict default for
+ * mapper in {@link dev.chojo.ember.api.ApiJsonMapper} keeps the strict default for
  * inbound client payloads. It also carries {@link PublicIdModule#forPartnerResponses()}, which reads
  * the station ids a partner publishes as UUIDs without trying to resolve them locally.
  */
