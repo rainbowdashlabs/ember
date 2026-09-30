@@ -22,13 +22,14 @@ import * as apiStatus from '@/api/apiStatus'
 import type {EndpointStats, HourlyStats, StatusBreakdown} from '@/api/apiStatus'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {bottomLegend, cartesianGrid, chartTextColor} from '@/util/chartLayout'
-import {darkThemeActive as isDark} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 import EndpointStatsPanel from './adminapistatusview/EndpointStatsPanel.vue'
 import {formatMs} from './adminapistatusview/apiStatusFormat'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
 const {t, locale} = useI18n()
+const {dark: isDark} = useThemePaint()
 
 const textColor = computed(() => chartTextColor(isDark.value))
 

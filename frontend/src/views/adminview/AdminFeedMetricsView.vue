@@ -21,11 +21,12 @@ import FeedMetricsCharts from './adminfeedmetricsview/FeedMetricsCharts.vue'
 import FeedMetricsTables from './adminfeedmetricsview/FeedMetricsTables.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {bottomLegend, cartesianGrid} from '@/util/chartLayout'
-import {darkThemeActive as isDark} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
 const {t} = useI18n()
+const {dark: isDark} = useThemePaint()
 
 const daily = ref<FeedMetricDaily[]>([])
 const userAgents = ref<FeedUserAgentStat[]>([])

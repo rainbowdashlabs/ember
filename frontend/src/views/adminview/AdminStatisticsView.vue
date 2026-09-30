@@ -21,11 +21,12 @@ import GrowthStatsSection from './adminstatisticsview/GrowthStatsSection.vue'
 import HealthStatsSection from './adminstatisticsview/HealthStatsSection.vue'
 import DataStatsSection from './adminstatisticsview/DataStatsSection.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {darkThemeActive as isDark} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 
 use([CanvasRenderer, BarChart, LineChart, PieChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent])
 
 const {t, te} = useI18n()
+const {dark: isDark} = useThemePaint()
 
 const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
 const mutedColor = computed(() => isDark.value ? '#9ca3af' : '#666666')

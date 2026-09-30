@@ -24,13 +24,14 @@ import {GridComponent, TooltipComponent} from 'echarts/components'
 import * as apiStatus from '@/api/apiStatus'
 import type {EndpointDetail} from '@/api/apiStatus'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {darkThemeActive as isDark} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 import {formatMs} from './adminapistatusview/apiStatusFormat'
 import {formatDayClockSeconds} from '@/util/format'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent])
 
 const {t, locale} = useI18n()
+const {dark: isDark} = useThemePaint()
 const route = useRoute()
 const router = useRouter()
 

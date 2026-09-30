@@ -5,7 +5,7 @@
  */
 import {onMounted, ref, watch, type Ref} from 'vue'
 import {compositeOver, contrastingTextColor, parseCssColor, type Rgb, type Rgba} from '@/util/contrastColor'
-import {themeRevision} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 
 const PAPER: Rgb = [255, 255, 255]
 
@@ -49,6 +49,7 @@ export function useContrastingText(
     background: () => unknown,
 ): Readonly<Ref<string>> {
     const textColor = ref('')
+    const {revision: themeRevision} = useThemePaint()
 
     function update() {
         const node = element.value

@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import AppIcon from '@/components/display/AppIcon.vue'
 import {computed} from 'vue'
-import {themeRevision} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 import {outlineFor, type GlyphSurface} from '@/util/glyphOutline'
 import type {Glyph} from '@/util/glyph'
 
@@ -28,6 +28,8 @@ const props = defineProps<{
   surface?: GlyphSurface
   size?: 'sm' | 'md' | 'lg'
 }>()
+
+const {revision: themeRevision} = useThemePaint()
 
 const sizeClass = computed(() => {
   switch (props.size ?? 'md') {

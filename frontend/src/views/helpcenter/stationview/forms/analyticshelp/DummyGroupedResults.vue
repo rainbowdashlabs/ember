@@ -11,7 +11,7 @@ import GroupedChartsTab from '@/views/stationview/forms/analyticsview/GroupedCha
 import {emptyFilter} from '@/views/stationview/forms/analyticsview/resultQuery'
 import {QuestionTypes, ResultDimension, type FormQuestionInfo, type FormResultGroup, type ResultFilter, type ResultGrouping} from '@/api/forms'
 import type {MemberGroup, UserTag} from '@/api/types'
-import {darkThemeActive} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 import {seriesColor} from '@/util/seriesPalette'
 import {numberedOptions} from '@/util/formOptions'
 
@@ -20,6 +20,7 @@ import {numberedOptions} from '@/util/formOptions'
  * with the active members. The real components, so the help shows exactly what the page does.
  */
 const {t} = useI18n()
+const {dark: darkThemeActive} = useThemePaint()
 
 const groups = computed<MemberGroup[]>(() => [
   {id: 1, name: t('helpCenter.formsAnalytics.dummyGroupYouth')},

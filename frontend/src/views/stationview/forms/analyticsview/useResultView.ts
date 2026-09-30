@@ -10,7 +10,7 @@ import {forms, memberGroups, profileFields, userTags} from '@/api'
 import {ResultDimension, type FormAnalytics, type FormResultGroup, type ResultFilter, type ResultGrouping} from '@/api/forms'
 import {FieldTypes, type ProfileField} from '@/api/profileFields'
 import {StationUserType, StationUserTypeLabels, type MemberGroup, type UserTag} from '@/api/types'
-import {darkThemeActive} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 import {neutralSeriesColor, seriesColor, SERIES_LIMIT} from '@/util/seriesPalette'
 import type {GroupSeries} from './groupedChart'
 import {decodeView, encodeView, NO_VALUE_GROUP, toQuery} from './resultQuery'
@@ -31,6 +31,7 @@ const GROUPABLE_FIELD_TYPES: string[] = [FieldTypes.ENUM, FieldTypes.BOOLEAN, Fi
  */
 export function useResultView(formId: Ref<number>, enabled: Ref<boolean>) {
     const {t} = useI18n()
+    const {dark: darkThemeActive} = useThemePaint()
     const route = useRoute()
     const router = useRouter()
 

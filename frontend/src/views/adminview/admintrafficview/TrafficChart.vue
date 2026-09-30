@@ -13,7 +13,7 @@ import {LineChart} from 'echarts/charts'
 import {DataZoomComponent, GridComponent, LegendComponent, TooltipComponent} from 'echarts/components'
 import {AuthBucket, type AuthBucketName, type HourlyTrafficRow} from '@/api/traffic'
 import {bottomLegend, cartesianGrid, ZOOM_SLIDER_BOTTOM} from '@/util/chartLayout'
-import {darkThemeActive as isDark} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 import {formatHourLabel} from '@/util/format'
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
@@ -37,6 +37,7 @@ const props = defineProps<{
 }>()
 
 const {t, n} = useI18n()
+const {dark: isDark} = useThemePaint()
 
 const textColor = computed(() => (isDark.value ? '#ccc' : '#333'))
 

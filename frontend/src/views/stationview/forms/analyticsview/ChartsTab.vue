@@ -15,7 +15,7 @@ import ChartPanel from '@/components/chart/ChartPanel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import { darkThemeActive as isDark } from '@/util/themeState'
+import { useThemePaint } from '@/composables/useThemePaint'
 import {
   bottomLegend,
   cartesianGrid,
@@ -44,6 +44,7 @@ const props = defineProps<{
   groups: FormResultGroup[]
 }>()
 const { t } = useI18n()
+const { dark: isDark } = useThemePaint()
 
 /** How many responses are counted, which is what "shown to" is measured against. */
 const total = computed(() => props.groups[0]?.responseCount ?? 0)
