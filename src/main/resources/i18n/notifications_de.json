@@ -86,7 +86,8 @@
     "progressFormat": "{checked} von {total} Punkten",
     "recurrence": "Wiederholung",
     "deadline": "Anmeldefrist",
-    "limit": "Teilnehmerlimit"
+    "limit": "Teilnehmerlimit",
+    "nextDate": "Nächster Termin"
   },
   "storageCategory": {
     "KB_FILES": "Wiki",
@@ -145,6 +146,8 @@
     "REGISTRATION_CLOSING.one": "Anmeldung schließt morgen: {eventName} - {memberName} offen",
     "REGISTRATION_CLOSING.other": "Anmeldung schließt in {daysBefore} Tagen: {eventName} - {memberName} offen",
     "REGISTRATION_ANSWER_MISSING": "Antwort fehlt: {eventName} - {memberName}",
+    "EVENT_DATE_DROPPED": "Anmeldung zurückgezogen: {eventName} - {memberName}",
+    "EVENT_MOVED": "Verschoben: {eventName} - {memberName}",
     "PROCEDURE_ASSIGNED": "Prozedur zugewiesen: {procedureName}",
     "PROCEDURE_RESOLVED": "Abgeschlossen: {procedureName}",
     "PROCEDURE_REOPENED": "Wieder geöffnet: {procedureName}",
@@ -205,6 +208,8 @@
     "EVENT_REMINDER": "Termin-Erinnerung",
     "REGISTRATION_CLOSING": "Anmeldefrist endet",
     "REGISTRATION_ANSWER_MISSING": "Antwort nachgefragt",
+    "EVENT_DATE_DROPPED": "Termin entfällt",
+    "EVENT_MOVED": "Termin verschoben",
     "PROCEDURE_ASSIGNED": "Prozedur zugewiesen",
     "PROCEDURE_RESOLVED": "Prozedur abgeschlossen",
     "PROCEDURE_REOPENED": "Prozedur wieder geöffnet",
@@ -293,6 +298,9 @@
     "notification.registrationClosing.one": "{eventName}: Anmeldung schließt morgen, {memberName} hat noch nicht geantwortet",
     "notification.registrationClosing.other": "{eventName}: Anmeldung schließt in {daysBefore} Tagen, {memberName} hat noch nicht geantwortet",
     "notification.registrationAnswerMissing": "{eventName} am {eventDate}: es gibt eine neue Frage, {memberName} hat sie noch nicht beantwortet",
+    "notification.eventDateDropped": "{eventName} wurde verschoben und findet am {eventDate} nicht mehr statt: die Anmeldung von {memberName} wurde zurückgezogen. Nächster Termin ist der {nextDate}",
+    "notification.eventDateDropped.LAST": "{eventName} findet am {eventDate} nicht mehr statt: die Anmeldung von {memberName} wurde zurückgezogen. Ein späterer Termin folgt nicht",
+    "notification.eventMoved": "{eventName} wurde auf den {eventDate} um {startTime} Uhr verschoben: die Anmeldung von {memberName} gilt für den neuen Termin",
     "notification.movementCancelled": "{inventoryName}: Bewegung von {itemName} abgebrochen - {reason}",
     "notification.mailboxSuspended": "Postfach „{mailbox}\" wird nicht mehr abgerufen: {reason}",
     "notification.mailImportUnbound": "{count} per Mail eingegangene Dokumente sind noch keinem Mitglied zugeordnet"

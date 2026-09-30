@@ -527,6 +527,41 @@ public class NotificationFeedRenderer {
                     enrichWithEventContext(details, notification, ctx);
                 }
             }
+            case EVENT_DATE_DROPPED -> {
+                if (params
+                        instanceof
+                        NotificationParams.EventDateDropped(
+                                String eventName,
+                                LocalDate eventDate,
+                                String memberName,
+                                LocalDate nextDate)) {
+                    putIfPresent(details, label(ctx, "event", "Event"), eventName);
+                    putIfPresent(details, label(ctx, "member", "Member"), memberName);
+                    if (eventDate != null) {
+                        details.put(label(ctx, "eventDate"), formatLocalDate(eventDate, ctx.locale()));
+                    }
+                    if (nextDate != null) {
+                        details.put(label(ctx, "nextDate", "Next date"), formatLocalDate(nextDate, ctx.locale()));
+                    }
+                    enrichWithEventContext(details, notification, ctx);
+                }
+            }
+            case EVENT_MOVED -> {
+                if (params
+                        instanceof
+                        NotificationParams.EventMoved(
+                                String eventName,
+                                LocalDate eventDate,
+                                String _,
+                                String memberName)) {
+                    putIfPresent(details, label(ctx, "event", "Event"), eventName);
+                    putIfPresent(details, label(ctx, "member", "Member"), memberName);
+                    if (eventDate != null) {
+                        details.put(label(ctx, "eventDate"), formatLocalDate(eventDate, ctx.locale()));
+                    }
+                    enrichWithEventContext(details, notification, ctx);
+                }
+            }
             case MOVEMENT_RAISED -> {
                 if (params
                         instanceof

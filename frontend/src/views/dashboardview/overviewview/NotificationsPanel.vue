@@ -20,7 +20,7 @@ import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import type {NotificationEntry} from '@/api/notifications'
 import {formatDate, formatDateTime} from '@/util/format'
-import {expiryReminderKey} from '@/util/expiry'
+import {notificationMessageKey} from '@/util/notificationMessageKey'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -69,6 +69,8 @@ const typeIcons: Record<string, string> = {
   REGISTRATION_DEADLINE_EXPIRED: 'clock',
   EVENT_CANCELLED: 'calendar-xmark',
   EVENT_REMINDER: 'bell',
+  EVENT_DATE_DROPPED: 'calendar-xmark',
+  EVENT_MOVED: 'calendar-days',
   PROCEDURE_ASSIGNED: 'clipboard-list',
   PROCEDURE_RESOLVED: 'clipboard-check',
   PROCEDURE_REOPENED: 'rotate',
@@ -124,8 +126,7 @@ function renderMessage(n: NotificationEntry): string {
     const key = params.itemStayedAway === 'true' ? 'movementCancelledAway' : 'movementCancelled'
     return t(`notification.${key}`, params)
   }
-  if (n.type === 'EXPIRY_REMINDER') return t(expiryReminderKey(params), params)
-  return t(n.localeKey, params)
+  return t(notificationMessageKey(n.type, n.localeKey, params), params)
 }
 
 /** What the notification is about, or nothing where it is about nothing that can be opened. */

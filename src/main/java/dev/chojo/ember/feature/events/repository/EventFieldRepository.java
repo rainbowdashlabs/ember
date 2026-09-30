@@ -159,6 +159,69 @@ public class EventFieldRepository {
         return values;
     }
 
+    /**
+     * The dates of an appointment, from one day on, that one of its questions carries an answer for.
+     *
+     * @param eventId the appointment
+     * @param from    the first date asked about
+     * @return the dates, in no particular order
+     */
+    public List<LocalDate> findDateValueDatesFrom(int eventId, LocalDate from) {
+        return query("""
+                SELECT DISTINCT dv.event_date
+                FROM event_field_date_value dv
+                JOIN event_field ef ON ef.id = dv.field_id
+                WHERE ef.event_id = :event_id
+                  AND dv.event_date >= :from;""")
+                .single(call().bind("event_id", eventId).bind("from", from))
+                .map(row -> row.getObject("event_date", LocalDate.class))
+                .all();
+    }
+
+    /**
+     * Drops the answers an appointment's questions carry for dates it no longer falls on. Nobody can
+     * reach them any more, and a question naming members would otherwise put the members back on a
+     * day that is gone.
+     *
+     * @param eventId the appointment
+     * @param dates   the dates it no longer falls on
+     */
+    public void deleteDateValuesOn(int eventId, List<LocalDate> dates) {
+        if (dates.isEmpty()) return;
+        query("""
+                DELETE FROM event_field_date_value dv
+                USING event_field ef
+                WHERE ef.id = dv.field_id
+                  AND ef.event_id = :event_id
+                  AND dv.event_date = ANY(:dates);""")
+                .single(call().bind("event_id", eventId).bind("dates", dates, PostgreSqlTypes.DATE))
+                .delete();
+    }
+
+    /**
+     * Carries the per-date answers of a one-off appointment from the day it left to the day it now
+     * falls on. An answer already written for the new day is kept, and the old one stays behind.
+     *
+     * @param eventId the appointment
+     * @param from    the day it fell on
+     * @param to      the day it falls on now
+     */
+    public void moveDateValues(int eventId, LocalDate from, LocalDate to) {
+        query("""
+                UPDATE event_field_date_value dv
+                SET event_date = :to
+                FROM event_field ef
+                WHERE ef.id = dv.field_id
+                  AND ef.event_id = :event_id
+                  AND dv.event_date = :from
+                  AND NOT EXISTS (SELECT 1
+                                  FROM event_field_date_value taken
+                                  WHERE taken.field_id = dv.field_id
+                                    AND taken.event_date = :to);""")
+                .single(call().bind("event_id", eventId).bind("from", from).bind("to", to))
+                .update();
+    }
+
     /** The appointments that ask at least one question naming members. */
     public List<Integer> findEventIdsWithMemberFields() {
         var memberTypes = Arrays.stream(EventFieldType.values())

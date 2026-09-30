@@ -186,6 +186,38 @@ public sealed interface NotificationParams {
     record RegistrationAnswerMissing(String eventName, LocalDate eventDate, String memberName)
             implements NotificationParams {}
 
+    /**
+     * An appointment moved off a date somebody was signed up for, so that registration was withdrawn.
+     *
+     * @param eventName  the appointment
+     * @param eventDate  the date it no longer falls on, which the registration was for
+     * @param memberName whose registration it was, which is the reader themselves or somebody they
+     *                   look after; a guardian needs to know which of their children it is about
+     * @param nextDate   the first date on or after that one the appointment now falls on, or null
+     *                   where none is left
+     */
+    record EventDateDropped(String eventName, LocalDate eventDate, String memberName, LocalDate nextDate)
+            implements NotificationParams {
+        /** The sentence without a next date, for a series that has none left. */
+        @Override
+        public String variant() {
+            return nextDate == null ? "LAST" : null;
+        }
+    }
+
+    /**
+     * A one-off appointment somebody is signed up for moved to another time, and their registration
+     * moved with it.
+     *
+     * @param eventName  the appointment
+     * @param eventDate  the date it now falls on
+     * @param startTime  the time of day it now starts at, on the station's clock
+     * @param memberName whose registration it is, which is the reader themselves or somebody they
+     *                   look after
+     */
+    record EventMoved(String eventName, LocalDate eventDate, String startTime, String memberName)
+            implements NotificationParams {}
+
     record ProcedureAssigned(String procedureName, String assignedByName) implements NotificationParams {}
 
     record ProcedureResolvedParams(String procedureName) implements NotificationParams {}
