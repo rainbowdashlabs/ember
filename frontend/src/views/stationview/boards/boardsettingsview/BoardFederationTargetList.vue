@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import type { FederationTarget } from '@/api/boards'
+import { StationUserType, StationUserTypeLabels, type StationUserTypeName } from '@/api/types'
 
 defineProps<{
     targets: FederationTarget[]
@@ -26,8 +27,8 @@ function applyShareMode(target: FederationTarget, value: SelectValue) {
     target.shareMode = value === 'FULL' ? 'FULL' : 'READ_ONLY'
 }
 
-function applyRequiredRole(target: FederationTarget, value: SelectValue) {
-    target.requiredRole = String(value ?? 'USER')
+function applyRequiredUserType(target: FederationTarget, value: SelectValue) {
+    target.requiredUserType = (value ?? StationUserType.MEMBER) as StationUserTypeName
 }
 </script>
 
@@ -43,11 +44,13 @@ function applyRequiredRole(target: FederationTarget, value: SelectValue) {
                 </SelectInput>
             </div>
             <div class="flex items-center gap-1">
-                <span class="text-xs text-[var(--text-muted)] shrink-0">{{ t('boards.minViewRole') }}:</span>
-                <SelectInput :model-value="target.requiredRole" @update:model-value="v => applyRequiredRole(target, v)">
-                    <option value="USER">{{ t('boards.requiredRoleUser') }}</option>
-                    <option value="TEAM">{{ t('boards.requiredRoleTeam') }}</option>
-                    <option value="MANAGER">{{ t('boards.requiredRoleManager') }}</option>
+                <span class="text-xs text-[var(--text-muted)] shrink-0">{{ t('boards.viewUserType') }}:</span>
+                <SelectInput
+                    :model-value="target.requiredUserType"
+                    data-testid="federation-target-user-type"
+                    @update:model-value="v => applyRequiredUserType(target, v)"
+                >
+                    <option v-for="(label, userType) in StationUserTypeLabels" :key="userType" :value="userType">{{ label }}</option>
                 </SelectInput>
             </div>
             <DeleteButton @click="emit('remove', index)" />

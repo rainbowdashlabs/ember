@@ -10,7 +10,6 @@ import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
-import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
@@ -56,12 +55,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var storageConfig = new Storage();
         var searchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
         var contentService = new KbContentService(
-                knowledgeBaseRepo,
-                new ContentBlockService(contentContainerRepo),
-                noCellDescriptions(),
-                stationRepo,
-                fileStorage,
-                searchService);
+                knowledgeBaseRepo, contentBlocks(), noCellDescriptions(), stationRepo, fileStorage, searchService);
         accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
         service = new KnowledgeBaseService(
                 knowledgeBaseRepo,

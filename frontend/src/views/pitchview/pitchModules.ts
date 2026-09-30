@@ -1376,13 +1376,13 @@ export const MODULE_TRACKS: PitchTrack[] = [
                         hint: 'Leer heißt: sichtbar für alle. Eingeschränkt wird über Rolle, Gruppe und Tag.',
                         section: 'Föderation',
                         table: {
-                            columns: ['Partnerwache', 'Zugriff', 'Sichtbar ab'],
+                            columns: ['Partnerwache', 'Zugriff', 'Sichtbar für'],
                             actions: true,
                             rows: [
                                 [{text: 'Talbach', strong: true}, {text: 'Lesen & Bearbeiten', badge: 'success'},
-                                    {text: 'Team & Verwaltung'}],
+                                    {text: 'Team'}],
                                 [{text: 'Bergheim', strong: true}, {text: 'Nur Lesen', badge: 'info'},
-                                    {text: 'Alle Mitglieder'}],
+                                    {text: 'Mitglied'}],
                             ],
                         },
                         footer: 'Wird ein Board zum Bearbeiten geteilt, lässt sich zusätzlich wählen, welche '

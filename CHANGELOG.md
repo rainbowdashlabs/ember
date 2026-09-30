@@ -14,7 +14,7 @@
 - **Reorder questions and pages by dragging.** Questions are dragged within a page and between pages, and pages as a whole. Changed questions are no longer lost when the editor is left before saving: leaving asks first, and reopening offers them back.
 - **Errors point at the question.** When answers cannot be sent, the form opens the page with the problem and marks each question it is about.
 - **Announcing an appointment builds a ready entry.** "Announce as news" now opens the entry with an event block for the chosen day, the appointment's description, and a short text on what the block does not show, such as the registration deadline, the number of places and whether sign-ups are confirmed. Every part can still be changed before saving.
-- **Event blocks in news entries.** A news entry can show an appointment as an event block, including appointments the station keeps to itself, and pick which day of a repeating one it is about. Readers who may not see the appointment, such as partner stations or the public blog, see a short note instead.
+- **Event blocks in news entries.** A news entry or wiki article can show an appointment as an event block, including internal ones as long as every member may see them, and pick which day of a repeating one it is about. Appointments kept to part of the station cannot be chosen, and readers outside the station, such as partner stations or the public blog, see a short note for an internal one instead.
 
 ### Security
 
@@ -45,6 +45,8 @@
 - **Every repeating appointment was called weekly.** The page of a monthly, quarterly or yearly appointment labelled it as weekly. It now names how often it repeats, the same way the list of appointments does.
 - **One unreadable message could stop a mailbox import.** In some cases a mailbox failed to import on every visit because of a single message the mail server could not hand over, such as one another mail program had just deleted, until the mailbox was suspended. Such a message is now skipped and the rest of the mailbox is imported.
 - **Unavailable public pages showed an unclear error.** Opening a public page, wiki article or shared page link that was no longer available, for example because the station's public pages were switched off, showed an error that said nothing about what had gone wrong. The page now says that it is gone, and the dialog with a page's link warns while the station's public pages are switched off.
+- **News blocks forgot their news entry.** Saving a page or an article dropped the entry chosen in a news block, which then showed as no longer available. The block now keeps its entry and shows it as it is now, and choosing one searches by title what all its readers may read: the public blog on a page, every entry open to all members in a news entry or wiki article.
+- **Sharing a board with partners could not be saved.** Saving which partner stations a board is shared with failed, so a board could not be shared at all. It now saves, and each partner gets a choice of which member type there may see the board.
 
 ## v26.19.5
 

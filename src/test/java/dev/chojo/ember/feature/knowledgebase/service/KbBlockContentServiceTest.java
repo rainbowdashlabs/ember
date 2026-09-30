@@ -46,7 +46,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
     static void setup() {
         service = new KbContentService(
                 knowledgeBaseRepo,
-                new ContentBlockService(contentContainerRepo),
+                contentBlocks(),
                 noCellDescriptions(),
                 stationRepo,
                 mock(KbFileStorageService.class),
@@ -249,7 +249,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
     private static KbContentService describingService(MediaLibraryService media) {
         return new KbContentService(
                 knowledgeBaseRepo,
-                new ContentBlockService(contentContainerRepo),
+                contentBlocks(),
                 new CellDescriptions(media, (stationId, pageUid) -> Optional.empty()),
                 stationRepo,
                 mock(KbFileStorageService.class),

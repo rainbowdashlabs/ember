@@ -341,7 +341,7 @@ public class ApiServer {
         }
         var app = Javalin.create(config -> {
             config.http.defaultContentType = "application/json";
-            config.jsonMapper(jacksonMapper());
+            config.jsonMapper(jacksonMapper(stationRepository, clusterRepository));
             configureCompression(config);
 
             config.jetty.multipartConfig.maxFileSize(apiConfig.maxUploadSizeBytes(), SizeUnit.BYTES);
@@ -874,14 +874,21 @@ public class ApiServer {
     }
 
     /**
-     * Creates the Jackson 3 JSON mapper configured with ISO date formatting.
+     * Creates the Jackson 3 JSON mapper the API reads requests and writes responses with, configured
+     * with ISO date formatting.
+     *
+     * <p>{@code FAIL_ON_UNKNOWN_PROPERTIES} is Jackson's default but pinned explicitly, so an inbound
+     * payload with extra fields is rejected with 400 rather than silently dropped. A mapper copied from
+     * another site (the federation HTTP client tolerates unknown fields on purpose, for cross-version
+     * compatibility) must not regress this. Route tests build their server with the same mapper, so a
+     * request shape the API refuses is refused there too.
+     *
+     * @param stationRepository resolves the station ids written as addresses
+     * @param clusterRepository resolves the cluster ids written as addresses
+     * @return the mapper
      */
-    private Jackson3Mapper jacksonMapper() {
-        // FAIL_ON_UNKNOWN_PROPERTIES is Jackson's default but pinned explicitly here so
-        // an inbound payload with extra fields is rejected with 400 rather than silently
-        // dropped. A future contributor copying a mapper from another site (e.g. the
-        // federation HTTP client, which intentionally tolerates unknown fields for
-        // cross-version compatibility) will not accidentally regress this.
+    public static Jackson3Mapper jacksonMapper(
+            StationRepository stationRepository, ClusterRepository clusterRepository) {
         ObjectMapper mapper = JsonMapper.builder()
                 .addModule(new StationIdModule(stationRepository))
                 .addModule(new ClusterIdModule(clusterRepository))

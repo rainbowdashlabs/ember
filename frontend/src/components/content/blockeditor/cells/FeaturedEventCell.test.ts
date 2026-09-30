@@ -12,7 +12,8 @@ import type {FoundEvent} from '../embeddedEventLookup'
 const findEmbeddedEvent = vi.fn()
 
 vi.mock('../embeddedEventLookup', () => ({
-    findEmbeddedEvent: (stationUid: string, eventUid: string) => findEmbeddedEvent(stationUid, eventUid),
+    findEmbeddedEvent: (stationUid: string, eventUid: string, audience: string) =>
+        findEmbeddedEvent(stationUid, eventUid, audience),
     publicEventsAddress: (stationUid: string) => `/public/station/${stationUid}/calendar`,
 }))
 
@@ -62,6 +63,7 @@ describe('FeaturedEventCell', () => {
 
         const view = await shown({date: '2026-10-13'})
 
+        expect(findEmbeddedEvent).toHaveBeenCalledWith('station-a', 'e-1', 'PUBLIC')
         expect(view.text()).toContain('Dienstag, 13.10.2026, 18:00 bis 20:00')
         expect(view.text()).toContain('Knoten und Stiche')
         expect(view.find('a').attributes('href')).toBe('/station/events/42/2026-10-13')

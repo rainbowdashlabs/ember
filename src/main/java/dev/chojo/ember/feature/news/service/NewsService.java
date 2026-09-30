@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
+import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentMode;
@@ -322,11 +323,25 @@ public class NewsService {
     }
 
     /**
-     * Lists published, unrestricted public news with optional case-insensitive search on title or
-     * body. Backs the public news search endpoint used by the {@code NEWS_TEASER} cell picker.
+     * The station's news every reader of the audience may read, newest first, with an optional
+     * case-insensitive search on the title. Backs the search of the news block picker.
      */
-    public List<News> findPublicBlogEntries(int stationId, String search, int offset, int limit) {
-        return newsRepository.findPublicBlogEntries(stationId, search, offset, limit);
+    public List<News> findOpenEntries(int stationId, BlockAudience audience, String search, int offset, int limit) {
+        return newsRepository.findOpenEntries(stationId, audience, search, offset, limit);
+    }
+
+    /**
+     * The entry a news block names, when every reader of the audience may read it: published and
+     * kept to nobody in particular, and for the public also on the public blog. Anything else is
+     * empty, never told apart.
+     *
+     * @param stationId the station the block belongs to
+     * @param audience  who reads the content the block sits in
+     * @param publicUid the public id the block names
+     * @return the entry, or empty where that audience may not read it
+     */
+    public Optional<News> findOpenByUid(int stationId, BlockAudience audience, UUID publicUid) {
+        return newsRepository.findOpenByUid(stationId, audience, publicUid);
     }
 
     public boolean hasPublicBlogEntries(int stationId) {

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.content.service;
 
+import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentContainer;
@@ -17,8 +18,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Saving and reading a container of blocks, for every feature that authors with them.
@@ -32,10 +35,12 @@ public class ContentBlockService {
     private static final Logger log = LoggerFactory.getLogger(ContentBlockService.class);
 
     private final ContentContainerRepository repository;
+    private final Set<BlockReferences> references;
 
     @Inject
-    public ContentBlockService(ContentContainerRepository repository) {
+    public ContentBlockService(ContentContainerRepository repository, Set<BlockReferences> references) {
         this.repository = repository;
+        this.references = references;
     }
 
     public Optional<ContentContainer> find(int containerId) {
@@ -71,15 +76,19 @@ public class ContentBlockService {
     /**
      * Replaces everything in the container with the supplied rows.
      *
-     * <p>{@code scope} decides which blocks are accepted. Enforcing it here rather than only in the
-     * chooser is what makes it a rule: the chooser is a convenience, and a request that names a
-     * withheld block is refused whatever the chooser offered.
+     * <p>{@code scope} decides which blocks are accepted and what a block naming a news entry or an
+     * appointment may name: only what every reader of that content may see. Enforcing it here rather
+     * than only in the picker is what makes it a rule: the picker is a convenience, and a request
+     * that names a withheld block or item is refused whatever the picker offered.
      */
     public void save(int containerId, List<RowData> rows, Scope scope) {
+        Integer stationId = repository
+                .findById(containerId)
+                .map(ContentContainer::stationId)
+                .orElse(null);
         for (var row : rows) {
             for (var cell : row.cells()) {
-                requireAllowed(cell.contentType(), scope);
-                requireNestedAllowed(cell.config(), scope);
+                requireFits(stationId, cell.contentType(), cell.config(), scope);
             }
         }
 
@@ -134,6 +143,14 @@ public class ContentBlockService {
         log.info("Deleted content container {} and its blocks", containerId);
     }
 
+    private void requireFits(Integer stationId, CellContentType type, CellConfig config, Scope scope) {
+        requireAllowed(type, scope);
+        for (var reference : references) {
+            reference.requireReachable(stationId, scope.audience(), config);
+        }
+        requireNestedFits(stationId, config, scope);
+    }
+
     private void requireAllowed(CellContentType type, Scope scope) {
         if (scope == Scope.PAGE || type.availableInArticles()) return;
         throw new BadRequestResponse("This block is not available in an article: " + type);
@@ -141,24 +158,27 @@ public class ContentBlockService {
 
     /**
      * Nested rows carry their cells inside a cell config rather than as rows of their own, so the
-     * allowlist has to recurse into them or a withheld block slips through one level down.
+     * checks have to recurse into them or a withheld block slips through one level down. A cell
+     * naming a block that does not exist is not a withheld one, and is left to the config parser.
      */
-    private void requireNestedAllowed(CellConfig config, Scope scope) {
-        if (scope == Scope.PAGE) return;
+    private void requireNestedFits(Integer stationId, CellConfig config, Scope scope) {
         if (!(config instanceof CellConfig.NestedRowsConfig nested) || nested.rows() == null) return;
         for (JsonNode row : nested.rows()) {
             var cells = row.path("cells");
             if (!cells.isArray()) continue;
             for (JsonNode cell : cells) {
-                var typeNode = cell.path("contentType");
-                if (!typeNode.isString()) continue;
-                try {
-                    requireAllowed(CellContentType.valueOf(typeNode.asString()), scope);
-                } catch (IllegalArgumentException ignored) {
-                    // An unknown block name is not a withheld one; the config parser rejects it.
-                }
+                var type = knownType(cell.path("contentType"));
+                if (type != null) requireFits(stationId, type, CellConfig.parse(type, cell.path("config")), scope);
             }
         }
+    }
+
+    private static CellContentType knownType(JsonNode name) {
+        if (!name.isString()) return null;
+        return Arrays.stream(CellContentType.values())
+                .filter(type -> type.name().equals(name.asString()))
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -166,13 +186,27 @@ public class ContentBlockService {
      */
     public enum Scope {
         /**
-         * A public page, which may use every block.
+         * A public page, which may use every block, and whose blocks may only name what is public.
          */
-        PAGE,
+        PAGE(BlockAudience.PUBLIC),
         /**
-         * A news entry or a knowledge-base article, which may not use the page-only blocks.
+         * A news entry or a knowledge-base article, which may not use the page-only blocks, and whose
+         * blocks may name what every member of the station may see.
          */
-        ARTICLE
+        ARTICLE(BlockAudience.MEMBERS);
+
+        private final BlockAudience audience;
+
+        Scope(BlockAudience audience) {
+            this.audience = audience;
+        }
+
+        /**
+         * Who reads what is authored here.
+         */
+        public BlockAudience audience() {
+            return audience;
+        }
     }
 
     public record RowData(int sortOrder, List<CellData> cells) {}
