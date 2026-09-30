@@ -9,6 +9,9 @@
  *
  * Keys are collected from `localStorage.getItem/setItem/removeItem` and from the wrapper in
  * `api/storage`, which is the only other way the application reaches local storage.
+ *
+ * The cookies the server sets are catalogued too, as entries of kind `COOKIE`. The page writes none
+ * of them, so they are held against the wrapper's `COOKIE_NECESSITY` map rather than against usage.
  */
 
 import {readFileSync} from 'fs'
@@ -90,16 +93,19 @@ function keysIn(file, content) {
 }
 
 const catalog = JSON.parse(readFileSync(CATALOG_FILE, 'utf-8'))
-const declared = new Set((catalog.entries ?? []).map(entry => entry.key))
-const declaredNecessity = new Map((catalog.entries ?? []).map(entry => [entry.key, entry.necessity]))
+const storedEntries = (catalog.entries ?? []).filter(entry => entry.kind !== 'COOKIE')
+const cookieEntries = (catalog.entries ?? []).filter(entry => entry.kind === 'COOKIE')
+const declared = new Set(storedEntries.map(entry => entry.key))
+const declaredNecessity = new Map(storedEntries.map(entry => [entry.key, entry.necessity]))
 
 /**
- * Reads the `NECESSITY` map out of the storage wrapper. That map decides at runtime whether a
- * value may be written, so it has to agree with the catalog the published disclosure comes from.
+ * Reads a necessity map out of the storage wrapper: `NECESSITY` decides at runtime whether a value
+ * may be written, `COOKIE_NECESSITY` names the cookies the server sets. Both have to agree with the
+ * catalog the published disclosure comes from.
  */
-function runtimeNecessity() {
+function runtimeNecessity(name) {
     const content = readFileSync(NECESSITY_FILE, 'utf-8')
-    const block = content.match(/const NECESSITY: Record<string, StorageNecessityName> = \{([\s\S]*?)\n\}/)
+    const block = content.match(new RegExp(`const ${name}: Record<string, StorageNecessityName> = \\{([\\s\\S]*?)\\n\\}`))
     if (!block) return null
     const map = new Map()
     for (const line of block[1].split('\n')) {
@@ -109,7 +115,33 @@ function runtimeNecessity() {
     return map
 }
 
-const runtime = runtimeNecessity()
+/** Holds the cookies the wrapper names against the cookie entries of the catalog, both ways. */
+function checkCookies() {
+    const cookies = runtimeNecessity('COOKIE_NECESSITY')
+    if (cookies === null) {
+        error(NECESSITY_LABEL, 0, 'the COOKIE_NECESSITY map could not be read - cookies cannot be checked',
+            CAT_NECESSITY)
+        return
+    }
+    const declaredCookies = new Map(cookieEntries.map(entry => [entry.key, entry.necessity]))
+    for (const [name, necessity] of cookies) {
+        const expected = declaredCookies.get(name)
+        if (expected !== necessity) {
+            error(NECESSITY_LABEL, 0,
+                `cookie '${name}' is ${necessity} here and ${expected ?? 'undeclared'} in ${CATALOG_LABEL}`,
+                CAT_NECESSITY)
+        }
+    }
+    for (const name of declaredCookies.keys()) {
+        if (!cookies.has(name)) {
+            error(NECESSITY_LABEL, 0, `declared cookie '${name}' is missing from COOKIE_NECESSITY`, CAT_NECESSITY)
+        }
+    }
+}
+
+checkCookies()
+
+const runtime = runtimeNecessity('NECESSITY')
 if (runtime === null) {
     error(NECESSITY_LABEL, 0, 'the NECESSITY map could not be read - storage consent cannot be checked',
         CAT_NECESSITY)

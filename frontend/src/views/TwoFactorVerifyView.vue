@@ -9,8 +9,7 @@ import {useRoute} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import {getTwoFactorStatus, verify2fa, webauthnLoginBegin, webauthnLoginFinish} from '@/api/twoFactor'
 import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
-import {getItem, setItem} from '@/api/storage'
-import {scheduleTokenRefresh} from '@/api/client'
+import {hasSessionCookie} from '@/api/sessionCookie'
 import {decideSignInLanding} from '@/util/signInLanding'
 import {describeFailure} from '@/util/failure'
 import {useCluster} from '@/composables/useCluster'
@@ -57,8 +56,8 @@ const {running: verifying, error: verifyError, run: runVerify, clearError: clear
   if (!code.value || !preAuthToken.value) return
   const factor = useBackupCode.value ? 'BACKUP_CODE' : 'TOTP'
   const days = rememberDevice.value ? trustedDeviceMaxDays.value : undefined
-  const result = await verify2fa(preAuthToken.value, factor, code.value, days, trustedDevice.value)
-  finalizeSession(result.token, result.expiresAt)
+  await verify2fa(preAuthToken.value, factor, code.value, days, trustedDevice.value)
+  await finalizeSession()
 }, {formatError: (e) => describeFailure(e, t).message})
 
 const webauthnSupported = isWebAuthnSupported()
@@ -68,9 +67,8 @@ const {running: webauthnRunning, error: webauthnError, run: runWebAuthn, clearEr
   const begin = await webauthnLoginBegin(preAuthToken.value)
   const credentialJson = await getWebAuthnCredential(begin.optionsJson)
   const days = rememberDevice.value ? trustedDeviceMaxDays.value : undefined
-  const result = await webauthnLoginFinish(
-      preAuthToken.value, begin.challengeToken, credentialJson, days, trustedDevice.value)
-  finalizeSession(result.token, result.expiresAt)
+  await webauthnLoginFinish(preAuthToken.value, begin.challengeToken, credentialJson, days, trustedDevice.value)
+  await finalizeSession()
 }, {formatError: (e) => {
   const message = (e as Error | undefined)?.message
   if (message === 'webauthn-cancelled') return t('twoFactor.webauthn.cancelled')
@@ -94,14 +92,14 @@ function handleWebAuthn() {
 /**
  * Leaves for the signed-in application, unless the session was taken away while this ran.
  *
- * <p>A request answered 401 on this screen clears the stored bearer without redirecting, because
+ * <p>A request answered 401 on this screen clears the session cookie without redirecting, because
  * the two-factor screen counts as a public path. Walking on regardless put the reader on a page
  * that immediately bounced them back to the login screen with nothing said, which reads as the
  * second factor having silently failed. Going there directly, keeping where they were headed, is
  * the honest version of the same outcome.
  */
 function leaveFor(path: string) {
-  if (!getItem('session_token')) {
+  if (!hasSessionCookie()) {
     window.location.href = '/login?redirect=' + encodeURIComponent(path)
     return
   }
@@ -113,12 +111,9 @@ function leaveFor(path: string) {
  * it. What the browser remembers belongs to whoever signed in last, and a station or association
  * carried over from them is named on every call this account makes afterwards.
  */
-async function finalizeSession(token: string, expiresAt: string) {
-  setItem('session_token', token)
-  setItem('session_expires_at', expiresAt)
+async function finalizeSession() {
   clearActiveStation()
   clearActiveCluster()
-  scheduleTokenRefresh(expiresAt)
   const redirect = route.query.redirect as string | undefined
   try {
     const landing = await decideSignInLanding(redirect)

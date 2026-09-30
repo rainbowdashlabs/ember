@@ -14,14 +14,20 @@ describe('storage consent', () => {
     beforeEach(() => localStorage.clear())
 
     it('writes nothing before consent is given', () => {
-        setItem('session_token', 'abc')
-        expect(getItem('session_token')).toBeNull()
+        setItem('station_id', 'abc')
+        expect(getItem('station_id')).toBeNull()
     })
 
     it('allows required values as soon as storage is accepted', () => {
         acceptStorage(undefined, [])
+        setItem('station_id', 'abc')
+        expect(getItem('station_id')).toBe('abc')
+    })
+
+    it('no longer keeps a session of any kind', () => {
+        acceptStorage(undefined, [StorageNecessity.FUNCTIONAL, StorageNecessity.COMFORT])
         setItem('session_token', 'abc')
-        expect(getItem('session_token')).toBe('abc')
+        expect(getItem('session_token')).toBeNull()
     })
 
     it('refuses an optional value while its group is not allowed', () => {
@@ -55,7 +61,7 @@ describe('storage consent', () => {
 
         expect(getGrantedScopes()).toEqual([])
         expect(getItem('sidebar_collapsed')).toBeNull()
-        expect(isStorageAllowed('session_token')).toBe(false)
+        expect(isStorageAllowed('station_id')).toBe(false)
     })
 
     it('never writes a key that is not declared', () => {

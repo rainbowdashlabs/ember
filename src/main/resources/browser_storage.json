@@ -6,8 +6,8 @@
       "en": "Storage in your browser"
     },
     "intro": {
-      "de": "Diese Anwendung setzt **keine Cookies** und bindet keine Dienste zur Reichweitenmessung ein. Sie legt die folgenden Werte im lokalen Speicher (Local Storage) Ihres Browsers ab. Diese Werte verbleiben auf Ihrem Gerät, werden nicht zu Werbe- oder Analysezwecken ausgewertet und nicht an Dritte weitergegeben.",
-      "en": "This application sets **no cookies** and embeds no analytics services. It keeps the following values in your browser's local storage. They stay on your device, are not evaluated for advertising or analytics, and are not passed to third parties."
+      "de": "Diese Anwendung setzt **nur technisch erforderliche Cookies** für die Anmeldung und bindet keine Dienste zur Reichweitenmessung ein. Die Cookies sind unten als solche gekennzeichnet, alle übrigen Werte legt die Anwendung im lokalen Speicher (Local Storage) Ihres Browsers ab. Nichts davon wird zu Werbe- oder Analysezwecken ausgewertet oder an Dritte weitergegeben.",
+      "en": "This application sets **only technically required cookies** for signing in and embeds no analytics services. The cookies are marked as such below; every other value is kept in your browser's local storage. None of it is evaluated for advertising or analytics, or passed to third parties."
     },
     "closing": {
       "de": "Die technisch erforderlichen Werte gehören zur Anmeldung: lehnen Sie die Speicherung ab, ist eine Anmeldung nicht möglich. Über die beiden übrigen Gruppen entscheiden Sie einzeln, sowohl bei der Einwilligung als auch später unter „Konto → Daten & Konto\". Nehmen Sie eine Gruppe zurück, löscht die Anwendung deren Werte sofort. Bei der Abmeldung entfernt sie die Werte, die zur Sitzung gehören; alles Übrige können Sie jederzeit über die Einstellungen Ihres Browsers löschen.\n\nDiese Aufstellung wird unmittelbar aus der Anwendung erzeugt und bleibt dadurch mit dem tatsächlichen Verhalten der Software in Übereinstimmung.",
@@ -53,6 +53,24 @@
       "UNTIL_CLEARED": {
         "de": "bis Sie die Daten Ihres Browsers löschen",
         "en": "until you clear your browser data"
+      },
+      "UNTIL_SESSION_ENDS": {
+        "de": "bis zur Abmeldung, längstens bis die Sitzung abläuft",
+        "en": "until sign-out, at most until the session runs out"
+      },
+      "UNTIL_TRUST_ENDS": {
+        "de": "bis der gewählte Zeitraum abläuft oder Sie das Gerät entfernen",
+        "en": "until the chosen period runs out or you remove the device"
+      }
+    },
+    "kind": {
+      "COOKIE": {
+        "de": "Cookie",
+        "en": "cookie"
+      },
+      "LOCAL_STORAGE": {
+        "de": "lokaler Speicher",
+        "en": "local storage"
       }
     }
   },
@@ -103,21 +121,33 @@
       }
     },
     {
-      "key": "session_token",
+      "key": "ember_session",
+      "kind": "COOKIE",
       "necessity": "REQUIRED",
-      "retention": "UNTIL_LOGOUT",
+      "retention": "UNTIL_SESSION_ENDS",
       "purpose": {
-        "de": "Weist Ihre angemeldete Sitzung gegenüber dem Server aus. Ohne diesen Wert wären Sie bei jedem Seitenwechsel abgemeldet.",
-        "en": "Identifies your signed-in session to the server. Without it you would be signed out on every page change."
+        "de": "Weist Ihre angemeldete Sitzung gegenüber dem Server aus. Das Cookie ist für Skripte auf der Seite nicht lesbar, und Ihr Browser sendet es nicht mit Anfragen, die fremde Websites im Hintergrund auslösen. Ohne dieses Cookie wären Sie bei jedem Seitenwechsel abgemeldet.",
+        "en": "Identifies your signed-in session to the server. Scripts on the page cannot read it, and your browser does not send it with requests other websites start in the background. Without it you would be signed out on every page change."
       }
     },
     {
-      "key": "session_expires_at",
+      "key": "ember_csrf",
+      "kind": "COOKIE",
       "necessity": "REQUIRED",
-      "retention": "UNTIL_LOGOUT",
+      "retention": "UNTIL_SESSION_ENDS",
       "purpose": {
-        "de": "Ablaufzeitpunkt der Sitzung. Die Anwendung meldet Sie rechtzeitig ab, statt Sie in eine abgelaufene Sitzung laufen zu lassen.",
-        "en": "Expiry time of the session. The application signs you out in good time instead of letting you run into an expired session."
+        "de": "Ein aus der Sitzung abgeleiteter Prüfwert, den die Anwendung bei jeder Änderung mitschickt. Er belegt, dass die Änderung von einer Seite dieser Anwendung stammt und nicht von einer fremden Website, und enthält keine Angaben über Sie.",
+        "en": "A check value derived from the session that the application sends along with every change. It proves the change came from a page of this application rather than from another website, and holds nothing about you."
+      }
+    },
+    {
+      "key": "ember_2fa_trust",
+      "kind": "COOKIE",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_TRUST_ENDS",
+      "purpose": {
+        "de": "Wird nur gesetzt, wenn Sie bei der Anmeldung wählen, sich dieses Gerät zu merken. Solange es besteht, entfällt hier die Abfrage des zweiten Faktors. Für Skripte auf der Seite ist es nicht lesbar.",
+        "en": "Set only when you choose to remember this device while signing in. As long as it exists, the second factor is not asked for here. Scripts on the page cannot read it."
       }
     },
     {

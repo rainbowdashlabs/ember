@@ -37,8 +37,8 @@ export interface TotpBeginResponse {
     recoveryCodes: string[]
 }
 
+/** A finished second factor. The session it earned arrived as a cookie; this says how long it lasts. */
 export interface Verify2faResponse {
-    token: string
     expiresAt: string
 }
 

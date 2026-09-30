@@ -17,6 +17,7 @@ import middleware from './auth.global'
  */
 const state = vi.hoisted(() => ({
     store: new Map<string, string>(),
+    carriesSession: true,
     activeStation: null as string | null,
     navigations: [] as unknown[],
     admin: false,
@@ -43,6 +44,11 @@ vi.mock('~/api/storage', () => ({
     removeItem: (key: string) => {
         state.store.delete(key)
     },
+}))
+
+vi.mock('~/api/sessionCookie', () => ({
+    hasSessionCookie: () => state.carriesSession,
+    forgetLegacySession: () => {},
 }))
 
 vi.mock('~/api/demo', () => ({
@@ -140,14 +146,24 @@ describe('auth route guard', () => {
      * visitor mistyping one was sent to the login screen carrying the bad address as their redirect.
      * The page that exists to explain a wrong address never got to say anything.
      */
+    it('sends a browser without a session cookie to the login, with the way back', async () => {
+        state.carriesSession = false
+
+        await run(route('/station/events/upcoming', {tab: 'list'}))
+
+        expect(state.navigations).toEqual([
+            {path: '/login', query: {redirect: '/station/events/upcoming?tab=list'}},
+        ])
+    })
+
     it('lets an address that matches no page reach the page that explains it', async () => {
-        state.store.clear()
+        state.carriesSession = false
         expect(await run(unmatched('/there-is-no-page-here'))).toBeUndefined()
     })
 
     beforeEach(() => {
         state.store.clear()
-        state.store.set('session_token', 'token')
+        state.carriesSession = true
         state.activeStation = null
         state.navigations = []
         state.admin = false

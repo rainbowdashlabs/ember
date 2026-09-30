@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import axios, {type AxiosError, type InternalAxiosRequestConfig} from 'axios'
-import {getItem, removeItem, setItem} from './storage'
+import {getItem, removeItem} from './storage'
+import {CSRF_HEADER, csrfToken} from './sessionCookie'
 import {showToast} from '@/util/toast'
 import {reportApiError} from '@/util/devErrorReporter'
 import {requestStepUp, StepUpCancelledError, StepUpProof, type StepUpCategory, type StepUpProofName} from '@/util/stepUp'
@@ -17,8 +18,12 @@ declare module 'axios' {
     export interface InternalAxiosRequestConfig {
         _startTime?: number
         _stepUpAttempts?: number
+        _carriedSession?: boolean
     }
 }
+
+/** The methods that change something, which are the ones that have to prove they came from this page. */
+const UNSAFE_METHODS = new Set(['post', 'put', 'patch', 'delete'])
 
 /**
  * How often one request may be sent back through the step-up prompt. One answered challenge that
@@ -27,9 +32,6 @@ declare module 'axios' {
  * wrong, and asking a third time would only loop.
  */
 const MAX_STEP_UP_ATTEMPTS = 2
-
-/** The largest delay setTimeout takes. Anything past it wraps and fires immediately instead. */
-const MAX_TIMER_DELAY = 2_147_483_647
 
 const STEP_UP_CATEGORIES: readonly StepUpCategory[] = [
     'ACCOUNT_SECURITY',
@@ -93,15 +95,15 @@ const client = axios.create({
     },
 })
 
-// -- Refresh gate: block requests while token is being refreshed --
-
-let refreshing = false
-let refreshQueue: Array<(config: InternalAxiosRequestConfig) => void> = []
-
+/**
+ * Adds what a request carries besides the session cookie, which the browser sends on its own: the
+ * token proving a change came from this page, and the station and cluster it acts for.
+ */
 function applyAuthHeaders(config: InternalAxiosRequestConfig) {
-    const token = getItem('session_token')
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`
+    const csrf = csrfToken()
+    config._carriedSession = csrf !== null
+    if (csrf && UNSAFE_METHODS.has((config.method ?? 'get').toLowerCase())) {
+        config.headers[CSRF_HEADER] = csrf
     }
     // A screen that edits an association's own content acts at the station the association owns, whether or
     // not the reader has a station of their own selected.
@@ -116,27 +118,8 @@ function applyAuthHeaders(config: InternalAxiosRequestConfig) {
     }
 }
 
-function waitForRefresh(config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> {
-    return new Promise((resolve) => {
-        refreshQueue.push(() => {
-            applyAuthHeaders(config)
-            resolve(config)
-        })
-    })
-}
-
-function releaseQueue() {
-    refreshQueue.forEach((cb) => cb({} as InternalAxiosRequestConfig))
-    refreshQueue = []
-}
-
 client.interceptors.request.use((config) => {
     config._startTime = Date.now()
-    // If refreshing and this isn't the refresh request itself, wait
-    if (refreshing && !config.url?.includes('/auth/refresh')) {
-        return waitForRefresh(config)
-    }
-
     applyAuthHeaders(config)
     return config
 })
@@ -197,9 +180,7 @@ client.interceptors.response.use(
                         stepUpErr instanceof StepUpCancelledError ? (error as AxiosError) : stepUpErr,
                     ))
             }
-            const token = getItem('session_token')
-            if (token && !refreshing && !isStepUp) {
-                removeItem('session_token')
+            if (config?._carriedSession) {
                 removeItem('station_id')
                 removeItem('cluster_id')
                 const currentPath = window.location.pathname
@@ -217,62 +198,5 @@ client.interceptors.response.use(
         return Promise.reject(error)
     },
 )
-
-// -- Token refresh --
-
-let refreshTimer: ReturnType<typeof setTimeout> | null = null
-
-export function scheduleTokenRefresh(expiresAt: string) {
-    cancelTokenRefresh()
-    const expiryMs = new Date(expiresAt).getTime()
-    const now = Date.now()
-    // Refresh 2 minutes before expiry
-    const delay = Math.max(expiryMs - now - 2 * 60 * 1000, 10_000)
-
-    // A session can outlast the longest wait a timer can express, and a longer one fires at once
-    // rather than late: left alone that turns a month-long session into a refresh every few
-    // seconds. Wait out the ceiling and work out the rest afterwards.
-    if (delay > MAX_TIMER_DELAY) {
-        refreshTimer = setTimeout(() => scheduleTokenRefresh(expiresAt), MAX_TIMER_DELAY)
-        return
-    }
-
-    refreshTimer = setTimeout(async () => {
-        const token = getItem('session_token')
-        if (!token) return
-
-        refreshing = true
-        try {
-            const res = await client.post<{ token?: string; expiresAt?: string }>('/auth/refresh', {token})
-            if (res.data.token) {
-                setItem('session_token', res.data.token)
-                if (res.data.expiresAt) {
-                    setItem('session_expires_at', res.data.expiresAt)
-                    scheduleTokenRefresh(res.data.expiresAt)
-                }
-            }
-        } catch {
-            // Refresh failed - session will expire, 401 interceptor will handle redirect
-        } finally {
-            refreshing = false
-            releaseQueue()
-        }
-    }, delay)
-}
-
-export function cancelTokenRefresh() {
-    if (refreshTimer !== null) {
-        clearTimeout(refreshTimer)
-        refreshTimer = null
-    }
-}
-
-export function initTokenRefresh() {
-    const token = getItem('session_token')
-    const expiresAt = getItem('session_expires_at')
-    if (token && expiresAt) {
-        scheduleTokenRefresh(expiresAt)
-    }
-}
 
 export default client

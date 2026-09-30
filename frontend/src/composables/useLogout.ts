@@ -5,7 +5,7 @@
  */
 import {useRouter} from 'vue-router'
 import {auth} from '@/api'
-import {getItem} from '@/api/storage'
+import {hasSessionCookie} from '@/api/sessionCookie'
 import {useCluster} from '@/composables/useCluster'
 import {useSession} from '@/composables/useSession'
 import {useStations} from '@/composables/useStations'
@@ -28,10 +28,9 @@ export function useLogout() {
   const {clear: clearClusters} = useCluster()
 
   async function logout() {
-    const token = getItem('session_token')
-    if (token) {
+    if (hasSessionCookie()) {
       try {
-        await auth.logout({token})
+        await auth.logout()
       } catch {
         /* ignore */
       }

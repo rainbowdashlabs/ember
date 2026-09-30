@@ -5,6 +5,7 @@
  */
 import {demoLogin} from '~/api/auth'
 import {getDemoStatus} from '~/api/demo'
+import {hasSessionCookie} from '~/api/sessionCookie'
 import {getItem, removeItem} from '~/api/storage'
 import {useConsentGuard} from '~/composables/useConsentGuard'
 import {useSession} from '~/composables/useSession'
@@ -97,8 +98,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     if (isPublicRoute(to.path, to.meta)) return
 
-    const token = getItem('session_token')
-    if (!token) {
+    if (!hasSessionCookie()) {
         return navigateTo({path: '/login', query: {redirect: to.fullPath}})
     }
 

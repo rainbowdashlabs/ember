@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import client, {scheduleTokenRefresh} from './client'
-import {isStorageDenied, setItem} from './storage'
+import client from './client'
+import {isStorageDenied} from './storage'
 import {StorageDeniedError, type LoginResponse} from './auth'
 import type {PasskeyModeName} from './adminSettings'
 
@@ -54,7 +54,7 @@ export async function passkeySignInBegin(): Promise<PasskeyCeremony> {
     return res.data
 }
 
-/** Finishes the sign-in and persists the session the way a password login does. */
+/** Finishes the sign-in; the session arrives as a cookie, the way a password login's does. */
 export async function passkeySignInFinish(
     challengeToken: string,
     credentialJson: string,
@@ -68,13 +68,6 @@ export async function passkeySignInFinish(
         credentialJson,
         trustedDevice,
     })
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-        if (res.data.expiresAt) {
-            setItem('session_expires_at', res.data.expiresAt)
-            scheduleTokenRefresh(res.data.expiresAt)
-        }
-    }
     return res.data
 }
 
@@ -215,21 +208,14 @@ export async function signInRequest(identifier: string): Promise<DeviceRequest> 
 }
 
 /**
- * Spends the claim and keeps the session it bought, the way a password or passkey sign-in does.
- * Without persisting it here the device would be signed in on the server and know nothing about it.
+ * Spends the claim; the session it bought arrives as a cookie, the way a password or passkey
+ * sign-in's does.
  */
 export async function signInClaim(claimToken: string): Promise<LoginResponse> {
     if (isStorageDenied()) {
         throw new StorageDeniedError()
     }
     const res = await client.post<LoginResponse>('/auth/device/sign-in-claim', {claimToken})
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-        if (res.data.expiresAt) {
-            setItem('session_expires_at', res.data.expiresAt)
-            scheduleTokenRefresh(res.data.expiresAt)
-        }
-    }
     return res.data
 }
 

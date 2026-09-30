@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.account.route;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
@@ -38,15 +39,18 @@ public class AccountDataRoutes implements Routes {
     private final GdprExportService gdprExportService;
     private final GdprDeletionService gdprDeletionService;
     private final StationMemberRepository stationMemberRepository;
+    private final SessionCookies sessionCookies;
 
     @Inject
     public AccountDataRoutes(
             GdprExportService gdprExportService,
             GdprDeletionService gdprDeletionService,
-            StationMemberRepository stationMemberRepository) {
+            StationMemberRepository stationMemberRepository,
+            SessionCookies sessionCookies) {
         this.gdprExportService = gdprExportService;
         this.gdprDeletionService = gdprDeletionService;
         this.stationMemberRepository = stationMemberRepository;
+        this.sessionCookies = sessionCookies;
     }
 
     @Override
@@ -107,6 +111,7 @@ public class AccountDataRoutes implements Routes {
             }
         }
         gdprDeletionService.deleteAccount(session.accountId());
+        sessionCookies.clear(ctx);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 }

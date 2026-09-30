@@ -47,8 +47,6 @@ async function invalidateAll() {
   try {
     await sessionApi.invalidateAllSessions()
     showInvalidateAllModal.value = false
-    localStorage.removeItem('session_token')
-    localStorage.removeItem('session_expires_at')
     router.push({name: 'login'})
   } catch (e) {
     failure.value = describeFailure(e, t)

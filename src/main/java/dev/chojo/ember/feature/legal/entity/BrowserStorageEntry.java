@@ -6,16 +6,35 @@
 package dev.chojo.ember.feature.legal.entity;
 
 /**
- * One value the frontend keeps in the browser's local storage, as declared in
- * {@code browser_storage.json} and rendered into the generated storage disclosure
- * of the privacy policy and the consent text.
+ * One value the application keeps in the browser, as declared in {@code browser_storage.json}
+ * and rendered into the generated storage disclosure of the privacy policy and the consent text.
  *
- * @param key       the literal local storage key as used by the frontend
+ * @param key       the literal local storage key as used by the frontend, or the cookie's name
+ * @param kind      where the value lives; absent in the catalog means local storage
  * @param necessity how far the application depends on the value
  * @param retention how long the value stays in the browser
  * @param purpose   what the value is for
  */
-public record BrowserStorageEntry(String key, Necessity necessity, Retention retention, LocalizedText purpose) {
+public record BrowserStorageEntry(
+        String key, Kind kind, Necessity necessity, Retention retention, LocalizedText purpose) {
+
+    public BrowserStorageEntry {
+        if (kind == null) kind = Kind.LOCAL_STORAGE;
+    }
+
+    /**
+     * Where a value lives in the browser.
+     */
+    public enum Kind {
+        /**
+         * The browser's local storage, which only the frontend reads and writes.
+         */
+        LOCAL_STORAGE,
+        /**
+         * A cookie the server sets. It travels with every request to this site.
+         */
+        COOKIE
+    }
 
     /**
      * How far the application depends on a stored value.
@@ -47,6 +66,14 @@ public record BrowserStorageEntry(String key, Necessity necessity, Retention ret
         /**
          * Stays until the user clears the browser data.
          */
-        UNTIL_CLEARED
+        UNTIL_CLEARED,
+        /**
+         * Removed on sign-out, and gone at the latest when the session runs out.
+         */
+        UNTIL_SESSION_ENDS,
+        /**
+         * Stays for the period the user chose to trust the device, or until they remove it.
+         */
+        UNTIL_TRUST_ENDS
     }
 }

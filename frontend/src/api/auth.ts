@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import client, {cancelTokenRefresh, scheduleTokenRefresh} from './client'
-import {isStorageDenied, removeItem, setItem} from './storage'
+import client from './client'
+import {isStorageDenied, removeItem} from './storage'
 import type {MessageResponse} from './types'
 
 export interface LoginRequest {
@@ -20,7 +20,7 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-    token?: string
+    /** When the session ends. Present only where the answer started one, which then sits in a cookie. */
     expiresAt?: string
     passwordChangeRequired: boolean
     passwordChangeToken?: string
@@ -83,11 +83,6 @@ export interface SetAddressRequest {
     email?: string
 }
 
-export interface SessionResponse {
-    token?: string
-    expiresAt?: string
-}
-
 export class StorageDeniedError extends Error {
     constructor() {
         super('Storage consent is required to log in')
@@ -110,18 +105,19 @@ export async function confirmEmailChange(data: TokenRequest): Promise<EmailChang
     return res.data
 }
 
+/**
+ * Whether a sign-in answer is a finished session rather than a step still owed. The session itself
+ * arrived as a cookie the page cannot read; the answer only says that it did.
+ */
+export function startedSession(res: LoginResponse): boolean {
+    return !!res.expiresAt && !res.passwordChangeRequired && !res.addressRequired && !res.twoFactorRequired
+}
+
 export async function login(data: LoginRequest): Promise<LoginResponse> {
     if (isStorageDenied()) {
         throw new StorageDeniedError()
     }
     const res = await client.post<LoginResponse>('/auth/login', data)
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-        if (res.data.expiresAt) {
-            setItem('session_expires_at', res.data.expiresAt)
-            scheduleTokenRefresh(res.data.expiresAt)
-        }
-    }
     return res.data
 }
 
@@ -130,31 +126,14 @@ export async function demoLogin(email: string): Promise<LoginResponse> {
         throw new StorageDeniedError()
     }
     const res = await client.post<LoginResponse>('/demo/login', {email})
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-        if (res.data.expiresAt) {
-            setItem('session_expires_at', res.data.expiresAt)
-            scheduleTokenRefresh(res.data.expiresAt)
-        }
-    }
     return res.data
 }
 
-export async function logout(data: TokenRequest): Promise<MessageResponse> {
-    cancelTokenRefresh()
-    const res = await client.post<MessageResponse>('/auth/logout', data)
-    removeItem('session_token')
-    removeItem('session_expires_at')
+/** Ends the session the cookie names; the server clears the cookie with its answer. */
+export async function logout(): Promise<MessageResponse> {
+    const res = await client.post<MessageResponse>('/auth/logout')
     removeItem('station_id')
     removeItem('cluster_id')
-    return res.data
-}
-
-export async function refresh(data: TokenRequest): Promise<SessionResponse> {
-    const res = await client.post<SessionResponse>('/auth/refresh', data)
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-    }
     return res.data
 }
 
@@ -188,13 +167,6 @@ export async function passwordLinkStatus(token: string): Promise<PasswordLinkSta
  */
 export async function setPassword(data: SetPasswordRequest): Promise<LoginResponse> {
     const res = await client.post<LoginResponse>('/auth/set-password', data)
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-        if (res.data.expiresAt) {
-            setItem('session_expires_at', res.data.expiresAt)
-            scheduleTokenRefresh(res.data.expiresAt)
-        }
-    }
     return res.data
 }
 
@@ -206,13 +178,6 @@ export async function setPassword(data: SetPasswordRequest): Promise<LoginRespon
  */
 export async function setAddress(data: SetAddressRequest): Promise<LoginResponse> {
     const res = await client.post<LoginResponse>('/auth/set-address', data)
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-        if (res.data.expiresAt) {
-            setItem('session_expires_at', res.data.expiresAt)
-            scheduleTokenRefresh(res.data.expiresAt)
-        }
-    }
     return res.data
 }
 

@@ -91,9 +91,13 @@ public class BrowserStorageService {
             out.append("\n### ").append(wording.heading().get(locale)).append("\n\n");
             out.append(wording.description().get(locale)).append("\n\n");
             for (var entry : group.getValue()) {
-                out.append("- **`")
-                        .append(entry.key())
-                        .append("`** - ")
+                out.append("- **`").append(entry.key()).append("`** ");
+                if (entry.kind() == BrowserStorageEntry.Kind.COOKIE) {
+                    out.append("(")
+                            .append(text.kind().get(entry.kind()).get(locale))
+                            .append(") ");
+                }
+                out.append("- ")
                         .append(entry.purpose().get(locale))
                         .append(" *(")
                         .append(text.retention().get(entry.retention()).get(locale))

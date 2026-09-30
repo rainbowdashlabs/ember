@@ -5,7 +5,7 @@
  */
 // @vitest-environment happy-dom
 import {beforeEach, describe, expect, it, vi} from 'vitest'
-import {acceptStorage, setItem} from '@/api/storage'
+import {acceptStorage} from '@/api/storage'
 import type {LandingMemory} from '@/util/landingMemoryState'
 import {decideReturnLanding} from '@/util/returnLanding'
 
@@ -46,7 +46,7 @@ describe('where somebody who is already signed in goes from the landing page', (
     beforeEach(() => {
         localStorage.clear()
         acceptStorage()
-        setItem('session_token', 'a session')
+        document.cookie = 'ember_csrf=a-session'
         state.stations = [{memberId: 1, stationId: STATION}]
         state.clusters = []
         state.info = {account: {id: 7, uid: 'anna'}}
@@ -55,7 +55,7 @@ describe('where somebody who is already signed in goes from the landing page', (
 
     /** Nobody is sent anywhere from a page they came to read. */
     it('sends a visitor who is not signed in nowhere at all', async () => {
-        localStorage.removeItem('session_token')
+        document.cookie = 'ember_csrf=; max-age=0'
         remembered({area: 'station', account: 'anna', stationId: STATION})
 
         expect(await decideReturnLanding()).toBeNull()

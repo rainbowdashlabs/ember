@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {getItem} from '@/api/storage'
+import {hasSessionCookie} from '@/api/sessionCookie'
 import {accountKey, readLandingMemory} from '@/util/landingMemoryState'
 import {
     type LandingMemberships,
@@ -51,7 +51,7 @@ function rememberedLanding(memberships: LandingMemberships): SignInLanding | nul
  * follows a sign-in applies.
  */
 export async function decideReturnLanding(): Promise<SignInLanding | null> {
-    if (!getItem('session_token')) return null
+    if (!hasSessionCookie()) return null
     const memberships = await loadLandingMemberships()
     return rememberedLanding(memberships) ?? landingFromMemberships(memberships)
 }

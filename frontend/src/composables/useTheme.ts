@@ -7,6 +7,7 @@ import { ref, readonly, watch } from 'vue'
 import { THEMES, DarkMode, Feel, type ThemeColors, type DarkModeValue, type FeelValue } from '@/theme/themes'
 import { activeModeVariables, applyVariables, backgroundVariables, feelVariables, resolveThemeColors } from '@/theme/palette'
 import { getItem, setItem } from '@/api/storage'
+import { hasSessionCookie } from '@/api/sessionCookie'
 import { userSettings } from '@/api'
 import { usePride } from '@/composables/usePride'
 import { sessionInfo } from '@/util/sessionState'
@@ -98,7 +99,7 @@ function storedThemeName(hasSession: boolean): string | null {
 }
 
 function initFromLocalStorage() {
-    const hasSession = !!getItem('session_token')
+    const hasSession = hasSessionCookie()
 
     const savedDarkMode = storedDarkMode(hasSession)
     if (savedDarkMode) darkMode.value = savedDarkMode
@@ -126,7 +127,7 @@ async function fetchPublicTheme() {
     if (publicThemeFetched) return
     publicThemeFetched = true
 
-    const hasSession = !!getItem('session_token')
+    const hasSession = hasSessionCookie()
     try {
         const { getPublicTheme } = await import('@/api/adminSettings')
         const pub = await getPublicTheme()

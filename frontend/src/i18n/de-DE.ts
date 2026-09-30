@@ -497,7 +497,7 @@ export default {
     },
     storageConsent: {
         title: 'Einwilligung zur Datenverarbeitung',
-        description: 'Diese Anwendung speichert ein Sitzungs-Token und Einstellungen im lokalen Speicher deines Browsers, um dich angemeldet zu halten. Deine Daten werden ausschließlich zur Organisation deiner Jugendgruppe verwendet. Wir geben keine personenbezogenen Daten an Dritte weiter.',
+        description: 'Diese Anwendung hält deine Anmeldung in einem geschützten Cookie und speichert Einstellungen im lokalen Speicher deines Browsers. Deine Daten werden ausschließlich zur Organisation deiner Jugendgruppe verwendet. Wir geben keine personenbezogenen Daten an Dritte weiter.',
         accept: 'Zustimmen',
         deny: 'Ablehnen',
         privacyPolicy: 'Datenschutzerklärung lesen',

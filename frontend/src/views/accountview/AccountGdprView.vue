@@ -49,8 +49,6 @@ async function exportManagedMemberData(memberId: number) {
 
 const {running: deletingAccount, failure: deleteFailure, run: confirmDeleteAccount} = useAsyncAction(async () => {
   await sessionApi.deleteAccount()
-  localStorage.removeItem('session_token')
-  localStorage.removeItem('session_expires_at')
   router.push({name: 'login'})
 })
 

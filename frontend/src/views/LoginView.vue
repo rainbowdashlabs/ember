@@ -14,7 +14,8 @@ import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import {auth, passkeys, adminSettings} from '@/api'
 import {StorageDeniedError, type LoginResponse} from '@/api/auth'
-import {acceptStorage, getItem} from '@/api/storage'
+import {acceptStorage} from '@/api/storage'
+import {hasSessionCookie} from '@/api/sessionCookie'
 import {
   getWebAuthnCredential,
   getWebAuthnCredentialConditional,
@@ -87,7 +88,7 @@ const passkeyAvailable = computed(() =>
 let conditionalAbort: AbortController | null = null
 
 onMounted(async () => {
-  if (getItem('session_token')) {
+  if (hasSessionCookie()) {
     // Honor any pending deep link the router guard parked on /login - the user is already
     // authed and we don't want a fresh tab refresh to lose their target.
     const redirectPath = route.query.redirect as string | undefined

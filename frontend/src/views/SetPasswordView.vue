@@ -94,7 +94,7 @@ const {running: loading, error: submitError, run: runSetPassword} = useAsyncActi
     await router.push({path: '/2fa-verify', query: {token: result.preAuthToken}})
     return
   }
-  if (!result.token) {
+  if (!auth.startedSession(result)) {
     await router.push({name: 'login'})
     return
   }

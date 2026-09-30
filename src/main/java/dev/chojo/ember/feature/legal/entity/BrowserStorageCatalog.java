@@ -32,13 +32,15 @@ public record BrowserStorageCatalog(int version, Text text, List<BrowserStorageE
      * @param closing   the paragraph after the groups
      * @param necessity heading and description per {@link BrowserStorageEntry.Necessity}
      * @param retention the label per {@link BrowserStorageEntry.Retention}
+     * @param kind      the label per {@link BrowserStorageEntry.Kind}
      */
     public record Text(
             LocalizedText heading,
             LocalizedText intro,
             LocalizedText closing,
             Map<BrowserStorageEntry.Necessity, Group> necessity,
-            Map<BrowserStorageEntry.Retention, LocalizedText> retention) {
+            Map<BrowserStorageEntry.Retention, LocalizedText> retention,
+            Map<BrowserStorageEntry.Kind, LocalizedText> kind) {
 
         /**
          * The wording introducing one necessity group.

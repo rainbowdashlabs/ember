@@ -3,17 +3,18 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {initTokenRefresh} from '~/api/client'
+import {forgetLegacySession} from '~/api/sessionCookie'
 import {syncThemeWithSession, useTheme} from '~/composables/useTheme'
 import {installDevErrorHandlers} from '~/util/devErrorReporter'
 
 /**
- * Starts the browser side of the app. The theme stored in this browser is painted before the first
- * render, and the instance theme is asked for without holding the render up: until it arrives, the
- * theme the server rendered into the page stays in place.
+ * Starts the browser side of the app. What an older release left in local storage for the session is
+ * removed, the theme stored in this browser is painted before the first render, and the instance theme
+ * is asked for without holding the render up: until it arrives, the theme the server rendered into the
+ * page stays in place.
  */
 export default defineNuxtPlugin((nuxtApp) => {
-    initTokenRefresh()
+    forgetLegacySession()
 
     syncThemeWithSession()
     void useTheme().initFromLocalStorage()
