@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.account.service;
 
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.TokenType;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.devicerequest.repository.DeviceRequestRepository;
 import dev.chojo.ember.feature.twofactor.entity.ChallengePurpose;
 import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -17,8 +19,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -34,6 +38,16 @@ class AuthCleanupSweeperTest extends RepositoryTestBase {
         verify(sweeper).sweep();
         assertEquals("auth-cleanup-sweep", task.name());
         assertEquals(Duration.ofMinutes(15), task.schedule().period());
+    }
+
+    @Test
+    void aFailedSweepIsSwallowed() {
+        var accounts = mock(AccountRepository.class);
+        doThrow(new IllegalStateException("database gone")).when(accounts).deleteExpiredTokens();
+        var sweeper = new AuthCleanupSweeper(
+                accounts, mock(WebAuthnChallengeRepository.class), mock(DeviceRequestRepository.class));
+
+        assertDoesNotThrow(sweeper::sweep);
     }
 
     @Test
