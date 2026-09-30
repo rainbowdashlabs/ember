@@ -3,18 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {onMounted, onUnmounted, readonly, ref} from 'vue'
-
-const QUERY = '(pointer: fine)'
-
-const finePointer = ref(false)
-
-let watchers = 0
-let media: MediaQueryList | null = null
-
-function apply(event: MediaQueryListEvent | MediaQueryList) {
-    finePointer.value = event.matches
-}
+import {useMediaQuery, useMounted} from '@vueuse/core'
+import {computed} from 'vue'
 
 /**
  * Whether the device points with something as precise as a mouse.
@@ -27,22 +17,7 @@ function apply(event: MediaQueryListEvent | MediaQueryList) {
  * whatever is offered only for a mouse appears once the browser has said there is one.
  */
 export function useFinePointer() {
-    onMounted(() => {
-        if (watchers === 0) {
-            media = window.matchMedia(QUERY)
-            media.addEventListener('change', apply)
-        }
-        watchers++
-        if (media) apply(media)
-    })
-
-    onUnmounted(() => {
-        watchers--
-        if (watchers === 0 && media) {
-            media.removeEventListener('change', apply)
-            media = null
-        }
-    })
-
-    return {finePointer: readonly(finePointer)}
+    const mounted = useMounted()
+    const fine = useMediaQuery('(pointer: fine)')
+    return {finePointer: computed(() => mounted.value && fine.value)}
 }

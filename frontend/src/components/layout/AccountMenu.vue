@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onBeforeUnmount, onMounted, watch} from 'vue'
+import {onKeyStroke} from '@vueuse/core'
+import {watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
@@ -25,12 +26,7 @@ const route = useRoute()
 /** The account page, which the menu reaches as the link it is rather than as a press to be acted on. */
 const accountPage = {name: 'account'}
 
-function onEsc(e: KeyboardEvent) {
-  if (e.key === 'Escape') emit('close')
-}
-
-onMounted(() => window.addEventListener('keydown', onEsc))
-onBeforeUnmount(() => window.removeEventListener('keydown', onEsc))
+onKeyStroke('Escape', () => emit('close'))
 
 watch(() => route.fullPath, () => emit('close'))
 

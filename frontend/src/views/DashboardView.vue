@@ -32,6 +32,7 @@ import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
 import {useQuickSearchShortcut} from '@/composables/useQuickSearchShortcut'
 import {useStationTransferStatus} from '@/composables/useStationTransferStatus'
 import {usePageHeader} from '@/composables/usePageHeader'
+import {useBreakpoint} from '@/composables/useBreakpoint'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -63,14 +64,9 @@ const {
 
 const isDemo = ref(false)
 const openGroup = ref<string | null>(null)
-const isDesktop = ref(window.matchMedia('(min-width: 1024px)').matches)
+const {isDesktop} = useBreakpoint()
 
 useQuickSearchShortcut('station')
-
-onMounted(() => {
-  const mq = window.matchMedia('(min-width: 1024px)')
-  mq.addEventListener('change', (e: MediaQueryListEvent) => { isDesktop.value = e.matches })
-})
 
 const {checkFirstLogin} = useOnboardingTour()
 const {load: loadOnboarding, startNext: startNextOnboarding} = useOnboardingTasks()

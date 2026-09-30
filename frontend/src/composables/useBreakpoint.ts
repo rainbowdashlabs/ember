@@ -3,33 +3,16 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { ref, onMounted, onUnmounted } from 'vue'
+import {breakpointsTailwind, useBreakpoints} from '@vueuse/core'
 
-const MD_BREAKPOINT = 768
-
-const isMobile = ref(typeof window !== 'undefined' ? window.innerWidth < MD_BREAKPOINT : false)
-
-let listenerCount = 0
-
-function updateBreakpoint() {
-    isMobile.value = window.innerWidth < MD_BREAKPOINT
-}
-
+/**
+ * Where the window stands against the Tailwind breakpoints the templates are written in: below `md`
+ * is a phone, `lg` and above is a desktop. Both read false on the server.
+ */
 export function useBreakpoint() {
-    onMounted(() => {
-        if (listenerCount === 0) {
-            window.addEventListener('resize', updateBreakpoint)
-        }
-        listenerCount++
-        updateBreakpoint()
-    })
-
-    onUnmounted(() => {
-        listenerCount--
-        if (listenerCount === 0) {
-            window.removeEventListener('resize', updateBreakpoint)
-        }
-    })
-
-    return { isMobile }
+    const breakpoints = useBreakpoints(breakpointsTailwind)
+    return {
+        isMobile: breakpoints.smaller('md'),
+        isDesktop: breakpoints.greaterOrEqual('lg'),
+    }
 }

@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, nextTick, onBeforeUnmount, ref, watch, type CSSProperties, type Ref} from 'vue'
+import {useEventListener} from '@vueuse/core'
+import {computed, nextTick, ref, watch, type CSSProperties, type Ref} from 'vue'
 
 /** How far a panel stands off the thing it belongs to, and off the edge of the window. */
 const GAP = 4
@@ -54,28 +55,18 @@ export function useFloatingPanel(anchor: Ref<HTMLElement | null>, open: Ref<bool
         placed.value = true
     }
 
-    function watchTheView() {
-        window.addEventListener('scroll', place, true)
-        window.addEventListener('resize', place)
-    }
-
-    function stopWatching() {
-        window.removeEventListener('scroll', place, true)
-        window.removeEventListener('resize', place)
-    }
+    const watchedView = () => (placed.value ? window : null)
+    useEventListener(watchedView, 'scroll', place, {capture: true})
+    useEventListener(watchedView, 'resize', place)
 
     watch(open, async (showing) => {
         if (!showing) {
             placed.value = false
-            stopWatching()
             return
         }
         await nextTick()
         place()
-        watchTheView()
     })
-
-    onBeforeUnmount(stopWatching)
 
     const style = computed<CSSProperties>(() => ({
         position: 'fixed',

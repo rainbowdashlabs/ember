@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useIntersectionObserver} from '@vueuse/core'
 import {onMounted, onUnmounted, ref, watch} from 'vue'
 import client from '@/api/client'
 import {canHavePicture, fileKindIcon} from '@/util/fileKind'
@@ -73,20 +74,14 @@ async function load() {
  * asked for two hundred pictures at once the moment it opened. Where the browser cannot tell us what
  * is on screen, everything is wanted at once, which is what used to happen anyway.
  */
-let observer: IntersectionObserver | null = null
+const {isSupported: canTellWhatIsOnScreen, stop: stopWatchingTheScreen} = useIntersectionObserver(root, entries => {
+  if (!entries.some(entry => entry.isIntersecting)) return
+  wanted.value = true
+  stopWatchingTheScreen()
+}, {rootMargin: '200px'})
 
 onMounted(() => {
-  if (typeof IntersectionObserver === 'undefined' || !root.value) {
-    wanted.value = true
-    return
-  }
-  observer = new IntersectionObserver(entries => {
-    if (!entries.some(entry => entry.isIntersecting)) return
-    wanted.value = true
-    observer?.disconnect()
-    observer = null
-  }, {rootMargin: '200px'})
-  observer.observe(root.value)
+  if (!canTellWhatIsOnScreen.value) wanted.value = true
 })
 
 watch(() => [props.url, props.mimeType, wanted.value], () => {
@@ -95,7 +90,6 @@ watch(() => [props.url, props.mimeType, wanted.value], () => {
 
 onUnmounted(() => {
   current++
-  observer?.disconnect()
   revoke()
 })
 </script>

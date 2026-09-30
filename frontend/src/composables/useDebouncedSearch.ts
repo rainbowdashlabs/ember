@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import { useDebounceFn } from '@vueuse/core'
 import { computed, ref, type Ref } from 'vue'
 
 const DEFAULT_DELAY_MS = 300
@@ -26,8 +27,6 @@ export function useDebouncedSearch<T>(
   const searching = ref(false)
   const isSearching = computed(() => query.value.trim().length > 0)
 
-  let timeout: ReturnType<typeof setTimeout> | null = null
-
   async function run() {
     const trimmed = query.value.trim()
     if (!trimmed) {
@@ -44,13 +43,14 @@ export function useDebouncedSearch<T>(
     }
   }
 
+  const runLater = useDebounceFn(run, delayMs)
+
   function onInput() {
-    if (timeout) clearTimeout(timeout)
     if (!query.value.trim()) {
       results.value = []
       return
     }
-    timeout = setTimeout(run, delayMs)
+    void runLater()
   }
 
   return {query, results, searching, isSearching, onInput, run}

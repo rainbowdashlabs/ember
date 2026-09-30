@@ -44,6 +44,7 @@
     "@tiptap/vue-3": "^3.23.6",
     "@types/turndown": "^5.0.6",
     "@vue-leaflet/vue-leaflet": "^0.10.1",
+    "@vueuse/core": "^14.4.0",
     "@zxing/browser": "^0.2.0",
     "axios": "^1.16.0",
     "diff": "^9.0.0",
