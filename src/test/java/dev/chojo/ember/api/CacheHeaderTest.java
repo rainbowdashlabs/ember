@@ -6,24 +6,13 @@
 package dev.chojo.ember.api;
 
 import dev.chojo.ember.util.Sha256;
-import io.javalin.Javalin;
-import io.javalin.http.Context;
-import io.javalin.http.HandlerType;
+import io.javalin.testtools.Response;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Method;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.HashMap;
-import java.util.Map;
-
+import static dev.chojo.ember.api.RouteHarness.header;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * How long a browser is allowed to keep an answer.
@@ -36,39 +25,31 @@ class CacheHeaderTest {
 
     private static final String BODY = "{\"version\":\"26.13.7\"}";
 
-    private static Map<String, String> headersFor(String path) throws Exception {
-        Map<String, String> written = new HashMap<>();
-        Context ctx = mock(Context.class);
-        when(ctx.method()).thenReturn(HandlerType.GET);
-        when(ctx.statusCode()).thenReturn(200);
-        when(ctx.path()).thenReturn(path);
-        when(ctx.result()).thenReturn(BODY);
-        when(ctx.header(any(String.class))).thenReturn(null);
-        when(ctx.header(any(String.class), any(String.class))).thenAnswer(invocation -> {
-            written.put(invocation.getArgument(0), invocation.getArgument(1));
-            return ctx;
-        });
-        when(ctx.status(anyInt())).thenReturn(ctx);
+    /** A route answering every address the cases ask about, so what is judged is the address alone. */
+    private static final Routes ANSWERING = (routes, prefix) -> {
+        routes.get(prefix + "/public/kb/{station}/{article}", ctx -> ctx.json(new Version("26.13.7")));
+        routes.get(prefix + "/public/waiting-list/entry/{token}", ctx -> ctx.json(new Version("26.13.7")));
+        routes.get(prefix + "/public/pages/files/{file}", ctx -> ctx.result(new byte[] {1}));
+        routes.get(prefix + "/news", ctx -> ctx.result(BODY));
+    };
 
-        Method apply = ApiServer.class.getDeclaredMethod("applyCacheHeaders", Context.class);
-        apply.setAccessible(true);
-        apply.invoke(null, ctx);
-        return written;
+    private record Version(String version) {}
+
+    private static Response get(String path) {
+        return RouteHarness.serving(ANSWERING).request(client -> client.get(path));
     }
 
     @Test
-    void theRunningVersionIsAskedForEveryTime() throws Exception {
-        var headers = headersFor("/api/v1/public/config");
+    void theRunningVersionIsAskedForEveryTime() {
+        var answer = get("/api/v1/public/config");
 
-        assertEquals("public, no-cache", headers.get("Cache-Control"));
-        assertEquals(true, headers.containsKey("ETag"), "and the tag is written, so asking again is cheap");
+        assertEquals("public, no-cache", header(answer, "Cache-Control"));
+        assertNotNull(header(answer, "ETag"), "and the tag is written, so asking again is cheap");
     }
 
     @Test
-    void everythingElseThatIsPublicIsStillHeldForAnHour() throws Exception {
-        assertEquals(
-                "public, max-age=3600",
-                headersFor("/api/v1/public/kb/some-station/article").get("Cache-Control"));
+    void everythingElseThatIsPublicIsStillHeldForAnHour() {
+        assertEquals("public, max-age=3600", header(get("/api/v1/public/kb/some-station/article"), "Cache-Control"));
     }
 
     /**
@@ -78,30 +59,28 @@ class CacheHeaderTest {
      * given.
      */
     @Test
-    void anEntryBehindItsOwnLinkIsKeptNowhere() throws Exception {
-        var headers = headersFor("/api/v1/public/waiting-list/entry/some-token");
+    void anEntryBehindItsOwnLinkIsKeptNowhere() {
+        var answer = get("/api/v1/public/waiting-list/entry/some-token");
 
-        assertEquals("private, no-store", headers.get("Cache-Control"));
-        assertEquals(false, headers.containsKey("ETag"), "there is nothing to revalidate against");
+        assertEquals("private, no-store", header(answer, "Cache-Control"));
+        assertNull(header(answer, "ETag"), "there is nothing to revalidate against");
     }
 
     @Test
-    void aPageFileIsHeldForAYearBecauseItsNameCarriesItsContent() throws Exception {
+    void aPageFileIsHeldForAYearBecauseItsNameCarriesItsContent() {
         assertEquals(
                 "public, max-age=31536000, immutable",
-                headersFor("/api/v1/public/pages/files/abc123.png").get("Cache-Control"));
+                header(get("/api/v1/public/pages/files/abc123.png"), "Cache-Control"));
     }
 
     @Test
-    void anythingBehindASessionIsRevalidated() throws Exception {
-        assertEquals("private, no-cache", headersFor("/api/v1/news").get("Cache-Control"));
+    void anythingBehindASessionIsRevalidated() {
+        assertEquals("private, no-cache", header(get("/api/v1/news"), "Cache-Control"));
     }
 
     @Test
-    void theTagIsTheStartOfTheBodysSha256() throws Exception {
-        assertEquals(
-                "\"" + Sha256.hexPrefix(BODY, 16) + "\"",
-                headersFor("/api/v1/news").get("ETag"));
+    void theTagIsTheStartOfTheBodysSha256() {
+        assertEquals("\"" + Sha256.hexPrefix(BODY, 16) + "\"", header(get("/api/v1/news"), "ETag"));
     }
 
     /**
@@ -109,35 +88,18 @@ class CacheHeaderTest {
      * the tag back gets an empty answer, and one that sends another gets the body.
      */
     @Test
-    void aTagSentBackIsAnsweredWithNotModified() throws Exception {
-        Method apply = ApiServer.class.getDeclaredMethod("applyCacheHeaders", Context.class);
-        apply.setAccessible(true);
-        Javalin app = Javalin.create(config -> {
-                    config.routes.get("/api/v1/news", ctx -> ctx.result(BODY));
-                    config.routes.after(ctx -> apply.invoke(null, ctx));
-                })
-                .start(0);
-        try (HttpClient client = HttpClient.newHttpClient()) {
-            URI uri = URI.create("http://localhost:" + app.port() + "/api/v1/news");
-            var first = client.send(HttpRequest.newBuilder(uri).build(), HttpResponse.BodyHandlers.ofString());
-            String tag = first.headers().firstValue("ETag").orElseThrow();
+    void aTagSentBackIsAnsweredWithNotModified() {
+        RouteHarness.serving(ANSWERING).run((server, client) -> {
+            var first = client.get("/api/v1/news");
+            String tag = header(first, "ETag");
+            var repeated = client.get("/api/v1/news", request -> request.header("If-None-Match", tag));
+            var stale = client.get("/api/v1/news", request -> request.header("If-None-Match", "\"other\""));
 
-            var repeated = client.send(
-                    HttpRequest.newBuilder(uri).header("If-None-Match", tag).build(),
-                    HttpResponse.BodyHandlers.ofString());
-            var stale = client.send(
-                    HttpRequest.newBuilder(uri)
-                            .header("If-None-Match", "\"other\"")
-                            .build(),
-                    HttpResponse.BodyHandlers.ofString());
-
-            assertEquals(BODY, first.body());
-            assertEquals(304, repeated.statusCode());
-            assertEquals("", repeated.body());
-            assertEquals(200, stale.statusCode());
-            assertEquals(BODY, stale.body());
-        } finally {
-            app.stop();
-        }
+            assertEquals(BODY, first.body().string());
+            assertEquals(304, repeated.code());
+            assertEquals("", repeated.body().string());
+            assertEquals(200, stale.code());
+            assertEquals(BODY, stale.body().string());
+        });
     }
 }
