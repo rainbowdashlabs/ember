@@ -95,6 +95,18 @@ export default defineNuxtConfig({
   },
 
   hooks: {
+    /**
+     * Keeps the pdf.js worker out of every page's resource hints. It is two megabytes that only a
+     * PDF viewer needs, and the viewer asks for it by its address once a document is open; hinted
+     * as a prefetch, every page would download it the moment the browser is idle.
+     */
+    'build:manifest'(manifest: Record<string, { file?: string; prefetch?: boolean; preload?: boolean }>) {
+      for (const resource of Object.values(manifest)) {
+        if (!resource.file?.includes('pdf.worker')) continue
+        resource.prefetch = false
+        resource.preload = false
+      }
+    },
     'vite:extendConfig'(config: { plugins?: unknown[] }) {
       import('@tailwindcss/vite').then(m => {
         config.plugins ||= []

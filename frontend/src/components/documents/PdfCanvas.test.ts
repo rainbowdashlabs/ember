@@ -6,6 +6,7 @@
 // @vitest-environment happy-dom
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount} from '@vue/test-utils'
+import {GlobalWorkerOptions} from 'pdfjs-dist'
 import PdfCanvas from './PdfCanvas.vue'
 
 const getDocument = vi.fn()
@@ -19,6 +20,8 @@ vi.mock('pdfjs-dist', () => ({
     GlobalWorkerOptions: {workerSrc: ''},
     getDocument: (options: {data: Uint8Array}) => getDocument(options),
 }))
+
+vi.mock('pdfjs-dist/build/pdf.worker.min.mjs?url', () => ({default: '/assets/pdf.worker.min.mjs'}))
 
 /**
  * The one thing this component is for: a page of a PDF drawn where a phone can read it.
@@ -63,6 +66,16 @@ describe('PdfCanvas', () => {
         await flushPromises()
 
         expect(getDocument).not.toHaveBeenCalled()
+    })
+
+    /** The worker is only asked for by its address, and only once there is a document to draw. */
+    it('points pdf.js at its worker once a document arrives', async () => {
+        opens(1)
+
+        mount(PdfCanvas, {props: {source: new Blob(['pdf'])}})
+        await flushPromises()
+
+        expect(GlobalWorkerOptions.workerSrc).toBe('/assets/pdf.worker.min.mjs')
     })
 
     it('reports how many pages the document has', async () => {

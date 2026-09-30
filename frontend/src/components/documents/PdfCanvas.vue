@@ -18,6 +18,11 @@ import type {PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask} from 'pdfjs-d
  * <p>One page is held at a time, because a long report drawn in full is more than a phone will carry.
  * Which page that is belongs to whoever placed the canvas, so a slide deck and a preview can want
  * different things from the same document without this knowing about either.
+ *
+ * <p>pdf.js and its two megabyte worker are fetched the first time a document is drawn, never
+ * before. The worker is asked for by its address only, from inside that same late import, because
+ * an address written where the bundler can follow it from the start makes every page of the app
+ * load the worker ahead of time, whether it ever shows a PDF or not.
  */
 const props = defineProps<{
   /** The document's bytes. Nothing is drawn until they arrive. */
@@ -99,8 +104,11 @@ async function load() {
     releaseDocument()
     if (!props.source) return
     try {
-        const pdfjs = await import('pdfjs-dist')
-        pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).href
+        const [pdfjs, worker] = await Promise.all([
+            import('pdfjs-dist'),
+            import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
+        ])
+        pdfjs.GlobalWorkerOptions.workerSrc = worker.default
         const data = await bytesOf(props.source)
         if (mine !== generation) return
         const task = pdfjs.getDocument({data})
