@@ -6,6 +6,7 @@
  * `./toolchain.sh fe-lint <name>` takes, and the command that runs it from the frontend directory.
  */
 export const LINTERS = [
+    {name: 'eslint', command: ['node', 'node_modules/eslint/bin/eslint.js', '--max-warnings=0']},
     {name: 'icons', command: ['node', 'scripts/lint-icons.mjs']},
     {name: 'conventions', command: ['node', 'scripts/lint-conventions.mjs']},
     {name: 'helpcenter', command: ['node', 'scripts/lint-helpcenter.mjs']},

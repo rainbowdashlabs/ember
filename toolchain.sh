@@ -124,6 +124,8 @@ Frontend
   fe-help-index         Rewrite the help centre's search index from the pages that exist
   fe-lint <name> [args] One linter of the registry in scripts/linters.mjs, e.g. `fe-lint icons`.
                         Trailing arguments reach it, e.g. `fe-lint component-size --error=30`
+  fe-eslint [args]      ESLint over the frontend; arguments reach it, e.g. `fe-eslint --fix` or
+                        `fe-eslint src/views`. `fe-lint eslint` runs it the way the build does
   fe-dev                Dev server
   fe-prepare            Write .nuxt, the generated tsconfig the tests and the type-check need, for
                         a checkout where npm did not run the postinstall hook
@@ -329,6 +331,7 @@ case "$cmd" in
         [ $# -ge 1 ] || { echo "fe-lint needs a linter name, e.g. icons" >&2; exit 2; }
         fe; NODE_OPTIONS="$NODE_HEAP" run node scripts/lint.mjs "$@"
         ;;
+    fe-eslint)     fe; NODE_OPTIONS="$NODE_HEAP" run npx eslint "$@" ;;
     fe-dev)        fe; run npm run dev -- "$@" ;;
     fe-install)
         # Reconciles node_modules and the lock file with package.json. Wanted after a merge that

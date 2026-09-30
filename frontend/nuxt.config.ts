@@ -3,7 +3,13 @@ export default defineNuxtConfig({
 
   srcDir: 'src/',
 
-  modules: ['@nuxt/test-utils/module'],
+  modules: ['@nuxt/test-utils/module', '@nuxt/eslint'],
+
+  eslint: {
+    config: {
+      autoInit: false,
+    },
+  },
 
   runtimeConfig: {
     // Where the server itself reaches the backend. A server render cannot use the browser's
