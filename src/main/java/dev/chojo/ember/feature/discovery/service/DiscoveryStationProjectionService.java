@@ -78,7 +78,7 @@ public class DiscoveryStationProjectionService {
                 station.country(),
                 null,
                 station.city(),
-                station.publicSlug() != null ? baseUrl + "/s/" + station.publicSlug() : baseUrl,
+                baseUrl + "/public/station/" + (station.publicSlug() != null ? station.publicSlug() : station.uid()),
                 List.of(),
                 DiscoveryStationCard.bucketMemberCount(memberCount),
                 Instant.now(),
@@ -86,7 +86,8 @@ public class DiscoveryStationProjectionService {
                 station.latitude(),
                 station.longitude(),
                 cluster.map(c -> c.uid().toString()).orElse(null),
-                cluster.map(Cluster::name).orElse(null));
+                cluster.map(Cluster::name).orElse(null),
+                station.publicSlug());
     }
 
     private int countMembers(int stationId) {

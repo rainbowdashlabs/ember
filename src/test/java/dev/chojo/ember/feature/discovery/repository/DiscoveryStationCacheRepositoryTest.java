@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.discovery.repository;
 
+import dev.chojo.ember.feature.discovery.entity.BlocklistKind;
 import dev.chojo.ember.feature.discovery.entity.CachedDiscoveryStation;
+import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.discovery.entity.PeerSource;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -106,6 +108,87 @@ class DiscoveryStationCacheRepositoryTest extends RepositoryTestBase {
         var uids = all.stream().map(CachedDiscoveryStation::stationUid).toList();
         assertTrue(uids.contains("uid-vis"));
         assertFalse(uids.contains("uid-hid"));
+    }
+
+    private static List<String> publishedUidsOf(String keyPrefix, String ownKey, String ownBaseUrl) {
+        return discoveryStationCacheRepo.findPublishedElsewhere(ownKey, ownBaseUrl).stream()
+                .filter(s -> s.instancePublicKey().startsWith(keyPrefix))
+                .map(s -> s.card().stationUid())
+                .toList();
+    }
+
+    @Test
+    void publishedElsewhereListsTrustedPeersByNameThenAddress() {
+        discoveryPeerRepo.upsert("k-pub-order-b", "https://b.order.example", "fp-pob", PeerSource.MANUAL, null);
+        discoveryPeerRepo.upsert("k-pub-order-a", "https://a.order.example", "fp-poa", PeerSource.MANUAL, null);
+        discoveryStationCacheRepo.upsert("k-pub-order-b", card("uid-po-zulu", "zulu"), Instant.now());
+        discoveryStationCacheRepo.upsert("k-pub-order-b", card("uid-po-alpha-b", "Alpha"), Instant.now());
+        discoveryStationCacheRepo.upsert("k-pub-order-a", card("uid-po-alpha-a", "alpha"), Instant.now());
+        discoveryStationCacheRepo.upsert("k-pub-order-a", card("uid-po-mike", "Mike"), Instant.now());
+
+        var listed = discoveryStationCacheRepo.findPublishedElsewhere("k-self", "https://self.example").stream()
+                .filter(s -> s.instancePublicKey().startsWith("k-pub-order-"))
+                .toList();
+
+        assertEquals(
+                List.of("uid-po-alpha-a", "uid-po-alpha-b", "uid-po-mike", "uid-po-zulu"),
+                listed.stream().map(s -> s.card().stationUid()).toList());
+        assertEquals("https://a.order.example", listed.getFirst().instanceBaseUrl());
+    }
+
+    @Test
+    void publishedElsewhereLeavesOutBlockedUnreachableAndDistrustedPeers() {
+        discoveryPeerRepo.upsert("k-pub-bad-ok", "https://ok.bad.example", "fp-1", PeerSource.MANUAL, null);
+        discoveryPeerRepo.upsert("k-pub-bad-blocked", "https://blocked.bad.example", "fp-2", PeerSource.MANUAL, null);
+        discoveryPeerRepo.upsert("k-pub-bad-gone", "https://gone.bad.example", "fp-3", PeerSource.MANUAL, null);
+        discoveryPeerRepo.upsert("k-pub-bad-distrusted", "https://dis.bad.example", "fp-4", PeerSource.MANUAL, null);
+        discoveryPeerRepo.upsert("k-pub-bad-edge", "https://edge.bad.example", "fp-5", PeerSource.MANUAL, null);
+        discoveryPeerRepo.setBlocked("k-pub-bad-blocked", true);
+        discoveryPeerRepo.markUnreachable("k-pub-bad-gone");
+        discoveryPeerRepo.addReputation("k-pub-bad-distrusted", DiscoveryPeer.DISTRUSTED_REPUTATION);
+        discoveryPeerRepo.addReputation("k-pub-bad-edge", DiscoveryPeer.DISTRUSTED_REPUTATION + 1);
+        for (var key : List.of("ok", "blocked", "gone", "distrusted", "edge")) {
+            discoveryStationCacheRepo.upsert("k-pub-bad-" + key, card("uid-pb-" + key, key), Instant.now());
+        }
+
+        var uids = publishedUidsOf("k-pub-bad-", "k-self", "https://self.example");
+
+        assertEquals(List.of("uid-pb-edge", "uid-pb-ok"), uids);
+    }
+
+    @Test
+    void publishedElsewhereLeavesOutPeersOnTheBlocklistByKeyOrAddress() {
+        discoveryPeerRepo.upsert("k-pub-list-ok", "https://ok.list.example", "fp-1", PeerSource.MANUAL, null);
+        discoveryPeerRepo.upsert("k-pub-list-key", "https://key.list.example", "fp-2", PeerSource.MANUAL, null);
+        discoveryPeerRepo.upsert("k-pub-list-url", "https://url.list.example", "fp-3", PeerSource.MANUAL, null);
+        discoveryBlocklistRepo.add(BlocklistKind.PUBLIC_KEY, "k-pub-list-key", null);
+        discoveryBlocklistRepo.add(BlocklistKind.BASE_URL, "https://url.list.example", null);
+        discoveryBlocklistRepo.add(
+                BlocklistKind.BASE_URL, "k-pub-list-ok", "a key listed as an address matches nothing");
+        for (var key : List.of("ok", "key", "url")) {
+            discoveryStationCacheRepo.upsert("k-pub-list-" + key, card("uid-pl-" + key, key), Instant.now());
+        }
+
+        var uids = publishedUidsOf("k-pub-list-", "k-self", "https://self.example");
+
+        assertEquals(List.of("uid-pl-ok"), uids);
+    }
+
+    @Test
+    void publishedElsewhereLeavesOutThisInstanceAndItsOwnStations() {
+        discoveryPeerRepo.upsert("k-pub-own-self", "https://other.own.example", "fp-1", PeerSource.MANUAL, null);
+        discoveryPeerRepo.upsert("k-pub-own-addr", "https://self.own.example", "fp-2", PeerSource.MANUAL, null);
+        discoveryPeerRepo.upsert("k-pub-own-peer", "https://peer.own.example", "fp-3", PeerSource.MANUAL, null);
+        var local = stationRepo.create("Wache Hier " + System.nanoTime());
+        discoveryStationCacheRepo.upsert("k-pub-own-self", card("uid-po-self", "Self"), Instant.now());
+        discoveryStationCacheRepo.upsert("k-pub-own-addr", card("uid-po-addr", "Addr"), Instant.now());
+        discoveryStationCacheRepo.upsert("k-pub-own-peer", card(local.uid().toString(), "Local"), Instant.now());
+        discoveryStationCacheRepo.upsert("k-pub-own-peer", card("uid-po-remote", "Remote"), Instant.now());
+
+        var uids = publishedUidsOf("k-pub-own-", "k-pub-own-self", "https://self.own.example");
+
+        assertEquals(List.of("uid-po-remote"), uids);
+        stationRepo.delete(local.id());
     }
 
     @Test

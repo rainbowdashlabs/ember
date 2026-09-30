@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.ApplicationStatus;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.StationApplication;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -134,7 +135,7 @@ public class StationApplicationService {
 
         applicationRepository.accept(id);
 
-        var station = stationRepository.create(application.stationName());
+        var station = stationRepository.create(application.stationName(), DiscoveryVisibility.NEW_STATION_DEFAULT);
 
         var account = accountRepository.create(
                 application.email(), application.firstName(), application.lastName(), true, station.id());

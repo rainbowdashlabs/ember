@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -116,6 +117,11 @@ class ClusterServiceTest extends RepositoryTestBase {
         var station = clusterService.createStation(clusterId, "Löschzug Neu");
 
         assertEquals(clusterId, stationRepo.findById(station.id()).orElseThrow().clusterId());
+        assertEquals(DiscoveryVisibility.PUBLIC, station.discoveryVisibility(), "a new member station is listed");
+        var home = stationRepo
+                .findById(clusterService.findById(clusterId).orElseThrow().homeStationId())
+                .orElseThrow();
+        assertEquals(DiscoveryVisibility.NONE, home.discoveryVisibility(), "the cluster's own shell is not");
         assertTrue(clusterService.findStations(clusterId).stream().anyMatch(s -> s.id() == station.id()));
 
         clusterService.releaseStation(clusterId, station.id());

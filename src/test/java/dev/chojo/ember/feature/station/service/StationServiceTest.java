@@ -56,6 +56,10 @@ class StationServiceTest extends RepositoryTestBase {
         var station = service.create("TestStation");
         assertNotNull(station);
         assertEquals("TestStation", station.name());
+        assertEquals(
+                DiscoveryVisibility.PUBLIC,
+                station.discoveryVisibility(),
+                "a newly founded station is listed publicly until it decides otherwise");
         stationId = station.id();
     }
 

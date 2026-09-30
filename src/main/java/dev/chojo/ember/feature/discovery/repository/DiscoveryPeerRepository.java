@@ -41,9 +41,9 @@ public class DiscoveryPeerRepository {
      */
     public List<DiscoveryPeer> findUsable() {
         return query(
-                        "SELECT %s FROM discovery_peer WHERE blocked = FALSE AND reputation > -50 ORDER BY last_seen_at DESC;",
+                        "SELECT %s FROM discovery_peer WHERE blocked = FALSE AND reputation > :distrusted ORDER BY last_seen_at DESC;",
                         DISCOVERY_PEER_COLUMNS)
-                .single(call())
+                .single(call().bind("distrusted", DiscoveryPeer.DISTRUSTED_REPUTATION))
                 .map(DiscoveryPeer.map())
                 .all();
     }

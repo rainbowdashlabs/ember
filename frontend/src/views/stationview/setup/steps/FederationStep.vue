@@ -10,13 +10,19 @@ import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import DiscoveryVisibilityChoice from '@/views/stationview/setup/steps/federationstep/DiscoveryVisibilityChoice.vue'
+import PublicListingContents from '@/views/stationview/setup/steps/federationstep/PublicListingContents.vue'
 import {stationManage} from '@/api'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
 
+/**
+ * The step where a station decides how it is listed in discovery, knowing what a listing shows and
+ * where it goes. It opens on the station's current setting, which for a new station is a public
+ * listing, and saving it unchanged is a decision like any other and completes the step.
+ */
 const {t} = useI18n()
 const router = useRouter()
 const {reload} = useSetupStatus()
@@ -33,8 +39,7 @@ onMounted(async () => {
         stationName.value = info.name ?? ''
         description.value = info.discoveryDescription ?? ''
         showKb.value = info.discoveryShowKb ?? true
-        const adminHasTouched = !!info.discoveryDescription
-        visibility.value = adminHasTouched ? (info.discoveryVisibility ?? 'PUBLIC') : 'PUBLIC'
+        visibility.value = info.discoveryVisibility ?? 'PUBLIC'
     } catch { /* ignore */ }
     loading.value = false
 })
@@ -54,15 +59,9 @@ const {running: saving, failure, run: save} = useAsyncAction(async () => {
 <template>
   <SetupLayout step-id="federation" skippable :saving="saving" @save="save">
     <FailureAlert :failure="failure"/>
-    <p class="text-sm text-(--text-muted)">{{ t('setup.steps.federation.consequence') }}</p>
-    <div v-if="!loading" class="space-y-3">
-      <label class="block text-sm">
-        {{ t('setup.steps.federation.visibility') }}
-        <SelectInput v-model="visibility">
-          <option value="PUBLIC">{{ t('setup.steps.federation.visibilityPublic') }}</option>
-          <option value="NONE">{{ t('setup.steps.federation.visibilityNone') }}</option>
-        </SelectInput>
-      </label>
+    <div v-if="!loading" class="space-y-4">
+      <DiscoveryVisibilityChoice v-model="visibility"/>
+      <PublicListingContents/>
       <label class="block text-sm">
         {{ t('setup.steps.federation.description') }}
         <TextAreaInput v-model="description"/>

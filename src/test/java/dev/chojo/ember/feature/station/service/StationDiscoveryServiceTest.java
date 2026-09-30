@@ -9,6 +9,7 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.discovery.service.RemoteStationListingService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -71,7 +72,12 @@ class StationDiscoveryServiceTest {
         stations = mock(StationService.class);
         federation = mock(FederationService.class);
         clusters = mock(ClusterRepository.class);
-        service = new StationDiscoveryService(stations, mock(StationLogoService.class), federation, clusters);
+        service = new StationDiscoveryService(
+                stations,
+                mock(StationLogoService.class),
+                federation,
+                clusters,
+                mock(RemoteStationListingService.class));
         own = station(3, OWN);
         partner = station(4, PARTNER);
         open = station(5, OPEN);

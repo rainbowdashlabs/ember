@@ -22,6 +22,8 @@
 - **Announcing an appointment builds a ready entry.** "Announce as news" now opens the entry with an event block for the chosen day, the appointment's description, and a short text on what the block does not show, such as the registration deadline, the number of places and whether sign-ups are confirmed. Every part can still be changed before saving.
 - **Event blocks in news entries.** A news entry can show an appointment as an event block, including appointments the station keeps to itself, and pick which day of a repeating one it is about. Readers who may not see the appointment, such as partner stations or the public blog, see a short note instead.
 - **Attendance templates can enter whole member types.** A template can name member types as well as groups, and everybody of a chosen type stands on its sheets beside the members of its groups. Starting a sheet from a template shows its types and groups already ticked, to keep or to change for that one sheet.
+- **The discovery page lists stations of other instances.** The public discovery page at `/discovery` also shows the public stations of the other Ember instances this one knows, each marked with the instance it belongs to and linking to its public page there. A search field finds stations of every instance by name, place, association or instance.
+- **Station setup explains the discovery listing.** The visibility step of a new station's setup explains each choice, including listing on this instance only, and shows exactly which details a public listing gives to the discovery page and to other instances. Saving it with the preset choice unchanged counts as done.
 
 ### Security
 
@@ -39,7 +41,7 @@
 - **The minimum-registration deadline counts days before each date.** An appointment with a minimum number of registrations now says how many days before each date it has to be reached, instead of naming one fixed day, and one-time appointments keep their deadline. On repeating appointments the old deadline is removed and has to be set again in the appointment's editor.
 - **The backend gets thirty seconds to shut down.** The shipped compose files and the installer give the backend container a `stop_grace_period` of 30 seconds, which it uses to finish running requests and save buffered statistics and log lines. Setups with their own compose files should set the same on the backend.
 - **Association mail is switched on by each person.** The association's notification mail now only reaches people who switch it on under Association → Notifications, where it starts off. Until then its notifications stay in the app.
-
+- **New stations are listed publicly.** A station founded from now on appears on the public discovery page and to other Ember instances from the start, and can switch this off during its setup or under Federation → Settings. Existing, imported and transferred stations keep the setting they have.
 ### Fixes
 
 - **Addresses in group and tag lists sat out of line.** In the member lists of groups and tags, the address of somebody with a profile picture stood beside the picture instead of under the name. It now lines up under the name for everybody.
@@ -77,6 +79,8 @@
 - **Comments at partner stations on other instances failed.** A member could not delete their own comment on a news entry or an appointment of a partner station on another instance, and in some cases could not start a new comment on such an appointment either. Both now work.
 - **Own boards appeared among a partner's boards.** In some cases a board a station shared with a partner on the same instance showed up in its own list of boards from that partner. The list now shows only the boards the partner shares.
 - **Tickets of partners on other instances could not be unwatched.** A member watching a ticket on a board shared by a partner station on another instance could not stop watching it. Unwatching now works.
+- **Station links on the network map led to a missing page.** On the map of the discovery network, the link to a station of another instance opened a page that did not exist. Once both instances run this version, it opens the station's public page.
+- **The discovery page could not be reached from the footer on phones.** On narrow screens the footer left out its link to the station directory. It now shows at every screen width.
 
 ## v26.19.5
 

@@ -204,6 +204,42 @@ public class StationRepository {
     }
 
     /**
+     * Creates a new station that starts with the given discovery visibility. The variants without one
+     * leave the station unlisted, which is what an imported or transferred station needs until its own
+     * setting has been applied.
+     *
+     * @param name       the station name
+     * @param visibility where the station is listed from the start
+     * @return the created station
+     */
+    public Station create(String name, DiscoveryVisibility visibility) {
+        return SqlSupport.insertReturning(
+                "INSERT INTO station(name, discovery_visibility) VALUES(:name, :visibility) RETURNING %s;",
+                call().bind("name", name).bind("visibility", visibility), Station.map(), STATION_COLUMNS);
+    }
+
+    /**
+     * {@link #create(String, DiscoveryVisibility)} with a fixed identifier.
+     *
+     * @param name       the station name
+     * @param uid        the station's identifier
+     * @param visibility where the station is listed from the start
+     * @return the created station
+     */
+    public Station create(String name, UUID uid, DiscoveryVisibility visibility) {
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO station(name, uid, discovery_visibility)
+                VALUES(:name, :uid::UUID, :visibility)
+                RETURNING %s;""",
+                call().bind("name", name)
+                        .bind("uid", uid, StandardValueConverter.UUID_STRING)
+                        .bind("visibility", visibility),
+                Station.map(),
+                STATION_COLUMNS);
+    }
+
+    /**
      * Marks a station as the shell a cluster owns. It stays a real station row: what changes is that nobody
      * joins it and the user-facing listings leave it out.
      *
@@ -514,6 +550,21 @@ public class StationRepository {
      * @param stationId the station ID
      * @return the timestamp at which an administrator marked setup complete, or empty if still pending
      */
+    /**
+     * Whether a manager has saved the station's discovery settings at least once, and so decided how
+     * it is listed rather than living with the setting it started with.
+     *
+     * @param stationId the station ID
+     * @return {@code true} once the settings have been saved
+     */
+    public boolean isDiscoveryReviewed(int stationId) {
+        return query("SELECT discovery_reviewed_at IS NOT NULL AS reviewed FROM station WHERE id = :id;")
+                .single(call().bind("id", stationId))
+                .map(row -> row.getBoolean("reviewed"))
+                .first()
+                .orElse(false);
+    }
+
     public Optional<Instant> findSetupCompletedAt(int stationId) {
         return query("SELECT setup_completed_at FROM station WHERE id = :id;")
                 .single(call().bind("id", stationId))
@@ -634,7 +685,8 @@ public class StationRepository {
                 SET
                     discovery_visibility  = :visibility,
                     discovery_description = :description,
-                    discovery_show_kb     = :show_kb
+                    discovery_show_kb     = :show_kb,
+                    discovery_reviewed_at = now()
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("visibility", visibility)

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -129,6 +130,11 @@ class StationApplicationServiceTest extends RepositoryTestBase {
         // The station should now exist
         var stations = stationRepo.findAll();
         assertTrue(stations.stream().anyMatch(s -> "Lena Station".equals(s.name())));
+        assertTrue(
+                stations.stream()
+                        .filter(s -> "Lena Station".equals(s.name()))
+                        .allMatch(s -> s.discoveryVisibility() == DiscoveryVisibility.PUBLIC),
+                "a station founded from an application is listed publicly from the start");
 
         // Cleanup created station
         stations.stream()

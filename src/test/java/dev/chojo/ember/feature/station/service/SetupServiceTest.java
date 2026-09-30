@@ -196,6 +196,24 @@ class SetupServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void federation_step_completes_when_the_default_is_saved_unchanged() {
+        var founded = stationRepo.create("Neue Wache " + System.nanoTime(), DiscoveryVisibility.NEW_STATION_DEFAULT);
+        assertFalse(stationRepo.isDiscoveryReviewed(founded.id()));
+        assertFalse(complete(founded.id(), SetupService.STEP_FEDERATION), "starting listed is not deciding");
+
+        stationRepo.updateDiscoverySettings(founded.id(), founded.discoveryVisibility(), "", true);
+
+        assertTrue(stationRepo.isDiscoveryReviewed(founded.id()));
+        assertTrue(complete(founded.id(), SetupService.STEP_FEDERATION));
+        stationRepo.delete(founded.id());
+    }
+
+    @Test
+    void an_unknown_station_has_never_reviewed_its_discovery_settings() {
+        assertFalse(stationRepo.isDiscoveryReviewed(-1));
+    }
+
+    @Test
     void complete_returns_missing_when_required_steps_are_open() {
         assertEquals(CompletionResult.MISSING_REQUIRED_STEPS, setupService.complete(station.id()));
         assertNull(setupService.getStatus(station.id()).completedAt());
@@ -236,6 +254,10 @@ class SetupServiceTest extends RepositoryTestBase {
     private boolean optionalComplete(String id) {
         return findStep(setupService.getStatus(station.id()).optionalSteps(), id)
                 .complete();
+    }
+
+    private static boolean complete(int stationId, String id) {
+        return findStep(setupService.getStatus(stationId).optionalSteps(), id).complete();
     }
 
     private static StepState findStep(List<StepState> steps, String id) {

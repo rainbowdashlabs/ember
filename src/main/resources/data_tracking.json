@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:480dbb5b53ad61ec643cf3a2bb316f6e3757ac4d9ffeee54012bb2196a7fdefd",
-  "generatedAt": "2026-09-30T21:47:59Z",
+  "schemaHash": "sha256:f6406be853fb5c3615e5400de86ff5c4a3da095b00f8d7fe54379efda2314773",
+  "generatedAt": "2026-09-30T22:10:34Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -20686,7 +20686,7 @@
     "station": {
       "feature": "station",
       "scope": "STATION",
-      "tableHash": "sha256:b382c0912f74fdc4b5b6350f793ab740095cc6f97f5e83a817352d482ec9b9ca",
+      "tableHash": "sha256:945454e2e3cd7fe73ef6d7d0a2a535ad984ec493b2a6a6da429065acf4ca1474",
       "columns": [
         {
           "name": "id",
@@ -21029,6 +21029,13 @@
           "nullable": true,
           "verified": true,
           "description": "When this station was last written to, which is what a send time is measured against. NULL where it never has been, so its first gathered notifications go out at the next time it asked for rather than at once."
+        },
+        {
+          "name": "discovery_reviewed_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When a manager last saved how the station is listed in discovery, NULL while nobody has. Once set, the station has decided knowingly and the discovery step of its setup counts as done."
         }
       ],
       "foreignKeys": [

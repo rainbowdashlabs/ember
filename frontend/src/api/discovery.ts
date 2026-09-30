@@ -22,6 +22,15 @@ export interface DiscoveryEntry {
     /** The cluster this station answers to, or null when it answers to nobody. */
     clusterUid?: string | null
     clusterName?: string | null
+    /** The host name of the instance a station of another instance lives on; null for this instance's own. */
+    instanceHost?: string | null
+    /** The station's public page on its own instance; null for this instance's own. */
+    publicPageUrl?: string | null
+}
+
+/** Whether the entry is a station of another instance rather than one of this instance. */
+export function isRemoteEntry(entry: DiscoveryEntry): boolean {
+    return !!entry.instanceHost
 }
 
 export interface PublicStationInfo {

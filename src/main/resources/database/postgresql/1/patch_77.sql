@@ -306,3 +306,9 @@ ALTER TABLE ember_schema.federation_lending_request_item
 
 COMMENT ON COLUMN ember_schema.federation_lending_request_item.label
     IS 'What the line asks for, in words, as the lending station named it. Kept on the borrowing station''s copy of a request to a station on another instance, whose inventories are not here to name it. Empty where the line names gear of this instance.';
+
+ALTER TABLE ember_schema.station
+    ADD COLUMN discovery_reviewed_at TIMESTAMPTZ;
+
+COMMENT ON COLUMN ember_schema.station.discovery_reviewed_at
+    IS 'When a manager last saved how the station is listed in discovery, NULL while nobody has. Once set, the station has decided knowingly and the discovery step of its setup counts as done.';

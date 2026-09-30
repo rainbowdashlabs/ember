@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.inventory.service.ClusterItemHandoverService;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -161,7 +162,7 @@ public class ClusterService {
         if (name == null || name.isBlank()) throw new BadRequestResponse("A station needs a name");
         requireCluster(clusterId);
 
-        Station station = stationRepository.create(name.trim());
+        Station station = stationRepository.create(name.trim(), DiscoveryVisibility.NEW_STATION_DEFAULT);
         joinStation(clusterId, station.id());
         log.info("Cluster {} created station {}", clusterId, station.id());
         return station;

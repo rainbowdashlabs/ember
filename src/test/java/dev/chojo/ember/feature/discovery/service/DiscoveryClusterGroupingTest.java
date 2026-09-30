@@ -93,6 +93,7 @@ class DiscoveryClusterGroupingTest extends RepositoryTestBase {
     void aStationHiddenFromDiscoveryIsOnNoCardAtAll() {
         var cluster = clusterService.create("Kreisverband Versteckt " + NAMES.incrementAndGet(), null);
         var station = clusterService.createStation(cluster.id(), "Wache Versteckt " + NAMES.incrementAndGet());
+        stationRepo.updateDiscoverySettings(station.id(), DiscoveryVisibility.NONE, null, false);
 
         assertTrue(
                 service.publicCards().stream()

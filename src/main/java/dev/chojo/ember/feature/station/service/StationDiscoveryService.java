@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.station.service;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.discovery.service.RemoteStationListingService;
+import dev.chojo.ember.feature.discovery.service.RemoteStationListingService.RemoteStation;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -36,26 +38,40 @@ public class StationDiscoveryService {
     private final StationLogoService logoService;
     private final FederationService federationService;
     private final ClusterRepository clusterRepository;
+    private final RemoteStationListingService remoteStations;
 
     @Inject
     public StationDiscoveryService(
             StationService stationService,
             StationLogoService logoService,
             FederationService federationService,
-            ClusterRepository clusterRepository) {
+            ClusterRepository clusterRepository,
+            RemoteStationListingService remoteStations) {
         this.stationService = stationService;
         this.logoService = logoService;
         this.federationService = federationService;
         this.clusterRepository = clusterRepository;
+        this.remoteStations = remoteStations;
     }
 
     /**
-     * The discovery page, the asking station first and marked as its own.
+     * The discovery page: this instance's stations, the asking station first and marked as its own,
+     * then the stations other instances publish, by name. The remote ones are read from the local
+     * cache only and are the same for everybody, since they are what those instances publish to the
+     * world.
      *
      * @param signedIn  whether anybody is signed in at all
      * @param stationId the asking station, or null where none is chosen
      */
     public List<DiscoveryEntry> list(boolean signedIn, Integer stationId) {
+        List<DiscoveryEntry> entries = localEntries(signedIn, stationId);
+        for (var remote : remoteStations.list()) {
+            entries.add(toRemoteEntry(remote));
+        }
+        return entries;
+    }
+
+    private List<DiscoveryEntry> localEntries(boolean signedIn, Integer stationId) {
         int exclude = stationId == null ? 0 : stationId;
         Set<UUID> partners = stationId == null ? Set.of() : partnerUids(stationId);
         var discoverable =
@@ -143,9 +159,49 @@ public class StationDiscoveryService {
                 s.latitude() != null ? s.latitude().doubleValue() : null,
                 s.longitude() != null ? s.longitude().doubleValue() : null,
                 cluster.map(Cluster::uid).orElse(null),
-                cluster.map(Cluster::name).orElse(null));
+                cluster.map(Cluster::name).orElse(null),
+                null,
+                null);
     }
 
+    private static DiscoveryEntry toRemoteEntry(RemoteStation remote) {
+        var card = remote.card();
+        return new DiscoveryEntry(
+                remote.stationUid(),
+                card.name(),
+                card.slogan(),
+                false,
+                false,
+                false,
+                false,
+                false,
+                card.publicSlug(),
+                card.city(),
+                card.country(),
+                card.latitude() != null ? card.latitude().doubleValue() : null,
+                card.longitude() != null ? card.longitude().doubleValue() : null,
+                remoteClusterUid(card.clusterUid()),
+                card.clusterName(),
+                remote.instanceHost(),
+                remote.publicPageUrl());
+    }
+
+    private static UUID remoteClusterUid(String clusterUid) {
+        if (clusterUid == null) return null;
+        try {
+            return UUID.fromString(clusterUid);
+        } catch (IllegalArgumentException notAnIdentifier) {
+            return null;
+        }
+    }
+
+    /**
+     * One card on the discovery page.
+     *
+     * <p>{@code instanceHost} and {@code publicPageUrl} are set for a station of another instance only:
+     * the host name of that instance and the station's public page there. A remote station carries no
+     * logo, since showing one would have every visitor's browser ask the other instance for it.
+     */
     public record DiscoveryEntry(
             UUID stationUid,
             String name,
@@ -161,5 +217,7 @@ public class StationDiscoveryService {
             Double latitude,
             Double longitude,
             UUID clusterUid,
-            String clusterName) {}
+            String clusterName,
+            String instanceHost,
+            String publicPageUrl) {}
 }

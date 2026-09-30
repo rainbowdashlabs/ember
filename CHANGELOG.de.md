@@ -22,6 +22,8 @@
 - **Das Ankündigen eines Termins ergibt einen fertigen Beitrag.** „Als Neuigkeit ankündigen" öffnet den Beitrag jetzt mit einem Terminblock für den gewählten Tag, der Beschreibung des Termins und einem kurzen Text zu dem, was der Block nicht zeigt, etwa die Anmeldefrist, die Zahl der Plätze und ob Anmeldungen bestätigt werden. Jeder Teil lässt sich vor dem Speichern noch ändern.
 - **Terminblöcke in Neuigkeiten.** Eine Neuigkeit kann einen Termin als Terminblock zeigen, auch Termine, die die Wache für sich behält, und bei einem wiederkehrenden Termin den Tag wählen, um den es geht. Wer den Termin nicht sehen darf, etwa Partnerwachen oder der öffentliche Blog, sieht stattdessen einen kurzen Hinweis.
 - **Anwesenheitsvorlagen tragen ganze Mitgliedstypen ein.** Eine Vorlage kann neben Gruppen auch Mitgliedstypen nennen, und alle Mitglieder eines gewählten Typs stehen neben den Mitgliedern ihrer Gruppen auf ihren Listen. Wer eine Liste aus einer Vorlage startet, findet deren Typen und Gruppen schon angekreuzt und kann sie für diese eine Liste übernehmen oder ändern.
+- **Die Discovery-Seite zeigt Wachen anderer Instanzen.** Die öffentliche Discovery-Seite unter `/discovery` zeigt auch die öffentlichen Wachen der anderen Ember-Instanzen, die diese Instanz kennt, jeweils mit der Instanz, zu der sie gehören, und einem Link zu ihrer öffentlichen Seite dort. Ein Suchfeld findet Wachen aller Instanzen nach Name, Ort, Verband oder Instanz.
+- **Die Einrichtung erklärt die Listung im Verzeichnis.** Der Schritt zur Sichtbarkeit bei der Einrichtung einer neuen Wache erklärt jede Wahl, auch die Listung nur auf dieser Instanz, und zeigt genau, welche Angaben eine öffentliche Listung an die Discovery-Seite und an andere Instanzen weitergibt. Mit unveränderter Voreinstellung gespeichert gilt er als erledigt.
 
 ### Sicherheit
 
@@ -39,7 +41,7 @@
 - **Die Frist für die Mindestanzahl zählt Tage vor jedem Termin.** Ein Termin mit einer Mindestanzahl an Anmeldungen legt jetzt fest, wie viele Tage vor jedem Termin sie erreicht sein muss, statt einen festen Tag zu nennen, und einmalige Termine behalten ihre Frist. Bei wiederkehrenden Terminen entfällt die alte Frist und muss im Editor des Termins neu gesetzt werden.
 - **Das Backend bekommt dreißig Sekunden zum Herunterfahren.** Die mitgelieferten Compose-Dateien und das Installationsskript geben dem Backend-Container eine `stop_grace_period` von 30 Sekunden, in denen er laufende Anfragen beendet und gepufferte Statistiken und Protokollzeilen speichert. Eigene Compose-Dateien sollten beim Backend dasselbe setzen.
 - **Die E-Mail des Verbands schaltet jede Person selbst ein.** Die Benachrichtigungs-E-Mail des Verbands erreicht nur noch, wer sie unter Verband → Benachrichtigungen einschaltet, wo sie anfangs aus ist. Bis dahin bleiben seine Benachrichtigungen in der App.
-
+- **Neue Wachen sind öffentlich gelistet.** Eine ab jetzt gegründete Wache erscheint von Anfang an auf der öffentlichen Discovery-Seite und bei anderen Ember-Instanzen und kann das bei ihrer Einrichtung oder unter Föderation → Einstellungen abschalten. Bestehende, importierte und übertragene Wachen behalten ihre Einstellung.
 ### Fehlerbehebungen
 
 - **Adressen in Gruppen- und Tag-Listen standen versetzt.** In den Mitgliederlisten von Gruppen und Tags stand die Adresse von jemandem mit Profilbild neben dem Bild statt unter dem Namen. Sie steht jetzt bei allen unter dem Namen.
@@ -77,6 +79,8 @@
 - **Kommentare bei Partnerwachen auf anderen Instanzen schlugen fehl.** Ein Mitglied konnte seinen eigenen Kommentar zu einer Neuigkeit oder einem Termin einer Partnerwache auf einer anderen Instanz nicht löschen und in manchen Fällen auch keinen neuen Kommentar zu einem solchen Termin schreiben. Beides funktioniert jetzt.
 - **Eigene Boards erschienen unter den Boards eines Partners.** In manchen Fällen tauchte ein Board, das eine Wache mit einer Partnerwache auf derselben Instanz geteilt hat, in ihrer eigenen Liste der Boards dieses Partners auf. Die Liste zeigt jetzt nur die Boards, die der Partner teilt.
 - **Tickets von Partnern auf anderen Instanzen ließen sich nicht abbestellen.** Ein Mitglied, das ein Ticket auf einem Board einer Partnerwache auf einer anderen Instanz beobachtete, konnte das Beobachten nicht beenden. Das funktioniert jetzt.
+- **Links zu Wachen auf der Netzwerkkarte führten ins Leere.** Auf der Karte des Discovery-Netzes öffnete der Link zu einer Wache einer anderen Instanz eine Seite, die es nicht gab. Sobald beide Instanzen diese Version nutzen, öffnet er die öffentliche Seite der Wache.
+- **Die Discovery-Seite war auf Telefonen nicht über die Fußzeile erreichbar.** Auf schmalen Bildschirmen fehlte in der Fußzeile der Link zum Wachen-Verzeichnis. Jetzt steht er bei jeder Bildschirmbreite da.
 
 ## v26.19.5
 

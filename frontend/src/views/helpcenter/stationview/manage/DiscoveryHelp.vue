@@ -8,11 +8,11 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import DiscoveryHelpSampleCard from '@/views/helpcenter/stationview/manage/discoveryhelp/DiscoveryHelpSampleCard.vue'
 
 const {t} = useI18n()
 </script>
@@ -33,53 +33,43 @@ const {t} = useI18n()
     </HelpSection>
 
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <NeutralContainer class="flex flex-col gap-2">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-[var(--bg-accent)] flex items-center justify-center">
-            <font-awesome-icon :icon="['fas', 'building']" class="text-[var(--text-muted)]"/>
-          </div>
-          <div class="min-w-0 flex-1">
-            <div class="font-medium truncate">{{ t('helpCenter.sample.stations.jfMusterstadt') }}</div>
-          </div>
-        </div>
-        <MutedText size="sm">{{ t('helpCenter.sample.stations.jfMusterstadtText') }}</MutedText>
-        <div class="flex items-center gap-2 flex-wrap mt-auto pt-2">
-          <PrimaryBadge>{{ t('discovery.ownStation') }}</PrimaryBadge>
-        </div>
-      </NeutralContainer>
-
-      <NeutralContainer class="flex flex-col gap-2">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-[var(--bg-accent)] flex items-center justify-center">
-            <font-awesome-icon :icon="['fas', 'building']" class="text-[var(--text-muted)]"/>
-          </div>
-          <div class="min-w-0 flex-1">
-            <div class="font-medium truncate">{{ t('helpCenter.sample.stations.jfBeispieldorf') }}</div>
-          </div>
-        </div>
-        <MutedText size="sm">{{ t('helpCenter.sample.stations.jfBeispieldorfText') }}</MutedText>
-        <div class="flex items-center gap-2 flex-wrap mt-auto pt-2">
-          <SuccessBadge>{{ t('discovery.alreadyConnected') }}</SuccessBadge>
-        </div>
-      </NeutralContainer>
-
-      <NeutralContainer class="flex flex-col gap-2">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-[var(--bg-accent)] flex items-center justify-center">
-            <font-awesome-icon :icon="['fas', 'building']" class="text-[var(--text-muted)]"/>
-          </div>
-          <div class="min-w-0 flex-1">
-            <div class="font-medium truncate">{{ t('helpCenter.sample.stations.jfAltenburg') }}</div>
-          </div>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap mt-auto pt-2">
-          <PrimaryButton compact disabled>
-            <font-awesome-icon :icon="['fas', 'handshake']" class="mr-1"/>
-            {{ t('discovery.connect') }}
-          </PrimaryButton>
-        </div>
-      </NeutralContainer>
+      <DiscoveryHelpSampleCard
+          :name="t('helpCenter.sample.stations.jfMusterstadt')"
+          :text="t('helpCenter.sample.stations.jfMusterstadtText')"
+      >
+        <PrimaryBadge>{{ t('discovery.ownStation') }}</PrimaryBadge>
+      </DiscoveryHelpSampleCard>
+      <DiscoveryHelpSampleCard
+          :name="t('helpCenter.sample.stations.jfBeispieldorf')"
+          :text="t('helpCenter.sample.stations.jfBeispieldorfText')"
+      >
+        <SuccessBadge>{{ t('discovery.alreadyConnected') }}</SuccessBadge>
+      </DiscoveryHelpSampleCard>
+      <DiscoveryHelpSampleCard :name="t('helpCenter.sample.stations.jfAltenburg')">
+        <PrimaryButton compact disabled>
+          <font-awesome-icon :icon="['fas', 'handshake']" class="mr-1"/>
+          {{ t('discovery.connect') }}
+        </PrimaryButton>
+      </DiscoveryHelpSampleCard>
+      <DiscoveryHelpSampleCard
+          :name="t('helpCenter.sample.stations.north')"
+          :host="t('helpCenter.discovery.sampleHost')"
+      >
+        <MutedText size="sm">
+          <font-awesome-icon :icon="['fas', 'globe']" class="mr-1"/>
+          {{ t('discovery.visitRemoteStation') }}
+        </MutedText>
+      </DiscoveryHelpSampleCard>
     </div>
+
+    <HelpSection :title="t('helpCenter.discovery.remoteTitle')">
+      <p>{{ t('helpCenter.discovery.remoteText') }}</p>
+      <p>{{ t('helpCenter.discovery.remoteListText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.discovery.searchTitle')">
+      <p>{{ t('helpCenter.discovery.searchText') }}</p>
+    </HelpSection>
 
     <HelpSection :title="t('helpCenter.discovery.settingsTitle')">
       <p>{{ t('helpCenter.discovery.settingsText') }}</p>

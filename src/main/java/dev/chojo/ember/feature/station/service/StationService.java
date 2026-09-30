@@ -112,7 +112,7 @@ public class StationService {
      * @return the created station
      */
     public Station create(String name) {
-        var station = stationRepository.create(name);
+        var station = stationRepository.create(name, DiscoveryVisibility.NEW_STATION_DEFAULT);
         federationService.ensureStationKey(station.id());
         // Auto-generate a public slug from the station name
         var slug = SlugGenerator.uniqueSlug(
@@ -130,7 +130,7 @@ public class StationService {
      * @return the created station
      */
     public Station createWithManager(String name, String managerEmail) {
-        var station = stationRepository.create(name);
+        var station = stationRepository.create(name, DiscoveryVisibility.NEW_STATION_DEFAULT);
         assignManager(station.id(), managerEmail);
         log.info("Station created with manager: id={}, name='{}', manager='{}'", station.id(), name, managerEmail);
         return station;

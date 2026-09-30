@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -49,7 +50,9 @@ public class DemoFreshStationSeeder implements DemoSeeder {
     @Override
     public void seed(DemoRunContext run) {
         var freshStation = stationRepository.create(
-                "Wache Neuhausen (Einrichtung)", UUID.fromString("00000000-0000-4000-a000-000000000002"));
+                "Wache Neuhausen (Einrichtung)",
+                UUID.fromString("00000000-0000-4000-a000-000000000002"),
+                DiscoveryVisibility.NEW_STATION_DEFAULT);
         stationRepository.updateTimezone(freshStation.id(), "Europe/Berlin");
         stationRepository.updateLocale(freshStation.id(), "de-DE");
 

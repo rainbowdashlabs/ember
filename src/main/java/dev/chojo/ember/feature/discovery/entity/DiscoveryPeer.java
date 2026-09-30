@@ -15,6 +15,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * Represents another Ember instance known to the local discovery layer.
  * Identified canonically by {@code publicKey}; {@code baseUrl} is observed and may drift over
  * time (we still pin to the key).
+ *
+ * <p>A peer whose reputation has fallen to {@link #DISTRUSTED_REPUTATION} or below is distrusted: nothing
+ * is sent to it any more and nothing it published is shown.
  */
 public record DiscoveryPeer(
         String publicKey,
@@ -29,6 +32,8 @@ public record DiscoveryPeer(
         String introducedBy,
         int reputation,
         boolean blocked) {
+
+    public static final int DISTRUSTED_REPUTATION = -50;
 
     public static RowMapping<DiscoveryPeer> map() {
         return row -> new DiscoveryPeer(

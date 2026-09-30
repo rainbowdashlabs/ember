@@ -174,7 +174,7 @@ public class SetupService {
                 STEP_KB_SEED,
                 new StepState(
                         STEP_KB_SEED, kbEnabled && knowledgeBaseRepository.existsForStation(stationId), kbEnabled));
-        map.put(STEP_FEDERATION, new StepState(STEP_FEDERATION, isFederationComplete(station), true));
+        map.put(STEP_FEDERATION, new StepState(STEP_FEDERATION, isFederationComplete(stationId, station), true));
         map.put(
                 STEP_INVITES,
                 new StepState(
@@ -202,8 +202,13 @@ public class SetupService {
         return stationRepository.findLogo(stationId).isPresent();
     }
 
-    private static boolean isFederationComplete(Station station) {
-        return notBlank(station.discoveryDescription());
+    /**
+     * The discovery step is done once the station has saved its discovery settings, which it can do
+     * with the setting it started with unchanged. A station that wrote a description before the save
+     * was recorded has plainly been there too.
+     */
+    private boolean isFederationComplete(int stationId, Station station) {
+        return stationRepository.isDiscoveryReviewed(stationId) || notBlank(station.discoveryDescription());
     }
 
     private static boolean notBlank(String s) {

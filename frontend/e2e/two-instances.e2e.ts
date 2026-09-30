@@ -5,8 +5,10 @@
  */
 import {
     expect,
+    homeBaseUrl,
     homeInternalUrl,
     homePublishedUrl,
+    instanceRequest,
     instanceRequestAs,
     peerBaseUrl,
     peerInternalUrl,
@@ -180,6 +182,53 @@ test.describe('Two instances', () => {
             expect(theirs.partnerStationId).not.toBe(invitingStation)
         } finally {
             await inviting.dispose()
+        }
+    })
+
+    /**
+     * A station the second instance publishes shows on the first instance's discovery page.
+     *
+     * <p>The first instance learns of the second as a peer, fetches its published stations into its
+     * own cache and lists them from there, marked with the instance they belong to and linked to
+     * their page on it. A station made on the second instance is listed publicly from the start,
+     * which is what puts it on the card the second instance publishes. It is made for the story
+     * because the seeded stations of the two share their identities, and a card naming a station of
+     * the first instance is one the first instance already lists as its own.
+     */
+    test('a station of the other instance is listed on the discovery page', async ({
+        peerAdminApi,
+        homeAdminApi,
+        page,
+    }) => {
+        const name = unique('E2E-Fernwache')
+        const created = await peerAdminApi.post('/api/v1/stations', {data: {name}})
+        expect(created.status()).toBe(201)
+        const {id: uid} = await created.json()
+
+        await proveFreshly(homeAdminApi)
+        const added = await homeAdminApi.post('/api/v1/admin/discovery/peers', {data: {baseUrl: peerInternalUrl()}})
+        expect(added.ok(), await added.text()).toBe(true)
+        const fetched = await homeAdminApi.post('/api/v1/admin/discovery/discover-now')
+        expect(fetched.ok(), await fetched.text()).toBe(true)
+
+        const visitor = await instanceRequest(homeBaseUrl())
+        try {
+            const listed = await visitor.get('/api/v1/public/discovery')
+            expect(listed.ok()).toBe(true)
+            const entries: {stationUid: string; instanceHost: string | null; publicPageUrl: string | null}[] =
+                await listed.json()
+            const entry = must(entries.find(e => e.stationUid === uid), 'the station of the other instance')
+            const host = new URL(peerInternalUrl()).hostname
+            expect(entry.instanceHost).toBe(host)
+            expect(entry.publicPageUrl?.startsWith(`${peerInternalUrl()}/public/station/`)).toBe(true)
+
+            await page.goto(`/discovery?q=${encodeURIComponent(name)}`)
+            await expect(page.getByText(name, {exact: true})).toBeVisible()
+            await expect(page.getByText(`Auf der Instanz ${host}`)).toBeVisible()
+            await expect(page.getByRole('link', {name: `Zur Wache ${name} auf ${host}`}))
+                .toHaveAttribute('href', must(entry.publicPageUrl, 'the link to the station'))
+        } finally {
+            await visitor.dispose()
         }
     })
 

@@ -101,8 +101,7 @@ class EventVisibilityTest {
     void aMissingEventIsNotFound() {
         var session = sessionWith(Set.of(StationPermission.USER), STATION_ID);
 
-        var refusal =
-                assertThrows(RefusalResponse.class, () -> visibility.requireVisibleEvent(session, EVENT_ID + 1));
+        var refusal = assertThrows(RefusalResponse.class, () -> visibility.requireVisibleEvent(session, EVENT_ID + 1));
         assertEquals(Refusal.EVENT_NOT_HERE, refusal.refusal());
     }
 

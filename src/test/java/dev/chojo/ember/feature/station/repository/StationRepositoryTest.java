@@ -33,7 +33,23 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertNotNull(station);
         assertTrue(station.id() > 0);
         assertEquals("Test Station", station.name());
+        assertEquals(DiscoveryVisibility.NONE, station.discoveryVisibility(), "a bare row is unlisted");
         stationId = station.id();
+    }
+
+    @Test
+    void aStationCreatedWithAVisibilityStartsWithIt() {
+        var listed = stationRepo.create("Gelistete Wache", DiscoveryVisibility.PUBLIC);
+        var fixed = stationRepo.create("Feste Wache", UUID.randomUUID(), DiscoveryVisibility.INSTANCE);
+        var unlisted = stationRepo.create("Unsichtbare Wache", UUID.randomUUID());
+
+        assertEquals(DiscoveryVisibility.PUBLIC, listed.discoveryVisibility());
+        assertEquals(DiscoveryVisibility.INSTANCE, fixed.discoveryVisibility());
+        assertEquals(DiscoveryVisibility.NONE, unlisted.discoveryVisibility());
+
+        stationRepo.delete(listed.id());
+        stationRepo.delete(fixed.id());
+        stationRepo.delete(unlisted.id());
     }
 
     @Test
