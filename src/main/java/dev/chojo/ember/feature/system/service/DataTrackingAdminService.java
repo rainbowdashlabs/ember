@@ -67,40 +67,36 @@ public class DataTrackingAdminService {
      */
     public Summary summarize() throws IOException {
         var tracking = load();
-        int totalTables = tracking.tables() == null ? 0 : tracking.tables().size();
+        int totalTables = tracking.tables().size();
         int transferTracked = 0, transferIgnored = 0, transferUnverified = 0;
         int gdprExportTracked = 0, gdprExportIgnored = 0, gdprExportUnverified = 0;
         int gdprDeletionTracked = 0, gdprDeletionIgnored = 0, gdprDeletionUnverified = 0;
         int totalColumns = 0, verifiedColumns = 0;
-        if (tracking.tables() != null) {
-            for (var t : tracking.tables().values()) {
-                if (t.stationTransfer() != null) {
-                    switch (t.stationTransfer().status()) {
-                        case TRACKED -> transferTracked++;
-                        case IGNORED -> transferIgnored++;
-                        case UNVERIFIED -> transferUnverified++;
-                    }
+        for (var t : tracking.tables().values()) {
+            if (t.stationTransfer() != null) {
+                switch (t.stationTransfer().status()) {
+                    case TRACKED -> transferTracked++;
+                    case IGNORED -> transferIgnored++;
+                    case UNVERIFIED -> transferUnverified++;
                 }
-                if (t.gdprExport() != null) {
-                    switch (t.gdprExport().status()) {
-                        case TRACKED -> gdprExportTracked++;
-                        case IGNORED -> gdprExportIgnored++;
-                        case UNVERIFIED -> gdprExportUnverified++;
-                    }
+            }
+            if (t.gdprExport() != null) {
+                switch (t.gdprExport().status()) {
+                    case TRACKED -> gdprExportTracked++;
+                    case IGNORED -> gdprExportIgnored++;
+                    case UNVERIFIED -> gdprExportUnverified++;
                 }
-                if (t.gdprDeletion() != null) {
-                    switch (t.gdprDeletion().status()) {
-                        case TRACKED -> gdprDeletionTracked++;
-                        case IGNORED -> gdprDeletionIgnored++;
-                        case UNVERIFIED -> gdprDeletionUnverified++;
-                    }
+            }
+            if (t.gdprDeletion() != null) {
+                switch (t.gdprDeletion().status()) {
+                    case TRACKED -> gdprDeletionTracked++;
+                    case IGNORED -> gdprDeletionIgnored++;
+                    case UNVERIFIED -> gdprDeletionUnverified++;
                 }
-                if (t.columns() != null) {
-                    for (var c : t.columns()) {
-                        totalColumns++;
-                        if (c.verified()) verifiedColumns++;
-                    }
-                }
+            }
+            for (var c : t.columns()) {
+                totalColumns++;
+                if (c.verified()) verifiedColumns++;
             }
         }
         return new Summary(
@@ -118,7 +114,7 @@ public class DataTrackingAdminService {
      */
     public TableEntry updateTable(String tableName, TableUpdate update) throws IOException {
         var tracking = load();
-        var existing = tracking.tables() == null ? null : tracking.tables().get(tableName);
+        var existing = tracking.tables().get(tableName);
         if (existing == null) throw new BadRequestResponse("Unknown table: " + tableName);
 
         // Build the new column list - only the verified flags can change here. Descriptions are
@@ -136,9 +132,7 @@ public class DataTrackingAdminService {
                 ? new TransferContext(
                         update.stationTransfer().status(),
                         update.stationTransfer().reason(),
-                        update.stationTransfer().ignoredColumns() == null
-                                ? List.of()
-                                : List.copyOf(update.stationTransfer().ignoredColumns()),
+                        List.copyOf(update.stationTransfer().ignoredColumns()),
                         update.stationTransfer().rationale())
                 : existing.stationTransfer();
 
@@ -146,21 +140,15 @@ public class DataTrackingAdminService {
                 ? new GdprExportContext(
                         update.gdprExport().status(),
                         update.gdprExport().reason(),
-                        update.gdprExport().identityColumns() == null
-                                ? List.of()
-                                : List.copyOf(update.gdprExport().identityColumns()),
-                        update.gdprExport().ignoredColumns() == null
-                                ? List.of()
-                                : List.copyOf(update.gdprExport().ignoredColumns()))
+                        List.copyOf(update.gdprExport().identityColumns()),
+                        List.copyOf(update.gdprExport().ignoredColumns()))
                 : existing.gdprExport();
 
         GdprDeletionContext newGdprDeletion = update.gdprDeletion() != null
                 ? new GdprDeletionContext(
                         update.gdprDeletion().status(),
                         update.gdprDeletion().reason(),
-                        update.gdprDeletion().strategies() == null
-                                ? List.of()
-                                : List.copyOf(update.gdprDeletion().strategies()))
+                        List.copyOf(update.gdprDeletion().strategies()))
                 : existing.gdprDeletion();
 
         TableEntry updated = new TableEntry(
@@ -193,7 +181,7 @@ public class DataTrackingAdminService {
      */
     public TableEntry verifyAllColumns(String tableName) throws IOException {
         var tracking = load();
-        var existing = tracking.tables() == null ? null : tracking.tables().get(tableName);
+        var existing = tracking.tables().get(tableName);
         if (existing == null) throw new BadRequestResponse("Unknown table: " + tableName);
 
         Map<String, Boolean> overrides = new LinkedHashMap<>();

@@ -18,7 +18,8 @@ import java.util.List;
  * @param columns         list of columns with per-column verification status
  * @param foreignKeys     FK metadata used by the generic export/import engine to derive scope paths
  * @param lookups         join-flattened fields the export engine should add to each row by following a
- *                        foreign key to another table; {@code null} when no lookups are configured
+ *                        foreign key to another table; empty when no lookups are configured, and then
+ *                        left out of the file
  * @param outputShape     how rows are emitted on the wire ({@code ROWS} by default, {@code SINGLE} for
  *                        one-row-per-station tables, {@code FLAT} for single-column lists)
  * @param flatField       column name to extract when {@code outputShape == FLAT}
@@ -30,6 +31,9 @@ import java.util.List;
  * @param gdprDeletion    coverage status for GDPR deletion
  * @param description     {@code COMMENT ON TABLE} text mirrored from the live schema. Intentionally excluded
  *                        from {@link HashComputer} so editing a comment does not flip verification flags.
+ *
+ * <p>The lists are never null: a list the file leaves out is read as empty, so no caller has to
+ * guard against a missing one.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record TableEntry(
@@ -38,7 +42,7 @@ public record TableEntry(
         String tableHash,
         List<ColumnEntry> columns,
         List<ForeignKey> foreignKeys,
-        List<Lookup> lookups,
+        @JsonInclude(JsonInclude.Include.NON_EMPTY) List<Lookup> lookups,
         OutputShape outputShape,
         String flatField,
         CustomScope customScope,
@@ -46,6 +50,12 @@ public record TableEntry(
         GdprExportContext gdprExport,
         GdprDeletionContext gdprDeletion,
         String description) {
+
+    public TableEntry {
+        columns = columns == null ? List.of() : columns;
+        foreignKeys = foreignKeys == null ? List.of() : foreignKeys;
+        lookups = lookups == null ? List.of() : lookups;
+    }
 
     /**
      * Backwards-compatible constructor for callers that don't supply a description.
@@ -111,6 +121,21 @@ public record TableEntry(
                 gdprExport,
                 gdprDeletion,
                 description);
+    }
+
+    /**
+     * The tracked foreign key on {@code column}.
+     *
+     * @throws IllegalStateException when no foreign key is tracked on that column, which means a
+     *                               lookup names a column it cannot follow
+     */
+    public ForeignKey foreignKeyFor(String column) {
+        return foreignKeys.stream()
+                .filter(fk -> column.equals(fk.column()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No foreign key is tracked on column '" + column
+                        + "'; the tracked ones are on "
+                        + foreignKeys.stream().map(ForeignKey::column).toList()));
     }
 
     /**

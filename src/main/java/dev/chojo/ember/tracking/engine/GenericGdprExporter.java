@@ -9,11 +9,9 @@ import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.tracking.ColumnEntry;
 import dev.chojo.ember.tracking.DataTracking;
-import dev.chojo.ember.tracking.ForeignKey;
 import dev.chojo.ember.tracking.GdprExportContext;
 import dev.chojo.ember.tracking.IdentityColumn;
 import dev.chojo.ember.tracking.IdentityType;
-import dev.chojo.ember.tracking.Lookup;
 import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
 
@@ -52,10 +50,9 @@ public final class GenericGdprExporter {
      */
     private static List<IdentityColumn> matchingIdentityColumns(
             GdprExportContext ctx, IdentityType type, TableEntry table) {
-        if (ctx.identityColumns() == null) return List.of();
         List<IdentityColumn> result = new ArrayList<>();
         Set<String> known = new java.util.HashSet<>();
-        if (table.columns() != null) for (var c : table.columns()) known.add(c.name());
+        for (var c : table.columns()) known.add(c.name());
         for (var ic : ctx.identityColumns()) {
             if (ic.type() == type && known.contains(ic.column())) result.add(ic);
         }
@@ -68,7 +65,8 @@ public final class GenericGdprExporter {
             List<IdentityColumn> matching,
             GdprExportContext ctx,
             IdentityType type) {
-        Set<String> ignored = Set.copyOf(ctx.ignoredColumns() == null ? List.of() : ctx.ignoredColumns());
+        Set<String> ignored = Set.copyOf(ctx.ignoredColumns());
+        var lookups = LookupSql.of(tableName, table);
 
         var sb = new StringBuilder("SELECT ");
         boolean firstCol = true;
@@ -79,35 +77,9 @@ public final class GenericGdprExporter {
             sb.append("t.").append(col.name());
         }
 
-        // Optional Lookup-flattened columns (account_email etc.) - same as the transfer exporter.
-        List<Lookup> lookups = table.lookups() == null ? List.of() : table.lookups();
-        for (int i = 0; i < lookups.size(); i++) {
-            var lk = lookups.get(i);
-            sb.append(", lk")
-                    .append(i)
-                    .append('.')
-                    .append(lk.pick())
-                    .append(" AS ")
-                    .append(lk.emitAs());
-        }
-
+        lookups.appendSelect(sb);
         sb.append(" FROM ").append(tableName).append(" t");
-
-        for (int i = 0; i < lookups.size(); i++) {
-            var lk = lookups.get(i);
-            ForeignKey fk = findFk(table, lk.via());
-            if (fk == null) continue;
-            sb.append(" LEFT JOIN ")
-                    .append(fk.refTable())
-                    .append(" lk")
-                    .append(i)
-                    .append(" ON t.")
-                    .append(lk.via())
-                    .append(" = lk")
-                    .append(i)
-                    .append('.')
-                    .append(fk.refColumn());
-        }
+        lookups.appendJoins(sb);
 
         // UUID columns require an explicit cast on the bind, otherwise the JDBC parameter is
         // treated as varchar and PG rejects the comparison.
@@ -125,13 +97,6 @@ public final class GenericGdprExporter {
         return sb.toString();
     }
 
-    private static ForeignKey findFk(TableEntry table, String column) {
-        if (table.foreignKeys() != null) {
-            for (var fk : table.foreignKeys()) if (column.equals(fk.column())) return fk;
-        }
-        return null;
-    }
-
     /**
      * Returns every TRACKED row matching the given identity. Keyed by table name; the value is the
      * list of rows (column → value). Tables without any matching identity column for {@code type}
@@ -139,8 +104,6 @@ public final class GenericGdprExporter {
      */
     public Map<String, List<Map<String, Object>>> exportByIdentity(IdentityType type, Object identityValue) {
         Map<String, List<Map<String, Object>>> result = new LinkedHashMap<>();
-        if (tracking.tables() == null) return result;
-
         for (var entry : tracking.tables().entrySet()) {
             String tableName = entry.getKey();
             TableEntry table = entry.getValue();

@@ -19,6 +19,10 @@ import java.util.List;
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public record TransferContext(Status status, String reason, List<String> ignoredColumns, String rationale) {
+    public TransferContext {
+        ignoredColumns = ignoredColumns == null ? List.of() : ignoredColumns;
+    }
+
     public static TransferContext unverified() {
         return new TransferContext(Status.UNVERIFIED, null, List.of(), null);
     }

@@ -8,8 +8,6 @@ package dev.chojo.ember.tracking.engine;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.tracking.CustomScope;
 import dev.chojo.ember.tracking.DataTracking;
-import dev.chojo.ember.tracking.ForeignKey;
-import dev.chojo.ember.tracking.Lookup;
 import dev.chojo.ember.tracking.OutputShape;
 import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
@@ -46,51 +44,16 @@ public final class GenericTableExporter {
         this.scopeResolver = new StationScopeResolver(tracking);
     }
 
-    private static void appendSelect(StringBuilder sb, List<String> columns, List<Lookup> lookups) {
+    private static void appendSelect(StringBuilder sb, List<String> columns, LookupSql lookups) {
         for (int i = 0; i < columns.size(); i++) {
             if (i > 0) sb.append(", ");
             sb.append("t.").append(columns.get(i));
         }
-        for (int i = 0; i < lookups.size(); i++) {
-            var lk = lookups.get(i);
-            sb.append(", lk")
-                    .append(i)
-                    .append('.')
-                    .append(lk.pick())
-                    .append(" AS ")
-                    .append(lk.emitAs());
-        }
-    }
-
-    private static void appendLookupJoins(StringBuilder sb, TableEntry table, List<Lookup> lookups) {
-        for (int i = 0; i < lookups.size(); i++) {
-            var lk = lookups.get(i);
-            ForeignKey fk = findFk(table, lk.via());
-            sb.append(" LEFT JOIN ")
-                    .append(fk.refTable())
-                    .append(" lk")
-                    .append(i)
-                    .append(" ON t.")
-                    .append(lk.via())
-                    .append(" = lk")
-                    .append(i)
-                    .append('.')
-                    .append(fk.refColumn());
-        }
+        lookups.appendSelect(sb);
     }
 
     private static void appendOrderAndPagination(StringBuilder sb, List<String> columns) {
         sb.append(" ORDER BY t.").append(columns.get(0)).append(" OFFSET :offset LIMIT :limit");
-    }
-
-    private static ForeignKey findFk(TableEntry table, String column) {
-        if (table.foreignKeys() != null) {
-            for (var fk : table.foreignKeys()) {
-                if (column.equals(fk.column())) return fk;
-            }
-        }
-        throw new IllegalStateException(
-                "Lookup references FK column '" + column + "' on " + table + " but no such FK is tracked");
     }
 
     /**
@@ -104,7 +67,7 @@ public final class GenericTableExporter {
                     + (transfer == null ? "null" : transfer.status()) + ")");
         }
 
-        Set<String> ignored = Set.copyOf(transfer.ignoredColumns() == null ? List.of() : transfer.ignoredColumns());
+        Set<String> ignored = Set.copyOf(transfer.ignoredColumns());
         List<String> selectableColumns = new ArrayList<>();
         for (var col : table.columns()) {
             if (!ignored.contains(col.name())) selectableColumns.add(col.name());
@@ -113,10 +76,10 @@ public final class GenericTableExporter {
             throw new IllegalStateException("Table " + tableName + " has no exportable columns after ignoredColumns");
         }
 
-        List<Lookup> lookups = table.lookups() == null ? List.of() : table.lookups();
+        var lookups = LookupSql.of(tableName, table);
         String sql = table.customScope() != null
-                ? buildCustomScopeSql(table, tableName, selectableColumns, lookups, table.customScope())
-                : buildDirectScopeSql(table, tableName, selectableColumns, lookups);
+                ? buildCustomScopeSql(tableName, selectableColumns, lookups, table.customScope())
+                : buildDirectScopeSql(tableName, selectableColumns, lookups);
         return runQuery(sql, stationId, offset, limit);
     }
 
@@ -147,12 +110,12 @@ public final class GenericTableExporter {
     }
 
     private TableEntry tableEntry(String tableName) {
-        var t = tracking.tables() == null ? null : tracking.tables().get(tableName);
+        var t = tracking.tables().get(tableName);
         if (t == null) throw new IllegalArgumentException("Unknown table: " + tableName);
         return t;
     }
 
-    private String buildDirectScopeSql(TableEntry table, String tableName, List<String> columns, List<Lookup> lookups) {
+    private String buildDirectScopeSql(String tableName, List<String> columns, LookupSql lookups) {
         var scope = scopeResolver
                 .resolve(tableName)
                 .orElseThrow(() ->
@@ -182,7 +145,7 @@ public final class GenericTableExporter {
                     .append('.')
                     .append(join.fk().refColumn());
         }
-        appendLookupJoins(sb, table, lookups);
+        lookups.appendJoins(sb);
         sb.append(" WHERE ")
                 .append(tableAlias.get(scope.terminalTable()))
                 .append('.')
@@ -193,11 +156,11 @@ public final class GenericTableExporter {
     }
 
     private String buildCustomScopeSql(
-            TableEntry table, String tableName, List<String> columns, List<Lookup> lookups, CustomScope customScope) {
+            String tableName, List<String> columns, LookupSql lookups, CustomScope customScope) {
         var sb = new StringBuilder("SELECT ");
         appendSelect(sb, columns, lookups);
         sb.append(" FROM ").append(tableName).append(" t");
-        appendLookupJoins(sb, table, lookups);
+        lookups.appendJoins(sb);
         sb.append(" WHERE ").append(buildCustomScopeFilter(customScope, "t", 0));
         appendOrderAndPagination(sb, columns);
         return sb.toString();
@@ -220,7 +183,7 @@ public final class GenericTableExporter {
         sb.append(vt).append('.').append(customScope.viaColumn());
         sb.append(" FROM ").append(customScope.viaTable()).append(' ').append(vt);
 
-        var via = tracking.tables() == null ? null : tracking.tables().get(customScope.viaTable());
+        var via = tracking.tables().get(customScope.viaTable());
         if (via != null && via.customScope() != null) {
             sb.append(" WHERE ").append(buildCustomScopeFilter(via.customScope(), vt, depth + 1));
             sb.append(" AND ")

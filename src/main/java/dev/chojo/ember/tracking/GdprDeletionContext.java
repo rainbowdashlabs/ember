@@ -18,6 +18,10 @@ import java.util.List;
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public record GdprDeletionContext(Status status, String reason, List<DeletionStrategy> strategies) {
+    public GdprDeletionContext {
+        strategies = strategies == null ? List.of() : strategies;
+    }
+
     public static GdprDeletionContext unverified() {
         return new GdprDeletionContext(Status.UNVERIFIED, null, List.of());
     }

@@ -20,6 +20,11 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public record GdprExportContext(
         Status status, String reason, List<IdentityColumn> identityColumns, List<String> ignoredColumns) {
+    public GdprExportContext {
+        identityColumns = identityColumns == null ? List.of() : identityColumns;
+        ignoredColumns = ignoredColumns == null ? List.of() : ignoredColumns;
+    }
+
     public static GdprExportContext unverified() {
         return new GdprExportContext(Status.UNVERIFIED, null, List.of(), List.of());
     }

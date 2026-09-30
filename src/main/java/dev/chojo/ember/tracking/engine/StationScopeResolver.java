@@ -49,7 +49,6 @@ public final class StationScopeResolver {
     }
 
     private static boolean hasStationIdColumn(TableEntry table) {
-        if (table.columns() == null) return false;
         for (var c : table.columns()) {
             if (STATION_ID_COLUMN.equals(c.name())) return true;
         }
@@ -75,7 +74,7 @@ public final class StationScopeResolver {
      * or empty when no such path exists.
      */
     public Optional<ScopePath> resolve(String tableName) {
-        var table = tracking.tables() == null ? null : tracking.tables().get(tableName);
+        var table = tracking.tables().get(tableName);
         if (table == null) return Optional.empty();
 
         if (STATION_TABLE.equals(tableName)) {
@@ -95,7 +94,7 @@ public final class StationScopeResolver {
         while (!queue.isEmpty()) {
             String current = queue.poll();
             var entry = tracking.tables().get(current);
-            if (entry == null || entry.foreignKeys() == null) continue;
+            if (entry == null) continue;
 
             for (ForeignKey fk : entry.foreignKeys()) {
                 String ref = fk.refTable();

@@ -67,25 +67,16 @@ public final class GenericTableImporter {
     }
 
     private String lookupColumnType(String tableName, String columnName) {
-        var t = tracking.tables() == null ? null : tracking.tables().get(tableName);
-        if (t == null || t.columns() == null) return null;
+        var t = tracking.tables().get(tableName);
+        if (t == null) return null;
         for (ColumnEntry col : t.columns()) {
             if (col.name().equals(columnName)) return col.type();
         }
         return null;
     }
 
-    private static ForeignKey findFk(TableEntry table, String column) {
-        if (table.foreignKeys() != null) {
-            for (var fk : table.foreignKeys()) if (column.equals(fk.column())) return fk;
-        }
-        return null;
-    }
-
     private static ColumnEntry findColumn(TableEntry table, String column) {
-        if (table.columns() != null) {
-            for (var c : table.columns()) if (column.equals(c.name())) return c;
-        }
+        for (var c : table.columns()) if (column.equals(c.name())) return c;
         return null;
     }
 
@@ -230,10 +221,7 @@ public final class GenericTableImporter {
      */
     public int importRows(int stationId, String tableName, List<Map<String, Object>> rows, IdRemapper idMap) {
         TableEntry table = tableEntry(tableName);
-        Set<String> ignored = Set.copyOf(
-                table.stationTransfer().ignoredColumns() == null
-                        ? List.of()
-                        : table.stationTransfer().ignoredColumns());
+        Set<String> ignored = Set.copyOf(table.stationTransfer().ignoredColumns());
         boolean hasIdPk = hasIntegerIdPk(table);
 
         int imported = 0;
@@ -258,7 +246,7 @@ public final class GenericTableImporter {
     }
 
     private TableEntry tableEntry(String tableName) {
-        var t = tracking.tables() == null ? null : tracking.tables().get(tableName);
+        var t = tracking.tables().get(tableName);
         if (t == null) throw new IllegalArgumentException("Unknown table: " + tableName);
         return t;
     }
@@ -266,6 +254,15 @@ public final class GenericTableImporter {
     /**
      * Populates {@code bind} for the given row. Returns {@code false} when a required FK can't be
      * remapped, signalling the caller to skip this row.
+     *
+     * <p>The station id comes from the import, not the row. Foreign keys are remapped through
+     * {@code idMap}, falling back to a lookup-emitted value (such as an account's email) before the
+     * row is given up. A foreign key whose own column is ignored is then resolved from the lookup
+     * field that carries its key. Everything else is copied as it stands.
+     *
+     * <p>A null source value leaves its column out of the insert, so the database fills in null or
+     * the column default. Binding a typed null through JDBC would arrive as varchar, which the
+     * database rejects against integer, jsonb and uuid columns.
      */
     private boolean tryBindRow(
             TableEntry table,
@@ -275,53 +272,40 @@ public final class GenericTableImporter {
             Set<String> ignored,
             IdRemapper idMap,
             Map<String, BoundValue> bind) {
-        // 1. station_id from context (if the table has it).
         ColumnEntry stationIdCol = findColumn(table, "station_id");
         if (stationIdCol != null) {
             bind.put("station_id", new BoundValue(stationId, "int4"));
         }
 
-        // 2. FK columns: remap via IdRemapper.
-        if (table.foreignKeys() != null) {
-            for (ForeignKey fk : table.foreignKeys()) {
-                if ("station_id".equals(fk.column())) continue;
-                Object sourceVal = row.get(fk.column());
-                if (sourceVal == null) continue;
-                Integer src = toInteger(sourceVal);
-                if (src == null) continue;
-                Integer mapped = idMap.get(fk.refTable(), src);
-                if (mapped == null || mapped <= 0) {
-                    // Try lookup-emitted alternative (e.g. account_email) before giving up.
-                    Integer viaLookup = tryResolveViaLookup(table, fk.column(), row);
-                    if (viaLookup != null) {
-                        bind.put(fk.column(), new BoundValue(viaLookup, "int4"));
-                        continue;
-                    }
-                    return false;
+        for (ForeignKey fk : table.foreignKeys()) {
+            if ("station_id".equals(fk.column())) continue;
+            Object sourceVal = row.get(fk.column());
+            if (sourceVal == null) continue;
+            Integer src = toInteger(sourceVal);
+            if (src == null) continue;
+            Integer mapped = idMap.get(fk.refTable(), src);
+            if (mapped == null || mapped <= 0) {
+                Integer viaLookup = tryResolveViaLookup(table, fk.column(), row);
+                if (viaLookup != null) {
+                    bind.put(fk.column(), new BoundValue(viaLookup, "int4"));
+                    continue;
                 }
-                bind.put(fk.column(), new BoundValue(mapped, "int4"));
+                return false;
+            }
+            bind.put(fk.column(), new BoundValue(mapped, "int4"));
+        }
+
+        for (Lookup lk : table.lookups()) {
+            if (bind.containsKey(lk.via())) continue;
+            Object pickedValue = row.get(lk.emitAs());
+            if (pickedValue == null) continue;
+            ForeignKey fk = table.foreignKeyFor(lk.via());
+            Integer resolvedId = resolveByColumn(fk.refTable(), lk.pick(), pickedValue);
+            if (resolvedId != null) {
+                bind.put(lk.via(), new BoundValue(resolvedId, "int4"));
             }
         }
 
-        // 3. Lookup-driven FKs (column is ignored, but lookup emit field carries the lookup key).
-        if (table.lookups() != null) {
-            for (Lookup lk : table.lookups()) {
-                if (bind.containsKey(lk.via())) continue; // already resolved above
-                Object pickedValue = row.get(lk.emitAs());
-                if (pickedValue == null) continue;
-                ForeignKey fk = findFk(table, lk.via());
-                if (fk == null) continue;
-                Integer resolvedId = resolveByColumn(fk.refTable(), lk.pick(), pickedValue);
-                if (resolvedId != null) {
-                    bind.put(lk.via(), new BoundValue(resolvedId, "int4"));
-                }
-            }
-        }
-
-        // 4. Remaining writable columns. Null source values are skipped entirely so the column is
-        // omitted from the INSERT - PostgreSQL fills in NULL (for nullable columns) or the column
-        // default (for non-null columns with a DEFAULT). Binding a typed null through JDBC would
-        // otherwise be coerced to varchar and PG would reject it against int/jsonb/uuid columns.
         for (ColumnEntry col : table.columns()) {
             String name = col.name();
             if (name.equals("id")) continue;
@@ -337,13 +321,11 @@ public final class GenericTableImporter {
     }
 
     private Integer tryResolveViaLookup(TableEntry table, String fkColumn, Map<String, Object> row) {
-        if (table.lookups() == null) return null;
         for (Lookup lk : table.lookups()) {
             if (!lk.via().equals(fkColumn)) continue;
             Object pickedValue = row.get(lk.emitAs());
             if (pickedValue == null) continue;
-            ForeignKey fk = findFk(table, lk.via());
-            if (fk == null) continue;
+            ForeignKey fk = table.foreignKeyFor(lk.via());
             Integer resolved = resolveByColumn(fk.refTable(), lk.pick(), pickedValue);
             if (resolved != null) return resolved;
         }

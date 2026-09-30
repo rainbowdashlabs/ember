@@ -28,6 +28,11 @@ public record DataTracking(
         Map<String, TableEntry> tables,
         Map<String, FileStoreEntry> fileStores) {
 
+    public DataTracking {
+        tables = tables == null ? Map.of() : tables;
+        fileStores = fileStores == null ? Map.of() : fileStores;
+    }
+
     public static final int CURRENT_VERSION = 1;
     public static final String RESOURCE_PATH = "/data_tracking.json";
 }
