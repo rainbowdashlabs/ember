@@ -61,7 +61,6 @@ function getAiParams() {
   const panel = aiSettingsRef.value
   return {
     provider: panel?.getProvider() ?? 'openai',
-    apiKey: panel?.getTransientKey() || null,
     model: panel?.getModel() || null,
   }
 }

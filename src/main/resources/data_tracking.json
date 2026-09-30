@@ -611,6 +611,83 @@
       },
       "description": "WebAuthn/FIDO2 credential storage. Multiple rows per account for multiple security keys."
     },
+    "account_ai_credential": {
+      "feature": "quiz",
+      "scope": "USER",
+      "tableHash": "sha256:d0ae9791d20597971995ae13bfe26f7f7aae287c878cbb62bdf0d6948c6296b0",
+      "columns": [
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The account the key belongs to. Deleted with the account."
+        },
+        {
+          "name": "provider",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Which AI provider the key is for (openai, gemini, claude)."
+        },
+        {
+          "name": "model",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The model to ask by default. NULL for the provider default."
+        },
+        {
+          "name": "api_key",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The key, encrypted with the instance credential key (enc:v1: prefix). Never sent back to a browser and never exported."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the key or its settings were last saved."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A personal key belongs to the account, not to a station, and is encrypted with this instance's key"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "account_id"
+          }
+        ],
+        "ignoredColumns": [
+          "api_key"
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "account_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on account delete"
+          }
+        ]
+      },
+      "description": "The AI provider key a person keeps for generating quiz content, one per account. It follows them to every browser and every station they work at."
+    },
     "account_credential": {
       "feature": "account",
       "scope": "USER",

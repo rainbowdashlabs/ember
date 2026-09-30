@@ -178,33 +178,6 @@
       }
     },
     {
-      "key": "ai_provider",
-      "necessity": "FUNCTIONAL",
-      "retention": "UNTIL_CLEARED",
-      "purpose": {
-        "de": "Der im Fragen-Generator zuletzt gewählte Anbieter künstlicher Intelligenz.",
-        "en": "The artificial intelligence provider last selected in the question generator."
-      }
-    },
-    {
-      "key": "ai_model",
-      "necessity": "FUNCTIONAL",
-      "retention": "UNTIL_CLEARED",
-      "purpose": {
-        "de": "Das im Fragen-Generator zuletzt gewählte Modell des Anbieters.",
-        "en": "The provider model last selected in the question generator."
-      }
-    },
-    {
-      "key": "ai_api_key",
-      "necessity": "FUNCTIONAL",
-      "retention": "UNTIL_CLEARED",
-      "purpose": {
-        "de": "Der Zugangsschlüssel für den Anbieter künstlicher Intelligenz, sofern Sie ihn nicht dauerhaft in der Wache hinterlegen. Er bleibt in Ihrem Browser und wird nur beim Erzeugen von Fragen an den Server und von dort an den Anbieter übergeben.",
-        "en": "The access key for the artificial intelligence provider, where you have not stored it permanently in the station. It stays in your browser and is passed to the server, and from there to the provider, only when questions are generated."
-      }
-    },
-    {
       "key": "instance_theme",
       "necessity": "FUNCTIONAL",
       "retention": "UNTIL_CLEARED",

@@ -168,7 +168,7 @@ public class AiRoutes implements Routes {
         String provider = ctx.pathParam("provider");
         var req = ctx.bodyAsClass(TransientKeyRequest.class);
         try {
-            var models = aiService.fetchModels(session.stationId(), provider, req.apiKey());
+            var models = aiService.fetchModels(session.stationId(), session.accountId(), provider, req.apiKey());
             ctx.json(models);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument fetching AI models for provider {}", provider, e);
@@ -201,6 +201,7 @@ public class AiRoutes implements Routes {
         try {
             var results = aiService.generate(
                     session.stationId(),
+                    session.accountId(),
                     req.provider() != null ? req.provider() : "openai",
                     req.apiKey(),
                     req.model(),
@@ -270,6 +271,7 @@ public class AiRoutes implements Routes {
                     // Create one session per entry type - context accumulates across turns
                     var chatSession = aiService.createQuestionSession(
                             session.stationId(),
+                            session.accountId(),
                             provider,
                             req.apiKey(),
                             req.model(),
@@ -365,6 +367,7 @@ public class AiRoutes implements Routes {
 
                 var newAnswers = aiService.generate(
                         session.stationId(),
+                        session.accountId(),
                         provider,
                         req.apiKey(),
                         req.model(),

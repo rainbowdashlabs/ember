@@ -4855,6 +4855,16 @@ public enum Refusal {
     REMOTE_QUIZ_CATALOG_NOT_SHARED(
             Area.QUIZZES, 69, HttpStatus.NOT_FOUND, "No catalog here is shared with you under that number"),
 
+    /** A personal AI key saved for a provider this instance cannot call. */
+    AI_KEY_PROVIDER_UNKNOWN(
+            Area.QUIZZES, 70, HttpStatus.BAD_REQUEST, "That AI provider is not one this instance can use"),
+
+    /**
+     * A personal AI setting saved without a key, where none is stored for that provider to keep: the
+     * first save, a change of provider, or a stored key that no longer opens.
+     */
+    AI_KEY_MISSING(Area.QUIZZES, 71, HttpStatus.BAD_REQUEST, "Enter the key for this provider, so nothing was saved"),
+
     /** A procedure nobody but the people it was handed to may open, read by somebody else. */
     PROCEDURE_NOT_PUBLIC(Area.PROCEDURES, 1, HttpStatus.FORBIDDEN, Sentences.PROCEDURE_NOT_YOURS),
 

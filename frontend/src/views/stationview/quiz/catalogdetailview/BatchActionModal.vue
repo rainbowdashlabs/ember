@@ -18,7 +18,7 @@ import BatchGenerateOptions from '@/views/stationview/quiz/catalogdetailview/bat
 import {QuizQuestionTypes, type QuizCategory, type QuizQuestion} from '@/api/quiz'
 import {quiz, ai} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {type AiCredentials, readAiCredentials} from '@/util/aiCredentials'
+import {type AiCredentials, loadAiCredentials} from '@/util/aiCredentials'
 import {reportCaughtError} from '@/util/devErrorReporter'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
@@ -150,7 +150,6 @@ async function regenerateQuestion(q: QuizQuestion, prompt: string, credentials: 
   const type = q.quizQuestionType
   const jobId = await ai.startGenerateQuestions({
     provider: credentials.provider,
-    apiKey: credentials.apiKey,
     model: credentials.model || null,
     userPrompt: prompt, catalogId: props.catalogId,
     entries: [{questionType: type, count: 1, categoryId: q.categoryId}],
@@ -177,8 +176,8 @@ async function regenerateQuestion(q: QuizQuestion, prompt: string, credentials: 
  * and no report is offered for it.
  */
 async function batchGenerate(targets: QuizQuestion[]): Promise<unknown> {
-  const credentials = readAiCredentials()
-  if (!credentials.apiKey) {
+  const credentials = await loadAiCredentials()
+  if (!credentials.available) {
     emit('error', {
       kind: FailureKind.REJECTED,
       message: t('quiz.ai.noKeyConfigured'),

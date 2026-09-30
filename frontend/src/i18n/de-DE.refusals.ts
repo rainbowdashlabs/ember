@@ -1479,6 +1479,8 @@ export default {
     'Q-067': 'Sag, was und wie viel generiert werden soll, es wurde nichts generiert',
     'Q-068': 'Diese Generierung gibt es nicht mehr, ihre Fragen lassen sich nicht mehr abholen',
     'Q-069': 'Unter dieser Nummer ist hier kein Katalog mit dir geteilt',
+    'Q-070': 'Diesen KI-Anbieter kann diese Instanz nicht verwenden',
+    'Q-071': 'Gib den Schlüssel für diesen Anbieter ein, es wurde nichts gespeichert',
 
     'R-001': PROCEDURE_NOT_YOURS,
     'R-002': PROCEDURE_NOT_YOURS,

@@ -25,7 +25,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import AiSettingsPanel from './cataloggenerateview/AiSettingsPanel.vue'
 import {quiz, ai} from '@/api'
-import {type AiCredentials, readAiCredentials} from '@/util/aiCredentials'
+import {type AiCredentials, loadAiCredentials} from '@/util/aiCredentials'
 import {useSession} from '@/composables/useSession'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {QuizQuestionTypes, type QuizQuestion} from '@/api/quiz'
@@ -94,7 +94,6 @@ async function buildReviewItem(q: QuizQuestion, credentials: AiCredentials): Pro
 
   const results = await ai.generate({
     provider: credentials.provider,
-    apiKey: credentials.apiKey,
     model: credentials.model || null,
     question: q.title,
     correctAnswer: correctAnswers.join(', '),
@@ -122,18 +121,17 @@ async function buildReviewItem(q: QuizQuestion, credentials: AiCredentials): Pro
  * offering a report.
  */
 async function generate() {
-  const credentials = readAiCredentials()
   noKey.value = false
-  if (!credentials.apiKey) {
-    noKey.value = true
-    return
-  }
-
   generating.value = true
   failure.value = null
   reviewItems.value = []
 
   try {
+    const credentials = await loadAiCredentials()
+    if (!credentials.available) {
+      noKey.value = true
+      return
+    }
     const questions = await quiz.listQuestions(catalogId.value)
     const mcQuestions = questions.filter(q => q.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE)
     let done = 0

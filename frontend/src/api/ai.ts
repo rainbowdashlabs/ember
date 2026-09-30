@@ -24,6 +24,40 @@ export interface AiModel {
     name: string
 }
 
+/**
+ * What a person may see of their own AI key: never the key itself, only which provider and model it
+ * is for and its last four characters. {@code usable} is false where no key is stored, or where the
+ * stored one no longer opens and has to be entered again.
+ */
+export interface AiCredentialSummary {
+    provider: string | null
+    model: string | null
+    usable: boolean
+    keyEnding: string | null
+}
+
+export async function getAiCredential(): Promise<AiCredentialSummary> {
+    const res = await client.get<AiCredentialSummary>('/account/ai-credential')
+    return res.data
+}
+
+/**
+ * Saves the person's own key, encrypted on the server. Without a key the stored one is kept, which
+ * works for the provider it was stored for.
+ */
+export async function saveAiCredential(data: {
+    provider: string
+    model?: string | null
+    apiKey?: string | null
+}): Promise<AiCredentialSummary> {
+    const res = await client.put<AiCredentialSummary>('/account/ai-credential', data)
+    return res.data
+}
+
+export async function deleteAiCredential(): Promise<void> {
+    await client.delete('/account/ai-credential')
+}
+
 export async function getSettings(): Promise<AiSettings> {
     const res = await client.get<AiSettings>('/ai/settings')
     return res.data

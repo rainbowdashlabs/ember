@@ -16,7 +16,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import {ai} from '@/api'
-import {getItem} from '@/api/storage'
+import {loadAiCredentials} from '@/util/aiCredentials'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 
@@ -59,11 +59,8 @@ const {running: aiGenerating, failure: aiFailure, run: generateWrongAnswers} = u
   const correctAnswer = options.filter(o => o.correct).map(o => o.text).join(', ')
   if (!correctAnswer || !props.questionTitle) return
 
-  const provider = getItem('ai_provider') || 'openai'
-  const apiKey = getItem('ai_api_key') || ''
-  const model = getItem('ai_model') || ''
-
-  if (!apiKey) {
+  const {provider, model, available} = await loadAiCredentials()
+  if (!available) {
     noKey.value = true
     return
   }
@@ -74,7 +71,7 @@ const {running: aiGenerating, failure: aiFailure, run: generateWrongAnswers} = u
   if (count <= 0) return
 
   const results = await ai.generate({
-    provider, apiKey, model: model || null,
+    provider, model: model || null,
     question: props.questionTitle, correctAnswer, count,
   })
   if (results.length > 0) {

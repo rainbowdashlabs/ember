@@ -48,11 +48,14 @@ public class AiService {
 
     private final AiProviderRepository providerRepository;
     private final AiClientFactory clients;
+    private final AiCredentialService credentials;
 
     @Inject
-    public AiService(AiProviderRepository providerRepository, AiClientFactory clients) {
+    public AiService(
+            AiProviderRepository providerRepository, AiClientFactory clients, AiCredentialService credentials) {
         this.providerRepository = providerRepository;
         this.clients = clients;
+        this.credentials = credentials;
     }
 
     private static boolean isChatModel(String id) {
@@ -116,6 +119,7 @@ public class AiService {
      */
     public ChatSession createQuestionSession(
             int stationId,
+            int accountId,
             String provider,
             String transientKey,
             String model,
@@ -126,7 +130,7 @@ public class AiService {
             String categoryDescription,
             List<String> existingTitles) {
         AiVendor vendor = requireVendor(provider);
-        String apiKey = resolveApiKey(stationId, provider, transientKey);
+        String apiKey = resolveApiKey(stationId, accountId, provider, transientKey);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
         String resolvedModel = resolveModel(stationId, vendor, model);
         String effectiveLocale = locale != null ? locale : "de";
@@ -185,6 +189,7 @@ public class AiService {
      */
     public List<String> generate(
             int stationId,
+            int accountId,
             String provider,
             String transientKey,
             String model,
@@ -192,7 +197,7 @@ public class AiService {
             String correctAnswer,
             int count) {
         AiVendor vendor = requireVendor(provider);
-        String apiKey = resolveApiKey(stationId, provider, transientKey);
+        String apiKey = resolveApiKey(stationId, accountId, provider, transientKey);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
         String resolvedModel = resolveModel(stationId, vendor, model);
         String systemPrompt = loadPromptFile("wrong_answers", "de").replace("{count}", String.valueOf(count));
@@ -219,8 +224,8 @@ public class AiService {
      *
      * @throws IllegalArgumentException when no API key is available
      */
-    public List<ModelInfo> fetchModels(int stationId, String provider, String transientKey) {
-        String apiKey = resolveApiKey(stationId, provider, transientKey);
+    public List<ModelInfo> fetchModels(int stationId, int accountId, String provider, String transientKey) {
+        String apiKey = resolveApiKey(stationId, accountId, provider, transientKey);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
         var vendor = AiVendor.fromKey(provider);
         if (vendor.isEmpty()) return List.of();
@@ -255,11 +260,19 @@ public class AiService {
         });
     }
 
-    private String resolveApiKey(int stationId, String provider, String transientKey) {
+    /**
+     * The key a call is made with: one sent along with the request, then the caller's own, then the
+     * station's.
+     *
+     * <p>A key in the request is how a page from before keys moved to the server still works; a
+     * current page sends none.
+     */
+    // TODO: stop taking a key in the request once no page from before the switch can be open
+    private String resolveApiKey(int stationId, int accountId, String provider, String transientKey) {
         if (transientKey != null && !transientKey.isBlank()) return transientKey;
-        return providerRepository
-                .findByProvider(stationId, provider)
-                .map(StationAiProvider::apiKey)
+        return credentials
+                .keyFor(accountId, provider)
+                .or(() -> providerRepository.findByProvider(stationId, provider).map(StationAiProvider::apiKey))
                 .orElse(null);
     }
 

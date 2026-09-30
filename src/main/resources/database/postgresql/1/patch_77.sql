@@ -198,3 +198,25 @@ ALTER TABLE ember_schema.station_event
 
 COMMENT ON COLUMN ember_schema.station_event.threshold_days
     IS 'How many days before each date min_registrations must be reached, or that date is cancelled automatically. Empty where no date is ever cancelled for too few registrations.';
+
+CREATE TABLE ember_schema.account_ai_credential
+(
+    account_id INT         NOT NULL PRIMARY KEY REFERENCES ember_schema.account (id) ON DELETE CASCADE,
+    provider   TEXT        NOT NULL,
+    model      TEXT,
+    api_key    TEXT        NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE ember_schema.account_ai_credential
+    IS 'The AI provider key a person keeps for generating quiz content, one per account. It follows them to every browser and every station they work at.';
+COMMENT ON COLUMN ember_schema.account_ai_credential.account_id
+    IS 'The account the key belongs to. Deleted with the account.';
+COMMENT ON COLUMN ember_schema.account_ai_credential.provider
+    IS 'Which AI provider the key is for (openai, gemini, claude).';
+COMMENT ON COLUMN ember_schema.account_ai_credential.model
+    IS 'The model to ask by default. NULL for the provider default.';
+COMMENT ON COLUMN ember_schema.account_ai_credential.api_key
+    IS 'The key, encrypted with the instance credential key (enc:v1: prefix). Never sent back to a browser and never exported.';
+COMMENT ON COLUMN ember_schema.account_ai_credential.updated_at
+    IS 'When the key or its settings were last saved.';

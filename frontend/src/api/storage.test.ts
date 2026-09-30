@@ -34,18 +34,24 @@ describe('storage consent', () => {
         acceptStorage(undefined, [StorageNecessity.FUNCTIONAL])
         setItem('sidebar_collapsed', 'true')
         expect(getItem('sidebar_collapsed')).toBeNull()
-        expect(isStorageAllowed('ai_model')).toBe(true)
+        expect(isStorageAllowed('instance_theme')).toBe(true)
     })
 
     it('removes what a withdrawn group had stored', () => {
         acceptStorage(undefined, [StorageNecessity.FUNCTIONAL, StorageNecessity.COMFORT])
         setItem('sidebar_collapsed', 'true')
-        setItem('ai_model', 'sonnet')
+        setItem('instance_theme', 'ember')
 
         setGrantedScopes([StorageNecessity.FUNCTIONAL])
 
         expect(getItem('sidebar_collapsed')).toBeNull()
-        expect(getItem('ai_model')).toBe('sonnet')
+        expect(getItem('instance_theme')).toBe('ember')
+    })
+
+    it('no longer keeps an AI key', () => {
+        acceptStorage(undefined, [StorageNecessity.FUNCTIONAL, StorageNecessity.COMFORT])
+        setItem('ai_api_key', 'sk-secret')
+        expect(getItem('ai_api_key')).toBeNull()
     })
 
     it('treats a consent from before the groups as covering all of them', () => {

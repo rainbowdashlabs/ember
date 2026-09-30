@@ -232,6 +232,7 @@ import dev.chojo.ember.feature.procedure.service.ProcedureFeedDetails;
 import dev.chojo.ember.feature.protocol.route.FederatedTestProtocolRoutes;
 import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes;
 import dev.chojo.ember.feature.protocol.route.TestProtocolRoutes;
+import dev.chojo.ember.feature.quiz.route.AccountAiCredentialRoutes;
 import dev.chojo.ember.feature.quiz.route.AiRoutes;
 import dev.chojo.ember.feature.quiz.route.FederatedQuizRoutes;
 import dev.chojo.ember.feature.quiz.route.PublicQuizRoutes;
@@ -457,6 +458,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(RemoteQuizRoutes.class);
         routesBinder.addBinding().to(PublicQuizRoutes.class);
         routesBinder.addBinding().to(AiRoutes.class);
+        routesBinder.addBinding().to(AccountAiCredentialRoutes.class);
         routesBinder.addBinding().to(KnowledgeBaseRoutes.class);
         routesBinder.addBinding().to(KnowledgeBaseAccessRoutes.class);
         routesBinder.addBinding().to(KnowledgeBaseTagRoutes.class);

@@ -5,6 +5,7 @@
  */
 import {forgetLegacySession} from '~/api/sessionCookie'
 import {syncThemeWithSession, useTheme} from '~/composables/useTheme'
+import {forgetLegacyAiSettings} from '~/util/aiCredentials'
 import {installDevErrorHandlers} from '~/util/devErrorReporter'
 
 /**
@@ -15,6 +16,7 @@ import {installDevErrorHandlers} from '~/util/devErrorReporter'
  */
 export default defineNuxtPlugin((nuxtApp) => {
     forgetLegacySession()
+    forgetLegacyAiSettings()
 
     syncThemeWithSession()
     void useTheme().initFromLocalStorage()
