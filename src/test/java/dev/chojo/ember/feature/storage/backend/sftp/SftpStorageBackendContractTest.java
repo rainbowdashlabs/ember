@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.storage.backend.sftp;
 
 import dev.chojo.ember.feature.storage.backend.FileTreeBackendContract;
 import dev.chojo.ember.feature.storage.backend.StorageBackend;
+import dev.chojo.ember.feature.storage.backend.StorageClients;
 import dev.chojo.ember.feature.storage.backend.StorageContainers;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.session.ClientSession;
@@ -25,6 +26,7 @@ import java.util.Optional;
 
 @Tag("storage")
 class SftpStorageBackendContractTest extends FileTreeBackendContract {
+    private final StorageClients clients = new StorageClients(Runnable::run);
     private SshClient rawClient;
     private ClientSession rawSession;
     private SftpClient raw;
@@ -44,7 +46,7 @@ class SftpStorageBackendContractTest extends FileTreeBackendContract {
 
     @Override
     protected StorageBackend openBackend() {
-        return new SftpStorageBackend(config());
+        return new SftpStorageBackend(config(), clients.ssh(), clients.drainer());
     }
 
     @Override
@@ -78,6 +80,7 @@ class SftpStorageBackendContractTest extends FileTreeBackendContract {
         if (raw != null) raw.close();
         if (rawSession != null) rawSession.close();
         if (rawClient != null) rawClient.stop();
+        clients.close();
     }
 
     private void makeParents(String path) throws IOException {

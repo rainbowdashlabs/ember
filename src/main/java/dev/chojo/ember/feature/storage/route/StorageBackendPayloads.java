@@ -21,12 +21,9 @@ import java.net.URI;
 import java.util.Optional;
 
 /**
- * What a storage backend looks like on the wire, in both directions, and the two conversions between that
- * and the stored configuration.
- *
- * <p>One copy of these shapes for the station's own screen and the association's, because the records carry
- * credentials: two copies is how one of them ends up not encrypting something. The summaries are the same
- * shapes with the credentials left out, which is the only form a backend is ever read back in.
+ * A storage backend on the wire and the conversions to and from the stored configuration, shared by the
+ * station's and the cluster's screens so no copy forgets to encrypt. Requests carry plaintext credentials,
+ * encrypted here before they are stored; the summaries read back leave them out.
  */
 @Singleton
 public class StorageBackendPayloads {
@@ -149,8 +146,6 @@ public class StorageBackendPayloads {
                 .toJson());
     }
 
-    // -- Request shapes (plaintext credentials in transit only; the server encrypts before persisting) --
-
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes({
         @JsonSubTypes.Type(value = LocalRequest.class, name = "LOCAL"),
@@ -205,8 +200,6 @@ public class StorageBackendPayloads {
             String password,
             String privateKey)
             implements BackendOverrideRequest {}
-
-    // -- Response shapes --
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes({

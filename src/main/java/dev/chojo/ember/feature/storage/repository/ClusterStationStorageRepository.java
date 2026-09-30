@@ -18,21 +18,14 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * Where the stations standing on a cluster's storage actually are.
- *
- * <p>A row here is a copy that finished. Nothing writes one because somebody decided something, which is
- * the whole difference between this table and the policy on the cluster row.
+ * Where the stations standing on a cluster's storage actually are. A row is a copy that finished, never
+ * a decision, which is the difference to the policy on the cluster row.
  */
 @Singleton
 public class ClusterStationStorageRepository {
     private static final String COLUMNS = "station_id, cluster_id, config_id, moved_at";
 
-    /**
-     * Where one station's bytes are.
-     *
-     * @param stationId the station
-     * @return its placement, or empty when its bytes are on its own backend or the instance default
-     */
+    /** Where one station's bytes are; empty when they are on its own backend or the instance default. */
     public Optional<ClusterStationStorage> findByStation(int stationId) {
         return query("SELECT %s FROM cluster_station_storage WHERE station_id = :station_id;", COLUMNS)
                 .single(call().bind("station_id", stationId))
@@ -40,12 +33,7 @@ public class ClusterStationStorageRepository {
                 .first();
     }
 
-    /**
-     * The backend one station's bytes are on, built from the version it was carried to.
-     *
-     * @param stationId the station
-     * @return the configuration to build, or empty when the station stands on no cluster storage
-     */
+    /** The config of the version a station's bytes were carried to; empty when it stands on no cluster storage. */
     public Optional<StationStorageBackendConfig> findConfigForStation(int stationId) {
         return query("""
                 SELECT csc.config
@@ -57,12 +45,7 @@ public class ClusterStationStorageRepository {
                 .first();
     }
 
-    /**
-     * Every station of one cluster whose bytes are on its storage.
-     *
-     * @param clusterId the cluster
-     * @return their placements
-     */
+    /** The placements of every station whose bytes are on one cluster's storage. */
     public List<ClusterStationStorage> findByCluster(int clusterId) {
         return query("SELECT %s FROM cluster_station_storage WHERE cluster_id = :cluster_id;", COLUMNS)
                 .single(call().bind("cluster_id", clusterId))
@@ -70,13 +53,7 @@ public class ClusterStationStorageRepository {
                 .all();
     }
 
-    /**
-     * Every station standing on some cluster's storage, whichever cluster it is.
-     *
-     * <p>What the instance-wide swap has to leave alone: those bytes are not on the disk it is swapping.
-     *
-     * @return their identifiers
-     */
+    /** Every station on some cluster's storage, which the instance-wide swap leaves alone. */
     public Set<Integer> findAllStationIds() {
         return new HashSet<>(query("SELECT station_id FROM cluster_station_storage;")
                 .single()
@@ -84,12 +61,7 @@ public class ClusterStationStorageRepository {
                 .all());
     }
 
-    /**
-     * How many stations stand on one version, which is what says whether it may be deleted.
-     *
-     * @param configId the version
-     * @return how many placements point at it
-     */
+    /** How many stations stand on one version, which says whether it may be deleted. */
     public int countOn(int configId) {
         return query("SELECT count(*) AS placed FROM cluster_station_storage WHERE config_id = :config_id;")
                 .single(call().bind("config_id", configId))
@@ -98,13 +70,7 @@ public class ClusterStationStorageRepository {
                 .orElse(0);
     }
 
-    /**
-     * Records that a station's bytes now sit on a version of its cluster's storage.
-     *
-     * @param stationId the station whose bytes were carried
-     * @param clusterId the cluster whose storage they are on
-     * @param configId  the version they were carried to
-     */
+    /** Records that a station's bytes now sit on a version of its cluster's storage. */
     public void place(int stationId, int clusterId, int configId) {
         query("""
                 INSERT INTO cluster_station_storage (station_id, cluster_id, config_id, moved_at)
@@ -119,11 +85,7 @@ public class ClusterStationStorageRepository {
                 .update();
     }
 
-    /**
-     * Records that a station's bytes have left its cluster's storage; no-op when they never were on it.
-     *
-     * @param stationId the station
-     */
+    /** Records that a station's bytes have left its cluster's storage, if they were on it. */
     public void remove(int stationId) {
         query("DELETE FROM cluster_station_storage WHERE station_id = :station_id;")
                 .single(call().bind("station_id", stationId))

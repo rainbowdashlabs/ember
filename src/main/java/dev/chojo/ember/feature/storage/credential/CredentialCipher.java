@@ -20,27 +20,13 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * AES-256-GCM encrypt / decrypt for the secrets Ember keeps at rest: station-supplied
- * remote-backend credentials, mailbox passwords and the stations' federation signing keys. The
- * key is {@code storage.credentialEncryptionKey} (base64-encoded 32 bytes) when the operator
- * configured one, and otherwise the key Ember generated into {@link EncryptionKeyFile#DEFAULT_PATH}
- * on its first start. It is read once and held in memory for the lifetime of the process;
- * plaintext never leaves the method body.
+ * AES-256-GCM for the secrets Ember keeps at rest: remote-backend credentials, mailbox passwords and
+ * federation signing keys. The key is {@code storage.credentialEncryptionKey} (base64, 32 bytes) when
+ * configured, else the one generated into {@link EncryptionKeyFile#DEFAULT_PATH}. Every encryption
+ * takes a fresh 12-byte IV, and every failure, a missing key included, is a {@link CredentialCipherException}.
  *
- * <p>Each {@link #encrypt(byte[])} call generates a fresh 12-byte IV and appends the
- * 16-byte GCM tag to the ciphertext (Java's GCM cipher does this for us). The IV is returned
- * alongside the ciphertext as an {@link EncryptedBlob} and must be passed back on decrypt;
- * never reused for two encryptions with the same key.
- *
- * <p>A secret kept in a text column uses {@link #seal(String)} instead, which writes IV and
- * ciphertext as one string behind the {@value #SEALED_PREFIX} prefix. The prefix is what tells a
- * sealed value from a plaintext one written before encryption existed, so a reader can accept both
- * while old rows are being converted.
- *
- * <p>{@link #encrypt(byte[])} and {@link #decrypt(EncryptedBlob)} throw
- * {@link CredentialCipherException} on any cipher failure, including a missing key - that
- * way every caller funnels through one error path instead of catching seven separate JCE
- * exceptions.
+ * <p>A secret in a text column goes through {@link #seal(String)}, whose {@value #SEALED_PREFIX} prefix
+ * tells it from a plaintext value written before encryption existed.
  */
 @Singleton
 public class CredentialCipher {
@@ -60,33 +46,20 @@ public class CredentialCipher {
     }
 
     /**
-     * A cipher whose key is derived from a secret both ends of an exchange already share, so a value
-     * can travel sealed without either end revealing its own at-rest key.
-     *
-     * <p>The secret has to carry enough entropy on its own, as a random token does. The purpose goes
-     * into the derivation so the same secret yields unrelated keys for unrelated uses.
-     *
-     * @param purpose names what the key is for
-     * @param secret  the shared secret
-     * @return a cipher keyed by {@code SHA-256(purpose, secret)}
+     * A cipher keyed by {@code SHA-256(purpose, secret)}, so a value can travel sealed between two ends
+     * that share a random secret without either revealing its own at-rest key. The purpose keeps keys
+     * for unrelated uses of one secret apart.
      */
     public static CredentialCipher derivedFrom(String purpose, String secret) {
         return new CredentialCipher(Base64.getEncoder().encodeToString(Sha256.bytes(purpose + '\0' + secret)));
     }
 
-    /**
-     * Whether a text value was written by {@link #seal(String)}.
-     *
-     * @param value the stored value, may be {@code null}
-     * @return true when the value carries the sealed prefix
-     */
+    /** Whether a text value, possibly null, was written by {@link #seal(String)}. */
     public static boolean isSealed(String value) {
         return value != null && value.startsWith(SEALED_PREFIX);
     }
 
-    /**
-     * Visible for tests that supply the key directly without going through {@link Storage}.
-     */
+    /** @param base64Key the key; blank for a cipher that refuses every call */
     public CredentialCipher(String base64Key) {
         if (base64Key == null || base64Key.isBlank()) {
             this.key = null;
@@ -105,17 +78,10 @@ public class CredentialCipher {
         this.key = new SecretKeySpec(decoded, "AES");
     }
 
-    /**
-     * Whether a key is configured; callers that depend on encryption check this on startup.
-     */
     public boolean isConfigured() {
         return key != null;
     }
 
-    /**
-     * Encrypts {@code plaintext} with a freshly-generated IV. The IV and ciphertext+tag are
-     * returned together as an {@link EncryptedBlob}.
-     */
     public EncryptedBlob encrypt(byte[] plaintext) {
         requireKey();
         byte[] iv = RandomTokens.bytes(IV_BYTES);
@@ -128,16 +94,10 @@ public class CredentialCipher {
         }
     }
 
-    /**
-     * Convenience overload for UTF-8 string input.
-     */
     public EncryptedBlob encrypt(String plaintext) {
         return encrypt(plaintext.getBytes(StandardCharsets.UTF_8));
     }
 
-    /**
-     * Decrypts an {@link EncryptedBlob} produced by {@link #encrypt(byte[])}.
-     */
     public byte[] decrypt(EncryptedBlob blob) {
         requireKey();
         try {
@@ -149,19 +109,11 @@ public class CredentialCipher {
         }
     }
 
-    /**
-     * Convenience overload that returns the plaintext as a UTF-8 string.
-     */
     public String decryptToString(EncryptedBlob blob) {
         return new String(decrypt(blob), StandardCharsets.UTF_8);
     }
 
-    /**
-     * Encrypts a text secret into a single text value for a text column.
-     *
-     * @param plaintext the secret
-     * @return {@value #SEALED_PREFIX} followed by the base64 of IV and ciphertext
-     */
+    /** Encrypts a text secret into {@value #SEALED_PREFIX} followed by the base64 of IV and ciphertext. */
     public String seal(String plaintext) {
         var blob = encrypt(plaintext);
         byte[] joined = new byte[blob.iv().length + blob.ciphertext().length];
@@ -173,8 +125,6 @@ public class CredentialCipher {
     /**
      * Decrypts a value written by {@link #seal(String)}.
      *
-     * @param sealed the stored value
-     * @return the secret
      * @throws CredentialCipherException when the value is not sealed, or not with this key
      */
     public String unseal(String sealed) {

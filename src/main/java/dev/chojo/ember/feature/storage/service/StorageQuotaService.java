@@ -25,14 +25,7 @@ import java.util.List;
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
-/**
- * Service for quota checking, delta tracking, and usage aggregation.
- *
- * <p>Resolves what a station may keep from what its cluster granted it, then what its cluster gives its
- * stations by default, then what an instance administrator set for it, then the instance configuration. A
- * station under a cluster is governed by that cluster: the instance's per-station override does not reach it,
- * because the instance's lever on a cluster is the pool it grants, and inside the pool the cluster decides.
- */
+/** Checks quotas, tracks usage deltas and resolves what a station may keep. */
 @Singleton
 public class StorageQuotaService {
     private static final Logger log = LoggerFactory.getLogger(StorageQuotaService.class);
@@ -48,13 +41,7 @@ public class StorageQuotaService {
         this.eventBus = eventBus;
     }
 
-    /**
-     * Whether nobody bounds what this station keeps, which is the case when whoever pays for its storage is
-     * the station itself.
-     *
-     * @param stationId the station
-     * @return {@code true} when no limit applies to it at all
-     */
+    /** Whether no limit applies to the station, which is the case when it pays for its storage itself. */
     public boolean isUnbounded(int stationId) {
         return resolveQuotas(stationId).total().origin() == QuotaOrigin.UNLIMITED;
     }
@@ -116,15 +103,8 @@ public class StorageQuotaService {
     }
 
     /**
-     * The largest single file this station may store.
-     *
-     * <p>{@link #checkFileSize(int, long)} answers the same rule for a file already in hand. This answers
-     * it for one that is not, which is what a caller needs when the file is at the other end of a network
-     * connection and the point is not to fetch it: a background import that only learned the limit by
-     * offering the bytes would have to transfer every refusal first.
-     *
-     * @param stationId the station
-     * @return the per-file limit in bytes
+     * The largest single file this station may store, for a caller that must not fetch a file just to
+     * learn it is refused.
      */
     public long perFileLimitBytes(int stationId) {
         return resolveQuotas(stationId).perFile().bytes();
@@ -238,14 +218,8 @@ public class StorageQuotaService {
     }
 
     /**
-     * What a station may keep, with every dimension resolved and carrying where its number came from.
-     *
-     * <p>One read for all of it: the station's own overrides, the grant its cluster made it, its cluster's
-     * defaults, and whether either of them brought a storage backend of their own. Reading them together is
-     * what lets one answer say both how much and on whose word.
-     *
-     * @param stationId the station
-     * @return its quotas, or the instance's own defaults when there is no such station
+     * What a station may keep, every dimension with where its number came from, read in one go; the
+     * instance defaults when there is no such station.
      */
     public StationQuotas resolveQuotas(int stationId) {
         return query("""
@@ -349,12 +323,9 @@ public class StorageQuotaService {
     }
 
     /**
-     * One dimension, resolved down the chain.
-     *
-     * <p>The cluster's grant first, then what the cluster gives its stations by default. The instance's
-     * per-station override comes next and is skipped for a station under a cluster, because the instance's
-     * lever there is the pool it granted the cluster rather than a number on one of its stations. The
-     * instance's configured default is the last word, unless nobody who could set one is paying.
+     * One dimension: the cluster's grant, the cluster's default, the instance's per-station override,
+     * then the instance configuration. The override does not reach a station under a cluster, since the
+     * instance's lever there is the pool it granted the cluster.
      */
     private static ResolvedQuota resolve(
             QuotaAuthority authority,
@@ -393,10 +364,8 @@ public class StorageQuotaService {
                 quota.images().bytes();
             case MEDIA_FILES, MEDIA_IMAGES -> quota.pages().bytes();
             case MEMBER_DOCUMENTS, MOVEMENT_DOCUMENTS -> quota.kb().bytes();
-            case IMAGE_KB_FILE_PICTURE -> Long.MAX_VALUE;
-            // A quota limits what one station may keep. What the instance holds is not any
-            // station's to be charged for, so nothing here has a limit to look up.
-            case IMAGE_AVATAR,
+            case IMAGE_KB_FILE_PICTURE,
+                    IMAGE_AVATAR,
                     IMAGE_STATION_LOGO,
                     DOCUMENT,
                     DISCOVERY_KEY,

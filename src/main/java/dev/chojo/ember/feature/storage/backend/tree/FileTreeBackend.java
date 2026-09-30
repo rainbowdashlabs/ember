@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.storage.backend.tree;
 
-import dev.chojo.ember.feature.storage.backend.BackendCapability;
 import dev.chojo.ember.feature.storage.backend.DigestingInputStream;
 import dev.chojo.ember.feature.storage.backend.HealthStatus;
 import dev.chojo.ember.feature.storage.backend.MetadataSidecar;
@@ -28,23 +27,17 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 /**
- * The {@link StorageBackend} of every tree-shaped store: the local disk, SFTP and SMB.
+ * The {@link StorageBackend} of the tree-shaped stores: the local disk, SFTP and SMB.
  *
- * <p>Everything but the protocol lives here once. A store writes {@code <key>.partial.<uuid>} and
- * moves it onto {@code <key>}, so a reader never sees half a file; the metadata goes into the
- * {@code <key>.meta.json} sidecar the same way, written once with the SHA-256 computed while the body
- * streamed. The listing hides sidecars and partial files, a delete prunes the directories it leaves
- * empty, and the probe writes, reads and removes a marker under {@code _probe/}. That byte layout is
- * the one every earlier build wrote, so either reads what the other stored.
- *
- * <p>The protocol part is a {@link FileTree}, lent per call by a {@link TreeSource}.
+ * <p>A body is written to {@code <key>.partial.<uuid>} and moved onto {@code <key>}, so a reader never
+ * sees half a file, and its metadata goes into the {@code <key>.meta.json} sidecar the same way. That
+ * layout is the one earlier builds wrote, so either reads what the other stored. The protocol itself
+ * is a {@link FileTree}, lent per call by a {@link TreeSource}.
  */
 public class FileTreeBackend implements StorageBackend {
     private static final Logger log = LoggerFactory.getLogger(FileTreeBackend.class);
@@ -57,41 +50,22 @@ public class FileTreeBackend implements StorageBackend {
     private final StorageBackendType type;
     private final TreeSource<? extends FileTree> trees;
     private final String basePath;
-    private final Set<BackendCapability> capabilities;
 
     /**
-     * A backend over the trees a source lends.
-     *
-     * @param type         which kind of store this is
-     * @param trees        where each call gets its tree
-     * @param basePath     the directory inside the tree every key lives below, {@code /}-separated;
-     *                     empty for the tree's root
-     * @param capabilities the optional features the store offers
+     * @param basePath the directory inside the tree every key lives below; empty or {@code null} for the root
      */
-    public FileTreeBackend(
-            StorageBackendType type,
-            TreeSource<? extends FileTree> trees,
-            String basePath,
-            Set<BackendCapability> capabilities) {
+    protected FileTreeBackend(StorageBackendType type, TreeSource<? extends FileTree> trees, String basePath) {
         this.type = type;
         this.trees = trees;
         this.basePath = normalize(basePath);
-        this.capabilities =
-                capabilities.isEmpty() ? EnumSet.noneOf(BackendCapability.class) : EnumSet.copyOf(capabilities);
     }
 
-    /**
-     * A base path as a tree path: separators unified to {@code /}, none at either end.
-     *
-     * @param basePath the configured base path, possibly {@code null}
-     * @return the normalised path, empty for the root
-     */
-    public static String normalize(String basePath) {
-        if (basePath == null) return "";
-        String path = basePath.replace('\\', '/');
-        while (path.startsWith("/")) path = path.substring(1);
-        while (path.endsWith("/")) path = path.substring(0, path.length() - 1);
-        return path;
+    private static String normalize(String path) {
+        if (path == null) return "";
+        String normalized = path.replace('\\', '/');
+        while (normalized.startsWith("/")) normalized = normalized.substring(1);
+        while (normalized.endsWith("/")) normalized = normalized.substring(0, normalized.length() - 1);
+        return normalized;
     }
 
     @Override
@@ -100,20 +74,13 @@ public class FileTreeBackend implements StorageBackend {
     }
 
     @Override
-    public Set<BackendCapability> capabilities() {
-        return capabilities.isEmpty() ? EnumSet.noneOf(BackendCapability.class) : EnumSet.copyOf(capabilities);
-    }
-
-    @Override
     public void store(String fullKey, InputStream body, long contentLength, ObjectMetadata metadata) {
         storeSealed(fullKey, body, contentLength, metadata);
     }
 
     /**
-     * Stores the body and writes its sidecar once, with the SHA-256 computed while the body streamed.
-     *
-     * <p>A body held in memory is stored again on a fresh connection when the first one breaks
-     * halfway; a body streamed from elsewhere cannot be read twice and is not.
+     * Writes the sidecar once, after the body. A body held in memory is stored again on a fresh
+     * connection when the first one breaks halfway; a streamed body cannot be read twice and is not.
      */
     @Override
     public ObjectMetadata storeSealed(String fullKey, InputStream body, long contentLength, ObjectMetadata metadata) {
@@ -150,51 +117,28 @@ public class FileTreeBackend implements StorageBackend {
     }
 
     /**
-     * Opens a key for reading. The tree stays lent to the returned stream until the stream is
-     * closed, so a slow download holds one connection and never more; a caller that does not close
-     * what it read keeps it, which the pool reports. Opening is tried once more on a fresh connection
-     * when the first one turns out to be gone.
+     * The tree stays lent to the returned stream until it is closed, so a slow download holds one
+     * connection and never more.
      */
     @Override
     public Optional<StoredStream> read(String fullKey) {
         String target = path(fullKey);
-        for (int attempt = 1; ; attempt++) {
-            Lease<? extends FileTree> lease = trees.acquire();
+        return leased(true, lease -> {
+            var opened = lease.tree().open(target);
+            if (opened.isEmpty()) {
+                lease.close();
+                return Optional.empty();
+            }
+            ObjectMetadata metadata;
             try {
-                return openLeased(lease, target);
-            } catch (IOException e) {
-                boolean broken = lease.tree().brokenBy(e);
-                if (broken) lease.discard();
-                lease.close();
-                if (!broken) throw new StorageException(type + " storage call failed: " + e.getMessage(), e);
-                if (attempt >= 2) {
-                    throw new StorageUnavailableException(type + " storage lost its connection: " + e.getMessage(), e);
-                }
-                log.info("The connection to the {} storage was lost, trying once more on a fresh one", type);
+                metadata = readSidecar(lease.tree(), target);
             } catch (RuntimeException e) {
-                if (!lease.tree().isUsable()) lease.discard();
-                lease.close();
+                opened.get().body().close();
                 throw e;
             }
-        }
-    }
-
-    private Optional<StoredStream> openLeased(Lease<? extends FileTree> lease, String target) throws IOException {
-        FileTree tree = lease.tree();
-        var opened = tree.open(target);
-        if (opened.isEmpty()) {
-            lease.close();
-            return Optional.empty();
-        }
-        ObjectMetadata metadata;
-        try {
-            metadata = readSidecar(tree, target);
-        } catch (RuntimeException e) {
-            opened.get().body().close();
-            throw e;
-        }
-        return Optional.of(new StoredStream(
-                new LeasedStream(opened.get().body(), lease), opened.get().size(), metadata));
+            return Optional.of(new StoredStream(
+                    new LeasedStream(opened.get().body(), lease), opened.get().size(), metadata));
+        });
     }
 
     @Override
@@ -216,10 +160,9 @@ public class FileTreeBackend implements StorageBackend {
 
     @Override
     public List<String> listByPrefix(String prefix) {
-        String rooted = prefix == null ? "" : prefix;
         return call(true, tree -> {
             var out = new ArrayList<String>();
-            walk(tree, rooted, (key, size) -> out.add(key));
+            walk(tree, prefix, (key, size) -> out.add(key));
             out.sort(String::compareTo);
             return out;
         });
@@ -227,10 +170,9 @@ public class FileTreeBackend implements StorageBackend {
 
     @Override
     public long sumSizeByPrefix(String prefix) {
-        String rooted = prefix == null ? "" : prefix;
         return call(true, tree -> {
             long[] total = {0};
-            walk(tree, rooted, (key, size) -> total[0] += size);
+            walk(tree, prefix, (key, size) -> total[0] += size);
             return total[0];
         });
     }
@@ -259,11 +201,8 @@ public class FileTreeBackend implements StorageBackend {
                     }
                 }
                 return HealthStatus.ok();
-            } catch (IOException e) {
-                if (tree.brokenBy(e)) lease.discard();
-                return HealthStatus.unhealthy(type + " backend probe failed: " + e.getMessage());
-            } catch (RuntimeException e) {
-                if (!tree.isUsable()) lease.discard();
+            } catch (IOException | RuntimeException e) {
+                if (e instanceof IOException io ? tree.brokenBy(io) : !tree.isUsable()) lease.discard();
                 return HealthStatus.unhealthy(type + " backend probe failed: " + e.getMessage());
             } finally {
                 removeQuietly(tree, target);
@@ -279,56 +218,48 @@ public class FileTreeBackend implements StorageBackend {
         trees.close(this::released);
     }
 
-    /**
-     * Releases what the trees of this backend share, a session or a client, once the last tree is
-     * closed. Nothing by default.
-     */
+    /** Releases what the trees of this backend share, once the last lent one is back. Nothing by default. */
     protected void released() {}
 
+    private <R> R call(boolean idempotent, IoFunction<FileTree, R> call) {
+        return leased(idempotent, lease -> {
+            R result = call.apply(lease.tree());
+            lease.close();
+            return result;
+        });
+    }
+
     /**
-     * Runs one call on a lent tree.
+     * Runs one call on a lent tree, which the call closes once it succeeded. A tree whose connection
+     * broke is discarded, and an idempotent call is tried once more on a fresh one before the storage
+     * is reported unreachable.
      *
-     * <p>A tree whose connection broke during the call is closed rather than lent again. An idempotent
-     * call is then tried once more on a fresh tree, since repeating it cannot do anything twice; when
-     * that fails too, or the call was not idempotent, the storage is reported unreachable.
-     *
-     * @param idempotent whether repeating the call is harmless
-     * @param call       what to do with the tree
-     * @return what the call answered
      * @throws StorageUnavailableException when the connection was lost and could not be had again
      * @throws StorageException            when the server refused the call
      */
-    protected <R> R call(boolean idempotent, TreeCall<R> call) {
-        int attempts = idempotent ? 2 : 1;
+    private <R> R leased(boolean idempotent, IoFunction<Lease<? extends FileTree>, R> call) {
         for (int attempt = 1; ; attempt++) {
-            try (var lease = trees.acquire()) {
-                try {
-                    return call.apply(lease.tree());
-                } catch (IOException e) {
-                    if (!lease.tree().brokenBy(e)) {
-                        throw new StorageException(type + " storage call failed: " + e.getMessage(), e);
-                    }
-                    lease.discard();
-                    if (attempt >= attempts) {
-                        throw new StorageUnavailableException(
-                                type + " storage lost its connection: " + e.getMessage(), e);
-                    }
-                    log.info("The connection to the {} storage was lost, trying once more on a fresh one", type);
-                } catch (RuntimeException e) {
-                    if (!lease.tree().isUsable()) lease.discard();
-                    throw e;
+            Lease<? extends FileTree> lease = trees.acquire();
+            try {
+                return call.apply(lease);
+            } catch (IOException e) {
+                boolean broken = lease.tree().brokenBy(e);
+                if (broken) lease.discard();
+                lease.close();
+                if (!broken) throw new StorageException(type + " storage call failed: " + e.getMessage(), e);
+                if (attempt >= (idempotent ? 2 : 1)) {
+                    throw new StorageUnavailableException(type + " storage lost its connection: " + e.getMessage(), e);
                 }
+                log.info("The connection to the {} storage was lost, trying once more on a fresh one", type);
+            } catch (RuntimeException | Error e) {
+                if (!lease.tree().isUsable()) lease.discard();
+                lease.close();
+                throw e;
             }
         }
     }
 
-    /**
-     * The tree path of a key: the key below the base path.
-     *
-     * @param fullKey the key, never empty
-     * @return the path inside the tree
-     */
-    protected String path(String fullKey) {
+    private String path(String fullKey) {
         if (fullKey == null || fullKey.isEmpty()) {
             throw new IllegalArgumentException("fullKey must not be empty");
         }
@@ -340,17 +271,15 @@ public class FileTreeBackend implements StorageBackend {
         return tree.stat(path).filter(info -> !info.directory()).isPresent();
     }
 
-    private static OutputStream createWithParents(FileTree tree, String path) throws IOException {
+    private static void writeFile(FileTree tree, String path, InputStream body) throws IOException {
+        OutputStream created;
         try {
-            return tree.create(path);
+            created = tree.create(path);
         } catch (NoSuchFileException missingParent) {
             tree.makeDirectories(parentOf(path));
-            return tree.create(path);
+            created = tree.create(path);
         }
-    }
-
-    private static void writeFile(FileTree tree, String path, InputStream body) throws IOException {
-        try (OutputStream out = createWithParents(tree, path)) {
+        try (OutputStream out = created) {
             byte[] buffer = new byte[TRANSFER_BUFFER_BYTES];
             int read;
             while ((read = body.read(buffer)) != -1) {
@@ -389,14 +318,15 @@ public class FileTreeBackend implements StorageBackend {
     }
 
     private void walk(FileTree tree, String prefix, KeyVisitor visitor) throws IOException {
-        String start = prefix.isEmpty() ? basePath : path(prefix);
+        String rooted = prefix == null ? "" : prefix;
+        String start = rooted.isEmpty() ? basePath : path(rooted);
         var info = tree.stat(start);
         if (info.isEmpty()) return;
         if (!info.get().directory()) {
-            if (!prefix.isEmpty()) visitor.visit(prefix, info.get().size());
+            if (!rooted.isEmpty()) visitor.visit(rooted, info.get().size());
             return;
         }
-        walkDirectory(tree, start, normalize(prefix), visitor);
+        walkDirectory(tree, start, normalize(rooted), visitor);
     }
 
     private static void walkDirectory(FileTree tree, String directory, String keyPrefix, KeyVisitor visitor)
@@ -438,21 +368,9 @@ public class FileTreeBackend implements StorageBackend {
         return slash < 0 ? "" : path.substring(0, slash);
     }
 
-    /**
-     * One call against a lent tree.
-     *
-     * @param <R> what the call answers
-     */
     @FunctionalInterface
-    protected interface TreeCall<R> {
-        /**
-         * Does the work.
-         *
-         * @param tree the lent tree
-         * @return the answer
-         * @throws IOException when the protocol fails
-         */
-        R apply(FileTree tree) throws IOException;
+    private interface IoFunction<A, R> {
+        R apply(A argument) throws IOException;
     }
 
     @FunctionalInterface

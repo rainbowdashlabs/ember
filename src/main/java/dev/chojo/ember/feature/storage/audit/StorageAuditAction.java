@@ -5,60 +5,27 @@
  */
 package dev.chojo.ember.feature.storage.audit;
 
-/**
- * Discriminator for every row in {@code storage_backend_audit}.
- */
+/** What a row of the storage backend audit records. */
 public enum StorageAuditAction {
-    /**
-     * A station_storage_config row was created.
-     */
+    /** A station's own backend was set. */
     CREATED,
-    /**
-     * An existing station_storage_config row was replaced.
-     */
+    /** A station's own backend was replaced. */
     UPDATED,
-    /**
-     * A station_storage_config row was deleted.
-     */
+    /** A station's own backend was removed. */
     DELETED,
-    /**
-     * A user-triggered probe succeeded.
-     */
+    /** A probe a user started succeeded. */
     PROBE_OK,
-    /**
-     * A user-triggered probe failed.
-     */
+    /** A probe a user started failed. */
     PROBE_FAILED,
-    /**
-     * A backend migration started.
-     */
     MIGRATION_STARTED,
-    /**
-     * A backend migration completed successfully.
-     */
     MIGRATION_COMPLETED,
-    /**
-     * A backend migration failed mid-flight.
-     */
     MIGRATION_FAILED,
-    /**
-     * A mutation request was refused (e.g. swapping a non-empty backend without migration).
-     */
+    /** A change was refused, such as swapping a backend that still holds bytes without moving them. */
     REJECTED,
-    /**
-     * The instance-default backend was updated through the admin UI (without byte migration).
-     */
+    /** The instance default was changed in the admin panel without moving bytes. */
     INSTANCE_DEFAULT_UPDATED,
-    /**
-     * An instance-wide backend migration started.
-     */
     INSTANCE_MIGRATION_STARTED,
-    /**
-     * An instance-wide backend migration completed successfully.
-     */
     INSTANCE_MIGRATION_COMPLETED,
-    /**
-     * An instance-wide backend migration failed mid-flight; the previous backend stays authoritative.
-     */
+    /** An instance-wide move failed; the previous backend stays in use. */
     INSTANCE_MIGRATION_FAILED
 }

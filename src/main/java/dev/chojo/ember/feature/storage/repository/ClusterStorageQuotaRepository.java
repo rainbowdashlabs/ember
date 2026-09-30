@@ -21,11 +21,8 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * The room a cluster hands out: its defaults, its tiers, and what each of its stations was granted.
- *
- * <p>Everything here is the cluster's own. The instance keeps its numbers on the station row and neither
- * writes the other's, which is what lets the pool add up what the cluster actually promised rather than
- * whatever was last written to a shared column.
+ * The room a cluster hands out: its defaults, its tiers, and what each of its stations was granted. The
+ * instance keeps its own numbers on the station row, so the pool adds up only what the cluster promised.
  */
 @Singleton
 public class ClusterStorageQuotaRepository {
@@ -41,14 +38,7 @@ public class ClusterStorageQuotaRepository {
             station_id, cluster_id, quota_bytes, quota_kb_bytes, quota_board_bytes, quota_images_bytes,
             quota_pages_bytes, per_file_bytes, per_image_bytes, preset_id""";
 
-    // -- Defaults --
-
-    /**
-     * What the cluster gives a station it granted nothing of its own.
-     *
-     * @param clusterId the cluster
-     * @return its defaults, all of them null when it has set none and when there is no such cluster
-     */
+    /** What the cluster gives a station it granted nothing; all null when it set none or does not exist. */
     public ClusterQuotaDefaults findDefaults(int clusterId) {
         return query("SELECT %s FROM cluster WHERE id = :cluster_id;", DEFAULT_COLUMNS)
                 .single(call().bind("cluster_id", clusterId))
@@ -57,12 +47,7 @@ public class ClusterStorageQuotaRepository {
                 .orElseGet(() -> ClusterQuotaDefaults.none(clusterId));
     }
 
-    /**
-     * The defaults of the cluster one station answers to.
-     *
-     * @param stationId the station
-     * @return its cluster's defaults, empty when it answers to nobody
-     */
+    /** The defaults of the cluster a station answers to; empty when it answers to none. */
     public Optional<ClusterQuotaDefaults> findDefaultsForStation(int stationId) {
         return query("""
                         SELECT %s FROM cluster c
@@ -95,8 +80,6 @@ public class ClusterStorageQuotaRepository {
                 .update()
                 .changed();
     }
-
-    // -- Presets --
 
     public List<ClusterStorageQuotaPreset> findPresets(int clusterId) {
         return query("""
@@ -183,14 +166,7 @@ public class ClusterStorageQuotaRepository {
         return SqlSupport.deleteById("cluster_storage_quota_preset", presetId);
     }
 
-    // -- Grants --
-
-    /**
-     * What one station was granted.
-     *
-     * @param stationId the station
-     * @return the grant, empty when the cluster has granted this station nothing of its own
-     */
+    /** What one station was granted; empty when the cluster granted it nothing. */
     public Optional<ClusterStationQuota> findGrant(int stationId) {
         return query("SELECT %s FROM cluster_station_quota WHERE station_id = :station_id;", GRANT_COLUMNS)
                 .single(call().bind("station_id", stationId))
@@ -198,12 +174,7 @@ public class ClusterStorageQuotaRepository {
                 .first();
     }
 
-    /**
-     * Every grant one cluster has made, the home station's included.
-     *
-     * @param clusterId the cluster
-     * @return one row per station it has granted something to
-     */
+    /** Every grant one cluster has made, the home station's included. */
     public List<ClusterStationQuota> findGrants(int clusterId) {
         return query("SELECT %s FROM cluster_station_quota WHERE cluster_id = :cluster_id;", GRANT_COLUMNS)
                 .single(call().bind("cluster_id", clusterId))
@@ -212,14 +183,8 @@ public class ClusterStorageQuotaRepository {
     }
 
     /**
-     * Every station a cluster has, with what it was granted.
-     *
-     * <p>The home station is in the list, because a cluster's own files are kept there and room for them is
-     * promised out of the same pool as everybody else's. A station that has been granted nothing is still
-     * listed, with nothing against its name.
-     *
-     * @param clusterId the cluster
-     * @return one row per station, in name order
+     * Every station of a cluster in name order, with what it was granted, if anything. The home station
+     * is included, since the cluster's own files are kept there out of the same pool.
      */
     public List<GrantedStation> findStationsWithGrants(int clusterId) {
         return query("""
@@ -240,10 +205,9 @@ public class ClusterStorageQuotaRepository {
     }
 
     /**
-     * Writes what a station was granted, replacing whatever it held before.
+     * Replaces what a station was granted.
      *
-     * @param grant the whole of the grant, nulls included, because a dimension left out is a dimension handed
-     *              back to the cluster's defaults
+     * @param grant the whole grant; a null dimension falls back to the cluster's defaults
      */
     public void setGrant(ClusterStationQuota grant) {
         query("""
@@ -278,13 +242,7 @@ public class ClusterStorageQuotaRepository {
                 .update();
     }
 
-    /**
-     * Puts several stations on one tier at once, copying the tier's numbers into each grant.
-     *
-     * @param presetId   the tier
-     * @param clusterId  the cluster it belongs to
-     * @param stationIds the stations to put on it
-     */
+    /** Puts several stations on one tier of the cluster, copying the tier's numbers into each grant. */
     public void applyPreset(int presetId, int clusterId, Collection<Integer> stationIds) {
         for (int stationId : stationIds) {
             query("""
@@ -315,13 +273,7 @@ public class ClusterStorageQuotaRepository {
         }
     }
 
-    /**
-     * Takes the grant away, which is what a release does and what handing a station back to the cluster's
-     * defaults does.
-     *
-     * @param stationId the station
-     * @return whether there was anything to take away
-     */
+    /** Takes a station's grant away, handing it back to the cluster's defaults; false when it had none. */
     public boolean deleteGrant(int stationId) {
         return query("DELETE FROM cluster_station_quota WHERE station_id = :station_id;")
                 .single(call().bind("station_id", stationId))
@@ -330,15 +282,10 @@ public class ClusterStorageQuotaRepository {
     }
 
     /**
-     * What the cluster has promised in total, which is what the pool is measured against.
+     * The bytes the cluster has promised in total, which the pool is measured against. A grant without a
+     * total promised nothing out of the pool and is not counted.
      *
-     * <p>A station whose grant names no total is not counted: nothing was promised out of the pool for it, and
-     * what it may use follows from the cluster's defaults instead.
-     *
-     * @param clusterId      the cluster
-     * @param excludeStation a station to leave out, for weighing a grant that is about to replace an old one,
-     *                       or {@code 0} to count every one of them
-     * @return the sum of the totals granted, in bytes
+     * @param excludeStation a station whose grant is about to be replaced, or {@code 0} for none
      */
     public long sumGrantedTotals(int clusterId, int excludeStation) {
         return query("""
@@ -353,9 +300,7 @@ public class ClusterStorageQuotaRepository {
     }
 
     /**
-     * One of a cluster's stations and what it was promised.
-     *
-     * @param quotaBytes the total granted, or {@code null} when the cluster granted this station nothing
+     * @param quotaBytes the total granted, or {@code null} when the cluster granted the station nothing
      * @param presetId   the tier it was put on, or {@code null} when its numbers were set by hand
      */
     public record GrantedStation(int stationId, UUID uid, String name, Long quotaBytes, Integer presetId) {}

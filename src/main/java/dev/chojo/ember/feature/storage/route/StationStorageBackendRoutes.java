@@ -48,23 +48,15 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Station-scoped self-service routes for picking a remote storage backend. A station manager
- * can override the inherited instance default for the entire station without involving an
- * instance admin. The override covers every station-scoped movable category at once.
- * Credentials are encrypted with {@link CredentialCipher} before they reach the repository
- * and are never returned to clients in plaintext.
+ * Lets a station manager put the whole station on a storage backend of its own instead of the instance
+ * default. Credentials are encrypted with {@link CredentialCipher} before they are stored and never
+ * returned.
  */
 @Singleton
 public class StationStorageBackendRoutes implements Routes {
     /**
-     * What a failed probe tells the client. The endpoint builds a connection to an address from the
-     * request, so a verbatim failure would tell apart a refused connection, a timeout and a protocol
-     * error, which is a port scan of whatever the address validator does not cover. The real cause
-     * goes to the log, where the operator can still read it.
-     *
-     * <p>What is said instead names the three things that are actually wrong when this happens and
-     * says where the rest of it is, because an operator who has mistyped a key needs to know to go
-     * and look rather than to conclude that Ember is broken.
+     * What a failed probe tells the client. The probe connects to an address from the request, so the
+     * verbatim failure would turn it into a port scanner; the real cause goes to the log.
      */
     private static final String PROBE_FAILED =
             "The storage backend would not accept these settings. The address, the credentials or the target "
@@ -141,13 +133,7 @@ public class StationStorageBackendRoutes implements Routes {
         routes.get(prefix + "/station/storage/audit", this::listAudit, StationPermission.STATION_ADMINISTRATOR);
     }
 
-    /**
-     * Where this station's files are, who decided that, and whether the station may change it.
-     *
-     * <p>A station under an association may be standing on the association's storage, and may have been put
-     * there by somebody else. A station manager wondering why an upload failed should not have to ask who to
-     * ask, so the answer says what is behind the station, on whose word, and what is still theirs to do.
-     */
+    /** Where this station's files are, who decided that, and whether the station may change it. */
     private void get(Context ctx) {
         int stationId = sessionStationId(ctx);
         StorageBackendType instanceDefault = resolver.instanceDefault().type();
@@ -176,13 +162,9 @@ public class StationStorageBackendRoutes implements Routes {
     }
 
     /**
-     * Unified entry point for "save and apply": probes the target backend, migrates every
-     * station-scoped movable category from the currently-resolved source backend onto it, and
-     * atomically swaps the {@code station_storage_config} row when the migration succeeds. A
-     * {@link StorageBackendPayloads.LocalRequest} target means "drop the override and move bytes back to the
-     * instance default", and a {@link StorageBackendPayloads.ClusterRequest} means "put me on my
-     * association's storage". For an empty source the copy phase is a no-op, so this path is also the
-     * green-field setup flow - no separate save endpoint is needed.
+     * Saves and applies a backend by moving the station's bytes onto it; with nothing to move this is
+     * also the first setup. A {@link StorageBackendPayloads.LocalRequest} moves back to the instance
+     * default, a {@link StorageBackendPayloads.ClusterRequest} onto the cluster's storage.
      */
     private void apply(Context ctx) {
         Actor actor = actor(ctx);
@@ -242,10 +224,8 @@ public class StationStorageBackendRoutes implements Routes {
     }
 
     /**
-     * Dry-run probe against an unsaved form payload - accepts a {@link BackendOverrideRequest},
-     * builds a transient backend, runs {@link StorageBackend#probe()} and returns the result
-     * without touching the repository or the audit log. The UI calls this from the
-     * "Verbindung testen" button so admins can validate credentials before clicking Save.
+     * Probes an unsaved backend so credentials can be tested before saving, without storing or
+     * auditing anything.
      */
     private void probeConfig(Context ctx) {
         int stationId = sessionStationId(ctx);
@@ -303,10 +283,8 @@ public class StationStorageBackendRoutes implements Routes {
     }
 
     /**
-     * Where this station is asking to go.
-     *
-     * <p>Its association's storage is not something the station describes: it is looked up, so a station
-     * cannot type its way onto somewhere the association never named.
+     * Where this station is asking to go. Its cluster's storage is looked up rather than described, so a
+     * station cannot type its way onto somewhere the cluster never named.
      */
     private StorageMigrationService.Destination destinationFor(int stationId, BackendOverrideRequest request) {
         return switch (request) {

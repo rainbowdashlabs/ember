@@ -16,26 +16,15 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * The versions of the storage a cluster keeps, one row each.
- *
- * <p>The same config type as a station's own, deliberately: what a cluster points its stations at is the
- * same kind of thing a station points itself at, and a second variant of the type would only mean the same
- * credentials parsed two ways.
- *
- * <p>What is <em>not</em> here is where any station's bytes are. That is
- * {@link ClusterStationStorageRepository}, and the two are apart because a decision is written in a request
- * and a copy is not.
+ * The versions of the storage a cluster keeps, one row each, in the same config type as a station's own.
+ * Where a station's bytes actually are is {@link ClusterStationStorageRepository}: a decision is written
+ * in a request and the copy only later.
  */
 @Singleton
 public class ClusterStorageConfigRepository {
     private static final String COLUMNS = "id, cluster_id, backend_type, config, is_current, created_at, updated_at";
 
-    /**
-     * The version the cluster points new placements at.
-     *
-     * @param clusterId the cluster
-     * @return it, or empty when the cluster keeps no storage of its own
-     */
+    /** The version the cluster points new placements at; empty when it keeps no storage of its own. */
     public Optional<ClusterStorageConfig> findCurrent(int clusterId) {
         return query("SELECT %s FROM cluster_storage_config WHERE cluster_id = :cluster_id AND is_current;", COLUMNS)
                 .single(call().bind("cluster_id", clusterId))
@@ -43,12 +32,7 @@ public class ClusterStorageConfigRepository {
                 .first();
     }
 
-    /**
-     * One version by its identifier, which is what a placement carries.
-     *
-     * @param id the version
-     * @return it, or empty when it has been deleted
-     */
+    /** One version by the identifier a placement carries; empty when it was deleted. */
     public Optional<ClusterStorageConfig> findById(int id) {
         return query("SELECT %s FROM cluster_storage_config WHERE id = :id;", COLUMNS)
                 .single(call().bind("id", id))
@@ -56,12 +40,7 @@ public class ClusterStorageConfigRepository {
                 .first();
     }
 
-    /**
-     * Every version a cluster has ever had that has not been deleted, newest first.
-     *
-     * @param clusterId the cluster
-     * @return its versions
-     */
+    /** Every version of a cluster that has not been deleted, newest first. */
     public List<ClusterStorageConfig> findByCluster(int clusterId) {
         return query("SELECT %s FROM cluster_storage_config WHERE cluster_id = :cluster_id ORDER BY id DESC;", COLUMNS)
                 .single(call().bind("cluster_id", clusterId))
@@ -69,12 +48,7 @@ public class ClusterStorageConfigRepository {
                 .all();
     }
 
-    /**
-     * Takes the current version out of use without deleting it, so whoever stands on it keeps reaching their
-     * bytes.
-     *
-     * @param clusterId the cluster
-     */
+    /** Takes the current version out of use without deleting it, so whoever stands on it keeps their bytes. */
     public void retireCurrent(int clusterId) {
         query("UPDATE cluster_storage_config SET is_current = FALSE WHERE cluster_id = :cluster_id AND is_current;")
                 .single(call().bind("cluster_id", clusterId))
@@ -82,11 +56,9 @@ public class ClusterStorageConfigRepository {
     }
 
     /**
-     * Records a new current version, retiring whichever one was current before it.
+     * Records a new current version, retiring the one before it.
      *
-     * @param clusterId the cluster
-     * @param config    the backend, with its credentials already encrypted by the caller
-     * @return the version, which is what a placement will point at
+     * @param config the backend, its credentials encrypted by the caller
      */
     public ClusterStorageConfig insertCurrent(int clusterId, StationStorageBackendConfig config) {
         retireCurrent(clusterId);
@@ -105,8 +77,7 @@ public class ClusterStorageConfigRepository {
     /**
      * Writes new credentials onto a version that names the same destination, which moves nobody.
      *
-     * @param id     the version
-     * @param config the backend, with its credentials already encrypted by the caller
+     * @param config the backend, its credentials encrypted by the caller
      */
     public void updateInPlace(int id, StationStorageBackendConfig config) {
         query("""
@@ -120,12 +91,8 @@ public class ClusterStorageConfigRepository {
     }
 
     /**
-     * Deletes a version nobody stands on any more.
-     *
-     * <p>The foreign key from the placement table refuses the day this is called on one somebody is still
-     * standing on, which is the point of it carrying no {@code ON DELETE} clause.
-     *
-     * @param id the version
+     * Deletes a version nobody stands on any more; the placement table's foreign key, with no
+     * {@code ON DELETE} clause, refuses it otherwise.
      */
     public void delete(int id) {
         query("DELETE FROM cluster_storage_config WHERE id = :id;")

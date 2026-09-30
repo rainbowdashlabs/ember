@@ -31,6 +31,7 @@ import software.amazon.awssdk.services.s3.model.MetadataDirective;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -41,27 +42,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * S3-backed {@link StorageBackend}. Uses AWS SDK v2 against any S3-compatible endpoint
- * (AWS S3, MinIO, Backblaze B2, Wasabi, Cloudflare R2, Hetzner Object Storage, …).
- *
- * <p>Unlike the filesystem backends, S3 carries metadata natively on the object - no sidecar
- * file. Content type lands on the object header; SHA-256, optional filename and content
- * encoding ride in {@code x-amz-meta-*} user metadata. {@link #updateMetadata} reissues a
- * {@code CopyObject} with {@code MetadataDirective=REPLACE} so the SHA-256 sealed after the
- * upload stream drains lands on the object without re-uploading bytes.
- *
- * <p>The probe writes a small marker under {@code _probe/<uuid>} and removes it afterwards;
- * if the bucket itself is unreachable the SDK surfaces the underlying failure and the probe
- * returns unhealthy.
- *
- * <p>One attempt of a call waits at most {@link #ATTEMPT_TIMEOUT} and the whole call, retries
- * included, at most {@link #CALL_TIMEOUT}, set here rather than left to the SDK's defaults.
+ * Storage on any S3-compatible endpoint through the AWS SDK. Metadata lives on the object itself: the
+ * content type on its header, the rest in {@code x-amz-meta-*}; {@link #updateMetadata} rewrites it with
+ * a {@code CopyObject} instead of uploading the bytes again.
  */
-public class S3StorageBackend implements StorageBackend, AutoCloseable {
+public class S3StorageBackend implements StorageBackend {
     /** How long one attempt of a call may take. */
     public static final Duration ATTEMPT_TIMEOUT = Duration.ofSeconds(30);
 
@@ -79,19 +71,12 @@ public class S3StorageBackend implements StorageBackend, AutoCloseable {
     private final String basePath;
 
     public S3StorageBackend(S3BackendConfig config) {
-        this(config, defaultClient(config));
-    }
-
-    /**
-     * Visible for tests that want to inject a pre-configured {@link S3Client}.
-     */
-    S3StorageBackend(S3BackendConfig config, S3Client s3) {
         this.config = config;
-        this.s3 = s3;
+        this.s3 = client(config);
         this.basePath = normalizeBasePath(config.basePath());
     }
 
-    private static S3Client defaultClient(S3BackendConfig config) {
+    private static S3Client client(S3BackendConfig config) {
         return S3Client.builder()
                 .endpointOverride(URI.create(config.endpoint()))
                 .region(Region.of(config.region()))
@@ -224,43 +209,25 @@ public class S3StorageBackend implements StorageBackend, AutoCloseable {
 
     @Override
     public List<String> listByPrefix(String prefix) {
-        String rooted = prefix == null ? "" : prefix;
-        String s3Prefix = rooted.isEmpty() ? basePath : key(rooted);
-        var out = new ArrayList<String>();
-        String continuation = null;
-        do {
-            ListObjectsV2Request.Builder req =
-                    ListObjectsV2Request.builder().bucket(config.bucket()).prefix(s3Prefix);
-            if (continuation != null) req.continuationToken(continuation);
-            var resp = s3.listObjectsV2(req.build());
-            for (var obj : resp.contents()) {
-                String relative = stripBase(obj.key());
-                if (relative == null) continue;
-                out.add(relative);
-            }
-            continuation = Boolean.TRUE.equals(resp.isTruncated()) ? resp.nextContinuationToken() : null;
-        } while (continuation != null);
-        out.sort(String::compareTo);
-        return out;
+        return objects(prefix)
+                .map(object -> stripBase(object.key()))
+                .filter(Objects::nonNull)
+                .sorted()
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     @Override
     public long sumSizeByPrefix(String prefix) {
+        return objects(prefix).mapToLong(S3Object::size).sum();
+    }
+
+    private Stream<S3Object> objects(String prefix) {
         String rooted = prefix == null ? "" : prefix;
-        String s3Prefix = rooted.isEmpty() ? basePath : key(rooted);
-        long total = 0;
-        String continuation = null;
-        do {
-            ListObjectsV2Request.Builder req =
-                    ListObjectsV2Request.builder().bucket(config.bucket()).prefix(s3Prefix);
-            if (continuation != null) req.continuationToken(continuation);
-            var resp = s3.listObjectsV2(req.build());
-            for (var obj : resp.contents()) {
-                total += obj.size();
-            }
-            continuation = Boolean.TRUE.equals(resp.isTruncated()) ? resp.nextContinuationToken() : null;
-        } while (continuation != null);
-        return total;
+        var request = ListObjectsV2Request.builder()
+                .bucket(config.bucket())
+                .prefix(rooted.isEmpty() ? basePath : key(rooted))
+                .build();
+        return s3.listObjectsV2Paginator(request).contents().stream();
     }
 
     @Override

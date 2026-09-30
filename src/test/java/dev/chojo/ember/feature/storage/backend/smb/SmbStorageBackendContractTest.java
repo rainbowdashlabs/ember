@@ -16,6 +16,7 @@ import com.hierynomus.smbj.share.File;
 import dev.chojo.ember.feature.storage.backend.FileTreeBackendContract;
 import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import dev.chojo.ember.feature.storage.backend.StorageBackend;
+import dev.chojo.ember.feature.storage.backend.StorageClients;
 import dev.chojo.ember.feature.storage.backend.StorageContainers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Tag;
@@ -35,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag("storage")
 class SmbStorageBackendContractTest extends FileTreeBackendContract {
+    private final StorageClients clients = new StorageClients(Runnable::run);
     private SMBClient rawClient;
     private DiskShare raw;
 
@@ -82,6 +84,7 @@ class SmbStorageBackendContractTest extends FileTreeBackendContract {
     @AfterAll
     void closeRaw() {
         if (rawClient != null) rawClient.close();
+        clients.close();
     }
 
     private DiskShare raw() {
@@ -117,7 +120,7 @@ class SmbStorageBackendContractTest extends FileTreeBackendContract {
 
     @Override
     protected StorageBackend openBackend() {
-        return new SmbStorageBackend(config());
+        return new SmbStorageBackend(config(), clients.smb(false, false), clients.drainer());
     }
 
     @Override

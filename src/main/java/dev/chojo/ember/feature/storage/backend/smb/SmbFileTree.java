@@ -36,12 +36,9 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * One signed-in SMB session and its share as a {@link FileTree}. Tree paths are taken from the root of
- * the share and spelled with backslashes on the wire.
- *
- * <p>A file is replaced by renaming onto the target with the replace flag set, which the server does
- * in one request. smbj reports failures as unchecked exceptions; they leave here as
- * {@link IOException}s, and a name the server says is not there as absence.
+ * One signed-in SMB session and its share as a {@link FileTree}, with paths from the root of the share.
+ * A file is replaced by one rename with the replace flag. smbj's unchecked failures leave here as
+ * {@link IOException}s, and a name the server does not know as absence.
  */
 final class SmbFileTree implements FileTree {
     private static final Logger log = LoggerFactory.getLogger(SmbFileTree.class);
@@ -102,7 +99,13 @@ final class SmbFileTree implements FileTree {
     @Override
     public Optional<OpenFile> open(String path) throws IOException {
         try {
-            File file = openForRead(smb(path));
+            File file = share.openFile(
+                    smb(path),
+                    EnumSet.of(AccessMask.GENERIC_READ),
+                    null,
+                    SMB2ShareAccess.ALL,
+                    SMB2CreateDisposition.FILE_OPEN,
+                    null);
             long size = file.getFileInformation().getStandardInformation().getEndOfFile();
             InputStream body = new FilterInputStream(file.getInputStream()) {
                 @Override
@@ -126,7 +129,7 @@ final class SmbFileTree implements FileTree {
         try {
             if (path.isEmpty()) return Optional.of(new FileInfo("", true, 0));
             var information = share.getFileInformation(smb(path)).getStandardInformation();
-            return Optional.of(new FileInfo(nameOf(path), information.isDirectory(), information.getEndOfFile()));
+            return Optional.of(FileInfo.at(path, information.isDirectory(), information.getEndOfFile()));
         } catch (SMBRuntimeException e) {
             if (isMissing(e)) return Optional.empty();
             throw failure(e);
@@ -183,7 +186,7 @@ final class SmbFileTree implements FileTree {
                 if (name.equals(".") || name.equals("..")) continue;
                 boolean isDirectory =
                         (entry.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0;
-                out.add(new FileInfo(name, isDirectory, isDirectory ? 0 : entry.getEndOfFile()));
+                out.add(new FileInfo(name, isDirectory, entry.getEndOfFile()));
             }
             return out;
         } catch (SMBRuntimeException e) {
@@ -207,53 +210,33 @@ final class SmbFileTree implements FileTree {
         return share.isConnected() && session.getConnection().isConnected();
     }
 
-    /**
-     * Anything but a status the server sent means the connection is gone or cannot be trusted, and it
-     * is dropped so every session on it is signed in afresh on a new one.
-     */
+    /** Anything but a status the server sent drops the connection, so every session is signed in afresh. */
     @Override
     public boolean brokenBy(IOException failure) {
         if (failure.getCause() instanceof SMBApiException && isUsable()) return false;
         if (failure instanceof NoSuchFileException && isUsable()) return false;
-        try {
-            session.getConnection().close(true);
-        } catch (IOException | SMBRuntimeException e) {
-            log.debug("Dropping a broken SMB connection failed", e);
-        }
+        quietly("Dropping a broken SMB connection", () -> session.getConnection()
+                .close(true));
         return true;
     }
 
     @Override
     public void close() {
+        quietly("Closing an SMB share", share::close);
+        quietly("Closing an SMB session", session::close);
+        quietly("Releasing an SMB connection", () -> session.getConnection().close());
+    }
+
+    private static void quietly(String what, SmbCall call) {
         try {
-            share.close();
+            call.run();
         } catch (IOException | SMBRuntimeException e) {
-            log.debug("Closing an SMB share failed", e);
-        }
-        try {
-            session.close();
-        } catch (IOException | SMBRuntimeException e) {
-            log.debug("Closing an SMB session failed", e);
-        }
-        try {
-            session.getConnection().close();
-        } catch (IOException | SMBRuntimeException e) {
-            log.debug("Releasing an SMB connection failed", e);
+            log.debug("{} failed", what, e);
         }
     }
 
-    private File openForRead(String path) {
-        return share.openFile(
-                path,
-                EnumSet.of(AccessMask.GENERIC_READ),
-                null,
-                SMB2ShareAccess.ALL,
-                SMB2CreateDisposition.FILE_OPEN,
-                null);
-    }
-
-    private static String nameOf(String path) {
-        int slash = path.lastIndexOf('/');
-        return slash < 0 ? path : path.substring(slash + 1);
+    @FunctionalInterface
+    private interface SmbCall {
+        void run() throws IOException;
     }
 }

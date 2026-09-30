@@ -27,14 +27,9 @@ import java.nio.file.Paths;
 import java.util.Optional;
 
 /**
- * Constructs the configured instance-default {@link StorageBackend} from {@link Storage}
- * config and exposes it as the single source of truth used by the resolver. The instance
- * default is built lazily on first call and reused for the lifetime of the process - the same
- * {@link StorageBackend} instance carries its own connection pool / SSH session / SDK client
- * so re-creating it would discard those.
- *
- * <p>Every SFTP and SMB backend it builds opens its sessions on the {@link StorageClients} of the
- * process rather than on clients of its own.
+ * Builds storage backends from the instance configuration and from station rows. The instance default
+ * is built once, on first use, and kept, since it carries its own pool of connections. Every SFTP and
+ * SMB backend opens its sessions on the shared {@link StorageClients}.
  */
 @Singleton
 public class StorageBackendFactory {
@@ -59,87 +54,21 @@ public class StorageBackendFactory {
         this.clients = clients;
     }
 
-    /**
-     * A factory with clients of its own, for callers that build it by hand.
-     */
+    /** A factory with clients of its own, which drain closed pools in the caller. */
     public StorageBackendFactory(
             Storage storageConfig, LocalStorageBackend localBackend, CredentialCipher credentialCipher) {
         this(storageConfig, localBackend, credentialCipher, new StorageClients(Runnable::run));
     }
 
-    /** The protocol clients the backends of this factory share. */
     public StorageClients clients() {
         return clients;
     }
 
-    private SmbBackendConfig toSmbConfig(StorageBackendSettings.SmbSettings smb) {
-        return new SmbBackendConfig(
-                smb.host(),
-                smb.port(),
-                smb.share(),
-                smb.domain(),
-                smb.username(),
-                resolveCredential(smb.passwordEnc(), smb.password()),
-                smb.basePath(),
-                smb.seal(),
-                smb.dfs());
-    }
-
-    private SftpBackendConfig toSftpConfig(StorageBackendSettings.SftpSettings sftp) {
-        String passwordPlain = resolveCredential(sftp.passwordEnc(), sftp.password());
-        String privateKeyPlain = resolveCredential(sftp.privateKeyEnc(), sftp.privateKey());
-        Optional<String> password =
-                passwordPlain == null || passwordPlain.isBlank() ? Optional.empty() : Optional.of(passwordPlain);
-        Optional<String> privateKey =
-                privateKeyPlain == null || privateKeyPlain.isBlank() ? Optional.empty() : Optional.of(privateKeyPlain);
-        return new SftpBackendConfig(
-                sftp.host(),
-                sftp.port(),
-                sftp.username(),
-                password,
-                privateKey,
-                sftp.knownHostsFingerprint(),
-                sftp.basePath());
-    }
-
-    private S3BackendConfig toS3Config(StorageBackendSettings.S3Settings s3) {
-        Optional<String> sse = s3.sseAlgorithm() == null || s3.sseAlgorithm().isBlank()
-                ? Optional.empty()
-                : Optional.of(s3.sseAlgorithm());
-        return new S3BackendConfig(
-                s3.endpoint(),
-                s3.region(),
-                s3.bucket(),
-                resolveCredential(s3.accessKeyEnc(), s3.accessKey()),
-                resolveCredential(s3.secretKeyEnc(), s3.secretKey()),
-                s3.pathStyle(),
-                sse,
-                s3.basePath());
-    }
-
-    /**
-     * Prefers the encrypted form when present (decrypting via {@link CredentialCipher}); falls
-     * back to the plain-text value otherwise so existing deployments that hand-wrote the legacy
-     * fields continue to work unchanged.
-     */
-    private String resolveCredential(EncryptedBlob encrypted, String plain) {
-        if (encrypted != null) {
-            return credentialCipher.decryptToString(encrypted);
-        }
-        return plain;
-    }
-
-    /**
-     * Returns the always-on local backend, used by every local-pinned category regardless of
-     * the configured instance default.
-     */
+    /** The always-on local backend of every local-pinned category, whatever the instance default is. */
     public LocalStorageBackend localBackend() {
         return localBackend;
     }
 
-    /**
-     * Returns the configured instance-default backend, building it lazily on first call.
-     */
     public synchronized StorageBackend instanceDefault() {
         if (instanceDefault == null) {
             instanceDefault = build(storageConfig.backend());
@@ -149,21 +78,15 @@ public class StorageBackendFactory {
     }
 
     /**
-     * Drops the cached instance-default backend so the next call rebuilds against the current
-     * {@link Storage#backend()} state. Called by the instance-wide migration after it has
-     * flipped the YAML so subsequent {@link StorageBackendResolver} reads pick up the new
-     * target. The previously-cached backend instance is intentionally NOT closed here - the
-     * caller (the instance migration service) keeps a reference to delete source bytes after
-     * the flip and closes it itself when done.
+     * Forgets the instance default so the next call builds it from the current configuration. The old
+     * backend is not closed: the instance migration still deletes the source bytes through it and
+     * closes it itself.
      */
     public synchronized void invalidateInstanceDefault() {
         instanceDefault = null;
     }
 
-    /**
-     * Closes the instance default, if one was built, and the shared protocol clients, which is the
-     * last thing storage does before the process stops. Nothing is built just to be closed.
-     */
+    /** Closes the instance default, if one was built, and then the shared clients. */
     public synchronized void closeInstanceDefault() {
         var built = instanceDefault;
         instanceDefault = null;
@@ -176,20 +99,12 @@ public class StorageBackendFactory {
         }
     }
 
-    /**
-     * Builds a fresh instance-target backend from the supplied {@link StorageBackendSettings}.
-     * Used by the instance-wide migration probe + byte-copy loop so the target can be
-     * exercised before the YAML flip lands.
-     */
+    /** A fresh backend for instance settings, which the caller closes. */
     public StorageBackend buildForInstance(StorageBackendSettings settings) {
         return build(settings);
     }
 
-    /**
-     * Builds a backend for a station's override row by decrypting its credentials and
-     * combining them with the non-secret fields the row carries. Each call constructs a fresh
-     * backend instance; the resolver caches it on top.
-     */
+    /** A fresh backend for a station's row, its credentials decrypted, which the caller closes. */
     public StorageBackend buildForStation(StationStorageBackendConfig config) {
         return switch (config) {
             case StationStorageBackendConfig.S3Variant v -> new S3StorageBackend(toS3Config(v));
@@ -199,8 +114,7 @@ public class StorageBackendFactory {
     }
 
     private StorageBackend build(StorageBackendSettings settings) {
-        StorageBackendType type = settings.type();
-        return switch (type) {
+        return switch (settings.type()) {
             case LOCAL -> buildLocal(settings.local());
             case SMB -> smb(toSmbConfig(settings.smb()));
             case SFTP -> sftp(toSftpConfig(settings.sftp()));
@@ -222,8 +136,53 @@ public class StorageBackendFactory {
         return new LocalStorageBackend(Paths.get(root));
     }
 
+    /** The encrypted form of a configured secret when there is one, else the plain one older configs carry. */
+    private String resolveCredential(EncryptedBlob encrypted, String plain) {
+        return encrypted != null ? credentialCipher.decryptToString(encrypted) : plain;
+    }
+
+    private static Optional<String> nonBlank(String value) {
+        return value == null || value.isBlank() ? Optional.empty() : Optional.of(value);
+    }
+
+    private SmbBackendConfig toSmbConfig(StorageBackendSettings.SmbSettings smb) {
+        return new SmbBackendConfig(
+                smb.host(),
+                smb.port(),
+                smb.share(),
+                smb.domain(),
+                smb.username(),
+                resolveCredential(smb.passwordEnc(), smb.password()),
+                smb.basePath(),
+                smb.seal(),
+                smb.dfs());
+    }
+
+    private SftpBackendConfig toSftpConfig(StorageBackendSettings.SftpSettings sftp) {
+        return new SftpBackendConfig(
+                sftp.host(),
+                sftp.port(),
+                sftp.username(),
+                nonBlank(resolveCredential(sftp.passwordEnc(), sftp.password())),
+                nonBlank(resolveCredential(sftp.privateKeyEnc(), sftp.privateKey())),
+                sftp.knownHostsFingerprint(),
+                sftp.basePath());
+    }
+
+    private S3BackendConfig toS3Config(StorageBackendSettings.S3Settings s3) {
+        return new S3BackendConfig(
+                s3.endpoint(),
+                s3.region(),
+                s3.bucket(),
+                resolveCredential(s3.accessKeyEnc(), s3.accessKey()),
+                resolveCredential(s3.secretKeyEnc(), s3.secretKey()),
+                s3.pathStyle(),
+                nonBlank(s3.sseAlgorithm()),
+                s3.basePath());
+    }
+
     private S3BackendConfig toS3Config(StationStorageBackendConfig.S3Variant v) {
-        StoredCredentials.S3 creds = StoredCredentials.S3.parse(credentialCipher.decryptToString(v.credentials()));
+        var creds = StoredCredentials.S3.parse(credentialCipher.decryptToString(v.credentials()));
         return new S3BackendConfig(
                 v.endpoint(),
                 v.region(),
@@ -236,7 +195,7 @@ public class StorageBackendFactory {
     }
 
     private SmbBackendConfig toSmbConfig(StationStorageBackendConfig.SmbVariant v) {
-        StoredCredentials.Smb creds = StoredCredentials.Smb.parse(credentialCipher.decryptToString(v.credentials()));
+        var creds = StoredCredentials.Smb.parse(credentialCipher.decryptToString(v.credentials()));
         return new SmbBackendConfig(
                 v.host(),
                 v.port(),
@@ -250,15 +209,14 @@ public class StorageBackendFactory {
     }
 
     private SftpBackendConfig toSftpConfig(StationStorageBackendConfig.SftpVariant v) {
-        StoredCredentials.Sftp creds = StoredCredentials.Sftp.parse(credentialCipher.decryptToString(v.credentials()));
-        Optional<String> password = creds.password() == null || creds.password().isBlank()
-                ? Optional.empty()
-                : Optional.of(creds.password());
-        Optional<String> privateKey =
-                creds.privateKey() == null || creds.privateKey().isBlank()
-                        ? Optional.empty()
-                        : Optional.of(creds.privateKey());
+        var creds = StoredCredentials.Sftp.parse(credentialCipher.decryptToString(v.credentials()));
         return new SftpBackendConfig(
-                v.host(), v.port(), creds.username(), password, privateKey, v.knownHostsFingerprint(), v.basePath());
+                v.host(),
+                v.port(),
+                creds.username(),
+                nonBlank(creds.password()),
+                nonBlank(creds.privateKey()),
+                v.knownHostsFingerprint(),
+                v.basePath());
     }
 }

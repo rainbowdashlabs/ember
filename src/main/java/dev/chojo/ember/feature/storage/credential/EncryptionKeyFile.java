@@ -23,14 +23,10 @@ import java.util.Set;
 /**
  * The key Ember encrypts its secrets at rest with when the operator has not configured one.
  *
- * <p>The key lives in a file under the data directory and never in the database, so a dump of the
- * database alone holds nothing it could decrypt. It is written once, on the first start that needs
- * it, readable by the owner only where the file system supports that, and read back unchanged on
- * every later start. Losing the file loses every secret encrypted with it, which is why the data
- * directory belongs in every backup.
- *
- * <p>The file is created with {@code CREATE_NEW}, so two starts racing for it cannot both write
- * one: the loser reads what the winner wrote.
+ * <p>The key lives in a file under the data directory, never in the database, so a database dump alone
+ * decrypts nothing; losing the file loses every secret encrypted with it. It is written once, owner-only
+ * where the file system allows, with {@code CREATE_NEW} so of two racing starts the loser reads what the
+ * winner wrote.
  */
 public final class EncryptionKeyFile {
     /** Where the generated key is kept, relative to the working directory like the rest of {@code data/}. */
@@ -51,27 +47,23 @@ public final class EncryptionKeyFile {
     }
 
     /**
-     * The key to use: the configured one when there is one, the one in the file otherwise.
+     * The configured base64 key when there is one, the one in the file otherwise.
      *
-     * @param configured the base64 key from the configuration, blank when none is set
-     * @return the base64 key
+     * @param configured the key from the configuration, blank when none is set
      */
     public String keyFor(String configured) {
         if (configured != null && !configured.isBlank()) return configured;
         return loadOrCreate();
     }
 
-    /**
-     * Reads the key from the file, generating and writing it first when the file does not exist.
-     *
-     * @return the base64 key
-     */
+    /** The base64 key in the file, generated and written first when there is none. */
     public String loadOrCreate() {
         try {
-            if (Files.exists(path)) return read();
-            return create();
-        } catch (FileAlreadyExistsException e) {
-            return readUnchecked();
+            try {
+                return Files.exists(path) ? read() : create();
+            } catch (FileAlreadyExistsException raced) {
+                return read();
+            }
         } catch (IOException e) {
             throw new UncheckedIOException("Could not read or create the encryption key at " + path, e);
         }
@@ -92,14 +84,6 @@ public final class EncryptionKeyFile {
 
     private String read() throws IOException {
         return Files.readString(path, StandardCharsets.US_ASCII).strip();
-    }
-
-    private String readUnchecked() {
-        try {
-            return read();
-        } catch (IOException e) {
-            throw new UncheckedIOException("Could not read the encryption key at " + path, e);
-        }
     }
 
     /**

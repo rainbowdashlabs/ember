@@ -5,32 +5,20 @@
  */
 package dev.chojo.ember.feature.storage.backend;
 
+import dev.chojo.ember.util.Sha256;
+
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
-/**
- * An {@link InputStream} that computes the SHA-256 of the bytes as they flow through. The digest is
- * read once the stream has been drained, typically right after a backend has stored it.
- */
+/** Computes the SHA-256 of the bytes read through it; skipped bytes are read, so they count too. */
 public final class DigestingInputStream extends FilterInputStream {
-    private final MessageDigest digest;
+    private final MessageDigest digest = Sha256.digest();
 
-    /**
-     * Wraps a stream.
-     *
-     * @param delegate the bytes to digest
-     */
     public DigestingInputStream(InputStream delegate) {
         super(delegate);
-        try {
-            this.digest = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
     }
 
     @Override

@@ -16,9 +16,9 @@ import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.IdentityHashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -28,28 +28,26 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * A bounded pool of protocol sessions for one backend.
  *
- * <p>At most {@code maxSize} trees are open at once. Trees are opened on demand and handed from one
- * caller to the next; a caller beyond the limit waits for one to come back, at most
- * {@code acquireTimeout}, and is then refused with {@link StorageUnavailableException}. A tree that
- * was discarded, or whose connection is gone, is closed on return rather than lent again. Idle trees
- * beyond the first are closed after {@link #IDLE_CLOSE}, so a quiet backend keeps one session and not
- * four. When a server refuses to open another tree while others it opened still work, the pool takes
- * that as the server's limit and stays below it.
+ * <p>At most {@link #SIZE} trees are open at once; a caller beyond that waits at most
+ * {@link #ACQUIRE_TIMEOUT} and is then refused with {@link StorageUnavailableException}. A discarded or
+ * broken tree is closed on return, and idle trees beyond the first are closed after {@link #IDLE_CLOSE}.
+ * When a server refuses another tree while others it opened still work, the pool stays below that limit.
  *
- * <p>A server that cannot be connected to {@link #FAILURES_BEFORE_REFUSING} times in a row is refused
- * at once for {@link #REFUSAL_WINDOW}, rather than every caller waiting out its own connect timeout;
- * the health check ({@link #acquireForProbe()}) always really tries, and the first connect that
- * succeeds ends the window.
- *
- * <p>A lease held longer than {@link #LEAK_AFTER} is reported once, with the stack of whoever took it:
- * a caller that never closes what it read would otherwise exhaust the pool without a trace.
- *
- * <p>Closing the pool closes the idle trees at once and every lent one as it comes back; a lease
- * still out after {@link #DRAIN_LIMIT} has its tree closed underneath it.
+ * <p>After {@link #FAILURES_BEFORE_REFUSING} failed connects in a row the pool refuses at once for
+ * {@link #REFUSAL_WINDOW} instead of every caller waiting out a connect; the health check still tries,
+ * and the first connect that succeeds ends the window. A lease held longer than {@link #LEAK_AFTER} is
+ * logged once with the stack of whoever took it, since a caller that never closes what it read would
+ * otherwise drain the pool without a trace.
  *
  * @param <T> the kind of tree
  */
 public final class LeasePool<T extends FileTree> implements TreeSource<T> {
+    /** How many trees may be open at once. */
+    public static final int SIZE = 4;
+
+    /** How long a caller waits for a tree. */
+    public static final Duration ACQUIRE_TIMEOUT = Duration.ofSeconds(10);
+
     /** How long an idle tree beyond the first is kept. */
     public static final Duration IDLE_CLOSE = Duration.ofMinutes(5);
 
@@ -62,7 +60,7 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
     /** How many failed connects in a row make the pool refuse at once. */
     public static final int FAILURES_BEFORE_REFUSING = 3;
 
-    /** How long the pool refuses at once after that, rather than letting every caller wait out a connect. */
+    /** How long the pool then refuses at once. */
     public static final Duration REFUSAL_WINDOW = Duration.ofSeconds(30);
 
     private static final Logger log = LoggerFactory.getLogger(LeasePool.class);
@@ -75,7 +73,7 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition changed = lock.newCondition();
     private final Deque<Idle<T>> idle = new ArrayDeque<>();
-    private final Map<PooledLease, Lent> lent = new IdentityHashMap<>();
+    private final Set<PooledLease> lent = new HashSet<>();
     private int open;
     private int limit;
     private int failedOpens;
@@ -83,17 +81,12 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
     private boolean closed;
 
     /**
-     * A pool that opens trees with {@code opener}.
-     *
-     * @param name           what the pool is for, in the messages it refuses with
-     * @param opener         opens one tree
-     * @param maxSize        how many trees may be open at once
-     * @param acquireTimeout how long a caller waits for a tree
-     * @param drainer        where a closed pool waits for the trees still lent, the task scheduler's
-     *                       workers in the application
+     * @param name    what the pool is for, in the messages it refuses with
+     * @param opener  opens one tree
+     * @param drainer where a closed pool waits for the trees still lent, the task scheduler in the application
      */
-    public LeasePool(String name, Opener<T> opener, int maxSize, Duration acquireTimeout, Executor drainer) {
-        this(name, opener, maxSize, acquireTimeout, drainer, Clock.systemUTC());
+    public LeasePool(String name, Opener<T> opener, Executor drainer) {
+        this(name, opener, SIZE, ACQUIRE_TIMEOUT, drainer, Clock.systemUTC());
     }
 
     LeasePool(String name, Opener<T> opener, int maxSize, Duration acquireTimeout, Executor drainer, Clock clock) {
@@ -110,10 +103,7 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
         return acquire(false);
     }
 
-    /**
-     * Lends a tree even inside the window in which a server that failed repeatedly is refused at once,
-     * so the health check always really tries.
-     */
+    /** Lends a tree even while the pool refuses a server that failed repeatedly. */
     @Override
     public Lease<T> acquireForProbe() {
         return acquire(true);
@@ -138,7 +128,7 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
     }
 
     /** How many trees are open, lent or idle. */
-    public int openTrees() {
+    int openTrees() {
         lock.lock();
         try {
             return open;
@@ -147,15 +137,10 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
         }
     }
 
-    @Override
-    public void close() {
-        close(() -> {});
-    }
-
     /**
-     * Closes the pool, and runs {@code afterwards} at once when no tree is lent, else once the last one
-     * is back or {@link #DRAIN_LIMIT} has passed, on the pool's drainer. A drainer that refuses the
-     * work, the task scheduler once it has stopped, has the caller wait instead.
+     * Closes the idle trees at once and every lent one as it comes back, then runs {@code afterwards}.
+     * While trees are lent the wait runs on the drainer, or on the caller when the drainer refuses, and
+     * a tree still out after {@link #DRAIN_LIMIT} is closed underneath its caller.
      */
     @Override
     public void close(Runnable afterwards) {
@@ -189,10 +174,7 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
         }
     }
 
-    /**
-     * An idle tree for the caller, or null when the caller may open one. Waits while every tree is
-     * lent and none may be opened.
-     */
+    /** An idle tree, or null when the caller may open one; waits while neither is to be had. */
     private T idleOrSlot(long deadline, boolean probe) {
         lock.lock();
         try {
@@ -229,8 +211,8 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
     }
 
     /**
-     * Gives the slot of a failed open back and says whether it was the server's limit rather than an
-     * outage: another tree it opened still works, so it can be reached and simply wants fewer.
+     * Gives the slot of a failed open back and says whether it hit the server's limit rather than an
+     * outage, which is the case when another tree it opened still works.
      */
     private boolean openFailedBelowTheServersLimit() {
         lock.lock();
@@ -238,7 +220,7 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
             open--;
             changed.signalAll();
             boolean othersWork = idle.stream().anyMatch(entry -> entry.tree().isUsable())
-                    || lent.keySet().stream().anyMatch(lease -> lease.tree.isUsable());
+                    || lent.stream().anyMatch(lease -> lease.tree.isUsable());
             if (othersWork && open > 0) {
                 limit = Math.max(1, open);
                 return true;
@@ -263,10 +245,10 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
     }
 
     private Lease<T> lend(T tree) {
-        var lease = new PooledLease(tree);
+        var lease = new PooledLease(tree, clock.instant());
         lock.lock();
         try {
-            lent.put(lease, new Lent(clock.instant(), new Throwable("Lease of " + name + " taken here")));
+            lent.add(lease);
         } finally {
             lock.unlock();
         }
@@ -301,14 +283,14 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
 
     private void reportLongLeases() {
         Instant cutoff = clock.instant().minus(LEAK_AFTER);
-        for (Lent held : lent.values()) {
-            if (!held.reported && held.since().isBefore(cutoff)) {
+        for (PooledLease held : lent) {
+            if (!held.reported && held.since.isBefore(cutoff)) {
                 held.reported = true;
                 log.warn(
                         "A connection of {} has been held since {} and was never given back",
                         name,
-                        held.since(),
-                        held.taker());
+                        held.since,
+                        held.taker);
             }
         }
     }
@@ -321,7 +303,7 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
             while (!lent.isEmpty() && remaining > 0) {
                 remaining = changed.awaitNanos(remaining);
             }
-            lent.keySet().forEach(lease -> stragglers.add(lease.tree));
+            lent.forEach(lease -> stragglers.add(lease.tree));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } finally {
@@ -332,49 +314,29 @@ public final class LeasePool<T extends FileTree> implements TreeSource<T> {
     }
 
     /**
-     * Opens one tree of the pool.
+     * Opens one tree, connecting and signing in as far as needed.
      *
      * @param <T> the kind of tree
      */
     @FunctionalInterface
     public interface Opener<T extends FileTree> {
-        /**
-         * Opens a tree, connecting and signing in as far as needed.
-         *
-         * @return the tree
-         * @throws IOException when the server cannot be reached or refuses the sign-in
-         */
+        /** @throws IOException when the server cannot be reached or refuses the sign-in */
         T open() throws IOException;
     }
 
     private record Idle<T>(T tree, Instant since) {}
 
-    private static final class Lent {
-        private final Instant since;
-        private final Throwable taker;
-        private boolean reported;
-
-        private Lent(Instant since, Throwable taker) {
-            this.since = since;
-            this.taker = taker;
-        }
-
-        Instant since() {
-            return since;
-        }
-
-        Throwable taker() {
-            return taker;
-        }
-    }
-
     private final class PooledLease implements Lease<T> {
         private final T tree;
+        private final Instant since;
+        private final Throwable taker = new Throwable("Lease of " + name + " taken here");
         private final AtomicBoolean returned = new AtomicBoolean();
         private volatile boolean discarded;
+        private boolean reported;
 
-        private PooledLease(T tree) {
+        private PooledLease(T tree, Instant since) {
             this.tree = tree;
+            this.since = since;
         }
 
         @Override

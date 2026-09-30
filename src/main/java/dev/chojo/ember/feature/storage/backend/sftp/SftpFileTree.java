@@ -25,12 +25,10 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * One SFTP channel as a {@link FileTree}. Tree paths are taken from the server's root, which for a
- * chrooted account is its home.
+ * One SFTP channel as a {@link FileTree}, with paths from the server's root (a chrooted account's home).
  *
- * <p>A file is replaced through {@code posix-rename@openssh.com} where the server offers it, which
- * OpenSSH does and which moves onto an existing file in one atomic step. Elsewhere the target is
- * removed first and the file renamed after, leaving a moment in which neither exists.
+ * <p>A file is replaced atomically through {@code posix-rename@openssh.com} where the server offers
+ * it. Elsewhere the target is removed before the rename, leaving a moment in which neither exists.
  */
 final class SftpFileTree implements FileTree {
     private static final Logger log = LoggerFactory.getLogger(SftpFileTree.class);
@@ -81,7 +79,7 @@ final class SftpFileTree implements FileTree {
     public Optional<FileInfo> stat(String path) throws IOException {
         try {
             var attributes = sftp.stat(absolute(path));
-            return Optional.of(new FileInfo(nameOf(path), attributes.isDirectory(), attributes.getSize()));
+            return Optional.of(FileInfo.at(path, attributes.isDirectory(), attributes.getSize()));
         } catch (SftpException e) {
             if (isMissing(e)) return Optional.empty();
             throw e;
@@ -129,8 +127,7 @@ final class SftpFileTree implements FileTree {
                 String name = entry.getFilename();
                 if (name.equals(".") || name.equals("..")) continue;
                 var attributes = entry.getAttributes();
-                out.add(new FileInfo(
-                        name, attributes.isDirectory(), attributes.isDirectory() ? 0 : attributes.getSize()));
+                out.add(new FileInfo(name, attributes.isDirectory(), attributes.getSize()));
             }
         } catch (SftpException e) {
             if (isMissing(e)) return List.of();
@@ -157,10 +154,7 @@ final class SftpFileTree implements FileTree {
         return sftp.isOpen() && sftp.getClientSession().isOpen();
     }
 
-    /**
-     * Anything but a status the server sent means the session is gone or cannot be trusted, and the
-     * session is closed so every channel on it is opened afresh.
-     */
+    /** Anything but a status the server sent closes the session, so every channel is opened afresh. */
     @Override
     public boolean brokenBy(IOException failure) {
         boolean answered = failure instanceof SftpException || failure instanceof NoSuchFileException;
@@ -176,10 +170,5 @@ final class SftpFileTree implements FileTree {
         } catch (IOException e) {
             log.debug("Closing an SFTP channel failed", e);
         }
-    }
-
-    private static String nameOf(String path) {
-        int slash = path.lastIndexOf('/');
-        return slash < 0 ? path : path.substring(slash + 1);
     }
 }

@@ -243,8 +243,8 @@ class LeasePoolTest {
         var lent = pool.acquire();
         idle.close();
 
-        pool.close();
-        pool.close();
+        pool.close(() -> {});
+        pool.close(() -> {});
 
         assertTrue(idle.tree().closed);
         assertFalse(lent.tree().closed);

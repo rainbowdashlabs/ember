@@ -25,12 +25,9 @@ import java.security.KeyPair;
 import java.time.Duration;
 
 /**
- * The one SSH session an SFTP backend keeps, and the channels opened on it.
- *
- * <p>The session is opened on first use and opened again when the server or the network dropped it;
- * every tree is one SFTP channel on it, so the pool of a backend multiplexes its channels over one
- * connection. The client underneath is shared by every backend of the process, so the host key a
- * session expects travels with its connection rather than being fixed on the client.
+ * The one SSH session an SFTP backend keeps, opened on first use and again after it was dropped. Every
+ * tree is one SFTP channel on it. The client is shared by every backend, so the host key a session
+ * expects travels with its connection rather than being fixed on the client.
  */
 public final class SftpSessions implements AutoCloseable {
     /** How long connecting and signing in may each take. */
@@ -39,10 +36,7 @@ public final class SftpSessions implements AutoCloseable {
     /** How long a request waits for its answer; SSHD takes it from the session's idle timeout. */
     public static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
 
-    /**
-     * How often a quiet session proves it is alive. Shorter than {@link #REQUEST_TIMEOUT}, which SSHD
-     * also applies to a session with no traffic at all.
-     */
+    /** How often a quiet session proves it is alive, shorter than {@link #REQUEST_TIMEOUT} so an idle session survives. */
     public static final Duration HEARTBEAT = Duration.ofSeconds(10);
 
     private static final Logger log = LoggerFactory.getLogger(SftpSessions.class);
@@ -51,21 +45,16 @@ public final class SftpSessions implements AutoCloseable {
 
     private final SftpBackendConfig config;
     private final SshClient client;
-    private final boolean ownsClient;
     private ClientSession session;
 
-    SftpSessions(SftpBackendConfig config, SshClient client, boolean ownsClient) {
+    SftpSessions(SftpBackendConfig config, SshClient client) {
         this.config = config;
         this.client = client;
-        this.ownsClient = ownsClient;
     }
 
     /**
-     * An SSH client for storage, started: host keys checked against the fingerprint of the backend a
-     * session belongs to, no {@code ~/.ssh/config} of the machine consulted, and the timeouts and
-     * heartbeat above.
-     *
-     * @return the client
+     * A started SSH client for storage: host keys checked against the fingerprint of the backend a
+     * session belongs to, no {@code ~/.ssh/config} consulted, and the timeouts above.
      */
     public static SshClient newClient() {
         SshClient client = SshClient.setUpDefaultClient();
@@ -87,12 +76,7 @@ public final class SftpSessions implements AutoCloseable {
         return client;
     }
 
-    /**
-     * Opens one SFTP channel, connecting and signing in first where no session is open.
-     *
-     * @return the channel as a tree
-     * @throws IOException when the server cannot be reached or refuses the sign-in
-     */
+    /** Opens one SFTP channel, connecting and signing in first where no session is open. */
     SftpFileTree open() throws IOException {
         return new SftpFileTree(SftpClientFactory.instance().createSftpClient(session()));
     }
@@ -126,7 +110,6 @@ public final class SftpSessions implements AutoCloseable {
     public synchronized void close() {
         if (session != null) session.close(true);
         session = null;
-        if (ownsClient) client.stop();
     }
 
     private static KeyPair parsePrivateKey(String pem) {

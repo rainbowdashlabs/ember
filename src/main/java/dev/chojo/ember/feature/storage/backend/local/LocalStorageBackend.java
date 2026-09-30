@@ -5,11 +5,10 @@
  */
 package dev.chojo.ember.feature.storage.backend.local;
 
-import dev.chojo.ember.feature.storage.backend.BackendCapability;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.backend.StorageException;
 import dev.chojo.ember.feature.storage.backend.tree.FileTreeBackend;
-import dev.chojo.ember.feature.storage.backend.tree.SharedTree;
+import dev.chojo.ember.feature.storage.backend.tree.TreeSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -22,7 +21,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -31,12 +29,9 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 /**
- * Backend that stores bytes under a configurable directory root (default {@code data/}).
- *
- * <p>The partial write, the rename, the sidecar and the walk are {@link FileTreeBackend}'s; this adds
- * what only a local disk can do. It is the only backend that satisfies
- * {@link BackendCapability#ACCESS_TIME_TRACKING} (the modification time is what is read and updated,
- * since the access time of a filesystem is unreliable) and {@link BackendCapability#POSIX_MODE}.
+ * Stores bytes under a directory root, {@code data/} by default. The only backend that tracks access
+ * times, through the modification time since the access time of a filesystem is unreliable, and the
+ * only one that applies POSIX modes.
  */
 @Singleton
 public class LocalStorageBackend extends FileTreeBackend {
@@ -55,39 +50,28 @@ public class LocalStorageBackend extends FileTreeBackend {
     }
 
     private LocalStorageBackend(LocalFileTree tree) {
-        super(
-                StorageBackendType.LOCAL,
-                new SharedTree<>(tree),
-                "",
-                EnumSet.of(BackendCapability.ACCESS_TIME_TRACKING, BackendCapability.POSIX_MODE));
+        super(StorageBackendType.LOCAL, TreeSource.shared(tree), "");
         this.tree = tree;
         this.root = tree.resolve("");
     }
 
-    private static Set<PosixFilePermission> parsePosixMode(int octalMode) {
-        return PosixFilePermissions.fromString(toRwxString(octalMode));
-    }
-
-    private static String toRwxString(int octalMode) {
-        StringBuilder sb = new StringBuilder(9);
-        int[] groups = {(octalMode >> 6) & 7, (octalMode >> 3) & 7, octalMode & 7};
-        for (int g : groups) {
-            sb.append((g & 4) != 0 ? 'r' : '-');
-            sb.append((g & 2) != 0 ? 'w' : '-');
-            sb.append((g & 1) != 0 ? 'x' : '-');
+    private static Set<PosixFilePermission> permissions(String octalMode) {
+        int mode = Integer.parseInt(octalMode, 8);
+        var permissions = EnumSet.noneOf(PosixFilePermission.class);
+        for (PosixFilePermission permission : PosixFilePermission.values()) {
+            if ((mode & (0400 >> permission.ordinal())) != 0) permissions.add(permission);
         }
-        return sb.toString();
+        return permissions;
     }
 
     /**
-     * Applies a POSIX mode (octal string, e.g. {@code "0600"}) to {@code fullKey}. Skips when
-     * the filesystem does not support POSIX permissions (Windows). The method is invoked by
-     * {@code StorageService} after every successful write of a {@code POSIX_MODE} category.
+     * Applies an octal POSIX mode such as {@code "0600"} to a key; skipped where the filesystem keeps
+     * no POSIX modes.
      */
     public void applyPosixMode(String fullKey, String posixMode) {
         Path target = resolve(fullKey);
         try {
-            Files.setPosixFilePermissions(target, parsePosixMode(Integer.parseInt(posixMode, 8)));
+            Files.setPosixFilePermissions(target, permissions(posixMode));
         } catch (UnsupportedOperationException ignored) {
             log.debug("The filesystem of {} keeps no POSIX modes", fullKey);
         } catch (IOException e) {
@@ -118,16 +102,12 @@ public class LocalStorageBackend extends FileTreeBackend {
         }
     }
 
-    /**
-     * Absolute root directory the backend is rooted at. Visible for diagnostics and tests.
-     */
+    /** The absolute directory the backend is rooted at. */
     public Path root() {
         return root;
     }
 
-    /**
-     * Resolves a {@code fullKey} to its on-disk absolute path under {@link #root()}.
-     */
+    /** The path on disk of a key. */
     public Path resolve(String fullKey) {
         if (fullKey == null || fullKey.isEmpty()) {
             throw new IllegalArgumentException("fullKey must not be empty");
@@ -135,10 +115,7 @@ public class LocalStorageBackend extends FileTreeBackend {
         return tree.resolve(fullKey);
     }
 
-    /**
-     * Recursively removes everything in {@code prefix} (object + metadata + empty dirs), in one walk
-     * rather than one delete per key.
-     */
+    /** Removes everything under a prefix, objects, sidecars and directories, in one walk. */
     public void deletePrefix(String prefix) {
         Path base = resolve(prefix);
         if (!Files.exists(base)) return;

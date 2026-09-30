@@ -20,19 +20,13 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * The protocol clients every remote backend of the process shares.
- *
- * <p>One SSH client, whose I/O threads carry the sessions of every SFTP backend, instead of a client
- * and its threads per backend; and one SMB client per combination of encryption and DFS, the two
- * settings smbj fixes per client rather than per connection. Backends only open sessions on them and
- * close those, never the clients; the clients are closed when the process stops.
- *
- * <p>SMB waits at most {@link #IO_TIMEOUT} for an answer and for the socket. The SSH side sets its
- * own limits in {@link SftpSessions#newClient()}.
+ * The protocol clients every remote backend of the process shares: one SSH client, whose I/O threads
+ * carry every SFTP session, and one SMB client per combination of encryption and DFS, which smbj fixes
+ * per client. Backends open and close sessions on them; the clients close when the process stops.
  */
 @Singleton
 public class StorageClients implements AutoCloseable {
-    /** How long a remote call waits for its answer. */
+    /** How long an SMB call waits for its answer and for the socket. */
     public static final Duration IO_TIMEOUT = Duration.ofSeconds(30);
 
     private final Map<SmbKey, SMBClient> smbClients = new HashMap<>();
@@ -40,22 +34,12 @@ public class StorageClients implements AutoCloseable {
     private SshClient ssh;
     private boolean closed;
 
-    /**
-     * Clients whose backends drain their pools on the task scheduler's workers.
-     *
-     * @param scheduler the scheduler of the process
-     */
     @Inject
     public StorageClients(TaskScheduler scheduler) {
         this(scheduler.executor());
     }
 
-    /**
-     * Clients whose backends drain their pools on the given executor; a direct one drains while the
-     * backend is being closed.
-     *
-     * @param drainer where a closed pool waits for its lent connections
-     */
+    /** @param drainer where a closed pool waits for its lent connections; a direct one waits in the caller */
     public StorageClients(Executor drainer) {
         this.drainer = drainer;
     }
@@ -65,43 +49,24 @@ public class StorageClients implements AutoCloseable {
         return drainer;
     }
 
-    /**
-     * The shared SSH client, started on first use.
-     *
-     * @return the client
-     */
+    /** The shared SSH client, started on first use. */
     public synchronized SshClient ssh() {
         if (closed) throw new StorageUnavailableException("Storage clients have been closed");
         if (ssh == null) ssh = SftpSessions.newClient();
         return ssh;
     }
 
-    /**
-     * The shared SMB client for one combination of settings.
-     *
-     * @param seal whether SMB3 in-flight encryption is on
-     * @param dfs  whether DFS referrals are followed
-     * @return the client
-     */
+    /** The shared SMB client for one combination of encryption and DFS. */
     public synchronized SMBClient smb(boolean seal, boolean dfs) {
         if (closed) throw new StorageUnavailableException("Storage clients have been closed");
-        return smbClients.computeIfAbsent(new SmbKey(seal, dfs), key -> newSmbClient(seal, dfs));
-    }
-
-    /**
-     * An SMB client with the timeouts every backend uses.
-     *
-     * @param seal whether SMB3 in-flight encryption is on
-     * @param dfs  whether DFS referrals are followed
-     * @return the client
-     */
-    public static SMBClient newSmbClient(boolean seal, boolean dfs) {
-        return new SMBClient(SmbConfig.builder()
-                .withEncryptData(seal)
-                .withDfsEnabled(dfs)
-                .withTimeout(IO_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
-                .withSoTimeout(IO_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
-                .build());
+        return smbClients.computeIfAbsent(
+                new SmbKey(seal, dfs),
+                key -> new SMBClient(SmbConfig.builder()
+                        .withEncryptData(seal)
+                        .withDfsEnabled(dfs)
+                        .withTimeout(IO_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
+                        .withSoTimeout(IO_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
+                        .build()));
     }
 
     @Override

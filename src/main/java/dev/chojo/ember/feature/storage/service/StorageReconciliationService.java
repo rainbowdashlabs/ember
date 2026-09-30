@@ -28,15 +28,8 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * Periodic sanity check that reconciles {@code station_storage_usage} against the actual bytes
- * on the backend. Hot-path tracking happens in {@link StorageQuotaService}; this service only
- * runs on a schedule (default daily) and on manual admin trigger to catch drift between the
- * incremental counters and the real on-disk size.
- *
- * <p>Reconciliation goes through {@link StorageService#sumSize(StorageScope, StorageCategory)},
- * which delegates to the resolved backend's prefix-sum primitive. The producer never walks the
- * filesystem directly - that detail stays behind the storage interface so S3 / SMB / SFTP
- * backends pick the appropriate native operation.
+ * Corrects the usage counters {@link StorageQuotaService} keeps incrementally against the bytes the
+ * backends actually hold, on a schedule and when an administrator asks.
  */
 @Singleton
 public class StorageReconciliationService {
@@ -64,9 +57,6 @@ public class StorageReconciliationService {
         this.storage = storage;
     }
 
-    /**
-     * Reconciles storage usage for every station.
-     */
     public void reconcileAll() {
         try {
             log.info("Starting storage reconciliation for all stations");
@@ -80,9 +70,6 @@ public class StorageReconciliationService {
         }
     }
 
-    /**
-     * Reconciles storage usage for one station.
-     */
     public void reconcileStation(int stationId) {
         try {
             UUID stationUid = stationRepository.resolveUid(stationId);

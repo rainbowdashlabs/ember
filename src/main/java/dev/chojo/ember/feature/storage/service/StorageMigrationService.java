@@ -7,11 +7,9 @@ package dev.chojo.ember.feature.storage.service;
 
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.HealthStatus;
-import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.StoredStream;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -19,35 +17,20 @@ import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.migration.MigrationLockRegistry;
 import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
-import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Moves bytes between backends for one station: probe the
- * target, hold an in-process lock on the station, walk every station-scoped movable category,
- * copy + verify every key, flip the override row, sample-verify, delete the source, release
- * the lock.
- *
- * <p>Idempotent: a key already present on the target with the same SHA-256 is skipped, so a
- * crashed migration can be re-run and will pick up where it left off.
- */
+/** Moves one station's bytes to another backend. */
 @Singleton
 public class StorageMigrationService {
     private static final Logger log = LoggerFactory.getLogger(StorageMigrationService.class);
-
-    /**
-     * Fraction of migrated keys re-read on the target as a sanity check (1%).
-     */
-    private static final int SAMPLE_DENOMINATOR = 100;
 
     private final StationRepository stationRepository;
     private final StationStorageConfigRepository configRepository;
@@ -72,41 +55,22 @@ public class StorageMigrationService {
         this.locks = locks;
     }
 
-    /**
-     * Migrates every object under {@code stationId} (across every station-scoped movable
-     * category) from the currently-resolved backend to the backend described by
-     * {@code targetConfig}, then flips the override row to point at the new backend.
-     *
-     * @throws MigrationException on any failure; the lock is released before the exception
-     *                            propagates so the caller may safely retry.
-     */
+    /** Moves a station onto a backend of its own. */
     public MigrationResult migrate(int stationId, StationStorageBackendConfig targetConfig) {
         return moveStation(stationId, new Destination.Own(targetConfig));
     }
 
-    /**
-     * Inverse of {@link #migrate}: moves every key currently sitting on the station's remote
-     * override backend back to the instance default, then drops the {@code station_storage_config}
-     * row so the station resolves to the instance default again. No-op when the station has no
-     * override.
-     */
+    /** Moves a station back to the instance default; nothing happens when it already stands there. */
     public MigrationResult migrateToInstanceDefault(int stationId) {
         return moveStation(stationId, new Destination.InstanceDefault());
     }
 
     /**
-     * Carries every movable station-scoped key to where the station is going, and records that it got there.
+     * Under the station's lock: probes the target, copies and verifies every movable station key,
+     * records where the station now stands, checks a sample, and deletes the source. A target built for
+     * the move is closed afterwards; the instance default is shared and stays open.
      *
-     * <p>One method for all three destinations, because the order of the steps is the safe one and there is
-     * no reason for three copies of it: acquire the per-station lock, probe the target, copy and verify every
-     * key, record the new placement, sample-verify, delete the source, release. What differs between the
-     * three is the destination's own backend and the single write that says where the station now stands.
-     *
-     * @param stationId   the station being moved
-     * @param destination where its bytes are going
-     * @return what was carried
-     * @throws MigrationException on any failure; the lock is released before it propagates, so the caller may
-     *                            retry, and nothing has half happened
+     * @throws MigrationException on any failure, after the lock was released, so the caller may retry
      */
     public MigrationResult moveStation(int stationId, Destination destination) {
         if (!locks.tryAcquire(stationId)) {
@@ -133,7 +97,7 @@ public class StorageMigrationService {
                 }
                 return run(scope, target, destination);
             } finally {
-                if (builtForTheMove(destination)) target.close();
+                if (!(destination instanceof Destination.InstanceDefault)) target.close();
             }
         } catch (MigrationException e) {
             throw e;
@@ -150,15 +114,6 @@ public class StorageMigrationService {
                 && placementRepository.findByStation(stationId).isEmpty();
     }
 
-    /**
-     * Whether the move built the backend it copies to, and so has to close it afterwards. The way home
-     * copies onto the instance default every other station stands on, which is never the move's to
-     * close.
-     */
-    private static boolean builtForTheMove(Destination destination) {
-        return !(destination instanceof Destination.InstanceDefault);
-    }
-
     private StorageBackend buildTarget(Destination destination) {
         return switch (destination) {
             case Destination.Own own -> factory.buildForStation(own.config());
@@ -167,9 +122,6 @@ public class StorageMigrationService {
         };
     }
 
-    /**
-     * Writes where the station stands now, which is the only step the three destinations do differently.
-     */
     private void record(int stationId, Destination destination) {
         switch (destination) {
             case Destination.Own own -> {
@@ -188,11 +140,8 @@ public class StorageMigrationService {
     }
 
     private MigrationResult run(StorageScope.Station scope, StorageBackend target, Destination destination) {
-        int totalKeys = 0;
-        int copiedCount = 0;
-        int skippedCount = 0;
-        long copiedBytes = 0;
-        var allCopiedKeys = new ArrayList<KeyOnBackend>();
+        var stats = BackendCopy.Stats.NONE;
+        var allCopiedKeys = new ArrayList<String>();
         var perCategoryKeys = new ArrayList<CategoryKeys>();
 
         for (StorageCategory category : StorageCategory.values()) {
@@ -212,25 +161,15 @@ public class StorageMigrationService {
                     scope.stationId(),
                     category);
 
-            for (String key : keys) {
-                totalKeys++;
-                if (target.exists(key) && hashesMatch(target, source, key)) {
-                    skippedCount++;
-                    allCopiedKeys.add(new KeyOnBackend(source, key));
-                    continue;
-                }
-                copiedBytes += copyOne(source, target, key);
-                copiedCount++;
-                allCopiedKeys.add(new KeyOnBackend(source, key));
-            }
+            stats = stats.plus(BackendCopy.copyAll(source, target, keys));
+            allCopiedKeys.addAll(keys);
             perCategoryKeys.add(new CategoryKeys(source, keys));
         }
 
         record(scope.stationId(), destination);
         Optional<StorageBackend> formerOwn = resolver.detachStation(scope.stationId());
         try {
-            int sampleSize = Math.max(1, allCopiedKeys.size() / SAMPLE_DENOMINATOR);
-            sampleVerify(target, allCopiedKeys, sampleSize);
+            BackendCopy.sampleVerify(target, allCopiedKeys);
 
             int deletedCount = 0;
             for (CategoryKeys cat : perCategoryKeys) {
@@ -243,82 +182,26 @@ public class StorageMigrationService {
                     }
                 }
             }
-            return new MigrationResult(totalKeys, copiedCount, skippedCount, deletedCount, copiedBytes);
+            return new MigrationResult(stats.total(), stats.copied(), stats.skipped(), deletedCount, stats.bytes());
         } finally {
             formerOwn.ifPresent(StorageBackend::close);
         }
     }
 
-    private long copyOne(StorageBackend source, StorageBackend target, String key) {
-        try (StoredStream stream = source.read(key)
-                .orElseThrow(() -> new MigrationException("Source key disappeared mid-migration: " + key))) {
-            long length = stream.contentLength();
-            ObjectMetadata metadata = stream.metadata();
-            target.store(key, stream.body(), length, metadata);
-            return length;
-        } catch (IOException e) {
-            throw new MigrationException("Failed to read source key " + key, e);
-        }
-    }
-
-    private boolean hashesMatch(StorageBackend a, StorageBackend b, String key) {
-        return hashOf(a, key).equals(hashOf(b, key));
-    }
-
-    private String hashOf(StorageBackend backend, String key) {
-        try (StoredStream stream = backend.read(key).orElseThrow(() -> new MigrationException("Missing key: " + key))) {
-            String stored = stream.metadata().sha256();
-            if (stored != null && !stored.isBlank()) return stored;
-            return Sha256.hex(stream.body());
-        } catch (IOException e) {
-            throw new MigrationException("Failed to read key for verification " + key, e);
-        }
-    }
-
-    private void sampleVerify(StorageBackend target, List<KeyOnBackend> copiedKeys, int sampleSize) {
-        if (copiedKeys.isEmpty()) return;
-        int step = Math.max(1, copiedKeys.size() / sampleSize);
-        for (int i = 0; i < copiedKeys.size() && i < sampleSize * step; i += step) {
-            String key = copiedKeys.get(i).key();
-            if (!target.exists(key)) {
-                throw new MigrationException("Sample verification failed: target missing key " + key);
-            }
-        }
-    }
-
-    /**
-     * Result summary of a {@link #migrate} call. {@code skipped} counts keys that were already
-     * present on the target with a matching SHA-256 (idempotent re-run).
-     */
+    /** @param skipped keys already on the target with a matching SHA-256 */
     public record MigrationResult(int totalKeys, int copied, int skipped, int deleted, long copiedBytes) {}
 
-    /**
-     * Where a station's bytes are going, which is the one thing that differs between the three moves.
-     */
+    /** Where a station's bytes are going; configs carry their credentials encrypted. */
     public sealed interface Destination {
-        /**
-         * A backend the station brings itself, which is what makes it bounded by nobody.
-         *
-         * @param config the backend, with its credentials already encrypted
-         */
+        /** A backend the station brings itself. */
         record Own(StationStorageBackendConfig config) implements Destination {}
 
-        /**
-         * A version of its cluster's storage.
-         *
-         * @param clusterId the cluster whose storage it is
-         * @param configId  the version, so the placement records what was actually carried to
-         * @param config    that version's backend, with its credentials already encrypted
-         */
+        /** @param configId the version of the cluster's storage, so the placement records what was carried to */
         record Cluster(int clusterId, int configId, StationStorageBackendConfig config) implements Destination {}
 
-        /**
-         * Back to whatever the instance provides, which is the absence of both other rows.
-         */
+        /** Whatever the instance provides, which is the absence of both other rows. */
         record InstanceDefault() implements Destination {}
     }
-
-    private record KeyOnBackend(StorageBackend source, String key) {}
 
     private record CategoryKeys(StorageBackend source, List<String> keys) {}
 }

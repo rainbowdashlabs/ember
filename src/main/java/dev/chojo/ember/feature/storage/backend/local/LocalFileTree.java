@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.storage.backend.tree.OpenFile;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -35,12 +34,7 @@ final class LocalFileTree implements FileTree {
         this.root = root;
     }
 
-    /**
-     * The absolute path of a tree path, refusing any path that would leave the root.
-     *
-     * @param path the tree path
-     * @return the path on disk
-     */
+    /** The path on disk of a tree path, refusing any path that would leave the root. */
     Path resolve(String path) {
         Path resolved = root.resolve(path).normalize();
         if (!resolved.startsWith(root)) {
@@ -127,8 +121,6 @@ final class LocalFileTree implements FileTree {
         try {
             Path dir = resolve(path);
             return Files.isDirectory(dir) && Files.deleteIfExists(dir);
-        } catch (DirectoryNotEmptyException e) {
-            return false;
         } catch (IOException e) {
             return false;
         }
@@ -144,9 +136,6 @@ final class LocalFileTree implements FileTree {
 
     private static FileInfo info(Path file, BasicFileAttributes attributes) {
         Path name = file.getFileName();
-        return new FileInfo(
-                name == null ? "" : name.toString(),
-                attributes.isDirectory(),
-                attributes.isDirectory() ? 0 : attributes.size());
+        return new FileInfo(name == null ? "" : name.toString(), attributes.isDirectory(), attributes.size());
     }
 }

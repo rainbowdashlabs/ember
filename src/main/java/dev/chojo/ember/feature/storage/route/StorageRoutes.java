@@ -109,20 +109,14 @@ public class StorageRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Station-level usage (managers)
         routes.get(prefix + "/storage/usage", this::getStationUsage, StationPermission.STATION_MANAGER);
-
-        // Admin: overview
         routes.get(prefix + "/admin/storage/usage", this::getAdminUsage, InstancePermission.ADMINISTRATOR);
-
-        // Admin: reconciliation
         routes.post(prefix + "/admin/storage/recalculate", this::recalculateAll, InstancePermission.ADMINISTRATOR);
         routes.post(
                 prefix + "/admin/storage/recalculate/{stationUid}",
                 this::recalculateStation,
                 InstancePermission.ADMINISTRATOR);
 
-        // Admin: quota presets CRUD
         routes.get(prefix + "/admin/storage/presets", this::listPresets, InstancePermission.ADMINISTRATOR);
         routes.post(
                 prefix + "/admin/storage/presets",
@@ -145,7 +139,6 @@ public class StorageRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
 
-        // Admin: instance default storage backend
         routes.get(prefix + "/admin/storage/backend", this::getInstanceBackend, InstancePermission.ADMINISTRATOR);
         routes.post(
                 prefix + "/admin/storage/backend/probe", this::probeInstanceBackend, InstancePermission.ADMINISTRATOR);
@@ -163,10 +156,7 @@ public class StorageRoutes implements Routes {
                 this::migrateInstanceStatus,
                 InstancePermission.ADMINISTRATOR);
 
-        // Admin: audit trail
         routes.get(prefix + "/admin/storage/audit", this::listAudit, InstancePermission.ADMINISTRATOR);
-
-        // Admin: station quota management
         routes.put(
                 prefix + "/admin/storage/stations/{stationUid}/quotas",
                 this::updateStationQuotas,
@@ -179,8 +169,6 @@ public class StorageRoutes implements Routes {
                 StepUpCategory.INSTANCE_CONFIG);
     }
 
-    // -- Station usage --
-
     private void getStationUsage(Context ctx) {
         var session = UserSession.from(ctx);
         int stationId = session.stationId();
@@ -189,8 +177,6 @@ public class StorageRoutes implements Routes {
                 .filter(u -> u.category().enforcesQuota())
                 .mapToLong(StorageUsage::totalBytes)
                 .sum();
-        // Somebody else's storage means nobody's quota: what is shown is that there is no limit rather than a
-        // limit of nothing
         boolean usesOwnBackend = quotaService.isUnbounded(stationId);
         long quotaBytes = usesOwnBackend ? 0L : quotaService.getEffectiveTotalQuota(stationId);
         int quotaUsedPercent = quotaBytes > 0 ? (int) (totalBytes * 100 / quotaBytes) : 0;
@@ -214,8 +200,6 @@ public class StorageRoutes implements Routes {
                 categoryQuotas,
                 usesOwnBackend));
     }
-
-    // -- Admin overview --
 
     private void getAdminUsage(Context ctx) {
         var stations = stationRepository.findAll();
@@ -260,8 +244,6 @@ public class StorageRoutes implements Routes {
         ctx.json(result);
     }
 
-    // -- Reconciliation --
-
     private void recalculateAll(Context ctx) {
         scheduler.background("admin-reconcile-all", reconciliationService::reconcileAll);
         ctx.status(HttpStatus.ACCEPTED);
@@ -277,8 +259,6 @@ public class StorageRoutes implements Routes {
         reconciliationService.reconcileStation(stationId.get());
         ctx.status(HttpStatus.OK);
     }
-
-    // -- Presets CRUD --
 
     private void listPresets(Context ctx) {
         ctx.json(presetRepository.findAll());
@@ -327,8 +307,6 @@ public class StorageRoutes implements Routes {
         }
         ctx.status(HttpStatus.OK);
     }
-
-    // -- Instance default backend --
 
     private void getInstanceBackend(Context ctx) {
         var backend = backendResolver.instanceDefault();
@@ -704,8 +682,6 @@ public class StorageRoutes implements Routes {
         ctx.json(entries);
     }
 
-    // -- Station quota management --
-
     private void updateStationQuotas(Context ctx) {
         UUID uid = pathUuid(ctx, "stationUid");
         var stationId = stationRepository.resolveId(uid);
@@ -736,8 +712,6 @@ public class StorageRoutes implements Routes {
         presetRepository.resetStationQuotas(stationId.get());
         ctx.status(HttpStatus.OK);
     }
-
-    // -- Request/Response records --
 
     /**
      * Sealed sum type for the GET /admin/storage/backend response. Each variant carries the

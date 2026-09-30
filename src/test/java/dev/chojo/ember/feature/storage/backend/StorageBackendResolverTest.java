@@ -227,6 +227,11 @@ class StorageBackendResolverTest {
         }
 
         @Override
+        public long sumSizeByPrefix(String prefix) {
+            return 0;
+        }
+
+        @Override
         public HealthStatus probe() {
             return HealthStatus.ok();
         }
