@@ -21,7 +21,7 @@ import java.util.Set;
  * number back.
  */
 public final class RetiredRefusals {
-    private static final Set<String> CODES = Set.of();
+    private static final Set<String> CODES = Set.of("M-040", "M-041", "M-042");
 
     private RetiredRefusals() {}
 

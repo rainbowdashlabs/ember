@@ -358,6 +358,48 @@ class AccountRepositoryTest extends RepositoryTestBase {
         accountRepo.deleteSession("change-tok");
     }
 
+    @Test
+    @Order(52)
+    void renewSessionWaitsForHalfTheLifetime() {
+        accountRepo.createSession(accountId, "renew-fresh", Instant.now().plus(50, ChronoUnit.MINUTES), "ua", null);
+
+        assertTrue(accountRepo.renewSession("renew-fresh", 60, 600).isEmpty());
+
+        accountRepo.deleteSession("renew-fresh");
+    }
+
+    @Test
+    @Order(52)
+    void renewSessionExtendsByTheLifetimeItWasSignedInWith() {
+        accountRepo.createSession(accountId, "renew-short", Instant.now().plus(10, ChronoUnit.MINUTES), "ua", null);
+        accountRepo.createSession(
+                accountId, "renew-long", Instant.now().plus(10, ChronoUnit.MINUTES), "ua", null, null, null, true);
+
+        Instant shortExpiry = accountRepo.renewSession("renew-short", 60, 600).orElseThrow();
+        Instant longExpiry = accountRepo.renewSession("renew-long", 60, 600).orElseThrow();
+
+        assertTrue(shortExpiry.isAfter(Instant.now().plus(55, ChronoUnit.MINUTES)));
+        assertTrue(shortExpiry.isBefore(Instant.now().plus(65, ChronoUnit.MINUTES)));
+        assertTrue(longExpiry.isAfter(Instant.now().plus(595, ChronoUnit.MINUTES)));
+        assertEquals(
+                shortExpiry,
+                accountRepo.findSession("renew-short").orElseThrow().expiresAt());
+
+        accountRepo.deleteSession("renew-short");
+        accountRepo.deleteSession("renew-long");
+    }
+
+    @Test
+    @Order(52)
+    void renewSessionNeverRevivesAnExpiredOne() {
+        accountRepo.createSession(accountId, "renew-dead", Instant.now().minus(1, ChronoUnit.MINUTES), "ua", null);
+
+        assertTrue(accountRepo.renewSession("renew-dead", 60, 600).isEmpty());
+        assertTrue(accountRepo.renewSession("renew-unknown", 60, 600).isEmpty());
+
+        accountRepo.deleteSession("renew-dead");
+    }
+
     private static void backdateLastUse(String token) {
         query("UPDATE account_session SET last_used_at = now() - INTERVAL '2 minutes' WHERE token_hash = :token_hash;")
                 .single(call().bind(

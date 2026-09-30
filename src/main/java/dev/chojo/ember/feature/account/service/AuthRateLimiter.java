@@ -56,7 +56,6 @@ public class AuthRateLimiter {
     private final LeakyBucket verifyIp;
     private final LeakyBucket setPasswordIp;
     private final LeakyBucket confirmEmailIp;
-    private final LeakyBucket refreshIp;
     private final LeakyBucket changePasswordIdentity;
     private final LeakyBucket twoFactorIp;
     private final LeakyBucket twoFactorIdentity;
@@ -96,7 +95,6 @@ public class AuthRateLimiter {
         this.verifyIp = new LeakyBucket(cap(unlimited, 30), 30, PRUNE_AFTER, clock);
         this.setPasswordIp = new LeakyBucket(cap(unlimited, 30), 30, PRUNE_AFTER, clock);
         this.confirmEmailIp = new LeakyBucket(cap(unlimited, 30), 30, PRUNE_AFTER, clock);
-        this.refreshIp = new LeakyBucket(cap(unlimited, 60), 60, PRUNE_AFTER, clock);
         this.changePasswordIdentity = new LeakyBucket(cap(unlimited, 10), HOUR.dividedBy(5), PRUNE_AFTER, clock);
         this.twoFactorIp = new LeakyBucket(cap(unlimited, 20), 20, PRUNE_AFTER, clock);
         this.twoFactorIdentity = new LeakyBucket(cap(unlimited, 10), FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
@@ -184,10 +182,6 @@ public class AuthRateLimiter {
 
     public Optional<Long> tryConfirmEmailChange(String ip) {
         return confirmEmailIp.tryAcquire(ip);
-    }
-
-    public Optional<Long> tryRefresh(String ip) {
-        return refreshIp.tryAcquire(ip);
     }
 
     public Optional<Long> tryChangePassword(int accountId) {

@@ -9,6 +9,7 @@ import dev.chojo.ember.api.RateLimits;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.auth.StepUpGuard;
@@ -75,6 +76,7 @@ public class PasskeyRoutes implements Routes {
     private final TwoFactorService twoFactorService;
     private final ManagedAccessService managedAccessService;
     private final Api api;
+    private final SessionCookies sessionCookies;
 
     @Inject
     public PasskeyRoutes(
@@ -91,7 +93,8 @@ public class PasskeyRoutes implements Routes {
             StepUpGuard stepUpGuard,
             TwoFactorService twoFactorService,
             ManagedAccessService managedAccessService,
-            Api api) {
+            Api api,
+            SessionCookies sessionCookies) {
         this.passkeyService = passkeyService;
         this.accountService = accountService;
         this.modeService = modeService;
@@ -106,6 +109,7 @@ public class PasskeyRoutes implements Routes {
         this.twoFactorService = twoFactorService;
         this.managedAccessService = managedAccessService;
         this.api = api;
+        this.sessionCookies = sessionCookies;
     }
 
     @Override
@@ -237,11 +241,8 @@ public class PasskeyRoutes implements Routes {
         if (!result.success()) {
             throw Refusal.DEVICE_SIGN_IN_NOT_GRANTED.raise();
         }
-        if (result.passwordChangeRequired()) {
-            ctx.json(LoginResponse.passwordChange(result.token(), result.expiresAt()));
-            return;
-        }
-        ctx.json(LoginResponse.session(result.token(), result.expiresAt()));
+        sessionCookies.issue(ctx, result);
+        ctx.json(LoginResponse.of(result));
     }
 
     private void pollDeviceRequest(Context ctx) {
@@ -538,11 +539,8 @@ public class PasskeyRoutes implements Routes {
         if (!result.success()) {
             throw Refusal.PASSKEY_SIGN_IN_REFUSED.raise();
         }
-        if (result.passwordChangeRequired()) {
-            ctx.json(LoginResponse.passwordChange(result.token(), result.expiresAt()));
-            return;
-        }
-        ctx.json(LoginResponse.session(result.token(), result.expiresAt()));
+        sessionCookies.issue(ctx, result);
+        ctx.json(LoginResponse.of(result));
     }
 
     // -- The member's list and switches --

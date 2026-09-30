@@ -45,4 +45,12 @@ public record LoginResult(
     public static LoginResult twoFactorRequired(String preAuthToken, Instant expiresAt) {
         return new LoginResult(true, null, null, null, false, false, true, preAuthToken, expiresAt);
     }
+
+    /**
+     * Whether this result is a finished sign-in, as opposed to a refusal or one of the steps that
+     * still stand in the way of one. Only a finished sign-in puts a session into the browser.
+     */
+    public boolean isSession() {
+        return success && token != null && !passwordChangeRequired && !addressRequired && !twoFactorRequired;
+    }
 }

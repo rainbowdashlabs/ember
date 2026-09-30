@@ -637,20 +637,27 @@ class AuthServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(37)
-    void refreshSessionInvalid() {
-        var result = service.refreshSession("invalid-session-token", "agent", "DE");
+    void rotateSessionInvalid() {
+        var result = service.rotateSession("invalid-session-token", "agent", "DE");
         assertFalse(result.success());
     }
 
     @Test
+    @Order(37)
+    void rotateSessionWithoutToken() {
+        assertFalse(service.rotateSession(null, "agent", "DE").success());
+        assertFalse(service.rotateSession(" ", "agent", "DE").success());
+    }
+
+    @Test
     @Order(38)
-    void refreshSessionExpired() {
+    void rotateSessionExpired() {
         // Create a session that has already expired
         var account2 = accountRepo.create("refresh-expired@test.com", "Refresh", "Expired");
         var expiredTime = Instant.now().minus(1, ChronoUnit.HOURS);
         accountRepo.createSession(account2.id(), "expired-session-token", expiredTime, "agent", "DE");
 
-        var result = service.refreshSession("expired-session-token", "agent", "DE");
+        var result = service.rotateSession("expired-session-token", "agent", "DE");
         assertFalse(result.success());
         assertEquals("Session expired", result.message());
         accountRepo.delete(account2.id());
@@ -658,7 +665,7 @@ class AuthServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(39)
-    void refreshSessionSuccess() {
+    void rotateSessionSuccess() {
         // Create a valid session
         var account2 = accountRepo.create("refresh-ok@test.com", "Refresh", "Ok");
         var expiresAt = Instant.now().plus(60, ChronoUnit.MINUTES);
@@ -671,7 +678,7 @@ class AuthServiceTest extends RepositoryTestBase {
                 .findPermissionByName(StationPermission.LOGIN)
                 .ifPresent(r -> stationMemberRepo.grantPermission(member2.id(), r.id()));
 
-        var result = service.refreshSession("valid-session-for-refresh", "agent", "DE");
+        var result = service.rotateSession("valid-session-for-refresh", "agent", "DE");
         assertTrue(result.success());
         assertNotNull(result.token());
 
@@ -942,7 +949,7 @@ class AuthServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(84)
-    void refreshSessionKeepsTwoFactorVerification() {
+    void rotateSessionKeepsTwoFactorVerification() {
         var fixture = createLoginCapableAccount("refresh-stepup");
         var device = trustedDeviceService.issue(fixture.accountId(), 7, "agent");
         var verifiedAt = Instant.now().minus(30, ChronoUnit.SECONDS);
@@ -959,7 +966,7 @@ class AuthServiceTest extends RepositoryTestBase {
                 true);
         var before = accountRepo.findSession(token).orElseThrow();
 
-        var result = service.refreshSession(token, "agent", "DE");
+        var result = service.rotateSession(token, "agent", "DE");
         assertTrue(result.success(), result.message());
 
         var after = accountRepo.findSession(result.token()).orElseThrow();
@@ -977,13 +984,13 @@ class AuthServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(85)
-    void refreshSessionRetiresTheOldToken() {
+    void rotateSessionRetiresTheOldToken() {
         var fixture = createLoginCapableAccount("refresh-rotate");
         String token = "refresh-rotates-" + UUID.randomUUID();
         accountRepo.createSession(
                 fixture.accountId(), token, Instant.now().plus(60, ChronoUnit.MINUTES), "agent", "DE");
 
-        var result = service.refreshSession(token, "agent", "DE");
+        var result = service.rotateSession(token, "agent", "DE");
         assertTrue(result.success(), result.message());
         assertNotEquals(token, result.token(), "the refreshed session must be handed a new token");
         assertTrue(accountRepo.findSession(token).isEmpty(), "the old token must stop working");

@@ -12,6 +12,7 @@ import dev.chojo.ember.api.RateLimits;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -43,28 +44,30 @@ public class AuthRoutes implements Routes {
     private final AuthRateLimiter rateLimiter;
     private final Demo demo;
     private final PasskeyModeService passkeyModeService;
+    private final SessionCookies sessionCookies;
 
     @Inject
     public AuthRoutes(
-            AuthService authService, AuthRateLimiter rateLimiter, Demo demo, PasskeyModeService passkeyModeService) {
+            AuthService authService,
+            AuthRateLimiter rateLimiter,
+            Demo demo,
+            PasskeyModeService passkeyModeService,
+            SessionCookies sessionCookies) {
         this.authService = authService;
         this.rateLimiter = rateLimiter;
         this.demo = demo;
         this.passkeyModeService = passkeyModeService;
+        this.sessionCookies = sessionCookies;
     }
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
     }
 
-    private static String extractBearerToken(Context ctx) {
-        String header = ctx.header("Authorization");
-        if (header == null) return null;
-        String prefix = "Bearer ";
-        if (header.regionMatches(true, 0, prefix, 0, prefix.length())) {
-            return header.substring(prefix.length()).trim();
-        }
-        return null;
+    /** Answers a sign-in: the session goes into the cookie, and the body says what was decided. */
+    private void answerSignIn(Context ctx, LoginResult login) {
+        sessionCookies.issue(ctx, login);
+        ctx.status(HttpStatus.OK).json(LoginResponse.of(login));
     }
 
     @Override
@@ -80,7 +83,6 @@ public class AuthRoutes implements Routes {
         if (demo.dev() || demo.enabled()) {
             routes.post(prefix + "/demo/login", this::demoLogin);
         }
-        routes.post(prefix + "/auth/refresh", this::refresh);
         routes.post(prefix + "/auth/logout", this::logout);
         routes.post(
                 prefix + "/auth/change-password",
@@ -206,7 +208,7 @@ public class AuthRoutes implements Routes {
         var result = authService.setPasswordAndSignIn(
                 request.token(), request.password(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         switch (result.outcome()) {
-            case OK -> ctx.status(HttpStatus.OK).json(LoginResponse.of(result.login()));
+            case OK -> answerSignIn(ctx, result.login());
             case PASSWORD_TOO_SHORT -> throw Refusal.NEW_PASSWORD_TOO_SHORT.raise();
             case PASSWORD_BREACHED -> throw Refusal.NEW_PASSWORD_BREACHED.raise();
             case TOKEN_INVALID -> throw Refusal.PASSWORD_SETUP_LINK_UNKNOWN.raise();
@@ -240,7 +242,7 @@ public class AuthRoutes implements Routes {
         var result = authService.setRequiredAddress(
                 request.token(), request.email(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         switch (result.outcome()) {
-            case OK -> ctx.status(HttpStatus.OK).json(LoginResponse.of(result.login()));
+            case OK -> answerSignIn(ctx, result.login());
             case TOKEN_INVALID -> throw Refusal.ADDRESS_SETUP_LINK_UNKNOWN.raise();
             case TOKEN_EXPIRED -> throw Refusal.ADDRESS_SETUP_LINK_EXPIRED.raise();
             case ADDRESS_MALFORMED -> throw Refusal.ADDRESS_MALFORMED.raise();
@@ -293,7 +295,7 @@ public class AuthRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Log in",
             description =
-                    "Authenticates with an email address or a username, and a password. Returns a session token, or a password change token if a password change is required.",
+                    "Authenticates with an email address or a username, and a password. Sets the session cookie, or returns the token of the step still owed: a password change, an address or a second factor.",
             tags = {"Auth"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LoginRequest.class)),
             responses = {
@@ -318,7 +320,7 @@ public class AuthRoutes implements Routes {
             throw Refusal.SIGN_IN_REFUSED.raise();
         }
 
-        ctx.status(HttpStatus.OK).json(LoginResponse.of(result));
+        answerSignIn(ctx, result);
     }
 
     @OpenApi(
@@ -342,53 +344,27 @@ public class AuthRoutes implements Routes {
         if (!result.success()) {
             throw Refusal.DEMO_SIGN_IN_REFUSED.raise();
         }
-        ctx.status(HttpStatus.OK).json(LoginResponse.of(result));
-    }
-
-    @OpenApi(
-            path = "/api/v1/auth/refresh",
-            methods = HttpMethod.POST,
-            summary = "Refresh session",
-            description = "Exchanges a valid session token for a new one. The old token is invalidated.",
-            tags = {"Auth"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TokenRequest.class)),
-            responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = SessionResponse.class)),
-                @OpenApiResponse(status = "401", content = @OpenApiContent(from = ErrorResponseWrapper.class))
-            })
-    private void refresh(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryRefresh(ctx.ip()));
-        var request = ctx.bodyAsClass(TokenRequest.class);
-        if (isBlank(request.token())) {
-            throw Refusal.SESSION_RENEWAL_TOKEN_MISSING.raise();
-        }
-
-        var result = authService.refreshSession(request.token(), ctx.userAgent(), ctx.header("CF-IPCountry"));
-        if (!result.success()) {
-            throw Refusal.SESSION_NOT_RENEWED.raise();
-        }
-
-        ctx.status(HttpStatus.OK).json(new SessionResponse(result.token(), result.expiresAt()));
+        answerSignIn(ctx, result);
     }
 
     @OpenApi(
             path = "/api/v1/auth/logout",
             methods = HttpMethod.POST,
             summary = "Log out",
-            description = "Invalidates the session token.",
+            description =
+                    "Ends the session the session cookie names and clears the cookie. Answers the same whether or not there was a session to end.",
             tags = {"Auth"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TokenRequest.class)),
             responses = {@OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class))})
     private void logout(Context ctx) {
-        var request = ctx.bodyAsClass(TokenRequest.class);
-        if (isBlank(request.token())) {
-            throw Refusal.SIGN_OUT_TOKEN_MISSING.raise();
-        }
-
-        authService.logout(request.token());
+        SessionCookies.token(ctx).ifPresent(authService::logout);
+        sessionCookies.clear(ctx);
         ctx.status(HttpStatus.OK).json(new MessageResponse("Logged out"));
     }
 
+    /**
+     * Rotates the password and, with it, the token of the session asking, so the browser keeps its
+     * sign-in on a token nobody could have read before the change.
+     */
     private void changePassword(Context ctx) {
         UserSession session = UserSession.from(ctx);
         RateLimits.enforce(rateLimiter.tryChangePassword(session.accountId()));
@@ -396,11 +372,16 @@ public class AuthRoutes implements Routes {
         if (isBlank(request.currentPassword()) || isBlank(request.newPassword())) {
             throw Refusal.PASSWORD_CHANGE_DETAILS_MISSING.raise();
         }
-        String currentSessionToken = extractBearerToken(ctx);
+        String currentSessionToken = SessionCookies.token(ctx).orElse(null);
         var outcome = authService.changePassword(
                 session.accountId(), currentSessionToken, request.currentPassword(), request.newPassword());
         switch (outcome) {
-            case OK -> ctx.json(new MessageResponse("Password changed"));
+            case OK -> {
+                sessionCookies.issue(
+                        ctx,
+                        authService.rotateSession(currentSessionToken, ctx.userAgent(), ctx.header("CF-IPCountry")));
+                ctx.json(new MessageResponse("Password changed"));
+            }
             case NEW_PASSWORD_TOO_SHORT -> throw Refusal.CHANGED_PASSWORD_TOO_SHORT.raise();
             case NEW_PASSWORD_BREACHED -> throw Refusal.CHANGED_PASSWORD_BREACHED.raise();
             case NO_PASSWORD_SET -> throw Refusal.ACCOUNT_HAS_NO_PASSWORD.raise();
@@ -472,7 +453,7 @@ public class AuthRoutes implements Routes {
     public record DemoLoginRequest(String email) {}
 
     /**
-     * Request body containing a one-time token for verification, password set, refresh, or logout.
+     * Request body containing a one-time token for verification or password set.
      */
     public record TokenRequest(String token) {}
 
@@ -515,9 +496,13 @@ public class AuthRoutes implements Routes {
     public record RegisterResponse(int id, String email, String firstName, String lastName, boolean emailVerified) {}
 
     /**
-     * Response body for login. Contains either a session token or a password change token,
-     * depending on whether a forced password change is required.
+     * Response body for login: a finished sign-in, or the one step still standing in the way of one.
+     *
+     * <p>A finished sign-in travels in the session cookie, never in the body, so {@code token} is
+     * always {@code null} and {@code expiresAt} says only how long the session lasts. The field stays
+     * so a tab opened before the switch still reads a well-formed answer.
      */
+    // TODO: drop the always-empty token once no tab from before the cookie switch can be open
     public record LoginResponse(
             String token,
             Instant expiresAt,
@@ -536,8 +521,8 @@ public class AuthRoutes implements Routes {
             return new LoginResponse(null, null, false, null, null, false, null, null, false, null, null);
         }
 
-        public static LoginResponse session(String token, Instant expiresAt) {
-            return new LoginResponse(token, expiresAt, false, null, null, false, null, null, false, null, null);
+        public static LoginResponse session(Instant expiresAt) {
+            return new LoginResponse(null, expiresAt, false, null, null, false, null, null, false, null, null);
         }
 
         public static LoginResponse passwordChange(String token, Instant expiresAt) {
@@ -561,12 +546,7 @@ public class AuthRoutes implements Routes {
             if (login.passwordChangeRequired()) return passwordChange(login.token(), login.expiresAt());
             if (login.addressRequired()) return address(login.token(), login.expiresAt());
             if (login.twoFactorRequired()) return twoFactor(login.preAuthToken(), login.preAuthTokenExpiresAt());
-            return session(login.token(), login.expiresAt());
+            return session(login.expiresAt());
         }
     }
-
-    /**
-     * Response body for a refreshed session with the new token and expiration.
-     */
-    public record SessionResponse(String token, Instant expiresAt) {}
 }

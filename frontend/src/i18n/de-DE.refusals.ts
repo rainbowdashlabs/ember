@@ -150,7 +150,6 @@ const PROFILE_FIELD_NOT_HERE = 'Dieses Profilfeld gibt es nicht mehr'
 const ADDRESS_MISSING = 'Gib die Adresse an, an die geschrieben werden soll'
 const ADDRESS_BELONGS_TO_ANOTHER = 'Diese Adresse gehört bereits zu einem anderen Konto'
 const LINK_CARRIES_NOTHING = 'Dieser Link enthält nichts, womit sich etwas tun lässt'
-const SESSION_TOKEN_MISSING = 'Die Anfrage nannte keine Sitzung'
 const PASSWORD_TOO_SHORT = 'Dieses Passwort ist zu kurz, es wurde nichts gespeichert'
 const PASSWORD_BREACHED = 'Dieses Passwort taucht in bekannten Datenlecks auf, wähle ein anderes'
 const ACCOUNT_NOT_NAMED = 'Nenne das Konto, um das es geht'
@@ -1131,9 +1130,6 @@ export default {
     'M-037': 'Die Anmeldung hat nicht geklappt. Prüfe deine Eingabe und ob deine Adresse bestätigt ist',
     'M-038': ADDRESS_MISSING,
     'M-039': 'Diese Schnellanmeldung hat nicht geklappt',
-    'M-040': SESSION_TOKEN_MISSING,
-    'M-041': 'Diese Sitzung konnte nicht fortgesetzt werden. Melde dich erneut an',
-    'M-042': SESSION_TOKEN_MISSING,
     'M-043': 'Gib sowohl das aktuelle als auch das neue Passwort an',
     'M-044': PASSWORD_TOO_SHORT,
     'M-045': PASSWORD_BREACHED,

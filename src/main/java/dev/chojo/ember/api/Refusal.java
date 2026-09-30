@@ -3492,19 +3492,6 @@ public enum Refusal {
     /** A quick sign-in that did not work, on the demo instances where one is offered at all. */
     DEMO_SIGN_IN_REFUSED(Area.MEMBERS, 39, HttpStatus.UNAUTHORIZED, "That quick sign-in did not work"),
 
-    /** A session being carried on that named no session. */
-    SESSION_RENEWAL_TOKEN_MISSING(Area.MEMBERS, 40, HttpStatus.BAD_REQUEST, Sentences.SESSION_TOKEN_MISSING),
-
-    /**
-     * A session that could not be carried on, whether unknown, run out or already ended. One code
-     * deliberately: the three say nothing a reader can act on beyond signing in again.
-     */
-    SESSION_NOT_RENEWED(
-            Area.MEMBERS, 41, HttpStatus.UNAUTHORIZED, "This session could not be carried on. Sign in again"),
-
-    /** A sign-out that named no session to end. */
-    SIGN_OUT_TOKEN_MISSING(Area.MEMBERS, 42, HttpStatus.BAD_REQUEST, Sentences.SESSION_TOKEN_MISSING),
-
     /** A password change that left the old or the new one empty. */
     PASSWORD_CHANGE_DETAILS_MISSING(
             Area.MEMBERS, 43, HttpStatus.BAD_REQUEST, "Give both the current password and the new one"),
@@ -5665,7 +5652,6 @@ public enum Refusal {
         private static final String ADDRESS_MISSING = "Give the address to write to";
         private static final String ADDRESS_BELONGS_TO_ANOTHER = "That address already belongs to another account";
         private static final String LINK_CARRIES_NOTHING = "That link carries nothing to act on";
-        private static final String SESSION_TOKEN_MISSING = "The request named no session";
         private static final String PASSWORD_TOO_SHORT = "That password is too short, so nothing was saved";
         private static final String EXPIRY_OUT_OF_RANGE =
                 "Days before an expiry date cannot be negative and a repeat needs at least one day, so nothing was saved";

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.account.route;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.auth.TokenHasher;
@@ -39,12 +40,18 @@ public class AccountSessionRoutes implements Routes {
     private final AuthService authService;
     private final AccountRepository accountRepository;
     private final TokenHasher tokenHasher;
+    private final SessionCookies sessionCookies;
 
     @Inject
-    public AccountSessionRoutes(AuthService authService, AccountRepository accountRepository, TokenHasher tokenHasher) {
+    public AccountSessionRoutes(
+            AuthService authService,
+            AccountRepository accountRepository,
+            TokenHasher tokenHasher,
+            SessionCookies sessionCookies) {
         this.authService = authService;
         this.accountRepository = accountRepository;
         this.tokenHasher = tokenHasher;
+        this.sessionCookies = sessionCookies;
     }
 
     @Override
@@ -67,9 +74,7 @@ public class AccountSessionRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ActiveSession[].class)))
     private void getActiveSessions(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        String authHeader = ctx.header("Authorization");
-        String currentToken = authHeader != null && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
-        String currentHash = currentToken.isEmpty() ? "" : tokenHasher.hash(currentToken);
+        String currentHash = SessionCookies.token(ctx).map(tokenHasher::hash).orElse("");
         List<AccountSession> sessions = authService.findSessionsByAccount(session.accountId());
         List<ActiveSession> result = sessions.stream()
                 .map(s -> new ActiveSession(
@@ -108,6 +113,7 @@ public class AccountSessionRoutes implements Routes {
     private void invalidateAll(Context ctx) {
         UserSession session = UserSession.from(ctx);
         authService.invalidateAllSessions(session.accountId());
+        sessionCookies.clear(ctx);
         ctx.json(new MessageResponse("All sessions invalidated"));
     }
 

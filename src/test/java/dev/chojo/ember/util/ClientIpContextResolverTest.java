@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.util;
 
+import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Network;
@@ -106,7 +107,8 @@ class ClientIpContextResolverTest {
                 mock(Demo.class),
                 mock(TrustedDeviceService.class),
                 rateLimiter,
-                mock(TwoFactorAttemptTracker.class));
+                mock(TwoFactorAttemptTracker.class),
+                mock(SessionCookies.class));
 
         start(LOOPBACK_PROXY, config -> {
             config.jsonMapper(new JavalinJackson3(JsonMapper.builder().build(), false));

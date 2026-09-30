@@ -8,6 +8,8 @@ package dev.chojo.ember.api;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.InstanceUserType;
+import dev.chojo.ember.api.auth.SessionCookies;
+import dev.chojo.ember.api.auth.SessionGate;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
@@ -179,6 +181,7 @@ public class ApiServer {
     private final Network network;
     private final GlobalRateLimiter globalRateLimiter;
     private volatile Javalin app;
+    private final SessionGate sessionGate;
 
     @Inject
     public ApiServer(
@@ -206,7 +209,8 @@ public class ApiServer {
             TwoFactorService twoFactorService,
             StepUpGuard stepUpGuard,
             Network network,
-            GlobalRateLimiter globalRateLimiter) {
+            GlobalRateLimiter globalRateLimiter,
+            SessionGate sessionGate) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.authConfig = authConfig;
@@ -232,6 +236,7 @@ public class ApiServer {
         this.stepUpGuard = stepUpGuard;
         this.network = network;
         this.globalRateLimiter = globalRateLimiter;
+        this.sessionGate = sessionGate;
     }
 
     /**
@@ -730,11 +735,15 @@ public class ApiServer {
 
     /**
      * Before-matched handler that enforces authentication and role-based authorization.
-     * Resolves the session from the Authorization header, stores it as a context attribute,
+     * Resolves the session from the session cookie, stores it as a context attribute,
      * and checks that the user has at least one of the required route roles.
      *
+     * <p>A session that has used up half of its lifetime is renewed here and its cookie written
+     * again, so a session in use never runs out and the browser never has to ask for a new token.
+     * A cookie naming no live session is cleared on the way to the 401.
+     *
      * <p>A station or cluster header naming something this instance cannot find is answered as a
-     * bad request, not as an unauthorized one. Only the bearer says whether the sign-in still
+     * bad request, not as an unauthorized one. Only the session says whether the sign-in still
      * stands, and every client reads a 401 as the sign-in being over: answering a stale header
      * that way threw away a perfectly good session and put the reader back on the login screen,
      * which is the one thing a wrong header must not be able to do.
@@ -750,37 +759,13 @@ public class ApiServer {
                         .resolveFederationSession(ctx)
                         .ifPresent(s -> ctx.attribute(FederationSession.ATTR_FEDERATION_SESSION, s));
             }
-            // Try bearer token auth (best effort)
-            String publicAuthHeader = ctx.header("Authorization");
-            if (publicAuthHeader != null && publicAuthHeader.startsWith("Bearer ")) {
-                String publicToken = publicAuthHeader.substring(7);
-                if (!publicToken.isBlank()) {
-                    Station publicStation = null;
-                    String publicStationId = ctx.header("X-Station-Id");
-                    if (publicStationId != null && !publicStationId.isBlank()) {
-                        try {
-                            publicStation = stationRepository
-                                    .findByUid(UUID.fromString(publicStationId))
-                                    .orElse(null);
-                        } catch (IllegalArgumentException ignored) {
-                        }
-                    }
-                    accessManager
-                            .resolveUserSession(publicToken, publicStation)
-                            .ifPresent(s -> ctx.attribute(ATTR_SESSION, s));
-                }
-            }
+            SessionCookies.token(ctx).ifPresent(publicToken -> attachPublicSession(ctx, publicToken));
             return;
         }
 
-        String authHeader = ctx.header("Authorization");
-        String token = null;
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7);
-        }
-
-        if (token == null || token.isBlank()) {
-            throw new UnauthorizedResponse("Missing or invalid Authorization header");
+        String token = SessionCookies.token(ctx).orElse(null);
+        if (token == null) {
+            throw new UnauthorizedResponse("Not signed in");
         }
 
         Station station = null;
@@ -813,18 +798,13 @@ public class ApiServer {
         }
 
         // Resolve user session with account info and roles
-        Optional<UserSession> sessionOpt = accessManager.resolveUserSession(token, station, cluster);
+        Optional<UserSession> sessionOpt = sessionGate.admit(ctx, token, station, cluster);
         if (sessionOpt.isEmpty()) {
             throw new UnauthorizedResponse("Invalid or expired session");
         }
 
         UserSession session = sessionOpt.get();
         ctx.attribute(ATTR_SESSION, session);
-
-        // Record user agent, location, and update last-used timestamp
-        String userAgent = ctx.userAgent();
-        String location = ctx.header("CF-IPCountry");
-        accountRepository.touchSession(token, userAgent, location);
 
         // Track activity for demo idle reset
         if (demoConfig.enabled()) {
@@ -871,6 +851,24 @@ public class ApiServer {
         if (stepUpCategory != null) {
             stepUpGuard.require(session, stepUpCategory);
         }
+    }
+
+    /**
+     * Attaches the session a request to a public route carries, when it carries a live one. Best
+     * effort: a public route works without it, so a station header that names nothing is ignored
+     * rather than refused.
+     */
+    private void attachPublicSession(Context ctx, String token) {
+        Station station = null;
+        String stationId = ctx.header("X-Station-Id");
+        if (stationId != null && !stationId.isBlank()) {
+            try {
+                station =
+                        stationRepository.findByUid(UUID.fromString(stationId)).orElse(null);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        sessionGate.attach(ctx, token, station);
     }
 
     /**

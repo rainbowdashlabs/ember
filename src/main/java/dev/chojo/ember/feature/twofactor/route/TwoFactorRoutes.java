@@ -10,6 +10,7 @@ import dev.chojo.ember.api.RateLimits;
 import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.auth.TokenHasher;
@@ -54,6 +55,7 @@ public class TwoFactorRoutes implements Routes {
     private final TrustedDeviceService trustedDeviceService;
     private final AuthRateLimiter rateLimiter;
     private final TwoFactorAttemptTracker attemptTracker;
+    private final SessionCookies sessionCookies;
 
     @Inject
     public TwoFactorRoutes(
@@ -66,7 +68,8 @@ public class TwoFactorRoutes implements Routes {
             Demo demoConfig,
             TrustedDeviceService trustedDeviceService,
             AuthRateLimiter rateLimiter,
-            TwoFactorAttemptTracker attemptTracker) {
+            TwoFactorAttemptTracker attemptTracker,
+            SessionCookies sessionCookies) {
         this.twoFactorService = twoFactorService;
         this.auditService = auditService;
         this.accountRepository = accountRepository;
@@ -77,6 +80,7 @@ public class TwoFactorRoutes implements Routes {
         this.trustedDeviceService = trustedDeviceService;
         this.rateLimiter = rateLimiter;
         this.attemptTracker = attemptTracker;
+        this.sessionCookies = sessionCookies;
     }
 
     /**
@@ -289,7 +293,7 @@ public class TwoFactorRoutes implements Routes {
         Integer deviceTrustId = issueTrustedDeviceIfRequested(ctx, accountId, request.rememberDeviceDays());
         LoginResult session = authService.createVerifiedSessionForAccount(
                 accountId, ctx.userAgent(), ctx.header("CF-IPCountry"), deviceTrustId, request.trustedDevice());
-        ctx.json(new LoginResultResponse(session.token(), session.expiresAt()));
+        answerSession(ctx, session);
     }
 
     private void listTrustedDevices(Context ctx) {
@@ -459,7 +463,13 @@ public class TwoFactorRoutes implements Routes {
         Integer deviceTrustId = issueTrustedDeviceIfRequested(ctx, accountId, request.rememberDeviceDays());
         LoginResult session = authService.createVerifiedSessionForAccount(
                 accountId, ctx.userAgent(), ctx.header("CF-IPCountry"), deviceTrustId, request.trustedDevice());
-        ctx.json(new LoginResultResponse(session.token(), session.expiresAt()));
+        answerSession(ctx, session);
+    }
+
+    /** Puts the session the second factor earned into the cookie; the body only says how long it lasts. */
+    private void answerSession(Context ctx, LoginResult session) {
+        sessionCookies.issue(ctx, session);
+        ctx.json(new LoginResultResponse(null, session.expiresAt()));
     }
 
     /**
@@ -480,7 +490,7 @@ public class TwoFactorRoutes implements Routes {
                 .append("; Path=/; HttpOnly; SameSite=Strict; Max-Age=")
                 .append(maxAge);
         if (!demoConfig.dev() && !demoConfig.enabled()) cookie.append("; Secure");
-        ctx.header("Set-Cookie", cookie.toString());
+        ctx.res().addHeader("Set-Cookie", cookie.toString());
         auditService.record(
                 accountId,
                 null,
@@ -571,6 +581,14 @@ public class TwoFactorRoutes implements Routes {
 
     public record StepUpResponse(Instant verifiedAt) {}
 
+    /**
+     * The answer to a finished second factor.
+     *
+     * @param token     always {@code null}: the session travels in its cookie. Kept so a tab opened
+     *                  before the switch still reads a well-formed answer
+     * @param expiresAt when the session ends
+     */
+    // TODO: drop the always-empty token once no tab from before the cookie switch can be open
     public record LoginResultResponse(String token, Instant expiresAt) {}
 
     public record MessageResponse(String message) {}

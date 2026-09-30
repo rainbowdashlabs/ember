@@ -1024,30 +1024,34 @@ public class AuthService {
     public record AddressResult(AddressOutcome outcome, LoginResult login) {}
 
     /**
-     * Refreshes a session by handing it a new token and pushing back its expiry.
+     * Hands a session a new token and pushes back its expiry, which is what a password change does to
+     * the session that asked for it.
      *
-     * <p>The session row is rotated rather than replaced. A refresh is the same sign-in continuing, so
+     * <p>The session row is rotated rather than replaced. It is the same sign-in continuing, so
      * everything the row remembers about it has to outlive the token swap: when the second factor was
      * last verified, which trusted device vouched for it, and when it began. Deleting the row and
      * writing a new one lost all three, which ended the step-up window and forgot the trusted device
-     * every half hour, in the middle of whatever the person was doing.
+     * in the middle of whatever the person was doing.
      *
      * @param token     the current session token
      * @param userAgent the client's user agent string
      * @param location  the client's location
      * @return a new login result with a fresh token, or failure if the session is invalid or expired
      */
-    public LoginResult refreshSession(String token, String userAgent, String location) {
+    public LoginResult rotateSession(String token, String userAgent, String location) {
+        if (token == null || token.isBlank()) {
+            return LoginResult.failure("No session");
+        }
         Optional<AccountSession> sessionOpt = accountRepository.findSession(token);
         if (sessionOpt.isEmpty()) {
-            log.debug("Session refresh failed: invalid token");
+            log.debug("Session rotation failed: invalid token");
             return LoginResult.failure("Invalid session");
         }
 
         AccountSession session = sessionOpt.get();
         if (session.isExpired()) {
             accountRepository.deleteSession(token);
-            log.info("Session refresh failed for account {}: session expired", session.accountId());
+            log.info("Session rotation failed for account {}: session expired", session.accountId());
             return LoginResult.failure("Session expired");
         }
 
@@ -1061,11 +1065,11 @@ public class AuthService {
                 : Instant.now().plus(authConfig.sessionMinutes(session.trustedDevice()), ChronoUnit.MINUTES);
 
         if (!accountRepository.rotateSessionToken(token, newToken, expiresAt)) {
-            log.debug("Session refresh failed: session vanished mid-refresh");
+            log.debug("Session rotation failed: session vanished mid-rotation");
             return LoginResult.failure("Invalid session");
         }
         accountRepository.touchSession(newToken, userAgent, location);
-        log.debug("Session refreshed for account {}", session.accountId());
+        log.debug("Session rotated for account {}", session.accountId());
         return LoginResult.success(newToken, expiresAt);
     }
 

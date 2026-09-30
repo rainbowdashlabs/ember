@@ -1015,6 +1015,37 @@ public class AccountRepository {
     }
 
     /**
+     * Pushes back the expiry of a session that has used up more than half of its lifetime, which is
+     * how a session in use stays alive without the browser ever asking for a new token.
+     *
+     * <p>The lifetime is the one the session was signed in with: the long one for a machine somebody
+     * vouched for, the short one otherwise. A session with more than half of it still ahead is left
+     * alone, so this writes about twice per lifetime rather than on every request. An expired session
+     * is never brought back.
+     *
+     * @param token          the session token
+     * @param shortMinutes   the lifetime of a session on a machine nobody vouched for
+     * @param trustedMinutes the lifetime of a session on a vouched-for machine
+     * @return the new expiry, or empty when the session was not due, not live or not there
+     */
+    public Optional<Instant> renewSession(String token, int shortMinutes, int trustedMinutes) {
+        return query("""
+                UPDATE account_session
+                SET expires_at = now() + make_interval(
+                        mins => CASE WHEN trusted_device THEN :trusted_minutes ELSE :short_minutes END)
+                WHERE token_hash = :token_hash
+                  AND expires_at > now()
+                  AND expires_at < now() + make_interval(
+                        mins => CASE WHEN trusted_device THEN :trusted_minutes ELSE :short_minutes END / 2)
+                RETURNING expires_at;""")
+                .single(call().bind("token_hash", tokenHasher.hash(token))
+                        .bind("short_minutes", shortMinutes)
+                        .bind("trusted_minutes", trustedMinutes))
+                .map(row -> row.get("expires_at", INSTANT_TIMESTAMP))
+                .first();
+    }
+
+    /**
      * Rotates a session token, replacing the old token with a new one and updating the expiration.
      *
      * @param oldToken     the current token to replace
