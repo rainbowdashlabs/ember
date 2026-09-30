@@ -100,17 +100,39 @@ fun testForks(): Int {
 }
 
 /**
- * Keeps the architecture rules out of a suite that talks to a database.
+ * One slice of the test source set, run as a task of its own and as a CI job of its own.
  *
- * The rules run on ArchUnit's own JUnit engine, which Gradle's test name filters do not reach, so
- * they ran in every suite, whatever it was meant to hold. Importing the codebase for them takes a few
- * hundred megabytes of a fork's heap, and a fork that had already spent its heap on database tests
- * ran out of memory halfway through the import. They run in the suites without a database instead,
- * where nothing competes with them for the heap.
+ * The slices are cut by package. Every suite but the last one names the packages it holds, and the
+ * last one takes whatever they leave, so a new test always lands in exactly one suite.
+ *
+ * The architecture rules run on ArchUnit's own JUnit engine, which Gradle's test name filters do not
+ * reach, so a suite that does not exclude the engine runs them whatever it is meant to hold. Importing
+ * the codebase for them takes a few hundred megabytes of a fork's heap, and a fork that had already
+ * spent its heap on database tests ran out of memory halfway through the import. Only the suite
+ * without a database keeps them.
+ *
+ * @property packages the test name patterns this suite holds; empty for the suite of the rest
+ * @property forks the forks this suite may use at most; the tracking tests share one database
  */
-fun JUnitPlatformOptions.withoutArchitectureRules() {
-    excludeEngines("archunit")
-}
+data class TestSuite(
+    val name: String,
+    val description: String,
+    val packages: List<String> = emptyList(),
+    val architectureRules: Boolean = false,
+    val forks: Int? = null,
+)
+
+val testSuites = listOf(
+    TestSuite("testRepositories", "Runs the repository tests", listOf("*.repository.*")),
+    TestSuite("testServices", "Runs the service tests", listOf("*.service.*")),
+    TestSuite("testTracking", "Runs the data tracking verification tests", listOf("dev.chojo.ember.tracking.*"), forks = 1),
+    TestSuite("testOther", "Runs every test the other suites leave, the architecture rules included", architectureRules = true),
+)
+
+val testSuiteNames = testSuites.map { it.name }
+
+/** The packages some suite names, which the suite of the rest leaves out. */
+val suitePackages = testSuites.flatMap { it.packages }
 
 /**
  * Runs a git command in this checkout, or answers null where it cannot be run at all.
@@ -255,64 +277,42 @@ tasks {
         }
     }
 
-    test {
-        useJUnitPlatform {
-            excludeTags("locale")
-        }
-        testLogging {
-            events("passed", "skipped", "failed")
-        }
-        filter {
-            excludeTestsMatching("dev.chojo.ember.tracking.*")
-        }
-        maxParallelForks = testForks()
-    }
-
-    register<Test>("testRepositories") {
-        group = "verification"
-        description = "Runs repository tests"
-        testClassesDirs = sourceSets.test.get().output.classesDirs
-        classpath = sourceSets.test.get().runtimeClasspath
-        useJUnitPlatform {
-            excludeTags("locale")
-            withoutArchitectureRules()
-        }
+    withType<Test>().configureEach {
+        useJUnitPlatform()
         testLogging { events("passed", "skipped", "failed") }
-        filter { includeTestsMatching("*.repository.*") }
         maxParallelForks = testForks()
-    }
-
-    register<Test>("testServices") {
-        group = "verification"
-        description = "Runs service tests"
-        testClassesDirs = sourceSets.test.get().output.classesDirs
-        classpath = sourceSets.test.get().runtimeClasspath
-        useJUnitPlatform {
-            excludeTags("locale")
-            withoutArchitectureRules()
-        }
-        testLogging { events("passed", "skipped", "failed") }
-        filter { includeTestsMatching("*.service.*") }
-        maxParallelForks = testForks()
-    }
-
-    register<Test>("testOther") {
-        group = "verification"
-        description = "Runs non-repository, non-service tests"
-        testClassesDirs = sourceSets.test.get().output.classesDirs
-        classpath = sourceSets.test.get().runtimeClasspath
-        useJUnitPlatform { excludeTags("locale") }
         systemProperty(
             "refusal.baseline.update",
             providers.systemProperty("refusal.baseline.update").getOrElse("false"),
         )
-        testLogging { events("passed", "skipped", "failed") }
-        filter {
-            excludeTestsMatching("*.repository.*")
-            excludeTestsMatching("*.service.*")
-            excludeTestsMatching("dev.chojo.ember.tracking.*")
+    }
+
+    test {
+        filter { excludeTestsMatching("dev.chojo.ember.tracking.*") }
+    }
+
+    testSuites.forEach { suite ->
+        register<Test>(suite.name) {
+            group = "verification"
+            description = suite.description
+            testClassesDirs = sourceSets.test.get().output.classesDirs
+            classpath = sourceSets.test.get().runtimeClasspath
+            if (!suite.architectureRules) useJUnitPlatform { excludeEngines("archunit") }
+            filter {
+                if (suite.packages.isEmpty()) {
+                    suitePackages.forEach { excludeTestsMatching(it) }
+                } else {
+                    suite.packages.forEach { includeTestsMatching(it) }
+                }
+            }
+            suite.forks?.let { maxParallelForks = it }
         }
-        maxParallelForks = testForks()
+    }
+
+    register("testAll") {
+        group = "verification"
+        description = "Runs every test suite"
+        dependsOn(testSuiteNames)
     }
 
     register<JavaExec>("generateFederationVersion") {
@@ -338,40 +338,13 @@ tasks {
         classpath = sourceSets.test.get().runtimeClasspath
     }
 
-    register<Test>("testTracking") {
-        group = "verification"
-        description = "Runs data tracking verification tests"
-        testClassesDirs = sourceSets.test.get().output.classesDirs
-        classpath = sourceSets.test.get().runtimeClasspath
-        useJUnitPlatform {
-            excludeTags("locale")
-            withoutArchitectureRules()
-        }
-        testLogging { events("passed", "skipped", "failed") }
-        filter { includeTestsMatching("dev.chojo.ember.tracking.*") }
-        maxParallelForks = 1
-    }
-
-    register("verifyJavadoc") {
-        group = "verification"
-        description = "Verifies Javadoc generation succeeds"
-        dependsOn("javadoc")
-    }
-
-    val testSuites = listOf("testRepositories", "testServices", "testTracking", "testOther")
-
-    register("verify") {
-        group = "verification"
-        description = "Runs all verification tasks in parallel"
-        dependsOn(testSuites, "jacocoCoverageCheck", "verifyJavadoc", "checkLicenseBackend", "checkLicenseFrontend")
-    }
 
     register<JacocoReport>("jacocoFullReport") {
         group = "verification"
         description = "Merged coverage report from the four test suites"
-        dependsOn(testSuites)
+        dependsOn(testSuiteNames)
         executionData(
-            fileTree("build/jacoco") { include(testSuites.map { "$it.exec" }) }
+            fileTree("build/jacoco") { include(testSuiteNames.map { "$it.exec" }) }
         )
         sourceSets(sourceSets.main.get())
         reports {
@@ -384,9 +357,9 @@ tasks {
     register<JacocoCoverageVerification>("jacocoCoverageCheck") {
         group = "verification"
         description = "Enforces 80% line coverage for services and repositories"
-        dependsOn(testSuites)
+        dependsOn(testSuiteNames)
         executionData(
-            fileTree("build/jacoco") { include(testSuites.map { "$it.exec" }) }
+            fileTree("build/jacoco") { include(testSuiteNames.map { "$it.exec" }) }
         )
         sourceSets(sourceSets.main.get())
         violationRules {
@@ -507,18 +480,6 @@ tasks {
         }
     }
 
-    register("checkLicenseBackend") {
-        group = "verification"
-        description = "Checks license headers for backend Java files"
-        dependsOn("spotlessJavaCheck")
-    }
-
-    register("checkLicenseFrontend") {
-        group = "verification"
-        description = "Checks license headers for frontend Vue and JavaScript files"
-        dependsOn("spotlessJavascriptCheck", "spotlessVueCheck")
-    }
-
     register("formatFrontend") {
         group = "formatting"
         description = "Applies license headers and whitespace rules to frontend Vue, TypeScript and locale files"
@@ -546,11 +507,6 @@ idea {
                     projectPath = project.path
                     taskNames = listOf("run")
                     jvmArgs = shared.joinToString(" ")
-                }
-                register<org.jetbrains.gradle.ext.Gradle>("Run App - All SKUs") {
-                    projectPath = project.path
-                    taskNames = listOf("run")
-                    jvmArgs =                       shared.joinToString(" ")
                 }
             }
         }

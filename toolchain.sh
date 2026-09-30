@@ -436,11 +436,11 @@ case "$cmd" in
 
     be-verify)
         cd "$ROOT"
-        run ./gradlew spotlessJavaApply testRepositories testServices testOther testTracking jacocoCoverageCheck javadoc "$@"
+        run ./gradlew spotlessJavaApply testAll jacocoCoverageCheck javadoc "$@"
         ;;
     be-test)
         cd "$ROOT"
-        run ./gradlew testRepositories testServices testOther testTracking "$@"
+        run ./gradlew testAll "$@"
         ;;
     be-test1)
         [ $# -ge 1 ] || { echo "be-test1 needs a test pattern, e.g. '*PageServiceTest*'" >&2; exit 2; }
