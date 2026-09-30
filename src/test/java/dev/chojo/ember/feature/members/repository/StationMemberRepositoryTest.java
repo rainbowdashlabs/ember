@@ -65,6 +65,18 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertTrue(stationMemberRepo.findById(memberId1).isPresent());
     }
 
+    /** Several members are read in one go, and an id that resolves to nobody is simply left out. */
+    @Test
+    @Order(2)
+    void findByIds() {
+        var found = stationMemberRepo.findByIds(List.of(memberId1, memberId2, 99999)).stream()
+                .map(StationMember::id)
+                .toList();
+        assertEquals(2, found.size());
+        assertTrue(found.containsAll(List.of(memberId1, memberId2)));
+        assertTrue(stationMemberRepo.findByIds(List.of()).isEmpty());
+    }
+
     @Test
     @Order(3)
     void findByStationAndAccount() {

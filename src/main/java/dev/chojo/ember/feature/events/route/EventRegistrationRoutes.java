@@ -12,9 +12,7 @@ import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
-import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
@@ -30,6 +28,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
+import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.MemberTable;
 import dev.chojo.ember.feature.members.entity.MemberTableCellType;
 import dev.chojo.ember.feature.members.entity.MemberTableColumn;
@@ -40,7 +39,6 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
-import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -67,6 +65,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -91,7 +90,6 @@ public class EventRegistrationRoutes implements Routes {
     private final MemberNameResolver memberNameResolver;
     private final GuardianPolicy guardianPolicy;
     private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
     private final AttendanceService attendanceService;
     private final MemberIdentityFactory memberIdentityFactory;
     private final EventRegistrationFieldService registrationFieldService;
@@ -114,7 +112,6 @@ public class EventRegistrationRoutes implements Routes {
             MemberNameResolver memberNameResolver,
             GuardianPolicy guardianPolicy,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
             AttendanceService attendanceService,
             MemberIdentityFactory memberIdentityFactory,
             EventRegistrationFieldService registrationFieldService,
@@ -133,7 +130,6 @@ public class EventRegistrationRoutes implements Routes {
         this.memberNameResolver = memberNameResolver;
         this.guardianPolicy = guardianPolicy;
         this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
         this.attendanceService = attendanceService;
         this.memberIdentityFactory = memberIdentityFactory;
         this.registrationFieldService = registrationFieldService;
@@ -200,26 +196,15 @@ public class EventRegistrationRoutes implements Routes {
                 StationPermission.ATTENDANCE_EDIT);
     }
 
-    private String resolveCreatedByName(Integer createdBy) {
-        if (createdBy == null) return null;
-        return stationMemberRepository
-                .findById(createdBy)
-                .flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> NameParts.of(a).called())
-                .orElse(null);
-    }
-
-    /**
-     * Resolves a member's display name and identity, empty and {@code null} respectively when unknown.
-     */
-    private MemberDisplay resolveMemberDisplay(int memberId) {
-        var member = stationMemberRepository.findById(memberId);
-        String name = member.flatMap(m -> accountRepository.findById(m.accountId()))
-                .map(a -> NameParts.of(a).called())
-                .orElse("");
-        MemberIdentity identity = member.map(m -> memberIdentityFactory.local(m.stationId(), memberId))
-                .orElse(null);
-        return new MemberDisplay(name, identity);
+    /** The shared reads for a list about these members, see {@link RegistrationRowLookups}. */
+    private RegistrationRowLookups lookupsFor(Collection<Integer> memberIds) {
+        return RegistrationRowLookups.forMembers(
+                memberIds,
+                stationMemberRepository,
+                crudService,
+                eventFieldService,
+                memberNameResolver,
+                memberIdentityFactory);
     }
 
     /**
@@ -229,6 +214,7 @@ public class EventRegistrationRoutes implements Routes {
         var answers = registrationFieldService.findValues(r.id());
         var hidden = registrationFieldService.hiddenFieldIds(r.eventId(), readsAnswersOf(ctx, r));
         return toRegistrationResponse(
+                lookupsFor(List.of(r.memberId())),
                 r,
                 answers.stream()
                         .filter(v -> !hidden.contains(v.fieldId()))
@@ -251,10 +237,9 @@ public class EventRegistrationRoutes implements Routes {
         return guardianPolicy.mayActFor(session, registration.memberId());
     }
 
-    private RegistrationResponse toRegistrationResponse(
-            EventRegistration r, List<FieldValueEntry> fields, boolean answersMissing) {
-        var display = resolveMemberDisplay(r.memberId());
-        String createdByName = resolveCreatedByName(r.createdBy());
+    private static RegistrationResponse toRegistrationResponse(
+            RegistrationRowLookups lookups, EventRegistration r, List<FieldValueEntry> fields, boolean answersMissing) {
+        var display = lookups.member(r.memberId());
         return new RegistrationResponse(
                 r.id(),
                 r.eventId(),
@@ -264,38 +249,27 @@ public class EventRegistrationRoutes implements Routes {
                 r.eventDate(),
                 r.status(),
                 r.createdAt(),
-                createdByName,
+                lookups.createdByName(r.createdBy()),
                 fields,
-                crudService.findById(r.eventId()).map(StationEvent::name).orElse(null),
+                lookups.eventName(r.eventId()),
                 answersMissing,
                 r.fromField(),
-                r.fromField() ? namingField(r) : null);
+                r.fromField() ? lookups.namingField(r) : null);
     }
 
     /**
-     * The question that put this member on the list, named so the reader knows where to go to come
-     * off it again.
+     * Maps a whole list of registrations without reading anything once per row.
      *
-     * <p>Several questions may name the same member on the same date, and the first of them is
-     * enough: what the line beside the entry has to say is that a question holds the place, not how
-     * many do.
-     */
-    private String namingField(EventRegistration registration) {
-        return eventFieldService.findByEvent(registration.eventId(), registration.eventDate()).stream()
-                .filter(field -> field.fieldType().isMemberField())
-                .filter(field -> QuestionValues.memberIds(field.value()).contains(registration.memberId()))
-                .map(EventField::name)
-                .findFirst()
-                .orElse(null);
-    }
-
-    /**
-     * Maps a whole list of registrations, reading every answer in one query rather than one per
-     * row, and the questions of each appointment once rather than once per registration.
+     * <p>Every answer is read in one query and the members in one more. Each appointment, its hidden
+     * and required questions and the questions it asked on a date are read once for the list rather
+     * than once per registration. Names and identities come from the member caches, which read a
+     * member they have not seen before once and answer every later row from memory.
      */
     private List<RegistrationResponse> toRegistrationResponses(Context ctx, List<EventRegistration> registrations) {
         var answers = registrationFieldService.findValuesByRegistration(
                 registrations.stream().map(EventRegistration::id).toList());
+        var lookups = lookupsFor(
+                registrations.stream().map(EventRegistration::memberId).toList());
         var session = UserSession.from(ctx);
         boolean runsTheEvents = session.hasPermission(StationPermission.EVENT_EDIT);
         var household = runsTheEvents ? Set.<Integer>of() : Set.copyOf(guardianPolicy.household(session));
@@ -312,6 +286,7 @@ public class EventRegistrationRoutes implements Routes {
                             requiredByEvent.computeIfAbsent(r.eventId(), registrationFieldService::requiredFieldIds);
                     var carried = answers.getOrDefault(r.id(), List.of());
                     return toRegistrationResponse(
+                            lookups,
                             r,
                             carried.stream()
                                     .filter(v -> !hidden.contains(v.fieldId()))
@@ -450,7 +425,7 @@ public class EventRegistrationRoutes implements Routes {
      * priority band summarises the accept rate.
      */
     private RegistrationStatsResponse toRegistrationStats(MemberRegistrationStats s) {
-        String name = resolveCreatedByName(s.memberId());
+        String name = memberNameResolver.called(s.memberId());
         int decisions = s.accepted() + s.denied();
         double acceptRate = decisions > 0 ? (double) s.accepted() / decisions : 1.0;
         String priority;
@@ -926,9 +901,10 @@ public class EventRegistrationRoutes implements Routes {
         String dateStr = ctx.queryParam("date");
         LocalDate date = dateStr != null ? LocalDate.parse(dateStr) : LocalDate.now();
         var absences = attendanceService.findAbsencesByStationOnDate(session.stationId(), date);
+        var lookups = lookupsFor(absences.stream().map(MemberAbsence::memberId).toList());
         ctx.json(absences.stream()
                 .map(a -> {
-                    var display = resolveMemberDisplay(a.memberId());
+                    var display = lookups.member(a.memberId());
                     return new AbsentMemberResponse(
                             a.memberId(),
                             display.name(),
@@ -1022,11 +998,6 @@ public class EventRegistrationRoutes implements Routes {
             LocalDate absentFrom,
             LocalDate absentUntil,
             String reason) {}
-
-    /**
-     * A member's resolved display name and identity for registration and absence responses.
-     */
-    private record MemberDisplay(String name, MemberIdentity identity) {}
 
     /**
      * What may go on this appointment's table.

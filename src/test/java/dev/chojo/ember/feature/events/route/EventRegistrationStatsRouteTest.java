@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.events.route;
 import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -117,7 +116,6 @@ class EventRegistrationStatsRouteTest {
                 mock(MemberNameResolver.class),
                 mock(GuardianPolicy.class),
                 mock(StationMemberRepository.class),
-                mock(AccountRepository.class),
                 mock(AttendanceService.class),
                 mock(MemberIdentityFactory.class),
                 mock(EventRegistrationFieldService.class),

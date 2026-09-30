@@ -9,7 +9,6 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -96,7 +95,6 @@ class RegistrationAnswerAuthorTest {
                 mock(MemberNameResolver.class),
                 new GuardianPolicy(memberRepository),
                 mock(StationMemberRepository.class),
-                mock(AccountRepository.class),
                 mock(AttendanceService.class),
                 mock(MemberIdentityFactory.class),
                 mock(EventRegistrationFieldService.class),

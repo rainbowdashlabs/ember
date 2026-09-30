@@ -52,7 +52,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
                 new DomainEventBus(Set.of()),
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo,
+                memberNameResolver,
                 silentCommentMentions());
         station = stationRepo.create("NewsBlockStation");
         account = accountRepo.create("news-blocks@test.com", "News", "Blocks");
@@ -330,7 +330,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
                 new DomainEventBus(Set.of()),
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo,
+                memberNameResolver,
                 silentCommentMentions());
     }
 

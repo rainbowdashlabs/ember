@@ -12,8 +12,6 @@ import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.event.events.NewsDeleted;
-import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.content.entity.CellConfig;
@@ -27,6 +25,7 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
@@ -72,7 +71,7 @@ public class NewsService {
     private final DomainEventBus eventBus;
     private final StationMemberRepository stationMemberRepository;
     private final MemberLookupService memberLookupService;
-    private final AccountRepository accountRepository;
+    private final MemberNameResolver memberNameResolver;
     private final CommentMentions mentions;
 
     @Inject
@@ -85,7 +84,7 @@ public class NewsService {
             DomainEventBus eventBus,
             StationMemberRepository stationMemberRepository,
             MemberLookupService memberLookupService,
-            AccountRepository accountRepository,
+            MemberNameResolver memberNameResolver,
             CommentMentions mentions) {
         this.newsRepository = newsRepository;
         this.blocks = blocks;
@@ -95,7 +94,7 @@ public class NewsService {
         this.eventBus = eventBus;
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
-        this.accountRepository = accountRepository;
+        this.memberNameResolver = memberNameResolver;
         this.mentions = mentions;
     }
 
@@ -667,11 +666,7 @@ public class NewsService {
         if (author == null) return "";
         return memberLookupService
                 .resolveId(stationId, author.memberUid())
-                .flatMap(memberId -> stationMemberRepository
-                        .findById(memberId)
-                        .filter(m -> m.accountId() != null)
-                        .flatMap(m -> accountRepository.findById(m.accountId()))
-                        .map(Account::fullName))
+                .map(memberNameResolver::called)
                 .orElse("");
     }
 

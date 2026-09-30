@@ -89,7 +89,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 eventBus,
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo,
+                memberNameResolver,
                 silentCommentMentions());
 
         service = new NewsFederationService(

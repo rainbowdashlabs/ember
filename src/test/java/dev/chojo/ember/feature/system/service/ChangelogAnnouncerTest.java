@@ -58,7 +58,7 @@ class ChangelogAnnouncerTest extends RepositoryTestBase {
                 new DomainEventBus(Set.of()),
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo,
+                memberNameResolver,
                 silentCommentMentions());
         changelog = new ChangelogService(new Updates());
         knownVersion = changelog.all("de").getFirst().version();

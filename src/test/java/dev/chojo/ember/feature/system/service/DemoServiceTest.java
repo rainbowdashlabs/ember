@@ -198,7 +198,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 noOpBus,
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo,
+                memberNameResolver,
                 silentCommentMentions());
         var inventoryService = new InventoryService(
                 inventoryRepo,

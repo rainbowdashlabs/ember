@@ -46,7 +46,7 @@ class NewsServiceTest extends RepositoryTestBase {
                 new DomainEventBus(Set.of()),
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo,
+                memberNameResolver,
                 silentCommentMentions());
         station = stationRepo.create("NewsStation");
         account = accountRepo.create("news-svc@test.com", "News", "Author");
@@ -394,7 +394,7 @@ class NewsServiceTest extends RepositoryTestBase {
                 },
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo,
+                memberNameResolver,
                 silentCommentMentions());
         var quiet = notifyingService.createSystem("Leise", "Nichts.", List.of(), true, false);
         int afterQuiet = published.size();
@@ -431,7 +431,7 @@ class NewsServiceTest extends RepositoryTestBase {
                 recordingBus,
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo,
+                memberNameResolver,
                 new CommentMentions(memberLookupService, recordingBus));
         var mentionedAccount = accountRepo.create("news-mentioned@test.com", "Mia", "Mentioned");
         var mentioned = stationMemberRepo.create(station.id(), mentionedAccount.id());

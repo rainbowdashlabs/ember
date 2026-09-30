@@ -107,6 +107,19 @@ public class StationMemberRepository {
     }
 
     /**
+     * Finds the station members with the given identifiers in one round trip, for a list that would
+     * otherwise read them one row at a time. Identifiers that no longer resolve are simply absent.
+     */
+    public List<StationMember> findByIds(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        return query("""
+                SELECT %s FROM station_member WHERE id = ANY(:ids);""", STATION_MEMBER_COLUMNS)
+                .single(call().bind("ids", ids, PostgreSqlTypes.INTEGER))
+                .map(StationMember.map())
+                .all();
+    }
+
+    /**
      * Finds a station member by its UUID within a station.
      */
     public Optional<StationMember> findByUid(int stationId, UUID uid) {
