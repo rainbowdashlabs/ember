@@ -132,16 +132,17 @@ class NotificationFeedRendererTest {
         when(notificationService.resolveNotificationUrl(any(), any(), any())).thenReturn(null);
         renderer = new NotificationFeedRenderer(
                 notificationService,
-                crudService,
-                eventFieldService,
-                mock(OccurrenceCalendar.class),
-                lostAndFoundService,
-                lendingService,
-                storageQuotaService,
-                inventoryService,
-                boardTicketService,
-                procedureService,
-                stationRepository);
+                stationRepository,
+                FeedContributors.all(
+                        crudService,
+                        eventFieldService,
+                        mock(OccurrenceCalendar.class),
+                        lostAndFoundService,
+                        lendingService,
+                        storageQuotaService,
+                        inventoryService,
+                        boardTicketService,
+                        procedureService));
     }
 
     private NotificationFeedRenderer.RenderContext richCtx() {
