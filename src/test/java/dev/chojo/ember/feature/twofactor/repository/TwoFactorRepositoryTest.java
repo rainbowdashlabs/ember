@@ -37,7 +37,6 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         assertEquals(accountId, factor.accountId());
         assertEquals(TwoFactorKind.TOTP, factor.kind());
         assertTrue(twoFactorRepo.isEnrolled(accountId));
-        assertEquals(1, twoFactorRepo.findActiveFactors(accountId).size());
         assertTrue(twoFactorRepo.findActiveFactor(accountId, TwoFactorKind.TOTP).isPresent());
 
         assertTrue(twoFactorRepo.touchFactorUsed(factor.id()));
@@ -48,14 +47,12 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         assertFalse(twoFactorRepo.disableFactor(factor.id()), "disabling a disabled factor reports no-op");
         assertFalse(twoFactorRepo.isEnrolled(accountId));
 
-        var second = twoFactorRepo.createFactor(accountId, TwoFactorKind.WEBAUTHN, "Key");
+        twoFactorRepo.createFactor(accountId, TwoFactorKind.WEBAUTHN, "Key");
         assertTrue(twoFactorRepo.disableAllFactors(accountId));
         assertFalse(twoFactorRepo.disableAllFactors(accountId));
         assertTrue(twoFactorRepo
                 .findActiveFactor(accountId, TwoFactorKind.WEBAUTHN)
                 .isEmpty());
-        // findWebAuthnByFactor for a non-WebAuthn factor returns empty
-        assertTrue(twoFactorRepo.findWebAuthnByFactor(second.id()).isEmpty());
     }
 
     @Test
@@ -90,8 +87,6 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         // markAll wipes the remaining row
         twoFactorRepo.markAllBackupCodesUsed(accountId);
         assertEquals(0, twoFactorRepo.countUnusedBackupCodes(factor.id()));
-
-        twoFactorRepo.deleteBackupCodes(factor.id());
         assertEquals(0, twoFactorRepo.findUnusedBackupCodes(factor.id()).size());
     }
 
@@ -125,22 +120,30 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         assertEquals(List.of("usb", "nfc"), stored.transports());
         assertEquals("packed", stored.attestationFormat());
 
-        assertTrue(twoFactorRepo.findWebAuthnByFactor(factor.id()).isPresent());
         assertEquals(1, twoFactorRepo.findActiveWebAuthnForAccount(accountId).size());
 
         twoFactorRepo.updateWebAuthnSignatureCounter(factor.id(), 5);
         assertEquals(
                 5L,
-                twoFactorRepo.findWebAuthnByFactor(factor.id()).orElseThrow().signatureCounter());
+                twoFactorRepo
+                        .findWebAuthnByCredentialId(credentialId)
+                        .orElseThrow()
+                        .signatureCounter());
         twoFactorRepo.updateWebAuthnSignatureCounter(factor.id(), 5);
         assertEquals(
                 5L,
-                twoFactorRepo.findWebAuthnByFactor(factor.id()).orElseThrow().signatureCounter(),
+                twoFactorRepo
+                        .findWebAuthnByCredentialId(credentialId)
+                        .orElseThrow()
+                        .signatureCounter(),
                 "counter must strictly increase");
         twoFactorRepo.updateWebAuthnSignatureCounter(factor.id(), 1);
         assertEquals(
                 5L,
-                twoFactorRepo.findWebAuthnByFactor(factor.id()).orElseThrow().signatureCounter(),
+                twoFactorRepo
+                        .findWebAuthnByCredentialId(credentialId)
+                        .orElseThrow()
+                        .signatureCounter(),
                 "lower counters must be rejected");
 
         assertArrayEquals(

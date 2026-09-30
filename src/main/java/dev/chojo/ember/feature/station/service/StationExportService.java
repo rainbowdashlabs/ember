@@ -355,22 +355,6 @@ public class StationExportService {
                 .first();
     }
 
-    public Optional<Integer> validateAndConsumeToken(String token) {
-        var result = query(
-                        "SELECT station_id FROM transfer_token WHERE token = :token AND used = FALSE AND expires_at > now();")
-                .single(call().bind("token", token))
-                .map(row -> row.getInt("station_id"))
-                .first();
-
-        if (result.isPresent()) {
-            query("UPDATE transfer_token SET used = TRUE WHERE token = :token;")
-                    .single(call().bind("token", token))
-                    .update();
-        }
-
-        return result;
-    }
-
     // -- Export --
 
     /**

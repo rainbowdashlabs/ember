@@ -64,15 +64,6 @@ public class TwoFactorRepository {
                 ACCOUNT_2FA_FACTOR_COLUMNS);
     }
 
-    public List<TwoFactorFactor> findActiveFactors(int accountId) {
-        return query(
-                        "SELECT %s FROM account_2fa_factor WHERE account_id = :account_id AND disabled_at IS NULL;",
-                        ACCOUNT_2FA_FACTOR_COLUMNS)
-                .single(call().bind("account_id", accountId))
-                .map(TwoFactorFactor.map())
-                .all();
-    }
-
     public Optional<TwoFactorFactor> findActiveFactor(int accountId, TwoFactorKind kind) {
         return query("""
                 SELECT %s FROM account_2fa_factor
@@ -285,13 +276,6 @@ public class TwoFactorRepository {
                 .first();
     }
 
-    public Optional<WebAuthnCredential> findWebAuthnByFactor(int factorId) {
-        return query("SELECT %s FROM account_2fa_webauthn WHERE factor_id = :factor_id;", ACCOUNT_2FA_WEBAUTHN_COLUMNS)
-                .single(call().bind("factor_id", factorId))
-                .map(WebAuthnCredential.map())
-                .first();
-    }
-
     public List<WebAuthnCredential> findActiveWebAuthnForAccount(int accountId) {
         return query("""
                 SELECT %s
@@ -398,12 +382,6 @@ public class TwoFactorRepository {
                 .single(call().bind("id", codeId).bind("ip", ip))
                 .update()
                 .changed();
-    }
-
-    public void deleteBackupCodes(int factorId) {
-        query("DELETE FROM account_2fa_backup_code WHERE factor_id = :factor_id;")
-                .single(call().bind("factor_id", factorId))
-                .delete();
     }
 
     public void markAllBackupCodesUsed(int accountId) {

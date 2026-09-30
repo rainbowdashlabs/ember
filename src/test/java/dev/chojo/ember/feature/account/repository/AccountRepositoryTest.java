@@ -9,7 +9,6 @@ import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
-import dev.chojo.ember.feature.account.entity.AccountExternalAuth;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.TokenType;
@@ -155,15 +154,19 @@ class AccountRepositoryTest extends RepositoryTestBase {
     @Order(10)
     void setAndCheckInstanceUserType() {
         accountRepo.setInstanceUserType(accountId, InstanceUserType.ADMINISTRATOR);
-        assertTrue(accountRepo.isAdministrator(accountId));
+        assertEquals(
+                InstanceUserType.ADMINISTRATOR,
+                accountRepo.findById(accountId).orElseThrow().instanceUserType());
         assertTrue(accountRepo.anyAdministratorExists());
     }
 
     @Test
     @Order(11)
-    void isAdministratorFalseAfterReset() {
+    void instanceUserTypeResets() {
         accountRepo.setInstanceUserType(accountId, InstanceUserType.USER);
-        assertFalse(accountRepo.isAdministrator(accountId));
+        assertEquals(
+                InstanceUserType.USER,
+                accountRepo.findById(accountId).orElseThrow().instanceUserType());
     }
 
     @Test
@@ -228,33 +231,6 @@ class AccountRepositoryTest extends RepositoryTestBase {
     void deleteCredential() {
         assertTrue(accountRepo.deleteCredential(accountId));
         assertTrue(accountRepo.findCredential(accountId).isEmpty());
-    }
-
-    // -- External Auth --
-
-    @Test
-    @Order(30)
-    void createAndFindExternalAuth() {
-        accountRepo.createExternalAuth(accountId, "google", "ext123");
-        var auths = accountRepo.findExternalAuths(accountId);
-        assertEquals(1, auths.size());
-        assertEquals("google", auths.getFirst().provider());
-    }
-
-    @Test
-    @Order(31)
-    void findExternalAuthByProviderAndId() {
-        assertTrue(accountRepo.findExternalAuth("google", "ext123").isPresent());
-        assertTrue(accountRepo.findExternalAuth("google", "nonexistent").isEmpty());
-    }
-
-    @Test
-    @Order(32)
-    void deleteExternalAuth() {
-        AccountExternalAuth auth =
-                accountRepo.findExternalAuth("google", "ext123").orElseThrow();
-        assertTrue(accountRepo.deleteExternalAuth(auth.id()));
-        assertTrue(accountRepo.findExternalAuths(accountId).isEmpty());
     }
 
     // -- Tokens --
@@ -463,18 +439,17 @@ class AccountRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(70)
-    void findAllConsentsEmpty() {
-        var consents = accountRepo.findAllConsents(accountId);
-        assertTrue(consents.isEmpty());
+    void findLatestConsentEmpty() {
+        assertTrue(accountRepo.findLatestConsent(accountId).isEmpty());
     }
 
     @Test
     @Order(71)
-    void recordAndFindAllConsents() {
+    void recordAndFindLatestConsent() {
         accountRepo.recordConsent(accountId, "1.0", "1.0", "1.0", "127.0.0.1", "DE", "TestAgent");
         accountRepo.recordConsent(accountId, "1.1", "1.1", "1.1", "127.0.0.1", "DE", "TestAgent");
-        var consents = accountRepo.findAllConsents(accountId);
-        assertEquals(2, consents.size());
+        assertEquals(
+                "1.1", accountRepo.findLatestConsent(accountId).orElseThrow().consentVersion());
     }
 
     // -- Delete account --

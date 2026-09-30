@@ -633,14 +633,6 @@ public class EmailService {
                 email, subject("reset-password", locale, null), loadTemplate("reset-password.html", locale, vars));
     }
 
-    public void sendEmailChangeConfirmation(String newEmail, String name, String token, String locale) {
-        String url = api.baseUrl() + "/confirm-email-change?token=" + token;
-        var vars = baseVars(name, null);
-        vars.put("url", url);
-        vars.put("newEmail", newEmail);
-        enqueueGlobal(newEmail, subject("email-change", locale, null), loadTemplate("email-change.html", locale, vars));
-    }
-
     public void sendStationDeletionConfirmation(String email, String name, String token, String locale) {
         String url = api.baseUrl() + "/api/v1/public/confirm-station-delete?token=" + token;
         var vars = baseVars(name, null);
@@ -805,52 +797,6 @@ public class EmailService {
                 email,
                 subject("waitlist-verify", locale, waitlistPlaceholders(stationName)),
                 loadTemplate("waitlist-verify.html", locale, vars));
-    }
-
-    /**
-     * Build and queue a station notification email.
-     */
-    public void sendStationNotification(
-            int stationId,
-            String recipientEmail,
-            String recipientName,
-            String stationName,
-            String logoUrl,
-            String locale,
-            String category,
-            String message) {
-        var vars = new HashMap<String, String>();
-        vars.put("name", recipientName);
-        vars.put("baseUrl", api.baseUrl());
-        vars.put("stationName", stationName);
-        vars.put("category", category);
-        vars.put("message", message);
-        vars.put("actionUrl", api.baseUrl() + "/station/dashboard/overview");
-        vars.put(
-                "logoHtml",
-                logoUrl != null && !logoUrl.isBlank()
-                        ? "<img src=\"" + logoUrl + "\" alt=\"\" style=\"height:40px;border-radius:4px\">"
-                        : "");
-
-        String subject = stationName + ": " + category;
-        String body = loadTemplate("station-notification.html", locale, vars);
-        queueStationEmail(stationId, recipientEmail, subject, body);
-    }
-
-    public int queueSize() {
-        return queueRepository.pendingCount();
-    }
-
-    // -- Station notification email builder --
-
-    public int sentTodayCount() {
-        return queueRepository.getDailyCount(LocalDate.now());
-    }
-
-    // -- Status --
-
-    public int remainingToday() {
-        return Math.max(0, mailing.dailySendLimit() - sentTodayCount());
     }
 
     public String loadTemplate(String name, String locale, Map<String, String> variables) {

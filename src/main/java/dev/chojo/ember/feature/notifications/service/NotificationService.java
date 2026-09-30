@@ -275,10 +275,6 @@ public class NotificationService {
         return null;
     }
 
-    private static boolean notBlank(String s) {
-        return s != null && !s.isBlank();
-    }
-
     /**
      * Creates a notification for a single member, if app notifications are enabled for that type.
      *
@@ -777,116 +773,6 @@ public class NotificationService {
     }
 
     /**
-     * Resolves a rich, localised multi-line body for syndication feeds. The first line is always
-     * the localised headline ({@link #resolveMessage}); subsequent lines surface the most useful
-     * params for each notification type (descriptions, previews, status, counts, etc.) so users
-     * understand the change without opening the app.
-     */
-    public String resolveFeedBody(String locale, Notification n) {
-        var lines = new ArrayList<String>();
-        lines.add(resolveMessage(locale, n));
-
-        var params = n.data().params();
-        switch (n.type()) {
-            case NEW_NEWS -> {
-                if (params instanceof NotificationParams.NewNews p && notBlank(p.preview())) lines.add(p.preview());
-            }
-            case NEWS_COMMENT -> {
-                if (params instanceof NotificationParams.NewsComment p && notBlank(p.preview())) lines.add(p.preview());
-            }
-            case NEW_EVENT -> {
-                if (params instanceof NotificationParams.NewEvent p && notBlank(p.eventDescription())) {
-                    lines.add(p.eventDescription());
-                }
-            }
-            case NEW_EVENTS_BATCH -> {
-                if (params instanceof NotificationParams.NewEventsBatch p && notBlank(p.eventPreview())) {
-                    lines.add(feedKv(locale, "events", p.eventPreview()));
-                }
-            }
-            case EVENT_REGISTRATION_STATUS -> {
-                if (params instanceof NotificationParams.EventRegistrationStatus p && notBlank(p.eventDescription())) {
-                    lines.add(p.eventDescription());
-                }
-            }
-            case EVENT_CANCELLED -> {
-                if (params instanceof NotificationParams.EventCancelled p && notBlank(p.reason())) {
-                    lines.add(feedKv(locale, "reason", p.reason()));
-                }
-            }
-            case EVENT_REMINDER -> {
-                if (params instanceof NotificationParams.EventReminder p) {
-                    if (p.eventDate() != null)
-                        lines.add(feedKv(locale, "eventDate", p.eventDate().toString()));
-                    lines.add(feedKv(locale, "daysBefore", String.valueOf(p.daysBefore())));
-                }
-            }
-            case MOVEMENT_RAISED -> {
-                if (params instanceof NotificationParams.MovementRaised p && notBlank(p.reason())) {
-                    lines.add(feedKv(locale, "reason", p.reason()));
-                }
-            }
-            case BOARD_TICKET_UPDATE -> {
-                if (params
-                        instanceof
-                        NotificationParams.BoardTicketUpdate(
-                                String boardName,
-                                String ticketKey,
-                                String changeDescription)) {
-                    if (notBlank(changeDescription)) lines.add(changeDescription);
-                    if (notBlank(ticketKey)) lines.add(feedKv(locale, "ticketKey", ticketKey));
-                    if (notBlank(boardName)) lines.add(feedKv(locale, "board", boardName));
-                }
-            }
-            case LOST_AND_FOUND_NEW -> {
-                if (params instanceof NotificationParams.LostAndFoundNew(String description) && notBlank(description)) {
-                    lines.add(description);
-                }
-            }
-            case LENDING_NEW_REQUEST -> {
-                if (params instanceof NotificationParams.LendingNewRequest p && notBlank(p.itemSummary())) {
-                    lines.add(feedKv(locale, "itemSummary", p.itemSummary()));
-                }
-            }
-            case PROCEDURE_ITEM_CHECKED -> {
-                if (params instanceof NotificationParams.ProcedureItemCheckedParams p) {
-                    if (notBlank(p.itemTitle())) lines.add(feedKv(locale, "item", p.itemTitle()));
-                    if (notBlank(p.checkedByName())) lines.add(feedKv(locale, "by", p.checkedByName()));
-                }
-            }
-            case EXPIRY_REMINDER -> {
-                if (params instanceof NotificationParams.ExpiryReminder p) {
-                    if (p.expiresOn() != null)
-                        lines.add(feedKv(locale, "expiresOn", p.expiresOn().toString()));
-                    if (notBlank(p.members())) lines.add(feedKv(locale, "members", p.members()));
-                }
-            }
-            case REGISTRATION_DEADLINE_EXPIRED -> {
-                if (params instanceof NotificationParams.RegistrationDeadlineExpired p) {
-                    lines.add(feedKv(locale, "pendingCount", String.valueOf(p.pendingCount())));
-                }
-            }
-            case STORAGE_WARNING -> {
-                if (params
-                        instanceof
-                        NotificationParams.StorageWarning(
-                                int usedPercent,
-                                String usedFormatted,
-                                String quotaFormatted)) {
-                    lines.add(feedKv(locale, "usedPercent", usedPercent + "%"));
-                    if (notBlank(usedFormatted)) lines.add(feedKv(locale, "used", usedFormatted));
-                    if (notBlank(quotaFormatted)) lines.add(feedKv(locale, "quota", quotaFormatted));
-                }
-            }
-            default -> {
-                String detail = resolveDetail(n);
-                if (notBlank(detail)) lines.add(detail);
-            }
-        }
-        return String.join("\n", lines);
-    }
-
-    /**
      * Resolves the deep link URL for a notification's target entity, or {@code null} when the
      * notification has no associated link. Unknown routes fall back to the dashboard.
      *
@@ -1345,9 +1231,5 @@ public class NotificationService {
         } else if (orig instanceof NotificationParams.LendingStatusChange p) {
             params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));
         }
-    }
-
-    private String feedKv(String locale, String labelKey, String value) {
-        return resolveLocalized(locale, "feedLabel", labelKey, null) + ": " + value;
     }
 }

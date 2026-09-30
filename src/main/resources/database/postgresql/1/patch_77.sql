@@ -74,3 +74,5 @@ ALTER TABLE ember_schema.station_mail_provider
 
 COMMENT ON COLUMN ember_schema.station_mail_provider.smtp_encryption
     IS 'How the connection to the relay is secured: IMPLICIT_TLS from the first byte, STARTTLS required before login, or NONE for an unencrypted relay chosen on purpose.';
+
+DROP TABLE IF EXISTS ember_schema.account_external_auth;

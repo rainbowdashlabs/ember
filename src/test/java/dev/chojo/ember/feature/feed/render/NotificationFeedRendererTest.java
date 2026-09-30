@@ -107,7 +107,6 @@ class NotificationFeedRendererTest {
         when(notificationService.resolveCategory(any(), any()))
                 .thenAnswer(inv -> "loc:" + ((NotificationType) inv.getArgument(1)).name());
         when(notificationService.resolveMessage(any(), any())).thenReturn("MESSAGE");
-        when(notificationService.resolveFeedBody(any(), any())).thenReturn("PLAINBODY");
         // Title resolver: produce a distinguishable per-type string so tests can assert that
         // the renderer actually calls resolveFeedTitle (not the old resolveCategory).
         when(notificationService.resolveFeedTitle(any(), any()))

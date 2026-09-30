@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:cbfe926a6eee2427d2f856e36ad63f956bec1702d62cd9a816d37bf00296e751",
-  "generatedAt": "2026-09-29T23:27:26Z",
+  "schemaHash": "sha256:86797d009e7748008e0013bce92ab063dcaa7e411d3f51a6bbc1e71746514ead",
+  "generatedAt": "2026-09-30T00:40:38Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -700,73 +700,6 @@
         ]
       },
       "description": "Password credentials for local authentication. One per account."
-    },
-    "account_external_auth": {
-      "feature": "account",
-      "scope": "USER",
-      "tableHash": "sha256:2973fb5007103401a794ac35b7299361a95a3fe00d6ff5f60f1ff614f695ad25",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Auto-generated primary key."
-        },
-        {
-          "name": "account_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "References the account this external auth belongs to."
-        },
-        {
-          "name": "provider",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "Identity provider name (e.g. google, github)."
-        },
-        {
-          "name": "external_id",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "Unique user ID from the external provider."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "account_id",
-          "refTable": "account",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "Account-scoped data, not part of a station export"
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "ACCOUNT_ID",
-            "column": "account_id"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "account_id",
-            "strategy": "CASCADE",
-            "reason": "FK ON DELETE CASCADE on account delete"
-          }
-        ]
-      },
-      "description": "OAuth/external identity provider links for an account."
     },
     "account_session": {
       "feature": "account",

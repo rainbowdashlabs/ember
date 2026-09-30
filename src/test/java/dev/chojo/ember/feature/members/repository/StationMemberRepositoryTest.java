@@ -127,13 +127,6 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(11)
-    void hasLoginPermission() {
-        assertTrue(stationMemberRepo.hasLoginPermission(account1.id()));
-        assertFalse(stationMemberRepo.hasLoginPermission(account2.id()));
-    }
-
-    @Test
     @Order(12)
     void revokePermission() {
         assertTrue(stationMemberRepo.revokePermission(memberId1, 1));

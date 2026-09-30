@@ -11,7 +11,6 @@ import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
-import dev.chojo.ember.feature.account.entity.AccountExternalAuth;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.TokenType;
@@ -44,7 +43,6 @@ public class AccountRepository {
             "id, uid, email, username, first_name, last_name, email_verified, instance_user_type, full_name, creating_station_id, setup_completed_at";
     private static final String CONSENT_COLUMNS =
             "id, account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent, consented_at";
-    private static final String EXTERNAL_AUTH_COLUMNS = "id, account_id, provider, external_id";
     private static final String TOKEN_COLUMNS =
             "id, account_id, token_hash, token_type, metadata, expires_at, created_at, confirmed_at";
     private static final String SESSION_COLUMNS =
@@ -359,15 +357,6 @@ public class AccountRepository {
                 .update();
     }
 
-    /**
-     * Checks whether an account is an instance administrator.
-     */
-    public boolean isAdministrator(int accountId) {
-        return SqlSupport.exists(
-                "SELECT 1 FROM account WHERE id = :id AND instance_user_type = 'ADMINISTRATOR';",
-                call().bind("id", accountId));
-    }
-
     // -- Instance User Type --
 
     /**
@@ -601,69 +590,6 @@ public class AccountRepository {
                 .single(call().bind("id", accountId))
                 .delete()
                 .changed();
-    }
-
-    // -- External Auth --
-
-    /**
-     * Retrieves all external authentication links for an account.
-     *
-     * @param accountId the account identifier
-     * @return list of external auth records
-     */
-    public List<AccountExternalAuth> findExternalAuths(int accountId) {
-        return query("SELECT %s FROM account_external_auth WHERE account_id = :id;", EXTERNAL_AUTH_COLUMNS)
-                .single(call().bind("id", accountId))
-                .map(AccountExternalAuth.map())
-                .all();
-    }
-
-    /**
-     * Finds an external authentication record by provider and external ID.
-     *
-     * @param provider   the provider name
-     * @param externalId the external user identifier
-     * @return the external auth record, or empty if not found
-     */
-    public Optional<AccountExternalAuth> findExternalAuth(String provider, String externalId) {
-        return query("""
-                SELECT %s
-                FROM account_external_auth
-                WHERE provider = :provider
-                  AND external_id = :external_id;""", EXTERNAL_AUTH_COLUMNS)
-                .single(call().bind("provider", provider).bind("external_id", externalId))
-                .map(AccountExternalAuth.map())
-                .first();
-    }
-
-    /**
-     * Creates a new external authentication link for an account.
-     *
-     * @param accountId  the account identifier
-     * @param provider   the provider name
-     * @param externalId the external user identifier
-     */
-    public void createExternalAuth(int accountId, String provider, String externalId) {
-        query("""
-                INSERT
-                INTO
-                    account_external_auth(account_id, provider, external_id)
-                VALUES
-                    (:account_id, :provider, :external_id);""")
-                .single(call().bind("account_id", accountId)
-                        .bind("provider", provider)
-                        .bind("external_id", externalId))
-                .insert();
-    }
-
-    /**
-     * Deletes an external authentication record by its identifier.
-     *
-     * @param id the external auth record identifier
-     * @return {@code true} if the record was deleted
-     */
-    public boolean deleteExternalAuth(int id) {
-        return SqlSupport.deleteById("account_external_auth", id);
     }
 
     // -- Tokens --
@@ -1276,23 +1202,6 @@ public class AccountRepository {
                 .single(call().bind("account_id", accountId))
                 .map(GdprConsent.map())
                 .first();
-    }
-
-    /**
-     * Retrieves all GDPR consent records for an account, ordered by most recent first.
-     *
-     * @param accountId the account identifier
-     * @return list of consent records
-     */
-    public List<GdprConsent> findAllConsents(int accountId) {
-        return query("""
-                SELECT %s
-                FROM gdpr_consent
-                WHERE account_id = :account_id
-                ORDER BY consented_at DESC;""", CONSENT_COLUMNS)
-                .single(call().bind("account_id", accountId))
-                .map(GdprConsent.map())
-                .all();
     }
 
     /**

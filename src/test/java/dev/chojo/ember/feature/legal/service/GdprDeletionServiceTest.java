@@ -101,8 +101,6 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
 
         service.deleteAccount(acc2.id());
 
-        // Account should be gone - engine deletes via DELETE_EXPLICIT on account.id and CASCADE
-        // takes out account_credential / account_session / account_external_auth / saved_filter.
         assertTrue(accountRepo.findById(acc2.id()).isEmpty());
         // The membership row is also gone (DELETE_EXPLICIT on station_member.id).
         assertTrue(stationMemberRepo.findById(member2.id()).isEmpty());

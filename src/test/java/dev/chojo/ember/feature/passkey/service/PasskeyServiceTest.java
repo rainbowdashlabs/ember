@@ -363,7 +363,10 @@ class PasskeyServiceTest extends RepositoryTestBase {
         var resolved = spiedService.finishSignIn(start.challengeToken(), PARSEABLE_ASSERTION, "ua", null);
         assertEquals(accountId, resolved.orElseThrow());
         assertNotNull(
-                twoFactorRepo.findActiveFactors(accountId).getFirst().lastUsedAt(),
+                twoFactorRepo
+                        .findActiveFactor(accountId, TwoFactorKind.WEBAUTHN)
+                        .orElseThrow()
+                        .lastUsedAt(),
                 "a sign-in must stamp the factor as used");
     }
 

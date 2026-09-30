@@ -625,23 +625,6 @@ public class StationMemberRepository {
                 .all();
     }
 
-    public boolean hasLoginPermission(int accountId) {
-        return SqlSupport.exists("""
-                SELECT 1
-                FROM station_member sm
-                WHERE sm.account_id = :account_id
-                  AND sm.former = FALSE
-                  AND (
-                    sm.user_type IN ('GUARDIAN', 'TEAM', 'MANAGER')
-                    OR exists (
-                        SELECT 1 FROM station_member_permission smp
-                        JOIN station_permission sp ON sp.id = smp.permission_id
-                        WHERE smp.member_id = sm.id AND sp.name = 'LOGIN'
-                    )
-                  )
-                LIMIT 1;""", call().bind("account_id", accountId));
-    }
-
     public List<Permission> findPermissions(int memberId) {
         return query("""
                 SELECT sp.id, sp.name

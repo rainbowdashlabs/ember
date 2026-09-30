@@ -142,9 +142,8 @@ class GenericTableExporterTest extends RepositoryTestBase {
 
     @Test
     void refusesIgnoredTableForTransfer() {
-        // 'account_external_auth' remains IGNORED for stationTransfer
         var ex = assertThrows(
-                IllegalStateException.class, () -> exporter.export("account_external_auth", station.id(), 0, 100));
+                IllegalStateException.class, () -> exporter.export("account_session", station.id(), 0, 100));
         assertTrue(ex.getMessage().contains("not TRACKED"));
     }
 }

@@ -148,12 +148,12 @@ class StationExportServiceTest extends RepositoryTestBase {
         assertNotNull(encoded);
         String rawToken = StationExportService.parseToken(encoded).orElseThrow().token();
 
-        var result = exportService.validateAndConsumeToken(rawToken);
+        var result = exportService.validateToken(rawToken);
         assertTrue(result.isPresent());
         assertEquals(stationId, result.get());
 
-        var secondUse = exportService.validateAndConsumeToken(rawToken);
-        assertTrue(secondUse.isEmpty());
+        exportService.markTransferComplete(stationId);
+        assertTrue(exportService.validateToken(rawToken).isEmpty());
     }
 
     @Test
@@ -168,15 +168,15 @@ class StationExportServiceTest extends RepositoryTestBase {
         var second = exportService.validateToken(rawToken);
         assertTrue(second.isPresent());
 
-        exportService.validateAndConsumeToken(rawToken);
-        var afterConsume = exportService.validateToken(rawToken);
-        assertTrue(afterConsume.isEmpty());
+        exportService.abortTransfer(stationId);
+        var afterAbort = exportService.validateToken(rawToken);
+        assertTrue(afterAbort.isEmpty());
     }
 
     @Test
     @Order(9)
     void invalidTokenFails() {
-        var result = exportService.validateAndConsumeToken("invalid-token-123");
+        var result = exportService.validateToken("invalid-token-123");
         assertTrue(result.isEmpty());
     }
 }
